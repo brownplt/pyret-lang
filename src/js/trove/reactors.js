@@ -346,6 +346,6 @@
     var internal = {
       setInteract: setInteract          
     };
-    return runtime.makeModuleReturn(values, types, internal);
+    return runtime.makeModuleReturn(values, types, {}, internal);
   }
 })

@@ -967,48 +967,58 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body
 end
 
 compiler-visitor = {
-  method a-module(self, l, answer, dvs, dts, provides, types, checks):
-    types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
-      compiled = compile-ann(ann.ann, self)
-      {
-        fields: cl-snoc(acc.fields, j-field(ann.name, compiled.exp)),
-        others: acc.others + compiled.other-stmts
-      }
+  method a-module(self, l, answer, dvs, dts, dms, checks):
+    types-obj-fields-others = for fold(acc from cl-empty, ann from dts):
+        acc + compile-ann(ann.typ, self).other-stmts
     end
 
-    compiled-provides = provides.visit(self)
     compiled-answer = answer.visit(self)
     compiled-checks = checks.visit(self)
+    fun defined-value-rhs(dv):
+      cases(N.ADefinedValue) dv:
+        | a-defined-value(_, _, value) => value.visit(self).exp
+        | a-defined-var(_, _, id) => j-id(js-id-of(id))
+      end
+    end
+    fun defined-type-rhs(dt):
+      compile-ann(dt.typ, self).exp
+    end
+    fun defined-module-rhs(dm):
+      j-str(dm.uri)
+    end
+    fun get-defined-obj(defined-things, get-rhs):
+      j-obj(
+        for CL.map_list(dth from defined-things):
+          j-field(dth.name, get-rhs(dth))
+        end)
+    end
+    fun get-provided-obj(defined-things, get-rhs):
+      provided = defined-things.filter(lam(x): option.is-some(x.provided-name) end)
+      j-obj(
+        for CL.map_list(dth from defined-things):
+          # TODO: I think this is correct, but the name might be what
+          #       needs to go here
+          j-field(dth.provided-name.value, get-rhs(dth))
+        end)
+    end
+    # Could be optimized into one pass over each defined-XXX, but this is clear
     c-exp(
       rt-method("makeObject", [clist:
           j-obj([clist:
               j-field("answer", compiled-answer.exp),
               j-field("namespace", NAMESPACE),
-              j-field("defined-values",
-                j-obj(
-                  for CL.map_list(dv from dvs):
-                    cases(N.ADefinedValue) dv:
-                      | a-defined-value(name, value) =>
-                        compiled-val = dv.value.visit(self).exp
-                        j-field(dv.name, compiled-val)
-                      | a-defined-var(name, id) =>
-                        j-field(dv.name, j-id(js-id-of(id)))
-                    end
-                  end)),
-              j-field("defined-types",
-                j-obj(
-                  for CL.map_list(dt from dts):
-                    compiled-ann = compile-ann(dt.typ, self).exp
-                    j-field(dt.name, compiled-ann)
-                  end)),
+              j-field("defined-values", get-defined-obj(dvs, defined-value-rhs)),
+              j-field("defined-types", get-defined-obj(dts, defined-type-rhs)),
+              j-field("defined-modules", get-defined-obj(dms, defined-module-rhs)),
               j-field("provide-plus-types",
                 rt-method("makeObject", [clist: j-obj([clist:
-                        j-field("values", compiled-provides.exp),
-                        j-field("types", j-obj(types-obj-fields.fields))
+                        j-field("values", get-provided-obj(dvs, defined-value-rhs)),
+                        j-field("types", get-provided-obj(dts, defined-type-rhs)),
+                        j-field("modules", get-provided-obj(dms, defined-module-rhs))
                     ])])),
               j-field("checks", compiled-checks.exp)])]),
-      types-obj-fields.others
-        + compiled-provides.other-stmts + compiled-answer.other-stmts + compiled-checks.other-stmts)
+      types-obj-fields-others
+        + compiled-answer.other-stmts + compiled-checks.other-stmts)
   end,
   method a-type-let(self, l, bind, body):
     cases(N.ATypeBind) bind:

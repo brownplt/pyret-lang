@@ -25,12 +25,15 @@
   provides: {},
   nativeRequires: [],
   theModule: function(runtime, namespace, uri /* intentionally blank */) {
+    // FIXME: This should maybe have its required modules in the module return?
     return runtime.makeObject({
       "defined-values": {},
       "defined-types": {},
+      "defined-modules": {},
       "provide-plus-types": runtime.makeObject({
         "values": runtime.makeObject({}),
-        "types": {}
+        "types": {},
+        "modules": {}
       })
     });
   }

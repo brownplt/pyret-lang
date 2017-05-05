@@ -78,6 +78,6 @@
     var types = {
       "S-Exp": typs["S-Exp"]
     };
-    return RUNTIME.makeModuleReturn(values, types);
+    return RUNTIME.makeModuleReturn(values, types, {});
   }
 })

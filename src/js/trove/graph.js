@@ -855,6 +855,7 @@
 
     return RUNTIME.makeObject({
       "provide-plus-types": RUNTIME.makeObject({
+        modules: RUNTIME.makeObject({}),
         types: RUNTIME.makeObject({
           Vertex: typeFromStructs("Vertex"),
           Edge: typeFromStructs("Edge"),

@@ -201,6 +201,6 @@
       makeTable: makeTable,
       openTable: openTable,
       isTable: isTable },
-      {});
+      {}, {});
   }
 })

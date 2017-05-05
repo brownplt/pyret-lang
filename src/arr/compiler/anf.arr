@@ -4,6 +4,7 @@ provide *
 provide-types *
 
 import ast as A
+import lists as L
 import srcloc as SL
 import file("ast-anf.arr") as N
 
@@ -157,24 +158,25 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
-    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+    | s-module(l, answer, dvs, dts, dms, checks) =>
       adts = for map(dt from dts):
-        N.a-defined-type(dt.name, dt.typ)
+        N.a-defined-type(dt.name, dt.provided-name, dt.typ)
+      end
+      adms = for map(dm from dms):
+        N.a-defined-module(dm.name, dm.provided-name, dm.mod)
       end
       needs-value = dvs.filter(A.is-s-defined-value)
       anf-name-rec(needs-value.map(_.value), "defined_value", lam(advs):
-        shadow advs = for map2(name from needs-value.map(_.name), adv from advs):
-          N.a-defined-value(name, adv)
+        shadow advs = for map2(nv from needs-value, adv from advs):
+          N.a-defined-value(nv.name, nv.provided-name, adv)
         end
         avars = dvs.filter(A.is-s-defined-var).map(lam(dvar):
-          N.a-defined-var(dvar.name, dvar.id)
+          N.a-defined-var(dvar.name, dvar.provided-name, dvar.id)
         end)
 
         anf-name(answer, "answer", lam(ans):
-            anf-name(provides, "provides", lam(provs):
-                anf-name(checks, "checks", lam(chks):
-                    k.apply(l, N.a-module(l, ans, advs + avars, adts, provs, types, chks))
-                  end)
+            anf-name(checks, "checks", lam(chks):
+                k.apply(l, N.a-module(l, ans, advs + avars, adts, adms, chks))
               end)
           end)
         

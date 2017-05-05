@@ -473,12 +473,12 @@ sharing:
 end
 
 data DefinedValue:
-  | s-defined-value(name :: String, value :: Expr) with:
+  | s-defined-value(name :: String, provided-name :: Option<Name>, value :: Expr) with:
     method label(self): "s-defined-value" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
-  | s-defined-var(name :: String, id :: Name) with:
+  | s-defined-var(name :: String, provided-name :: Option<Name>, id :: Name) with:
     method label(self): "s-defined-var" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id.toname()))
@@ -489,10 +489,21 @@ sharing:
   end
 end
 data DefinedType:
-  | s-defined-type(name :: String, typ :: Ann) with:
+  | s-defined-type(name :: String, provided-name :: Option<Name>, typ :: Ann) with:
     method label(self): "s-defined-type" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+data DefinedModule:
+  | s-defined-module(name :: String, provided-name :: Option<Name>, id :: Name, mod :: String) with:
+    method label(self): "s-defined-module" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id), PP.str(self.mod))
     end
 sharing:
   method visit(self, visitor):
@@ -510,9 +521,17 @@ data Expr:
       answer :: Expr,
       defined-values :: List<DefinedValue>,
       defined-types :: List<DefinedType>,
-      provided-values :: Expr,
-      provided-types :: List<AField>,
+      defined-modules :: List<DefinedModule>,
       checks :: Expr) with:
+    method provided-values(self):
+      lists.filter(option.is-some(_.provided-name), self.defined-values)
+    end,
+    method provided-types(self):
+      lists.filter(option.is-some(_.provided-name), self.defined-types)
+    end,
+    method provided-modules(self):
+      lists.filter(option.is-some(_.provided-name), self.defined-modules)
+    end,
     method label(self): "s-module" end,
     method tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
@@ -521,9 +540,8 @@ data Expr:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
             PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedModules"),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-modules))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | s-template(l :: Loc) with:
@@ -1766,18 +1784,21 @@ default-map-visitor = {
     s-atom(base, serial)
   end,
 
-  method s-defined-value(self, name, val):
-    s-defined-value(name, val.visit(self))
+  method s-defined-value(self, name, pname, val):
+    s-defined-value(name, pname, val.visit(self))
   end,
-  method s-defined-var(self, name, id):
-    s-defined-var(name, id.visit(self))
+  method s-defined-var(self, name, pname, id):
+    s-defined-var(name, pname, id.visit(self))
   end,
-  method s-defined-type(self, name, typ):
-    s-defined-type(name, typ.visit(self))
+  method s-defined-type(self, name, pname, typ):
+    s-defined-type(name, pname, typ.visit(self))
+  end,
+  method s-defined-module(self, name, pname, id, mod):
+    s-defined-module(name, pname, id.visit(self), mod)
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+  method s-module(self, l, answer, dv, dt, dm, checks):
+    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), dm.map(_.visit(self)), checks.visit(self))
   end,
 
   method s-program(self, l, _provide, provided-types, imports, body):
@@ -2301,18 +2322,21 @@ default-iter-visitor = {
     true
   end,
 
-  method s-defined-value(self, name, val):
+  method s-defined-value(self, name, pname, val):
     val.visit(self)
   end,
-  method s-defined-var(self, name, id):
+  method s-defined-var(self, name, pname, id):
     id.visit(self)
   end,
-  method s-defined-type(self, name, typ):
+  method s-defined-type(self, name, pname, typ):
     typ.visit(self)
   end,
+  method s-defined-module(self, name, pname, id, mod):
+    id.visit(self)
+  end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
+  method s-module(self, l, answer, dv, dt, dm, checks):
+    answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and lists.all(_.visit(self), dm) and checks.visit(self)
   end,
 
   method s-program(self, l, _provide, provided-types, imports, body):
@@ -2830,19 +2854,22 @@ dummy-loc-visitor = {
     s-atom(base, serial)
   end,
 
-  method s-defined-value(self, name, val):
-    s-defined-value(name, val.visit(self))
+  method s-defined-value(self, name, pname, val):
+    s-defined-value(name, pname, val.visit(self))
   end,
-  method s-defined-var(self, name, id):
-    s-defined-var(name, id.visit(self))
+  method s-defined-var(self, name, pname, id):
+    s-defined-var(name, pname, id.visit(self))
   end,
-  method s-defined-type(self, name, typ):
-    s-defined-type(name, typ.visit(self))
+  method s-defined-type(self, name, pname, typ):
+    s-defined-type(name, pname, typ.visit(self))
+  end,
+  method s-defined-module(self, name, pname, id, mod):
+    s-defined-module(name, pname, id.visit(self), mod)
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dv, dt, dm, checks):
     s-module(dummy-loc,
-      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), dm.map(_.visit(self)), checks.visit(self))
   end,
 
   method s-program(self, l, _provide, provided-types, imports, body):

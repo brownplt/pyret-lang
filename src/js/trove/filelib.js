@@ -180,7 +180,7 @@
       }, "list-files")
     };
 
-    return RUNTIME.makeModuleReturn(vals, {});
+    return RUNTIME.makeModuleReturn(vals, {}, {});
   }
 })
 

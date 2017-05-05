@@ -93,7 +93,7 @@
       "tojson": gf(vals, "tojson"),
       "to-json": gf(vals, "tojson")
     };
-    return RUNTIME.makeModuleReturn(values, {JSON: typs["JSON"]});
+    return RUNTIME.makeModuleReturn(values, {JSON: typs["JSON"]}, {});
 
   }
 })

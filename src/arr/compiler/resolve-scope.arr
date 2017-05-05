@@ -472,7 +472,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
         | else => A.s-block(l, desugar-toplevel-types([list: body]))
       end
       fun transform-toplevel-last(l2, last):
-        A.s-module(l2, last, empty, empty, prov, provt, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
+        A.s-module(l2, last, empty, empty, empty, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
@@ -507,7 +507,7 @@ where:
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
           ],
-          A.s-module(d, id("nothing"), empty, empty, id("x"), [list:], checks), false)
+          A.s-module(d, id("nothing"), empty, empty, empty, checks), false)
       )
   # NOTE(joe): Explicit nothing here because we expect to have
   # had append-nothing-if-necessary called
@@ -523,19 +523,239 @@ fun get-origin-loc(o):
 end
 
 # TODO (Philip): Use this or something like it in resolve-names
-data BoundName:
-  | bn-value(name-key :: String) with:
-    method key(self):
+# FIXME: Maybe not needed?
+data BoundName<a>:
+  | bn-value(name-key :: a) with:
+    method key(self :: BoundName<String>):
       self.name-key + "#value"
+    end,
+    method other-names(self):
+      # TODO: Remove
+      [list: bn-type(self.name-key), bn-module(self.name-key)]
+    end,
+    method map(self, f):
+      bn-value(f(self.name-key))
+    end,
+    method rename(self, s):
+      bn-value(s)
     end
-  | bn-type(name-key :: String) with:
-    method key(self):
+  | bn-type(name-key :: a) with:
+    method key(self :: BoundName<String>):
       self.name-key + "#type"
+    end,
+    method other-names(self):
+      # TODO: Remove
+      [list: bn-value(self.name-key), bn-module(self.name-key)]
+    end,
+    method map(self, f):
+      bn-type(f(self.name-key))
+    end,
+    method rename(self, s):
+      bn-type(s)
     end
-  | bn-module(name-key :: String) with:
-    method key(self):
+  | bn-module(name-key :: a) with:
+    method key(self :: BoundName<String>):
       self.name-key + "#module"
+    end,
+    method other-names(self):
+      # TODO: Remove
+      [list: bn-value(self.name-key), bn-type(self.name-key)]
+    end,
+    method map-name(self, f):
+      bn-module(f(self.name-key))
+    end,
+    method rename(self, s):
+      bn-module(s)
     end
+end
+
+data NamespacedBinding:
+  | nb-value(bind :: C.ValueBind) with:
+    method is-compatible-with(self, other :: NamespacedBinding):
+      is-nb-value(other)
+    end,
+    method info-str(self):
+      "<Value Binding: " + torepr(self.bind) + ">"
+    end
+  | nb-type(bind :: C.TypeBind) with:
+    method is-compatible-with(self, other :: NamespacedBinding):
+      is-nb-type(other)
+    end,
+    method info-str(self):
+      "<Type Binding: " + torepr(self.bind) + ">"
+    end
+  | nb-module(bind :: C.ModuleBind) with:
+    method is-compatible-with(self, other :: NamespacedBinding):
+      is-nb-module(other)
+    end,
+    method info-str(self):
+      "<Module Binding: " + torepr(self.bind) + ">"
+    end
+sharing:
+  method to-value-bind(self):
+    if is-nb-value(self):
+      some(self.bind)
+    else:
+      none
+    end
+  end,
+  method to-type-bind(self):
+    if is-nb-type(self):
+      some(self.bind)
+    else:
+      none
+    end
+  end,
+  method to-module-bind(self):
+    if is-nb-module(self):
+      some(self.bind)
+    else:
+      none
+    end
+  end
+end
+
+fun key-to-name(k :: String) -> BoundName:
+  length = k.length()
+  ask:
+    | (length > 6) and (string-substring(k, length - 6, length) == "#value") then:
+      bn-value(string-substring(k, length - 6, length))
+    | (length > 5) and (string-substring(k, length - 5, length) == "#type") then:
+      bn-type(string-substring(k, length - 5, length))
+    | (length > 7) and (string-substring(k, length - 7, length) == "#module") then:
+      bn-module(string-substring(k, length - 7, length))
+    | otherwise: raise("Key does not correspond to bound name: " + k)
+  end
+end
+
+data BoundNames:
+  | bound-name-set(dict :: SD.MutableStringDict) with:
+    method has-name-now(self, name :: BoundName):
+      self.dict.has-key-now(name.key())
+    end,
+    method has-any-name-now(self, name :: String):
+      self.dict.has-key-now(bn-value(name).key())
+      or self.dict.has-key-now(bn-type(name).key())
+      or self.dict.has-key-now(bn-module(name).key())
+    end,
+    method get-name-now(self, name :: BoundName):
+      self.dict.get-now(name.key())
+    end,
+    method get-any-name-now(self, name :: String):
+      self.dict.get-now(bn-value(name).key())
+        .or-else(self.dict.get-now(bn-type(name).key()))
+        .or-else(self.dict.get-now(bn-module(name).key()))
+    end,
+    method get-name-value-now(self, name :: BoundName):
+      self.dict.get-value-now(name.key())
+    end,
+    method set-name-now(self, name :: BoundName, val) block:
+      each(self.dict.remove-now, name.other-names().map(_.key()))
+      self.dict.set-now(name.key(), val)
+    end
+end
+
+data FrozenBoundNames:
+  | frozen-bound-name-set(dict :: SD.StringDict) with:
+    method has-name(self, name :: BoundName):
+      self.dict.has-key(name.key())
+    end,
+    method has-any-name(self, name :: String):
+      self.dict.has-key(bn-value(name).key())
+      or self.dict.has-key(bn-type(name).key())
+      or self.dict.has-key(bn-module(name).key())
+    end,
+    method get-name(self, name :: BoundName):
+      self.dict.get(name.key())
+    end,
+    method get-any-name(self, name :: String):
+      self.dict.get(bn-value(name).key())
+        .or-else(self.dict.get(bn-type(name).key()))
+        .or-else(self.dict.get(bn-module(name).key()))
+    end,
+    method get-name-value(self, name :: BoundName):
+      self.dict.get-value(name.key())
+    end,
+    method set-name(self, name :: BoundName, val):
+      frozen-bound-name-set(
+        fold(_.remove, self.dict, name.other-names().map(_.key()))
+          .set(name.key(), val))
+    end,
+    method handle-id(self, l, id):
+      cases(A.Name) id:
+        | s-atom(_, _) => id
+        | s-underscore(_) => id
+        | s-name(l2, s) =>
+          if self.has-name(bn-value(s)):
+            bn-value(self.get-name-value(bn-value(s)))
+          else if self.has-name(bn-module(s)):
+            bn-module(self.get-name-value(bn-module(s)))
+          else if self.has-name(bn-type(s)):
+            bn-type(self.get-name-value(bn-type(s)))
+          else:
+            names.s-global(s)
+          end
+        | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
+      end
+    end
+end
+
+fun split-bindings-now(bindings :: SD.MutableStringDict<NamespacedBinding>) -> {values :: SD.MutableStringDict<C.ValueBind>, types :: SD.MutableStringDict<C.TypeBind>, modules :: SD.MutableStringDict<C.ModuleBind>} block:
+  doc: ```Splits the given binding dictionary into bindings in different namespaces.```
+  ret = {
+    values: SD.make-mutable-string-dict(),
+    types: SD.make-mutable-string-dict(),
+    modules: SD.make-mutable-string-dict()
+  }
+  for each(key from bindings.keys-list-now()):
+    cases(NamespacedBinding) bindings.get-value-now(key):
+      | nb-value(bind) => ret.values.set-now(key, bind)
+      | nb-type(bind) => ret.types.set-now(key, bind)
+      | nb-module(bind) => ret.modules.set-now(key, bind)
+    end
+  end
+  ret
+end
+
+fun split-bindings(bindings :: SD.StringDict<NamespacedBinding>) -> {values :: SD.StringDict<C.ValueBind>, types :: SD.StringDict<C.TypeBind>, modules :: SD.StringDict<C.ModuleBind>} block:
+  doc: ```Splits the given binding dictionary into bindings in different namespaces.```
+  values = SD.make-mutable-string-dict()
+  types = SD.make-mutable-string-dict()
+  modules = SD.make-mutable-string-dict()
+  for each(key from bindings.keys-list()):
+    cases(NamespacedBinding) bindings.get-value(key):
+      | nb-value(bind) => values.set-now(key, bind)
+      | nb-type(bind) => types.set-now(key, bind)
+      | nb-module(bind) => modules.set-now(key, bind)
+    end
+  end
+  {
+    values: values.freeze(),
+    types: types.freeze(),
+    modules: modules.freeze()
+  }
+end
+
+fun safe-set-now(bindings :: SD.MutableStringDict, key :: String, bind :: NamespacedBinding) block:
+  cases(Option) bindings.get-now(key):
+    | none => nothing
+    | some(v) =>
+      when not(bind.is-compatible-with(v)):
+        raise("Incompatible bindings (did well-formedness fail?): " + v.info-str() + ", " + bind.info-str())
+      end
+  end
+  bindings.set-now(key, bind)
+end
+
+fun safe-set(bindings :: SD.StringDict, key :: String, bind :: NamespacedBinding) block:
+  cases(Option) bindings.get(key):
+    | none => nothing
+    | some(v) =>
+      when not(bind.is-compatible-with(v)):
+        raise("Incompatible bindings (did well-formedness fail?): " + v.info-str() + ", " + bind.info-str())
+      end
+  end
+  bindings.set(key, bind)
 end
 
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
@@ -549,17 +769,33 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         -  Contains no s-name in names
        ```
   var name-errors = [list: ]
+  bound-names = bound-name-set(SD.make-mutable-string-dict())
   bindings = SD.make-mutable-string-dict()
-  type-bindings = SD.make-mutable-string-dict()
   datatypes = SD.make-mutable-string-dict()
   module-bindings = SD.make-mutable-string-dict()
+  provided-values = SD.make-mutable-string-dict()
+  provided-types = SD.make-mutable-string-dict()
+  provided-modules = SD.make-mutable-string-dict()
+
+  fun wrap-binding(b) -> NamespacedBinding:
+    # This is admittedly a little gross, but it keeps the main visitor's
+    # code significantly cleaner.
+    ask:
+      | C.is-ValueBind(b) then: nb-value(b)
+      | C.is-TypeBind(b) then: nb-type(b)
+      | C.is-ModuleBind(b) then: nb-module(b)
+      | is-NamespacedBinding(b) then: b
+      | otherwise: raise("Invalid binding: " + torepr(b))
+    end
+  end
 
   fun make-anon-import-for(l, s, env, shadow bindings, b) block:
     atom = names.make-atom(s)
-    bindings.set-now(atom.key(), b(atom))
+    safe-set-now(bindings, atom.key(), wrap-binding(b(atom)))
     { atom: atom, env: env }
   end
   fun make-atom-for(name, is-shadowing, env, shadow bindings, make-binding):
+    shadow make-binding = lam(x): wrap-binding(make-binding(x)) end
     cases(A.Name) name block:
       | s-name(l, s) =>
         when env.has-key(s) and not(is-shadowing):
@@ -568,11 +804,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         end
         atom = names.make-atom(s)
         binding = make-binding(atom)
-        bindings.set-now(atom.key(), binding)
+        safe-set-now(bindings, atom.key(), binding)
         { atom: atom, env: env.set(s, binding) }
       | s-underscore(l) =>
         atom = names.make-atom("$underscore")
-        bindings.set-now(atom.key(), make-binding(atom))
+        safe-set-now(bindings, atom.key(), make-binding(atom))
         { atom: atom, env: env }
       # NOTE(joe): an s-atom is pre-resolved to all its uses, so no need to add
       # it or do any more work.
@@ -580,7 +816,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         binding = make-binding(name)
         # THIS LINE DOES NOTHING??
         # env.set(name.key(), binding)
-        bindings.set-now(name.key(), binding)
+        safe-set-now(bindings, name.key(), binding)
         { atom: name, env: env }
       | else => raise("Unexpected atom type: " + torepr(name))
     end
@@ -605,28 +841,24 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
             | v-var(t) =>
-              b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank, none)
+              b = nb-value(C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank, none))
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
-              b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank, none)
+              b = nb-value(C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank, none))
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
           end
       end
     end
-    acc.freeze()
-  end
-
-  fun type-env-from-env(initial :: C.CompileEnvironment) block:
-    acc = SD.make-mutable-string-dict()
     for each(name from initial.globals.types.keys-list()):
       mod-info = initial.mods.get-value(initial.globals.types.get-value(name))
-      acc.set-now(name, C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none))
+      acc.set-now(name, nb-type(C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)))
     end
     acc.freeze()
   end
+
 
   fun resolve-letrec-binds(visitor, binds):
     {env; atoms} = for fold(acc from { visitor.env; empty }, b from binds):
@@ -656,7 +888,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     cases(A.Name) id:
       | s-name(l2, s) =>
         if env.has-key(s):
-          env.get-value(s).atom
+          # TODO: extract nb-value
+          bind = env.get-value(s)
+          cases(Option) bind.to-value-bind() block:
+            | none =>
+              err = cases(NamespacedBinding) bind:
+                | nb-value(_) => raise("Should be impossible")
+                | nb-type(_) => C.type-id-used-as-value(l, id)
+                | nb-module(_) => C.module-id-used-as-value(l, id)
+              end
+              name-errors := link(err, name-errors)
+              bind.bind.atom
+            | some(vb) => vb.atom
+          end
         else:
           names.s-global(s)
         end
@@ -665,18 +909,27 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
     end
   end
-  fun handle-ann(l, type-env, id):
+  fun handle-ann(l, env, id):
     cases(A.Name) id:
       | s-name(_, s) =>
-        if type-env.has-key(s):
-          vb = type-env.get-value(s)
-          name = vb.atom
-          cases(C.TypeBinder) vb.binder block:
-            | tb-type-let => A.a-name(l, name)
-            | tb-type-var => A.a-type-var(l, name)
-            | tb-module(_, _) =>
-              name-errors := link(C.wf-err("Module name " + to-repr(id) + " used as a type name; maybe you mean to use one of the fields of that module with " + id.toname() + ".<some-type>", l), name-errors)
-              A.a-name(l, name)
+        if env.has-key(s):
+          bind = env.get-value(s)
+          cases(Option) bind.to-type-bind() block:
+            | none =>
+              err = cases(NamespacedBinding) bind:
+                | nb-type(_) => raise("Should be impossible")
+                | nb-value(_) => C.value-id-used-as-type(l, id)
+                | nb-module(_) => C.module-id-used-as-type(l, id)
+              end
+              name-errors := link(err, name-errors)
+              A.a-name(l, bind.bind.atom)
+            | some(tb) =>
+              name = tb.atom
+              cases(C.TypeBinder) tb.binder block:
+                | tb-type-let => A.a-name(l, name)
+                | tb-type-var => A.a-type-var(l, name)
+                | tb-module(_, _) => raise("Should be impossible")
+              end
           end
         else:
           A.a-name(l, names.s-type-global(s))
@@ -706,37 +959,54 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
   #
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
-    type-env: type-env-from-env(initial-env),
-    method s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
-      non-globals =
-        for filter(k from self.env.keys-list()):
-          vb = self.env.get-value(k)
-          C.is-bo-local(vb.origin)
-        end
-      defined-vals = for map(key from non-globals): 
-        vb = self.env.get-value(key)
+    method s-module(self, l, answer, _, _, _, checks) block: # provided-vals, provided-types
+      var defined-vals = empty
+      var defined-types = empty
+      var defined-modules = empty
+      fun get-defined-value(key, vb):
         atom = vb.atom
+        pname = if provided-values.has-key-now(key): some(key) else: none end
         cases(C.ValueBinder) vb.binder block:
-          | vb-let => A.s-defined-value(key, A.s-id(l, atom))
-          | vb-module(_, _) => A.s-defined-value(key, A.s-id(l, atom))
-          | vb-letrec => A.s-defined-value(key, A.s-id-letrec(l, atom, true))
-          | vb-var => A.s-defined-var(key, atom)
+          | vb-let => A.s-defined-value(key, pname, A.s-id(l, atom))
+          | vb-letrec => A.s-defined-value(key, pname, A.s-id-letrec(l, atom, true))
+          | vb-var => A.s-defined-var(key, pname, atom)
+          | vb-module(_, _) => raise("get-defined-value: Should be impossible (?) " + torepr(vb))
         end
       end
-      non-global-types =
-        for filter(k from self.type-env.keys-list()):
-          tb = self.type-env.get-value(k)
-          C.is-bo-local(tb.origin)
-        end
-      defined-types = for map(key from non-global-types):
-        atom = self.type-env.get-value(key).atom
-        A.s-defined-type(key, A.a-name(l, atom))
+      fun get-defined-type(key, tb):
+        atom = tb.atom
+        pname = if provided-types.has-key-now(key): some(key) else: none end
+        A.s-defined-type(key, pname, A.a-name(l, atom))
       end
-      A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
+      fun get-defined-module(key, mb):
+        atom = mb.atom
+        pname = if provided-modules.has-key-now(key): some(key) else: none end
+        cases(C.ModuleBinder) mb.binder:
+          | mb-module(dep, uri) => A.s-defined-module(key, pname, atom, dep.key())
+          | mb-resolved(_) => raise("get-defined-module: Should be impossible " + torepr(mb))
+        end
+      end
+      for each(k from self.env.keys-list()):
+        cases(NamespacedBinding) self.env.get-value(k):
+          | nb-value(vb) =>
+            when C.is-bo-local(vb.origin):
+              defined-vals := get-defined-value(k, vb) ^ link(_, defined-vals)
+            end
+          | nb-type(tb) =>
+            when C.is-bo-local(tb.origin):
+              defined-types := get-defined-type(k, tb) ^ link(_, defined-types)
+            end
+          | nb-module(mb) =>
+            when C.is-bo-local(mb.origin):
+              defined-modules := get-defined-module(k, mb) ^ link(_, defined-modules)
+            end
+        end
+      end
+      A.s-module(l, answer.visit(self), defined-vals, defined-types, defined-modules, checks.visit(self))
     end,
     method s-program(self, l, _provide, _provide-types, imports, body) block:
-      {imp-e; imp-te; imp-imps} = for fold(acc from { self.env; self.type-env; empty }, i from imports):
-        {imp-e; imp-te; imp-imps} = acc
+      {imp-e; imp-imps} = for fold(acc from { self.env; empty }, i from imports):
+        {imp-e; imp-imps} = acc
         cases(A.Import) i block:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             dep = U.import-to-dep(file)
@@ -748,18 +1018,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
             atom-env =
               if A.is-s-underscore(name-vals):
                 make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
-                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(dep, mod-info.from-uri), _, A.a-any(l2), none))
+                  C.module-bind(C.bo-local(name-vals.l), C.mb-module(dep, mod-info.from-uri), _))
               else:
                 make-atom-for(name-vals, false, imp-e, bindings,
-                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(dep, mod-info.from-uri), _, A.a-any(l2), none))
-              end
-            atom-env-t =
-              if A.is-s-underscore(name-types):
-                make-anon-import-for(name-types.l, "$import", imp-te, type-bindings,
-                  C.type-bind(C.bo-local(name-types.l), C.tb-module(dep, mod-info.from-uri), _, none))
-              else:
-                make-atom-for(name-types, false, imp-te, type-bindings,
-                  C.type-bind(C.bo-local(name-types.l), C.tb-module(dep, mod-info.from-uri), _, none))
+                  C.module-bind(C.bo-local(name-vals.l), C.mb-module(dep, mod-info.from-uri), _))
               end
             # TODO (Philip): How does this play with s-module-dot?
             {e; vn} = for fold(nv-v from {atom-env.env; empty}, v from vnames):
@@ -785,9 +1047,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
               end
               { v-atom-env.env; link(v-atom-env.atom, vn) }
             end
-            {te; tn} = for fold(nv-t from {atom-env-t.env; empty}, t from tnames):
+            {te; tn} = for fold(nv-t from {e; empty}, t from tnames):
               {te; tn} = nv-t
-              t-atom-env = make-atom-for(t, false, te, type-bindings,
+              t-atom-env = make-atom-for(t, false, te, bindings,
                 C.type-bind(C.bo-module(some(file), mod-info.from-uri), C.tb-type-let, _, none))
               { t-atom-env.env; link(t-atom-env.atom, tn) }
             end
@@ -796,18 +1058,32 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
               tn,
               file,
               atom-env.atom,
-              atom-env-t.atom)
-            { e; te; link(new-header, imp-imps) }
+              atom-env.atom) # atom-env-t.atom
+            { e; link(new-header, imp-imps) }
           | else => raise("Should only have s-import-complete when checking scope")
         end
       end
-      visit-body = body.visit(self.{env: imp-e, type-env: imp-te})
+
+      for each(field from p._provide.block.fields):
+        provided-values.set-now(field.name, none)
+      end
+
+      for each(ann from p.provided-types.ann):
+        provided-types.set-now(ann.name, none)
+      end
+
+      
+      visit-body = body.visit(self.{
+          env: imp-e
+        })
       var vals = nothing
       var typs = nothing
+      var mods = nothing
       visit-body.visit(A.default-iter-visitor.{
-        method s-module(_, _, _, dv, dt, pv, pt, _) block:
+        method s-module(_, _, _, dv, dt, dm, _) block:
           vals := dv
           typs := dt
+          mods := dm
           true
         end
       })
@@ -836,27 +1112,36 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       end
       get-dv-key = lam(dv):
         cases(A.DefinedValue) dv:
-          | s-defined-value(n, v) => v.id.key()
-          | s-defined-var(n, id) => id.key()
+          | s-defined-value(n, _, v) => v.id.key()
+          | s-defined-var(n, _, id) => id.key()
         end
       end
-      val-and-mod-defs = for lists.filter-map(dv from vals) block:
-        v-binding = bindings.get-value-now(get-dv-key(dv))
+      # FIXME: vb-module stuff should be obsolete now
+      val-defs = for lists.filter-map(dv from vals) block:
+        v-binding = bindings.get-value-now(get-dv-key(dv)).bind
         if provides-dict.has-key(dv.name):
           cases(C.ValueBinder) v-binding.binder:
             | vb-module(dep, _) =>
-              some(E.right(A.p-module(l, v-binding.atom, module-bindings.get-value-now(dep.key()))))
+              raise("Should be impossible")
             | else =>
-              some(E.left(A.p-value(l, v-binding.atom, v-binding.ann)))
+              some(A.p-value(l, v-binding.atom, v-binding.ann))
           end
         else:
           none
         end
-      end ^ L.partition(E.is-left, _)
-      val-defs = val-and-mod-defs.is-true.map(_.v)
-      module-provs = val-and-mod-defs.is-false.map(_.v)
+      end
+      # some(E.right(A.p-module(l, v-binding.atom, module-bindings.get-value-now(dep.key()))))
+      # Note that there is no 'provide-modules' syntax to process
+      module-defs = for lists.filter-map(dm from mods) block:
+        m-binding = bindings.get-value-now(dm.id.key()).bind
+        if provides-dict.has-key(dm.name):
+          some(A.p-module(l, m-binding.atom, module-bindings.get-value-now(dm.mod)))
+        else:
+          none
+        end
+      end
       alias-defs = for lists.filter-map(td from typs):
-        t-binding = type-bindings.get-value-now(td.typ.id.key())
+        t-binding = bindings.get-value-now(td.typ.id.key()).bind
         if provide-types-dict.has-key(td.name):
           some(A.p-alias(l, t-binding.atom, t-binding.atom, none))
         else:
@@ -876,36 +1161,36 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         val-defs,
         alias-defs,
         data-defs,
-        module-provs
+        module-defs
       )
 
       A.s-program(l, one-true-provide, A.s-provide-types-none(l), imp-imps.reverse(), visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
-      {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):
-        {e; te; bs} = acc
+      {e; bs} = for fold(acc from { self.env; empty }, b from binds):
+        {e; bs} = acc
         cases(A.TypeLetBind) b block:
           | s-type-bind(l2, name, params, ann) =>
-            shadow acc = { env: e, te: te }
-            new-types = for fold(shadow acc from {env: acc.te, atoms: empty}, param from params):
-              atom-env = make-atom-for(param, false, acc.env, type-bindings,
+            shadow acc = { env: e }
+            new-types = for fold(shadow acc from {env: acc.env, atoms: empty}, param from params):
+              atom-env = make-atom-for(param, false, acc.env, bindings,
                 C.type-bind(C.bo-local(l2), C.tb-type-var, _, none))
               { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
             end
-            atom-env = make-atom-for(name, false, acc.te, type-bindings,
+            atom-env = make-atom-for(name, false, acc.env, bindings,
               C.type-bind(C.bo-local(l2), C.tb-type-let, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: e, type-env: new-types.env}))
-            { e; atom-env.env; link(new-bind, bs) }
+            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: new-types.env}))
+            { atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
-            atom-env-t = make-atom-for(name, false, te, type-bindings,
+            atom-env-t = make-atom-for(name, false, e, bindings,
               C.type-bind(C.bo-local(l2), C.tb-type-let, _, none))
-            atom-env = make-atom-for(tname, false, e, bindings,
+            atom-env = make-atom-for(tname, false, atom-env-t.env, bindings,
               C.value-bind(C.bo-local(l2), C.vb-let, _, A.a-blank, none))
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
-            { atom-env.env; atom-env-t.env; link(new-bind, bs) }
+            { atom-env.env; link(new-bind, bs) }
         end
       end
-      visit-body = body.visit(self.{env: e, type-env: te})
+      visit-body = body.visit(self.{env: e})
       A.s-type-let-expr(l, bs.reverse(), visit-body, blocky)
     end,
     method s-let-expr(self, l, binds, body, blocky):
@@ -981,13 +1266,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     end,
     # s-singleton-cases-branch introduces no new bindings
     method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check) block:
-      {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
+      {env; atoms} = for fold(acc from { self.env; empty }, param from params):
         {env; atoms} = acc
-        atom-env = make-atom-for(param, false, env, type-bindings,
+        atom-env = make-atom-for(param, false, env, bindings,
           C.type-bind(C.bo-local(l), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: env}
+      with-params = self.{env: env}
       result = A.s-data-expr(l, name, namet, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), with-params.option(_check))
@@ -995,13 +1280,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       result
     end,
     method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky) block:
-     {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+     {ty-env; ty-atoms} = for fold(acc from {self.env; empty }, param from params):
         {env; atoms} = acc
-        atom-env = make-atom-for(param, false, env, type-bindings,
+        atom-env = make-atom-for(param, false, env, bindings,
           C.type-bind(C.bo-local(l), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: ty-env}
+      with-params = self.{env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
@@ -1023,14 +1308,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       A.s-lam(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
     method s-method(self, l, name, params, args, ann, doc, body, _check, blocky):
-      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+      {ty-env; ty-atoms} = for fold(acc from {self.env; empty }, param from params):
         {env; atoms} = acc
-        atom-env = make-atom-for(param, false, env, type-bindings,
+        atom-env = make-atom-for(param, false, env, bindings,
           C.type-bind(C.bo-local(param.l), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: ty-env}
-      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
+      with-params = self.{env: ty-env}
+      {env; atoms} = for fold(acc from { ty-env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
           C.value-bind(C.bo-local(a.l), C.vb-let, _, a.ann.visit(with-params), none))
@@ -1046,13 +1331,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       A.s-method(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, new-check, blocky)
     end,
     method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky):
-      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
+      {ty-env; ty-atoms} = for fold(acc from {self.env; empty }, param from params):
         {env; atoms} = acc
-        atom-env = make-atom-for(param, false, env, type-bindings,
+        atom-env = make-atom-for(param, false, env, bindings,
           C.type-bind(C.bo-local(l), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
-      with-params = self.{type-env: ty-env}
+      with-params = self.{env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
@@ -1091,18 +1376,24 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         | s-name(l2, s) =>
           cases(Option) self.env.get(s) block:
             | none =>
-              when self.type-env.has-key(s) block:
-                name-errors := link(C.type-id-used-as-value(l2, id), name-errors)
-              end
               A.s-id(l2, names.s-global(s))
-            | some(vb) =>
-              cases (C.ValueBinder) vb.binder block:
-                | vb-let => A.s-id(l2, vb.atom)
-                | vb-letrec => A.s-id-letrec(l2, vb.atom, false)
-                | vb-var => A.s-id-var(l2, vb.atom)
-                | vb-module(_, _) =>
-                  name-errors := link(C.wf-err("Module binding " + to-repr(id) + " used as value", l), name-errors)
-                  A.s-id(l2, vb.atom)
+            | some(bind) =>
+              cases (Option) bind.to-value-bind() block:
+                | none =>
+                  err = cases(NamespacedBinding) bind:
+                    | nb-value(_) => raise("Should be impossible")
+                    | nb-type(_) => C.type-id-used-as-value(l2, id)
+                    | nb-module(_) => C.module-id-used-as-value(l2, id)
+                  end
+                  name-errors := link(err, name-errors)
+                  A.s-id(l2, bind.bind.atom)
+                | some(vb) =>
+                  cases (C.ValueBinder) vb.binder:
+                    | vb-let => A.s-id(l2, vb.atom)
+                    | vb-letrec => A.s-id-letrec(l2, vb.atom, false)
+                    | vb-var => A.s-id-var(l2, vb.atom)
+                    | vb-module(_, _) => raise("s-id: should be impossible: " + torepr(bind))
+                  end
               end
           end
         | s-atom(_, _) => A.s-id(l, id)
@@ -1137,24 +1428,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
             | s-name(l3, s) =>
               cases(Option) self.env.get(s) block:
                 | none => none
-                | some(vb) =>
-                  cases (C.ValueBinder) vb.binder:
-                    | vb-module(_, _) => some(vb)
-                    | else => none
-                  end
+                | some(bind) =>
+                  bind.to-module-bind()
               end
             | else => none
           end
           cases(Option) maybe-module:
             | none => A.s-dot(l, obj.visit(self), field)
-            | some(vbm) => A.s-module-dot(l, vbm.atom, [list: field])
+            | some(mb) => A.s-module-dot(l, mb.atom, [list: field])
           end
         | else => A.s-dot(l, obj.visit(self), field)
       end
     end,
     method a-blank(self): A.a-blank end,
     method a-any(self, l): A.a-any(l) end,
-    method a-name(self, l, id): handle-ann(l, self.type-env, id) end,
+    method a-name(self, l, id): handle-ann(l, self.env, id) end,
     method a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
     method a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
     method a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
@@ -1163,14 +1451,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     method a-dot(self, l, obj, field) block:
       cases(A.Name) obj block:
         | s-name(nameloc, s) =>
-          cases(Option) self.type-env.get(s):
+          cases(Option) self.env.get(s):
             | none => A.a-dot(l, obj, field)
-            | some(tb) =>
-              cases(C.TypeBinder) tb.binder block:
-                | tb-module(_, _) => A.a-dot(l, tb.atom, field)
-                | else =>
-                  name-errors := link(C.type-id-used-in-dot-lookup(nameloc, tb.atom), name-errors)
-                  A.a-dot(l, tb.atom, field)
+            | some(bind) =>
+              cases(Option) bind.to-module-bind() block:
+                | none =>
+                  err = cases(NamespacedBinding) bind:
+                    | nb-module(_) => raise("Should be impossible")
+                      # FIXME: Maybe a better error could go here:
+                    | nb-value(_) => C.value-id-used-as-type(nameloc, bind.bind.atom)
+                    | nb-type(_) => C.type-id-used-in-dot-lookup(nameloc, bind.bind.atom)
+                  end
+                  name-errors := link(err, name-errors)
+                  A.a-dot(l, bind.bind.atom, field)
+                | some(mb) =>
+                  A.a-dot(l, mb.atom, field)
               end
           end
         | else =>
@@ -1202,24 +1497,25 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     end
   }
   visited = p.visit(names-visitor)
-  mod-binds = SD.make-mutable-string-dict()
-  val-binds = SD.make-mutable-string-dict()
-  for each(val from bindings.keys-list-now()):
-    v-binding = bindings.get-value-now(val)
-    cases(C.ValueBinder) v-binding.binder block:
-      | vb-module(dep, uri) =>
-        # print("\nModule binding: " + to-repr({val; v-binding}) + "...")
-        cases (Option) initial-env.mods.get(dep.key()):
-          | none => raise("Bug: Reference to an unknown module: " + to-repr(val) + " " + to-repr(v-binding))
-          | some(provides) =>
-            mod-binds.set-now(val, provides)
-        end
-      | else =>
-        # print("Value binding: " + to-repr({val; v-binding}) + "\n")
-        val-binds.set-now(val, v-binding)
-    end
-  end
-  C.resolved(visited, name-errors, val-binds, type-bindings, datatypes, mod-binds)
+  split-binds = split-bindings-now(bindings)
+  # mod-binds = SD.make-mutable-string-dict()
+  # val-binds = SD.make-mutable-string-dict()
+  # for each(val from bindings.keys-list-now()):
+  #   v-binding = bindings.get-value-now(val)
+  #   cases(C.ValueBinder) v-binding.binder block:
+  #     | vb-module(dep, uri) =>
+  #       # print("\nModule binding: " + to-repr({val; v-binding}) + "...")
+  #       cases (Option) initial-env.mods.get(dep.key()):
+  #         | none => raise("Bug: Reference to an unknown module: " + to-repr(val) + " " + to-repr(v-binding))
+  #         | some(provides) =>
+  #           mod-binds.set-now(val, provides)
+  #       end
+  #     | else =>
+  #       # print("Value binding: " + to-repr({val; v-binding}) + "\n")
+  #       val-binds.set-now(val, v-binding)
+  #   end
+  # end
+  C.resolved(visited, name-errors, split-binds.values, split-binds.types, datatypes, split-binds.modules)
 end
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
@@ -1265,9 +1561,23 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
             | else => none
           end
         end
-        fun traverse-path(cur-mod, path-elt) -> Option<E.Either<C.ValueExport, C.Provides>>:
-          cases(Option) cur-mod.values.get(path-elt):
+        fun module-to-provides(mb :: C.ModuleBinder) -> C.Provides:
+          cases(C.ModuleBinder) mb:
+            | mb-module(dep, _) =>
+              mod-info = initial-env.mods.get(dep.key())
+              cases(Option) mod-info:
+                | none =>
+                  raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(mb.binder) )
+                | some(info) => some(info)
+              end
+            | mb-resolved(provides) => provides
+          end
+        end
+        fun traverse-path(cur-mod, path-elt) -> Option<E.Either<C.ValueExport, C.Provides>> block:
+          print("Traversing uri " + torepr(cur-mod.from-uri) + " to find binding for " + torepr(path-elt) + "\n")
+          cases(Option) cur-mod.values.get(path-elt) block:
             | some(val) =>
+              print("found value binding: " + torepr(val) + "\n")
               # Maybe we should print a warning here, since
               # I don't think this should really ever resolve
               # to a module...
@@ -1297,16 +1607,18 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         when handle-id(base, l):
           add-error(C.unbound-id(A.s-id(l, base)))
         end
-        cases(Option) bindings.get-now(base.key()):
+        cases(Option) modules.get-now(base.key()):
           | none => true
-          | some(vb) =>
-            cases(C.ValueBinder) vb.binder:
-              | vb-module(dep, _) =>
+          | some(mb) =>
+            cases(C.ModuleBinder) mb.binder block:
+              | mb-module(dep, _) =>
                 mod-info = initial-env.mods.get(dep.key())
-                cases(Option) mod-info:
+                print("mod-info: " + torepr(mod-info) + "\n")
+                cases(Option) mod-info block:
                   | none =>
-                    raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(vb.binder) )
+                    raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(mb.binder) )
                   | some(info) =>
+                    print("path: " + torepr(path) + "\n")
                     for L.fold-while(acc from {info; [list: torepr(base)]}, path-elt from path):
                       {cur-info; path-so-far} = acc
                       cases(Option) traverse-path(cur-info, path-elt):

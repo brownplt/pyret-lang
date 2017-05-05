@@ -4820,12 +4820,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return m.jsmod;
       }
       else {
+        var modules;
+        if (thisRuntime.getField(m, "provide-plus-types").dict["modules"]) {
+          modules = thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "modules");
+        } else {
+          modules = thisRuntime.makeObject({});
+        }
         return makeObject({
           values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
           types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          modules: modules,
           internal: thisRuntime.getField(m, "provide-plus-types").dict['internal'],
           'defined-values': m.dict['defined-values'],
           'defined-types': m.dict['defined-types'],
+          'defined-modules': m.dict['defined-modules'],
         });
       }
     }
@@ -4912,13 +4920,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return new JSModuleReturn(jsmod);
     }
 
-    function makeModuleReturn(values, types, internal) {
+    function makeModuleReturn(values, types, modules, internal) {
       return thisRuntime.makeObject({
         "defined-values": values,
         "defined-types": types,
+        "defined-modules": modules || {},
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
           "types": types,
+          "modules": modules || {}, // FIXME: Should this be required?
           "internal": internal || {}
         })
       });
@@ -5533,9 +5543,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'globalModuleObject' : makeObject({
         "defined-values": runtimeNamespaceBindings,
         "defined-types": runtimeTypeBindings,
+        "defined-modules": {},
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
-          "types": runtimeTypeBindings
+          "types": runtimeTypeBindings,
+          "modules": makeObject({})
         })
       }),
 

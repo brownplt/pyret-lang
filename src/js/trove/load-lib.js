@@ -128,6 +128,15 @@
         return {};
       }
     }
+    function getModuleResultDefinedModules(mr) {
+      var rt = mr.val.runtime;
+      if(rt.hasField(mr.val.result.result, "defined-modules")) {
+        return mr.val.runtime.getField(mr.val.result.result, "defined-modules");
+      }
+      else {
+        return {};
+      }
+    }
     function getModuleResultValues(mr) {
       checkSuccess(mr, "values");
       return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "values").dict;
@@ -135,6 +144,10 @@
     function getModuleResultTypes(mr) {
       checkSuccess(mr, "types");
       return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "types");
+    }
+    function getModuleResultModules(mr) {
+      checkSuccess(mr, "modules");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "modules");
     }
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
@@ -310,20 +323,24 @@
     return runtime.makeObject({
       'defined-values': vals,
       'defined-types': types,
+      'defined-modules': {},
       "provide-plus-types": runtime.makeObject({
         values: runtime.makeObject(vals),
         types: types,
+        modules: {},
         internal: {
           makeRealm: makeRealm,
           getModuleResultAnswer: getModuleResultAnswer,
           getModuleResultChecks: getModuleResultChecks,
           getModuleResultTypes: getModuleResultTypes,
           getModuleResultValues: getModuleResultValues,
+          getModuleResultModules: getModuleResultModules,
           getModuleResultRuntime: getModuleResultRuntime,
           getModuleResultResult: getModuleResultResult,
           getModuleResultNamespace: getModuleResultNamespace,
           getModuleResultDefinedTypes: getModuleResultDefinedTypes,
-          getModuleResultDefinedValues: getModuleResultDefinedValues
+          getModuleResultDefinedValues: getModuleResultDefinedValues,
+          getModuleResultDefinedModules: getModuleResultDefinedModules
         }
       })
     });

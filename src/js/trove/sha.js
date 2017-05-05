@@ -19,6 +19,7 @@
             return hash.digest('hex');
           }, "sha256")
         },
+        {},
         {});
   }
 })

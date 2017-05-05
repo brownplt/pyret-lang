@@ -15,6 +15,7 @@
           return runtime.ffi.makeList(runtime.getParam("command-line-arguments").map(runtime.makeString));
           }, "command-line-arguments"),
       },
+      {},
       {});
   }
 })

@@ -80,6 +80,6 @@
     }
     return runtime.makeModuleReturn({
       "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone")
-    }, {})
+    }, {}, {})
   }
 })

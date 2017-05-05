@@ -1368,6 +1368,6 @@
 
     return RUNTIME.makeModuleReturn({
           'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse")
-        }, {});
+          }, {}, {});
   }
 })

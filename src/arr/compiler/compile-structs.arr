@@ -5,6 +5,7 @@ provide-types *
 import ast as A
 import srcloc as SL
 import error-display as ED
+import valueskeleton as VS
 import string-dict as SD
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
@@ -89,6 +90,17 @@ data TypeBind:
       ann :: Option<A.Ann>)
 end
 
+data ModuleBinder:
+  | mb-module(dep :: Dependency, uri :: URI)
+  | mb-resolved(provides :: Provides)
+end
+
+data ModuleBind:
+  | module-bind(
+      origin :: BindOrigin,
+      binder :: ModuleBinder,
+      atom :: A.Name)
+end
 #|
 data ScopeBinding:
   | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
@@ -114,7 +126,7 @@ data NameResolution:
       type-bindings :: SD.MutableStringDict<TypeBind>,
       datatypes :: SD.MutableStringDict<A.Expr>,
       # TODO (Philip): This field might not be needed after all
-      modules :: SD.MutableStringDict<Provides>)
+      modules :: SD.MutableStringDict<ModuleBind>)
 end
 
 # Used to describe when additional module imports should be added to a
@@ -277,7 +289,7 @@ fun provides-from-raw-provides(uri, raw):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
   mdict = for fold(mdict from SD.make-string-dict(), m from raw.modules):
-    mdict.set(m.name, provides-from-raw-provides(...))
+    mdict.set(m.name, m-uri(m.uri))
   end
   provides(uri, vdict, adict, ddict, mdict)
 end
@@ -938,6 +950,46 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text(", but it does not refer to a module.")]]
     end
+  | value-id-used-as-type(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a type.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a value.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a type at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a value.")]]
+    end
+  | module-id-used-as-value(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a value.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a module.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a value at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a module.")]]
+    end
   | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -957,6 +1009,33 @@ data CompileError:
           ED.text(" is used as a value at "),
           draw-and-highlight(self.loc),
           ED.text(", but it is defined as a type.")]]
+    end
+  | module-id-used-as-type(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a type.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a module.")],
+        [ED.para:
+          ED.text("Maybe you mean to use one of the fields of that module with "),
+          ED.text(tostring(self.name)),
+          ED.text(".<some-type>")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a type at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a module. "),
+          ED.text("Maybe you mean to use one of the fields of that module with "),
+          ED.text(tostring(self.name)),
+          ED.text(".<some-type>")]]
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):

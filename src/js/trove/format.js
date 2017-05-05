@@ -96,7 +96,7 @@
       }, "format"),
     };
 
-    return RUNTIME.makeModuleReturn(vals, {});
+      return RUNTIME.makeModuleReturn(vals, {}, {});
    
   }
 })
