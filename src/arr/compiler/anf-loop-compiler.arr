@@ -995,7 +995,7 @@ compiler-visitor = {
     fun get-provided-obj(defined-things, get-rhs):
       provided = defined-things.filter(lam(x): option.is-some(x.provided-name) end)
       j-obj(
-        for CL.map_list(dth from defined-things):
+        for CL.map_list(dth from provided):
           # TODO: I think this is correct, but the name might be what
           #       needs to go here
           j-field(dth.provided-name.value, get-rhs(dth))

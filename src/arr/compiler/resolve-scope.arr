@@ -799,7 +799,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     cases(A.Name) name block:
       | s-name(l, s) =>
         when env.has-key(s) and not(is-shadowing):
-          old-loc = get-origin-loc(env.get-value(s).origin)
+          old-loc = get-origin-loc(env.get-value(s).bind.origin)
           name-errors := link(C.shadow-id(s, l, old-loc), name-errors)
         end
         atom = names.make-atom(s)
@@ -1357,7 +1357,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         | s-name(l2, s) =>
           if self.env.has-key(s):
             bind = self.env.get-value(s)
-            A.s-assign(l, bind.atom, expr.visit(self))
+            cases(Option) bind.to-value-bind() block:
+              | none =>
+                err = cases(NamespacedBinding) bind:
+                  | nb-value(_) => raise("Should be impossible")
+                  | nb-type(_) => C.type-id-used-as-value(l2, id)
+                  | nb-module(_) => C.module-id-used-as-value(l2, id)
+                end
+                name-errors := link(err, name-errors)
+                A.s-assign(l, bind.bind.atom, expr.visit(self))
+              | some(vbind) =>
+                A.s-assign(l, vbind.atom, expr.visit(self))
+            end
             # This used to examine bind in more detail, and raise an error if it wasn't a var-bind
             # but that's better suited for a later pass
           else:
@@ -1574,17 +1585,14 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
           end
         end
         fun traverse-path(cur-mod, path-elt) -> Option<E.Either<C.ValueExport, C.Provides>> block:
-          print("Traversing uri " + torepr(cur-mod.from-uri) + " to find binding for " + torepr(path-elt) + "\n")
+          #print("Traversing uri " + torepr(cur-mod.from-uri) + " to find binding for " + torepr(path-elt) + "\n")
           cases(Option) cur-mod.values.get(path-elt) block:
             | some(val) =>
-              print("found value binding: " + torepr(val) + "\n")
+              #print("found value binding: " + torepr(val) + "\n")
               # Maybe we should print a warning here, since
               # I don't think this should really ever resolve
               # to a module...
-              cases(Option) value-to-module(val.binder):
-                | none => some(E.left(val))
-                | some(mod-info) => some(E.right(mod-info))
-              end
+              some(E.left(val))
             | none =>
               cases(Option) cur-mod.modules.get(path-elt):
                 | none => none
@@ -1613,12 +1621,10 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
             cases(C.ModuleBinder) mb.binder block:
               | mb-module(dep, _) =>
                 mod-info = initial-env.mods.get(dep.key())
-                print("mod-info: " + torepr(mod-info) + "\n")
                 cases(Option) mod-info block:
                   | none =>
                     raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(mb.binder) )
                   | some(info) =>
-                    print("path: " + torepr(path) + "\n")
                     for L.fold-while(acc from {info; [list: torepr(base)]}, path-elt from path):
                       {cur-info; path-so-far} = acc
                       cases(Option) traverse-path(cur-info, path-elt):

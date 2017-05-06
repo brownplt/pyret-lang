@@ -869,7 +869,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
       all-names = dv.map(lam(v):
           cases(ADefinedValue) v:
             | a-defined-value(_, _, value) => value
-            | a-defined-var(_, _, id) => a-id-var(l, id)
+            | a-defined-var(_, _, id) => a-id(l, id) # not a-id-var to make freevars-v-acc happy
           end
         end) # dm?
       freevars-v-acc(ans,

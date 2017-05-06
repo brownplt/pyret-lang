@@ -274,7 +274,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         cases(A.Name) id:
           | s-type-global(name) =>
             cases(Option<String>) compile-env.globals.types.get(name):
-              | none => raise("Name not found in globals.types: " + name)
+              | none => raise("Name not found in globals.types: " + name + "\n\tglobals.types = " + torepr(compile-env.globals.types))
               | some(key) =>
                 cases(Option<CS.Provides>) compile-env.mods.get(key):
                   | none => raise("Module not found in compile-env.mods: " + key
