@@ -119,16 +119,15 @@
 
       function getRowContentAsGetter(headers, raw_row) {
         var obj = getRowContentAsRecordFromHeaders(headers, raw_row);
-        return runtime.makeObject({
-          "get-value": runtime.makeFunction(function(key) {
+        obj["get-value"] = runtime.makeFunction(function(key) {
             if(obj.hasOwnProperty(key)) {
               return obj[key];
             }
             else {
               runtime.ffi.throwMessageException("Not found: " + key);
             }
-          })
-        });
+          });
+        return runtime.makeObject(obj);
       }
 
       function order(direction, colname) {
@@ -269,7 +268,7 @@
         'get-row': runtime.makeMethod1(function(_, row_index) {
           ffi.checkArity(2, arguments, "get-row");
           runtime.checkArrayIndex("get-row", rows, row_index);
-          return runtime.makeObject(getRowAsRecord(row_index));
+          return getRowContentAsGetter(headers, rows[row_index]);
         }),
         
         'length': runtime.makeMethod0(function(_) {
