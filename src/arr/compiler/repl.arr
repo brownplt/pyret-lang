@@ -39,7 +39,7 @@ end
 
 fun get-special-imports(program):
   cases(A.Program) program:
-    | s-program(l, _, _, imports, _) =>
+    | s-program(l, _, _, _, imports, _) =>
       special-imps = for filter(i from imports):
         A.is-s-special-import(i.file)
       end
@@ -62,24 +62,35 @@ fun get-defined-ids(p, imports, body):
       | s-import(_, _, name) => names
       | s-import-fields(_, imp-names, _) => names + imp-names
       | s-include(_, _) => names
+      | s-import-types(_, _, _, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
   ids-plus-import-names = import-names + ids
   type-ids = A.block-type-ids(body)
-  import-type-names = for fold(names from empty, imp from imports):
+  import-types = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
-      | s-import(_, _, name) => names
-      | s-import-fields(_, imp-names, _) => names
+      | s-import(_, _, _) => names
+      | s-import-fields(_, _, _) => names
+      | s-import-types(_, _, _, tname) => link(tname, names)
       | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
-  type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
+  imported-module-names = for fold(names from empty, imp from imports):
+    cases(A.Import) imp:
+      | s-import(_, _, name) => link(name, names)
+      | s-import-fields(_, _, _) => names
+      | s-include(_, _) => names
+      | else => raise("Unknown import type: " + torepr(imp))
+    end
+  end
+  type-ids-plus-import-names = type-ids.map(_.name) + import-types
   {
     imports: imports,
     ids: ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end),
-    type-ids: type-ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end)
+    type-ids: type-ids.filter(lam(id): not(A.is-s-underscore(id)) end),
+    module-ids: imported-module-names.filter(lam(id): not(A.is-s-underscore(id)) end)
   }
 end
 
@@ -93,13 +104,15 @@ end
 
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
-    | s-program(l, _, _, imports, body) =>
+    | s-program(l, _, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
+      repl-mod-provide = for map(n from defined-ids.module-ids): df(l, n) end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
+          A.s-provide-modules(l, A.s-obj(l, repl-mod-provide)),
           defined-ids.imports,
           body)
   end
@@ -112,19 +125,24 @@ end
 fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
-    | s-program(l, _, _, imports, body) =>
+    | s-program(l, _, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
+      repl-mod-provide = for map(n from defined-ids.module-ids): df(l, n) end
       env-provide = for fold(flds from repl-provide, name from globals.values.keys-list()):
         link(df(l, A.s-name(l, name)), flds)
       end
       env-type-provide = for fold(flds from repl-type-provide, name from globals.types.keys-list()):
         link(af(l, A.s-name(l, name)), flds)
       end
+      env-mod-provide = for fold(flds from repl-mod-provide, name from globals.modules.keys-list()):
+        link(df(l, A.s-name(l, name)), flds)
+      end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
           A.s-provide-types(l, env-type-provide),
+          A.s-provide-modules(l, A.s-obj(l, env-mod-provide)),
           defined-ids.imports,
           body)
   end
@@ -149,7 +167,7 @@ end
 
 fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: String, g :: CS.Globals) -> {new-globals:: CS.Globals, new-extras:: List<CS.ExtraImport>}:
   cases(A.Program) CL.get-ast(l.get-module(), l.uri()):
-    | s-program(_, _, _, imports, _) =>
+    | s-program(_, _, _, _, imports, _) =>
       for fold(res from {new-globals: g, new-extras: empty}, i from imports):
         shadow g = res.new-globals
         cases(A.Import) RN.expand-import(i, env):
@@ -223,6 +241,7 @@ fun make-repl<a>(
       ms.set(provided-name, dep.key())
     end
     globals := CS.globals(new-vals, new-types, new-modules)
+    # print("New globals following " + torepr(dep.key()) + ": " + torepr(globals) + "\n")
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)

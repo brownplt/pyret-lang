@@ -1037,6 +1037,26 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text(", but it is defined as a type.")]]
     end
+  | type-id-used-as-module(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a module.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a type.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a module at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a type.")]]
+    end
   | module-id-used-as-type(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
       [ED.error:

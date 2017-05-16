@@ -340,7 +340,7 @@ end
 var last-visited-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, provide-modules, imports, body):
     raise("Impossible")
   end,
   method s-special-import(self, l, kind, args) block:
@@ -806,12 +806,12 @@ well-formed-visitor = A.default-iter-visitor.{
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, _provide-modules, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
       | else => body.visit(self)
     end
-    ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
+    ok-body and (_provide.visit(self)) and _provide-types.visit(self) and _provide-modules.visit(self) and (lists.all(_.visit(self), imports))
   end,
   method s-type(self, l, name, params, ann):
     ann.visit(well-formed-visitor)

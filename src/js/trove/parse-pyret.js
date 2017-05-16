@@ -129,11 +129,12 @@
           var prelude = tr(node.kids[0]);
           var body = tr(node.kids[1]);
           return RUNTIME.getField(ast, 's-program')
-            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.provideModules, prelude.imports, body);
         },
         'prelude': function(node) {
           var provide;
           var provideTypes;
+          var provideModules;
           var kids = node.kids.slice(0);
           if (kids.length > 0 && kids[0].name === "provide-stmt") {
             provide = tr(kids.shift());
@@ -145,9 +146,12 @@
           } else {
             provideTypes = RUNTIME.getField(ast, 's-provide-types-none').app(pos(node.pos));
           }
+          // No syntax support for this right now
+          provideModules = RUNTIME.getField(ast, 's-provide-modules-none').app(pos(node.pos));
           return {
             provide : provide,
             provideTypes : provideTypes,
+            provideModules : provideModules,
             imports : makeListTr(kids)
           };
         },

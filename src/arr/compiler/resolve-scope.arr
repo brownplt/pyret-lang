@@ -63,6 +63,31 @@ fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr) -> A.ProvideTypes:
   end
 end
 
+fun resolve-module-provide(p :: A.ProvideModules, imports :: List<A.Import>) -> A.ProvideModules:
+  cases(A.ProvideModules) p:
+    | s-provide-modules-none(l) =>
+      A.s-provide-modules(l, A.s-obj(l, [list:]))
+    | s-provide-modules-all(l) =>
+      mnames = for fold(acc from [list:], i from imports):
+        cases(A.Import) i:
+          | s-import(_, _, name) =>
+            fld = A.s-data-field(l, name.tosourcestring(), A.s-id(l, name))
+            link(fld, acc)
+          | s-import-complete(_, _, _, _, name, _) =>
+            if A.is-s-underscore(name):
+              acc
+            else:
+              fld = A.s-data-field(l, name.tosourcestring(), A.s-id(l, name))
+              link(fld, acc)
+            end
+          | else => acc
+        end
+      end
+      A.s-provide-modules(l, A.s-obj(l, mnames))
+    | else => p
+  end
+end
+
 is-s-import-complete = A.is-s-import-complete
 
 fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
@@ -451,7 +476,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
          - contains no s-let, s-var, s-data, s-tuple-bind
        ```
   cases(A.Program) prog:
-    | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
+    | s-program(l, _provide-raw, provide-types-raw, provide-modules-raw, imports-raw, body) =>
       imports = imports-raw.map(lam(i): expand-import(i, env) end)
       str = A.s-str(l, _)
       prov = cases(A.Provide) resolve-provide(_provide-raw, body):
@@ -492,7 +517,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
         | else => raise("Impossible")
       end
 
-      A.s-program(l, resolve-provide(_provide-raw, body), resolve-type-provide(provide-types-raw, body),
+      A.s-program(l, resolve-provide(_provide-raw, body), resolve-type-provide(provide-types-raw, body), resolve-module-provide(provide-modules-raw, imports),
         imports, with-provides.visit(desugar-scope-visitor))
   end
   
@@ -503,7 +528,7 @@ where:
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
   ds = lam(prog): desugar-scope(prog, C.standard-builtins).visit(A.dummy-loc-visitor) end
-  compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
+  compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), A.s-provide-modules-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
           ],
@@ -574,6 +599,13 @@ data NamespacedBinding:
     method is-compatible-with(self, other :: NamespacedBinding):
       is-nb-value(other)
     end,
+    method get-compatability-error(self, loc, other :: NamespacedBinding):
+      cases(NamespacedBinding) other:
+        | nb-value(_) => none
+        | nb-type(b) => some(C.value-id-used-as-type(loc, b.atom))
+        | nb-module(b) => some(C.value-id-used-as-module(loc, b.atom))
+      end
+    end,
     method info-str(self):
       "<Value Binding: " + torepr(self.bind) + ">"
     end
@@ -581,12 +613,26 @@ data NamespacedBinding:
     method is-compatible-with(self, other :: NamespacedBinding):
       is-nb-type(other)
     end,
+    method get-compatability-error(self, loc, other :: NamespacedBinding):
+      cases(NamespacedBinding) other:
+        | nb-type(_) => none
+        | nb-value(b) => some(C.type-id-used-as-value(loc, b.atom))
+        | nb-module(b) => some(C.type-id-used-as-module(loc, b.atom))
+      end
+    end,
     method info-str(self):
       "<Type Binding: " + torepr(self.bind) + ">"
     end
   | nb-module(bind :: C.ModuleBind) with:
     method is-compatible-with(self, other :: NamespacedBinding):
       is-nb-module(other)
+    end,
+    method get-compatability-error(self, loc, other :: NamespacedBinding):
+      cases(NamespacedBinding) other:
+        | nb-module(_) => none
+        | nb-value(b) => some(C.module-id-used-as-value(loc, b.atom))
+        | nb-type(b) => some(C.module-id-used-as-type(loc, b.atom))
+      end
     end,
     method info-str(self):
       "<Module Binding: " + torepr(self.bind) + ">"
@@ -736,23 +782,33 @@ fun split-bindings(bindings :: SD.StringDict<NamespacedBinding>) -> {values :: S
   }
 end
 
-fun safe-set-now(bindings :: SD.MutableStringDict, key :: String, bind :: NamespacedBinding) block:
+fun safe-set-now(bindings :: SD.MutableStringDict, key :: String, bind :: NamespacedBinding, callback) block:
   cases(Option) bindings.get-now(key):
     | none => nothing
     | some(v) =>
-      when not(bind.is-compatible-with(v)):
-        raise("Incompatible bindings (did well-formedness fail?): " + v.info-str() + ", " + bind.info-str())
+      when not(v.is-compatible-with(bind)):
+        if A.is-s-name(bind.bind.atom):
+          v.get-compatibility-error(bind.bind.atom.l, bind).and-then(callback)
+        else:
+          # This should only happen if globals clash somehow
+          raise("Incompatible bindings (did well-formedness fail?): " + v.info-str() + ", " + bind.info-str())
+        end
       end
   end
   bindings.set-now(key, bind)
 end
 
-fun safe-set(bindings :: SD.StringDict, key :: String, bind :: NamespacedBinding) block:
+fun safe-set(bindings :: SD.StringDict, key :: String, bind :: NamespacedBinding, callback) block:
   cases(Option) bindings.get(key):
     | none => nothing
     | some(v) =>
       when not(bind.is-compatible-with(v)):
-        raise("Incompatible bindings (did well-formedness fail?): " + v.info-str() + ", " + bind.info-str())
+        if A.is-s-name(bind.bind.atom):
+          v.get-compatibility-error(bind.bind.atom.l, bind).and-then(callback)
+        else:
+          # This should only happen if globals clash somehow
+          raise("Incompatible bindings (did well-formedness fail?): " + v.info-str() + ", " + bind.info-str())
+        end
       end
   end
   bindings.set(key, bind)
@@ -801,6 +857,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
   provided-types = SD.make-mutable-string-dict()
   provided-modules = SD.make-mutable-string-dict()
 
+  fun add-name-error(e):
+    name-errors := link(e, name-errors)
+  end
+
   fun wrap-binding(b) -> NamespacedBinding:
     # This is admittedly a little gross, but it keeps the main visitor's
     # code significantly cleaner.
@@ -815,7 +875,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
 
   fun make-anon-import-for(l, s, env, shadow bindings, b) block:
     atom = names.make-atom(s)
-    safe-set-now(bindings, atom.key(), wrap-binding(b(atom)))
+    safe-set-now(bindings, atom.key(), wrap-binding(b(atom)), add-name-error)
     { atom: atom, env: env }
   end
   fun make-atom-for(name, is-shadowing, env, shadow bindings, make-binding):
@@ -828,11 +888,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         end
         atom = names.make-atom(s)
         binding = make-binding(atom)
-        safe-set-now(bindings, atom.key(), binding)
+        safe-set-now(bindings, atom.key(), binding, add-name-error)
         { atom: atom, env: env.set(s, binding) }
       | s-underscore(l) =>
         atom = names.make-atom("$underscore")
-        safe-set-now(bindings, atom.key(), make-binding(atom))
+        safe-set-now(bindings, atom.key(), make-binding(atom), add-name-error)
         { atom: atom, env: env }
       # NOTE(joe): an s-atom is pre-resolved to all its uses, so no need to add
       # it or do any more work.
@@ -840,7 +900,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         binding = make-binding(name)
         # THIS LINE DOES NOTHING??
         # env.set(name.key(), binding)
-        safe-set-now(bindings, name.key(), binding)
+        safe-set-now(bindings, name.key(), binding, add-name-error)
         { atom: name, env: env }
       | else => raise("Unexpected atom type: " + torepr(name))
     end
@@ -1034,7 +1094,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       end
       A.s-module(l, answer.visit(self), defined-vals, defined-types, defined-modules, checks.visit(self))
     end,
-    method s-program(self, l, _provide, _provide-types, imports, body) block:
+    method s-program(self, l, _provide, _provide-types, _provide-modules, imports, body) block:
       {imp-e; imp-imps} = for fold(acc from { self.env; empty }, i from imports):
         {imp-e; imp-imps} = acc
         cases(A.Import) i block:
@@ -1102,6 +1162,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         provided-types.set-now(ann.name, none)
       end
 
+      for each(field from p.provided-modules.block.fields):
+        provided-modules.set-now(field.name, none)
+      end
       
       visit-body = body.visit(self.{
           env: imp-e
@@ -1194,7 +1257,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
         module-defs
       )
 
-      A.s-program(l, one-true-provide, A.s-provide-types-none(l), imp-imps.reverse(), visit-body)
+      A.s-program(l, one-true-provide, A.s-provide-types-none(l), A.s-provide-modules-none(l), imp-imps.reverse(), visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       {e; bs} = for fold(acc from { self.env; empty }, b from binds):
@@ -1671,7 +1734,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         add-error(C.underscore-as-ann(id.l))
       end
       false
-    else if A.is-s-type-global(id) and initial-env.globals.modules.has-key(id.toname()):
+    else if A.is-s-global(id) and initial-env.globals.modules.has-key(id.toname()):
       false
     else if modules.has-key-now(id.key()):
       false
@@ -1776,7 +1839,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
           | none =>
             raise("Unbound module: " + base.tosource().pretty(80))
           | some(info) =>
-            print("Looking up path: " + torepr(path) + " in module: " + torepr(info) + "\n")
+            #print("Looking up path: " + torepr(path) + " in module: " + torepr(info) + "\n")
             cases(Option) info.values.get(path.first) block:
               | some(_) => true
               | none =>

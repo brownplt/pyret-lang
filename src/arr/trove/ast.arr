@@ -233,14 +233,15 @@ fun blocky-colon(blocky):
 end
 
 data Program:
-  | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, imports :: List<Import>, block :: Expr) with:
+  | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, provided-modules :: ProvideModules, imports :: List<Import>, block :: Expr) with:
     method label(self): "s-program" end,
     method tosource(self):
       PP.group(
         PP.vert(
           [list:
             self._provide.tosource(),
-            self.provided-types.tosource()]
+            self.provided-types.tosource(),
+            self.provided-modules.tosource()]
             + self.imports.map(_.tosource())
             + [list: self.block.tosource()]
           ))
@@ -398,6 +399,26 @@ sharing:
   end
 end
 
+data ProvideModules:
+  | s-provide-modules(l :: Loc, block :: Expr) with:
+    method label(self): "s-provide-modules" end,
+    method tosource(self):
+      PP.soft-surround(INDENT, 1, PP.str("provide-modules"),
+        self.block.tosource(), str-end)
+    end
+  | s-provide-modules-all(l :: Loc) with:
+    method label(self): "s-provide-modules-all" end,
+    method tosource(self):
+      PP.str("provide-modules *")
+    end
+  | s-provide-modules-none(l :: Loc) with:
+    method label(self): "s-provide-modules-none" end,
+    method tosource(self): PP.mt-doc end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
 
 data ImportType:
   | s-const-import(l :: Loc, mod :: String) with:
@@ -1773,7 +1794,7 @@ end
 
 fun toplevel-ids(program :: Program) -> List<Name>:
   cases(Program) program:
-    | s-program(_, _, _, _, b) => block-ids(b)
+    | s-program(_, _, _, _, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")
   end
 end
@@ -1830,8 +1851,8 @@ default-map-visitor = {
     s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), dm.map(_.visit(self)), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    s-program(l, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _provide, provided-types, provided-modules, imports, body):
+    s-program(l, _provide.visit(self), provided-types.visit(self), provided-modules.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   method s-include(self, l, import-type):
@@ -1881,6 +1902,15 @@ default-map-visitor = {
   end,
   method s-provide-types-none(self, l):
     s-provide-types-none(l)
+  end,
+  method s-provide-modules(self, l, expr):
+    s-provide-modules(l, expr.visit(self))
+  end,
+  method s-provide-modules-all(self, l):
+    s-provide-modules-all(l)
+  end,
+  method s-provide-modules-none(self, l):
+    s-provide-modules-none(l)
   end,
 
   method s-bind(self, l, shadows, name, ann):
@@ -2375,9 +2405,10 @@ default-iter-visitor = {
     answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and lists.all(_.visit(self), dm) and checks.visit(self)
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
+  method s-program(self, l, _provide, provided-types, provided-modules, imports, body):
     _provide.visit(self)
     and provided-types.visit(self)
+    and provided-modules.visit(self)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
   end,
@@ -2426,6 +2457,15 @@ default-iter-visitor = {
     true
   end,
   method s-provide-types-none(self, l):
+    true
+  end,
+  method s-provide-modules(self, l, expr):
+    expr.visit(self)
+  end,
+  method s-provide-modules-all(self, l):
+    true
+  end,
+  method s-provide-modules-none(self, l):
     true
   end,
 
@@ -2915,8 +2955,8 @@ dummy-loc-visitor = {
       answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), dm.map(_.visit(self)), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _provide, provided-types, provided-modules, imports, body):
+    s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), provided-modules.visit(self), imports.map(_.visit(self)), body.visit(self))
   end,
 
   method s-const-import(self, l :: Loc, mod :: String):
@@ -2966,6 +3006,15 @@ dummy-loc-visitor = {
   end,
   method s-provide-types-none(self, l):
     s-provide-types-none(dummy-loc)
+  end,
+  method s-provide-modules(self, l, expr):
+    s-provide-modules(dummy-loc, expr.visit(self))
+  end,
+  method s-provide-modules-all(self, l):
+    s-provide-modules-all(dummy-loc)
+  end,
+  method s-provide-modules-none(self, l):
+    s-provide-modules-none(dummy-loc)
   end,
 
   method s-bind(self, l, shadows, name, ann):

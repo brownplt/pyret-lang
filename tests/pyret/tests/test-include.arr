@@ -58,14 +58,14 @@ modules = [SD.mutable-string-dict:
   provide *
   provide-types *
 
-  n = 12
+  type n = Number
   ```,
 
   "type-and-val",
   ```
   include file("same-type-and-val-name")
 
-  type n = Number
+  shadow n = 12
   x :: n = n
   x
   ```,

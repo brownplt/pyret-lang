@@ -39,18 +39,18 @@ fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "curr
 
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _provide, _provide-types, imports, body) =>
+    | s-program(l1, _provide, _provide-types, _provide-modules, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              A.s-program(l1, _provide, _provide-types, imports,
+              A.s-program(l1, _provide, _provide-types, _provide-modules, imports,
                 A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))]))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): prog
               else:
-                A.s-program(l1, _provide, _provide-types, imports,
+                A.s-program(l1, _provide, _provide-types, _provide-modules, imports,
                   A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))]))
               end
           end
@@ -70,12 +70,12 @@ end
 
 fun wrap-toplevels(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _prov, _prov-types, imps, body) =>
+    | s-program(l1, _prov, _prov-types, _prov-mods, imps, body) =>
       new-body = cases(A.Expr) body:
         | s-block(l2, stmts) => A.s-block(l2, map(wrap-if-needed, stmts))
         | else => wrap-if-needed(body)
       end
-      A.s-program(l1, _prov, _prov-types, imps, new-body)
+      A.s-program(l1, _prov, _prov-types, _prov-mods, imps, new-body)
   end
 end
 
@@ -165,7 +165,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
                 name-to-use)
           end
         end
-      A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
+      A.s-program(p.l, p._provide, p.provided-types, p.provided-modules, full-imports, p.block)
   end
 end
 
@@ -375,7 +375,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
       )
   end
   cases(A.Program) resolved.ast:
-    | s-program(l, provide-complete, _, _, _) =>
+    | s-program(l, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas, modules) =>
           val-typs = SD.make-mutable-string-dict()
@@ -612,7 +612,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
-    | s-program(_, provide-complete, _, _, _) =>
+    | s-program(_, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas, modules) =>
           val-typs = SD.make-mutable-string-dict()

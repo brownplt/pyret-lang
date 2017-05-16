@@ -201,7 +201,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
   end, context)
 
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
+    | s-program(l, _provide, provided-types, provided-modules, imports, body) =>
       shadow context = imports.foldl(lam(_import, shadow context):
         cases(A.Import) _import block:
           | s-import-complete(_, vals, types, file, vname, tname) =>
@@ -244,7 +244,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           folded-info = gather-provides(_provide, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
-              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, imports, new-body), info))
+              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, provided-modules, imports, new-body), info))
             | fold-errors(errs) =>
               C.err(errs)
           end
