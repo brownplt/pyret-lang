@@ -91,8 +91,14 @@ data TypeBind:
 end
 
 data ModuleBinder:
-  | mb-module(dep :: Dependency, uri :: URI)
-  | mb-resolved(provides :: Provides)
+  | mb-module(dep :: Dependency, uri :: URI) with:
+    method get-uri(self):
+      self.uri
+    end
+  | mb-resolved(provides :: Provides) with:
+    method get-uri(self):
+      self.provides.from-uri
+    end
 end
 
 data ModuleBind:
@@ -143,13 +149,14 @@ end
 data CompileEnvironment:
   | compile-env(
         globals :: Globals,
-        mods :: StringDict<Provides> # map from dependency key to info provided from module
+        mods :: StringDict<Provides>, # map from dependency key to info provided from module
+        uri-map :: StringDict<String> # map from URI to dependency keys
       )
 end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(values :: StringDict<String>, types :: StringDict<String>, modules :: StringDict<String>)
 end
 
 data ValueExport:
@@ -967,6 +974,26 @@ data CompileError:
           ED.text("The name "),
           ED.text(tostring(self.name)),
           ED.text(" is used as a type at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a value.")]]
+    end
+  | value-id-used-as-module(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a module.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a value.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a module at "),
           draw-and-highlight(self.loc),
           ED.text(", but it is defined as a value.")]]
     end
@@ -2489,12 +2516,16 @@ shadow runtime-types = for fold(rt from runtime-types, k from runtime-provides.d
   rt.set(k, "builtin(global)")
 end
 
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides])
+runtime-modules = for fold(rm from [string-dict:], k from runtime-provides.modules.keys().to-list()):
+  rm.set(k, "builtin(global)")
+end
 
-minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides], [string-dict: runtime-provides.from-uri, "builtin(global)"])
 
-standard-globals = globals(runtime-builtins, runtime-types)
-standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
+minimal-builtins = compile-env(globals(runtime-builtins, runtime-types, runtime-modules), [string-dict: "builtin(global)", runtime-provides], [string-dict: runtime-provides.from-uri, "builtin(global)"])
+
+standard-globals = globals(runtime-builtins, runtime-types, runtime-modules)
+standard-builtins = compile-env(globals(runtime-builtins, runtime-types, runtime-modules), [string-dict: "builtin(global)", runtime-provides], [string-dict: runtime-provides.from-uri, "builtin(global)"])
 
 minimal-imports = extra-imports(empty)
 

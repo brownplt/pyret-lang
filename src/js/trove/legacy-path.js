@@ -35,8 +35,8 @@
       'defined-types': {},
       'defined-modules': {},
       "provide-plus-types": O({
-        types: { },
-        modules: {},
+        types: O({ }),
+        modules: O({}),
         values: O({
           "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath, "legacy-path-raw-locator")
         })

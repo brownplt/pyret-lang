@@ -60,7 +60,14 @@
   theModule: function(runtime, _, uri, reactorEvents, VSlib, tables, reactorLib) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(runtime.getField(m, "values"), f); }
-    var gtf = function(m, f) { return gf(m, "types")[f]; }
+    var gtf = function(m, f) {
+      var tf = runtime.getField(m, "types");
+      if (tf.dict) {
+        return gf(tf, f);
+      } else {
+        return tf[f];
+      }
+    };
     var VS = runtime.getField(VSlib, "values");
 
     var brandReactor = runtime.namedBrander("reactors", ["reactors"]);

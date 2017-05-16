@@ -187,7 +187,20 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-undefined(l) => k.apply(l, N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k.apply(l, N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k.apply(l, N.a-val(l, N.a-id(l, id)))
-    | s-module-dot(l, base, path) => k.apply(l, N.a-val(l, N.a-module-dot(l, base, path)))
+    | s-module-dot(l, base, path) =>
+      cases(A.ModuleReference) base:
+        | s-mref-by-name(n) =>
+          # This should maybe throw an error, but we don't want to
+          # be tied down to s-mref-by-uri (I think)
+
+          # Convert into a standard s-dot(...) and ANF
+          to-anf = for fold(acc from A.s-id(l, n), field from path):
+            A.s-dot(l, acc, field)
+          end
+          anf(to-anf, k)
+        | s-mref-by-uri(_, uri) =>
+          k.apply(l, N.a-val(l, N.a-module-dot(l, uri, path)))
+      end
     | s-srcloc(l, loc) => k.apply(l, N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:

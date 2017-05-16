@@ -58,7 +58,6 @@ modules = [SD.mutable-string-dict:
   provide *
   provide-types *
 
-  type n = Number
   n = 12
   ```,
 
@@ -66,6 +65,7 @@ modules = [SD.mutable-string-dict:
   ```
   include file("same-type-and-val-name")
 
+  type n = Number
   x :: n = n
   x
   ```,
@@ -206,7 +206,7 @@ check:
 # but need to fix the renderErrorMessage call in load-lib first
   msg("includes-and-violates") satisfies string-contains(_, "Number")
 #  msg("includes-and-violates") satisfies string-contains(_, "error message")
-  val("type-and-val") is some(12)
+  cmsg("type-and-val") satisfies string-contains(_, "but it is defined as a value")
   cmsg("overlapping-import") satisfies string-contains(_, "shadows")
   cmsg("global-shadow-import") satisfies string-contains(_, "shadows")
 #  cmsg("global-type-shadow-import") satisfies string-contains(_, "defined")

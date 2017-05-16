@@ -75,9 +75,13 @@
       "is-s-sym": gf(vals, "is-s-sym"),
       "read-s-exp": RUNTIME.makeFunction(readSexp)
     };
-    var types = {
-      "S-Exp": typs["S-Exp"]
-    };
+    var types = {};
+
+    if (typs.dict) {
+      types["S-Exp"] = gf(typs, "S-Exp");
+    } else {
+      types["S-Exp"] = typs["S-Exp"];
+    }
     return RUNTIME.makeModuleReturn(values, types, {});
   }
 })

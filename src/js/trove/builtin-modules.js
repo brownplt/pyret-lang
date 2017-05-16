@@ -184,8 +184,8 @@
       },
       "defined-modules": {},
       "provide-plus-types": O({
-        types: { },
-        modules: {},
+        types: O({ }),
+        modules: O({}),
         values: O({
           "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator, "builtin-raw-locator"),
           "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString, "builtin-raw-locator-from-str")

@@ -1952,7 +1952,8 @@ end
 
 fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCInfo>:
   cases(A.Provide) _provide:
-    | s-provide-complete(_, values, aliases, data-definitions) =>
+    | s-provide-complete(_, values, aliases, data-definitions, modules) =>
+      # TODO: figure out modules
       fold-values-info = foldr-fold-result(lam(value, shadow context, info):
         value-key = value.v.key()
         if info.types.has-key(value-key):

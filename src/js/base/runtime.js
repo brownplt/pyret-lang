@@ -2603,6 +2603,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       checkString(field);
       if(ann.hasOwnProperty(field)) {
         return ann[field];
+      } else if (ann.dict && ann.dict.hasOwnProperty(field)) {
+        return ann.dict[field];
       }
       raiseJSJS(thisRuntime.ffi.contractFail(makeSrcloc(loc),
                                              thisRuntime.ffi.makeDotAnnNotPresent(name, field)))
@@ -4927,8 +4929,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         "defined-modules": modules || {},
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
-          "types": types,
-          "modules": modules || {}, // FIXME: Should this be required?
+          "types": thisRuntime.makeObject(types),
+          "modules": thisRuntime.makeObject(modules || {}), // FIXME: Should this be required?
           "internal": internal || {}
         })
       });
@@ -5054,7 +5056,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
       });
       typeFields.forEach(function(tf) {
-        newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
+        if(hasField(moduleObj, "defined-types")) {
+          newns = newns.setType(tf, getField(moduleObj, "defined-types")[tf]);
+        }
+        else {
+          newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
+        }
       });
       return namespace.merge(newns);
     }

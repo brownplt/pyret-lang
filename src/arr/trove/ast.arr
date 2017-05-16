@@ -511,6 +511,23 @@ sharing:
   end
 end
 
+data ModuleReference:
+  | s-mref-by-name(name :: Name) with:
+    method label(self): "s-mref-by-name" end,
+    method tosource(self):
+      self.name.tosource()
+    end
+  | s-mref-by-uri(name :: Expr, uri :: String) with:
+    method label(self): "s-mref-by-uri" end,
+    method tosource(self):
+      self.name.tosource()
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 fun is-binder(expr):
   is-s-let(expr) or is-s-fun(expr) or is-s-var(expr) or is-s-rec(expr)
 end
@@ -958,10 +975,14 @@ data Expr:
   | s-str(l :: Loc, s :: String) with:
     method label(self): "s-str" end,
     method tosource(self): PP.str(torepr(self.s)) end
-  # Base should be a name that refers to a module import, like import lists as L
-  # path is generalized to list because eventually this should support
-  # Lib.Mod.x kinds of references
-  | s-module-dot(l :: Loc, base :: Name, path :: List<String>) with:
+    # Base should be a name that refers to a module import, like import lists as L
+    # path is generalized to list because eventually this should support
+    # Lib.Mod.x kinds of references
+    #
+    # NOTE: The following invariants should hold for any s-module-dot 'smd':
+    #   is-s-mref-by-name(smd.base) => smd.path.length() >= 1
+    #   is-s-mref-by-uri(smd.base)  => smd.path.length() == 1
+  | s-module-dot(l :: Loc, base :: ModuleReference, path :: List<String>) with:
     method label(self): "s-module-dot" end,
     method tosource(self):
       PP.infix-break(INDENT, 0, str-period, self.base.tosource(),
@@ -1660,7 +1681,8 @@ data Ann:
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     method label(self): "a-pred" end,
     method tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
-  | a-dot(l :: Loc, obj :: Name, field :: String) with:
+  | a-dot(l :: Loc, obj :: ModuleReference, field :: String) with:
+    # FIXME: Probably should rename 'obj' to 'mod'
     method label(self): "a-dot" end,
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
   | a-checked(checked :: Ann, residual :: Ann) with:
@@ -1795,6 +1817,13 @@ default-map-visitor = {
   end,
   method s-defined-module(self, name, pname, id, mod):
     s-defined-module(name, pname, id.visit(self), mod)
+  end,
+
+  method s-mref-by-name(self, name :: Name):
+    s-mref-by-name(name.visit(self))
+  end,
+  method s-mref-by-uri(self, name, uri :: String):
+    s-mref-by-uri(name.visit(self), uri)
   end,
 
   method s-module(self, l, answer, dv, dt, dm, checks):
@@ -2108,7 +2137,7 @@ default-map-visitor = {
   method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     s-dot(l, obj.visit(self), field)
   end,
-  method s-module-dot(self, l :: Loc, base :: Name, path :: List<String>):
+  method s-module-dot(self, l :: Loc, base :: ModuleReference, path :: List<String>):
     s-module-dot(l, base.visit(self), path)
   end,
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
@@ -2333,6 +2362,13 @@ default-iter-visitor = {
   end,
   method s-defined-module(self, name, pname, id, mod):
     id.visit(self)
+  end,
+
+  method s-mref-by-name(self, name :: Name):
+    name.visit(self)
+  end,
+  method s-mref-by-uri(self, name, uri :: String):
+    name.visit(self)
   end,
 
   method s-module(self, l, answer, dv, dt, dm, checks):
@@ -2649,7 +2685,7 @@ default-iter-visitor = {
   method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  method s-module-dot(self, l :: Loc, base :: Name, path):
+  method s-module-dot(self, l :: Loc, base :: ModuleReference, path):
     base.visit(self)
   end,
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
@@ -2865,6 +2901,13 @@ dummy-loc-visitor = {
   end,
   method s-defined-module(self, name, pname, id, mod):
     s-defined-module(name, pname, id.visit(self), mod)
+  end,
+
+  method s-mref-by-name(self, name :: Name):
+    s-mref-by-name(name.visit(self))
+  end,
+  method s-mref-by-uri(self, name, uri :: String):
+    s-mref-by-uri(name.visit(self), uri)
   end,
 
   method s-module(self, l, answer, dv, dt, dm, checks):
@@ -3173,7 +3216,7 @@ dummy-loc-visitor = {
   method s-dot(self, l :: Loc, obj :: Expr, field :: String):
     s-dot(dummy-loc, obj.visit(self), field)
   end,
-  method s-module-dot(self, l :: Loc, base :: Name, path):
+  method s-module-dot(self, l :: Loc, base :: ModuleReference, path):
     s-module-dot(dummy-loc, base.visit(self), path)
   end,
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):

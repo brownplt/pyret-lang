@@ -295,7 +295,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
-  env = CS.compile-env(locator.get-globals(), provide-map)
+  uri-map = for fold(acc from [SD.string-dict:], dep from provide-map.keys-list()):
+    acc.set(provide-map.get-value(dep).from-uri, dep)
+  end
+  env = CS.compile-env(locator.get-globals(), provide-map, uri-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
       #print("Module is already compiled\n")

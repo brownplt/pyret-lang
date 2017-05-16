@@ -26,7 +26,6 @@ import equality as equality
 import valueskeleton as VS
 
 type List = lists.List
-List = lists.is-List
 empty = lists.empty
 link = lists.link
 is-empty = lists.is-empty

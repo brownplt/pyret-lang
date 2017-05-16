@@ -758,6 +758,30 @@ fun safe-set(bindings :: SD.StringDict, key :: String, bind :: NamespacedBinding
   bindings.set(key, bind)
 end
 
+fun has-value-binding-now(bindings :: SD.MutableStringDict, key :: String):
+  # nbind will be some(..) if in dict
+  nbind = bindings.get-now(key)
+  # vbind will be some(..) if in dict AND value binding
+  vbind = nbind.and-then(_.to-value-bind())
+  option.is-some(vbind)
+end
+
+fun has-type-binding-now(bindings :: SD.MutableStringDict, key :: String):
+  # nbind will be some(..) if in dict
+  nbind = bindings.get-now(key)
+  # tbind will be some(..) if in dict AND type binding
+  tbind = nbind.and-then(_.to-type-bind())
+  option.is-some(tbind)
+end
+
+fun has-module-binding-now(bindings :: SD.MutableStringDict, key :: String):
+  # nbind will be some(..) if in dict
+  nbind = bindings.get-now(key)
+  # mbind will be some(..) if in dict AND module binding
+  mbind = nbind.and-then(_.to-module-bind())
+  option.is-some(mbind)
+end
+
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
   doc: ```
        Turn all s-names into s-atom or s-global
@@ -852,9 +876,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
           end
       end
     end
-    for each(name from initial.globals.types.keys-list()):
+    for each(name from initial.globals.types.keys-list()) block:
       mod-info = initial.mods.get-value(initial.globals.types.get-value(name))
-      acc.set-now(name, nb-type(C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)))
+      tbind = nb-type(C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none))
+      acc.set-now(name, tbind)
+    end
+    for each(name from initial.globals.modules.keys-list()) block:
+      mod-info = initial.mods.get-value(initial.globals.modules.get-value(name))
+      mbind = nb-module(C.module-bind(C.bo-module(none, mod-info.from-uri), C.mb-resolved(mod-info), names.s-global(name)))
+      acc.set-now(name, mbind)
     end
     acc.freeze()
   end
@@ -1059,7 +1089,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
               file,
               atom-env.atom,
               atom-env.atom) # atom-env-t.atom
-            { e; link(new-header, imp-imps) }
+            { te; link(new-header, imp-imps) }
           | else => raise("Should only have s-import-complete when checking scope")
         end
       end
@@ -1431,10 +1461,47 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
       end
     end,
     method s-dot(self, l, obj, field):
-      cases(A.Expr) obj:
+      cases(A.Expr) obj block:
+        | s-dot(_, _, _) =>
+          obj-visited = obj.visit(self)
+          cases(A.Expr) obj-visited block:
+            | s-dot(_, _, _) =>
+              A.s-dot(l, obj-visited, field)
+            | s-module-dot(l2, mod-ref, path) =>
+              when path.length() <> 1:
+                raise("Bug: resolve-scope path length != 1 (path was " + torepr(path) + ")")
+              end
+              # This is intended to flatten references like A.B.c into a single
+              # module-dot expression of the form <uri-of-B>.c .
+              # If something is unbound, then the s-module-dot will stop folding at that point
+              cases(A.ModuleReference) mod-ref:
+                | s-mref-by-name(n) => raise("Bug: ModuleReference was by-name")
+                | s-mref-by-uri(name, uri) =>
+                  dep = initial-env.uri-map.get(uri)
+                  provs = dep.and-then(initial-env.mods.get).or-else(none)
+                  cases(Option) provs:
+                    | none => raise("Bug: reference to unknown module: " + uri)
+                    | some(shadow p) =>
+                      # Attempt to look up the module
+                      cases(Option) p.modules.get(path.first):
+                          # We don't worry about nonexistent fields here
+                        | none => A.s-dot(l, obj-visited, field)
+                        | some(mod-export) =>
+                          new-provs = cases(C.ModuleExport) mod-export:
+                            | m-resolved(res) => res
+                            | m-uri(new-uri) =>
+                              cases(Option) initial-env.uri-map.get(new-uri).and-then(initial-env.mods.get).or-else(none):
+                                | none => raise("Bug: Reference to an unknown module " + mod-export)
+                                | some(np) => np
+                              end
+                          end
+                          A.s-module-dot(l, A.s-mref-by-uri(obj-visited, new-provs.from-uri), [list: field])
+                      end
+                  end
+              end
+          end
         | s-id(l2, name) =>
           # TODO: Well-formedness error on nonexistent module field
-          # TODO: What is an expression of the form M.L.link going to look like here?
           maybe-module = cases(A.Name) name:
             | s-name(l3, s) =>
               cases(Option) self.env.get(s) block:
@@ -1446,7 +1513,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
           end
           cases(Option) maybe-module:
             | none => A.s-dot(l, obj.visit(self), field)
-            | some(mb) => A.s-module-dot(l, mb.atom, [list: field])
+            | some(mb) =>
+              mod-uri = cases(C.ModuleBinder) mb.binder:
+                | mb-module(_, uri) => uri
+                | mb-resolved(shadow p) => p.from-uri
+              end
+              A.s-module-dot(l, A.s-mref-by-uri(A.s-id(l2, mb.atom), mod-uri), [list: field])
           end
         | else => A.s-dot(l, obj.visit(self), field)
       end
@@ -1460,28 +1532,34 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     method a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
     method a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
     method a-dot(self, l, obj, field) block:
-      cases(A.Name) obj block:
-        | s-name(nameloc, s) =>
-          cases(Option) self.env.get(s):
-            | none => A.a-dot(l, obj, field)
-            | some(bind) =>
-              cases(Option) bind.to-module-bind() block:
+      cases(A.ModuleReference) obj:
+        | s-mref-by-uri(_, _) => raise("s-mref-by-uri shouldn't exist before resolve-scope")
+        | s-mref-by-name(name) =>
+          cases(A.Name) name block:
+            | s-name(nameloc, s) =>
+              cases(Option) self.env.get(s) block:
                 | none =>
-                  err = cases(NamespacedBinding) bind:
-                    | nb-module(_) => raise("Should be impossible")
-                      # FIXME: Maybe a better error could go here:
-                    | nb-value(_) => C.value-id-used-as-type(nameloc, bind.bind.atom)
-                    | nb-type(_) => C.type-id-used-in-dot-lookup(nameloc, bind.bind.atom)
+                  name-errors := link(C.unbound-id(A.s-id(nameloc, name)), name-errors)
+                  A.a-dot(l, obj, field)
+                | some(bind) =>
+                  cases(Option) bind.to-module-bind() block:
+                    | none =>
+                      err = cases(NamespacedBinding) bind:
+                        | nb-module(_) => raise("Should be impossible")
+                          # FIXME: Maybe a better error could go here:
+                        | nb-value(_) => C.value-id-used-as-type(nameloc, bind.bind.atom)
+                        | nb-type(_) => C.type-id-used-in-dot-lookup(nameloc, bind.bind.atom)
+                      end
+                      name-errors := link(err, name-errors)
+                      A.a-dot(l, A.s-mref-by-name(bind.bind.atom), field)
+                    | some(mb) =>
+                      A.a-dot(l, A.s-mref-by-uri(A.s-id(l, mb.atom), mb.binder.get-uri()), field)
                   end
-                  name-errors := link(err, name-errors)
-                  A.a-dot(l, bind.bind.atom, field)
-                | some(mb) =>
-                  A.a-dot(l, mb.atom, field)
               end
+            | else =>
+              name-errors := link(C.underscore-as-ann(name.l), name-errors)
+              A.a-dot(l, obj.visit(self), field)
           end
-        | else =>
-          name-errors := link(C.underscore-as-ann(obj.l), name-errors)
-          A.a-dot(l, obj.visit(self), field)
       end
     end,
     method a-field(self, l, name, ann): A.a-field(l, name, ann.visit(self)) end,
@@ -1543,8 +1621,6 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
       false
     else if bindings.has-key-now(id.key()):
       false
-    else if modules.has-key-now(id.key()):
-      false
     else:
       # print-error("Cannot find binding for " + id.key() + " at " + loc.format(true) + " in \n")
       # print-error("Bindings: " + torepr(bindings.keys-list-now()) + "\n")
@@ -1552,6 +1628,66 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
       true
     end
   end
+
+  fun handle-module-id(id, loc, check-underscore) block:
+    if A.is-s-underscore(id) block:
+      when check-underscore:
+        add-error(C.underscore-as-expr(loc))
+      end
+      false
+    else if A.is-s-global(id) and initial-env.globals.modules.has-key(id.toname()):
+      false
+    else if modules.has-key-now(id.key()):
+      false
+    else:
+      true
+    end
+  end
+
+  fun handle-value-or-module-id(id, loc):
+    if not(handle-id(id, loc)):
+      false
+    else:
+      handle-module-id(id, loc, false)
+    end
+  end
+
+  fun handle-type-id(id, loc):
+    if A.is-s-underscore(id) block:
+      add-error(C.underscore-as-ann(id.l))
+      false
+    else if A.is-s-type-global(id) and initial-env.globals.types.has-key(id.toname()):
+      false
+    else if type-bindings.has-key-now(id.key()):
+      false
+    else:
+      true
+    end
+  end
+
+  fun handle-module-type-id(id, loc, check-underscore):
+    if A.is-s-underscore(id) block:
+      when check-underscore:
+        add-error(C.underscore-as-ann(id.l))
+      end
+      false
+    else if A.is-s-type-global(id) and initial-env.globals.modules.has-key(id.toname()):
+      false
+    else if modules.has-key-now(id.key()):
+      false
+    else:
+      true
+    end
+  end
+
+  fun handle-type-or-module-id(id, loc):
+    if not(handle-type-id(id, loc)):
+      false
+    else:
+      handle-module-type-id(id, loc, false)
+    end
+  end
+    
   ast.visit(A.default-iter-visitor.{
       method s-id(self, loc, id) block:
         when handle-id(id, loc):
@@ -1612,45 +1748,77 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
           end
         end
         
-        when handle-id(base, l):
-          add-error(C.unbound-id(A.s-id(l, base)))
-        end
-        cases(Option) modules.get-now(base.key()):
-          | none => true
-          | some(mb) =>
-            cases(C.ModuleBinder) mb.binder block:
-              | mb-module(dep, _) =>
-                mod-info = initial-env.mods.get(dep.key())
-                cases(Option) mod-info block:
-                  | none =>
-                    raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(mb.binder) )
-                  | some(info) =>
-                    for L.fold-while(acc from {info; [list: torepr(base)]}, path-elt from path):
-                      {cur-info; path-so-far} = acc
-                      cases(Option) traverse-path(cur-info, path-elt):
-                        | none =>
-                          E.right(add-error(C.wf-err("Name " + path-elt + " not found in module bound to " + to-repr(path-so-far.reverse().join-str(".")), l)))
-                        | some(v) =>
-                          cases(E.Either) v:
-                            | left(val) =>
-                              # Found a value. Finish.
-                              # Note: Ideally, we would want to
-                              # use some type information to check
-                              # that the remaining path is indeed
-                              # a sequence of fields on whatever value
-                              # we've found at this point. However,
-                              # this information is not available at
-                              # this point.
-                              E.right(nothing)
-                            | right(nested-mod) =>
-                              E.left({nested-mod; link(path-elt, path-so-far)})
-                          end
-                      end
-                    end
+        base-mod = cases(A.ModuleReference) base block:
+          | s-mref-by-name(n) =>
+            when handle-value-or-module-id(n, l):
+              add-error(C.unbound-id(A.s-id(l, n)))
+            end
+            cases(Option) modules.get-now(n.key()):
+              | none =>
+                none
+              | some(mb) =>
+                cases(C.ModuleBinder) mb.binder:
+                  | mb-module(dep, _) => initial-env.mods.get(dep.key())
+                  | mb-resolved(res) => some(res)
                 end
             end
+          | s-mref-by-uri(n, uri) =>
+            cases(A.Expr) n:
+              | s-id(_, name) =>
+                when handle-value-or-module-id(name, l):
+                  add-error(C.unbound-id(A.s-id(l, name)))
+                end
+              | else => nothing # s-dots are statically known to be fine
+            end
+            initial-env.uri-map.get(uri).and-then(initial-env.mods.get).or-else(none)
         end
-        true
+        cases(Option) base-mod block:
+          | none =>
+            raise("Unbound module: " + base.tosource().pretty(80))
+          | some(info) =>
+            print("Looking up path: " + torepr(path) + " in module: " + torepr(info) + "\n")
+            cases(Option) info.values.get(path.first) block:
+              | some(_) => true
+              | none =>
+                add-error(C.wf-err("Name " + path.first + " not found in module bound to " + base.tosource().pretty(80).join-str("\n"), l))
+                true
+            end
+        end
+        #cases(Option) modules.get-now(base.name.key()):
+        #  | none => true
+        #  | some(mb) =>
+        #    cases(C.ModuleBinder) mb.binder block:
+        #      | mb-module(dep, _) =>
+        #        mod-info = initial-env.mods.get(dep.key())
+        #        cases(Option) mod-info block:
+        #          | none =>
+        #            raise("Bug: Reference to an unknown module. " + to-repr(base) + " " + to-repr(mb.binder) )
+        #          | some(info) =>
+        #            for L.fold-while(acc from {info; [list: torepr(base)]}, path-elt from path):
+        #              {cur-info; path-so-far} = acc
+        #              cases(Option) traverse-path(cur-info, path-elt):
+        #                | none =>
+        #                  E.right(add-error(C.wf-err("Name " + path-elt + " not found in module bound to " + to-repr(path-so-far.reverse().join-str(".")), l)))
+        #                | some(v) =>
+        #                  cases(E.Either) v:
+        #                    | left(val) =>
+        #                      # Found a value. Finish.
+        #                      # Note: Ideally, we would want to
+        #                      # use some type information to check
+        #                      # that the remaining path is indeed
+        #                      # a sequence of fields on whatever value
+        #                      # we've found at this point. However,
+        #                      # this information is not available at
+        #                      # this point.
+        #                      E.right(nothing)
+        #                    | right(nested-mod) =>
+        #                      E.left({nested-mod; link(path-elt, path-so-far)})
+        #                  end
+        #              end
+        #            end
+        #        end
+        #    end
+        #end
       end,
       method s-id-var(self, loc, id) block:
         when handle-id(id, loc):
@@ -1680,52 +1848,52 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         value.visit(self)
       end,
       method a-name(self, loc, id) block:
-        if A.is-s-underscore(id) block:
-          add-error(C.underscore-as-ann(id.l))
-        else if A.is-s-type-global(id) and initial-env.globals.types.has-key(id.toname()):
-          nothing
-        else if type-bindings.has-key-now(id.key()):
-          nothing
-        else:
-          #print-error("Cannot find " + id.key() + " at " + loc.format(true) + " in:\n")
-          #print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          #print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
+        when handle-type-id(id, loc):
           add-error(C.unbound-type-id(A.a-name(loc, id)))
-          nothing
         end
         true
       end,
       method a-dot(self, l, name, field) block:
-        if A.is-s-underscore(name) block:
-          add-error(C.underscore-as-ann(name.l))
-          true
-        else if A.is-s-type-global(name) and initial-env.globals.types.has-key(name.toname()):
-          # need to figure out how to read through the imports here, I think
-          true
-        else:
-          cases(Option) type-bindings.get-now(name.key()) block:
-            | none =>
-              add-error(C.unbound-type-id(A.a-name(l, name)))
-              true
-            | some(tb) =>
-              cases(C.TypeBinder) tb.binder:
-                | tb-module(dep, _) =>
-                  mod-info = initial-env.mods.get(dep.key())
-                  cases(Option) mod-info:
-                    | none =>
-                      raise("Bug: Reference to an unknown module. " + to-repr(name) + " " + to-repr(tb.binder) )
-                    | some(info) =>
-                      cases(Option) info.aliases.get(field) block:
-                        | none =>
-                          add-error(C.wf-err("Type named " + field + " not found in module bound to " + to-repr(name), l))
-                          true
-                        | some(_) =>
-                          true
-                      end
-                  end
-              end
+        fun module-should-exist(m, mb) block:
+          cases(Option) m:
+            | some(_) => nothing
+            | none => raise("Bug: Reference to an unknown module: " + torepr(name) + " " + mb)
           end
+          m
         end
+        base-mod = cases(A.ModuleReference) name block:
+          | s-mref-by-name(n) =>
+            when handle-type-or-module-id(n, l):
+              add-error(C.unbound-type-id(A.a-name(l, n)))
+            end
+            cases(Option) modules.get-now(n.key()):
+              | none => none
+              | some(mb) =>
+                cases(C.ModuleBinder) mb.binder:
+                  | mb-module(dep) => module-should-exist(initial-env.mods.get(dep.key()), torepr(mb.binder))
+                  | mb-resolved(res) => some(res)
+                end
+            end
+          | s-mref-by-uri(n, uri) =>
+            cases(A.Expr) n:
+              | s-id(shadow l, _name) =>
+                when handle-type-or-module-id(_name, l):
+                  add-error(C.unbound-type-id(A.a-name(l, _name)))
+                end
+              | else => nothing # statically known to be bound
+            end
+            mod = initial-env.uri-map.get(uri).and-then(initial-env.mods.get).or-else(none)
+            module-should-exist(mod, uri)
+        end
+        cases(Option) base-mod:
+          | none => nothing
+          | some(info) =>
+            cases(Option) info.aliases.get(field) block:
+              | none => add-error(C.wf-err("Type named " + field + " not found in module bound to " + to-repr(name.name), l))
+              | some(_) => nothing
+            end
+        end
+        true
       end
     })
   errors

@@ -32,8 +32,8 @@
       "defined-modules": {},
       "provide-plus-types": runtime.makeObject({
         "values": runtime.makeObject({}),
-        "types": {},
-        "modules": {}
+        "types": runtime.makeObject({}),
+        "modules": runtime.makeObject({})
       })
     });
   }

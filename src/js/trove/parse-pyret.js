@@ -1267,7 +1267,9 @@
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
           return RUNTIME.getField(ast, 'a-dot')
-            .app(pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
+            .app(pos(node.pos),
+                 RUNTIME.getField(ast, 's-mref-by-name').app(name(node.kids[0])),
+                 symbol(node.kids[2]));
         },
         'ann': function(node) {
           // (ann a)

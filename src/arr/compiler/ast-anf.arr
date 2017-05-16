@@ -494,10 +494,10 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
-  | a-module-dot(l :: Loc, base :: A.Name, path :: List<String>) with:
+  | a-module-dot(l :: Loc, uri :: String, path :: List<String>) with:
     method label(self): "a-module-dot" end,
     method tosource(self):
-      PP.separate(PP.str("."), link(self.base.to-compiled-source(), self.path.map(PP.str)))
+      PP.separate(PP.str("."), link(PP.str(self.uri), self.path.map(PP.str)))
     end
 sharing:
   method visit(self, visitor):
@@ -738,7 +738,7 @@ default-map-visitor = {
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
   end,
-  method a-module-dot(self, l :: Loc, base :: A.Name, path):
+  method a-module-dot(self, l :: Loc, base :: String, path):
     a-module-dot(l, base, path)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
@@ -767,7 +767,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
       seen-so-far
     | a-type-var(l, name) => seen-so-far
     | a-dot(l, left, right) =>
-      seen-so-far.set-now(left.key(), left)
+      #seen-so-far.set-now(left.key(), left)
       seen-so-far
     | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
     | a-method(l, args, ret) => lst-a(link(ret, args))
@@ -978,7 +978,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-module-dot(_, base, _) =>
-      seen-so-far.set-now(base.key(), base)
+      #seen-so-far.set-now(base.key(), base)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far
     | a-num(_, _) => seen-so-far

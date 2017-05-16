@@ -275,11 +275,25 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         compiled-exp.other-stmts
         )
     | a-dot(l, m, field) =>
+      uri = cases(A.ModuleReference) m:
+        | s-mref-by-name(_) => raise("Should have been resolved: " + torepr(m))
+        | s-mref-by-uri(_, uri) => uri
+      end
+      m-name = cases(A.ModuleReference) m:
+        | s-mref-by-name(n) => n.toname()
+        | s-mref-by-uri(e, _) =>
+          cases(A.Expr) e:
+            | s-id(_, n) => n.toname()
+            | s-dot(_, _, f) => f
+            | else => raise("Unknown a-dot reference: " + torepr(m))
+          end
+      end
+      mod = rt-method("getField", [clist: j-bracket(rt-field("modules"), j-str(uri)), j-str("provide-plus-types")])
       c-exp(
         rt-method("getDotAnn", [clist:
             visitor.get-loc(l),
-            j-str(m.toname()),
-            j-id(js-id-of(m)),
+            j-str(m-name),
+            j-dot(j-bracket(j-dot(mod, "dict"), j-str("types")), "dict"),
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
@@ -994,12 +1008,13 @@ compiler-visitor = {
     end
     fun get-provided-obj(defined-things, get-rhs):
       provided = defined-things.filter(lam(x): option.is-some(x.provided-name) end)
-      j-obj(
+      to-wrap = j-obj(
         for CL.map_list(dth from provided):
           # TODO: I think this is correct, but the name might be what
           #       needs to go here
           j-field(dth.provided-name.value, get-rhs(dth))
         end)
+      rt-method("makeObject", [clist: to-wrap])
     end
     # Could be optimized into one pass over each defined-XXX, but this is clear
     c-exp(
@@ -1223,8 +1238,10 @@ compiler-visitor = {
   method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
   end,
-  method a-module-dot(self, l :: Loc, base :: A.Name, path :: List<String>):
-    lookup = for fold(expr from j-id(js-id-of(base)), p from path):
+  method a-module-dot(self, l :: Loc, uri :: String, path :: List<String>):
+    # TODO: This seems expensive. Maybe it should be lifted?
+    mod = rt-method("getField", [clist: j-bracket(rt-field("modules"), j-str(uri)), j-str("provide-plus-types")])
+    lookup = for fold(expr from j-bracket(j-dot(rt-method("getField", [clist: mod, j-str("values")]), "dict"), j-str(path.first)), p from path.rest):
       j-bracket(j-dot(expr, "dict"), j-str(p))
     end
     c-exp(lookup, cl-empty)

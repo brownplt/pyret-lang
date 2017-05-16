@@ -18,14 +18,23 @@ type Either = E.Either
 
 fun add-global-binding(env :: CS.CompileEnvironment, name :: String):
   CS.compile-env(
-    CS.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
-    env.mods)
+    CS.globals(env.globals.values.set(name, TS.t-top), env.globals.types, env.globals.modules),
+    env.mods,
+    env.uri-map)
 end
 
 fun add-global-type-binding(env :: CS.CompileEnvironment, name :: String):
   CS.compile-env(
-    CS.globals(env.globals.values, env.globals.types.set(name, TS.t-top)),
-    env.mods)
+    CS.globals(env.globals.values, env.globals.types.set(name, TS.t-top), env.globals.modules),
+    env.mods,
+    env.uri-map)
+end
+
+fun add-global-module-binding(env :: CS.CompileEnvironment, name :: String):
+  CS.compile-env(
+    CS.globals(env.globals.values, env.globals.types, env.globals.modules.set(name, TS.t-top)),
+    env.mods,
+    env.uri-map)
 end
 
 fun get-special-imports(program):
@@ -153,8 +162,9 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: 
               ts.set(k, depname)
             end
             ng = CS.globals(
-              new-vals.set(vals-name.toname(), dep),
-              new-types.set(type-name.toname(), dep))
+              new-vals,
+              new-types,
+              g.modules.set(vals-name.toname(), depname))
             ne = link(CS.extra-import(AU.import-to-dep(file), "_", empty, empty), res.new-extras)
             { new-globals: ng, new-extras: ne }
         end
@@ -208,7 +218,11 @@ fun make-repl<a>(
     new-types = for fold(ts from globals.types, provided-name from tprovided):
       ts.set(provided-name, dep.key())
     end
-    globals := CS.globals(new-vals, new-types)
+    mprovided = cr.provides.modules.keys-list()
+    new-modules = for fold(ms from globals.modules, provided-name from mprovided):
+      ms.set(provided-name, dep.key())
+    end
+    globals := CS.globals(new-vals, new-types, new-modules)
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)

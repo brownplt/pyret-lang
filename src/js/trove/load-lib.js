@@ -143,11 +143,11 @@
     }
     function getModuleResultTypes(mr) {
       checkSuccess(mr, "types");
-      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "types");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "types").dict;
     }
     function getModuleResultModules(mr) {
       checkSuccess(mr, "modules");
-      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "modules");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "modules").dict;
     }
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
@@ -326,8 +326,8 @@
       'defined-modules': {},
       "provide-plus-types": runtime.makeObject({
         values: runtime.makeObject(vals),
-        types: types,
-        modules: {},
+        types: runtime.makeObject(types),
+        modules: runtime.makeObject({}),
         internal: {
           makeRealm: makeRealm,
           getModuleResultAnswer: getModuleResultAnswer,
