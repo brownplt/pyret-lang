@@ -1,6 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
-NODE             = node -max-old-space-size=8192 --stack-size=8192
+NODE             = node -max-old-space-size=8192 --stack-size=16384
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
@@ -16,6 +16,12 @@ PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 
 FLATNESS_THRESHOLD = -1
+ifeq ($(FLATNESS_THRESHOLD),-1)
+  # If we allow infinite flatness, then get rid of the system stack
+  # limit for node
+  TMPNODE:=$(NODE)
+  NODE=ulimit -s unlimited; $(TMPNODE)
+endif
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
