@@ -1,4 +1,20 @@
 {
+  "use-raw-files": true,
+  "raw-js": {
+    "pyret-base/js/codePoint": "build/phaseC/js/codePoint.js",
+    "pyret-base/js/js-numbers": "build/phaseC/js/js-numbers.js",
+    "pyret-base/js/namespace": "build/phaseC/js/namespace.js",
+    "pyret-base/js/pyret-parser": "build/phaseC/js/pyret-parser.js",
+    "pyret-base/js/pyret-tokenizer": "build/phaseC/js/pyret-tokenizer.js",
+    "pyret-base/js/runtime.js": "build/phaseC/js/runtime.js",
+    "pyret-base/js/runtime-util": "build/phaseC/js/runtime-util.js",
+    "pyret-base/js/type-util": "build/phaseC/js/type-util.js",
+    "pyret-base/js/secure-loader": "build/phaseC/js/secure-loader.js",
+
+    "jglr/jglr": "lib/jglr/jglr.js",
+    "jglr/rnglr": "lib/jglr/rnglr.js",
+    "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js"
+  },
   "baseUrl": "./build/phaseC",
   "optimize": "none",
   "paths": {
