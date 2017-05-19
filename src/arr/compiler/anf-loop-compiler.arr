@@ -823,6 +823,32 @@ fun get-new-cases(compiler, opt-dest, opt-body, ans) -> {CList<J.JBlock>; J.JExp
   end
 end
 
+# "Insert" a piece of flat code as part of the next block (without creating a new block)
+fun insert-flat-code(compiler, opt-dest, opt-body, ans, flat-code):
+  # Compile the body of the let. We split it into two portions:
+  # 1) the code that can be in the same "block" (or case region) and
+  # 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-body:
+    | some(body) =>
+      get-remaining-code(compiler, opt-dest, body, ans)
+    | none =>
+      # Special case: there is no more code after this so just jump to the
+      # special last block in the function
+      body = j-block([clist:
+          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+          j-break
+        ])
+      {body; cl-empty}
+  end
+
+  # Now merge the code for calling the function with the next block
+  # (this is basically our optimization, since we're not starting a new case
+  # for the next block)
+  c-block(
+    j-block(cl-append(flat-code, j-block-to-stmt-list(remaining-code))),
+    new-cases)
+end
+
 fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-body):
   ans = compiler.cur-ans
   step = compiler.cur-step
@@ -830,6 +856,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   # num-args = args.length()
 
+  # TODO(ian): Why are these two cases necessary? This should probably be refactored
   if J.is-j-id(compiled-obj):
     call = wrap-with-srcnode(l,
       rt-method("maybeMethodCall",
@@ -837,12 +864,20 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
             j-str(methname),
             compiler.get-loc(l)],
           compiled-args)))
-    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
-    c-block(j-block([clist:
-      j-expr(j-assign(step, after-app-label)),
-      j-expr(j-assign(ans, call)),
-      j-break
-    ]), new-cases)
+    call-code = [clist:
+      j-expr(j-raw-code("// method call optimization")),
+      j-expr(j-assign(ans, call))
+    ]
+    if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+      insert-flat-code(compiler, opt-dest, opt-body, ans, call-code)
+    else:
+      {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+      c-block(j-block(
+          cl-sing(j-expr(j-assign(step, after-app-label))) ^
+          cl-append(_, call-code) ^
+          cl-append(_, cl-sing(j-break))),
+        new-cases)
+    end
   else:
     obj-id = j-id(fresh-id(compiler-name("obj")))
     colon-field = rt-method("getColonFieldLoc", [clist: obj-id, j-str(methname), compiler.get-loc(l)])
@@ -932,12 +967,12 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
       if not(is-definitely-fn):
         [clist:
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-          check-fun(j-id(compiler.cur-apploc), compiled-f)]
+          check-fun(l, j-id(compiler.cur-apploc), compiled-f)]
       else:
         cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
       end +
       [clist:
-        j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
+        j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
         j-break]),
     new-cases)
 end
@@ -960,28 +995,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
     j-expr(j-assign(ans, app(l, compiled-f, compiled-args)))
   ]
 
-  # Compile the body of the let. We split it into two portions:
-  # 1) the code that can be in the same "block" (or case region) and
-  # 2) the rest of the case statements
-  {remaining-code; new-cases} = cases (Option) opt-body:
-    | some(body) =>
-      get-remaining-code(compiler, opt-dest, body, ans)
-    | none =>
-      # Special case: there is no more code after this so just jump to the
-      # special last block in the function
-      body = j-block([clist:
-          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
-          j-break
-        ])
-      {body; cl-empty}
-  end
-
-  # Now merge the code for calling the function with the next block
-  # (this is basically our optimization, since we're not starting a new case
-  # for the next block)
-  c-block(
-    j-block(cl-append(call-code, j-block-to-stmt-list(remaining-code))),
-    new-cases)
+  insert-flat-code(compiler, opt-dest, opt-body, ans, call-code)
 end
 
 fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
