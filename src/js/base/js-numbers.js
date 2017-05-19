@@ -104,7 +104,7 @@ An integer is either a fixnum or a BigInteger.
 
 */
 
-define(function() {
+define("pyret-base/js/js-numbers", function() {
   'use strict';
   // Abbreviation
   var Numbers = {};

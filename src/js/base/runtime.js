@@ -1,4 +1,9 @@
-define(["./namespace", "./js-numbers", "./codePoint", "seedrandom", "./runtime-util"],
+define("pyret-base/js/runtime",
+  ["pyret-base/js/namespace",
+   "pyret-base/js/js-numbers",
+   "pyret-base/js/codePoint",
+   "pyret-base/js/runtime-util",
+   "seedrandom"],
 function (Namespace, jsnums, codePoint, seedrandom, util) {
 
   if(util.isBrowser()) {
