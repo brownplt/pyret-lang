@@ -1,5 +1,5 @@
 "use strict";
-define("pyret-base/js/codePoint", [], function() {
+define([], function() {
 
   /* NOTE(joe): Polyfills for Unicode, from
    * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint

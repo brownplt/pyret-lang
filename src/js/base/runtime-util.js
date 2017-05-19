@@ -1,4 +1,4 @@
-define("pyret-base/js/runtime-util", [], function() {
+define([], function() {
   var gs = Math.floor(Math.random() * 10000);
   function gensym(name) {
     return name + String(gs++);

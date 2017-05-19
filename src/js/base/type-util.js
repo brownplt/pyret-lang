@@ -1,4 +1,4 @@
-define("pyret-base/js/type-util", [], function() {
+define([], function() {
 
   var any = { "tag": "any" };
   var string = { "tag": "name", "module": "builtin", "name": "String" }
