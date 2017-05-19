@@ -1,4 +1,4 @@
-define("pyret-base/js/secure-loader", ["require", "q", "pyret-base/js/runtime-util"], function(rjs, Q, util) {
+define(["require", "q", "./runtime-util"], function(rjs, Q, util) {
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {

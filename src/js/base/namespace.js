@@ -1,6 +1,6 @@
 "use strict";
 
-define("pyret-base/js/namespace", function() {
+define(function() {
     /**@type {!Object}*/
     var noProto = {};
 
