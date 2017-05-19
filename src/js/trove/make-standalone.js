@@ -49,14 +49,14 @@
         fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
         Object.keys(filesToFetch).forEach(function(f) {
           var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
-          fs.writeFileSync(outFile, contents);
+          fs.writeSync(outFile, contents);
         });
         fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
         var writeRealOut = function(str) { 
           fs.writeSync(outFile, str, {encoding: 'utf8'}); 
           return runtime.nothing; 
         };
-        return runtime.runThunk(function() { 
+        return runtime.safeCall(function() { 
           return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
         }, function(_) {
           fs.writeSync(outFile, "\n});\n");
