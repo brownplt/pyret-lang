@@ -864,12 +864,10 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
             j-str(methname),
             compiler.get-loc(l)],
           compiled-args)))
-    call-code = [clist:
-      j-expr(j-raw-code("// method call optimization")),
-      j-expr(j-assign(ans, call))
-    ]
+    call-code = cl-sing(j-expr(j-assign(ans, call)))
     if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
-      insert-flat-code(compiler, opt-dest, opt-body, ans, call-code)
+      insert-flat-code(compiler, opt-dest, opt-body, ans,
+        cl-cons(j-expr(j-raw-code("// method call optimization")), call-code))
     else:
       {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
       c-block(j-block(
