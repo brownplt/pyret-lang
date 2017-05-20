@@ -307,6 +307,10 @@
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
 
+      if (otherRuntime.bounceAllowed != runtime.bounceAllowed) {
+        throw new Error("bounceAllowed mismatch.");
+      }
+
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll

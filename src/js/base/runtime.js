@@ -5877,6 +5877,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       thisRuntime.bounceAllowed = theOutsideWorld.options.bounceAllowed;
     }
 
+    // In principle it should be possible for a parent runtime to have bouncing off
+    // but a "child runtime" have bouncing on, though it might require some nasty
+    // modifications to the run function. For now we just require that the child runtime
+    // can only allow bounces if the parent runtime can as well
     if (theOutsideWorld.parentRuntime) {
       thisRuntime.bounceAllowed &= theOutsideWorld.parentRuntime.bounceAllowed;
     }
