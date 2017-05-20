@@ -15,7 +15,7 @@ PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 
-FLATNESS_THRESHOLD = -1
+FLATNESS_THRESHOLD = 10
 ifeq ($(FLATNESS_THRESHOLD),-1)
   # If we allow infinite flatness, then get rid of the system stack
   # limit for node
