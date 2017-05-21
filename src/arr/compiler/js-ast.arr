@@ -4,6 +4,7 @@ provide *
 provide-types *
 import pprint as PP
 import format as F
+import source-map-lib as SM
 import ast as A
 import file("concat-lists.arr") as CL
 
@@ -16,11 +17,38 @@ INDENT = 2
 break-one = PP.sbreak(1)
 blank-one = PP.blank(1)
 
+data SourceMapFlags:
+  | node-start(uri, line, col, name)
+  | node-end
+end
+
 fun string-printer():
   var strs = empty
   {
-    append: lam(s): strs := link(s, strs) end,
+    append: lam(s):
+      when is-string(s):
+        strs := link(s, strs)
+      end
+    end,
     get: lam(): for fold(acc from "", s from strs): s + acc end end
+  }
+end
+
+fun sourcemap-printer(uri, line, col, name):
+  the-map = SM.new-map(line, col, uri, name)
+  {
+    append: lam(s):
+      if is-node-start(s) block:
+        the-map.start-node(s.line, s.col, s.uri, s.name)
+      else if is-node-end(s):
+        the-map.end-node()
+      else if is-string(s):
+        the-map.string(s)
+      end
+    end,
+    get: lam():
+      SM.to-string-with-source-map(the-map.get(), uri)
+    end
   }
 end
 
@@ -44,6 +72,11 @@ data JBlock:
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end,
+  method to-ugly-sourcemap(self, uri, line, col, name) block:
+    printer = sourcemap-printer(uri, line, col, name)
+    self.print-ugly-source(printer.append)
+    printer.get()
   end,
   method to-ugly-source(self) block:
     strprint = string-printer()
@@ -213,6 +246,11 @@ sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end,
+  method to-ugly-sourcemap(self, uri, line, col, name) block:
+    printer = sourcemap-printer(uri, line, col, name)
+    self.print-ugly-source(printer.append)
+    printer.get()
+  end,
   method to-ugly-source(self) block:
     strprint = string-printer()
     self.print-ugly-source(strprint.append)
@@ -246,6 +284,11 @@ data JCase:
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end,
+  method to-ugly-sourcemap(self, uri, line, col, name) block:
+    printer = sourcemap-printer(uri, line, col, name)
+    self.print-ugly-source(printer.append)
+    printer.get()
   end,
   method to-ugly-source(self) block:
     strprint = string-printer()
@@ -295,6 +338,17 @@ sharing:
 end
 
 data JExpr:
+  | j-sourcenode(loc, uri :: String, expr :: JExpr) with:
+    method label(self): "j-sourcenode" end,
+    method print-ugly-source(self, printer) block:
+      printer(node-start(self.uri, self.loc.start-line, self.loc.start-column, "to-be-filled"))
+      self.expr.print-ugly-source(printer)
+      printer(node-end)
+    end,
+    method tosource(self):
+      PP.surround(INDENT, 1, PP.str("("), self.exp.tosource(), PP.str(")"))
+    end
+    
   | j-parens(exp :: JExpr) with:
     method label(self): "j-parens" end,
     method print-ugly-source(self, printer) block:
@@ -562,6 +616,12 @@ sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end,
+  method to-ugly-sourcemap(self, uri, line, col, name) block:
+    printer = sourcemap-printer(uri, line, col, name)
+    self.print-ugly-source(printer.append)
+    node = printer.get()
+    node
+  end,
   method to-ugly-source(self) block:
     strprint = string-printer()
     self.print-ugly-source(strprint.append)
@@ -636,6 +696,11 @@ data JField:
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end,
+  method to-ugly-sourcemap(self, uri, line, col, name) block:
+    printer = sourcemap-printer(uri, line, col, name)
+    self.print-ugly-source(printer.append)
+    printer.get()
   end,
   method to-ugly-source(self) block:
     strprint = string-printer()

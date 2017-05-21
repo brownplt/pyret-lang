@@ -8,6 +8,7 @@ import load-lib as L
 import render-error-display as RED
 import runtime-lib as R
 import sets as S
+import srcloc as Loc
 import string-dict as SD
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as C
