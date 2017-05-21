@@ -5057,7 +5057,15 @@ function (Namespace, jsnums, codePoint, util, seedrandom) {
             return continu();
           }
           return thisRuntime.safeCall(function() {
-            return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+            var indirectEval = eval;
+            var theModFunction;
+            if(typeof mod.theModule === "function") {
+              theModFunction = mod.theModule;
+            }
+            else {
+              theModFunction = indirectEval("(" + mod.theModule + ")");
+            }
+            return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
           },
           function(r) {
             // CONSOLE.log("Result from module: ", r);

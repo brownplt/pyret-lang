@@ -191,6 +191,7 @@ fun used-vars-jstmt(s :: J.JStmt, so-far :: NameSet) -> NameSet:
 end
 fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
   cases(J.JExpr) e block:
+    | j-sourcenode(_, _, expr) => used-vars-jexpr(expr, so-far)
     | j-parens(exp) => used-vars-jexpr(exp, so-far)
     | j-unop(exp, op) => used-vars-jexpr(exp, so-far)
     | j-binop(left, op, right) => 
@@ -398,6 +399,7 @@ end
 
 fun ignorable(rhs):
   cases(J.JExpr) rhs:
+    | j-sourcenode(_, _, e) => ignorable(e)
     | j-parens(e) => ignorable(e)
     | j-ternary(test, consq, alt) => ignorable(test) and ignorable(consq) and ignorable(alt)
     | j-dot(obj, field) => ignorable(obj)

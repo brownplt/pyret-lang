@@ -244,7 +244,11 @@ fun rt-method(name, args):
 end
 
 fun app(l, f, args):
-  j-method(f, "app", args)
+  cases(SL.Srcloc) l:
+    | builtin(n) => j-method(f, "app", args)
+    | else =>
+      J.j-sourcenode(l, l.source, j-method(f, "app", args))
+  end
 end
 
 fun check-fun(l, f):
@@ -369,6 +373,7 @@ no-vars = D.make-mutable-string-dict
 fun local-bound-vars(kase :: J.JCase, vars) block:
   fun e(expr):
     cases(J.JExpr) expr block:
+      | j-sourcenode(_, _, exp) => e(exp)
       | j-parens(exp) => e(exp)
       | j-raw-code(_) => nothing
       | j-unop(exp, _) => e(exp)
@@ -939,7 +944,13 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
   # (this is basically our optimization, since we're not starting a new case
   # for the next block)
   c-block(
-    j-block(cl-append(call-code, j-block-to-stmt-list(remaining-code))),
+    j-block([clist:
+        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
+        j-expr(j-assign(step, after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
+        check-fun(j-id(compiler.cur-apploc), compiled-f),
+        j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
+        j-break]),
     new-cases)
 end
 
@@ -1994,11 +2005,14 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     provides-obj = compile-provides(provides)
     the-module = j-fun(J.next-j-fun-id(),
       cl-append([clist: RUNTIME.id, NAMESPACE.id, source-name.id], input-ids), module-body)
+    module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, "to-be-filled")
     [D.string-dict:
       "requires", j-list(true, module-locators-as-js),
       "provides", provides-obj,
       "nativeRequires", j-list(true, [clist:]),
-      "theModule", if self.options.collect-all: the-module else: J.j-raw-code(the-module.to-ugly-source()) end]
+      "theModule", if self.options.collect-all: the-module else: J.j-str(module-and-map.code) end,
+      "theMap", J.j-str(module-and-map.map)
+      ]
   end
 
   step = fresh-id(compiler-name("step"))
