@@ -5085,7 +5085,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 });
               });
             } else {
-              /* require() should be synchronous */
+              /**
+                 require() should be synchronous.
+                 In this case we can't load native modules asynchronously.
+              */
               var arr = [];
               for(var i = 0; i < mod.nativeRequires.length; i++) {
                 var val = require(mod.nativeRequires[i]);
