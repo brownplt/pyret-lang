@@ -3043,6 +3043,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return stackStr;
     }
 
+    /* Decrement gas or rungas and return whether or not it's time to return a continuation */
+    function spendGas() {
+      return thisRuntime.bounceAllowed && (--thisRuntime.GAS <= 0);
+    }
+
+    function spendRunGas() {
+      return thisRuntime.bounceAllowed && (--thisRuntime.RUNGAS <= 0);
+    }
+
     function Pause(stack, pause, resumer) {
       this.stack = stack;
       this.pause = pause;
@@ -3082,7 +3091,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         stackFrame = $ar.args[2];
         $fun_ans = $ar.vars[0];
       }
-      if (thisRuntime.bounceAllowed && (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0)) {
+      if (thisRuntime.spendGas() || thisRuntime.spendRunGas()) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         skipLoop = true;
         $ans = thisRuntime.makeCont();
@@ -3126,7 +3135,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             i = i + 1;
           }
         }
-        if (thisRuntime.bounceAllowed && (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0)) {
+        if (thisRuntime.spendGas() || thisRuntime.spendRunGas()) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           return thisRuntime.makeCont();
         }
@@ -3137,7 +3146,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
           if (isContinuation(res)) { return res; }
 
-          if (thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }  
@@ -3860,14 +3869,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (thisRuntime.bounceAllowed && --thisRuntime.GAS <= 0) {
+      if (thisRuntime.spendGas()) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         cleanQuit = false;
         $ans = thisRuntime.makeCont();
       }
       
       while (cleanQuit && (curIdx < len)) {
-        if (thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+        if (thisRuntime.spendRunGas()) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           cleanQuit = false;
           $ans = thisRuntime.makeCont();
@@ -3918,14 +3927,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (thisRuntime.bounceAllowed && --thisRuntime.GAS <= 0) {
+      if (thisRuntime.spendGas()) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         $ans = thisRuntime.makeCont();
         cleanQuit = false;
       }
       
       while (cleanQuit && curIdx < len) {
-        if (thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+        if (thisRuntime.spendRunGas()) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           $ans = thisRuntime.makeCont();
           cleanQuit = false;
@@ -4035,7 +4044,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function foldHelp() {
         while(currentIndex < (length - 1)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4072,7 +4081,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4108,7 +4117,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function eachHelp() {
         while(currentIndex < (length - 1)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4141,7 +4150,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4178,7 +4187,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4221,7 +4230,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4259,7 +4268,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4301,7 +4310,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array();
       function filterHelp() {
         while(currentIndex < (length - 1)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4343,7 +4352,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentLst = lst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(thisRuntime.bounceAllowed && --thisRuntime.RUNGAS <= 0) {
+          if (thisRuntime.spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
