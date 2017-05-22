@@ -207,25 +207,17 @@
             'exit-code': runtime.makeNumber(resumeWith["exit-code"])
           });
 
-          if (runtime.bounceAllowed) {
-            restarter.resume(result);
-          } else {
-            return result;
-          }
-        }
+          return restarter.resumeOrReturn(result);
+        };
         return execRt.runThunk(thunk, thenFn);
-      }
+      };
 
-      if (runtime.bounceAllowed) {
-        return runtime.pauseStack(pauseFn);
-      } else {
-        return pauseFn();
-      }
+      return runtime.maybePauseStack(pauseFn);
     }
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
-      var pauseStackFn = function(restarter) {
+      var pauseFn = function(restarter) {
         // TODO(joe): This works because it's a builtin and already loaded on execRt.
         // In what situations may this not work?
         var rendererrorMod = execRt.modules["builtin://render-error-display"];
@@ -272,21 +264,13 @@
             });
           }
 
-          if (execRt.bounceAllowed) {
-            restarter.resume(resultObj);
-          } else {
-            return resultObj;
-          }
+          return restarter.resumeOrReturn(resultObj);
         };
 
         return execRt.runThunk(renderFn, thenFn);
       };
 
-      if (execRt.bounceAllowed) {
-        return runtime.pauseStack(pauseStackFn);
-      } else {
-        return pauseStackFn();
-      }
+      return runtime.maybePauseStack(pauseFn);
     }
     function getModuleResultAnswer(mr) {
       checkSuccess(mr, "answer");
@@ -371,21 +355,13 @@
             retVal = makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing);
           }
 
-          if (runtime.bounceAllowed) {
-            restarter.resume(retVal);
-          } else {
-            return retVal;
-          }
+          return restarter.resumeOrReturn(retVal);
         };
 
         return otherRuntime.runThunk(thunk, then);
       };
 
-      if (runtime.bounceAllowed) {
-        return runtime.pauseStack(pauseFunction);
-      } else {
-        return pauseFunction();
-      }
+      return runtime.maybePauseStack(pauseFunction);
     }
     var vals = {
       "run-program": runtime.makeFunction(runProgram, "run-program"),
