@@ -194,7 +194,6 @@
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
-        //      <<<<<<< b7f9c9016754ed2a86e852980708822e67ff1fed
         var thunk = function() { return toCall.app(checks, getStackP); };
         var thenFn = function(renderedCheckResults) {
           var resumeWith = {
