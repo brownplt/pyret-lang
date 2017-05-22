@@ -42,7 +42,7 @@ fun cl-map-sd(f, sd):
 end
 
 fun make-fun-name(compiler, loc) -> String:
-  sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
+  "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
 end
 
 fun type-name(str :: String) -> String:
