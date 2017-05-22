@@ -3524,7 +3524,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (thisRuntime.bounceAllowed) {
         return thisRuntime.pauseStack(resumer);
       } else {
-        return resumer();
+        return resumer(new DummyPausePackage());
       }
     }
 
@@ -5606,6 +5606,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'isPause'     : isPause,
 
       'pauseStack'  : pauseStack,
+      'maybePauseStack' : maybePauseStack,
       'schedulePause'  : schedulePause,
       'breakAll' : breakAll,
 
