@@ -3520,6 +3520,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makePause(pause, resumer);
     }
 
+    function maybePauseStack(resumer) {
+      if (thisRuntime.bounceAllowed) {
+        return thisRuntime.pauseStack(resumer);
+      } else {
+        return resumer();
+      }
+    }
+
     function PausePackage() {
       this.resumeVal = null;
       this.errorVal = null;
@@ -3564,6 +3572,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
       },
       resume: function(val) {
+        if (!thisRuntime.bounceAllowed) {
+          throw "Should not be calling resume when bounceAllowed is off";
+        }
         if(this.errorVal !== null || this.breakFlag) {
           throw "Cannot resume with error or break requested";
         }
@@ -3573,8 +3584,36 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         else {
           this.resumeVal = val;
         }
+      },
+      resumeOrReturn: function(val) {
+        this.resume(val);
       }
     };
+
+    function DummyPausePackage() {
+    }
+    DummyPausePackage.prototype = {
+      setHandlers: function(handlers) {
+        throw "Cannot call setHandlers on DummyPausePackage";
+      },
+      break: function() {
+        throw "Cannot call break on DummyPausePackage";
+      },
+      error: function(err) {
+        throw "Cannot call error on DummyPausePackage";
+      },
+      resume: function(val) {
+        throw "Cannot call resume on DummyPausePackage";
+      },
+      resumeOrReturn: function(val) {
+        return val;
+      }
+    };
+
+    if (Object.keys(DummyPausePackage.prototype).length !=
+        Object.keys(PausePackage.prototype).length) {
+      throw "PausePackage and DummyPausePackage should have the same interface";
+    }
 
     var manualPause = null;
     function schedulePause(resumer) {
