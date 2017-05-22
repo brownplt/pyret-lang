@@ -843,7 +843,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                 ]),
               j-block([clist:
                   check-fun(compiler.get-loc(l), colon-field-id),
-                  j-expr(j-assign(ans, app(compiler.get-loc(l), colon-field-id, compiled-args)))
+                  j-expr(j-assign(ans, app(l, colon-field-id, compiled-args)))
                 ])),
             # If the answer is a cont, jump to the end of the current function
             # rather than continuing normally
@@ -900,7 +900,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
           cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
         end +
         [clist:
-          j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args))),
+          j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
           j-break]),
       new-cases)
   end
@@ -921,7 +921,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
   # Generate the code for calling the function
   call-code = [clist:
     j-expr(j-raw-code("// caller optimization")),
-    j-expr(j-assign(ans, app(compiler.get-loc(l), compiled-f, compiled-args)))
+    j-expr(j-assign(ans, app(l, compiled-f, compiled-args)))
   ]
 
   # Compile the body of the let. We split it into two portions:
@@ -944,13 +944,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
   # (this is basically our optimization, since we're not starting a new case
   # for the next block)
   c-block(
-    j-block([clist:
-        # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
-        j-expr(j-assign(step, after-app-label)),
-        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-        check-fun(j-id(compiler.cur-apploc), compiled-f),
-        j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
-        j-break]),
+    j-block(cl-append(call-code, j-block-to-stmt-list(remaining-code))),
     new-cases)
 end
 
