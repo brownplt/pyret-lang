@@ -10,33 +10,6 @@ import valueskeleton as VS
 import lists as L
 import math as math
 
-# A StatModel is a data type for representing
-# statistical models.  We create this type so that
-# users can extract, coefficients and meta-data from
-# models, as well as apply the model.
-#
-# This could be extended to include general linear 
-# regression, exponential and logistic regression, etc.
-
-data StatModel:
-  | simple-linear-model(alpha :: Number, beta :: Number, r-sqr :: Number) with:
-
-    method predictor(self :: StatModel) -> (Number -> Number):
-      doc: "the function predicting the value of a dependent variable"
-      lam(X): (self.beta * X) + self.alpha end
-    end,
-
-    method apply(self :: StatModel, l :: L.List<Number>) -> L.List<Number>:
-      doc: "applies the predictor function to a sample set of the independent variable"
-      L.map(self.predictor(), l)
-    end,
-
-    method r-squared(self :: StatModel) -> Number:
-      doc: "gives the coefficient of correlation"
-      self.r-sqr
-    end
-end
-
 fun mean(l :: L.List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
   if L.length(l) == 0:
@@ -139,7 +112,7 @@ fun stdev(l :: L.List) -> Number:
   num-sqrt(sq-mean)
 end
 
-fun lin-reg-2V(x :: L.List<Number>, y :: L.List<Number>) -> StatModel:
+fun linear-regression(x :: L.List<Number>, y :: L.List<Number>) -> (Number -> Number):
   doc: "returns a linear regression model calculated with ordinary least squares"
   if x.length() <> y.length():
     raise("lin-reg-2V: input lists must have equal lengths")
@@ -155,18 +128,24 @@ fun lin-reg-2V(x :: L.List<Number>, y :: L.List<Number>) -> StatModel:
     beta = covariance / variance
     alpha = mean(y) - (beta * mean(x))
 
-    y-mean = mean(y)
-    f = L.map(lam(xi): (beta * xi) + alpha end, x)
-    ss-tot = math.sum(L.map(lam(yi): num-sqr(yi - y-mean) end, y))
-    ss-res = math.sum(L.map2(lam(yi, fi): num-sqr(yi - fi) end, y, f))
+		fun predictor(in :: Number) -> Number:
+			(beta * in) + alpha
+		end
 
-    r-sqr = if within-abs(0.0000001)(~0, ss-res):
-      1
-    else:
-      1 - (ss-res / ss-tot)
-    end
- 
-    simple-linear-model(alpha, beta, r-sqr)
+		predictor
+	end
+end
+
+fun r-squared(x :: L.List<Number>, y :: L.List<Number>, f :: (Number -> Number)) -> Number:
+	y-mean = mean(y)
+  f-of-x = L.map(f, x)
+  ss-tot = math.sum(L.map(lam(yi): num-sqr(yi - y-mean) end, y))
+  ss-res = math.sum(L.map2(lam(yi, fi): num-sqr(yi - fi) end, y, f-of-x))
+
+  if within-abs(0.0000001)(~0, ss-res):
+    1
+  else:
+    1 - (ss-res / ss-tot)
   end
 end
 

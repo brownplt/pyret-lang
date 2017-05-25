@@ -23,22 +23,28 @@ check "numeric helpers":
 end
 
 check "linear regression":
-  lin-reg-2V([list: 0], [list: ]) raises "lists must have equal lengths"
-  lin-reg-2V([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
+	linear-regression([list: 0], [list: ]) raises "lists must have equal lengths"
+	linear-regression([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
 
-  f = lin-reg-2V([list: 0, 1, 2], [list: -5, -3, -1])
-  f.r-squared() is 1
+	x1 = [list: 0, 1, 2]
+	y1 = [list: -5, -3, -1]
 
-  fp = f.predictor()
-  fp(0) is -5
-  fp(2.5) is 0
+  f = linear-regression(x1, y1)
 
-  g = lin-reg-2V([list: -3, 1, 2, 4], [list: ~4, ~1.5, ~0, -2.2])
-  g.r-squared() is%(within-abs(0.00001)) 0.964508
+	f(0) is -5
+	f(2.5) is 0
 
-  gp = g.predictor()
-  gp(0) is%(within-abs(0.001)) 1.69423
-  gp(1.94911) is%(within-abs(0.001)) 0.0
+	r-squared(x1, y1, f) is 1
+
+	x2 = [list: -3, 1, 2, 4]
+	y2 = [list: ~4, ~1.5, ~0, -2.2]
+
+  g = linear-regression(x2, y2)
+
+  g(0) is%(within-abs(0.001)) 1.69423
+  g(1.94911) is%(within-abs(0.001)) 0.0
+
+  r-squared(x2, y2, g) is%(within-abs(0.00001)) 0.964508
 
 end
 
