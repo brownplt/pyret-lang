@@ -8,6 +8,7 @@ import load-lib as L
 import render-error-display as RED
 import runtime-lib as R
 import sets as S
+import sha as SHA
 import srcloc as Loc
 import string-dict as SD
 import file("compile-structs.arr") as CS
@@ -536,10 +537,17 @@ fun make-standalone(wl, compiled, options):
         j-str(w.locator.uri())
       end)
 
+      uris = j-obj(for C.map_list(w from wl):
+        uri = w.locator.uri()
+        hashed = SHA.sha256(uri)
+        j-field(hashed, j-str(uri))
+      end)
+
       program-as-js = j-obj([C.clist:
           j-field("staticModules", static-modules),
           j-field("depMap", depmap),
-          j-field("toLoad", to-load)
+          j-field("toLoad", to-load),
+          j-field("uris", uris)
         ])
 
       right({

@@ -3,9 +3,10 @@ define("pyret-base/js/runtime",
    "pyret-base/js/js-numbers",
    "pyret-base/js/codePoint",
    "pyret-base/js/runtime-util",
+   "pyret-base/js/exn-stack-parser",
    "seedrandom",
    "stacktrace-js"],
-function (Namespace, jsnums, codePoint, util, seedrandom, stacktrace) {
+function (Namespace, jsnums, codePoint, util, exnStackParser, seedrandom, stacktrace) {
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -1805,7 +1806,7 @@ function (Namespace, jsnums, codePoint, util, seedrandom, stacktrace) {
       } else {
         var err = new PyretFailException(thisRuntime.ffi.makeUserException(val));
       }
-      err.synthStack = stacktrace.get();
+      err.stackAtThrow = new Error().stack;
       throw err;
     };
     /** type {!PFunction} */

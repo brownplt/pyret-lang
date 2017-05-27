@@ -2002,7 +2002,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     provides-obj = compile-provides(provides)
     the-module = j-fun(J.next-j-fun-id(), "the_module",
       [clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids, module-body)
-    module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, "to-be-filled")
+    module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
     [D.string-dict:
       "requires", j-list(true, module-locators-as-js),
       "provides", provides-obj,
