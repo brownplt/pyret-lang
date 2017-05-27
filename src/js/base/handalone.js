@@ -1,9 +1,10 @@
 var require = require("requirejs");
-require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
+require(["source-map", "pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(sourceMap, runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
   var toLoad = program.toLoad;
+  var uris = program.uris;
 
   var main = toLoad[toLoad.length - 1];
 
@@ -183,7 +184,31 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
-      var pyretStack = res.exn.pyretStack;
+
+      var parsedStack = stackLib.parseStack(res.exn.stack);
+
+
+
+      var pyretStack = parsedStack.map(function(frame) {
+        var uri = program.uris[frame.hashedURI];        
+        console.log("The URI for ", frame.hashedURI, " is ", uri);
+        var moduleSourceMap = staticModules[uri].theMap;
+        var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
+        consumer.computeColumnSpans();
+        var original = consumer.originalPositionFor({
+            source: uri,
+            line: Number(frame.startLine),
+            column: Number(frame.startCol) },
+          sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
+        console.log(original);
+        var posForPyret = original.name.split(",");
+        return posForPyret;
+      });
+
+      res.exn.pyretStack = pyretStack;
+      debugger;
+      
+
       execRt.runThunk(
         function() {
           if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {

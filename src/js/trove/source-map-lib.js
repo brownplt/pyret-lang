@@ -20,7 +20,7 @@
       function endNode() {
         var elt = stack.pop();
         cur = stack[stack.length - 1];
-        cur.elts.push(new SN(elt.line, elt.col, elt.file, elt.elts, name));
+        cur.elts.push(new SN(elt.line, elt.col, elt.file, elt.elts, elt.name));
         return runtime.nothing;
       }
       function string(s) {

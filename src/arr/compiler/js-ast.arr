@@ -17,6 +17,11 @@ INDENT = 2
 break-one = PP.sbreak(1)
 blank-one = PP.blank(1)
 
+fun strpos(uri, loc):
+  [list: uri, loc.start-line, loc.start-column, loc.start-char, loc.end-line, loc.end-column, loc.end-char].join-str(",")
+end
+
+
 data SourceMapFlags:
   | node-start(uri, line, col, name)
   | node-end
@@ -337,11 +342,13 @@ sharing:
   end
 end
 
+
+
 data JExpr:
   | j-sourcenode(loc, uri :: String, expr :: JExpr) with:
     method label(self): "j-sourcenode" end,
     method print-ugly-source(self, printer) block:
-      printer(node-start(self.uri, self.loc.start-line, self.loc.start-column, "to-be-filled"))
+      printer(node-start(self.uri, self.loc.start-line, self.loc.start-column, strpos(self.uri, self.loc)))
       self.expr.print-ugly-source(printer)
       printer(node-end)
     end,
