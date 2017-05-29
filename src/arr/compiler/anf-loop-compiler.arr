@@ -1985,7 +1985,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     j-bracket(j-id(LOCS), j-num(get-loc-id(l)))
   end
 
-  fun wrap-new-module(module-body):
+  fun wrap-new-module(compiler, module-body):
     module-locators-as-js = for CL.map_list(m from module-locators):
       cases(CS.Dependency) m:
         | builtin(name) =>
@@ -2007,7 +2007,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       "requires", j-list(true, module-locators-as-js),
       "provides", provides-obj,
       "nativeRequires", j-list(true, [clist:]),
-      "theModule", if self.options.collect-all: the-module else: J.j-str(module-and-map.code) end,
+      "theModule", if compiler.options.collect-all: the-module else: J.j-str(module-and-map.code) end,
       "theMap", J.j-str(module-and-map.map)
       ]
   end
@@ -2017,10 +2017,11 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   apploc = fresh-id(compiler-name("al"))
   resumer = compiler-name("resumer")
   resumer-bind = N.a-bind(l, resumer, A.a-blank)
+  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false}
   visited-body = compile-fun-body(l, step, toplevel-name,
-    self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false}, # resumer gets js-id-of'ed in compile-fun-body
+    body-compiler, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true, false)
-  toplevel-fun = j-fun(J.next-j-fun-id(), "toplevel", [clist: formal-shadow-name(resumer)], visited-body)
+  toplevel-fun = j-fun(J.next-j-fun-id(), make-fun-name(body-compiler, l), [clist: formal-shadow-name(resumer)], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
   module-body = j-block(
     #                    [clist: j-expr(j-str("use strict"))] +
@@ -2028,7 +2029,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     cl-snoc(_, define-locations) ^
     cl-append(_, global-binds) ^
     cl-snoc(_, wrap-modules(module-specs, toplevel-name, toplevel-fun)))
-  wrap-new-module(module-body)
+  wrap-new-module(body-compiler, module-body)
 end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
