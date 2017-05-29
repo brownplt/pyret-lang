@@ -1,4 +1,20 @@
 define("pyret-base/js/secure-loader", ["require", "q", "pyret-base/js/runtime-util"], function(rjs, Q, util) {
+  function compileInNewScriptContext(src) {
+    var promise = Q.defer();
+    if(util.isBrowser()) {
+      var callback = "loader_callback_" + Math.floor((Math.random() * 1000));
+      window[callback] = function(result) {
+        promise.resolve(result);
+      }
+      var script = document.createElement("script");
+      script.innerHTML = "(window['" + callback + "'](" + src + "));";
+      document.body.appendChild(script);
+      return promise.promise;
+    }
+    else {
+      var VM = require("vm");
+    }
+  }
   var ourCajaVM;
   function unsafeCaja() {
     var compileExpr = function(src) {
@@ -128,6 +144,7 @@ define("pyret-base/js/secure-loader", ["require", "q", "pyret-base/js/runtime-ut
     safeEval: safeEval,
     goodIdea: goodIdea,
     loadSingle: loadSingle,
-    loadClosure: loadClosure
+    loadClosure: loadClosure,
+    compileInNewScriptContext: compileInNewScriptContext,
   }
 });

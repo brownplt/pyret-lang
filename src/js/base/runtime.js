@@ -4,9 +4,10 @@ define("pyret-base/js/runtime",
    "pyret-base/js/codePoint",
    "pyret-base/js/runtime-util",
    "pyret-base/js/exn-stack-parser",
+   "pyret-base/js/secure-loader",
    "seedrandom",
    "stacktrace-js"],
-function (Namespace, jsnums, codePoint, util, exnStackParser, seedrandom, stacktrace) {
+function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom, stacktrace) {
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -5066,11 +5067,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, seedrandom, stackt
             var theModFunction;
             if(typeof mod.theModule === "function") {
               theModFunction = mod.theModule;
+              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
             }
-            else {
+            else if (!util.isBrowser() && typeof mod.theModule === "string") {
               theModFunction = indirectEval("(" + mod.theModule + ")");
+              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
             }
-            return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+            else if (util.isBrowser()) {
+              return thisRuntime.pauseStack(function(resumer) {
+                var p = loader.compileInNewScriptContext(mod.theModule);
+                var instantiated = p.then(function(theModFunction) {
+                  var answer = theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+                  return resumer.resume(answer)
+                });
+                instantiated.fail(function(val) { return resumer.error(val); });
+              });
+            }
           },
           function(r) {
             // CONSOLE.log("Result from module: ", r);

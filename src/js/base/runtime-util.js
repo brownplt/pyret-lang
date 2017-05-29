@@ -11,7 +11,11 @@ define("pyret-base/js/runtime-util", [], function() {
   if (typeof setImmediate !== 'undefined') {
     suspend = function(f) { return setImmediate(f); };
   }
-  else if (isBrowser() && (typeof window !== "undefined") && window.postMessage) {
+  else if (isBrowser()
+    && (typeof window !== "undefined")
+    && window.postMessage
+    && window.location.origin !== "file://"
+    && window.location.origin !== "null") {
     var origin = String(window.location.origin);
     var postMessageCBToken = String(Math.random());
     var postMessageCBs = {};
