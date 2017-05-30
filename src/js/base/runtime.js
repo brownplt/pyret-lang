@@ -5,9 +5,8 @@ define("pyret-base/js/runtime",
    "pyret-base/js/runtime-util",
    "pyret-base/js/exn-stack-parser",
    "pyret-base/js/secure-loader",
-   "seedrandom",
-   "stacktrace-js"],
-function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom, stacktrace) {
+   "seedrandom"],
+function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -5077,8 +5076,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               return thisRuntime.pauseStack(function(resumer) {
                 var p = loader.compileInNewScriptContext(mod.theModule);
                 var instantiated = p.then(function(theModFunction) {
-                  var answer = theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-                  return resumer.resume(answer)
+                  thisRuntime.runThunk(function() {
+                    return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+                  },
+                  function(r) {
+                    if(thisRuntime.isSuccessResult(r)) {
+                      resumer.resume(r.result);
+                    }
+                    else {
+                      resumer.error(r.exn);
+                    }
+                  });
                 });
                 instantiated.fail(function(val) { return resumer.error(val); });
               });

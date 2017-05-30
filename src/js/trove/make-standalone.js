@@ -67,7 +67,7 @@
         });
       }
       else {
-        runtime.pauseStack(function(restarter) {
+        return runtime.pauseStack(function(restarter) {
           requirejs.optimize(config, function(result) {
             var programWithDeps = fs.readFileSync(config.out, {encoding: 'utf8'});
             // Browser/node check based on window below

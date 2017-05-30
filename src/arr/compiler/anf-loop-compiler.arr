@@ -2000,7 +2000,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       end
     end
     provides-obj = compile-provides(provides)
-    the-module = j-fun(J.next-j-fun-id(), "the_module",
+    the-module = j-fun(J.next-j-fun-id(), make-fun-name(compiler, l),
       [clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids, module-body)
     module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
     [D.string-dict:

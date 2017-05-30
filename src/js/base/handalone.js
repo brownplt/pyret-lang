@@ -204,6 +204,9 @@ require(["source-map", "pyret-base/js/runtime", "pyret-base/js/exn-stack-parser"
           sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
         console.log(original);
         var posForPyret = original.name.split(",");
+        for(var i = 1; i < posForPyret.length; i += 1) {
+          posForPyret[i] = Number(posForPyret[i]);
+        }
         return posForPyret;
       });
 
