@@ -97,6 +97,18 @@
     function getResultProvides(mr) {
       return mr.val.provides;
     }
+    function getResultStackTrace(mr) {
+      var runtime = mr.val.runtime;
+      if (!runtime.isFailureResult(mr.val.result)) {
+        runtime.ffi.throwMessageException("Tried to get stacktrace of non-failing module result.");
+      }
+
+      var res = getModuleResultResult(mr);
+      console.log(JSON.stringify(res));
+      var stackString = runtime.printPyretStack(res.exn.pyretStack);
+      console.log("ST is :\n" + stackString);
+      return runtime.makeString(stackString);
+    }
     function getModuleResultRuntime(mr) {
       return mr.val.runtime;
     }
@@ -343,6 +355,7 @@
       "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
       "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
       "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
+      "get-result-stacktrace": runtime.makeFunction(getResultStackTrace, "get-result-stacktrace"),
       "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
       "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
       "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm"),

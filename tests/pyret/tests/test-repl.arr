@@ -138,6 +138,51 @@ check:
   result33 = next-interaction("f()")
   val(result33) is some(22)
 
+  # Make sure a stack 3 levels deep works
+  result34 = restart("fun f(): 9() end", false)
+  result35 = next-interaction("fun g(): f() end")
+  result36 = next-interaction("g()")
+  result36.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result36.v) is
+  "  definitions://: line 1, column 9\n" +
+  "  interactions://1: line 1, column 9\n" +
+  "  interactions://2: line 1, column 0"
+
+  # Call a bunch of flat functions
+  result37 = restart("fun f(o): o.x end\n" +
+                     "fun g(): f({}) end\n" +
+                     "fun h(): f({x: \"a\"}) end\n" +
+                     "fun j(): string-append(g(), h()) end", false)
+  result38 = next-interaction("j()")
+  result38.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result38.v) is
+  "  definitions://: line 1, column 10\n" +
+  "  definitions://: line 2, column 9\n" +
+  "  definitions://: line 4, column 23\n" +
+  "  interactions://1: line 1, column 0"
+
+  # Call a tail-recursive function that has an error at the deepest level
+  result39 = restart("fun len(l, acc):\n" +
+  "  cases (List) l:\n" +
+  "    | empty => l.notafield\n" +
+  "    | link(_, r) => len(r, 1 + acc)\n" +
+  "  end\n" +
+  "end",
+  false)
+  result40 = next-interaction("len(range(0, 10), 0)")
+  L.get-result-stacktrace(result40.v)
+  "  definitions://: line 3, column 15\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  definitions://: line 4, column 20\n" +
+  "  interactions://1: line 1, column 0"
+
 
 end
-
