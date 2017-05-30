@@ -836,14 +836,15 @@ data CompileError:
             ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
+          ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
           [ED.error:
             [ED.para:
               ED.text("The name "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" at "),
               ED.loc(self.ann.l),
               ED.text(" is used to indicate a type, but a definition of a type named "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" could not be found.")]]
       end
     end
@@ -1414,7 +1415,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type")],
-         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], 0),
+         ED.highlight(ED.text(self.obj), [list: self.obj-loc], 0),
         [ED.para:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], 1))]]
@@ -1815,7 +1816,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
+          ED.text("This program cannot be type-checked. " + "The reason that it cannot be type-checked is: " + self.reason +
         " at "), ED.cmcode(self.loc)]]
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
