@@ -22,6 +22,8 @@
       "jglr": "../../lib/jglr",
       "pyret-base": "./",
       "crypto": "empty:",
+      "sha.js": "empty:",
+      "js-sha256": "empty:",
       "fs": "empty:",
       "http": "empty:",
       "lockfile": "empty:",

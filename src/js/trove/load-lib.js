@@ -2,9 +2,9 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["pyret-base/js/secure-loader"],
+  nativeRequires: ["source-map", "pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, sourceMap, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
     var EXIT_ERROR_RENDERING_ERROR = 2;
@@ -272,6 +272,7 @@
       var staticModules = program.staticModules;
       var depMap = program.depMap;
       var toLoad = program.toLoad;
+      var uris = program.uris;
 
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
@@ -325,6 +326,29 @@
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
+            var parsedStack = stackLib.parseStack(result.exn.stack);
+
+            var pyretStack = parsedStack.map(function(frame) {
+              var uri = program.uris[frame.hashedURI];        
+              console.log("The URI for ", frame.hashedURI, " is ", uri);
+              var moduleSourceMap = staticModules[uri].theMap;
+              var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
+              consumer.computeColumnSpans();
+              var original = consumer.originalPositionFor({
+                  source: uri,
+                  line: Number(frame.startLine),
+                  column: Number(frame.startCol) },
+                sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
+              console.log(original);
+              var posForPyret = original.name.split(",");
+              for(var i = 1; i < posForPyret.length; i += 1) {
+                posForPyret[i] = Number(posForPyret[i]);
+              }
+              return posForPyret;
+            });
+
+            result.exn.pyretStack = pyretStack;
+
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
           }
           else {
