@@ -162,26 +162,36 @@ check:
   "  interactions://1: line 1, column 0"
 
   # Call a tail-recursive function that has an error at the deepest level
-  result39 = restart("fun len(l, acc):\n" +
-  "  cases (List) l:\n" +
-  "    | empty => l.notafield\n" +
-  "    | link(_, r) => len(r, 1 + acc)\n" +
-  "  end\n" +
-  "end",
-  false)
-  result40 = next-interaction("len(range(0, 10), 0)")
-  L.get-result-stacktrace(result40.v) is
-  "  definitions://: line 3, column 15\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
+  # result39 = restart("fun len(l, acc):\n" +
+  # "  cases (List) l:\n" +
+  # "    | empty => l.notafield\n" +
+  # "    | link(_, r) => len(r, 1 + acc)\n" +
+  # "  end\n" +
+  # "end",
+  # false)
+  # result40 = next-interaction("len(range(0, 10), 0)")
+  # L.get-result-stacktrace(result40.v) is
+  # "  definitions://: line 3, column 15\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  definitions://: line 4, column 20\n" +
+  # "  interactions://1: line 1, column 0"
+
+  result41 = restart("fun f(o): o.x end\n" +
+                     "fun g(): f(5)\n end", false)
+  result42 = next-interaction("g()")
+  result42.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result42.v) is
+  "  definitions://: line 1, column 10\n" +
+  "  definitions://: line 2, column 9\n" +
   "  interactions://1: line 1, column 0"
+
 
 end

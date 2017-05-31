@@ -104,9 +104,7 @@
       }
 
       var res = getModuleResultResult(mr);
-      console.log(JSON.stringify(res));
       var stackString = runtime.printPyretStack(res.exn.pyretStack);
-      console.log("ST is :\n" + stackString);
       return runtime.makeString(stackString);
     }
     function getModuleResultRuntime(mr) {
