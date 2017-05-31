@@ -256,9 +256,11 @@ fun app(l, f, args):
   end
 end
 
-fun check-fun(l, f):
+fun check-fun(sourcemap-loc, variable-loc, f):
   j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block1(j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))))
+    j-block1(j-expr(
+        J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
+        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])))))
 end
 
 c-exp = DAG.c-exp
@@ -839,7 +841,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                         cl-cons(obj-id, compiled-args))))
                 ]),
               j-block([clist:
-                  check-fun(compiler.get-loc(l), colon-field-id),
+                  check-fun(l, compiler.get-loc(l), colon-field-id),
                   j-expr(j-assign(ans, app(l, colon-field-id, compiled-args)))
                 ])),
             # If the answer is a cont, jump to the end of the current function
@@ -892,7 +894,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
           j-expr(j-assign(step, after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
         if not(is-definitely-fn):
-          cl-sing(check-fun(j-id(compiler.cur-apploc), compiled-f))
+          cl-sing(check-fun(l, j-id(compiler.cur-apploc), compiled-f))
         else:
           cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
         end +
