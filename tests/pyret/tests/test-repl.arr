@@ -170,7 +170,7 @@ check:
   "end",
   false)
   result40 = next-interaction("len(range(0, 10), 0)")
-  L.get-result-stacktrace(result40.v)
+  L.get-result-stacktrace(result40.v) is
   "  definitions://: line 3, column 15\n" +
   "  definitions://: line 4, column 20\n" +
   "  definitions://: line 4, column 20\n" +
