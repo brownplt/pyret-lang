@@ -221,8 +221,15 @@ fun get-dict-field(obj, field):
   j-bracket(j-dot(obj, "dict"), field)
 end
 
-fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
-  j-app(get-field-loc, [clist: obj, field, loc])
+# Use when we're sure the field will exist
+fun get-field-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  j-app(get-field-loc, [clist: obj, field, loc-expr])
+end
+
+# When the field may not exist, add source mapping so if we can't find it
+# we get a useful stacktrace
+fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  J.j-sourcenode(l, l.source, get-field-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
@@ -1369,7 +1376,7 @@ compiler-visitor = {
   end,
   method a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)),
+    c-exp(get-field-safe(l, visit-obj.exp, j-str(field), self.get-loc(l)),
       cl-snoc(visit-obj.other-stmts, j-expr(j-assign(self.cur-apploc, self.get-loc(l)))))
   end,
   method a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
@@ -1597,7 +1604,7 @@ compiler-visitor = {
                 j-dot(j-id(variant-brand-id), "_brand"),
                 j-true))
           ])
-      predicate = j-field(A.make-checker-name(vname), get-field(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
+      predicate = j-field(A.make-checker-name(vname), get-field-unsafe(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
         | a-variant(l2, constr-loc, _, members, with-members) =>
@@ -1630,7 +1637,7 @@ compiler-visitor = {
       cl-append(acc, [clist: piece.predicate, piece.constructor])
     end
 
-    data-predicate = j-field(name, get-field(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
+    data-predicate = j-field(name, get-field-unsafe(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [clist: j-obj(cl-cons(data-predicate, obj-fields))])
 
