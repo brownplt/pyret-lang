@@ -105,7 +105,12 @@
 
       var res = getModuleResultResult(mr);
       var stackString = runtime.printPyretStack(res.exn.pyretStack);
-      return runtime.makeString(stackString);
+      var stackFrames = stackString.split("\n");
+      var pyretStackFrames = stackFrames.map(function(frameString){
+        return runtime.makeString(frameString.trim());
+      });
+
+      return runtime.makeArray(pyretStackFrames);
     }
     function getModuleResultRuntime(mr) {
       return mr.val.runtime;
