@@ -204,5 +204,14 @@ check:
   "  definitions://: line 2, column 9\n" +
   "  interactions://1: line 1, column 0"
 
+  #Method call test
+  result43 = restart("fun f(o): o.x() end\n" +
+                     "fun g(): f({x: 5})\n end", false)
+  result44 = next-interaction("g()")
+  result44.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result44.v) is
+  "  definitions://: line 1, column 10\n" +
+  "  definitions://: line 2, column 9\n" +
+  "  interactions://1: line 1, column 0"
 
 end

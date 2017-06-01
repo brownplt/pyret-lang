@@ -826,11 +826,15 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   # num-args = args.length()
 
   if J.is-j-id(compiled-obj):
-    call = rt-method("maybeMethodCall",
-      cl-append([clist: compiled-obj, j-str(methname), compiler.get-loc(l)], compiled-args))
+    call = wrap-with-srcnode(l,
+      rt-method("maybeMethodCall",
+        cl-append([clist: compiled-obj,
+            j-str(methname),
+            compiler.get-loc(l)],
+          compiled-args)))
     {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
     c-block(j-block([clist:
-      j-expr(j-assign(step,  after-app-label)),
+      j-expr(j-assign(step, after-app-label)),
       j-expr(j-assign(ans, call)),
       j-break
     ]), new-cases)
