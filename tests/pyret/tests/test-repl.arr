@@ -25,6 +25,20 @@ end
 val = lam(str): L.get-result-answer(get-run-answer(str)) end
 msg = lam(str): L.render-error-message(get-run-answer(str)) end
 
+fun startswith(hay, needle):
+  needle-len = string-length(needle)
+  hay-len = string-length(hay)
+  (needle-len <= hay-len) and
+  string-equal(string-substring(hay, 0, needle-len), needle)
+end
+
+fun endswith(hay, needle):
+  needle-len = string-length(needle)
+  hay-len = string-length(hay)
+  (needle-len <= hay-len) and
+  string-equal(string-substring(hay, hay-len - needle-len, hay-len), needle)
+end
+
 check:
   r = RT.make-runtime()
 
@@ -161,7 +175,7 @@ check:
   "  definitions://: line 4, column 23\n" +
   "  interactions://1: line 1, column 0"
 
-  # Call a tail-recursive function that has an error at the deepest level
+  #Call a tail-recursive function that has an error at the deepest level
   result39 = restart("fun len(l, acc):\n" +
   "  cases (List) l:\n" +
   "    | empty => l.notafield\n" +
@@ -170,18 +184,24 @@ check:
   "end",
   false)
   result40 = next-interaction("len(range(0, 10), 0)")
-  L.get-result-stacktrace(result40.v) is
-  "  definitions://: line 3, column 15\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
-  "  definitions://: line 4, column 20\n" +
+  stacktrace = L.get-result-stacktrace(result40.v)
+
+  # Due to tail call optimization, the stack trace may not have any of the
+  # "middle" frames, though it should definitely have the topmost and bottom
+  # most frames.
+  topframe = "  definitions://: line 3, column 15\n"
+  startswith(stacktrace, topframe) is true
+
+  bottomframe = "  interactions://1: line 1, column 0"
+  endswith(stacktrace, bottomframe) is true
+
+  result41 = restart("fun f(o): o.x end\n" +
+                     "fun g(): f(5)\n end", false)
+  result42 = next-interaction("g()")
+  result42.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result42.v) is
+  "  definitions://: line 1, column 10\n" +
+  "  definitions://: line 2, column 9\n" +
   "  interactions://1: line 1, column 0"
 
 
