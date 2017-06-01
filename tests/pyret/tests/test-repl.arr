@@ -25,20 +25,6 @@ end
 val = lam(str): L.get-result-answer(get-run-answer(str)) end
 msg = lam(str): L.render-error-message(get-run-answer(str)) end
 
-fun startswith(hay, needle):
-  needle-len = string-length(needle)
-  hay-len = string-length(hay)
-  (needle-len <= hay-len) and
-  string-equal(string-substring(hay, 0, needle-len), needle)
-end
-
-fun endswith(hay, needle):
-  needle-len = string-length(needle)
-  hay-len = string-length(hay)
-  (needle-len <= hay-len) and
-  string-equal(string-substring(hay, hay-len - needle-len, hay-len), needle)
-end
-
 check:
   r = RT.make-runtime()
 
@@ -157,10 +143,11 @@ check:
   result35 = next-interaction("fun g(): f() end")
   result36 = next-interaction("g()")
   result36.v satisfies L.is-failure-result
-  L.get-result-stacktrace(result36.v) is
-  "  definitions://: line 1, column 9\n" +
-  "  interactions://1: line 1, column 9\n" +
-  "  interactions://2: line 1, column 0"
+  L.get-result-stacktrace(result36.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 9",
+    "interactions://1: line 1, column 9",
+    "interactions://2: line 1, column 0"]
 
   # Call a bunch of flat functions
   result37 = restart("fun f(o): o.x end\n" +
@@ -169,11 +156,12 @@ check:
                      "fun j(): string-append(g(), h()) end", false)
   result38 = next-interaction("j()")
   result38.v satisfies L.is-failure-result
-  L.get-result-stacktrace(result38.v) is
-  "  definitions://: line 1, column 10\n" +
-  "  definitions://: line 2, column 9\n" +
-  "  definitions://: line 4, column 23\n" +
-  "  interactions://1: line 1, column 0"
+  L.get-result-stacktrace(result38.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 10",
+    "definitions://: line 2, column 9",
+    "definitions://: line 4, column 23",
+    "interactions://1: line 1, column 0"]
 
   #Call a tail-recursive function that has an error at the deepest level
   result39 = restart("fun len(l, acc):\n" +
@@ -189,29 +177,29 @@ check:
   # Due to tail call optimization, the stack trace may not have any of the
   # "middle" frames, though it should definitely have the topmost and bottom
   # most frames.
-  topframe = "  definitions://: line 3, column 15\n"
-  startswith(stacktrace, topframe) is true
-
-  bottomframe = "  interactions://1: line 1, column 0"
-  endswith(stacktrace, bottomframe) is true
+  raw-array-get(stacktrace, 0) is "definitions://: line 3, column 15"
+  raw-array-get(stacktrace,
+    raw-array-length(stacktrace) - 1) is "interactions://1: line 1, column 0"
 
   result41 = restart("fun f(o): o.x end\n" +
                      "fun g(): f(5)\n end", false)
   result42 = next-interaction("g()")
   result42.v satisfies L.is-failure-result
-  L.get-result-stacktrace(result42.v) is
-  "  definitions://: line 1, column 10\n" +
-  "  definitions://: line 2, column 9\n" +
-  "  interactions://1: line 1, column 0"
+  L.get-result-stacktrace(result42.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 10",
+    "definitions://: line 2, column 9",
+    "interactions://1: line 1, column 0"]
 
   #Method call test
   result43 = restart("fun f(o): o.x() end\n" +
                      "fun g(): f({x: 5})\n end", false)
   result44 = next-interaction("g()")
   result44.v satisfies L.is-failure-result
-  L.get-result-stacktrace(result44.v) is
-  "  definitions://: line 1, column 10\n" +
-  "  definitions://: line 2, column 9\n" +
-  "  interactions://1: line 1, column 0"
+  L.get-result-stacktrace(result44.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 10",
+    "definitions://: line 2, column 9",
+    "interactions://1: line 1, column 0"]
 
 end
