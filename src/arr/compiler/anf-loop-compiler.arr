@@ -217,6 +217,14 @@ fun obj-of-loc(l):
   end
 end
 
+fun wrap-with-srcnode(l, expr :: J.JExpr):
+  cases(Loc) l:
+    | builtin(name) => expr
+    | srcloc(source, _, _, _, _, _, _) =>
+      J.j-sourcenode(l, source, expr)
+  end
+end
+
 fun get-dict-field(obj, field):
   j-bracket(j-dot(obj, "dict"), field)
 end
@@ -229,7 +237,7 @@ end
 # When the field may not exist, add source mapping so if we can't find it
 # we get a useful stacktrace
 fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
-  J.j-sourcenode(l, l.source, get-field-unsafe(obj, field, loc-expr))
+  wrap-with-srcnode(l, get-field-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
