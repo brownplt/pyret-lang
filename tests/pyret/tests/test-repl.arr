@@ -224,4 +224,18 @@ check:
   raw-array-get(stacktrace46, 2) is "definitions://: line 3, column 0"
   raw-array-get(stacktrace46, 3) is "interactions://1: line 1, column 0"
 
+  # stacktrace through builtin raw-list-map
+  result47 = restart("fun f():\n" +
+    "h = lam(x): x.somefield end\n" +
+    "builtins.raw-list-map(h, [list: 1, 2, 3])\n" +
+    "end", false)
+  result48 = next-interaction("f()")
+  result48.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result48.v) is=~
+  [raw-array:
+    "definitions://: line 2, column 12",
+    "definitions://: line 3, column 0",
+    "interactions://1: line 1, column 0"]
+
+
 end
