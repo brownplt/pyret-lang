@@ -218,11 +218,13 @@ check:
   result46.v satisfies L.is-failure-result
   stacktrace46 = L.get-result-stacktrace(result46.v)
 
+  raw-array-length(stacktrace46) is 5
   raw-array-get(stacktrace46, 0) is "definitions://: line 2, column 12"
   # Don't check the actual line number in the builtin:lists
   startswith(raw-array-get(stacktrace46, 1), "builtin://lists:")
-  raw-array-get(stacktrace46, 2) is "definitions://: line 3, column 0"
-  raw-array-get(stacktrace46, 3) is "interactions://1: line 1, column 0"
+  startswith(raw-array-get(stacktrace46, 2), "builtin://lists:")
+  raw-array-get(stacktrace46, 3) is "definitions://: line 3, column 0"
+  raw-array-get(stacktrace46, 4) is "interactions://1: line 1, column 0"
 
   # stacktrace through builtin raw-list-map
   result47 = restart("fun f():\n" +
