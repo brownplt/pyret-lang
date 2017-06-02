@@ -3051,6 +3051,33 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function isPause(v) { return v instanceof Pause; }
     Pause.prototype = Object.create(Cont.prototype);
 
+    function makeTimerObj() {
+      return {};
+    }
+
+    function startTimer(timerObj) {
+      if (typeof window !== "undefined" && window.performance) {
+        timerObj.startTime = window.performance.now();
+      } else if (typeof process !== "undefined" && process.hrtime) {
+        timerObj.startTime = process.hrtime();
+      }
+    }
+
+    function endTimer(timerObj) {
+      if (typeof window !== "undefined" && window.performance) {
+        timerObj.elapsed = window.performance.now() - timerObj.startTime;
+      } else if (typeof process !== "undefined" && process.hrtime) {
+        timerObj.elapsed = process.hrtime(timerObj.startTime);
+      }
+      return timerObj.elapsed;
+    }
+
+    function makeStatsObj(bounces, tos, time) {
+      var stats = {"bounces": bounces, "tos": tos, "time": time};
+      return stats;
+    }
+
+
     function safeTail(fun) {
       return fun();
     }
@@ -3164,23 +3191,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return;
       }
       RUN_ACTIVE = true;
-      var start;
-      function startTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          start = window.performance.now();
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          start = process.hrtime();
-        }
-      }
-      function endTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          return window.performance.now() - start;
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          return process.hrtime(start);
-        }
-      }
+      var timerObj = makeTimerObj();
       function getStats() {
-        return { bounces: BOUNCES, tos: TOS, time: endTimer() };
+        return makeStatsObj(BOUNCES, TOS, endTimer(timerObj));
       }
       function finishFailure(exn) {
         RUN_ACTIVE = false;
@@ -3193,7 +3206,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         onDone(new SuccessResult(answer, getStats()));
       }
 
-      startTimer();
+      startTimer(timerObj);
       var that = this;
       var theOneTrueStackTop = ["top-of-stack"]
       var kickoff = makeActivationRecord(
@@ -3622,14 +3635,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if (thisRuntime.bounceAllowed) {
         return thisRuntime.run(f, thisRuntime.namespace, {}, then);
       } else {
+        var timerObj = makeTimerObj();
         // Just run it on this stack and use a try/catch handler
-        var result;
+        var fnResult;
+        var resultCtor;
         try {
-          result = f();
-          result = thisRuntime.makeSuccessResult(result, {});
+          fnResult = f();
+          resultCtor = thisRuntime.makeSuccessResult;
         } catch (e) {
-          result = thisRuntime.makeFailureResult(e, {});
+          fnResult = e;
+          resultCtor = thisRuntime.makeFailureResult;
         }
+        var statsObj = makeStatsObj(0, 0, endTimer(timerObj));
+        result = resultCtor(fnResult, statsObj);
         return then(result);
       }
     }
