@@ -7,6 +7,7 @@ define("pyret-base/js/runtime",
    "pyret-base/js/secure-loader",
    "seedrandom"],
 function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
+  Error.stackTraceLimit = Infinity;
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -3272,6 +3273,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // This function should not return anything meaningful, as state
       // and fallthrough are carefully managed.
       function iter() {
+        console.log("In iter, gas is " + thisRuntime.GAS);
         // CONSOLE.log("In run2::iter, GAS is ", thisRuntime.GAS);
         // If the thread is dead, return has already been processed
         if (threadIsDead) {
@@ -3398,6 +3400,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             }
 
             else if(isPyretException(e)) {
+              console.log("caught pyret exn");
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
