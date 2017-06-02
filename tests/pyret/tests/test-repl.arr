@@ -238,4 +238,23 @@ check:
     "interactions://1: line 1, column 0"]
 
 
+  result49 = restart("fun sum(x):\n" +
+    "if x == 0:\n" +
+    "  9()\n" +
+    "else:\n" +
+    "  x + sum(x - 1)\n" +
+    "end\n" +
+  "end", false)
+
+  # Should be plenty enough to bounce
+  ncalls = 1000
+  result50 = next-interaction("sum(" + tostring(ncalls) + ")")
+  result50.v satisfies L.is-failure-result
+  stacktrace50-list = raw-array-to-list(L.get-result-stacktrace(result50.v))
+
+  stacktrace50-list is
+  [list: "definitions://: line 3, column 2"] +
+  repeat(ncalls, "definitions://: line 5, column 6") +
+  [list: "interactions://1: line 1, column 0"]
+
 end

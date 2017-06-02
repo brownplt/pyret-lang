@@ -210,7 +210,7 @@ require(["source-map", "pyret-base/js/runtime", "pyret-base/js/exn-stack-parser"
         return posForPyret;
       });
 
-      res.exn.pyretStack = pyretStack;
+      res.exn.pyretStack = pyretStack.concat(res.exn.pyretStack);
       debugger;
       
 

@@ -362,7 +362,7 @@
               return posForPyret;
             });
 
-            result.exn.pyretStack = pyretStack;
+            result.exn.pyretStack = pyretStack.concat(result.exn.pyretStack);
 
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
           }
