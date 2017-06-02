@@ -1,7 +1,7 @@
 if(typeof window === 'undefined') {
 var require = require("requirejs");
 }
-require(["source-map", "pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(sourceMap, runtimeLib, stackLib, program) {
+require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
@@ -187,30 +187,7 @@ require(["source-map", "pyret-base/js/runtime", "pyret-base/js/exn-stack-parser"
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
 
-      var parsedStack = stackLib.parseStack(res.exn.stack);
-
-
-
-      var pyretStack = parsedStack.map(function(frame) {
-        var uri = program.uris[frame.hashedURI];        
-        console.log("The URI for ", frame.hashedURI, " is ", uri);
-        var moduleSourceMap = staticModules[uri].theMap;
-        var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
-        consumer.computeColumnSpans();
-        var original = consumer.originalPositionFor({
-            source: uri,
-            line: Number(frame.startLine),
-            column: Number(frame.startCol) },
-          sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
-        console.log(original);
-        var posForPyret = original.name.split(",");
-        for(var i = 1; i < posForPyret.length; i += 1) {
-          posForPyret[i] = Number(posForPyret[i]);
-        }
-        return posForPyret;
-      });
-
-      res.exn.pyretStack = pyretStack.concat(res.exn.pyretStack);
+      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
       debugger;
       
 
