@@ -25,6 +25,13 @@ end
 val = lam(str): L.get-result-answer(get-run-answer(str)) end
 msg = lam(str): L.render-error-message(get-run-answer(str)) end
 
+fun startswith(hay, needle):
+  needle-len = string-length(needle)
+  hay-len = string-length(hay)
+  (needle-len <= hay-len) and
+  string-equal(string-substring(hay, 0, needle-len), needle)
+end
+
 check:
   r = RT.make-runtime()
 
@@ -201,5 +208,20 @@ check:
     "definitions://: line 1, column 10",
     "definitions://: line 2, column 9",
     "interactions://1: line 1, column 0"]
+
+  # stacktrace through list.map()
+  result45 = restart("fun f():\n" +
+    "h = lam(x): 9() end\n" +
+    "[list: 1, 2, 3].map(h)\n" +
+    "end", false)
+  result46 = next-interaction("f()")
+  result46.v satisfies L.is-failure-result
+  stacktrace46 = L.get-result-stacktrace(result46.v)
+
+  raw-array-get(stacktrace46, 0) is "definitions://: line 2, column 12"
+  # Don't check the actual line number in the builtin:lists
+  startswith(raw-array-get(stacktrace46, 1), "builtin://lists:")
+  raw-array-get(stacktrace46, 2) is "definitions://: line 3, column 0"
+  raw-array-get(stacktrace46, 3) is "interactions://1: line 1, column 0"
 
 end
