@@ -217,12 +217,27 @@ fun obj-of-loc(l):
   end
 end
 
+fun wrap-with-srcnode(l, expr :: J.JExpr):
+  cases(Loc) l:
+    | builtin(name) => expr
+    | srcloc(source, _, _, _, _, _, _) =>
+      J.j-sourcenode(l, source, expr)
+  end
+end
+
 fun get-dict-field(obj, field):
   j-bracket(j-dot(obj, "dict"), field)
 end
 
-fun get-field(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
-  j-app(get-field-loc, [clist: obj, field, loc])
+# Use when we're sure the field will exist
+fun get-field-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  j-app(get-field-loc, [clist: obj, field, loc-expr])
+end
+
+# When the field may not exist, add source mapping so if we can't find it
+# we get a useful stacktrace
+fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  wrap-with-srcnode(l, get-field-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
@@ -256,9 +271,11 @@ fun app(l, f, args):
   end
 end
 
-fun check-fun(l, f):
+fun check-fun(sourcemap-loc, variable-loc, f):
   j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block1(j-expr(j-method(rt-field("ffi"), "throwNonFunApp", [clist: l, f]))))
+    j-block1(j-expr(
+        J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
+        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])))))
 end
 
 c-exp = DAG.c-exp
@@ -809,11 +826,15 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   # num-args = args.length()
 
   if J.is-j-id(compiled-obj):
-    call = rt-method("maybeMethodCall",
-      cl-append([clist: compiled-obj, j-str(methname), compiler.get-loc(l)], compiled-args))
+    call = wrap-with-srcnode(l,
+      rt-method("maybeMethodCall",
+        cl-append([clist: compiled-obj,
+            j-str(methname),
+            compiler.get-loc(l)],
+          compiled-args)))
     {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
     c-block(j-block([clist:
-      j-expr(j-assign(step,  after-app-label)),
+      j-expr(j-assign(step, after-app-label)),
       j-expr(j-assign(ans, call)),
       j-break
     ]), new-cases)
@@ -839,7 +860,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                         cl-cons(obj-id, compiled-args))))
                 ]),
               j-block([clist:
-                  check-fun(compiler.get-loc(l), colon-field-id),
+                  check-fun(l, compiler.get-loc(l), colon-field-id),
                   j-expr(j-assign(ans, app(l, colon-field-id, compiled-args)))
                 ])),
             # If the answer is a cont, jump to the end of the current function
@@ -892,7 +913,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
           j-expr(j-assign(step, after-app-label)),
           j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
         if not(is-definitely-fn):
-          cl-sing(check-fun(j-id(compiler.cur-apploc), compiled-f))
+          cl-sing(check-fun(l, j-id(compiler.cur-apploc), compiled-f))
         else:
           cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
         end +
@@ -1367,7 +1388,7 @@ compiler-visitor = {
   end,
   method a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
     visit-obj = obj.visit(self)
-    c-exp(get-field(visit-obj.exp, j-str(field), self.get-loc(l)),
+    c-exp(get-field-safe(l, visit-obj.exp, j-str(field), self.get-loc(l)),
       cl-snoc(visit-obj.other-stmts, j-expr(j-assign(self.cur-apploc, self.get-loc(l)))))
   end,
   method a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
@@ -1595,7 +1616,7 @@ compiler-visitor = {
                 j-dot(j-id(variant-brand-id), "_brand"),
                 j-true))
           ])
-      predicate = j-field(A.make-checker-name(vname), get-field(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
+      predicate = j-field(A.make-checker-name(vname), get-field-unsafe(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
         | a-variant(l2, constr-loc, _, members, with-members) =>
@@ -1628,7 +1649,7 @@ compiler-visitor = {
       cl-append(acc, [clist: piece.predicate, piece.constructor])
     end
 
-    data-predicate = j-field(name, get-field(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
+    data-predicate = j-field(name, get-field-unsafe(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [clist: j-obj(cl-cons(data-predicate, obj-fields))])
 
