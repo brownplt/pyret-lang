@@ -353,7 +353,7 @@ data JExpr:
       printer(node-end)
     end,
     method tosource(self):
-      PP.surround(INDENT, 1, PP.str("("), self.exp.tosource(), PP.str(")"))
+      PP.surround(INDENT, 1, PP.str("("), self.expr.tosource(), PP.str(")"))
     end
     
   | j-parens(exp :: JExpr) with:
