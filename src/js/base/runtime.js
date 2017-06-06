@@ -1,5 +1,6 @@
 define(["./namespace", "./js-numbers", "./codePoint", "seedrandom", "./runtime-util"],
 function (Namespace, jsnums, codePoint, seedrandom, util) {
+  Error.stackTraceLimit = Infinity;
 
   if(util.isBrowser()) {
     var require = requirejs;
