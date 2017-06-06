@@ -2,9 +2,9 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["source-map", "pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
+  nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, sourceMap, stackLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
     var EXIT_ERROR_RENDERING_ERROR = 2;
@@ -96,6 +96,21 @@
     }
     function getResultProvides(mr) {
       return mr.val.provides;
+    }
+    function getResultStackTrace(mr) {
+      var runtime = mr.val.runtime;
+      if (!runtime.isFailureResult(mr.val.result)) {
+        runtime.ffi.throwMessageException("Tried to get stacktrace of non-failing module result.");
+      }
+
+      var res = getModuleResultResult(mr);
+      var stackString = runtime.printPyretStack(res.exn.pyretStack);
+      var stackFrames = stackString.split("\n");
+      var pyretStackFrames = stackFrames.map(function(frameString){
+        return runtime.makeString(frameString.trim());
+      });
+
+      return runtime.makeArray(pyretStackFrames);
     }
     function getModuleResultRuntime(mr) {
       return mr.val.runtime;
@@ -326,28 +341,7 @@
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
-            var parsedStack = stackLib.parseStack(result.exn.stack);
-
-            var pyretStack = parsedStack.map(function(frame) {
-              var uri = program.uris[frame.hashedURI];        
-              console.log("The URI for ", frame.hashedURI, " is ", uri);
-              var moduleSourceMap = staticModules[uri].theMap;
-              var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
-              consumer.computeColumnSpans();
-              var original = consumer.originalPositionFor({
-                  source: uri,
-                  line: Number(frame.startLine),
-                  column: Number(frame.startCol) },
-                sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
-              console.log(original);
-              var posForPyret = original.name.split(",");
-              for(var i = 1; i < posForPyret.length; i += 1) {
-                posForPyret[i] = Number(posForPyret[i]);
-              }
-              return posForPyret;
-            });
-
-            result.exn.pyretStack = pyretStack;
+            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
 
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
           }
@@ -367,6 +361,7 @@
       "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
       "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
       "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
+      "get-result-stacktrace": runtime.makeFunction(getResultStackTrace, "get-result-stacktrace"),
       "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
       "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
       "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm"),

@@ -1,4 +1,4 @@
-define("pyret-base/js/exn-stack-parser", [], function() {
+define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
 
   // TODO(joe): make this match exactly 64 characters
   var matchHashedPyretURI = /_([a-f0-9]+)__/;
@@ -30,9 +30,40 @@ define("pyret-base/js/exn-stack-parser", [], function() {
     return lines.filter(isSourcePyretFrame).map(parseFrame);
   }
 
+  function convertExceptionToPyretStackTrace(e, program) {
+    var parsedStack = parseStack(e.stack);
+    var staticModules = program.staticModules;
+
+    var pyretStack = parsedStack.map(function(frame) {
+      var uri = program.uris[frame.hashedURI];
+      console.log("The URI for ", frame.hashedURI, " is ", uri);
+      var moduleSourceMap = staticModules[uri].theMap;
+      var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
+      consumer.computeColumnSpans();
+      var original = consumer.originalPositionFor({
+        source: uri,
+        line: Number(frame.startLine),
+        column: Number(frame.startCol) },
+        sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
+      console.log(original);
+      var posForPyret = original.name.split(",");
+      for(var i = 1; i < posForPyret.length; i += 1) {
+        posForPyret[i] = Number(posForPyret[i]);
+      }
+      return posForPyret;
+    });
+
+    if (e.pyretStack) {
+      return pyretStack.concat(e.pyretStack);
+    } else {
+      return pyretStack;
+    }
+  }
+
   return {
     isSourcePyretFrame,
     parseFrame,
-    parseStack
+    parseStack,
+    convertExceptionToPyretStackTrace
   };
 });

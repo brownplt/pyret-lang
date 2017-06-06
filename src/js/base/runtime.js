@@ -7,6 +7,7 @@ define("pyret-base/js/runtime",
    "pyret-base/js/secure-loader",
    "seedrandom"],
 function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
+  Error.stackTraceLimit = Infinity;
 
   if(util.isBrowser()) {
     var require = requirejs;
