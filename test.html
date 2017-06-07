@@ -5,56 +5,97 @@
   window.module = {};
   window.exports = {};
 </script>
-<script src="node_modules/s-expression/index.js"></script>
-<script>
-var sexp_exports = window.module.exports;
-console.log(window.module.exports);
-define("s-expression", [], function() {
-  return sexp_exports;
-});
-</script>
-<script src="node_modules/seedrandom/seedrandom.js"></script>
-<script>
-var seed_exports = window.module.exports;
-define("seedrandom", [], function() {
-  return seed_exports;
-});
-</script>
-<script src="node_modules/source-map/dist/source-map.js"></script>
-<script>
-var sm_exports = window.module.exports;
-define("source-map", [], function() {
-  return sm_exports;
-});
-</script>
-<script src="node_modules/q/q.js"></script>
-<script>
-var q_exports = window.module.exports;
-define("q", [], function() {
-  return q_exports;
-});
+    <script>
+
+function loadModules(array,callback){
+    var loader = function(moduleName, src, handler){
+        var script = document.createElement("script");
+        script.src = src;
+        script.onload = script.onreadystatechange = function(){
+            script.onreadystatechange = script.onload = null;
+            alert("Loaded " + moduleName);
+            console.log(window.module.exports);
+            var moduleVal = window.module.exports;
+            define(moduleName, [], function() {
+                return moduleVal;
+            });
+            handler();
+        }
+        var head = document.getElementsByTagName("head")[0];
+        head.appendChild(script);
+    };
+    function run(){
+        if(array.length!=0){
+            var elem = array.shift();
+            loader(elem["name"], elem["src"], run);
+        }else{
+            callback && callback();
+        }
+    };
+    run();
+}
+loadModules([
+    {name: "s-expression", "src": "node_modules/s-expression/index.js"},
+    {name: "seedrandom", "src": "node_modules/seedrandom/seedrandom.js"},
+    {name: "source-map", "src": "node_modules/source-map/dist/source-map.js"},
+    {name: "q", src: "node_modules/q/q.js"}
+],
+            function(){
+                alert('All things are loaded');
+            });
+
 </script>
 
+<!-- <script src="node_modules/s-expression/index.js"></script> -->
+<!-- <script> -->
+<!-- var sexp_exports = window.module.exports; -->
+<!-- console.log(window.module.exports); -->
+<!-- define("s-expression", [], function() { -->
+<!--   return sexp_exports; -->
+<!-- }); -->
+<!-- </script> -->
+<!-- <script src="node_modules/seedrandom/seedrandom.js"></script> -->
+<!-- <script> -->
+<!-- var seed_exports = window.module.exports; -->
+<!-- define("seedrandom", [], function() { -->
+<!--   return seed_exports; -->
+<!-- }); -->
+<!-- </script> -->
+<!-- <script src="node_modules/source-map/dist/source-map.js"></script> -->
+<!-- <script> -->
+<!-- var sm_exports = window.module.exports; -->
+<!-- define("source-map", [], function() { -->
+<!--   return sm_exports; -->
+<!-- }); -->
+<!-- </script> -->
+<!-- <script src="node_modules/q/q.js"></script> -->
+<!-- <script> -->
+<!-- var q_exports = window.module.exports; -->
+<!-- define("q", [], function() { -->
+<!--   return q_exports; -->
+<!-- }); -->
+<!-- </script> -->
+
 </head>
-<script>
-require.config({
-  paths: {
-    "stacktrace-js": "node_modules/stacktrace-js/stacktrace"
-  }
-});
-</script>
-<script>
-window.process = {
-  stdout: {write: function(s) { console.log(s); } },
-  stderr: {write: function(s) { console.error(s); } },
-  argv: [],
-  exit: function(err) {
-      if (err != 0) {
-          throw new Error("Program ending with signal: ", err);
-      }
-  }
-}
-</script>
+<!-- <script> -->
+<!-- require.config({ -->
+<!--   paths: { -->
+<!--     "stacktrace-js": "node_modules/stacktrace-js/stacktrace" -->
+<!--   } -->
+<!-- }); -->
+<!-- </script> -->
+<!-- <script> -->
+<!-- window.process = { -->
+<!--   stdout: {write: function(s) { console.log(s); } }, -->
+<!--   stderr: {write: function(s) { console.error(s); } }, -->
+<!--   argv: [], -->
+<!--   exit: function(err) { -->
+<!--       if (err != 0) { -->
+<!--           throw new Error("Program ending with signal: ", err); -->
+<!--       } -->
+<!--   } -->
+<!-- } -->
+<!-- </script> -->
 <script type="text/javascript" src="test-file.jarr"></script>
 
 </html>

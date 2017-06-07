@@ -48,7 +48,7 @@ window.process = {
   stderr: {write: function(s) { console.error(s); } },
   argv: [],
   exit: function(err) {
-    throw new Error("Program ending with signal: ", err);
+          throw new Error("Program ending with signal: ", err);
   }
 }
 </script>
