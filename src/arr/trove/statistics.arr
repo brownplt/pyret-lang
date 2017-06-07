@@ -113,11 +113,11 @@ fun stdev(l :: L.List) -> Number:
 end
 
 fun linear-regression(x :: L.List<Number>, y :: L.List<Number>) -> (Number -> Number):
-  doc: "returns a linear regression model calculated with ordinary least squares"
+  doc: "returns a linear predictor function calculated with ordinary least squares regression"
   if x.length() <> y.length():
-    raise("lin-reg-2V: input lists must have equal lengths")
+    raise("linear-regression: input lists must have equal lengths")
   else if x.length() < 2:
-    raise("lin-reg-2V: input lists must have at least 2 elements each")
+    raise("linear-regression: input lists must have at least 2 elements each")
   else:
     xpt_xy = math.sum(L.map2(lam(xi, yi): xi * yi end, x, y))
     xpt_x_xpt_y = (math.sum(x) * math.sum(y)) / x.length()
@@ -128,16 +128,16 @@ fun linear-regression(x :: L.List<Number>, y :: L.List<Number>) -> (Number -> Nu
     beta = covariance / variance
     alpha = mean(y) - (beta * mean(x))
 
-		fun predictor(in :: Number) -> Number:
-			(beta * in) + alpha
-		end
+    fun predictor(in :: Number) -> Number:
+      (beta * in) + alpha
+    end
 
-		predictor
-	end
+    predictor
+  end
 end
 
 fun r-squared(x :: L.List<Number>, y :: L.List<Number>, f :: (Number -> Number)) -> Number:
-	y-mean = mean(y)
+  y-mean = mean(y)
   f-of-x = L.map(f, x)
   ss-tot = math.sum(L.map(lam(yi): num-sqr(yi - y-mean) end, y))
   ss-res = math.sum(L.map2(lam(yi, fi): num-sqr(yi - fi) end, y, f-of-x))
