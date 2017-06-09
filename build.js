@@ -1,6 +1,6 @@
 ({
     baseUrl: './optimizer',
-    name: "main",
+    name: "test-file",
     //include: ["requireLib"],
     optimize: 'none',
     out: 'optimizer/compiled.js',

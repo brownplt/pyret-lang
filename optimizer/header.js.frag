@@ -9,3 +9,16 @@ if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
    exports = undefined;
    module.exports = undefined;
 }
+
+if (typeof process === "undefined") {
+    var process = {
+        stdout: {write: function(s) { console.log(s); } },
+        stderr: {write: function(s) { console.error(s); } },
+        argv: [],
+        exit: function(err) {
+            if (err != 0) {
+                throw new Error("Program ending with signal: ", err);
+            }
+        }
+    }
+}
