@@ -15,5 +15,8 @@
         "fs": "empty:",
         "requireLib": "../node_modules/requirejs/require",
         "js-sha256": "../node_modules/js-sha256/src/sha256",
+    },
+    wrap: {
+        startFile: "optimizer/header.js.frag"
     }
 })

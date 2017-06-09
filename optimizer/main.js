@@ -12,8 +12,11 @@ require = requirejs;
 //     }
 // });
 
-requirejs(["source-map", "local-module"], function(sourcemap, localmod) {
-    console.log(sourcemap);
-    console.log(localmod);
+requirejs(["source-map", "local-module", "q", "seedrandom", "s-expression"], function(sourcemap, localmod, q, seedrandom, sexpr) {
+    console.log(sourcemap != undefined);
+    console.log(localmod != undefined);
+    console.log(q != undefined);
+    console.log(seedrandom != undefined);
+    console.log(sexpr);
     return 0;
 });
