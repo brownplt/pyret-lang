@@ -4,6 +4,8 @@ var define = requirejs.define;
 require = requirejs;
 }
 
-oldExports = exports;
-exports = undefined;
-module.exports = undefined;
+if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+   oldExports = exports;
+   exports = undefined;
+   module.exports = undefined;
+}

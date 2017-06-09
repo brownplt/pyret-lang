@@ -5,6 +5,7 @@
     optimize: 'none',
     out: 'optimizer/compiled.js',
     //wrap: true,
+    cjsTranslate: true,
     skipSemiColonInsertion: true,
     paths: {
         "source-map": "../node_modules/source-map/dist/source-map",
