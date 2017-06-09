@@ -3,8 +3,7 @@
     name: "main",
     //include: ["requireLib"],
     optimize: 'none',
-    out: 'compiled.js',
-    cjsTranslate: true,
+    out: 'optimizer/compiled.js',
     //wrap: true,
     skipSemiColonInsertion: true,
     paths: {
