@@ -1,8 +1,10 @@
 define("pyret-base/js/secure-loader", ["require", "q", "pyret-base/js/runtime-util"], function(rjs, Q, util) {
   function compileInNewScriptContext(src) {
     var promise = Q.defer();
+    var loader_callback_count = 0;
     if(util.isBrowser()) {
-      var callback = "loader_callback_" + Math.floor((Math.random() * 1000));
+      loader_callback_count += 1;
+      var callback = "loader_callback_" + loader_callback_count;
       window[callback] = function(result) {
         document.body.removeChild(script);
         delete window[callback];
