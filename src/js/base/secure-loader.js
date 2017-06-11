@@ -4,6 +4,8 @@ define("pyret-base/js/secure-loader", ["require", "q", "pyret-base/js/runtime-ut
     if(util.isBrowser()) {
       var callback = "loader_callback_" + Math.floor((Math.random() * 1000));
       window[callback] = function(result) {
+        document.body.removeChild(script);
+        delete window[callback];
         promise.resolve(result);
       }
       var script = document.createElement("script");
