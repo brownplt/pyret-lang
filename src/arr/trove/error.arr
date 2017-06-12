@@ -1744,19 +1744,23 @@ data RuntimeError:
     method render-reason(self):
       value1 = self.value1
       value2 = self.value2
+      var svalue1 = num-to-string(self.value1)
+      var svalue2 = num-to-string(self.value2)
       ask:
         | is-number(value1) and is-number(value2) then:
           # one (or both) of them must be a roughnum
           fun within-error(message):
             [ED.error:
               [ED.para: ED.text(message)],
-              [ED.para: ED.embed(value1)],
-              [ED.para: ED.embed(value2)],
+              [ED.para: ED.text(svalue1)],
+              [ED.para: ED.text(svalue2)],
               [ED.para: ED.text("Consider using the "),
               ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
 
           end
-          if num-is-roughnum(value1) and num-is-roughnum(value2):
+          if num-is-roughnum(value1) and num-is-roughnum(value2) block:
+            svalue1 := string-append(svalue1, "...")
+            svalue2 := string-append(svalue2, "...")
             within-error("Attempted to compare two Roughnums for equality, which is not allowed:")
           else if num-is-roughnum(value1):
             within-error("Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:")
