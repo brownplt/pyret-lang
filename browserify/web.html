@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+      <title>My App</title>
+      <head>
+        <script src="../node_modules/requirejs/require.js"></script>
+        <script>
+          window.module = {};
+          window.exports = {};
+        </script>
+        <script>
+          window.process = {
+          stdout: {write: function(s) { console.log(s); } },
+          stderr: {write: function(s) { console.error(s); } },
+          argv: [],
+          exit: function(err) {
+          if (err != 0) {
+          throw new Error("Program ending with signal: ", err);
+          }
+          }
+          }
+
+        </script>
+        <script type="text/javascript" src="compiled.js"></script>
+      </head>
+
+    <body>
+        <h1>My App</h1>
+    </body>
+</html>

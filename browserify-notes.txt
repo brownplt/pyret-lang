@@ -1,0 +1,14 @@
+1) cp ahoy-world.jarr into browserify/
+
+Get all the dependencies into one file
+
+browserify browserify/browserify-require-combined.js > browserify/nodemods.js
+
+Copy it into the pyret code with:
+cat browserify/header.js browserify/nodemods.js browserify/ahoy-world.jarr > browserify/compiled.js
+
+Test it:
+
+node browserify/compiled.js
+
+Move it somewhere and run it in a webpage like web.html
