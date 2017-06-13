@@ -115,13 +115,13 @@ define(["jglr/jglr"], function(E) {
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
 
   const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
-  const unsigned_rational_part = "[0-9]+/[0-9]+"; 
+  const unsigned_rational_part = "[0-9]+/[0-9]+";
 
   const number = new RegExp("^[-+]?" + unsigned_decimal_part, STICKY_REGEXP);
 
   const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
-  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")" + "(\\.\\.\\.)?", STICKY_REGEXP);
 
   const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
 
@@ -166,7 +166,6 @@ define(["jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
-  
 
   const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", STICKY_REGEXP);
 

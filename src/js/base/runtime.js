@@ -161,7 +161,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       delete parameters[param];
     }
 
-
     /**
        Get the brands on an object
 
@@ -265,7 +264,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     var DefaultReprMethods = {
       "string": String,
-      "number": String,
+      //"number": String,
+      "number": function(val) {
+        if (jsnums.isRoughnum(val)) {
+          return val.toString() + '...';
+        } else {
+          return String(val);
+        }
+      },
       "boolean": String,
       "nothing": function(val) { return "nothing"; },
       "function": function(val) { return "<function>"; },
@@ -289,7 +295,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         }
         s += " }";
         return s;
-        
+
       },
       "object": function(val, pushTodo) {
         var keys = [];
@@ -419,7 +425,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         if (val.$constrFor !== undefined) {
           thisRuntime.ffi.throwLookupConstructorNotObject(makeSrcloc(loc), val.$constrFor, field);
         }
-        thisRuntime.ffi.throwLookupNonObject(makeSrcloc(loc), val, field); 
+        thisRuntime.ffi.throwLookupNonObject(makeSrcloc(loc), val, field);
       }
       var fieldVal = val.dict[field];
       if(fieldVal === undefined) {
@@ -1043,7 +1049,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return true;
     }
 
-
     /*********************
             Object
     **********************/
@@ -1171,7 +1176,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeArray(arr) {
       return arr;
     }
- 
+
     /************************
           Type Checking
     ************************/
@@ -1842,7 +1847,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             return;
           }
         }
-// throw new Error("Internal error: tried to 
+// throw new Error("Internal error: tried to
       }
       function cachePair(obj1, obj2) {
         cache.left.push(obj1);
@@ -2489,7 +2494,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       });
     }
 
-
     function _checkAnn(compilerLoc, ann, val) {
       if (isCheapAnnotation(ann)) {
         var result = ann.check(compilerLoc, val);
@@ -2742,8 +2746,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       });
     }
 
-
-
     function PTupleAnn(locs, anns) {
       this.locs = locs;
       this.anns = anns;
@@ -2756,7 +2758,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       this.refinement = hasRefinement;
       this.isCheap = isCheap;
     }
-    
+
     function makeTupleAnn(locs, anns) {
       return new PTupleAnn(locs, anns);
     }
@@ -2827,9 +2829,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     /* PTupleAnn.prototype.createTupleLengthMismatch = function(loc, val, annLength, tupLength) {
        ffi.contractFail(loc, ffi.makeTupleLengthMismatch(loc, val, annLength, tupleLength);
        }; */
-
-
-
 
     function PRecordAnn(fields, locs, anns) {
       this.fields = fields;
@@ -3089,7 +3088,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             throw thisRuntime.makeCont();
-          }  
+          }
           else { i = i + 1; }
         }
       }
@@ -3558,7 +3557,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       throwInternalError: function(msg) { thisRuntime.ffi.throwInternalError(msg); },
     };
 
-
     var plus = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_plus"], 2, $a); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
@@ -3723,7 +3721,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           throw thisRuntime.makeCont();
         }
-        
+
         while (curIdx < len) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3774,7 +3772,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           throw thisRuntime.makeCont();
         }
-        
+
         while (curIdx < len) {
           if (++currentRunCount >= 1000) {
             thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3815,12 +3813,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
       thisRuntime.checkArray(arr);
       thisRuntime.checkArray(keys);
-      
+
       var obj = {}
       for(var i = 0; i < keys.length; i++) {
         obj[keys[i]] = arr[i];
       }
-      
+
       return makeObject(obj);
     };
 
@@ -4177,7 +4175,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return foldFun();
     };
 
-
     var string_substring = function(s, min, max) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-substring"], 3, $a); }
       thisRuntime.checkString(s);
@@ -4199,7 +4196,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       if(jsnums.greaterThan(max, string_length(s), NumberErrbacks)) {
         thisRuntime.ffi.throwMessageException("substring: max index " + String(max) + " is larger than the string length " + String(string_length(s)));
       }
-      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min, NumberErrbacks), 
+      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min, NumberErrbacks),
                                                 jsnums.toFixnum(max, NumberErrbacks)));
     }
     var string_replace = function(s, find, replace) {
@@ -5089,7 +5086,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'trace-value': makeFunction(traceValue, "trace-value")
     });
 
-
     function traceValue(loc, val) {
       if(!thisRuntime.hasParam("onTrace")) { return val; }
       var callback = thisRuntime.getParam("onTrace");
@@ -5136,7 +5132,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       // NOTE(joe): this one different because the predicate is added when Table is loaded
       // (see handalone.js)
       'is-table': makeFunction(function(v) {
-        return thisRuntime.isTable(v); 
+        return thisRuntime.isTable(v);
       }, "is-tuple"),
 
       'run-task': makeFunction(execThunk, "run-task"),
@@ -5281,7 +5277,6 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'printPyretStack': printPyretStack,
 
       'traceValue': traceValue,
-
 
       'traceEnter': traceEnter,
       'traceExit': traceExit,
@@ -5620,6 +5615,5 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
   }
 
   return  {'makeRuntime' : makeRuntime};
-
 
 });

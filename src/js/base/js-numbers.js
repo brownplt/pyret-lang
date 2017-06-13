@@ -231,7 +231,6 @@ define(function() {
       return new Rational(x, 1, errbacks);
   };
 
-
   // isPyretNumber: any -> boolean
   // Returns true if the thing is a pyretnum
   var isPyretNumber = function(thing) {
@@ -1927,11 +1926,9 @@ define(function() {
   var digitRegexp = new RegExp("^[+-]?\\d+$");
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
 
+  var roughnumDecRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)(\\.\\.\\.)?$");
 
-  var roughnumDecRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
-
-  var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
-
+  var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)(\\.\\.\\.)?$");
 
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
