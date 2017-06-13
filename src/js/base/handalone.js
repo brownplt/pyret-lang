@@ -188,7 +188,6 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
       var exnStack = res.exn.stack;
 
       res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
-      debugger;
       
 
       execRt.runThunk(
