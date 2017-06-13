@@ -1,6 +1,6 @@
 ({
   requires: [],
-  nativeRequires: ["path", "fs", "requirejs"],
+  nativeRequires: ["path", "fs"],
   provides: {},
   theModule: function(runtime, namespace, uri, path, fs, requirejs) {
     /*
