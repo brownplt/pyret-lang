@@ -248,14 +248,31 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
   end
 end
 
-fun ensure-unique-variant-ids(variants :: List<A.Variant>):
-  cases(List) variants:
-    | empty => nothing
+fun ensure-unique-variant-ids(variants :: List<A.Variant>, name :: String, data-loc :: Loc):
+  cases(List) variants block:
+    | empty => true
     | link(f, rest) =>
-      cases(Option) lists.find(lam(b): b.name == f.name end, rest):
-        | some(found) => add-error(C.duplicate-variant(f.name, found.l, f.l))
-        | none => ensure-unique-variant-ids(rest)
+      if f.name == name:
+        add-error(C.data-variant-duplicate-name(f.name, f.l, data-loc))
+      else if f.name == ("is-" + name):
+        add-error(C.duplicate-is-data(name, f.l, data-loc))
+      else if ("is-" + f.name) == name:
+        add-error(C.duplicate-is-data-variant(name, data-loc, f.l))
+      else:
+        nothing
       end
+      for each(b from rest):
+        if b.name == f.name block:
+          add-error(C.duplicate-variant(f.name, b.l, f.l))
+        else if b.name == ("is-" + f.name):
+          add-error(C.duplicate-is-variant(f.name, b.l, f.l))
+        else if ("is-" + b.name) == f.name:
+          add-error(C.duplicate-is-variant(b.name, f.l, b.l))
+        else:
+          nothing
+        end
+      end
+      ensure-unique-variant-ids(rest, name, data-loc)
   end
 end
 
@@ -909,12 +926,14 @@ top-level-visitor = A.default-iter-visitor.{
       add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
     check-underscore-name(with-members, "a field name")
-    is-empty(underscores) and
-      lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
+    lists.each(_.visit(well-formed-visitor), binds)
+    lists.each(_.visit(well-formed-visitor), with-members)
+    true
   end,
   method s-singleton-variant(self, l, name, with-members) block:
     ensure-unique-ids(fields-to-binds(with-members))
-    lists.all(_.visit(well-formed-visitor), with-members)
+    lists.each(_.visit(well-formed-visitor), with-members)
+    true
   end,
   method s-data(self, l, name, params, mixins, variants, shares, _check-loc, _check) block:
     old-pbl = parent-block-loc
@@ -922,25 +941,24 @@ top-level-visitor = A.default-iter-visitor.{
       | none => l
       | some(cl) => l.upto-end(cl)
     end
-    ensure-unique-variant-ids(variants)
+    ensure-unique-variant-ids(variants, name, l)
     check-underscore-name(variants, "a data variant name")
     check-underscore-name(shares, "a shared field name")
     check-underscore-name([list: {l: l, name: name}], "a datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
-    params-v = lists.all(_.visit(well-formed-visitor), params)
-    mixins-v = lists.all(_.visit(well-formed-visitor), mixins)
-    variants-v = lists.all(_.visit(self), variants)
-    shares-v = lists.all(_.visit(well-formed-visitor), shares)
+    lists.each(_.visit(well-formed-visitor), params)
+    lists.each(_.visit(well-formed-visitor), mixins)
+    lists.each(_.visit(self), variants)
+    lists.each(_.visit(well-formed-visitor), shares)
     cur-shared := the-cur-shared
-    ans = params-v and mixins-v and variants-v and shares-v
     cases(Option) _check-loc:
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
-    shadow ans = ans and wrap-visit-check(well-formed-visitor, _check)
+    wrap-visit-check(well-formed-visitor, _check)
     parent-block-loc := old-pbl
-    ans
+    true
   end,
   method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check-loc, _check) block:
     old-pbl = parent-block-loc
@@ -948,26 +966,24 @@ top-level-visitor = A.default-iter-visitor.{
       | none => l
       | some(cl) => l.upto-end(cl)
     end
-    ensure-unique-variant-ids(variants)
-    underscores = variants.filter(lam(v): v.name == "_" end)
-    when not(is-empty(underscores)):
-      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
-    end
+    ensure-unique-variant-ids(variants, name, l)
+    check-underscore-name(variants, "a data variant name")
+    check-underscore-name(shared, "a shared field name")
+    check-underscore-name([list: {l: l, name: name}], "a datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shared)
-    ans = lists.all(_.visit(well-formed-visitor), params)
-    and lists.all(_.visit(well-formed-visitor), mixins)
-    and lists.all(_.visit(well-formed-visitor), variants)
-    and lists.all(_.visit(well-formed-visitor), shared)
+    lists.each(_.visit(well-formed-visitor), params)
+    lists.each(_.visit(well-formed-visitor), mixins)
+    lists.each(_.visit(well-formed-visitor), variants)
+    lists.each(_.visit(well-formed-visitor), shared)
     cur-shared := the-cur-shared
-    shadow ans = is-empty(underscores) and ans
     cases(Option) _check-loc:
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
-    shadow ans = ans and wrap-visit-check(well-formed-visitor, _check)
+    wrap-visit-check(well-formed-visitor, _check)
     parent-block-loc := old-pbl
-    ans
+    true
   end,
 
   # Everything else delegates to the non-toplevel visitor

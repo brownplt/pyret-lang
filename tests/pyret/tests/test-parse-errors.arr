@@ -3,18 +3,20 @@ import file("../test-parse-helper.arr") as P
 
 get-parse-error = P.get-parse-error
 wss = P.wss
-en-ops = P.en-ops
 
 next-token = [list:
   "end",
   "foo(args no-comma)",
   "fun foo(params no-comma): nothing end",
   "data: foo end"
-].append(en-ops)
+].append(P.exp-en-ops)
 
 check "next token":
-  for map(program from next-token):
+  for each(program from next-token):
     get-parse-error(program) satisfies ERR.is-parse-error-next-token
+  end
+  for each(program from P.test-en-ops):
+    get-parse-error(program) satisfies ERR.is-parse-error-bad-check-operator
   end
 end
 
