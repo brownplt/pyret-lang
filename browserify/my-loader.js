@@ -4,48 +4,36 @@ var define, myrequire;
         return Object.prototype.toString.call(arg) === '[object Array]';
     };
 
-    // dependency name -> modules waiting for that dependency to be loaded
-    var dependeeTable = {};
-
     // module name -> module object
     var moduleTable = {};
 
-    function getModuleVal(depName) {
-        return (depName in moduleTable) ? moduleTable[depName].val : null;
+    function moduleResolved(modName) {
+        return (modName in moduleTable) && (moduleTable[modName].resolved);
     }
 
     function evaluateModuleFn(moduleObj) {
         console.log("Evaluating " + moduleObj.name);
+
         var callbackArgs = [];
         for (var i = 0; i < moduleObj.deps.length; i++) {
             var depName = moduleObj.deps[i];
-            var depVal = getModuleVal(depName);
-            if (depVal) {
-                callbackArgs.push(depVal);
+            if (moduleResolved(depName)) {
+                callbackArgs.push(moduleTable[depName].val);
             } else {
                 throw new Error("Module " + depName + " not yet resolved");
             }
         }
 
+        if (moduleObj.val != null) {
+            throw new Error("Already evaluated " + moduleObj.name);
+        }
         // Now call it
         moduleObj.val = moduleObj.callback.apply(null, callbackArgs);
-
-        // Evaluate any modules which were waiting on this one
-        if (moduleObj.name in dependeeTable) {
-            for (var i = 0; i < dependeeTable[moduleObj.name].length; i++) {
-                var dependee = dependeeTable[moduleObj.name][i];
-                dependee.unresolvedDependencies -= 1;
-                if (dependee.unresolvedDependencies < 0) {
-                    throw new Error ("unresolved dependency invalid value");
-                } else if (dependee.unresolvedDependencies === 0) {
-                    evaluateModuleFn(dependee);
-                }
-            }
-        }
+        moduleObj.resolved = true;
     }
 
     define = function(name, deps, callback) {
-        //This module may not have dependencies
+        //This module might have no dependencies
         if (!isArray(deps)) {
             callback = deps;
             deps = null;
@@ -61,64 +49,75 @@ var define, myrequire;
             name: name,
             deps: deps,
             val: null,
-            unresolvedDependencies: 0,
+
+            // Since module functions might return weird values like undefined
+            // we separately keep track of whether we've resolved it or not.
+            resolved: false,
         };
-
-        var visitedDeps = {};
-        for (var i = 0; i < deps.length; i++) {
-            var depName = deps[i];
-            if (depName in visitedDeps) {
-                // The same dependency repeated twice in the list. skip it
-                continue;
-            }
-            
-            if (!(depName in dependeeTable)) {
-                dependeeTable[depName] = [moduleTable[name]];
-            } else {
-                dependeeTable[depName].push(moduleTable[name]);
-            }
-            moduleTable[name].unresolvedDependencies += 1;
-            visitedDeps[depName] = true;
-        }
-
-        console.log("dependee table is\n" + JSON.stringify(dependeeTable, null, 4));
     };
 
     function getLoadOrder(deps) {
-        // Do topsort on the "reverse dependency graph" then flip it at the end
+        // Do DFS + topsort in one pass over the graph without destroying it
         var topsorted = [];
-        var visited = {};
-        var queue = {};
 
-        for (var i = 0; i < queue.length; i++) {
-            var modName = queue[i];
-            if (modName in visited) {
-                continue;
-            }
+        var toVisit = {}; // Nodes we haven't touched
+        var currentlyVisitedNodes = {}; // Nodes we're currently working on (used to find cycles)
+        var visitedNodes = {}; // Nodes we're done with
 
-            if (!(modName in moduleTable)) {
+        function visitNode(node) {
+            console.log("Visiting " + node);
+            if (!(node in moduleTable)) {
                 throw new Error("Unknown module : " + depName);
             }
-
-            for (var j = 0; j < moduleTable[modName].deps.length; j++) {
-                var depName = moduleTable[modName].deps[j];
-                queue.push(depName);
+            if (node in currentlyVisitedNodes) {
+                throw new Error("We have a cycle, which includes " + node);
+            }
+            if (node in visitedNodes) {
+                // already visited it
+                return;
             }
 
-            if (dependeeTable[modName].length == 0) {
-                topsorted.push(modName);
+            // It's unvisited, so mark it as currently being visited
+            currentlyVisitedNodes[node] = true;
+            if (node in toVisit) {
+                delete toVisit[node];
             }
 
-            visited[modName] = true;
+            // Now visit its children
+            for (var i = 0; i < moduleTable[node].deps.length; i++) {
+                var child = moduleTable[node].deps[i];
+                visitNode(child);
+            }
+
+            // Now all of node's dependencies have been added to the list
+            // so we're safe to add it
+            topsorted.push(node);
+            delete currentlyVisitedNodes[node];
+            visitedNodes[node] = true;
+        };
+
+        for (var i = 0; i < deps.length; i++) {
+            toVisit[deps[i]] = true;
         }
 
-        return topsorted.reverse();
+        while (Object.keys(toVisit).length > 0) {
+            var node = Object.keys(toVisit)[0];
+            visitNode(node);
+        }
+
+        return topsorted;
     }
-      
 
     myrequire = function(deps, callback) {
         var loadOrder = getLoadOrder(deps);
         console.log("The load order is ...\n" + JSON.stringify(loadOrder, null, 2));
+
+        for (var i = 0; i < loadOrder.length; i++) {
+            var modName = loadOrder[i];
+            if (!moduleTable[modName].resolved) {
+                evaluateModuleFn(moduleTable[modName]);
+            }
+        }
     };
 }());
 
@@ -128,9 +127,11 @@ define("a", ["b", "c"],
            console.log("bval is " + bval);
            console.log("cval is " + cval);
        });
-define("b", ["c"], function (cval) {
+define("b", ["d"], function (cval) {
     console.log(cval);
     return "bval";
 });
 define("c", [], function () {return "mc";});
-myrequire(["a", "c"], function () {console.log("in main!");});
+define("d", [], function() {});
+define("e", ["d"], function() {});
+myrequire(["a", "c", "e"], function () {console.log("in main!");});
