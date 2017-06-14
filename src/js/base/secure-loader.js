@@ -1,4 +1,4 @@
-define("pyret-base/js/secure-loader", ["require", "q", "pyret-base/js/runtime-util"], function(rjs, Q, util) {
+define("pyret-base/js/secure-loader", ["q", "pyret-base/js/runtime-util"], function(Q, util) {
   function compileInNewScriptContext(src) {
     var promise = Q.defer();
     if(util.isBrowser()) {

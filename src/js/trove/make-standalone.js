@@ -44,9 +44,9 @@
       if(config["use-raw-files"]) {
         var outFile = fs.openSync(realOut, "w");
         var filesToFetch = config["raw-js"];
-        fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
-        fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
-        fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
+          //fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
+          //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
+          //fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
         Object.keys(filesToFetch).forEach(function(f) {
           var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
           fs.writeSync(outFile, contents);

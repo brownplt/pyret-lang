@@ -4,6 +4,8 @@ var define, myrequire;
         return Object.prototype.toString.call(arg) === '[object Array]';
     };
 
+    var nodeRequire = (typeof require != "undefined") ? require : null;
+
     // module name -> module object
     var moduleTable = {};
 
@@ -11,22 +13,25 @@ var define, myrequire;
         return (modName in moduleTable) && (moduleTable[modName].resolved);
     }
 
-    function evaluateModuleFn(moduleObj) {
-        console.log("Evaluating " + moduleObj.name);
-
-        var callbackArgs = [];
-        for (var i = 0; i < moduleObj.deps.length; i++) {
-            var depName = moduleObj.deps[i];
+    function buildCallbackArgs(deps) {
+        return deps.map(function(depName) {
             if (moduleResolved(depName)) {
-                callbackArgs.push(moduleTable[depName].val);
+                return moduleTable[depName].val;
             } else {
                 throw new Error("Module " + depName + " not yet resolved");
             }
-        }
+        });
+    }
+
+    function evaluateModuleFn(moduleObj) {
+        console.log("Evaluating " + moduleObj.name);
 
         if (moduleObj.val != null) {
             throw new Error("Already evaluated " + moduleObj.name);
         }
+
+        var callbackArgs = buildCallbackArgs(moduleObj.deps);
+
         // Now call it
         moduleObj.val = moduleObj.callback.apply(null, callbackArgs);
         moduleObj.resolved = true;
@@ -39,6 +44,10 @@ var define, myrequire;
             deps = null;
         }
 
+        if (callback === undefined) {
+            throw new Error("no callback for " + name);
+        }
+
         console.log("define(" + name + ", [" + deps + "])");
         if (name in moduleTable) {
             throw new Error("Module " + name + " already defined");
@@ -47,7 +56,7 @@ var define, myrequire;
         moduleTable[name] = {
             callback: callback,
             name: name,
-            deps: deps,
+            deps: deps != null ? deps : [],
             val: null,
 
             // Since module functions might return weird values like undefined
@@ -67,7 +76,7 @@ var define, myrequire;
         function visitNode(node) {
             console.log("Visiting " + node);
             if (!(node in moduleTable)) {
-                throw new Error("Unknown module : " + depName);
+                throw new Error("Unknown module : " + node);
             }
             if (node in currentlyVisitedNodes) {
                 throw new Error("We have a cycle, which includes " + node);
@@ -109,6 +118,21 @@ var define, myrequire;
     }
 
     myrequire = function(deps, callback) {
+        if (typeof deps === 'string') {
+            // Trying to require("somemodule"). It needs to be in our table, or
+            // we have to be in node with a synchronous require() function
+            if ((deps in moduleTable) && moduleTable[deps].val) {
+                return moduleTable[deps].val;
+            }
+
+            if (nodeRequire) {
+                return require(deps);
+            }
+
+            // It's not in our table and we don't have require() so it's unknown.
+            throw new Error("Unresolved module " + deps + "...use require([], callback)");
+        }
+
         var loadOrder = getLoadOrder(deps);
         console.log("The load order is ...\n" + JSON.stringify(loadOrder, null, 2));
 
@@ -118,20 +142,27 @@ var define, myrequire;
                 evaluateModuleFn(moduleTable[modName]);
             }
         }
+
+        var callbackArgs = buildCallbackArgs(deps);
+        callback.apply(null, callbackArgs);
     };
 }());
 
 
+// Simple test case
+// TODO: remove!
 define("a", ["b", "c"],
        function (bval, cval) {
            console.log("bval is " + bval);
            console.log("cval is " + cval);
+           return "alol";
        });
 define("b", ["d"], function (cval) {
     console.log(cval);
     return "bval";
 });
 define("c", [], function () {return "mc";});
-define("d", [], function() {});
-define("e", ["d"], function() {});
-myrequire(["a", "c", "e"], function () {console.log("in main!");});
+define("d", [], function() {return "md"; });
+define("e", ["d"], function() {return "me";});
+myrequire(["a", "c", "e"], function (a,c,e) {console.log("in main!" + a + " " + c + " " + e);});
+myrequire("source-map");

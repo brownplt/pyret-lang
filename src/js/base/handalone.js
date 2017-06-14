@@ -1,7 +1,4 @@
-if(typeof window === 'undefined') {
-var require = require("requirejs");
-}
-require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
+myrequire(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
