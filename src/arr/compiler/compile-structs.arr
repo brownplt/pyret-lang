@@ -1569,6 +1569,110 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
+  | data-variant-duplicate-name(id :: String, found :: Loc, data-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.found], 0),
+          ED.text(" has the same name as its "),
+          ED.highlight(ED.text("containing datatype"), [list: self.data-loc], 1), ED.text(".")],
+        ED.cmcode(self.found),
+        ED.cmcode(self.data-loc),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(" predicates will shadow each other.  Please rename either the variant or the datatype to avoid this.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.found),
+          ED.text(" has the same name as its containing datatype.  The "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(" predicates will shadow each other.  Please rename either the variant or the datatype to avoid this.")]]
+    end,
+  | duplicate-is-variant(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("another variant"), [list: self.is-found], 1),
+          ED.text(" is defined with that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename one of the variants so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but another variant is defined with that name.  Please rename one of the variants so their names do not collide.")]]
+    end,
+  | duplicate-is-data(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("data definition"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("one of its variants"), [list: self.is-found], 1),
+          ED.text(" is defined with that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The data definition "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but one of its variants is defined with that name.  Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+  | duplicate-is-data-variant(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("the data definition"), [list: self.is-found], 1),
+          ED.text(" already uses that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but its surrounding data definition already uses that name.  Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
   | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
     method render-fancy-reason(self):
       [ED.error:
