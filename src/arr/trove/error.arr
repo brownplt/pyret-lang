@@ -1949,6 +1949,40 @@ data ParseError:
           draw-and-highlight(self.loc),
           ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
+  | parse-error-bad-check-operator(loc) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error: 
+          [ED.para:
+            ED.text("The "),
+            ED.highlight(ED.text("testing operator"), [ED.locs: self.loc], 0)],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text(" must be used inside a "),
+            ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
+          [ED.para:
+            ED.text("Did you mean to use one of the comparison operators instead?")]]
+      else:
+        [ED.error: 
+          [ED.para-nospace:
+            ED.text("The testing operator at "),
+            ED.loc(self.loc),
+            ED.text(" must be used inside a "),
+            ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
+          [ED.para:
+            ED.text("Did you mean to use one of the comparison operators instead?")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error: 
+        [ED.para-nospace:
+          ED.text("The testing operator at "),
+          draw-and-highlight(self.loc),
+          ED.text(" must be used inside a"),
+          ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
+        [ED.para:
+          ED.text("Did you mean to use one of the comparison operators instead?")]]
+    end
   | empty-block(loc) with:
     method _tostring(self, shadow tostring):
       "Empty block at " + self.loc.format(true)

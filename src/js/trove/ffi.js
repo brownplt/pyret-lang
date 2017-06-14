@@ -424,6 +424,9 @@
     function throwParseErrorBadOper(loc) {
       raise(err("parse-error-bad-operator")(loc));
     }
+    function throwParseErrorBadCheckOper(loc) {
+      raise(err("parse-error-bad-check-operator")(loc));
+    }
 
     function throwModuleLoadFailureL(names) {
       raise(makeModuleLoadFailureL(names));
@@ -560,6 +563,7 @@
       throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
       throwParseErrorBadNumber: throwParseErrorBadNumber,
       throwParseErrorBadOper: throwParseErrorBadOper,
+      throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
