@@ -165,4 +165,3 @@ define("c", [], function () {return "mc";});
 define("d", [], function() {return "md"; });
 define("e", ["d"], function() {return "me";});
 myrequire(["a", "c", "e"], function (a,c,e) {console.log("in main!" + a + " " + c + " " + e);});
-myrequire("source-map");
