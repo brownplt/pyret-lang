@@ -961,11 +961,11 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
     j-block(
       # Update step before the call, so that if it runs out of gas,
       # the resumer goes to the right step
-      cl-sing(j-expr(j-assign(step, after-app-label))) +
+      [clist:
+        j-expr(j-assign(step, after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
       if not(is-definitely-fn):
-        [clist:
-          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l))),
-          check-fun(l, j-id(compiler.cur-apploc), compiled-f)]
+        cl-sing(check-fun(l, j-id(compiler.cur-apploc), compiled-f))
       else:
         cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
       end +
