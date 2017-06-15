@@ -1,6 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
-NODE             = node -max-old-space-size=8192
+NODE             = node -max-old-space-size=8192 --stack-size=16384
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
@@ -14,6 +14,14 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
+
+FLATNESS_THRESHOLD = 10
+ifeq ($(FLATNESS_THRESHOLD),-1)
+  # If we allow infinite flatness, then get rid of the system stack
+  # limit for node
+  TMPNODE:=$(NODE)
+  NODE=ulimit -s unlimited; $(TMPNODE)
+endif
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -106,8 +114,8 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configB.json
-
+                      --require-config src/scripts/standalone-configB.json \
+                      --flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
@@ -119,7 +127,8 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configC.json
+                      --require-config src/scripts/standalone-configC.json \
+                      --flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
@@ -207,7 +216,8 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 	  --builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--require-config $(PYRET_TEST_CONFIG) \
-		--compiled-dir tests/compiled/
+		--compiled-dir tests/compiled/ \
+		--flatness-threshold $(FLATNESS_THRESHOLD)
 
 .PHONY : old-test
 old-test: runtime-test evaluator-test compiler-test pyret-test regression-test type-check-test lib-test
@@ -307,6 +317,7 @@ clean:
 .PHONY : test-clean
 test-clean:
 	$(call RMDIR, tests/compiled)
+	$(call RM, tests/pyret/*.jarr)
 
 # Written this way because cmd.exe complains about && in command lines
 new-bootstrap: no-diff-standalone
