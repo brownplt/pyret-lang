@@ -98,18 +98,14 @@ check:
 #    e5.typ is "Number"
 
   e10 = get-err(lam(): 5() end)
-  e10 satisfies E.is-RuntimeError
-  # TODO: Test should only be relaxed in unsafe mode
-  #e10 satisfies E.is-non-function-app
+  e10 satisfies E.is-non-function-app
   when E.is-non-function-app(e10) block:
     e10.non-fun-val is 5
     e10.loc satisfies S.is-srcloc
   end
 
   e11 = get-err(lam(): 5(6, 7 + 8) end)
-  e11 satisfies E.is-RuntimeError
-  # TODO: Test should only be relaxed in unsafe mode
-  #e11 satisfies E.is-non-function-app
+  e11 satisfies E.is-non-function-app
   when E.is-non-function-app(e11) block:
     e11.non-fun-val is 5
     e11.loc satisfies S.is-srcloc
