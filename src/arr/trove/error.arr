@@ -47,8 +47,10 @@ end
 
 data RuntimeError:
   | multi-error(errors #|:: List<RuntimeError>|#) with:
-    method render-fancy-reason(self, loc-to-ast, loc-to-src):
-      rendered = self.errors.map(_.render-fancy-reason(loc-to-ast, loc-to-src))
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      # The concatenation of renderings is _not_ a valid rendering;
+      # this is a ticking time-bomb of vexing highlighting bugs.
+      rendered = self.errors.map(_.render-fancy-reason(maybe-stack-loc, src-available, maybe-ast))
       ED.v-sequence(rendered)
     end,
     method render-reason(self):
@@ -87,7 +89,7 @@ data RuntimeError:
       end
     end
   | message-exception(message :: String) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -280,7 +282,7 @@ data RuntimeError:
         vert-list-values(self.info-args)]
     end
   | spinnaker-error(funloc, step-num) with:
-    method render-fancy-reason(self, _, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -699,7 +701,7 @@ data RuntimeError:
         ED.embed(self.non-obj)]
     end
   | non-boolean-condition(loc, typ, value) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO!!
     end,
     method render-reason(self):
@@ -711,7 +713,7 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | non-boolean-op(loc, position, typ, value) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO!!
     end,
     method render-reason(self):
@@ -1644,7 +1646,7 @@ data RuntimeError:
       end
     end
   | module-load-failure(names) with: # names is List<String>
-    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -1748,7 +1750,7 @@ data RuntimeError:
             ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO
     end,
     method render-reason(self):
@@ -1782,7 +1784,7 @@ data RuntimeError:
     end
 
   | user-break with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -1790,7 +1792,7 @@ data RuntimeError:
     end
 
   | user-exception(value :: Any) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end,
@@ -1799,7 +1801,7 @@ data RuntimeError:
     end
 
   | exit(code :: Number) with:
-     method render-fancy-reason(self, _, _):
+     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
        self.render-reason()
      end,
      method render-reason(self):
@@ -1807,7 +1809,7 @@ data RuntimeError:
      end
 
    | exit-quiet(code :: Number) with:
-     method render-fancy-reason(self, _, _):
+     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
        self.render-reason()
      end,
      method render-reason(self):
