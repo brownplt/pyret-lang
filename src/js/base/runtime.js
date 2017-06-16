@@ -3140,7 +3140,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
           if (thisRuntime.isContinuation(res)) {
             res.stack[thisRuntime.EXN_STACKHEIGHT++] =
-              thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started, elD]);
+              thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
             return res;
           }
 
