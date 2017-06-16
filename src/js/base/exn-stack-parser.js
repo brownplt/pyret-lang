@@ -17,7 +17,7 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
     var matchedLoc1 = line.match(matchInnerEvalLocationV8);
     var matchedLoc2 = line.match(matchInnerEvalLocationFirefoxSafari);
     var matchedLoc = matchedLoc1 || matchedLoc2;
-    console.log(matchedLoc);
+    // console.log(matchedLoc);
     return {
       startLine: matchedLoc[1],
       startCol: matchedLoc[2],
@@ -36,7 +36,7 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
 
     var pyretStack = parsedStack.map(function(frame) {
       var uri = program.uris[frame.hashedURI];
-      console.log("The URI for ", frame.hashedURI, " is ", uri);
+      // console.log("The URI for ", frame.hashedURI, " is ", uri);
       var moduleSourceMap = staticModules[uri].theMap;
       var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
       consumer.computeColumnSpans();
@@ -45,7 +45,7 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
         line: Number(frame.startLine),
         column: Number(frame.startCol) },
         sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
-      console.log(original);
+      // console.log(original);
       var posForPyret = original.name.split(",");
       // NOTE(joe): this loop intentionally starts at one.  The split array
       // will be a length-7 array where the first is the URI of the module

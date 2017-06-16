@@ -204,7 +204,7 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
             console.error("While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                           + "\nPyret encountered an error rendering that error:\n" + JSON.stringify(reasonResult)
                           + "\nStack:\n" + JSON.stringify(exnStack)
-                          + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
+                          + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true));
             process.exit(EXIT_ERROR_RENDERING_ERROR);
           } else {
             execRt.runThunk(
@@ -227,7 +227,7 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
                       "While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                       + "\ndisplaying that error produced another error:\n" + JSON.stringify(printResult)
                       + "\nStack:\n" + JSON.stringify(exnStack)
-                      + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
+                      + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true));
                   process.exit(EXIT_ERROR_DISPLAYING_ERROR);
                 }
               }, "errordisplay->to-string");
