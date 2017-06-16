@@ -426,7 +426,8 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
 
       when options.collect-times: stats.set-now("standalone", time-now()) end
       ans = MS.make-standalone(program.natives, program.js-ast,
-        JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+        JSON.j-obj(config.freeze()).serialize(), options.standalone-file,
+        options.bundle-dependencies)
       when options.collect-times block:
         standalone-end = time-now() - stats.get-value-now("standalone")
         stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])

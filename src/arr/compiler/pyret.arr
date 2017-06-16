@@ -64,8 +64,10 @@ fun main(args :: List<String>) -> Number:
     "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
     "inline-case-body-limit",
-      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
-  ]
+      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
+    "web-standalone",
+      C.flag(C.once, "Produce a standalone that has all dependencies bundled")
+    ]
 
   params-parsed = C.parse-args(options, args)
 
@@ -125,7 +127,8 @@ fun main(args :: List<String>) -> Number:
                 proper-tail-calls: tail-calls,
                 compiled-cache: compiled-dir,
                 display-progress: display-progress,
-                inline-case-body-limit: inline-case-body-limit
+                inline-case-body-limit: inline-case-body-limit,
+                bundle-dependencies: r.has-key("web-standalone")
               })
           success-code
         else if r.has-key("serve"):

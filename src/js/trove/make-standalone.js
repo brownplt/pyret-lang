@@ -3,6 +3,9 @@
   nativeRequires: ["path", "fs"],
   provides: {},
   theModule: function(runtime, namespace, uri, path, fs, requirejs) {
+    var NODE_BUNDLED_DEPS_FILE = "build/bundled-node-deps.js";
+    var NODE_REQUIRE_DEPS_FILE = "src/js/require-node-dependencies.js";
+    var AMD_LOADER = "src/js/base/amd_loader.js";
     /*
 
       standaloneStr: A single string containing all the JS-compiled modules,
@@ -13,20 +16,25 @@
       configJSON: A JSON string to parse and use as a configuration option to
       requirejs
 
+      standaloneFile: File template for the standalone (usually src/js/base/handalone.js)
+
+      bundleDependencies: whether or not to include node js dependencies in the standalone
+
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, configJSON, standaloneFile) {
-      runtime.checkArity(4, arguments, ["make-standalone"]);
+    function makeStandalone(deps, body, configJSON, standaloneFile, bundleDependencies) {
+      runtime.checkArity(5, arguments, ["make-standalone"]);
       runtime.checkList(deps);
       runtime.checkString(configJSON);
+      var READ_OPTIONS = {encoding: 'utf8'};
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
       console.log(process.cwd());
       var config = JSON.parse(configJSON);
       var storeDir = config["baseUrl"];
-      var handalone = fs.readFileSync(standaloneFile, {encoding: 'utf8'});
+      var handalone = fs.readFileSync(standaloneFile, READ_OPTIONS);
       var depsArr = runtime.ffi.toArray(deps);
       depsArr.push("pyret-base/js/runtime");
       var depsStrs = depsArr.map(function(d) { return '"' + d + '"'; });
@@ -45,6 +53,23 @@
         throw new Error("Cannot not use raw-files! RequireJS is gone");
       }
       var outFile = fs.openSync(realOut, "w");
+
+      // Write the amd loader first
+      var loaderContents = fs.readFileSync(AMD_LOADER, READ_OPTIONS);
+      fs.writeSync(outFile, loaderContents);
+
+      // Now either write the file containing all dependencies or the file which
+      // just defines() the dependencies.
+
+      var depsFile;
+      if (bundleDependencies) {
+        depsFile = NODE_BUNDLED_DEPS_FILE;
+      } else {
+        depsFile = NODE_REQUIRE_DEPS_FILE;
+      }
+      var dependencyCode = fs.readFileSync(depsFile, READ_OPTIONS);
+      fs.writeSync(outFile, dependencyCode);
+
       var filesToFetch = config["raw-js"];
       //fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
       //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
