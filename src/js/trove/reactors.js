@@ -153,7 +153,7 @@
               k();
             };
           }
-          runtime.safeCall(function() {
+          return runtime.safeCall(function() {
             return externalInteractionHandler(init, handlers, tracer);
           }, function(newVal) {
             // This unshift prevents duplicate first elements

@@ -5,11 +5,11 @@
   theModule: function(RUNTIME, NAMESPACE) {
     var F = RUNTIME.makeFunction;
     function getLegacyPath(name) {
-      RUNTIME.pauseStack(function(restarter) {
+      return RUNTIME.pauseStack(function(restarter) {
         // NOTE(joe): This is a bit of requireJS hackery that assumes a
         // certain layout for builtin modules
-        require([name], function(m) {
-          restarter.resume(RUNTIME.makeObject({
+        return require([name], function(m) {
+          return restarter.resume(RUNTIME.makeObject({
             "get-raw-dependencies":
             F(function() {
               return [];

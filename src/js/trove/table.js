@@ -335,6 +335,7 @@
               return ffi.isEqual(r);
             };
             for (var j = 0; j < headers.length; ++j) {
+              // XXX -- this is NOT stacksafe!
               if (!(runtime.safeCall(colEqual(j), liftEquals))) {
                 return neq();
               }
