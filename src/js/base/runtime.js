@@ -3132,10 +3132,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         while(true) {
           started = true;
-          if(i >= stop) { ++thisRuntime.GAS; return thisRuntime.nothing; }
+          if(i >= stop) {
+            ++thisRuntime.GAS;
+            return thisRuntime.nothing;
+          }
           var res = fun.app(i);
 
-          if (isContinuation(res)) { return res; }
+          if (thisRuntime.isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] =
+              thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started, elD]);
+            return res;
+          }
 
           if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3144,12 +3151,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           else { i = i + 1; }
         }
       }
-      var res = restart();
-      if(isContinuation(res)) {
-        res.stack[thisRuntime.EXN_STACKHEIGHT++] =
-          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
-      }
-      return res;
+      return restart();
     }
 
     var RUN_ACTIVE = false;
@@ -5090,6 +5092,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                   });
                 });
                 instantiated.fail(function(val) { return resumer.error(val); });
+                return instantiated;
               });
             }
           },
