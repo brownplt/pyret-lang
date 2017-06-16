@@ -257,7 +257,7 @@ fun ensure-unique-variant-ids(variants :: List<A.Variant>, name :: String, data-
       else if f.name == ("is-" + name):
         add-error(C.duplicate-is-data(name, f.l, data-loc))
       else if ("is-" + f.name) == name:
-        add-error(C.duplicate-is-data-variant(name, data-loc, f.l))
+        add-error(C.duplicate-is-data-variant(f.name, data-loc, f.l))
       else:
         nothing
       end
