@@ -329,7 +329,8 @@ fun propagate-exit(result) block:
 end
 
 fun run(path, options):
-  maybe-program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) =>
       handle-compilation-errors(problems, options)
@@ -439,7 +440,8 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
 end
 
 fun build-require-standalone(path, options):
-  program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  program = build-program(path, options, stats)
 
   natives = j-list(true, for C.map_list(n from program.natives): n end)
 
