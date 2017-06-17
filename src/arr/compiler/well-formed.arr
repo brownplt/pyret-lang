@@ -990,7 +990,7 @@ top-level-visitor = A.default-iter-visitor.{
   method s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
   end,
-  method s-include(_, l, import-type, name):
+  method s-include(_, l, import-type):
     well-formed-visitor.s-include(l, import-type)
   end,
   method s-import-types(_, l, import-type, name, types):

@@ -760,79 +760,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function makeMethod(meth, full_meth, name) {
       return new PMethod(meth, full_meth, name);
     }
-    var app0 = function(obj) {
-      var that = this;
-      return function() { return that.full_meth(obj); }
-    };
-    var app1 = function(obj) {
-      var that = this;
-      return function(v) { return that.full_meth(obj, v); };
-    };
-    var app2 = function(obj) {
-      var that = this;
-      return function(v1, v2) { return that.full_meth(obj, v1, v2); };
-    };
-    var app3 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3) { return that.full_meth(obj, v1, v2, v3); };
-    };
-    var app4 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4) { return that.full_meth(obj, v1, v2, v3, v4); };
-    };
-    var app5 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5) { return that.full_meth(obj, v1, v2, v3, v4, v5); };
-    };
-    var app6 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5, v6) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6); };
-    };
-    var app7 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5, v6, v7) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6, v7); };
-    };
-    var app8 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5, v6, v7, v8) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6, v7, v8); };
-    };
     var appN = function(obj) {
       var that = this;
-      return function() {
-        var argList = new Array(arguments.length);
-        for (var i = 0; i < arguments.length; i++) argList[i] = arguments[i];
-        return that.full_meth.apply(null, [obj].concat(argList));
-      };
-    }
-    function makeMethod0(meth, name) {
-      return new PMethod(app0, meth, name);
-    }
-    function makeMethod1(meth, name) {
-      return new PMethod(app1, meth, name);
-    }
-    function makeMethod2(meth, name) {
-      return new PMethod(app2, meth, name);
-    }
-    function makeMethod3(meth, name) {
-      return new PMethod(app3, meth, name);
-    }
-    function makeMethod3(meth, name) {
-      return new PMethod(app3, meth, name);
-    }
-    function makeMethod4(meth, name) {
-      return new PMethod(app4, meth, name);
-    }
-    function makeMethod5(meth, name) {
-      return new PMethod(app5, meth, name);
-    }
-    function makeMethod6(meth, name) {
-      return new PMethod(app6, meth, name);
-    }
-    function makeMethod7(meth, name) {
-      return new PMethod(app7, meth, name);
-    }
-    function makeMethod8(meth, name) {
-      return new PMethod(app8, meth, name);
+      return function() { return that.full_meth(obj, ...arguments); }
     }
 
     function maybeMethodCall(obj, fieldname, loc, ...args) {
@@ -853,6 +783,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return new PMethod(appN, meth, name);
     }
     var makeMethodN = makeMethodFromFun;
+    var makeMethod0 = makeMethodN;
+    var makeMethod1 = makeMethodN;
+    var makeMethod2 = makeMethodN;
+    var makeMethod3 = makeMethodN;
+    var makeMethod4 = makeMethodN;
+    var makeMethod5 = makeMethodN;
+    var makeMethod6 = makeMethodN;
+    var makeMethod7 = makeMethodN;
+    var makeMethod8 = makeMethodN;
 
     function callIfPossible0(L, fun, obj) {
       if (isMethod(fun)) {

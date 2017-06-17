@@ -730,7 +730,7 @@ set-tail-visitor = A.default-map-visitor.{
     A.s-if-branch(l, test.visit(self.{is-tail: false}), body.visit(self))
   end,
 
-  method s-cases-else(self, l, typ, val, branches, _else):
+  method s-cases-else(self, l, typ, val, branches, _else, blocky):
     A.s-cases-else(l, typ.visit(self), val.visit(self.{is-tail: false}), branches.map(_.visit(self)), _else.visit(self), false)
   end,
 
