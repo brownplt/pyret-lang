@@ -144,6 +144,12 @@
       raise(err("internal-error")(runtime.makeString(message), otherArgs));
     }
 
+    function makeInternalError(message, otherArgs) {
+      runtime.checkString(message);
+      runtime.checkList(otherArgs);
+      return err("internal-error")(runtime.makeString(message), otherArgs);
+    }
+
     function throwSpinnakerError(loc, stepNum) {
       runtime.checkNumber(stepNum);
       raise(err("spinnaker-error")(runtime.makeSrcloc(loc), stepNum));
@@ -594,6 +600,7 @@
       isUnknown: isUnknown,
       isEqualityResult: isEqualityResult,
 
+      makeInternalError: makeInternalError,
       makeMessageException: makeMessageException,
       makeUserException: makeUserException,
       makeModuleLoadFailureL: makeModuleLoadFailureL,
