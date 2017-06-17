@@ -1204,6 +1204,7 @@ data RuntimeError:
   | constructor-arity-mismatch(fun-def-loc, constructor-name, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       fun-app-arity = self.fun-app-args.length()
+      were-was = if fun-app-arity == 1: " was" else: " were" end
       helper =
         lam(rest):
           [ED.error: 
@@ -1217,7 +1218,7 @@ data RuntimeError:
                       ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
                       ED.ed-args(fun-app-arity),
-                      ED.text(" were passed to the left side.")],
+                      ED.text(were-was + " passed to the left side.")],
                     rest(ED.text("left side"))]
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
@@ -1228,7 +1229,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
-                          ED.text(" were passed to the "),
+                          ED.text(were-was + " passed to the "),
                           applicant,
                           ED.text(".")],
                         rest(applicant)]
@@ -1238,7 +1239,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.ed-args(fun-app-arity),
-                          ED.text(" were passed to the left side.")],
+                          ED.text(were-was + " passed to the left side.")],
                         rest(ED.text("applicant"))]
                   end
                 else:
@@ -1372,6 +1373,7 @@ data RuntimeError:
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
+      were-was = if fun-app-arity == 1: " was" else: " were" end
       helper =
         lam(rest):
           [ED.error: 
@@ -1390,7 +1392,7 @@ data RuntimeError:
                       ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
                       ED.ed-args(fun-app-arity),
-                      ED.text(" were passed to the left side.")],
+                      ED.text(were-was + " passed to the left side.")],
                     rest(ED.text("left side"))]
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
@@ -1411,7 +1413,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.highlight(ED.ed-args(fun-app-arity), args.map(_.l),1),
-                          ED.text(" were passed to the "),
+                          ED.text(were-was + " passed to the "),
                           applicant,
                           ED.text(".")],
                         rest(applicant)]
@@ -1421,7 +1423,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.ed-args(fun-app-arity),
-                          ED.text(" were passed to the left side.")],
+                          ED.text(were-was + " passed to the left side.")],
                         rest(ED.text("applicant"))]
                   end
                 else:
