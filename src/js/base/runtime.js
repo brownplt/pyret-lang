@@ -921,6 +921,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return ref.anns;
     }
     function refEndGraph(ref) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["ref-end-graph"], 1, $a); }
       if(ref.state >= UNGRAPHABLE) {
         thisRuntime.ffi.throwMessageException("Attempted to end graphing of already-done with graph ref");
       }
@@ -944,6 +945,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return ref;
     }
     function freezeRef(ref) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["ref-freeze"], 1, $a); }
       if(ref.state >= SET) {
         ref.state = FROZEN;
         return ref;
