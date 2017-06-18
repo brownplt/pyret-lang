@@ -5,6 +5,7 @@ provide-types *
 
 import global as _
 import option as O
+import srcloc as S
 import error-display as ED
 import valueskeleton as VS
 
@@ -1137,8 +1138,16 @@ data RuntimeError:
               [ED.para:
                 ED.text("The cases pattern had "),
                 cases(Any) branch:
-                  | s-cases-branch(_, _, _, args, _) =>
-                      ED.highlight(ED.ed-field-bindings(self.num-args),args.map(_.l),1)
+                  | s-cases-branch(_, pat-loc, name, args, _) =>
+                    args-locs = if self.num-args == 0:
+                      name-len = string-length(name)
+                      [ED.locs: S.srcloc(pat-loc.source,
+                          pat-loc.start-line, pat-loc.start-column + name-len, pat-loc.start-char + name-len,
+                          pat-loc.end-line, pat-loc.end-column, pat-loc.end-char)]
+                    else:
+                      args.map(_.l)
+                    end
+                    ED.highlight(ED.ed-field-bindings(self.num-args),args-locs, 1)
                   | s-singleton-cases-branch(_, _, _, _) => ED.ed-field-bindings(self.num-args)
                 end,
                 ED.text(".")],
@@ -1405,14 +1414,19 @@ data RuntimeError:
                       args = cases(Any) ast:
                         | s-app(_, _, args) => args
                         | s-for(_, _, args, _, _, _) => args
-                        | else  => ast.l
+                        | else  => [ED.locs: ast.l]
+                      end
+                      args-locs = if fun-app-arity == 0:
+                        [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+                      else:
+                        args.map(_.l)
                       end
                       applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
                       [ED.sequence:
                         ed-intro("function application expression", fun-app-loc, -1, true),
                         ED.cmcode(fun-app-loc),
                         [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), args.map(_.l),1),
+                          ED.highlight(ED.ed-args(fun-app-arity), args-locs, 1),
                           ED.text(were-was + " passed to the "),
                           applicant,
                           ED.text(".")],
