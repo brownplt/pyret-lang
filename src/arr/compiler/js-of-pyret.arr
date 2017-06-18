@@ -113,7 +113,7 @@ fun make-expr-data-env(
             type-name = type-name-opt.value
             variants = type-name-to-variants.get-value-now(type-name)
             is-is-function = string-index-of(val.field, "is-") == 0
-            when is-is-function or any(lam(v): v.name == val.field end, variants):
+            when is-is-function or any(lam(v): (v.name == val.field) and AA.is-a-variant(v) end, variants):
               sd.set-now(bind.id.key(), some(0))
             end
           end
