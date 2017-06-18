@@ -501,6 +501,9 @@ sharing:
         end
     end
   end,
+  method _lessthan(self, other):
+    self.key() < other.key()
+  end,
   method _output(self):
     var current-letter = "A"
     fun helper(typ, free-vars-mapping, tyvar-mapping):
@@ -539,26 +542,26 @@ sharing:
                           h(data-type),
                           VS.vs-str(" % is-" + variant-name + ")")])
         | t-var(id, _, _) =>
-          #cases(Name) id:
-          #  | s-atom(base, _) =>
-          #    if base == "%tyvar":
-          #      cases(Option<String>) tyvar-mapping.get-now(typ.key()) block:
-          #        | some(name) => VS.vs-str(name)
-          #        | none =>
-          #          letter = current-letter
-          #          tyvar-mapping.set-now(typ.key(), current-letter)
-          #          current-letter := string-from-code-point(string-to-code-point(letter) + 1)
-          #          VS.vs-str(letter)
-          #      end
-          #    else:
-          #      VS.vs-str(id.toname())
-          #    end
-          #  | else =>
+          cases(Name) id:
+            | s-atom(base, _) =>
+              if base == "%tyvar":
+                cases(Option<String>) tyvar-mapping.get-now(typ.key()) block:
+                  | some(name) => VS.vs-str(name)
+                  | none =>
+                    letter = current-letter
+                    tyvar-mapping.set-now(typ.key(), current-letter)
+                    current-letter := string-from-code-point(string-to-code-point(letter) + 1)
+                    VS.vs-str(letter)
+                end
+              else:
+                VS.vs-str(id.toname())
+              end
+            | else =>
               VS.vs-str(id.toname())
-          #end
+          end
         | t-existential(id, _, _) =>
           VS.vs-str("?-" + free-vars-mapping.get-value(typ.key()))
-          #VS.vs-str(typ.key())
+          #VS.vs-str(id.key())
       end
     end
     free-vars-list = self.free-variables().to-list()

@@ -95,7 +95,7 @@ expr: paren-expr | id-expr | prim-expr
     | obj-expr | tuple-expr | tuple-get
     | dot-expr
     | template-expr
-#    | bracket-expr NOTE(joe): commented out until it has semantics
+    | bracket-expr  # NOTE(joe): experimental for access
     | get-bang-expr | update-expr
     | extend-expr
     | if-expr | if-pipe-expr | cases-expr
@@ -182,7 +182,7 @@ reactor-expr: REACTOR COLON
 END
 
 dot-expr: expr DOT NAME
-bracket-expr: expr DOT LBRACK binop-expr RBRACK
+bracket-expr: expr LBRACK binop-expr RBRACK
 
 get-bang-expr: expr BANG NAME
 

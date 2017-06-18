@@ -9,17 +9,25 @@
     "test": "tests"
   },
   "dependencies": {
-    "requirejs": "~2.1.15",
+    "ascii-table": "~0.0.9",
+    "benchmark": "2.0.0",
+    "codemirror": "git://github.com/jpolitz/CodeMirror",
+    "command-line-args": "^3.0.1",
+    "http": "0.0.0",
+    "jasmine-node": "1.14.5",
+    "lockfile": "^1.0.2",
     "q": "~1.0.1",
+    "requirejs": "~2.1.15",
     "s-expression": "~2.2.0",
     "seedrandom": "~2.3.10",
-    "codemirror": "git://github.com/jpolitz/CodeMirror",
-    "benchmark": "2.0.0",
-    "ascii-table": "~0.0.9",
-    "jasmine-node": "1.14.5"
+    "websocket": "^1.0.23"
   },
   "devDependencies": {},
+  "bin": {
+    "pyret": "src/server/pyret.js"
+  },
   "scripts": {
+    "install": "make phaseA-deps",
     "test": "make test-all"
   },
   "repository": {

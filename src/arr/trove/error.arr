@@ -47,8 +47,10 @@ end
 
 data RuntimeError:
   | multi-error(errors #|:: List<RuntimeError>|#) with:
-    method render-fancy-reason(self, loc-to-ast, loc-to-src):
-      rendered = self.errors.map(_.render-fancy-reason(loc-to-ast, loc-to-src))
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      # The concatenation of renderings is _not_ a valid rendering;
+      # this is a ticking time-bomb of vexing highlighting bugs.
+      rendered = self.errors.map(_.render-fancy-reason(maybe-stack-loc, src-available, maybe-ast))
       ED.v-sequence(rendered)
     end,
     method render-reason(self):
@@ -87,7 +89,7 @@ data RuntimeError:
       end
     end
   | message-exception(message :: String) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -158,9 +160,9 @@ data RuntimeError:
           ed-intro("reference update expression", self.loc, -1, true),
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("The "),
+            ED.text("This "),
             ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
-            ED.text(" is not a reference in the "),
+            ED.text(" is not a mutable reference in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
       else:
@@ -169,7 +171,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
-          ED.text(" is frozen in the object:")],
+          ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
       end
     end,
@@ -179,7 +181,7 @@ data RuntimeError:
         [ED.para:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
-          ED.text(" is frozen in the object:")],
+          ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
     end
   | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
@@ -608,7 +610,7 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("It was given a non-object value:")],
-           ED.embed(self.obj)]
+           ED.embed(self.non-obj)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
@@ -636,14 +638,14 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("The left side was not an object:")],
-          ED.embed(self.obj)]
+          ED.embed(self.non-obj)]
       end
     end,
     method render-reason(self):
       [ED.error:
         ed-simple-intro("object lookup", self.loc),
         [ED.para: ED.text("The left side was not an object:")],
-        ED.embed(self.obj)]
+        ED.embed(self.non-obj)]
     end
   | extend-non-object(loc, non-obj) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -689,7 +691,7 @@ data RuntimeError:
         ED.embed(self.non-obj)]
     end
   | non-boolean-condition(loc, typ, value) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO!!
     end,
     method render-reason(self):
@@ -701,7 +703,7 @@ data RuntimeError:
         ED.embed(self.value)]
     end
   | non-boolean-op(loc, position, typ, value) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO!!
     end,
     method render-reason(self):
@@ -1195,12 +1197,7 @@ data RuntimeError:
       helper =
         lam(rest):
           [ED.error: 
-            cases(O.Option) maybe-stack-loc(
-              if self.fun-def-loc.is-builtin(): 
-                0 
-              else: 
-                1 
-              end, false):
+            cases(O.Option) maybe-stack-loc(0, true):
               | some(fun-app-loc) =>
                 if fun-app-loc.is-builtin():
                   [ED.sequence:
@@ -1283,8 +1280,8 @@ data RuntimeError:
                       [raw-array:]
                     end); self.fun-def-loc}
                 | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-lam(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
                 | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
@@ -1466,8 +1463,8 @@ data RuntimeError:
                       [raw-array:]
                     end); self.fun-def-loc}
                 | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-                | s-fun(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-lam(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+                | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
                 | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
                 | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
@@ -1639,7 +1636,7 @@ data RuntimeError:
       end
     end
   | module-load-failure(names) with: # names is List<String>
-    method render-fancy-reason(self, loc-to-ast, loc-to-src):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -1743,7 +1740,7 @@ data RuntimeError:
             ED.text(self.reason)]])
     end
   | equality-failure(reason :: String, value1, value2) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO
     end,
     method render-reason(self):
@@ -1777,7 +1774,7 @@ data RuntimeError:
     end
 
   | user-break with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self):
@@ -1785,13 +1782,29 @@ data RuntimeError:
     end
 
   | user-exception(value :: Any) with:
-    method render-fancy-reason(self, _, _):
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
     method render-reason(self): [ED.error: [ED.para: ED.embed(self.value)]] end,
     method _output(self):
       VS.vs-value(self.value)
     end
+
+  | exit(code :: Number) with:
+     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+       self.render-reason()
+     end,
+     method render-reason(self):
+       [ED.error: ED.text("Exited with code "), ED.embed(self.code)]
+     end
+
+   | exit-quiet(code :: Number) with:
+     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+       self.render-reason()
+     end,
+     method render-reason(self):
+       ED.text("")
+     end
 end
 
 data ParseError:

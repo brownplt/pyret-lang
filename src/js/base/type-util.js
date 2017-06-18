@@ -107,6 +107,21 @@ define([], function() {
     };
   }
 
+  function bindToPyret(runtime, typ) {
+    var wrapper = function(t) {
+      return runtime.makeObject({ bind: "let", typ: t });
+    };
+    if(typ.bind) {
+      if(typ.bind === "var") {
+        typ = typ.typ;
+        wrapper = function(t) {
+          return runtime.makeObject({ bind: "var", typ: t });
+        };
+      }
+    }
+    return wrapper(toPyret(runtime, typ));
+  }
+
   function toPyret(runtime, typ) {
     var O = runtime.makeObject;
     var L = runtime.ffi.makeList;
@@ -236,6 +251,9 @@ define([], function() {
   }
 
   function expandType(typ, shorthands) {
+    if(typ.bind) {
+      return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
+    }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
     function mkName(origin, name) {
@@ -436,6 +454,7 @@ define([], function() {
     record: record,
     dataType: dataType,
     toPyret: toPyret,
+    bindToPyret: bindToPyret,
     providesToPyret: providesToPyret,
     expandType: expandType,
     expandRecord: expandRecord
