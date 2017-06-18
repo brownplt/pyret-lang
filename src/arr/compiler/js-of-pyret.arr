@@ -280,16 +280,14 @@ fun make-expr-flatness-env(
 end
 
 fun get-flatness-for-call(function-name :: String, sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
-  # Look up flatness in the dictionary
-  fun inc-flatness(flat-opt :: Option<Number>):
-    flat-opt.and-then(lam(x): x + 1 end)
-  end
-
   # If it's not in our lookup dict OR the flatness is none treat it the same
-  val = sd.get-now(function-name).or-else(none)
-  cases (Option) val:
-    | some(flatness) => some(flatness + 1)
-    | none => none
+  if sd.has-key-now(function-name):
+    cases(Option) sd.get-now(function-name):
+      | some(flatness) => some(flatness + 1)
+      | none => none
+    end
+  else:
+    none
   end
 end
 
