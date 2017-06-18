@@ -282,7 +282,7 @@ end
 fun get-flatness-for-call(function-name :: String, sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
   # If it's not in our lookup dict OR the flatness is none treat it the same
   if sd.has-key-now(function-name):
-    cases(Option) sd.get-now(function-name):
+    cases(Option) sd.get-value-now(function-name):
       | some(flatness) => some(flatness + 1)
       | none => none
     end
