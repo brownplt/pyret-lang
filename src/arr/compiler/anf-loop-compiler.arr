@@ -658,7 +658,10 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     end
 
   check-cont = j-unop(rt-method("isContinuation", [clist: j-id(local-compiler.cur-ans)]), j-not)
-  gas-check = j-if1(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+  gas-check = j-if1(
+        j-binop(j-binop(j-unop(rt-field("GAS"), j-decr), J.j-leq, j-num(0)),
+                J.j-or,
+                j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0))),
       j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
           # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
           # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
