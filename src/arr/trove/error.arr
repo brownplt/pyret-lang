@@ -803,7 +803,7 @@ data RuntimeError:
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para:
                   ED.text("The left side was:")],
                 ED.embed(self.val1),
@@ -821,7 +821,7 @@ data RuntimeError:
                   left-loc =  ast.left.l
                   right-loc = ast.right.l
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, -1, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
                        ED.text("The "),
@@ -840,7 +840,7 @@ data RuntimeError:
                         ED.text("two Strings")]]]
                 | none      =>
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, 0, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, 0, true),
                     ED.cmcode(loc),
                     [ED.para: ED.text("The left side was:")],
                     ED.embed(self.val1),
@@ -854,7 +854,7 @@ data RuntimeError:
               end
             else:
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para: ED.text("The left side was:")],
                 ED.embed(self.val1),
                 [ED.para: ED.text("The right side was:")],
@@ -868,9 +868,9 @@ data RuntimeError:
         | none =>
           [ED.sequence:
             [ED.para:
-              ED.text("A "),
+              ED.text("A " + self.opdesc + " ("),
               ED.code(self.opname),
-              ED.text(" expression errored.")],
+              ED.text(") expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -888,7 +888,7 @@ data RuntimeError:
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
           [ED.sequence:
-            ed-simple-intro(self.opname + " expression", loc),
+            ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -925,7 +925,7 @@ data RuntimeError:
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para:
                   ED.text("The left side was:")],
                 ED.embed(self.val1),
@@ -940,7 +940,7 @@ data RuntimeError:
                   left-loc =  ast.left.l
                   right-loc = ast.right.l
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, -1, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
                        ED.text("The "),
@@ -956,7 +956,7 @@ data RuntimeError:
                       ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
                 | none      =>
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, 0, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, 0, true),
                     ED.cmcode(loc),
                     [ED.para: ED.text("The left side was:")],
                     ED.embed(self.val1),
@@ -967,7 +967,7 @@ data RuntimeError:
               end
             else:
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para: ED.text("The left side was:")],
                 ED.embed(self.val1),
                 [ED.para: ED.text("The right side was:")],
@@ -978,9 +978,9 @@ data RuntimeError:
         | none =>
           [ED.sequence:
             [ED.para:
-              ED.text("A "),
+              ED.text("A " + self.opdesc + " ("),
               ED.code(self.opname),
-              ED.text(" expression errored.")],
+              ED.text(") expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -995,7 +995,7 @@ data RuntimeError:
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
           [ED.sequence:
-            ed-simple-intro(self.opname + " expression", loc),
+            ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
