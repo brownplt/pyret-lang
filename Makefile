@@ -244,7 +244,8 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 	$(TEST_BUILD) \
 		--build-runnable tests/all.arr \
     --outfile tests/pyret/all.jarr \
-		-check-all
+		-check-all \
+		-web-standalone
 
 .PHONY : all-pyret-test
 all-pyret-test: tests/pyret/all.jarr parse-test
