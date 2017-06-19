@@ -63,7 +63,7 @@
       // just defines() the dependencies.
 
       var depsFile;
-      if (bundleDependencies) {
+      if (runtime.isPyretTrue(bundleDependencies)) {
         depsFile = NODE_BUNDLED_DEPS_FILE;
       } else {
         depsFile = NODE_REQUIRE_DEPS_FILE;
