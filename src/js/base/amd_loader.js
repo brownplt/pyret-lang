@@ -1,4 +1,4 @@
-var define, myrequire;
+var define, requirejs;
 (function () {
     var isArray = function(arg) {
         return Object.prototype.toString.call(arg) === '[object Array]';
@@ -117,7 +117,7 @@ var define, myrequire;
         return topsorted;
     }
 
-    myrequire = function(deps, callback) {
+    requirejs = function(deps, callback) {
         if (typeof deps === 'string') {
             // Trying to require("somemodule"). It needs to be in our table, or
             // we have to be in node with a synchronous require() function

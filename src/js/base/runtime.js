@@ -9,14 +9,7 @@ define("pyret-base/js/runtime",
 function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
   Error.stackTraceLimit = Infinity;
 
-  var require = myrequire;
-  // if(util.isBrowser()) {
-  //   var require = requirejs;
-  // }
-  // else {
-  //   var require = requirejs.nodeRequire("requirejs");
-  // }
-
+  var require = requirejs;
   var AsciiTable;
 
   function copyArgs(args) {

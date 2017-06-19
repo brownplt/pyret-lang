@@ -4,8 +4,9 @@
   provides: {},
   theModule: function(runtime, namespace, uri, path, fs, requirejs) {
     var NODE_BUNDLED_DEPS_FILE = "build/bundled-node-deps.js";
-    var NODE_REQUIRE_DEPS_FILE = "src/js/require-node-dependencies.js";
+    var NODE_REQUIRE_DEPS_FILE = "src/js/trove/require-node-dependencies.js";
     var AMD_LOADER = "src/js/base/amd_loader.js";
+
     /*
 
       standaloneStr: A single string containing all the JS-compiled modules,

@@ -1,4 +1,5 @@
-myrequire(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
+// TODO: Change to myrequire
+requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;

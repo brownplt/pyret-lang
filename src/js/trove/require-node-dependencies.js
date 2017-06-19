@@ -22,3 +22,13 @@ define("fs", [], function () { return fs; });
 
 path = require("path");
 define("path", [], function () { return path; });
+
+http = require("http");
+define("http", [], function () {return http;});
+
+lockfile = require("lockfile");
+define("lockfile", [], function () { return lockfile; });
+
+websocket = require("websocket");
+define("websocket", [], function () { return websocket });
+
