@@ -415,7 +415,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   stats = SD.make-mutable-string-dict()
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
-    | left(problems) => 
+    | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
       config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
@@ -425,9 +425,18 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
       end
 
       when options.collect-times: stats.set-now("standalone", time-now()) end
-      ans = MS.make-standalone(program.natives, program.js-ast,
+      make-standalone-res = MS.make-standalone(program.natives, program.js-ast,
         JSON.j-obj(config.freeze()).serialize(), options.standalone-file,
         options.bundle-dependencies)
+
+      html-res = if is-some(options.html-file):
+        MS.make-html-file(outfile, options.html-file.value)
+      else:
+        true
+      end
+
+      ans = make-standalone-res and html-res
+
       when options.collect-times block:
         standalone-end = time-now() - stats.get-value-now("standalone")
         stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])

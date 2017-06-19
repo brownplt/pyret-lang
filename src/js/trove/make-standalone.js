@@ -6,6 +6,24 @@
     var NODE_BUNDLED_DEPS_FILE = "build/bundled-node-deps.js";
     var NODE_REQUIRE_DEPS_FILE = "src/js/trove/require-node-dependencies.js";
     var AMD_LOADER = "src/js/base/amd_loader.js";
+    var HTML_TEMPLATE = "src/scripts/web-standalone-template.html";
+
+    var READ_OPTIONS = {encoding: 'utf8'};
+
+    function makeHtmlFile(bundledJSFile, outfile) {
+      runtime.checkArity(2, arguments, ["make-html-file"]);
+      runtime.checkString(bundledJSFile);
+      runtime.checkString(outfile);
+
+      var template = fs.readFileSync(HTML_TEMPLATE, READ_OPTIONS);
+
+      var relativePath = path.relative(path.dirname(outfile), bundledJSFile);
+      var filtered = template.replace("{{{compiled-jarr-file}}}", relativePath);
+
+
+      fs.writeFileSync(outfile, filtered);
+      return true;
+    }
 
     /*
 
@@ -28,7 +46,6 @@
       runtime.checkArity(5, arguments, ["make-standalone"]);
       runtime.checkList(deps);
       runtime.checkString(configJSON);
-      var READ_OPTIONS = {encoding: 'utf8'};
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
@@ -95,7 +112,8 @@
       });
     }
     return runtime.makeModuleReturn({
-      "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone")
+      "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone"),
+      "make-html-file": runtime.makeFunction(makeHtmlFile, "make-html-file")
     }, {})
   }
 })
