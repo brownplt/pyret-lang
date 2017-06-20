@@ -271,11 +271,16 @@ fun app(l, f, args):
   end
 end
 
-fun check-fun(sourcemap-loc, variable-loc, f):
+fun check-fun(sourcemap-loc, variable-loc, f) block:
+  call = cases(SL.Srcloc) sourcemap-loc block:
+    | builtin(_) => 
+      j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])
+    | srcloc(_, _, _, _, _, _, _) =>
+      J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
+        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f]))
+  end
   j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block1(j-expr(
-        J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
-        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])))))
+    j-block1(j-expr(call)))
 end
 
 c-exp = DAG.c-exp
