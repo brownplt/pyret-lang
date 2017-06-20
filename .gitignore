@@ -8,7 +8,10 @@
 *.log
 *.jarr
 
+playground/*
+
 # benchmark
+tools/benchmark/auto-report-programs/*.js
 tools/benchmark/TODO
 tools/benchmark/sandbox*
 tools/benchmark/nodelint*

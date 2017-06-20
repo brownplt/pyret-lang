@@ -37,3 +37,4 @@ import file("./tests/test-dup-names.arr") as _
 import file("./tests/test-tables.arr") as _
 import file("./tests/test-tuple.arr") as _
 import file("./tests/test-reactor.arr") as _
+import file("./tests/test-tail-call.arr") as _
