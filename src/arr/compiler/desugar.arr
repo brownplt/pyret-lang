@@ -161,11 +161,9 @@ end
 
 fun desugar-if(l, branches, _else :: A.Expr, blocky):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    check-bool(branch.test.l, desugar-expr(branch.test), lam(test-id):
-        A.s-if-else(l,
-          [list: A.s-if-branch(branch.l, test-id, desugar-expr(branch.body))],
-          acc, blocky)
-      end)
+    A.s-if-else(l,
+      [list: A.s-if-branch(branch.l, desugar-expr(branch.test), desugar-expr(branch.body))],
+      acc, blocky)
   end
 end
 
@@ -405,15 +403,13 @@ fun desugar-expr(expr :: A.Expr):
       ds-test = desugar-expr(test)
       g-nothing = gid(l, "nothing")
       ds-body = desugar-expr(body)
-      check-bool(test.l, ds-test, lam(test-id-e):
-          A.s-if-else(l,
-            [list:
-              A.s-if-branch(l, test-id-e, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
-                else: ds-body
-                end)],
-            A.s-block(l, [list: g-nothing]),
-            blocky)
-        end)
+      A.s-if-else(l,
+        [list:
+          A.s-if-branch(l, ds-test, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
+            else: A.s-block(l, [list: ds-body, g-nothing])
+            end)],
+        A.s-block(l, [list: g-nothing]),
+        blocky)
     | s-if(l, branches, blocky) =>
       desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]), blocky)
     | s-if-else(l, branches, _else, blocky) =>
@@ -443,13 +439,6 @@ fun desugar-expr(expr :: A.Expr):
       name = "for-body<" + l.format(false) + ">"
       the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
-    | s-for-do(l, from-clause, dos) =>
-      for fold(shadow expr from desugar-expr(from-clause.value), fdo from dos):
-        A.s-app(l, desugar-expr(fdo.iterator),
-          link(A.s-lam(l, [list: ],
-                link(desugar-bind(from-clause.bind), fdo.bindings.map(_.bind).map(desugar-bind)),
-                desugar-ann(fdo.ann), "", desugar-expr(fdo.body), none),
-               fdo.bindings.map(_.value).map(desugar-expr) + [list: expr])) end
     | s-sql(l, inspect-clause, where-clause, project-clause) =>
       d-map    = lam(e): A.s-dot(e.l, e, "map") end
       d-filter = lam(e): A.s-dot(e.l, e, "filter") end
@@ -510,11 +499,9 @@ fun desugar-expr(expr :: A.Expr):
                 | empty =>
                   check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper): or-oper end)
                 | link(_, _) =>
-                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper):
-                      A.s-if-else(l,
-                        [list: A.s-if-branch(l, or-oper, A.s-bool(l, true))],
-                        helper(operands.rest), false)
-                    end)
+                  A.s-if-else(l,
+                    [list: A.s-if-branch(l, desugar-expr(operands.first), A.s-bool(l, true))],
+                    helper(operands.rest), false)
               end
             end
             operands = collect-ors(expr)
@@ -525,11 +512,9 @@ fun desugar-expr(expr :: A.Expr):
                 | empty =>
                   check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper): and-oper end)
                 | link(_, _) =>
-                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper):
-                      A.s-if-else(l,
-                        [list: A.s-if-branch(l, and-oper, helper(operands.rest))],
-                        A.s-bool(l, false), false)
-                    end)
+                  A.s-if-else(l,
+                    [list: A.s-if-branch(l, desugar-expr(operands.first), helper(operands.rest))],
+                    A.s-bool(l, false), false)
               end
             end
             operands = collect-ands(expr)

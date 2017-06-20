@@ -15,6 +15,11 @@ string-dict = SD.string-dict
 
 all = LISTS.all
 fold_n = LISTS.fold_n
+fun sd-all(f, sd):
+  for SD.fold-keys(acc from true, key from sd):
+    acc and f(key)
+  end
+end
 
 fun foldr2<X, Y, R>(f :: (R, X, Y -> R), base :: R, l1 :: List<X>, l2 :: List<Y>) -> R:
   cases(List<X>) l1:
@@ -52,8 +57,7 @@ end
 type TypeMembers = StringDict<Type>
 
 fun type-member-map(members :: TypeMembers, f :: (String, Type -> Type)) -> TypeMembers:
-  keys = members.keys-list()
-  keys.foldr(lam(key, new-members):
+  members.fold-keys(lam(key, new-members):
     new-members.set(key, f(key, members.get-value(key)))
   end, SD.make-string-dict())
 end
@@ -233,7 +237,7 @@ sharing:
       | t-bot(_, _) =>
         empty-list-set
       | t-record(fields, _, _) =>
-        fields.keys-list().foldl(lam(key, free): free.union(fields.get-value(key).free-variables()) end, empty-list-set)
+        fields.fold-keys(lam(key, free): free.union(fields.get-value(key).free-variables()) end, empty-list-set)
       | t-tuple(elts, _, _) =>
         elts.foldl(lam(elt, free): free.union(elt.free-variables()) end, empty-list-set)
       | t-forall(_, onto, _, _) =>
@@ -263,8 +267,7 @@ sharing:
       | t-bot(_, _) =>
         true
       | t-record(fields, _, _) =>
-        keys = fields.keys-list()
-        all(lam(key): fields.get-value(key).has-variable-free(var-type) end, keys)
+        sd-all(lam(key): fields.get-value(key).has-variable-free(var-type) end, fields)
       | t-tuple(elts, _, _) =>
         all(_.has-variable-free(var-type), elts)
       | t-forall(_, onto, _, _) =>
@@ -305,7 +308,7 @@ sharing:
       | t-bot(_, _) =>
         "Bot"
       | t-record(fields, _, _) =>
-        "{" + fields.keys-list().map(lam(key): key + " :: " + fields.get-value(key).key() end).join-str(", ") + "}"
+        "{" + fields.map-keys(lam(key): key + " :: " + fields.get-value(key).key() end).join-str(", ") + "}"
       | t-tuple(elts, _, _) =>
         "{"
           + for map(elt from elts):
@@ -525,7 +528,7 @@ sharing:
           VS.vs-str("Bot")
         | t-record(fields, _, _) =>
           VS.vs-seq([list: VS.vs-str("{")]
-            + interleave(fields.keys-list().map(lam(key): type-member-output(key, fields.get-value(key)) end), VS.vs-str(", "))
+            + interleave(fields.map-keys(lam(key): type-member-output(key, fields.get-value(key)) end), VS.vs-str(", "))
             + [list: VS.vs-str("}")])
         | t-tuple(elts, _, _) =>
           VS.vs-seq([list: VS.vs-str("{")]

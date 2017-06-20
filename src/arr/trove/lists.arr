@@ -1,5 +1,4 @@
 #lang pyret/library
-
 provide *
 provide-types *
 import global as _
@@ -7,20 +6,17 @@ import option as O
 import either as E
 import equality as equality
 import valueskeleton as VS
-
 none = O.none
 is-none = O.is-none
 some = O.some
 is-some = O.is-some
 type Option = O.Option
-
 left = E.left
 right = E.right
 type Either = E.Either
 
 data List<a>:
   | empty with:
-
     method length(self :: List<a>) -> Number:
       doc: "Takes no other arguments and returns the number of links in the list"
       0
@@ -117,7 +113,6 @@ data List<a>:
             joined by the provided separator string```
       ""
     end
-
   | link(first :: a, rest :: List<a>) with:
 
     method length(self :: List<a>) -> Number:
@@ -219,7 +214,6 @@ data List<a>:
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
       pivot = self.first
-
       # builds up three lists, split according to cmp and eq
       # Note: We use each, which is tail-recursive, but which causes the three
       # list parts to grow in reverse order.  This isn't a problem, since we're
@@ -254,7 +248,6 @@ data List<a>:
          tostring(self.first)
       end
     end,
-
 sharing:
   method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
   
@@ -290,7 +283,73 @@ sharing:
   method remove(self :: List<a>, e :: a) -> List<a>:
     doc: "Returns the list without the element if found, or the whole list if it is not"
     remove(self, e)
+  end,
+  method join-str2(self :: List<a>, str :: String) -> String:
+    doc: ```Returns a string containing the tostring() forms of the elements of this list,
+          joined by the provided separator string.```
+    # Note: use array's join string for performance
+    before-to-string = builtins.raw-array-from-list(self)
+    init-array = raw-array-of("", raw-array-length(before-to-string))
+    for raw-array-fold(result from init-array, elt from before-to-string, index from 0):
+      raw-array-set(result, index, tostring(elt))
+    end
+      ^ builtins.raw-array-join-str(_, str)
   end
+end
+
+fun length<a>(lst :: List<a>) -> Number:
+  doc: "Takes a list and returns the number of links in the list"
+  fun help(l, cur) -> Number:
+    cases (List) l:
+      | empty => cur
+      | link(_, r) => help(r, cur + 1)
+    end
+  end
+  help(lst, 0)
+end
+
+fun same-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> Boolean:
+  doc: "Returns true if and only if the two given lists have the same length.  Runs in time proportional to the shorter list."
+  cases(List) lst1:
+    | empty =>
+      cases(List) lst2:
+        | empty => true
+        | else => false
+      end
+    | link(_, rest1) =>
+      cases(List) lst2:
+        | empty => false
+        | link(_, rest2) => same-length(rest1, rest2)
+      end
+  end
+where:
+  same-length([list: 1, 2], [list: true, false]) is true
+  same-length([list: 1, 2, 3], [list: true, false]) is false
+  same-length([list: ], [list: true, false]) is false
+end
+
+fun longer-than<a>(lst :: List<a>, len :: Number) -> Boolean:
+  doc: "Returns true if the given list is strictly longer than the given length. Runs in time proportional to the smaller of lst or len"
+  cases(List) lst:
+    | empty => len < 0
+    | link(_, rest) => (len < 1) or longer-than(rest, len - 1)
+  end
+where:
+  longer-than([list: 1, 2, 3], 2) is true
+  longer-than([list: 1, 2, 3], 4) is false
+  longer-than([list:], 0) is false
+end
+
+fun shorter-than<a>(lst :: List<a>, len :: Number) -> Boolean:
+  doc: "Returns true if the given list is strictly shorter than the given length. Runs in time proportional to the smaller of lst or len"
+  cases(List) lst:
+    | empty => len > 0
+    | link(_, rest) => (len > 1) and shorter-than(rest, len - 1)
+  end
+where:
+  shorter-than([list: 1, 2, 3], 2) is false
+  shorter-than([list: 1, 2, 3], 4) is true
+  shorter-than([list:], 0) is false
 end
 
 fun get<a>(lst :: List<a>, n :: Number) -> a:
@@ -320,6 +379,11 @@ fun set<a>(lst :: List<a>, n :: Number, v) -> a:
   end
 end
 
+fun reverse<a>(lst :: List<a>) -> List<a>:
+  doc: "Returns a new list containing the same elements as this list, in reverse order"
+  reverse-help(lst, empty)
+end
+
 fun push<a>(l :: List<a>, elt :: a) -> List<a>:
   link(elt, l)
 end
@@ -328,11 +392,25 @@ fun reverse-help<a>(lst :: List<a>, tail :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   builtins.raw-list-fold(lam(acc, elt): link(elt, acc) end, tail, lst)
 where:
-  reverse-help([list: ], [list: ]) is [list: ]
-  reverse-help([list: 1, 3], [list: ]) is [list: 3, 1]
+  reverse([list: ]) is [list: ]
+  reverse([list: 1, 3]) is [list: 3, 1]
 end
 
-fun reverse<a>(lst :: List<a>) -> List<a>: reverse-help(lst, empty) end
+fun last<a>(lst :: List<a>) -> a:
+  doc: "Returns the last element of this list, or raises an error if the list is empty"
+  fun helper(l :: List<a>) -> a:
+    if is-empty(l.rest):
+      l.first
+    else:
+      helper(l.rest)
+    end
+  end
+  if is-empty(lst):
+    raise('last: took last of empty list')
+  else:
+    helper(lst)
+  end
+end
 
 fun sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
   lst.sort-by(cmp, eq)
@@ -361,8 +439,8 @@ fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
     else: raise("range-by: an interval of 0 would produce an infinite list")
     end
   else:
-    length = num-max(num-ceiling((stop - start) / delta), 0)
-    raw-array-to-list(raw-array-build(lam(i): start + (i * delta) end, length))
+    len = num-max(num-ceiling((stop - start) / delta), 0)
+    raw-array-to-list(raw-array-build(lam(i): start + (i * delta) end, len))
   end
 where:
   range-by(1, 10, 4) is [list: 1, 5, 9]
@@ -471,18 +549,22 @@ fun drop<a>(n :: Number, lst :: List<a>) -> List<a>:
   split-at(n, lst).suffix
 end
 
-fun last<a>(l :: List<a>) -> a:
-  l.last()
-end
-
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
-  lst.any(f)
+  if is-empty(lst):
+    false
+  else:
+    f(lst.first) or any(f, lst.rest)
+  end
 end
 
 fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  lst.all(f)
+  if is-empty(lst):
+    true
+  else:
+    f(lst.first) and all(f, lst.rest)
+  end
 end
 
 fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Boolean:
@@ -823,10 +905,6 @@ fun distinct(l :: List) -> List:
         | Equal => distinct(rest)
       end
   end
-end
-
-fun length(l :: List) -> Number:
-  l.length()
 end
 
 fun join-str(l :: List<String>, s :: String) -> String:

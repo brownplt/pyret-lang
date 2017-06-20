@@ -106,10 +106,10 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
-      env-provide = for fold(flds from repl-provide, name from globals.values.keys-list()):
+      env-provide = for SD.fold-keys(flds from repl-provide, name from globals.values):
         link(df(l, A.s-name(l, name)), flds)
       end
-      env-type-provide = for fold(flds from repl-type-provide, name from globals.types.keys-list()):
+      env-type-provide = for SD.fold-keys(flds from repl-type-provide, name from globals.types):
         link(af(l, A.s-name(l, name)), flds)
       end
       A.s-program(l,
@@ -199,12 +199,10 @@ fun make-repl<a>(
         CS.extra-import(dep, "_", [list:], [list:]),
         extra-imports.imports))
 
-    provided = cr.provides.values.keys-list()
-    new-vals = for fold(vs from globals.values, provided-name from provided):
+    new-vals = for SD.fold-keys(vs from globals.values, provided-name from cr.provides.values):
       vs.set(provided-name, dep.key())
     end
-    tprovided = cr.provides.aliases.keys-list()
-    new-types = for fold(ts from globals.types, provided-name from tprovided):
+    new-types = for SD.fold-keys(ts from globals.types, provided-name from cr.provides.aliases):
       ts.set(provided-name, dep.key())
     end
     globals := CS.globals(new-vals, new-types)
@@ -224,7 +222,7 @@ fun make-repl<a>(
     globals := defs-locator.get-globals()
     worklist = CL.compile-worklist(finder, defs-locator, compile-context)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
-    for each(k from compiled.modules.keys-list-now()):
+    for SD.each-key-now(k from compiled.modules):
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end
     result = CL.run-program(worklist, compiled, current-realm, runtime, current-compile-options)
@@ -242,7 +240,7 @@ fun make-repl<a>(
   fun run-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist(finder, repl-locator, compile-context)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
-    for each(k from compiled.modules.keys-list-now()) block:
+    for SD.each-key-now(k from compiled.modules) block:
       m = compiled.modules.get-value-now(k)
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end

@@ -2,9 +2,9 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["pyret-base/js/secure-loader"],
+  nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
     var EXIT_ERROR_RENDERING_ERROR = 2;
@@ -180,7 +180,7 @@
       return mr.val.runtime.getField(exn, "code");
     }
     function renderCheckResults(mr) {
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         var checkerMod = execRt.modules["builtin://checker"];
@@ -227,7 +227,7 @@
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         // TODO(joe): This works because it's a builtin and already loaded on execRt.
         // In what situations may this not work?
         var rendererrorMod = execRt.modules["builtin://render-error-display"];
@@ -288,6 +288,7 @@
       var staticModules = program.staticModules;
       var depMap = program.depMap;
       var toLoad = program.toLoad;
+      var uris = program.uris;
 
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
@@ -327,7 +328,7 @@
       };
 
 
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         var mainReached = false;
         var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {
@@ -341,6 +342,8 @@
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
+            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
+
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
           }
           else {

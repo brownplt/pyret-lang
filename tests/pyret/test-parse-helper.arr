@@ -45,4 +45,6 @@ fun get-parse-error(program :: String):
 end
 
 wss = [list: " ", " \n", "\n ", " \n", " \n "]
-en-ops = [list: "or", "and", "is", "satisfies", "raises"]
+exp-en-ops = [list: "or", "and"]
+test-en-ops = [list: "is", "satisfies", "raises"]
+en-ops = exp-en-ops.append(test-en-ops)

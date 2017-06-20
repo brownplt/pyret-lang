@@ -111,6 +111,20 @@ check:
     e11.loc satisfies S.is-srcloc
   end
 
+  e-non-ctor-app-1 = get-err(lam(): empty() end)
+  e-non-ctor-app-1 satisfies E.is-non-function-app
+  when E.is-non-function-app(e-non-ctor-app-1) block:
+    e-non-ctor-app-1.non-fun-val is empty
+    e-non-ctor-app-1.loc satisfies S.is-srcloc
+  end
+
+  e-non-ctor-app2 = get-err(lam(): var1() end)
+  e-non-ctor-app2 satisfies E.is-non-function-app
+  when E.is-non-function-app(e-non-ctor-app2) block:
+    e-non-ctor-app2.non-fun-val is var1
+    e-non-ctor-app2.loc satisfies S.is-srcloc
+  end
+
   e12 = get-err(lam(): num-tostring("two", "arguments") end)
   e12 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e12) block:

@@ -135,7 +135,7 @@ end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
 end
 
 data ValueExport:
@@ -162,6 +162,16 @@ fun make-dep(raw-dep) -> Dependency:
 end
 
 rag = raw-array-get
+
+fun value-export-from-raw(uri, val-export, tyvar-env :: SD.StringDict<T.Type>) -> ValueExport block:
+  t = val-export.tag
+  typ = type-from-raw(uri, val-export.typ, tyvar-env)
+  if t == "v-fun":
+    v-fun(typ, t, none)
+  else:
+    v-just-type(typ)
+  end
+end
 
 fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
   tfr = type-from-raw(uri, _, tyvar-env)
@@ -194,7 +204,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
         tvn = A.global-names.make-atom(a)
         new-env.set(a, tvn)
       end
-      params = for map(k from new-env.keys-list()):
+      params = for SD.map-keys(k from new-env):
         T.t-var(new-env.get-value(k), l, false)
       end
       T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l, false)
@@ -232,7 +242,7 @@ fun datatype-from-raw(uri, datatyp):
       tvn = A.global-names.make-atom(a)
       pdict.set(a, tvn)
     end
-    params = for map(k from pdict.keys-list()):
+    params = for SD.map-keys(k from pdict):
       T.t-var(pdict.get-value(k), l, false)
     end
     variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
@@ -251,6 +261,13 @@ fun provides-from-raw-provides(uri, raw):
     else:
       if v.value.bind == "var":
         vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      else if v.value.bind == "fun":
+        flatness = if is-number(v.value.flatness):
+          some(v.value.flatness)
+        else:
+          none
+        end
+        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
         vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end
@@ -390,14 +407,14 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
-  | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+  | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Reading this "),
-          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.op-a-loc + self.op-b-loc], -1),
+          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.exp-loc], -1),
           ED.text(" errored:")],
-        ED.cmcode(self.op-a-loc + self.op-b-loc),
+        ED.cmcode(self.exp-loc),
         [ED.para:
           ED.text("The "),
           ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
@@ -1552,6 +1569,110 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
+  | data-variant-duplicate-name(id :: String, found :: Loc, data-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.found], 0),
+          ED.text(" has the same name as its "),
+          ED.highlight(ED.text("containing datatype"), [list: self.data-loc], 1), ED.text(".")],
+        ED.cmcode(self.found),
+        ED.cmcode(self.data-loc),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(" predicates will shadow each other.  Please rename either the variant or the datatype to avoid this.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.found),
+          ED.text(" has the same name as its containing datatype.  The "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(" predicates will shadow each other.  Please rename either the variant or the datatype to avoid this.")]]
+    end,
+  | duplicate-is-variant(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("another variant"), [list: self.is-found], 1),
+          ED.text(" is defined with that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename one of the variants so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but another variant is defined with that name.  Please rename one of the variants so their names do not collide.")]]
+    end,
+  | duplicate-is-data(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("data definition"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("one of its variants"), [list: self.is-found], 1),
+          ED.text(" is defined with that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The data definition "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but one of its variants is defined with that name.  Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+  | duplicate-is-data-variant(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("the data definition"), [list: self.is-found], 1),
+          ED.text(" already uses that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but its surrounding data definition already uses that name.  Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
   | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -2172,9 +2293,9 @@ type CompileOptions = {
   type-check :: Boolean,
   allow-shadowed :: Boolean,
   collect-all :: Boolean,
+  collect-times :: Boolean,
   ignore-unbound :: Boolean,
   proper-tail-calls :: Boolean,
-  compile-module :: Boolean,
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,
@@ -2189,9 +2310,10 @@ default-compile-options = {
   type-check : false,
   allow-shadowed : false,
   collect-all: false,
+  collect-times: false,
   ignore-unbound: false,
   proper-tail-calls: true,
-  compile-module: true,
+  inline-case-body-limit: 5,
   compiled-cache: "compiled",
   display-progress: true,
   log: lam(s, to-clear):
@@ -2207,7 +2329,7 @@ default-compile-options = {
   log-error: lam(s):
     print-error(s)
   end,
-  method on-compile(_, locator, loadable): loadable end,
+  method on-compile(_, locator, loadable, _): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"
 }
@@ -2360,6 +2482,8 @@ runtime-provides = provides("builtin://global",
     "raw-array-fold", t-top,
     "raw-array-filter", t-top,
     "raw-array-map", t-top,
+    "raw-array-join-str", t-top,
+    "raw-array-from-list", t-top,
     "raw-array", t-record(
       [string-dict:
         "make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end),
@@ -2401,14 +2525,14 @@ runtime-provides = provides("builtin://global",
      "RawArray", t-top  ],
   [string-dict:])
 
-runtime-builtins = for fold(rb from [string-dict:], k from runtime-provides.values.keys().to-list()):
+runtime-builtins = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
   rb.set(k, "builtin(global)")
 end
 
-runtime-types = for fold(rt from [string-dict:], k from runtime-provides.aliases.keys().to-list()):
+runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
   rt.set(k, "builtin(global)")
 end
-shadow runtime-types = for fold(rt from runtime-types, k from runtime-provides.data-definitions.keys().to-list()):
+shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
   rt.set(k, "builtin(global)")
 end
 

@@ -5,6 +5,7 @@ provide-types *
 
 import global as _
 import option as O
+import srcloc as S
 import error-display as ED
 import valueskeleton as VS
 
@@ -280,6 +281,16 @@ data RuntimeError:
         [ED.para: ED.text("Internal error:"), ED.text(self.message)],
         [ED.para: ED.text("Relevant arguments:")],
         vert-list-values(self.info-args)]
+    end
+  | spinnaker-error(funloc, step-num) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Internal compiler error: No case numbered " + tostring(self.step-num) + " in")],
+        ED.loc(self.fun-loc),
+        please-report-bug()]
     end
   | template-not-finished(loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -792,7 +803,7 @@ data RuntimeError:
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para:
                   ED.text("The left side was:")],
                 ED.embed(self.val1),
@@ -810,7 +821,7 @@ data RuntimeError:
                   left-loc =  ast.left.l
                   right-loc = ast.right.l
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, -1, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
                        ED.text("The "),
@@ -829,7 +840,7 @@ data RuntimeError:
                         ED.text("two Strings")]]]
                 | none      =>
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, 0, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, 0, true),
                     ED.cmcode(loc),
                     [ED.para: ED.text("The left side was:")],
                     ED.embed(self.val1),
@@ -843,7 +854,7 @@ data RuntimeError:
               end
             else:
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para: ED.text("The left side was:")],
                 ED.embed(self.val1),
                 [ED.para: ED.text("The right side was:")],
@@ -857,9 +868,9 @@ data RuntimeError:
         | none =>
           [ED.sequence:
             [ED.para:
-              ED.text("A "),
+              ED.text("A " + self.opdesc + " ("),
               ED.code(self.opname),
-              ED.text(" expression errored.")],
+              ED.text(") expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -877,7 +888,7 @@ data RuntimeError:
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
           [ED.sequence:
-            ed-simple-intro(self.opname + " expression", loc),
+            ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -914,7 +925,7 @@ data RuntimeError:
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para:
                   ED.text("The left side was:")],
                 ED.embed(self.val1),
@@ -929,7 +940,7 @@ data RuntimeError:
                   left-loc =  ast.left.l
                   right-loc = ast.right.l
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, -1, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
                        ED.text("The "),
@@ -945,7 +956,7 @@ data RuntimeError:
                       ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
                 | none      =>
                   [ED.sequence:
-                    ed-intro(self.opname + " expression", loc, 0, true),
+                    ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, 0, true),
                     ED.cmcode(loc),
                     [ED.para: ED.text("The left side was:")],
                     ED.embed(self.val1),
@@ -956,7 +967,7 @@ data RuntimeError:
               end
             else:
               [ED.sequence:
-                ed-simple-intro(self.opname + " expression", loc),
+                ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
                 [ED.para: ED.text("The left side was:")],
                 ED.embed(self.val1),
                 [ED.para: ED.text("The right side was:")],
@@ -967,9 +978,9 @@ data RuntimeError:
         | none =>
           [ED.sequence:
             [ED.para:
-              ED.text("A "),
+              ED.text("A " + self.opdesc + " ("),
               ED.code(self.opname),
-              ED.text(" expression errored.")],
+              ED.text(") expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -984,7 +995,7 @@ data RuntimeError:
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
           [ED.sequence:
-            ed-simple-intro(self.opname + " expression", loc),
+            ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -1127,8 +1138,16 @@ data RuntimeError:
               [ED.para:
                 ED.text("The cases pattern had "),
                 cases(Any) branch:
-                  | s-cases-branch(_, _, _, args, _) =>
-                      ED.highlight(ED.ed-field-bindings(self.num-args),args.map(_.l),1)
+                  | s-cases-branch(_, pat-loc, name, args, _) =>
+                    args-locs = if self.num-args == 0:
+                      name-len = string-length(name)
+                      [ED.locs: S.srcloc(pat-loc.source,
+                          pat-loc.start-line, pat-loc.start-column + name-len, pat-loc.start-char + name-len,
+                          pat-loc.end-line, pat-loc.end-column, pat-loc.end-char)]
+                    else:
+                      args.map(_.l)
+                    end
+                    ED.highlight(ED.ed-field-bindings(self.num-args),args-locs, 1)
                   | s-singleton-cases-branch(_, _, _, _) => ED.ed-field-bindings(self.num-args)
                 end,
                 ED.text(".")],
@@ -1194,6 +1213,7 @@ data RuntimeError:
   | constructor-arity-mismatch(fun-def-loc, constructor-name, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       fun-app-arity = self.fun-app-args.length()
+      were-was = if fun-app-arity == 1: " was" else: " were" end
       helper =
         lam(rest):
           [ED.error: 
@@ -1207,7 +1227,7 @@ data RuntimeError:
                       ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
                       ED.ed-args(fun-app-arity),
-                      ED.text(" were passed to the left side.")],
+                      ED.text(were-was + " passed to the left side.")],
                     rest(ED.text("left side"))]
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
@@ -1218,7 +1238,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
-                          ED.text(" were passed to the "),
+                          ED.text(were-was + " passed to the "),
                           applicant,
                           ED.text(".")],
                         rest(applicant)]
@@ -1228,7 +1248,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.ed-args(fun-app-arity),
-                          ED.text(" were passed to the left side.")],
+                          ED.text(were-was + " passed to the left side.")],
                         rest(ED.text("applicant"))]
                   end
                 else:
@@ -1362,6 +1382,7 @@ data RuntimeError:
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
+      were-was = if fun-app-arity == 1: " was" else: " were" end
       helper =
         lam(rest):
           [ED.error: 
@@ -1380,7 +1401,7 @@ data RuntimeError:
                       ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
                     [ED.para:
                       ED.ed-args(fun-app-arity),
-                      ED.text(" were passed to the left side.")],
+                      ED.text(were-was + " passed to the left side.")],
                     rest(ED.text("left side"))]
                 else if src-available(fun-app-loc):
                   cases(O.Option) maybe-ast(fun-app-loc):
@@ -1393,15 +1414,20 @@ data RuntimeError:
                       args = cases(Any) ast:
                         | s-app(_, _, args) => args
                         | s-for(_, _, args, _, _, _) => args
-                        | else  => ast.l
+                        | else  => [ED.locs: ast.l]
+                      end
+                      args-locs = if fun-app-arity == 0:
+                        [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+                      else:
+                        args.map(_.l)
                       end
                       applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
                       [ED.sequence:
                         ed-intro("function application expression", fun-app-loc, -1, true),
                         ED.cmcode(fun-app-loc),
                         [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), args.map(_.l),1),
-                          ED.text(" were passed to the "),
+                          ED.highlight(ED.ed-args(fun-app-arity), args-locs, 1),
+                          ED.text(were-was + " passed to the "),
                           applicant,
                           ED.text(".")],
                         rest(applicant)]
@@ -1411,7 +1437,7 @@ data RuntimeError:
                         ED.cmcode(fun-app-loc),
                         [ED.para:
                           ED.ed-args(fun-app-arity),
-                          ED.text(" were passed to the left side.")],
+                          ED.text(were-was + " passed to the left side.")],
                         rest(ED.text("applicant"))]
                   end
                 else:
@@ -1938,6 +1964,40 @@ data ParseError:
           ED.text("Pyret thinks your program probably has a number at "),
           draw-and-highlight(self.loc),
           ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
+    end
+  | parse-error-bad-check-operator(loc) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error: 
+          [ED.para:
+            ED.text("The "),
+            ED.highlight(ED.text("testing operator"), [ED.locs: self.loc], 0)],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text(" must be used inside a "),
+            ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
+          [ED.para:
+            ED.text("Did you mean to use one of the comparison operators instead?")]]
+      else:
+        [ED.error: 
+          [ED.para-nospace:
+            ED.text("The testing operator at "),
+            ED.loc(self.loc),
+            ED.text(" must be used inside a "),
+            ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
+          [ED.para:
+            ED.text("Did you mean to use one of the comparison operators instead?")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error: 
+        [ED.para-nospace:
+          ED.text("The testing operator at "),
+          draw-and-highlight(self.loc),
+          ED.text(" must be used inside a"),
+          ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
+        [ED.para:
+          ED.text("Did you mean to use one of the comparison operators instead?")]]
     end
   | empty-block(loc) with:
     method _tostring(self, shadow tostring):

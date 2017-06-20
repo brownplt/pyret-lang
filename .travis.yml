@@ -2,7 +2,7 @@ git:
   submodules: false
 language: node_js
 node_js:
-- 6.2.1
+- 6.9.3
 install:
 - make install
 before_script: make -j3

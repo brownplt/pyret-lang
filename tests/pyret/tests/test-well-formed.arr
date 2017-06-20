@@ -204,6 +204,36 @@ check "reactors":
   cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end
 
+check "malformed reactors":
+  c("reactor:\n" +
+    "  init: nothing,\n" +
+    "  on-tick: lam(_):\n" +
+    "      1 > true * 2\n" +
+    "      1 + _\n" +
+    "    end,\n" +
+    "end") satisfies CS.is-block-needed
+  c("reactor:\n" +
+    "  init: nothing,\n" +
+    "  on-tick: lam(_):\n" +
+    "      1 > true * 2\n" +
+    "    end,\n" +
+    "end") satisfies CS.is-mixed-binops
+end  
+
+check "empty data definitions":
+  cok("data NoVariants: end") is empty
+  cok("data NoVariants:\nend") is empty
+end
+
+check "duplicated names in data defintiions":
+  c("data Foo: is-Foo end") satisfies CS.is-duplicate-is-data
+  c("data Foo: Foo end") satisfies CS.is-data-variant-duplicate-name
+  c("data is-Foo3: Foo3 | baz end") satisfies CS.is-duplicate-is-data-variant
+  c("data Foo: bar | is-bar end") satisfies CS.is-duplicate-is-variant
+  c("data Foo: is-bar | bar end") satisfies CS.is-duplicate-is-variant
+  c("data Foo: bar | bar end") satisfies CS.is-duplicate-variant
+end
+
 #|
       it("should notice empty blocks", function(done) {
         P.checkCompileError("lam(): end", function(e) {
@@ -226,32 +256,6 @@ end
           expect(e.length).toEqual(1);
           return true;
         });
-        P.wait(done);
-      });
-      xit("malformed datatypes", function(done){
-        P.checkCompileErrorMsg("datatype Foo:\n" +
-                               "  | foo() with constructor(self): self end\n" +
-                               "  | foo with constructor(self): self end\n" +
-                               "end",
-                               "Constructor name foo appeared more than once.");
-
-        P.checkCompileErrorMsg("datatype Foo:\n" +
-                               "  | foo() with constructor(self): self end\n" +
-                               "  | bar() with constructor(self): self end\n" +
-                               "  | baz() with constructor(self): self end\n" +
-                               "  | foo(a) with constructor(self): self end\n" +
-                               "end",
-                               "Constructor name foo appeared more than once.");
-
-        P.checkCompileErrorMsg("datatype Foo:\n" +
-                               "  | bang with constructor(self): self end\n" +
-                               "  | bar() with constructor(self): self end\n" +
-                               "  | bang() with constructor(self): self end\n" +
-                               "  | foo() with constructor(self): self end\n" +
-                               "  | foo(a) with constructor(self): self end\n" +
-                               "end",
-                               "Constructor name bang appeared more than once.");
-
         P.wait(done);
       });
       it("malformed cases", function(done) {

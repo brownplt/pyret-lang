@@ -105,6 +105,15 @@ fun make-default-types() block:
   ]))
 
   # Need to be fixed to correct type:
+  default-typs.set-now(A.s-global("raw-array-get").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-set").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-of").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-length").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-fold").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-from-list").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-join-str").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array").key(), t-top)
   default-typs.set-now(A.s-global("ref-get").key(), t-top)
   default-typs.set-now(A.s-global("ref-set").key(), t-top)
   default-typs.set-now(A.s-global("ref-freeze").key(), t-top)
@@ -504,6 +513,12 @@ module-const-error = t-module("builtin://error",
     "is-parse-error-eof", t-arrow([list: t-top], t-boolean),
     "parse-error-unterminated-string", t-arrow([list: t-top], t-parse-error),
     "is-parse-error-unterminated-string", t-arrow([list: t-top], t-boolean),
+    "parse-error-bad-number", t-arrow([list: t-top], t-parse-error),
+    "is-parse-error-bad-number", t-arrow([list: t-top], t-boolean),
+    "parse-error-bad-operator", t-arrow([list: t-top], t-parse-error),
+    "is-parse-error-bad-operator", t-arrow([list: t-top], t-boolean),
+    "parse-error-bad-check-operator", t-arrow([list: t-top], t-parse-error),
+    "is-parse-error-bad-check-operator", t-arrow([list: t-top], t-boolean),
     "empty-block", t-arrow([list: t-top], t-parse-error),
     "is-empty-block", t-arrow([list: t-top], t-boolean),
     "bad-block-stmt", t-arrow([list: t-top], t-parse-error),
@@ -556,6 +571,9 @@ module-const-error = t-module("builtin://error",
       [list: ],
       [list:
         t-variant("parse-error-next-token", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-check-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-number", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-eof", [list: {"loc"; t-top}], [string-dict: ]),
         t-variant("parse-error-unterminated-string", [list: {"loc"; t-top}], [string-dict: ]),
         t-variant("empty-block", [list: {"loc"; t-top}], [string-dict: ]),

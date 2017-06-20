@@ -329,7 +329,8 @@ fun propagate-exit(result) block:
 end
 
 fun run(path, options, subsequent-command-line-arguments):
-  maybe-program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) =>
       handle-compilation-errors(problems, options)
@@ -345,7 +346,7 @@ fun run(path, options, subsequent-command-line-arguments):
   end
 end
 
-fun build-program(path, options) block:
+fun build-program(path, options, stats) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
@@ -377,16 +378,21 @@ fun build-program(path, options) block:
   cached-modules = starter-modules.count-now()
   var num-compiled = cached-modules
   shadow options = options.{
-    compile-module: true,
     method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + ": " + locator.name())
     end,
-    method on-compile(_, locator, loadable) block:
+    method on-compile(_, locator, loadable, trace) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
+      when options.collect-times:
+        comp = for map(stage from trace):
+          stage.name + ": " + tostring(stage.time) + "ms"
+        end
+        stats.set-now(locator.name(), comp)
+      end
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
@@ -398,18 +404,18 @@ fun build-program(path, options) block:
       else:
         cases(CL.Loadable) loadable:
           | module-as-string(prov, env, rp) =>
-            CL.module-as-string(prov, env, JSP.ccp-file(module-path))
+            CL.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
           | else => loadable
         end
       end
     end
   }
-
   CL.compile-standalone(wl, starter-modules, options)
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
-  maybe-program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) => 
       handle-compilation-errors(problems, options)
@@ -420,19 +426,30 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
       end
 
-      MS.make-standalone(program.natives, program.js-ast, JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+      when options.collect-times: stats.set-now("standalone", time-now()) end
+      ans = MS.make-standalone(program.natives, program.js-ast,
+        JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+      when options.collect-times block:
+        standalone-end = time-now() - stats.get-value-now("standalone")
+        stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])
+        for SD.each-key-now(key from stats):
+          print(key + ": \n" + stats.get-value-now(key).join-str(", \n") + "\n")
+        end
+      end
+      ans
   end
 end
 
 fun build-require-standalone(path, options):
-  program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  program = build-program(path, options, stats)
 
   natives = j-list(true, for C.map_list(n from program.natives): n end)
 
   define-name = j-id(A.s-name(A.dummy-loc, "define"))
 
   prog = j-block([clist:
-      j-app(define-name, [clist: natives, j-fun([clist:],
+      j-app(define-name, [clist: natives, j-fun(J.next-j-fun-id(), [clist:],
         j-block([clist:
           j-return(program.js-ast)
         ]))

@@ -11,6 +11,9 @@ import file("compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
 
+# this value is the limit of number of steps that could be inlined in case body
+DEFAULT-INLINE-CASE-LIMIT = 5
+
 success-code = 0
 failure-code = 1
 
@@ -56,8 +59,12 @@ fun main(args :: List<String>) -> Number:
       C.flag(C.once, "Run without checking for shadowed variables"),
     "improper-tail-calls",
       C.flag(C.once, "Run without proper tail calls"),
+    "collect-times",
+      C.flag(C.once, "Collect timing information about compilation"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation")
+      C.flag(C.once, "Type-check the program during compilation"),
+    "inline-case-body-limit",
+      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -77,6 +84,7 @@ fun main(args :: List<String>) -> Number:
         if r.has-key("library"): CS.minimal-imports
         else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
+      inline-case-body-limit = r.get-value("inline-case-body-limit")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
@@ -109,11 +117,12 @@ fun main(args :: List<String>) -> Number:
                 type-check : type-check,
                 allow-shadowed : allow-shadowed,
                 collect-all: false,
+                collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
-                compile-module: true,
                 compiled-cache: compiled-dir,
-                display-progress: display-progress
+                display-progress: display-progress,
+                inline-case-body-limit: inline-case-body-limit
               })
           success-code
         else if r.has-key("serve"):
@@ -130,9 +139,9 @@ fun main(args :: List<String>) -> Number:
                 type-check : type-check,
                 allow-shadowed : allow-shadowed,
                 collect-all: false,
+                collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
-                compile-module: true,
                 compiled-cache: compiled-dir,
                 display-progress: display-progress
               })
@@ -171,7 +180,6 @@ fun main(args :: List<String>) -> Number:
             end
           result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
-              compile-module: true,
               display-progress: display-progress,
               check-all: check-all
             }, run-args)

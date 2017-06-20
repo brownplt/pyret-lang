@@ -132,7 +132,7 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
         | none =>
           fold-errors([list: C.cant-typecheck("Expected a data type but got " + tostring(typ), typ.l)])
         | some(data-type) =>
-          if data-type.params.length() == 0:
+          if is-empty(data-type.params):
             fold-result(typ, context)
           else:
             new-existentials = data-type.params.map(lam(a-var): new-existential(a-var.l, false) end)
@@ -145,20 +145,28 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
   end
 end
 
+fun value-export-sd-to-type-sd(sd :: SD.StringDict<C.ValueExport>) -> SD.StringDict<Type>:
+  tdict = for SD.fold-keys(tdict from SD.make-string-dict(), k from sd):
+    tdict.set(k, sd.get-value(k).t)
+  end
+  tdict
+end
+
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
   context = TCS.empty-context()
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
-  shadow context = globvs.keys-list().foldl(lam(g, shadow context):
+  shadow context = globvs.fold-keys(lam(g, shadow context):
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
       uri = globvs.get-value(g)
+      # TODO(joe): type-check vars by making them refs
       context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
     end
   end, context)
-  shadow context = globts.keys-list().foldl(lam(g, shadow context):
+  shadow context = globts.fold-keys(lam(g, shadow context):
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
@@ -179,13 +187,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       end
     end
   end, context)
-  shadow context = modules.keys-list-now().foldl(lam(k, shadow context):
+  shadow context = modules.fold-keys-now(lam(k, shadow context):
     if context.modules.has-key(k):
       context
     else:
       mod = modules.get-value-now(k).provides
       key = mod.from-uri
-      vals-types-dict = for fold(sd from [string-dict:], shadow k from mod.values.keys-list()):
+      vals-types-dict = for SD.fold-keys(sd from [string-dict:], shadow k from mod.values):
         sd.set(k, mod.values.get-value(k).t)
       end
       val-provides = t-record(vals-types-dict, program.l, false)
@@ -194,7 +202,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
                              mod.data-definitions,
                              mod.aliases)
       shadow context = context.set-modules(context.modules.set(key, module-type))
-      mod.data-definitions.keys-list().foldl(lam(d, shadow context):
+      mod.data-definitions.fold-keys(lam(d, shadow context):
         context.set-data-types(context.data-types.set(d, mod.data-definitions.get-value(d)))
       end, context)
     end
@@ -895,6 +903,8 @@ fun lookup-id(blame-loc :: A.Loc, id-key :: String, id-expr :: Expr, context :: 
   end
 end
 
+# TODO(MATT): this should require unifying of same-named methods
+#             should it require unifying types of same-named members?
 # Type checks data types
 # Returns the list of all relevant letrec bindings
 # Use the context returned from this function
@@ -946,7 +956,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                       rest.foldr(meet-fields(_, _, l, context), first)
                   end
               end
-              extended-shared-field-types = variants-meet.keys-list().foldl(lam(key, extended-shared-field-types):
+              extended-shared-field-types = variants-meet.fold-keys(lam(key, extended-shared-field-types):
                 extended-shared-field-types.set(key, variants-meet.get-value(key))
               end, initial-shared-field-types)
               shared-data-type = t-data(name, t-vars, new-variant-types, extended-shared-field-types, l)
@@ -956,7 +966,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   fold-result(new-shared-field-types.set(field.name, field-type), context)
                 end)
               end, fields, context, SD.make-string-dict()).bind(lam(new-shared-field-types, shadow context):
-                final-shared-field-types = variants-meet.keys-list().foldl(lam(key, final-shared-field-types):
+                final-shared-field-types = variants-meet.fold-keys(lam(key, final-shared-field-types):
                   final-shared-field-types.set(key, variants-meet.get-value(key))
                 end, new-shared-field-types)
                 final-data-type = t-data(name, t-vars, new-variant-types, final-shared-field-types, l)
@@ -1728,7 +1738,7 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
     instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
       cases(Type) obj-type:
         | t-record(t-fields, _, inferred) =>
-          final-fields = new-members.keys-list().foldl(lam(key, final-fields):
+          final-fields = new-members.fold-keys(lam(key, final-fields):
             final-fields.set(key, new-members.get-value(key))
           end, t-fields)
           typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
@@ -1796,8 +1806,7 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
           end, temp-lam-binds, args, expect-args)
           {lam-binds; shadow context} = params.foldr(lam(param, {lam-binds; shadow context}):
             new-exists = new-existential(fun-loc, false)
-            lam-keys = lam-binds.keys-list()
-            new-binds = lam-keys.foldl(lam(key, binds):
+            new-binds = lam-binds.fold-keys(lam(key, binds):
               binds.set(key, binds.get-value(key).substitute(new-exists, t-var(param, fun-loc, false)))
             end, lam-binds)
             {new-binds; context.add-variable(new-exists)}
@@ -1978,7 +1987,7 @@ fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, loc :: Loc, co
     end
   end
 
-  a-fields.keys-list().foldr(lam(a-field-name, meet-members):
+  a-fields.fold-keys(lam(a-field-name, meet-members):
     cases(Option<Type>) b-fields.get(a-field-name):
       | none => meet-members
       | some(b-type) =>

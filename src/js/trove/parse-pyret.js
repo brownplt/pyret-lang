@@ -801,10 +801,6 @@
                  tr(node.kids[node.kids.length - 3]),      // return-ann
                  tr(node.kids[node.kids.length - 1]));     // body
         },
-        'for-do': function(node) {
-          return RUNTIME.getField(ast, 's-for-do')
-            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
-        },
         'for-then': function(node) {
           // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
           return RUNTIME.getField(ast, 's-for')
@@ -865,7 +861,17 @@
           if (node.kids.length === 0) {
             return empty;
           } else {
-            return makeListComma(node.kids);
+            return tr(node.kids[0]);
+          }
+        },
+        'comma-binops': function(node) {
+          return makeListComma(node.kids);
+        },
+        'trailing-opt-comma-binops': function(node) {
+          if (node.kids.length === 0) {
+            return empty;
+          } else {
+            return tr(node.kids[0]);
           }
         },
         'cases-args': function(node) {
@@ -952,7 +958,7 @@
           }
         },
         'construct-expr': function(node) {
-          // LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
+          // LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
           return RUNTIME.getField(ast, 's-construct')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
         },
@@ -1338,6 +1344,8 @@
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-OPER")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
+          else if (typeof opLookup[String(nextTok.value).trim()] === "function")
+            RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
           else
             RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
         }

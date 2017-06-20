@@ -144,6 +144,17 @@
       raise(err("internal-error")(runtime.makeString(message), otherArgs));
     }
 
+    function makeInternalError(message, otherArgs) {
+      runtime.checkString(message);
+      runtime.checkList(otherArgs);
+      return err("internal-error")(runtime.makeString(message), otherArgs);
+    }
+
+    function throwSpinnakerError(loc, stepNum) {
+      runtime.checkNumber(stepNum);
+      raise(err("spinnaker-error")(runtime.makeSrcloc(loc), stepNum));
+    }
+
     function throwFieldNotFound(loc, object, field) {
       checkSrcloc(loc);
       runtime.checkPyretVal(object);
@@ -419,6 +430,9 @@
     function throwParseErrorBadOper(loc) {
       raise(err("parse-error-bad-operator")(loc));
     }
+    function throwParseErrorBadCheckOper(loc) {
+      raise(err("parse-error-bad-check-operator")(loc));
+    }
 
     function throwModuleLoadFailureL(names) {
       raise(makeModuleLoadFailureL(names));
@@ -517,6 +531,7 @@
       throwNumStringBinopError: throwNumStringBinopError,
       throwNumericBinopError: throwNumericBinopError,
       throwInternalError: throwInternalError,
+      throwSpinnakerError: throwSpinnakerError,
       throwFieldNotFound: throwFieldNotFound,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
@@ -554,6 +569,7 @@
       throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
       throwParseErrorBadNumber: throwParseErrorBadNumber,
       throwParseErrorBadOper: throwParseErrorBadOper,
+      throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
@@ -584,6 +600,7 @@
       isUnknown: isUnknown,
       isEqualityResult: isEqualityResult,
 
+      makeInternalError: makeInternalError,
       makeMessageException: makeMessageException,
       makeUserException: makeUserException,
       makeModuleLoadFailureL: makeModuleLoadFailureL,
