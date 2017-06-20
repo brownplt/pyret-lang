@@ -14,7 +14,6 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
-BUNDLED_DEPS     = build/bundled-node-deps.js
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -85,7 +84,8 @@ phaseA: $(PHASEA)/pyret.jarr
 phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+#	cp src/js/trove/global-phase0.js src/js/trove/global.js # couldn't get allow-builtin-overrides to work
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
@@ -123,9 +123,6 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
-
-$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	node_modules/.bin/browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
@@ -305,7 +302,6 @@ clean:
 	$(call RMDIR,$(PHASEC))
 	$(call RMDIR,build/show-comp/compiled)
 	$(call RMDIR,$(RELEASE_DIR))
-	$(call RM,$(BUNDLED_DEPS))
 
 .PHONY : test-clean
 test-clean:

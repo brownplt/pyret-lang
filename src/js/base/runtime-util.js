@@ -4,8 +4,7 @@ define("pyret-base/js/runtime-util", [], function() {
     return name + String(gs++);
   }
   function isBrowser() {
-    var maybeBrowser = !!(typeof window !== 'undefined' && typeof navigator !== 'undefined' && window.document);
-    return maybeBrowser || typeof importScripts !== "undefined";
+    return requirejs.isBrowser || typeof importScripts !== "undefined";
   }
 
   var suspend;
