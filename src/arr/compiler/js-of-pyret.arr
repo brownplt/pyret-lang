@@ -236,7 +236,7 @@ fun make-expr-flatness-env(
     | a-type-let(_, bind, body) =>
       make-expr-flatness-env(body, sd)
     | a-let(_, bind, val, body) =>
-      val-flatness = if AA.is-a-lam(val) or AA.is-a-method(val) block:
+      val-flatness = if AA.is-a-lam(val) block:
         lam-flatness = make-expr-flatness-env(val.body, sd)
         sd.set-now(bind.id.key(), lam-flatness)
         # flatness of defining this lambda is 0, since we're not actually
