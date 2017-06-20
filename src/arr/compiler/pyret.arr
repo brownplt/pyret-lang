@@ -100,10 +100,7 @@ fun main(args :: List<String>) -> Number:
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
-      if not(is-empty(rest)) block:
-        print-error("No longer supported\n")
-        failure-code
-      else:
+      if is-empty(rest) or (rest.first == "-"):
         if r.has-key("build-runnable") block:
           outfile = if r.has-key("outfile"):
             r.get-value("outfile")
@@ -175,23 +172,42 @@ fun main(args :: List<String>) -> Number:
             success-code
           end
         else if r.has-key("run"):
+          run-args =
+            if is-empty(rest):
+              empty
+            else:
+              rest.rest
+            end
           result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               display-progress: display-progress,
               check-all: check-all
-            })
+            }, run-args)
           _ = print(result.message + "\n")
           result.exit-code
         else:
-          _ = print(C.usage-info(options).join-str("\n"))
-          _ = print("Unknown command line options\n")
+          block:
+            print-error(C.usage-info(options).join-str("\n"))
+            print-error("Unknown command line options\n")
+            failure-code
+          end
+        end
+      else:
+        block:
+          print-error(C.usage-info(options).join-str("\n"))
+          print-error("Unknown command line options\n")
+          print-error("Could not parse:\n")
+          print-error(rest.join-str(" "))
+          print-error("\n")
           failure-code
         end
       end
     | arg-error(message, partial) =>
-      _ = print(message + "\n")
-      _ = print(C.usage-info(options).join-str("\n"))
-      failure-code
+      block:
+        print-error(message + "\n")
+        print-error(C.usage-info(options).join-str("\n"))
+        failure-code
+      end
   end
 end
 

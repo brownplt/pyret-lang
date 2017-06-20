@@ -46,9 +46,12 @@ in Pyret development, read on:
 
 The easiest way to *run* a Pyret program from the command-line is:
 
-    $ ./src/scripts/phaseX <path-to-pyret-program-here>
+    $ ./src/scripts/phaseX <path-to-pyret-program-here> [command-line-args...]
 
-Where `X` is `0`, `A`, `B`, or `C`, indicating a phase (described below).
+Where `X` is `0`, `A`, `B`, or `C`, indicating a phase (described below). For
+example:
+
+    $ ./src/scripts/phaseA src/scripts/show-compilation.arr examples/ahoy-world.arr
 
 Alternatively, you can compile and run a standalone JavaScript file via:
 

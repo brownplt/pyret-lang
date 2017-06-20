@@ -938,6 +938,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
           collect-members(fields, true, context).bind(lam(initial-shared-field-types, shadow context):
             initial-data-type = t-data(name, t-vars, initial-variant-types, initial-shared-field-types, l)
             shadow context = context.set-data-types(context.data-types.set(namet.key(), initial-data-type))
+            shadow context = merge-common-fields(initial-variant-types, l, context)
             map-fold-result(lam(variant, shadow context):
               check-variant(variant, initial-data-type.get-variant-value(variant.name), brander-type, t-vars, context)
             end, variants, context).bind(lam(new-variant-types, shadow context):
@@ -1942,6 +1943,35 @@ fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context
     meet-type = solution.generalize(solution.apply(new-exists))
     fold-result(meet-type, context)
   end)
+end
+
+# Adds constraints between methods with the same name across all variants
+fun merge-common-fields(variants :: List<TypeVariant>, data-loc :: Loc, context :: Context) -> Context:
+  fun get-in-all(field-name :: String, members :: List<TypeMembers>) -> Option<{field-name :: String, types :: List<Type>}>:
+    members.foldl(lam(member, maybe-field-types):
+      for option-bind(field-types from maybe-field-types):
+        for option-bind(member-field-type from member.get(field-name)):
+          some({field-name: field-name, types: link(member-field-type, field-types.types)})
+        end
+      end
+    end, some({field-name: field-name, types: empty}))
+  end
+
+  fields-to-merge = cases (List<TypeMembers>) variants:
+    | empty => empty
+    | link(first, rest) =>
+      with-fields = variants.map(lam(variant): variant.with-fields end)
+      first.with-fields.keys-list().map(lam(field-name):
+        get-in-all(field-name, with-fields)
+      end).filter(is-some).map(_.value)
+  end
+  fields-to-merge.foldr(lam(field-and-types, shadow context):
+    merge-existential = new-existential(data-loc, false)
+    shadow context = context.add-variable(merge-existential)
+    field-and-types.types.foldr(lam(field-type, shadow context):
+      context.add-constraint(merge-existential, field-type)
+    end, context)
+  end, context)
 end
 
 fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, loc :: Loc, context :: Context) -> TypeMembers:
