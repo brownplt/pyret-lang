@@ -12,6 +12,8 @@
 tools/benchmark/TODO
 tools/benchmark/sandbox*
 tools/benchmark/nodelint*
+tools/ralloc-perf/node_modules
+tools/ralloc-perf/**/build
 
 # docs
 docs/written/compiled

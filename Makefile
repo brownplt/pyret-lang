@@ -68,6 +68,7 @@ ifneq ($(findstring .exe,$(SHELL)),)
 	RMDIR = $(foreach dir,$1,if exist "$(dir)". (rd /S /Q "$(dir)".)$(\n))
 	RM = if exist "$1". (del $1)
 else
+	SHELL = /bin/bash
 	MKDIR = mkdir -p $1
 	RMDIR = rm -rf $1
 	RM = rm -f $1
@@ -138,6 +139,7 @@ EXTRA_FLAGS=$(EF)
 else
 EXTRA_FLAGS = -no-check-mode
 endif
+
 %.jarr: $(PHASEA)/pyret.jarr %.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
                       --build-runnable $*.arr \
@@ -280,7 +282,6 @@ tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
 	$(TEST_BUILD) \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
 
-
 .PHONY : compiler-test
 compiler-test: $(PYRET_TEST_PREREQ)
 	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
@@ -303,6 +304,10 @@ benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
 .PHONY : docs-test
 docs-test: docs
 	cd docs/written && scribble --htmls index.scrbl
+
+.PHONY : ralloc-perf
+ralloc-perf: tools/ralloc-perf
+	cd tools/ralloc-perf && ./run-tests.sh
 
 .PHONY : clean
 clean:
