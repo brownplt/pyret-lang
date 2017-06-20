@@ -125,6 +125,14 @@ check:
     e-non-ctor-app2.loc satisfies S.is-srcloc
   end
 
+  some-method = method(x): x end
+  e-method-app = get-err(lam(): some-method() end)
+  e-method-app satisfies E.is-non-function-app
+  when E.is-non-function-app(e-method-app) block:
+    tostring(e-method-app.non-fun-val) is "<function>"
+    e-method-app.loc satisfies S.is-srcloc
+  end
+
   e12 = get-err(lam(): num-tostring("two", "arguments") end)
   e12 satisfies E.is-arity-mismatch
   when E.is-arity-mismatch(e12) block:
