@@ -4,6 +4,7 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
   var matchHashedPyretURI = /_([a-f0-9]+)__/;
   var matchInnerEvalLocationV8 = /<anonymous>:([0-9]+):([0-9]+)/;
   var matchInnerEvalLocationFirefoxSafari = /([0-9]+):([0-9]+)$/;
+  var matchInnerEvalLocationIE = /([0-9]+):([0-9]+)\)$/;
 
   function isSourcePyretFrame(line) {
     return line.match(matchHashedPyretURI) !== null;
@@ -16,8 +17,9 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
     var matchedURI = line.match(matchHashedPyretURI);
     var matchedLoc1 = line.match(matchInnerEvalLocationV8);
     var matchedLoc2 = line.match(matchInnerEvalLocationFirefoxSafari);
-    var matchedLoc = matchedLoc1 || matchedLoc2;
-    // console.log(matchedLoc);
+    var matchedLoc3 = line.match(matchInnerEvalLocationIE);
+    var matchedLoc = matchedLoc1 || matchedLoc2 || matchedLoc3;
+    console.log(matchedLoc);
     return {
       startLine: matchedLoc[1],
       startCol: matchedLoc[2],
