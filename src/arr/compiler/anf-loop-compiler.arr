@@ -264,11 +264,7 @@ fun rt-method(name, args):
 end
 
 fun app(l, f, args):
-  cases(SL.Srcloc) l:
-    | builtin(n) => j-method(f, "app", args)
-    | else =>
-      J.j-sourcenode(l, l.source, j-method(f, "app", args))
-  end
+  j-method(f, "app", args)
 end
 
 fun check-fun(sourcemap-loc, variable-loc, f) block:
@@ -669,7 +665,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
                 j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0))),
       j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
           # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
-          # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+          # j-expr(j-//app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
           j-expr(j-assign(local-compiler.cur-ans, (rt-method("makeCont", cl-empty))))]))
 
   gas-check-or-comment = if is-flat:
@@ -869,7 +865,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
                 ]),
               j-block([clist:
                   check-fun(l, compiler.get-loc(l), colon-field-id),
-                  j-expr(j-assign(ans, app(l, colon-field-id, compiled-args)))
+                  j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, colon-field-id, compiled-args))))
                 ])),
             # If the answer is a cont, jump to the end of the current function
             # rather than continuing normally
@@ -926,7 +922,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
           cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
         end +
         [clist:
-          j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
+          j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args)))),
           j-break]),
       new-cases)
   end
@@ -947,7 +943,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
   # Generate the code for calling the function
   call-code = [clist:
     j-expr(j-raw-code("// caller optimization")),
-    j-expr(j-assign(ans, app(l, compiled-f, compiled-args)))
+    j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args))))
   ]
 
   # Compile the body of the let. We split it into two portions:
