@@ -769,7 +769,7 @@ fun desugar-expr(expr :: A.Expr):
               A.s-array(A.dummy-loc,  extensions.map(lam(e):A.s-str(e.l, e.name) end))]),
             # Data
               with-initialized-reducers(
-                A.s-prim-app(A.dummy-loc, "raw_array_map1", [list:
+                A.s-app(A.dummy-loc, A.s-id(l, A.s-global("raw-array-map-1")), [list:
                     data-pop-mapfun(true),
                     data-pop-mapfun(false),
                     A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]))])]), true)

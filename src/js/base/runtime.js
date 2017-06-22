@@ -5374,6 +5374,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
       'raw-array-map': makeFunction(raw_array_map, "raw-array-map"),
+      'raw-array-map-1': makeFunction(raw_array_map1, "raw-array-map-1"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
       'raw-array': raw_array_maker,
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),

@@ -2482,6 +2482,7 @@ runtime-provides = provides("builtin://global",
     "raw-array-fold", t-top,
     "raw-array-filter", t-top,
     "raw-array-map", t-top,
+    "raw-array-map-1", t-top,
     "raw-array-join-str", t-top,
     "raw-array-from-list", t-top,
     "raw-array", t-record(
