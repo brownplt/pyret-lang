@@ -19,7 +19,6 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
     var matchedLoc2 = line.match(matchInnerEvalLocationFirefoxSafari);
     var matchedLoc3 = line.match(matchInnerEvalLocationIE);
     var matchedLoc = matchedLoc1 || matchedLoc2 || matchedLoc3;
-    console.log(matchedLoc);
     return {
       startLine: matchedLoc[1],
       startCol: matchedLoc[2],
