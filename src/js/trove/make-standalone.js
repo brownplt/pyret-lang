@@ -47,7 +47,9 @@
         fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
         fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
         fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
-        Object.keys(filesToFetch).forEach(function(f) {
+        var toFetchKeys = Object.keys(filesToFetch);
+        toFetchKeys.sort();
+        toFetchKeys.forEach(function(f) {
           var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
           fs.writeSync(outFile, contents);
         });
