@@ -997,6 +997,11 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
 
   # Generate the code for calling the function
   call-code = [clist:
+    if not(is-definitely-fn):
+      check-fun(l, compiler.get-loc(l), compiled-f)
+    else:
+      j-expr(j-raw-code("// omitting isFunction check in compile-flat-app"))
+    end,
     j-expr(j-raw-code("// caller optimization")),
     j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args))))
   ]

@@ -36,6 +36,9 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
     var staticModules = program.staticModules;
 
     var pyretStack = parsedStack.map(function(frame) {
+      if(!(frame.hashedURI in program.uris)) {
+        return ["unknown frame: " + frame.hashedURI];
+      }
       var uri = program.uris[frame.hashedURI];
       var moduleSourceMap = staticModules[uri].theMap;
       var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
