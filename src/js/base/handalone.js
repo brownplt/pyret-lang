@@ -1,7 +1,14 @@
+/*
+TODO(joe): see how the lack of this interacts with CPO
+
 if(typeof window === 'undefined') {
 var require = require("requirejs");
 }
 require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
+
+*/
+// TODO: Change to myrequire
+requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
@@ -188,8 +195,6 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
       var exnStack = res.exn.stack;
 
       res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
-      debugger;
-      
 
       execRt.runThunk(
         function() {

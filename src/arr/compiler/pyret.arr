@@ -64,8 +64,12 @@ fun main(args :: List<String>) -> Number:
     "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
     "inline-case-body-limit",
-      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
-  ]
+      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
+    "bundle-dependencies",
+      C.flag(C.once, "Produce a standalone that has all dependencies bundled"),
+    "html-file",
+      C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only valid if using -bundle-dependencies)")
+    ]
 
   params-parsed = C.parse-args(options, args)
 
@@ -91,6 +95,11 @@ fun main(args :: List<String>) -> Number:
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
       display-progress = not(r.has-key("no-display-progress"))
+      html-file = if r.has-key("html-file"):
+            some(r.get-value("html-file"))
+          else:
+            none
+          end
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -100,7 +109,13 @@ fun main(args :: List<String>) -> Number:
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
-      if is-empty(rest) or (rest.first == "-"):
+      if not(is-empty(rest)) block:
+        print-error("No longer supported\n")
+        failure-code
+      else if r.has-key("html-file") and not(r.has-key("bundle-dependencies")):
+        print-error("Cannot use --html-file without -bundle-dependencies")
+        failure-code
+      else:
         if r.has-key("build-runnable") block:
           outfile = if r.has-key("outfile"):
             r.get-value("outfile")
@@ -122,7 +137,9 @@ fun main(args :: List<String>) -> Number:
                 proper-tail-calls: tail-calls,
                 compiled-cache: compiled-dir,
                 display-progress: display-progress,
-                inline-case-body-limit: inline-case-body-limit
+                inline-case-body-limit: inline-case-body-limit,
+                bundle-dependencies: r.has-key("bundle-dependencies"),
+                html-file: html-file
               })
           success-code
         else if r.has-key("serve"):
@@ -191,15 +208,6 @@ fun main(args :: List<String>) -> Number:
             print-error("Unknown command line options\n")
             failure-code
           end
-        end
-      else:
-        block:
-          print-error(C.usage-info(options).join-str("\n"))
-          print-error("Unknown command line options\n")
-          print-error("Could not parse:\n")
-          print-error(rest.join-str(" "))
-          print-error("\n")
-          failure-code
         end
       end
     | arg-error(message, partial) =>

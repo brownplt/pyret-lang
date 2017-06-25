@@ -11,6 +11,7 @@
   "dependencies": {
     "ascii-table": "~0.0.9",
     "benchmark": "2.0.0",
+    "browserify": "^14.4.0",
     "codemirror": "git://github.com/jpolitz/CodeMirror",
     "command-line-args": "^3.0.1",
     "error-stack-parser": "^2.0.1",
