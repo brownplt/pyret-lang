@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
     <head>
-      <title>My App</title>
       <head>
         <script>
+          var stdout = function() { return document.getElementById("stdout"); };
+          var stderr = function() { return document.getElementById("stderr"); };
           window.process = {
-          stdout: {write: function(s) { console.log(s); } },
-          stderr: {write: function(s) { console.error(s); } },
+          stdout: {write: function(s) { console.log(s); stdout().innerText += s; } },
+          stderr: {write: function(s) { console.error(s); stderr().innerText += s; } },
           argv: [],
           exit: function(err) {
           if (err != 0) {
@@ -19,7 +20,10 @@
       </head>
 
     <body>
-        <h1>My App</h1>
+    <pre id='stdout'>
+    </pre>
+    <pre id='stderr' style="color:red">
+    </pre>
     </body>
     <script type="text/javascript" src="{{{compiled-jarr-file}}}"></script>
 </html>
