@@ -264,7 +264,11 @@ fun rt-method(name, args):
 end
 
 fun app(l, f, args):
-  j-method(f, "app", args)
+  cases(SL.Srcloc) l:
+    | builtin(n) => j-method(f, "app", args)
+    | else =>
+      J.j-sourcenode(l, l.source, j-method(f, "app", args))
+  end
 end
 
 fun check-fun(sourcemap-loc, variable-loc, f) block:
@@ -505,6 +509,11 @@ var total-time = 0
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean) -> J.JBlock block:
+  shadow is-flat = if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+    true
+  else:
+    is-flat
+  end
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
@@ -822,6 +831,32 @@ fun get-new-cases(compiler, opt-dest, opt-body, ans) -> {CList<J.JBlock>; J.JExp
   end
 end
 
+# "Insert" a piece of flat code as part of the next block (without creating a new block)
+fun insert-flat-code(compiler, opt-dest, opt-body, ans, flat-code):
+  # Compile the body of the let. We split it into two portions:
+  # 1) the code that can be in the same "block" (or case region) and
+  # 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-body:
+    | some(body) =>
+      get-remaining-code(compiler, opt-dest, body, ans)
+    | none =>
+      # Special case: there is no more code after this so just jump to the
+      # special last block in the function
+      body = j-block([clist:
+          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+          j-break
+        ])
+      {body; cl-empty}
+  end
+
+  # Now merge the code for calling the function with the next block
+  # (this is basically our optimization, since we're not starting a new case
+  # for the next block)
+  c-block(
+    j-block(cl-append(flat-code, j-block-to-stmt-list(remaining-code))),
+    new-cases)
+end
+
 fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-body):
   ans = compiler.cur-ans
   step = compiler.cur-step
@@ -829,6 +864,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   # num-args = args.length()
 
+  # TODO(ian): Why are these two cases necessary? This should probably be refactored
   if J.is-j-id(compiled-obj):
     call = wrap-with-srcnode(l,
       rt-method("maybeMethodCall",
@@ -836,12 +872,18 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
             j-str(methname),
             compiler.get-loc(l)],
           compiled-args)))
-    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
-    c-block(j-block([clist:
-      j-expr(j-assign(step, after-app-label)),
-      j-expr(j-assign(ans, call)),
-      j-break
-    ]), new-cases)
+    call-code = cl-sing(j-expr(j-assign(ans, call)))
+    if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+      insert-flat-code(compiler, opt-dest, opt-body, ans,
+        cl-cons(j-expr(j-raw-code("// method call optimization")), call-code))
+    else:
+      {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+      c-block(j-block(
+          cl-sing(j-expr(j-assign(step, after-app-label))) ^
+          cl-append(_, call-code) ^
+          cl-append(_, cl-sing(j-break))),
+        new-cases)
+    end
   else:
     obj-id = j-id(fresh-id(compiler-name("obj")))
     colon-field = rt-method("getColonFieldLoc", [clist: obj-id, j-str(methname), compiler.get-loc(l)])
@@ -874,58 +916,71 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
+fun should-apply-tco(compiler, args, app-info):
+  app-info.is-recursive and
+  app-info.is-tail and
+  compiler.allow-tco and
+  compiler.options.proper-tail-calls and
+  (args.length() == compiler.args.length()) # if it's an arity mismatch, use non-TCO to handle the error
+end
+
+fun compile-tco-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-f = f.visit(compiler).exp
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+
+  c-block(
+    j-block(
+      [clist:
+        j-expr(j-assign(step, j-num(0))),
+        j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
+        if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+          j-expr(j-raw-code("// Omitting rungas decrement and check"))
+        else:
+          j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
+            j-block([clist:
+                j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
+                j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))          
+        end
+      ] +
+      CL.map_list2(
+        lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
+        compiled-args.to-list(),
+        compiler.args) +
+      # CL.map_list2(
+      #   lam(compiled-arg, arg):
+      #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
+      #   end,
+      #   compiled-args.to-list(),
+      #   compiler.args),
+      cl-sing(j-continue)),
+    new-cases)
+end
+
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
-  if app-info.is-recursive and
-     app-info.is-tail and
-     compiler.allow-tco and
-     compiler.options.proper-tail-calls and
-     (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
-    c-block(
-      j-block(
-        [clist:
-          # Update step before the call, so that if it runs out of gas,
-          # the resumer goes to the right step
-          j-expr(j-assign(step, j-num(0))),
-          j-expr(j-unop(j-id(compiler.elided-frames), j-incr)),
-          j-if1(j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0)),
-            j-block([clist:
-              j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
-              j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list2(
-          lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
-          compiled-args.to-list(),
-          compiler.args) +
-        # CL.map_list2(
-        #   lam(compiled-arg, arg):
-        #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
-        #   end,
-        #   compiled-args.to-list(),
-        #   compiler.args),
-        cl-sing(j-continue)),
-      new-cases)
-  else:
-    c-block(
-      j-block(
-        # Update step before the call, so that if it runs out of gas,
-        # the resumer goes to the right step
-        [clist:
-          j-expr(j-assign(step, after-app-label)),
-          j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
-        if not(is-definitely-fn):
-          cl-sing(check-fun(l, j-id(compiler.cur-apploc), compiled-f))
-        else:
-          cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
-        end +
-        [clist:
-          j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args)))),
-          j-break]),
-      new-cases)
-  end
+  c-block(
+    j-block(
+      # Update step before the call, so that if it runs out of gas,
+      # the resumer goes to the right step
+      [clist:
+        j-expr(j-assign(step, after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
+      if not(is-definitely-fn):
+        cl-sing(check-fun(l, j-id(compiler.cur-apploc), compiled-f))
+      else:
+        cl-sing(j-expr(j-raw-code("// omitting isFunction check")))
+      end +
+      [clist:
+        j-expr(j-assign(ans, app(l, compiled-f, compiled-args))),
+        j-break]),
+    new-cases)
 end
 
 fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
@@ -946,28 +1001,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
     j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args))))
   ]
 
-  # Compile the body of the let. We split it into two portions:
-  # 1) the code that can be in the same "block" (or case region) and
-  # 2) the rest of the case statements
-  {remaining-code; new-cases} = cases (Option) opt-body:
-    | some(body) =>
-      get-remaining-code(compiler, opt-dest, body, ans)
-    | none =>
-      # Special case: there is no more code after this so just jump to the
-      # special last block in the function
-      body = j-block([clist:
-          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
-          j-break
-        ])
-      {body; cl-empty}
-  end
-
-  # Now merge the code for calling the function with the next block
-  # (this is basically our optimization, since we're not starting a new case
-  # for the next block)
-  c-block(
-    j-block(cl-append(call-code, j-block-to-stmt-list(remaining-code))),
-    new-cases)
+  insert-flat-code(compiler, opt-dest, opt-body, ans, call-code)
 end
 
 fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
@@ -1152,17 +1186,21 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
-fun is-function-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: String) -> Boolean:
-  flatness-opt-opt = flatness-env.get(fun-name)
-  flatness-opt = cases (Option) flatness-opt-opt:
-    | some(f-opt) => f-opt
-    | none => none
+fun is-function-flat(compiler, fun-name :: String) -> Boolean:
+  threshold = compiler.options.flatness-threshold
+  if threshold == CS.INFINITE-FLATNESS-VALUE:
+    true
+  else:
+    flatness-opt-opt = compiler.flatness-env.get(fun-name)
+    cases (Option) flatness-opt-opt:
+      | some(f-opt) => is-some(f-opt) and (f-opt.value < threshold)
+      | none => false
+    end
   end
-  is-some(flatness-opt) and (flatness-opt.value <= 5)
 end
 
 fun is-id-fn-name(flatness-env :: D.StringDict<Option<Number>>, name :: String) -> Boolean:
-    is-some(flatness-env.get(name))
+  flatness-env.has-key(name)
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
@@ -1172,7 +1210,11 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     app-info :: A.AppInfo):
 
   is-safe-id = N.is-a-id(f) or N.is-a-id-safe-letrec(f)
-  app-compiler = if is-safe-id and is-function-flat(compiler.flatness-env, f.id.key()):
+  app-compiler = if should-apply-tco(compiler, args, app-info):
+    compile-tco-app
+  else if compiler.options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE:
+    compile-flat-app
+  else if is-safe-id and is-function-flat(compiler, f.id.key()):
     compile-flat-app
   else:
     compile-split-app
@@ -1185,7 +1227,7 @@ end
 fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr, bind-opt :: Option<BindType>) block:
   is-flat = if is-some(bind-opt) and is-b-let(bind-opt.value):
     bind = bind-opt.value.value
-    is-function-flat(compiler.flatness-env, bind.id.key())
+    is-function-flat(compiler, bind.id.key())
   else:
     false
   end

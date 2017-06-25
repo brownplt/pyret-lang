@@ -2,7 +2,7 @@
   "use-raw-files": true,
   "raw-js": {
     "pyret-base/js/codePoint": "build/phaseB/js/codePoint.js",
-    "pyret-base/js/exn-stack-parser": "build/phaseB/js/exn-stack-parser.js",
+    "pyret-base/js/exn-stack-parser": "build/phaseA/js/exn-stack-parser.js",
     "pyret-base/js/js-numbers": "build/phaseB/js/js-numbers.js",
     "pyret-base/js/namespace": "build/phaseB/js/namespace.js",
     "pyret-base/js/pyret-parser": "build/phaseB/js/pyret-parser.js",

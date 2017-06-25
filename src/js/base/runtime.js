@@ -2986,6 +2986,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return stackStr;
     }
 
+    /* Decrement gas or rungas and return whether or not it's time to return a continuation */
+    function spendGas() {
+      return thisRuntime.bounceAllowed && (--thisRuntime.GAS <= 0);
+    }
+
+    function spendRunGas() {
+      return thisRuntime.bounceAllowed && (--thisRuntime.RUNGAS <= 0);
+    }
+
     function Pause(stack, pause, resumer) {
       this.stack = stack;
       this.pause = pause;
@@ -2994,6 +3003,33 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function makePause(pause, resumer) { return new Pause([], pause, resumer); }
     function isPause(v) { return v instanceof Pause; }
     Pause.prototype = Object.create(Cont.prototype);
+
+    function makeTimerObj() {
+      return {};
+    }
+
+    function startTimer(timerObj) {
+      if (typeof window !== "undefined" && window.performance) {
+        timerObj.startTime = window.performance.now();
+      } else if (typeof process !== "undefined" && process.hrtime) {
+        timerObj.startTime = process.hrtime();
+      }
+    }
+
+    function endTimer(timerObj) {
+      if (typeof window !== "undefined" && window.performance) {
+        timerObj.elapsed = window.performance.now() - timerObj.startTime;
+      } else if (typeof process !== "undefined" && process.hrtime) {
+        timerObj.elapsed = process.hrtime(timerObj.startTime);
+      }
+      return timerObj.elapsed;
+    }
+
+    function makeStatsObj(bounces, tos, time) {
+      var stats = {"bounces": bounces, "tos": tos, "time": time};
+      return stats;
+    }
+
 
     function safeTail(fun) {
       return fun();
@@ -3025,7 +3061,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         stackFrame = $ar.args[2];
         $fun_ans = $ar.vars[0];
       }
-      if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+      if (spendGas() || spendRunGas()) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         skipLoop = true;
         $ans = thisRuntime.makeCont();
@@ -3069,7 +3105,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             i = i + 1;
           }
         }
-        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+        if (spendGas() || spendRunGas()) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           return thisRuntime.makeCont();
         }
@@ -3087,7 +3123,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return res;
           }
 
-          if (--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }  
@@ -3110,23 +3146,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return;
       }
       RUN_ACTIVE = true;
-      var start;
-      function startTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          start = window.performance.now();
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          start = process.hrtime();
-        }
-      }
-      function endTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          return window.performance.now() - start;
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          return process.hrtime(start);
-        }
-      }
+      var timerObj = makeTimerObj();
       function getStats() {
-        return { bounces: BOUNCES, tos: TOS, time: endTimer() };
+        return makeStatsObj(BOUNCES, TOS, endTimer(timerObj));
       }
       function finishFailure(exn) {
         RUN_ACTIVE = false;
@@ -3139,7 +3161,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         onDone(new SuccessResult(answer, getStats()));
       }
 
-      startTimer();
+      startTimer(timerObj);
       var that = this;
       var theOneTrueStackTop = ["top-of-stack"]
       var kickoff = makeActivationRecord(
@@ -3446,11 +3468,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function pauseStack(resumer) {
+      if (!thisRuntime.bounceAllowed) {
+        throw new Error("pauseStack called while runtime bounceAllowed is false");
+      }
       // CONSOLE.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
       return makePause(pause, resumer);
+    }
+
+    function maybePauseStack(resumer) {
+      if (thisRuntime.bounceAllowed) {
+        return thisRuntime.pauseStack(resumer);
+      } else {
+        return resumer(new DummyPausePackage());
+      }
     }
 
     function PausePackage() {
@@ -3497,6 +3530,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
       },
       resume: function(val) {
+        if (!thisRuntime.bounceAllowed) {
+          throw "Should not be calling resume when bounceAllowed is off";
+        }
         if(this.errorVal !== null || this.breakFlag) {
           throw "Cannot resume with error or break requested";
         }
@@ -3506,8 +3542,36 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         else {
           this.resumeVal = val;
         }
+      },
+      resumeOrReturn: function(val) {
+        this.resume(val);
       }
     };
+
+    function DummyPausePackage() {
+    }
+    DummyPausePackage.prototype = {
+      setHandlers: function(handlers) {
+        throw "Cannot call setHandlers on DummyPausePackage";
+      },
+      break: function() {
+        throw "Cannot call break on DummyPausePackage";
+      },
+      error: function(err) {
+        throw "Cannot call error on DummyPausePackage";
+      },
+      resume: function(val) {
+        throw "Cannot call resume on DummyPausePackage";
+      },
+      resumeOrReturn: function(val) {
+        return val;
+      }
+    };
+
+    if (Object.keys(DummyPausePackage.prototype).length !=
+        Object.keys(PausePackage.prototype).length) {
+      throw "PausePackage and DummyPausePackage should have the same interface";
+    }
 
     var manualPause = null;
     function schedulePause(resumer) {
@@ -3524,7 +3588,24 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function runThunk(f, then) {
-      return thisRuntime.run(f, thisRuntime.namespace, {}, then);
+      if (thisRuntime.bounceAllowed) {
+        return thisRuntime.run(f, thisRuntime.namespace, {}, then);
+      } else {
+        var timerObj = makeTimerObj();
+        // Just run it on this stack and use a try/catch handler
+        var fnResult;
+        var resultCtor;
+        try {
+          fnResult = f();
+          resultCtor = thisRuntime.makeSuccessResult;
+        } catch (e) {
+          fnResult = e;
+          resultCtor = thisRuntime.makeFailureResult;
+        }
+        var statsObj = makeStatsObj(0, 0, endTimer(timerObj));
+        result = resultCtor(fnResult, statsObj);
+        return then(result);
+      }
     }
 
     function execThunk(thunk) {
@@ -3544,20 +3625,38 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return;
         }
       }
-      return thisRuntime.pauseStack(function(restarter) {
-        thisRuntime.run(function(_, __) {
-          return thunk.app();
-        }, thisRuntime.namespace, {
-          sync: false
-        }, function(result) {
-          if(isFailureResult(result) &&
-             isPyretException(result.exn) &&
-             thisRuntime.ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
-          else {
-            restarter.resume(wrapResult(result));
-          }
+
+
+      var fn = function(_, __) {
+        return thunk.app();
+      };
+
+      if (thisRuntime.bounceAllowed) {
+        /* thunk may bounce, so clear the stack and let it run */
+        return thisRuntime.pauseStack(function(restarter) {
+          thisRuntime.run(fn, thisRuntime.namespace,{
+            sync: false
+          }, function(result) {
+            if(isFailureResult(result) &&
+               isPyretException(result.exn) &&
+               thisRuntime.ffi.isUserBreak(result.exn.exn)) { restarter.break(); }
+            else {
+              restarter.resume(wrapResult(result));
+            }
+          });
         });
-      });
+      } else {
+        /* thunk won't bounce (and we're not allowed to use pauseStack)
+           so we just run on this stack and catch any exceptions */
+        var result;
+        try {
+          result = fn(undefined, undefined);
+          result = new SuccessResult(result, {});
+        } catch(e) {
+          result = makeFailureResult(e, {});
+        }
+        return wrapResult(result);
+      }
     }
 
     function runWhileRunning(thunk) {
@@ -3773,14 +3872,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (--thisRuntime.GAS <= 0) {
+      if (spendGas()) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         cleanQuit = false;
         $ans = thisRuntime.makeCont();
       }
       
       while (cleanQuit && (curIdx < len)) {
-        if (--thisRuntime.RUNGAS <= 0) {
+        if (spendRunGas()) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           cleanQuit = false;
           $ans = thisRuntime.makeCont();
@@ -3831,14 +3930,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (--thisRuntime.GAS <= 0) {
+      if (spendGas()) {
         thisRuntime.EXN_STACKHEIGHT = 0;
         $ans = thisRuntime.makeCont();
         cleanQuit = false;
       }
       
       while (cleanQuit && curIdx < len) {
-        if (--thisRuntime.RUNGAS <= 0) {
+        if (spendRunGas()) {
           thisRuntime.EXN_STACKHEIGHT = 0;
           $ans = thisRuntime.makeCont();
           cleanQuit = false;
@@ -3948,7 +4047,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function foldHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -3985,7 +4084,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4021,7 +4120,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function eachHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4054,7 +4153,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4091,7 +4190,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4134,7 +4233,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4172,7 +4271,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4214,7 +4313,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array();
       function filterHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4256,7 +4355,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentLst = lst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
+          if (spendRunGas()) {
             thisRuntime.EXN_STACKHEIGHT = 0;
             return thisRuntime.makeCont();
           }
@@ -4989,17 +5088,28 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
         return thisRuntime.safeCall(function() {
           if (mod.nativeRequires.length === 0) {
-            // CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
-            return thisRuntime.pauseStack(function(restarter) {
-              // CONSOLE.log("About to load: ", mod.nativeRequires);
-              require(mod.nativeRequires, function(/* varargs */) {
-                var nativeInstantiated = Array.prototype.slice.call(arguments);
-                //CONSOLE.log("Loaded: ", nativeInstantiated);
-                restarter.resume(nativeInstantiated);
+            if (thisRuntime.bounceAllowed) {
+              /* Use async version of require() */
+              return thisRuntime.pauseStack(function(restarter) {
+                require(mod.nativeRequires, function(/* varargs */) {
+                  var nativeInstantiated = Array.prototype.slice.call(arguments);
+                  restarter.resume(nativeInstantiated);
+                });
               });
-            });
+            } else {
+              /**
+                 require() should be synchronous.
+                 In this case we can't load native modules asynchronously.
+              */
+              var arr = [];
+              for(var i = 0; i < mod.nativeRequires.length; i++) {
+                var val = require(mod.nativeRequires[i]);
+                arr.push(val);
+              }
+              return arr;
+            }
           }
         }, function(natives) {
           function continu() {
@@ -5036,7 +5146,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                   });
                 });
                 instantiated.fail(function(val) { return resumer.error(val); });
-                return instantiated;
               });
             }
           },
@@ -5462,6 +5571,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'isPause'     : isPause,
 
       'pauseStack'  : pauseStack,
+      'maybePauseStack' : maybePauseStack,
       'schedulePause'  : schedulePause,
       'breakAll' : breakAll,
 
@@ -5816,6 +5926,20 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             throw new Error("Method not in runtime already " + longName);
         }
         thisRuntime[nameMap[longName]] = thisRuntime[longName];
+    }
+
+    thisRuntime.bounceAllowed = true; // Default
+    if (theOutsideWorld.options) {
+      thisRuntime.bounceAllowed = theOutsideWorld.options.bounceAllowed;
+    }
+
+    // We require that the child runtime can only allow bounces if the parent
+    // runtime can handle them as well. Otherwise, a child runtime bouncing
+    // would clear both the child's stack and the parent's stack, and since
+    // the parent doesn't support bouncing, there would be no way
+    // to resume with its runtime.
+    if (theOutsideWorld.parentRuntime) {
+      thisRuntime.bounceAllowed &= theOutsideWorld.parentRuntime.bounceAllowed;
     }
 
     return thisRuntime;
