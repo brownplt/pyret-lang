@@ -46,7 +46,6 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
         line: Number(frame.startLine),
         column: Number(frame.startCol) },
         sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
-      // console.log(original);
       var posForPyret = original.name.split(",");
       // NOTE(joe): this loop intentionally starts at one.  The split array
       // will be a length-7 array where the first is the URI of the module
