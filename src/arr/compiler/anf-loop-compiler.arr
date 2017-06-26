@@ -101,16 +101,6 @@ j-for = J.j-for
 j-raw-code = J.j-raw-code
 make-label-sequence = J.make-label-sequence
 
-# cases-dispatches stores bindings of case dispatch objects
-# this is so that the objects can be allocated once in the top level, avoiding
-# multiple allocations which could affect performance, particularly in recursive
-# functions.
-# this object is initialized here to be empty (concat) list, and get mutated
-# to accumulate bindings. When inserting the bindings to the top level, this
-# variable gets reset to empty list again so that it can be subsequently used
-# in the future.
-var cases-dispatches = cl-empty
-
 fun console-log(lst :: CL.ConcatList) -> J.JStmt:
   j-expr(j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst))
 end
@@ -120,6 +110,14 @@ is-t-data = T.is-t-data
 data BindType:
   | b-let(value :: N.ABind)
   | b-array(value :: N.ABind, idx :: Number)
+end
+
+# this structure stores bindings of case dispatch objects
+# so that the objects can be allocated only once in the top level, avoiding
+# multiple allocations which could affect performance, particularly in recursive
+# functions.
+data Dispatches:
+  | dispatches-box(ref dispatches :: CList<J.JStmt>)
 end
 
 js-names = A.MakeName(0)
@@ -549,7 +547,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
 #  compiler.add-phase("Compile anns: " + l.format(true), nothing)
   start = time-now()
-  main-body-cases-and-dead-vars = DAG.simplify(compiler.add-phase, main-body-cases, step, cases-dispatches)
+  main-body-cases-and-dead-vars = DAG.simplify(compiler.add-phase, main-body-cases, step, compiler.dispatches!dispatches)
   finish = time-now() - start
 #  compiler.add-phase("Simplify body: " + l.format(true), nothing)
   total-time := total-time + finish
@@ -1121,7 +1119,9 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
       ^ cl-append(_, compiled-else.new-cases))
   dispatch-table = j-obj(for CL.map_list2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
   dispatch = j-id(fresh-id(compiler-name("cases_dispatch")))
-  cases-dispatches := cl-cons(j-var(dispatch.id, dispatch-table), cases-dispatches)
+  compiler.dispatches!{
+    dispatches: cl-cons(j-var(dispatch.id, dispatch-table), compiler.dispatches!dispatches)
+  }
   # NOTE: Ignoring typ for the moment!
   new-cases = cl-append(branch-else-cases, after-cases-cases)
   c-block(
@@ -1956,15 +1956,13 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       else: js-id-of(compiler-name(i.toname()))
       end
     end, ids)
+  cases-dispatches = dispatches-box(cl-empty)
   fun wrap-modules(modules, body-name, body-fun) block:
     mod-input-names = CL.map_list(_.input-id, modules)
     mod-input-ids = mod-input-names.map(j-id)
     mod-input-ids-list = mod-input-ids.to-list()
     mod-val-ids = modules.map(get-id)
     moduleVal = const-id("moduleVal")
-    cases-dispatches-used = cases-dispatches
-    # reset cases-dispatches back to empty so that it can be used again next time
-    cases-dispatches := cl-empty
     j-block(
       for lists.fold2(acc from cl-empty, m from mod-val-ids, in from mod-input-ids-list):
         if (in.id.base == "$$import"): acc
@@ -1984,7 +1982,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
             j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
             j-id(m.input-id)])))
       end +
-      cases-dispatches-used +
+      cases-dispatches!dispatches +
       module-binds +
       [clist:
         j-var(body-name, body-fun),
@@ -2056,7 +2054,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   apploc = fresh-id(compiler-name("al"))
   resumer = compiler-name("resumer")
   resumer-bind = N.a-bind(l, resumer, A.a-blank)
-  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false}
+  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false, dispatches: cases-dispatches}
   visited-body = compile-fun-body(l, step, toplevel-name,
     body-compiler, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true, false)
