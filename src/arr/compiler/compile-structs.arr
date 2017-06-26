@@ -2331,6 +2331,7 @@ default-compile-options = {
   end,
   method on-compile(_, locator, loadable, _): loadable end,
   method before-compile(_, _): nothing end,
+  html-file: none,
   standalone-file: "src/js/base/handalone.js"
 }
 
