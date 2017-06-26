@@ -101,6 +101,8 @@ j-for = J.j-for
 j-raw-code = J.j-raw-code
 make-label-sequence = J.make-label-sequence
 
+var cases-dispatches = cl-empty
+
 fun console-log(lst :: CL.ConcatList) -> J.JStmt:
   j-expr(j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst))
 end
@@ -269,7 +271,7 @@ end
 
 fun check-fun(sourcemap-loc, variable-loc, f) block:
   call = cases(SL.Srcloc) sourcemap-loc block:
-    | builtin(_) => 
+    | builtin(_) =>
       j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])
     | srcloc(_, _, _, _, _, _, _) =>
       J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
@@ -539,7 +541,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
 #  compiler.add-phase("Compile anns: " + l.format(true), nothing)
   start = time-now()
-  main-body-cases-and-dead-vars = DAG.simplify(compiler.add-phase, main-body-cases, step)
+  main-body-cases-and-dead-vars = DAG.simplify(compiler.add-phase, main-body-cases, step, cases-dispatches)
   finish = time-now() - start
 #  compiler.add-phase("Simplify body: " + l.format(true), nothing)
   total-time := total-time + finish
@@ -556,7 +558,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   vars = all-needed-vars.map-keys-now(all-needed-vars.get-value-now(_))
 
   num-vars = vars.length()
-  
+
   switch-cases =
     main-body-cases
   ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -573,7 +575,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         cl-sing(j-return(j-id(local-compiler.cur-ans))))))
   ^ cl-snoc(_, j-default(j-block1(
         j-expr(j-method(rt-field("ffi"), "throwSpinnakerError", [clist: local-compiler.get-loc(l), j-id(step)])))))
-        
+
   act-record = rt-method("makeActivationRecord", [clist:
       j-id(apploc),
       j-id(fun-name),
@@ -651,7 +653,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     else:
       [clist:
           j-if1(stack-attach-guard,
-            j-block([clist: 
+            j-block([clist:
                 j-expr(j-bracket-assign(j-dot(j-id(local-compiler.cur-ans), "stack"),
                     j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
             ])),
@@ -700,7 +702,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
       acc
     else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
       new-label = visitor.make-label()
-      new-case = 
+      new-case =
         j-case(cur-target,
           j-block(
             [clist:
@@ -859,7 +861,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(colon-field-id, link(obj-id, compiled-args))))))
           # else:
-            j-if(check-method, j-block([clist: 
+            j-if(check-method, j-block([clist:
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
                         cl-cons(obj-id, compiled-args))))
                 ]),
@@ -1092,7 +1094,7 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
     c-block(j-block(cl-append(preamble, compiled-body.block.stmts)), compiled-body.new-cases)
   end
 end
-fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
+fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>) block:
   compiled-val = val.visit(compiler).exp
   {after-cases-cases; after-cases-label} = get-new-cases(compiler, opt-dest, opt-body, compiler.cur-ans)
   compiler-after-cases = compiler.{cur-target: after-cases-label}
@@ -1111,11 +1113,11 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
       ^ cl-append(_, compiled-else.new-cases))
   dispatch-table = j-obj(for CL.map_list2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
   dispatch = j-id(fresh-id(compiler-name("cases_dispatch")))
+  cases-dispatches := cl-cons(j-var(dispatch.id, dispatch-table), cases-dispatches)
   # NOTE: Ignoring typ for the moment!
   new-cases = cl-append(branch-else-cases, after-cases-cases)
   c-block(
     j-block([clist:
-        j-var(dispatch.id, dispatch-table),
         # j-expr(j-app(j-dot(j-id("console"), "log"),
         #     [list: j-str("$name is "), j-dot(compiled-val, "$name"),
         #       j-str("val is "), compiled-val,
@@ -1425,7 +1427,7 @@ compiler-visitor = {
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
   method a-tuple(self, l, values):
-    visit-vals = values.map(_.visit(self)) 
+    visit-vals = values.map(_.visit(self))
     c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
   end,
   method a-tuple-get(self, l, tup, index):
@@ -1698,7 +1700,7 @@ check:
 
 end
 |#
-   
+
 fun mk-abbrevs(l):
   loc = const-id("loc")
   name = const-id("name")
@@ -1808,7 +1810,7 @@ fun compile-provides(provides):
               j-field("bind", j-str("var")),
               j-field("typ", compile-provided-type(t))
             ]))
-          | v-fun(t, name, flatness) => 
+          | v-fun(t, name, flatness) =>
             j-field(v, j-obj([clist:
               j-field("bind", j-str("fun")),
               j-field("flatness", flatness.and-then(j-num).or-else(j-false)),
@@ -1971,6 +1973,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
             j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
             j-id(m.input-id)])))
       end +
+      cases-dispatches +
       module-binds +
       [clist:
         j-var(body-name, body-fun),
