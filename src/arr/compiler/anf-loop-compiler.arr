@@ -101,6 +101,14 @@ j-for = J.j-for
 j-raw-code = J.j-raw-code
 make-label-sequence = J.make-label-sequence
 
+# cases-dispatches stores bindings of case dispatch objects
+# this is so that the objects can be allocated once in the top level, avoiding
+# multiple allocations which could affect performance, particularly in recursive
+# functions.
+# this object is initialized here to be empty (concat) list, and get mutated
+# to accumulate bindings. When inserting the bindings to the top level, this
+# variable gets reset to empty list again so that it can be subsequently used
+# in the future.
 var cases-dispatches = cl-empty
 
 fun console-log(lst :: CL.ConcatList) -> J.JStmt:
@@ -1948,12 +1956,15 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       else: js-id-of(compiler-name(i.toname()))
       end
     end, ids)
-  fun wrap-modules(modules, body-name, body-fun):
+  fun wrap-modules(modules, body-name, body-fun) block:
     mod-input-names = CL.map_list(_.input-id, modules)
     mod-input-ids = mod-input-names.map(j-id)
     mod-input-ids-list = mod-input-ids.to-list()
     mod-val-ids = modules.map(get-id)
     moduleVal = const-id("moduleVal")
+    cases-dispatches-used = cases-dispatches
+    # reset cases-dispatches back to empty so that it can be used again next time
+    cases-dispatches := cl-empty
     j-block(
       for lists.fold2(acc from cl-empty, m from mod-val-ids, in from mod-input-ids-list):
         if (in.id.base == "$$import"): acc
@@ -1973,7 +1984,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
             j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
             j-id(m.input-id)])))
       end +
-      cases-dispatches +
+      cases-dispatches-used +
       module-binds +
       [clist:
         j-var(body-name, body-fun),

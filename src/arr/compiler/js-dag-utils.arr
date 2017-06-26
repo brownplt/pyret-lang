@@ -340,7 +340,6 @@ fun stmts-of(blk :: J.JBlock):
 end
 
 fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, acc :: D.MutableStringDict<J.Label>, cases-dispatches :: ConcatList<J.JStmt>) -> D.MutableStringDict<J.Label>:
-  var looking-for = none
   for CL.foldr(shadow acc from acc, stmt from stmts):
     cases(J.JStmt) stmt:
       | j-var(name, rhs) => acc
@@ -360,7 +359,8 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, acc :: D.Mutable
             acc
           else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
             # $step gets a cases dispatch
-            # ASSUMES that the dispatch table is assigned two statements before this one
+            # ASSUMES that the dispatch table is assigned before toplevel is defined.
+            # (see cases-dispatches in anf-loop-compiler.arr)
             acc.set-now(tostring(expr.rhs.right.label.get()), expr.rhs.right.label)
             now-looking = cases-dispatches.find({(elt :: J.JStmt): elt.name == expr.rhs.left.obj.id}).value.rhs
             for CL.foldl(shadow acc from acc, field from now-looking.fields) block:
