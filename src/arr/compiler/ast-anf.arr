@@ -250,7 +250,7 @@ end
 
 
 data ACasesBranch:
-  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
+  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ACasesBind>, body :: AExpr) with:
     method label(self): "a-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
@@ -621,7 +621,7 @@ default-map-visitor = {
   method a-cases-bind(self, l, typ, bind):
     a-cases-bind(l, typ, bind.visit(self))
   end,
-  method a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
+  method a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ACasesBind>, body :: AExpr):
     a-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
   method a-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr):
