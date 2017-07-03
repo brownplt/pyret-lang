@@ -546,14 +546,23 @@ fun desugar-expr(expr :: A.Expr):
           len = elts.length()
           desugared-elts = elts.map(desugar-expr)
           if len <= 5:
-            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make" + tostring(len))),
+            A.s-app(constructor.l,
+              A.s-prim-app(constructor.l, "getMaker",
+                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make" + tostring(len)),
+                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
               desugared-elts)
           else:
-            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
+            A.s-app(constructor.l,
+              A.s-prim-app(constructor.l, "getMaker",
+                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make"),
+                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
               [list: A.s-array(l, desugared-elts)])
           end
         | s-construct-lazy =>
-          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
+          A.s-app(constructor.l,
+            A.s-prim-app(constructor.l, "getMaker",
+              [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "lazy-make"),
+                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
             [list: A.s-array(l,
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
       end
