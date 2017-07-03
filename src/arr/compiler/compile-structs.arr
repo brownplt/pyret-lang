@@ -893,7 +893,7 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)),
+            ED.text(self.ann.tosource().pretty(1000).first),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
@@ -910,7 +910,7 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
+            ED.text(self.ann.tosource().pretty(1000).first), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
@@ -2481,6 +2481,8 @@ runtime-provides = provides("builtin://global",
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
     "raw-array-filter", t-top,
+    "raw-array-and-mapi", t-top,
+    "raw-array-or-mapi", t-top,
     "raw-array-map", t-top,
     "raw-array-map-1", t-top,
     "raw-array-join-str", t-top,
@@ -2622,5 +2624,15 @@ standard-imports = extra-imports(
         [list: "Set"])
     ])
 
-reactor-fields = [list: "init", "on-tick", "to-draw", "on-key", "on-mouse", "seconds-per-tick", "stop-when", "title", "close-when-stop"]
-reactor-optional-fields = reactor-fields.rest
+reactor-optional-fields = [SD.string-dict:
+  "on-tick",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "to-draw",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-key",           {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-mouse",         {(l): A.a-name(l, A.s-type-global("Function"))},
+  "stop-when",        {(l): A.a-name(l, A.s-type-global("Function"))},
+  "seconds-per-tick", {(l): A.a-name(l, A.s-type-global("NumPositive"))},
+  "title",            {(l): A.a-name(l, A.s-type-global("String"))},
+  "close-when-stop",  {(l): A.a-name(l, A.s-type-global("Boolean"))}
+]
+
+reactor-fields = reactor-optional-fields.set("init", {(l): A.a-any(l)})
