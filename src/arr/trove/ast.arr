@@ -1113,12 +1113,12 @@ data Expr:
     end
   | s-table-order(l :: Loc,
       table   :: Expr,
-      ordering :: ColumnSort) with:
+      ordering :: List<ColumnSort>) with:
     method label(self): "s-table-order" end,
     method tosource(self):
       PP.surround(INDENT, 1,
         PP.flow([list: str-order, self.table.tosource() + str-colon]),
-        self.ordering.tosource(),
+        PP.flow-map(PP.commabreak, _.tosource(), self.ordering),
         str-end)
     end
   | s-table-filter(l :: Loc,
@@ -1980,6 +1980,10 @@ default-map-visitor = {
     s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    s-check-expr(l, expr.visit(self), ann.visit(self))
+  end,
+
   method s-paren(self, l :: Loc, expr :: Expr):
     s-paren(l, expr.visit(self))
   end,
@@ -2234,8 +2238,8 @@ default-map-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(l, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(l, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(l, column.visit(self), table.visit(self))
@@ -2525,6 +2529,10 @@ default-iter-visitor = {
     self.option(refinement) and left.visit(self) and self.option(right)
   end,
 
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    expr.visit(self) and ann.visit(self)
+  end,
+
   method s-paren(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
@@ -2760,8 +2768,8 @@ default-iter-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    table.visit(self)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    table.visit(self) and ordering.all(_.visit(self))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     column.visit(self) and table.visit(self)
@@ -3300,8 +3308,8 @@ dummy-loc-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(dummy-loc, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(dummy-loc, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(dummy-loc, column.visit(self), table.visit(self))

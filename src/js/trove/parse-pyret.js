@@ -1211,12 +1211,10 @@
             pos(node.pos), makeList(columns), table);
         },
         'column-order': function(node) {
-          console.log(node);
           var column = name(node.kids[0]);
           var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ASCENDING')
                 : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'DESCENDING')
                 : undefined;
-          console.log(direction);
           return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
                                                             column,
                                                             direction);
@@ -1225,7 +1223,7 @@
           // TABLE-ORDER NAME COLON column-orderings end
           return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos),
                                                             tr(node.kids[1]),
-                                                            tr(node.kids[3]));
+                                                            makeListComma(node.kids, 3, node.kids.length - 1, tr));
         },
         'table-filter': function(node) {
           var columns = new Array();

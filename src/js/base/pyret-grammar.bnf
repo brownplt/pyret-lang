@@ -207,7 +207,7 @@ for-expr: FOR expr PARENNOSPACE [for-bind (COMMA for-bind)*] RPAREN return-ann (
 column-order : NAME (ASCENDING|DESCENDING)
 table-select : TABLE-SELECT NAME (COMMA NAME)* FROM expr END
 table-filter : TABLE-FILTER expr [USING binding (COMMA binding)*] COLON binop-expr END
-table-order  : TABLE-ORDER  expr COLON column-order END
+table-order  : TABLE-ORDER  expr COLON column-order (COMMA column-order)* END
 table-extract: TABLE-EXTRACT NAME FROM expr END
 table-update : TABLE-UPDATE expr [USING binding (COMMA binding)*] COLON obj-fields END
 table-extend : TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON table-extend-fields END

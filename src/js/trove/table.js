@@ -130,6 +130,74 @@
         return runtime.makeObject(obj);
       }
 
+      function multiOrder(sourceArr, colComps, destArr) {
+        // sourceArr is a raw JS array of table rows
+        // colComps is an array of 2-element arrays, [true iff ascending, colName]
+        // destArr is the final array in which to place the sorted rows
+        // returns destArr, and mutates destArr
+        var colIdxs = [];
+        var comps = [];
+        var LESS = "less";
+        var EQ = "equal";
+        var MORE = "more";
+        for (var i = 0; i < colComps.length; i++) {
+          comps[i] = (colComps[i][0] ? runtime.lessthan : runtime.greaterthan);
+          colIdxs[i] = headerIndex["column:" + colComps[i][1]];
+          for (var dupIdx = i + 1; dupIdx < colComps.length; dupIdx++) {
+            if (colComps[i][1] === colComps[dupIdx][1]) {
+              runtime.ffi.throwMessageException(
+                "Attempted to sort on the same column multiple times: "
+                  + "'" + colComps[i][1] + "' is used as sort-key " + i
+                  + ", and also as sort-key " + dupIdx);
+            }
+          }
+        }
+        function helper(sourceArr) {
+          var lessers = [];
+          var equals = [];
+          var greaters = [];
+          var pivot = sourceArr[0];
+          equals.push(pivot);
+          return runtime.safeCall(function() {
+            return runtime.eachLoop(runtime.makeFunction(function(rowIdx) {
+              return runtime.safeCall(function() {
+                return runtime.raw_array_fold(runtime.makeFunction(function(order, comp, colIdx) {
+                  if (order !== EQ) return order;
+                  else {
+                    return runtime.safeCall(function() {
+                      return comp(sourceArr[rowIdx][colIdxs[colIdx]], pivot[colIdxs[colIdx]]);
+                    }, function(isLess) {
+                      if (isLess) return LESS;
+                      else return runtime.safeCall(function() {
+                        return runtime.equal_always(sourceArr[rowIdx][colIdxs[colIdx]], pivot[colIdxs[colIdx]]);
+                      }, function(isEqual) {
+                        return (isEqual ? EQ : MORE);
+                      }, "multiOrder-isGreater");
+                    }, "multiOrder-isLess");
+                  }
+                }), EQ, comps, 0);
+              }, function(order) {
+                if (order === LESS) { lessers.push(sourceArr[rowIdx]); }
+                else if (order === EQ) { equals.push(sourceArr[rowIdx]); }
+                else { greaters.push(sourceArr[rowIdx]); }
+                return runtime.nothing;
+              }, "multiOrder-temparrs");
+            }), 1, sourceArr.length); // start from 1, since index 0 is the pivot
+          }, function(_) {
+            return runtime.safeCall(function() {
+              if (lessers.length === 0) { return destArr; }
+              else { return helper(lessers); }
+            }, function(_) {
+              for (var i = 0; i < equals.length; i++)
+                destArr.push(equals[i].slice()); // need to copy here
+              if (greaters.length === 0) { return destArr; }
+              else { return helper(greaters); }
+            }, "multiOrder-finalMoves");
+          });
+        }
+        return helper(sourceArr);
+      }
+
       function order(direction, colname) {
         var asList = runtime.ffi.makeList(rows);
         var index = headerIndex["column:" + colname];
@@ -158,6 +226,15 @@
         }),
         'order-decreasing': runtime.makeMethod1(function(_, colname) {
           return order(false, colname);
+        }),
+
+        'multi-order': runtime.makeMethod1(function(_, colComps) {
+          // colComps is an array of 2-element arrays, [true iff ascending, colName]
+          return runtime.safeCall(function() {
+            return multiOrder(rows, colComps, []);
+          }, function(destArr) {
+            return makeTable(headers, destArr);
+          }, "multi-order");
         }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {

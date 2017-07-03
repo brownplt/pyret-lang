@@ -872,37 +872,12 @@ fun desugar-expr(expr :: A.Expr):
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | s-table-order(l, table, ordering) =>
-      row1 = mk-id(S.builtin("1"), "row1")
-      row2 = mk-id(S.builtin("2"), "row2")
-      tbl = mk-id(S.builtin("3"), "table")
-      hdr = mk-id(S.builtin("4"), "header")
-      column = ordering.column
-      col = mk-id(S.builtin("5"), column.s)
-      A.s-let-expr(A.dummy-loc, [list:
-        A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(table.l, desugar-expr(table), lam(t): t end)),
-        A.s-let-bind(A.dummy-loc, col.id-b,
-          get-table-column(table.l, tbl.id-e, {l:column.l, name:A.s-str(A.dummy-loc,column.s)}))],
-        # Table Construction
-        A.s-prim-app(S.builtin("14"), "makeTable", [list:
-          # Header
-          A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
-          # Data
-          A.s-prim-app(A.dummy-loc, "toArray", [list:
-          A.s-app(A.dummy-loc, A.s-dot(A.dummy-loc,
-            A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list: A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]), "sort-by"), [list:
-              A.s-lam(S.builtin("18"), "", empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
-                desugar-expr(A.s-op(S.builtin("19"), A.dummy-loc,
-                  cases(A.ColumnSortOrder) ordering.direction:
-                    | ASCENDING  => "op<"
-                    | DESCENDING => "op>"
-                  end,
-                  A.s-prim-app(S.builtin("20"), "raw_array_get", [list: row1.id-e, col.id-e]),
-                  A.s-prim-app(S.builtin("21"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, none, true),
-              A.s-lam(S.builtin("22"), "", empty,  [list: row1.id-b, row2.id-b], A.a-blank, "",
-                desugar-expr(A.s-op(S.builtin("23"), S.builtin(""), "op==",
-                  A.s-prim-app(S.builtin("24"), "raw_array_get", [list: row1.id-e, col.id-e]),
-                  A.s-prim-app(S.builtin("25"), "raw_array_get", [list: row2.id-e, col.id-e]))), none, none, true)])])]), true)
+      ordering-raw-arr = for map(o from ordering):
+        A.s-array(o.l, [list: A.s-bool(o.l, o.direction == A.ASCENDING), A.s-str(o.l, o.column.s)])
+      end
+      A.s-app(l,
+        A.s-dot(A.dummy-loc, table, "multi-order"),
+        [list: A.s-array(A.dummy-loc, ordering-raw-arr)])
     | s-table-filter(l, column-binds, predicate) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")

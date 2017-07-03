@@ -3943,7 +3943,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkPyretVal(init);
       thisRuntime.checkArray(arr);
       thisRuntime.checkNumber(start);
-      var currentIndex = -1;
+      var currentIndex = start - 1;
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
@@ -3953,7 +3953,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return thisRuntime.makeCont();
           }
           currentIndex += 1;
-          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex);
           if(isContinuation(res)) { return res; }
           currentAcc = res;
         }
@@ -3976,6 +3976,47 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return foldFun();
     };
 
+
+    var raw_array_bool_mapper = function(name, good, bad) {
+      return function(f, arr, start) {
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC([name], 3, $a); }
+        thisRuntime.checkFunction(f);
+        thisRuntime.checkArray(arr);
+        thisRuntime.checkNumber(start);
+        var currentIndex = start - 1;
+        var length = arr.length;
+        function foldHelp() {
+          while(currentIndex < (length - 1)) {
+            if(--thisRuntime.RUNGAS <= 0) {
+              thisRuntime.EXN_STACKHEIGHT = 0;
+              return thisRuntime.makeCont();
+            }
+            currentIndex += 1;
+            var res = f.app(arr[currentIndex], currentIndex);
+            if(isContinuation(res)) { return res; }
+            if(res === bad) { return res; }
+          }
+          return good;
+        }
+        function foldFun($ar) {
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              [name],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
+        }
+        return foldFun();
+      }
+    };
+
+    var raw_array_and_mapi = raw_array_bool_mapper("raw-array-and-mapi", true, false);
+    var raw_array_or_mapi = raw_array_bool_mapper("raw-array-or-mapi", false, true);
+    
+    
     var raw_array_map = function(f, arr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a); }
       thisRuntime.checkFunction(f);
@@ -5373,6 +5414,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
+      'raw-array-and-mapi': makeFunction(raw_array_and_mapi, "raw-array-and-mapi"),
+      'raw-array-or-mapi': makeFunction(raw_array_or_mapi, "raw-array-or-mapi"),
       'raw-array-map': makeFunction(raw_array_map, "raw-array-map"),
       'raw-array-map-1': makeFunction(raw_array_map1, "raw-array-map-1"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
@@ -5622,6 +5665,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw_array_concat': raw_array_concat,
       'raw_array_length': raw_array_length,
       'raw_array_to_list': raw_array_to_list,
+      'raw_array_and_mapi': raw_array_and_mapi,
+      'raw_array_or_mapi': raw_array_or_mapi,
       'raw_array_map': raw_array_map,
       'raw_array_each': raw_array_each,
       'raw_array_fold': raw_array_fold,
