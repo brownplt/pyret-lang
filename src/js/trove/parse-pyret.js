@@ -56,8 +56,15 @@
     function detectAndComplainAboutOperatorWhitespace(stmts, fileName) {
       for (var i = 1; i < stmts.length; i++) {
         if (isSignedNumberAsStmt(stmts[i]) &&
-            stmts[i].pos.startRow === stmts[i - 1].pos.endRow)
-          RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, stmts[i].pos));
+            stmts[i].pos.startRow === stmts[i - 1].pos.endRow) {
+          var pos = stmts[i].pos;
+          var n = RUNTIME.makeNumber;
+          RUNTIME.ffi.throwParseErrorBadOper(
+            RUNTIME.getField(srcloc, "srcloc")
+              .app(RUNTIME.makeString(fileName),
+                   n(pos.startRow), n(pos.startCol), n(pos.startChar),
+                   n(pos.startRow), n(pos.startCol + 1), n(pos.startChar + 1)));
+        }
       }
     }
     function translate(node, fileName) {
