@@ -450,7 +450,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             typing-result(e, expect-type, context)
           end)
         | s-check-expr(l, expr, ann) =>
-          raise("checking for s-check-expr not implemented")
+          synthesis(expr, false, context) # XXX: this should probably use the annotation instead
         | s-paren(l, expr) =>
           raise("s-paren should have already been desugared")
         | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
@@ -708,7 +708,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         typing-result(e, result-type, context)
       end)
     | s-check-expr(l, expr, ann) =>
-      raise("synthesis for s-check-expr not implemented")
+      synthesis(expr, false, context) # XXX: this should probably use the annotation instead
     | s-paren(l, expr) =>
       raise("s-paren should have already been desugared")
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
