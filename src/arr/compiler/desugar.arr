@@ -566,9 +566,12 @@ fun desugar-expr(expr :: A.Expr):
       init = init-and-non-init.is-true.first.value
       non-init-fields = init-and-non-init.is-false
       field-names = C.reactor-optional-fields
-      option-fields = for map(f from field-names):
+      option-fields = for SD.map-keys(f from field-names):
         if fields-by-name.has-key-now(f):
-          A.s-data-field(l, f, A.s-prim-app(l, "makeSome", [list: desugar-expr(fields-by-name.get-value-now(f))]))
+          this-field = fields-by-name.get-value-now(f)
+          this-field-l = this-field.l
+          A.s-data-field(this-field-l, f, A.s-prim-app(this-field-l, "makeSome",
+              [list: A.s-check-expr(this-field-l, desugar-expr(this-field), field-names.get-value(f)(this-field-l))]))
         else:
           A.s-data-field(l, f, A.s-prim-app(l, "makeNone", [list:]))
         end

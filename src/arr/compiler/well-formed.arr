@@ -792,8 +792,8 @@ well-formed-visitor = A.default-iter-visitor.{
       fields-dict = SD.make-mutable-string-dict()
       ok-fields = C.reactor-fields
       for each(f from fields) block:
-        when not(ok-fields.member(f.name)):
-          wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name + " ", f.l)
+        when not(ok-fields.has-key(f.name)):
+          wf-error("Valid options for reactors are " + ok-fields.keys-list().join-str(", ") + ", but found one named " + f.name + " ", f.l)
         end
         cases(Option<A.Loc>) fields-dict.get-now(f.name):
           | none => fields-dict.set-now(f.name, f.l)
