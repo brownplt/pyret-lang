@@ -374,7 +374,7 @@ data RuntimeError:
           ed-simple-intro("construction expression", self.expr-loc),
           ED.cmcode(self.expr-loc),
           [ED.para:
-            ED.text("The left side was not a construction maker.")]]
+            ED.text("The left side was not a defined convenience construction.")]]
       else:
         [ED.error:
           ed-intro("construction expression", self.expr-loc, -1, true),
@@ -382,14 +382,14 @@ data RuntimeError:
           [ED.para:
             ED.text("The "),
             ED.highlight(ED.text("left side"), [ED.locs: self.constr-loc], 0),
-            ED.text(" was not a construction maker.")]]
+            ED.text(" was not a defined convenience construction.")]]
       end
     end,
     method render-reason(self):
       [ED.error:
         ed-simple-intro("construction expression", self.expr-loc),
         [ED.para:
-          ED.text("The left side was not a construction maker.")]]
+          ED.text("The left side was not a defined convenience construction.")]]
     end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
