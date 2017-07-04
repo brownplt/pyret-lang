@@ -1238,72 +1238,71 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       fun-app-arity = self.fun-app-args.length()
       were-was = if fun-app-arity == 1: " was" else: " were" end
-      helper =
-        lam(rest):
-          [ED.error: 
-            cases(O.Option) maybe-stack-loc(0, true):
-              | some(fun-app-loc) =>
-                if fun-app-loc.is-builtin():
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("Evaluating the function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" errored.  Expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                    [ED.para:
-                      ED.ed-args(fun-app-arity),
-                      ED.text(were-was + " passed to the left side.")],
-                    rest(ED.text("left side"))]
-                else if src-available(fun-app-loc):
-                  cases(O.Option) maybe-ast(fun-app-loc):
-                    | some(ast) =>
-                      applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
-                      arg-locs = ast.args.map(_.l)
-                      is-method = (ast.label() == "s-dot") # NOTE: Can't use cases, because of layering violations
-                      all-locs = 
-                        if is-method:
-                          [ED.locs: ast.obj.l] + arg-locs
-                        else:
-                          arg-locs
-                        end
-                      fun-method = if is-method: "method" else: "function" end
-                      [ED.sequence:
-                        ed-intro(fun-method + " application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), all-locs, 1),
-                          ED.text(were-was + " passed to the "),
-                          applicant,
-                          ED.text(".")],
-                        rest(applicant)]
-                    | none      =>
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.ed-args(fun-app-arity),
-                          ED.text(were-was + " passed to the left side.")],
-                        rest(ED.text("applicant"))]
-                  end
-                else:
-                  [ED.sequence:
-                    ed-simple-intro("function application expression", fun-app-loc), 
-                    [ED.para:
-                      ED.text("The applicant had "),
-                      ED.ed-args(fun-app-arity),
-                      ED.text(" passed to it.")],
-                    rest(ED.text("left side"))]
-                end
-              | none =>
+      fun helper(rest):
+        [ED.error: 
+          cases(O.Option) maybe-stack-loc(0, true):
+            | some(fun-app-loc) =>
+              if fun-app-loc.is-builtin():
                 [ED.sequence:
                   [ED.para:
-                    ED.text("A function application expression failed.")],
+                    ED.text("Evaluating the function application in "),
+                    ED.loc(fun-app-loc),
+                    ED.text(" errored.  Expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                  [ED.para:
+                    ED.ed-args(fun-app-arity),
+                    ED.text(were-was + " passed to the left side.")],
+                  rest(ED.text("left side"))]
+              else if src-available(fun-app-loc):
+                cases(O.Option) maybe-ast(fun-app-loc):
+                  | some(ast) =>
+                    applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
+                    arg-locs = ast.args.map(_.l)
+                    is-method = (ast.label() == "s-dot") # NOTE: Can't use cases, because of layering violations
+                    all-locs = 
+                      if is-method:
+                        [ED.locs: ast.obj.l] + arg-locs
+                      else:
+                        arg-locs
+                      end
+                    fun-method = if is-method: "method" else: "function" end
+                    [ED.sequence:
+                      ed-intro(fun-method + " application expression", fun-app-loc, -1, true),
+                      ED.cmcode(fun-app-loc),
+                      [ED.para:
+                        ED.highlight(ED.ed-args(fun-app-arity), all-locs, 1),
+                        ED.text(were-was + " passed to the "),
+                        applicant,
+                        ED.text(".")],
+                      rest(applicant)]
+                  | none      =>
+                    [ED.sequence:
+                      ed-intro("function application expression", fun-app-loc, -1, true),
+                      ED.cmcode(fun-app-loc),
+                      [ED.para:
+                        ED.ed-args(fun-app-arity),
+                        ED.text(were-was + " passed to the left side.")],
+                      rest(ED.text("applicant"))]
+                end
+              else:
+                [ED.sequence:
+                  ed-simple-intro("function application expression", fun-app-loc), 
                   [ED.para:
                     ED.text("The applicant had "),
                     ED.ed-args(fun-app-arity),
                     ED.text(" passed to it.")],
                   rest(ED.text("left side"))]
-            end]
-        end
+              end
+            | none =>
+              [ED.sequence:
+                [ED.para:
+                  ED.text("A function application expression failed.")],
+                [ED.para:
+                  ED.text("The applicant had "),
+                  ED.ed-args(fun-app-arity),
+                  ED.text(" passed to it.")],
+                rest(ED.text("left side"))]
+          end]
+      end
       
       if src-available(self.fun-def-loc):
         fun is-underscore(arg):
@@ -1416,92 +1415,91 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
       were-was = if fun-app-arity == 1: " was" else: " were" end
-      helper =
-        lam(rest):
-          [ED.error: 
-            cases(O.Option) maybe-stack-loc(
-                  if self.fun-def-loc.is-builtin(): 
-                    0 
-                  else: 
-                    1 
-                  end, false):
-              | some(fun-app-loc) =>
-                if fun-app-loc.is-builtin():
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("Evaluating the function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" errored.  Expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                    [ED.para:
-                      ED.ed-args(fun-app-arity),
-                      ED.text(were-was + " passed to the left side.")],
-                    rest(ED.text("left side"))]
-                else if src-available(fun-app-loc):
-                  cases(O.Option) maybe-ast(fun-app-loc):
-                    | some(ast) =>
-                      fun-loc = cases(Any) ast:
-                        | s-app(_, _fun, _) => _fun.l
-                        | s-for(_, _fun, _, _, _, _) => _fun.l
-                        | else  => ast.l
-                      end
-                      args = cases(Any) ast:
-                        | s-app(_, _fun, args) =>
-                          if _fun.label() == "s-dot":
-                            [ED.locs: _fun.obj.l] + args.map(_.l)
-                          else:
-                            args
-                          end
-                        | s-for(_, _, args, _, _, _) => args.map(_.l)
-                        | else  => [ED.locs: ast.l]
-                      end
-                      args-locs = if fun-app-arity == 0:
-                        [ED.locs: fun-loc.at-end().upto-end(ast.l)]
-                      else:
-                        args
-                      end
-                      applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
-                      fun-method =
-                        if (ast.label() == "s-app") and (ast._fun.label() == "s-dot"): "method"
-                        else: "function"
-                        end
-                      [ED.sequence:
-                        ed-intro(fun-method + " application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), args-locs, 1),
-                          ED.text(were-was + " passed to the "),
-                          applicant,
-                          ED.text(".")],
-                        rest(applicant)]
-                    | none      =>
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.ed-args(fun-app-arity),
-                          ED.text(were-was + " passed to the left side.")],
-                        rest(ED.text("applicant"))]
-                  end
-                else:
-                  [ED.sequence:
-                    ed-simple-intro("function application expression", fun-app-loc), 
-                    [ED.para:
-                      ED.text("The applicant had "),
-                      ED.ed-args(fun-app-arity),
-                      ED.text(" passed to it.")],
-                    rest(ED.text("left side"))]
-                end
-              | none =>
+      fun helper(rest):
+        [ED.error: 
+          cases(O.Option) maybe-stack-loc(
+                if self.fun-def-loc.is-builtin(): 
+                  0 
+                else: 
+                  1 
+                end, false):
+            | some(fun-app-loc) =>
+              if fun-app-loc.is-builtin():
                 [ED.sequence:
                   [ED.para:
-                    ED.text("A function application expression failed.")],
+                    ED.text("Evaluating the function application in "),
+                    ED.loc(fun-app-loc),
+                    ED.text(" errored.  Expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
+                  [ED.para:
+                    ED.ed-args(fun-app-arity),
+                    ED.text(were-was + " passed to the left side.")],
+                  rest(ED.text("left side"))]
+              else if src-available(fun-app-loc):
+                cases(O.Option) maybe-ast(fun-app-loc):
+                  | some(ast) =>
+                    fun-loc = cases(Any) ast:
+                      | s-app(_, _fun, _) => _fun.l
+                      | s-for(_, _fun, _, _, _, _) => _fun.l
+                      | else  => ast.l
+                    end
+                    args = cases(Any) ast:
+                      | s-app(_, _fun, args) =>
+                        if _fun.label() == "s-dot":
+                          [ED.locs: _fun.obj.l] + args.map(_.l)
+                        else:
+                          args
+                        end
+                      | s-for(_, _, args, _, _, _) => args.map(_.l)
+                      | else  => [ED.locs: ast.l]
+                    end
+                    args-locs = if fun-app-arity == 0:
+                      [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+                    else:
+                      args
+                    end
+                    applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
+                    fun-method =
+                      if (ast.label() == "s-app") and (ast._fun.label() == "s-dot"): "method"
+                      else: "function"
+                      end
+                    [ED.sequence:
+                      ed-intro(fun-method + " application expression", fun-app-loc, -1, true),
+                      ED.cmcode(fun-app-loc),
+                      [ED.para:
+                        ED.highlight(ED.ed-args(fun-app-arity), args-locs, 1),
+                        ED.text(were-was + " passed to the "),
+                        applicant,
+                        ED.text(".")],
+                      rest(applicant)]
+                  | none      =>
+                    [ED.sequence:
+                      ed-intro("function application expression", fun-app-loc, -1, true),
+                      ED.cmcode(fun-app-loc),
+                      [ED.para:
+                        ED.ed-args(fun-app-arity),
+                        ED.text(were-was + " passed to the left side.")],
+                      rest(ED.text("applicant"))]
+                end
+              else:
+                [ED.sequence:
+                  ed-simple-intro("function application expression", fun-app-loc), 
                   [ED.para:
                     ED.text("The applicant had "),
                     ED.ed-args(fun-app-arity),
                     ED.text(" passed to it.")],
                   rest(ED.text("left side"))]
-            end]
-        end
+              end
+            | none =>
+              [ED.sequence:
+                [ED.para:
+                  ED.text("A function application expression failed.")],
+                [ED.para:
+                  ED.text("The applicant had "),
+                  ED.ed-args(fun-app-arity),
+                  ED.text(" passed to it.")],
+                rest(ED.text("left side"))]
+          end]
+      end
       
       if src-available(self.fun-def-loc):
         fun is-underscore(arg):
