@@ -2024,29 +2024,27 @@ data ParseError:
           ED.text("Did you mean to use one of the comparison operators instead?")]]
     end
   | empty-block(loc) with:
-    method _tostring(self, shadow tostring):
-      "Empty block at " + self.loc.format(true)
+    method render-reason(self):
+      ED.text("Empty block at " + self.loc.format(true))
     end
   | bad-block-stmt(loc) with:
-    method _tostring(self, shadow tostring):
-      "Expected a val binding or an expression, but got something else " + self.loc.format(true)
+    method render-reason(self):
+      ED.text("Expected a val binding or an expression, but got something else " + self.loc.format(true))
     end
   | bad-check-block-stmt(loc) with:
-    method _tostring(self, shadow tostring):
-      "Expected a val binding or an expression, but got something else " + self.loc.format(true)
+    method render-reason(self):
+      ED.text("Expected a val binding or an expression, but got something else " + self.loc.format(true))
     end
   | fun-missing-colon(loc) with:
-    method _tostring(self, shadow tostring): "fun-missing-colon: " + self.loc.format(true) end
+    method render-reason(self): ED.text("fun-missing-colon: " + self.loc.format(true)) end
   | fun-missing-end(loc) with:
-    method _tostring(self, shadow tostring): "fun-missing-end: " + self.loc.format(true) end
+    method render-reason(self): ED.text("fun-missing-end: " + self.loc.format(true)) end
   | args-missing-comma(loc) with:
-    method _tostring(self, shadow tostring): "args-missing-comma: " + self.loc.format(true) end
+    method render-reason(self): ED.text("args-missing-comma: " + self.loc.format(true)) end
   | app-args-missing-comma(loc) with:
-    method _tostring(self, shadow tostring): "app-args-missing-comma: " + self.loc.format(true) end
-  | missing-end(loc)
-  | missing-comma(loc)
-sharing:
-  method render-reason(self):
-    ED.text(self._tostring(tostring))
-  end
+    method render-reason(self): ED.text("app-args-missing-comma: " + self.loc.format(true)) end
+  | missing-end(loc) with:
+    method render-reason(self): ED.text("missing-end: " + self.loc.format(true)) end
+  | missing-comma(loc) with:
+    method render-reason(self): ED.text("missing-comma: " + self.loc.format(true)) end
 end

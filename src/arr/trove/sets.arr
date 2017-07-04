@@ -289,24 +289,6 @@ data Set:
           end
       end
     end,
-    method _tostring(self, shadow tostring):
-      "[set: " +
-      self.elems.foldl(lam(elem, acc):
-          if acc == "": tostring(elem)
-          else: tostring(elem) + ", " + acc
-          end
-        end, "") +
-      "]"
-    end,
-    method _torepr(self, shadow torepr):
-      "[list-set: " +
-      self.elems.foldl(lam(elem, acc):
-          if acc == "": torepr(elem)
-          else: torepr(elem) + ", " + acc
-          end
-        end, "") +
-      "]"
-    end,
     method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
 
     method fold(self, f :: (Any, Any -> Any), base :: Any):
@@ -395,24 +377,6 @@ data Set:
         | branch(v, _, _, _) =>
           pick-some(v, tree-set(t.remove(v)))
       end
-    end,
-    method _tostring(self, shadow tostring):
-      "[tree-set: " +
-      self.elems.fold(lam(acc, elem):
-          if acc == "": tostring(elem)
-          else: acc + ", " + tostring(elem)
-          end
-        end, "") +
-      "]"
-    end,
-    method _torepr(self, shadow torepr):
-      "[tree-set: " +
-      self.elems.fold(lam(acc, elem):
-          if acc == "": torepr(elem)
-          else: acc + ", " + torepr(elem)
-          end
-        end, "") +
-      "]"
     end,
     method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
 
