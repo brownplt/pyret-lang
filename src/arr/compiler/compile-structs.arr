@@ -412,7 +412,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("Reading this "),
-          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.exp-loc], -1),
+          ED.highlight(ED.text("expression"), [ED.locs: self.exp-loc], -1),
           ED.text(" errored:")],
         ED.cmcode(self.exp-loc),
         [ED.para:
