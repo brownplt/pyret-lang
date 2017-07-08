@@ -109,17 +109,20 @@
    '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check" "examples"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
-     "as" "if" "else" "deriving"))
+     "as" "if" "else" "deriving" "select" "extend" "transform" "extract" "sieve" "order"
+     "of" "ascending" "descending" "sanitize" "using"))
 (defconst pyret-keywords-hyphen
   '("provide-types" "type-let" 
     "is-not" "raises-other-than"
     "does-not-raise" "raises-satisfies" "raises-violates"))
 (defconst pyret-keywords-colon
-   '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"))
+  '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"
+    "table" "load-table" "reactor" "row" "source" "on-tick" "on-mouse" "on-key" "to-draw"
+    "stop-when" "title" "close-when-stop" "seconds-per-tick" "init"))
 (defconst pyret-keywords-percent
-   '("is" "is-not"))
+   '("is" "is-not" "is-roughly"))
 (defconst pyret-paragraph-starters
-  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "ask:"))
+  '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "ask:" "reactor" "table" "load-table"))
 
 (defconst pyret-punctuation-regex
   (regexp-opt '(":" "::" "=>" "->" "<" ">" "<=" ">=" "," ";" "^" "(" ")" "[" "]" "{" "}" 
@@ -128,7 +131,7 @@
   (concat "^[ \t]*\\(?:\\_<"
           (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>"
                         "is" "is%" "is==" "is=~" "is<=>" 
-                        "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>"
+                        "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>" "is-roughly"
                         "satisfies" "violates" "raises" "raises-other-than"
                         "does-not-raise" "raises-satisfies" "raises-violates"))
           "\\_>\\|" 
@@ -415,6 +418,7 @@ is used to limit the scan."
 (defsubst pyret-IF () (pyret-keyword "if"))
 (defsubst pyret-IS () (pyret-keyword "is"))
 (defsubst pyret-IS-NOT () (pyret-keyword "is-not"))
+(defsubst pyret-IS-ROUGHLY () (pyret-keyword "is-roughly"))
 (defsubst pyret-SATISFIES () (pyret-keyword "satisfies"))
 (defsubst pyret-VIOLATES () (pyret-keyword "violates"))
 (defsubst pyret-RAISES () (pyret-keyword "raises"))
@@ -442,6 +446,27 @@ is used to limit the scan."
 (defsubst pyret-GRAPH () (pyret-keyword "graph:"))
 (defsubst pyret-WITH () (pyret-keyword "with:"))
 (defsubst pyret-BLOCK () (pyret-keyword "block:"))
+(defsubst pyret-TABLE () (pyret-keyword "table:"))
+(defsubst pyret-ROW () (pyret-keyword "row:"))
+(defsubst pyret-SELECT () (pyret-keyword "select"))
+(defsubst pyret-SIEVE () (pyret-keyword "sieve"))
+(defsubst pyret-ORDER () (pyret-keyword "order"))
+(defsubst pyret-TRANSFORM () (pyret-keyword "transform"))
+(defsubst pyret-EXTRACT () (pyret-keyword "extract"))
+(defsubst pyret-EXTEND () (pyret-keyword "extend"))
+(defsubst pyret-LOAD-TABLE () (pyret-keyword "load-table:"))
+(defsubst pyret-SOURCE () (pyret-keyword "source:"))
+(defsubst pyret-SANITIZE () (pyret-keyword "sanitize"))
+(defsubst pyret-REACTOR () (pyret-keyword "reactor:"))
+(defsubst pyret-INIT () (pyret-keyword "init:"))
+(defsubst pyret-ON-TICK () (pyret-keyword "on-tick:"))
+(defsubst pyret-ON-MOUSE () (pyret-keyword "on-mouse:"))
+(defsubst pyret-ON-KEY () (pyret-keyword "on-key:"))
+(defsubst pyret-TO-DRAW () (pyret-keyword "to-draw:"))
+(defsubst pyret-STOP-WHEN () (pyret-keyword "stop-when:"))
+(defsubst pyret-TITLE () (pyret-keyword "title:"))
+(defsubst pyret-CLOSE-WHEN-STOP () (pyret-keyword "close-when-stop:"))
+(defsubst pyret-SECONDS-PER-TICK () (pyret-keyword "seconds-per-tick:"))
 (defsubst pyret-PIPE () (pyret-char ?|))
 (defsubst pyret-SEMI () (pyret-char ?\;))
 (defsubst pyret-COLON () (pyret-char ?:))
@@ -540,6 +565,11 @@ is used to limit the scan."
   "Stores the deferred open information of the parse.  Should only be buffer-local.")
 (defvar pyret-nestings-at-line-start nil
   "Stores the indentation information of the parse.  Should only be buffer-local.")
+
+(defvar pyret-fun-openers-closed-by-end
+  '(fun when for if block let table loadtable select
+        extend sieve transform extract order reactor)
+  "Stack entries on 'opens' which are closed by the 'end' keyword.")
 
 (defun pyret-compute-nestings (char-min char-max)
   (save-excursion (font-lock-fontify-region (max 1 char-min) char-max))
@@ -646,6 +676,7 @@ is used to limit the scan."
                   (pyret-has-top opens '(wantcolonorblock)))
               (pop opens))
              ((or (pyret-has-top opens '(object))
+                  (pyret-has-top opens '(reactor))
                   (pyret-has-top opens '(objectortuple))
                   (pyret-has-top opens '(shared)))
                   ;;(pyret-has-top opens '(data)))
@@ -774,6 +805,51 @@ is used to limit the scan."
               (incf (pyret-indent-fun defered-opened))
               (push 'wantcolon opens))
             (forward-char 4))
+           ((pyret-ROW)
+            (cond
+             ((pyret-has-top opens '(tablerow))
+              (cond
+               ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
+               ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
+               (t (incf (pyret-indent-fun cur-closed))))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'needsomething opens))
+             ((pyret-has-top opens '(table))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'tablerow opens)
+              (push 'needsomething opens))
+             (t nil))
+            (forward-char 3))
+           ((pyret-SOURCE)
+            (cond
+             ((pyret-has-top opens '(loadtablespec))
+              (cond
+               ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
+               ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
+               (t (incf (pyret-indent-fun cur-closed))))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'needsomething opens))
+             ((pyret-has-top opens '(loadtable))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'loadtablespec opens)
+              (push 'needsomething opens))
+             (t nil))
+            (forward-char 6))
+           ((pyret-SANITIZE)
+            (cond
+             ((pyret-has-top opens '(loadtablespec))
+              (cond
+               ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
+               ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
+               (t (incf (pyret-indent-fun cur-closed))))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'needsomething opens))
+             ((pyret-has-top opens '(loadtable))
+              (incf (pyret-indent-fun defered-opened))
+              (push 'loadtablespec opens)
+              (push 'needsomething opens))
+             (t nil))
+            (forward-char 8))
            ((pyret-PIPE)
             (cond 
              ((or (pyret-has-top opens '(object data))
@@ -886,6 +962,51 @@ is used to limit the scan."
               (push 'block opens)
               (push 'wantcolon opens)
               (forward-char 5))))
+           ((pyret-REACTOR)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'reactor opens)
+            (push 'wantcolon opens)
+            (forward-char 7))
+           ((pyret-TABLE)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'table opens)
+            (push 'wantcolon opens)
+            (forward-char 5))
+           ((pyret-LOAD-TABLE)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'load-table opens)
+            (push 'wantcolon opens)
+            (forward-char 10))
+           ((pyret-SELECT)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'select opens)
+            (push 'wantcolon opens)
+            (forward-char 6))
+           ((pyret-EXTEND)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'extend opens)
+            (push 'wantcolon opens)
+            (forward-char 6))
+           ((pyret-TRANSFORM)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'transform opens)
+            (push 'wantcolon opens)
+            (forward-char 9))
+           ((pyret-EXTRACT)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'extract opens)
+            (push 'wantcolon opens)
+            (forward-char 7))
+           ((pyret-SIEVE)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'sieve opens)
+            (push 'wantcolon opens)
+            (forward-char 5))
+           ((pyret-ORDER)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'order opens)
+            (push 'wantcolon opens)
+            (forward-char 5))
            ((pyret-GRAPH)
             (incf (pyret-indent-graph defered-opened))
             (push 'graph opens)
@@ -998,6 +1119,10 @@ is used to limit the scan."
             (when (pyret-has-top opens '(object data))
               ;(incf (pyret-indent-object cur-closed))
               (pop opens))
+            (when (or (pyret-has-top opens '(tablerow table))
+                      (pyret-has-top opens '(loadtablespec loadtable)))
+              (pop opens)
+              (incf (pyret-indent-fun cur-closed)))
             (let* ((h (car-safe opens))
                    (still-unclosed t))
               (while (and still-unclosed opens)
@@ -1044,7 +1169,7 @@ is used to limit the scan."
                    ;;                tirade.
                    (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
-                 ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block) (equal h 'let))
+                 ((memq h pyret-fun-openers-closed-by-end)
                   (cond
                    ((> (pyret-indent-fun cur-opened) 0) (decf (pyret-indent-fun cur-opened)))
                    ((> (pyret-indent-fun defered-opened) 0) (decf (pyret-indent-fun defered-opened)))
