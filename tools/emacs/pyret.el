@@ -1506,6 +1506,13 @@ in (nil if we're not in a string).")
         font-lock-string-face)
     font-lock-comment-face))
 
+(defun pyret-startup-runner ()
+  "Runs initialization hooks for Pyret mode. This function runs once."
+  (run-hooks 'pyret-mode-startup-hook)
+  (remove-hook 'pyret-mode-hook 'pyret-startup-runner))
+
+(add-hook 'pyret-mode-hook 'pyret-startup-runner)
+
 (defun pyret-mode ()
   "Major mode for editing Pyret files"
   (interactive)
@@ -1573,6 +1580,13 @@ in (nil if we're not in a string).")
           (pyret-mode)))))
    (buffer-list)))
 
+(defun pyret-smartparens-setup ()
+  (message "Setting up smartparens...")
+  (when (require 'smartparens nil 'noerror)
+    (sp-local-pair 'pyret-mode "`" nil :actions nil)
+    (sp-local-pair 'pyret-mode "```" "```")))
+
+(add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
 
 (provide 'pyret)
 
