@@ -236,6 +236,8 @@ This variant of `rx' supports common Pyret named REGEXPS."
                           (when multiline-string
                             (backward-char (min (- (point) (point-min)) 3))))
                         ;;(message "Extending: new-start: post-when")
+                        (when (equal ?\` (char-before))
+                          (re-search-backward "[^`]" nil t))
                         (min start (point))))
            (new-end (save-excursion
                       ;;(message "Extending: new-end")
@@ -243,7 +245,9 @@ This variant of `rx' supports common Pyret named REGEXPS."
                       (when (get-text-property (point) 'pyret-string-end)
                         (goto-char (get-text-property (point) 'pyret-string-end))
                         (when multiline-string
-                            (forward-char (min (- (point-max) (point)) 3))))
+                          (forward-char (min (- (point-max) (point)) 3))))
+                      (when (equal ?\` (char-after))
+                          (re-search-forward "[^`]" nil t))
                       (let ((cur-new-end (max end (point))))
                         (if (and multiline-string (= 1 (pyret-count-triple-quotes-in-region new-start (point))))
                             (save-match-data
@@ -328,7 +332,7 @@ is used to limit the scan."
                     (put-text-property quote-starting-pos (point)
                                        'pyret-string-start quote-starting-pos)
                     (put-text-property quote-starting-pos (point)
-                                       'pyret-string-end quote-ending-pos)
+                                       'pyret-string-end (point))
                     (put-text-property quote-starting-pos (point)
                                        'font-lock-multiline t)
                     (put-text-property quote-starting-pos (point)
@@ -343,7 +347,7 @@ is used to limit the scan."
                     (put-text-property quote-starting-pos (point)
                                        'pyret-string-start quote-starting-pos)
                     (put-text-property quote-starting-pos (point)
-                                       'pyret-string-end quote-ending-pos)
+                                       'pyret-string-end (point))
                     (put-text-property quote-starting-pos (point)
                                        'font-lock-multiline t)
                     (put-text-property quote-starting-pos (point)
