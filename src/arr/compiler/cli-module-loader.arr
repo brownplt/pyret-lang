@@ -77,12 +77,12 @@ type Loadable = CL.Loadable
 
 type Either = E.Either
 
-fun uri-to-path(uri):
-  crypto.sha256(uri)
+fun uri-to-path(uri, name):
+  crypto.sha256(uri) + "-" + name
 end
 
 fun get-cached-if-available(basedir, loc) block:
-  saved-path = P.join(basedir, uri-to-path(loc.uri()))
+  saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
   #print("Looking for builtin module " + loc.uri() + " at: " + saved-path + "\n")
   if not(F.file-exists(saved-path + "-static.js")) or
      (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()) block:
@@ -119,9 +119,9 @@ fun get-cached-if-available(basedir, loc) block:
       end,
 
       method uri(_): uri end,
-      method name(_): saved-path end,
+      method name(_): loc.name() end,
 
-      method set-compiled(_, _): nothing end,
+      method set-compiled(_, _, _): nothing end,
       method get-compiled(self):
         provs = CS.provides-from-raw-provides(self.uri(), {
             uri: self.uri(),
@@ -159,7 +159,7 @@ end
 
 fun get-loadable(basedir, l) -> Option<Loadable>:
   locuri = l.locator.uri()
-  saved-path = P.join(basedir, uri-to-path(locuri))
+  saved-path = P.join(basedir, uri-to-path(locuri, l.locator.name()))
   if not(F.file-exists(saved-path + "-static.js")) or
      (F.file-times(saved-path + "-static.js").mtime < l.locator.get-modified-time()):
     none
@@ -185,8 +185,8 @@ fun set-loadable(basedir, locator, loadable) -> String block:
     | ok(ccp) =>
       cases(JSP.CompiledCodePrinter) ccp block:
         | ccp-dict(dict) =>
-          save-static-path = P.join(basedir, uri-to-path(locuri) + "-static.js")
-          save-module-path = P.join(basedir, uri-to-path(locuri) + "-module.js")
+          save-static-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-static.js")
+          save-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-module.js")
           fs = F.output-file(save-static-path, false)
           fm = F.output-file(save-module-path, false)
           ccp.print-js-static(fs.display)
@@ -197,7 +197,7 @@ fun set-loadable(basedir, locator, loadable) -> String block:
           fm.close-file()
           save-module-path
         | else =>
-          save-path = P.join(basedir, uri-to-path(locuri) + ".js")
+          save-path = P.join(basedir, uri-to-path(locuri, locator.name()) + ".js")
           f = F.output-file(save-path, false)
           ccp.print-js-runnable(f.display)
           f.flush()
@@ -223,16 +223,6 @@ fun get-cli-module-storage(storage-dir :: String):
         end
       end
       modules
-    end,
-
-    method save-modules(self, loadables) block:
-      for each(l from loadables): set-loadable(storage-dir, l) end
-      s = for fold(s from "{\n", l from loadables):
-        locuri = l.provides.from-uri
-        s + "\"" + l.provides.from-uri + "\":\"" + uri-to-path(locuri) + "\"\n"
-      end
-      f = F.output-file(P.join(storage-dir, "modmap.json"), false)
-      f.display(s + "}")
     end
   }
 end
