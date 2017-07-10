@@ -1224,7 +1224,7 @@ data Bind:
         end
       end
     end,
-    method label(self): "s_bind" end
+    method label(self): "s-bind" end
   | s-tuple-bind(l :: Loc, fields :: List<Bind>, as-name :: Option<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
