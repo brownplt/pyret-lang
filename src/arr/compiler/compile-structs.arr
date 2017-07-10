@@ -607,7 +607,7 @@ data CompileError:
         [ED.para:
           ED.text("This "),
           ED.highlight(ED.text("method declaration"), [list: self.expr.l], 0),
-          ED.text(" does not accept at least one argument:")],
+          ED.text(" should accept at least one argument:")],
         ED.cmcode(self.expr.l),
         [ED.para:
           ED.text("When a method is applied, the first argument is a reference to the object it belongs to.")]]
@@ -615,7 +615,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
+          ED.text("Method declarations should accept at least one argument, but the method declaration at "),
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
