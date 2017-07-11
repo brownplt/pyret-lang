@@ -155,6 +155,7 @@ endif
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir compiled/ \
+                      $(EXTRA_FLAGS) \
                       --require-config src/scripts/standalone-configA.json \
                       -bundle-dependencies \
                       --html-file $*.html
