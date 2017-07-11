@@ -943,15 +943,13 @@ where:
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
-    [list:  A.s-app(d,
-        A.s-prim-app(d, "getMaker", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make3"), A.s-srcloc(d, d), A.s-srcloc(d, d)]),
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make3"),
         [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
 
   prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
   ds(prog3)
     is A.s-block(d,
-    [list:  A.s-app(d,
-        A.s-prim-app(d, "getMaker", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make"), A.s-srcloc(d, d), A.s-srcloc(d, d)]),
+    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
         [list:  A.s-array(d,
             [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
               one, two, A.s-app(d, id("_plus"), [list: two, one])])])])
