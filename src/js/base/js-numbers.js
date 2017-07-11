@@ -104,7 +104,7 @@ An integer is either a fixnum or a BigInteger.
 
 */
 
-define(function() {
+define("pyret-base/js/js-numbers", function() {
   'use strict';
   // Abbreviation
   var Numbers = {};
@@ -116,6 +116,7 @@ define(function() {
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y, errbacks) {
+
       if (options.isXSpecialCase && options.isXSpecialCase(x, errbacks))
         return options.onXSpecialCase(x, y, errbacks);
       if (options.isYSpecialCase && options.isYSpecialCase(y, errbacks))
@@ -125,6 +126,7 @@ define(function() {
           typeof(y) === 'number') {
         return onFixnums(x, y, errbacks);
       }
+
       if (typeof(x) === 'number') {
         x = liftFixnumInteger(x, y);
       }
@@ -337,6 +339,9 @@ define(function() {
       if (isOverflow(sum)) {
         return (makeBignum(x)).add(makeBignum(y));
       }
+      else {
+        return sum;
+      }
     }
     return addSlow(x, y, errbacks);
   };
@@ -361,8 +366,20 @@ define(function() {
      onYSpecialCase: function(x, y, errbacks) { return x; }
     });
 
+  var subtract = function(x, y, errbacks) {
+    if (typeof(x) === 'number' && typeof(y) === 'number') {
+      var diff = x - y;
+      if (isOverflow(diff)) {
+        return (makeBignum(x)).subtract(makeBignum(y));
+      } else {
+        return diff;
+      }
+    }
+    return subtractSlow(x, y, errbacks);
+  };
+
   // subtract: pyretnum pyretnum -> pyretnum
-  var subtract = makeNumericBinop(
+  var subtractSlow = makeNumericBinop(
     function(x, y, errbacks) {
       var diff = x - y;
       if (isOverflow(diff)) {
@@ -469,8 +486,17 @@ define(function() {
       }
     });
 
+  var equals = function(x, y, errbacks) {
+    if (x === y) { return true; }
+    else {
+      if (typeof x === "number" && typeof y === "number") { return false; }
+      else {
+        return equalsSlow(x, y, errbacks);
+      }
+    }
+  };
   // equals: pyretnum pyretnum -> boolean
-  var equals = makeNumericBinop(
+  var equalsSlow = makeNumericBinop(
     function(x, y, errbacks) {
       return x === y;
     },
@@ -566,40 +592,44 @@ define(function() {
   }
 
   // greaterThanOrEqual: pyretnum pyretnum -> boolean
-  var greaterThanOrEqual = makeNumericBinop(
-    function(x, y, errbacks) {
+  var greaterThanOrEqual = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x >= y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.greaterThanOrEqual(y);
-    });
+    })(x, y, errbacks);
+  }
 
   // lessThanOrEqual: pyretnum pyretnum -> boolean
-  var lessThanOrEqual = makeNumericBinop(
-    function(x, y, errbacks){
+  var lessThanOrEqual = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x <= y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.lessThanOrEqual(y);
-    });
+    })(x, y, errbacks);
+  };
 
   // greaterThan: pyretnum pyretnum -> boolean
-  var greaterThan = makeNumericBinop(
-    function(x, y, errbacks){
+  var greaterThan = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x > y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.greaterThan(y);
-    });
+    })(x, y, errbacks);
+  };
 
   // lessThan: pyretnum pyretnum -> boolean
-  var lessThan = makeNumericBinop(
-    function(x, y, errbacks){
+  var lessThan = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x < y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.lessThan(y);
-    });
+    })(x, y, errbacks);
+  };
 
   // expt: pyretnum pyretnum -> pyretnum
   var expt = makeNumericBinop(
@@ -1928,7 +1958,7 @@ define(function() {
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
 
 
-  var roughnumDecRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
+  var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?)$");
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
 

@@ -1,5 +1,7 @@
 import data-source as DS
 import tables as TS
+import valueskeleton as VS
+
 
 tbl = table: name, age
   row: "Bob", 12
@@ -93,3 +95,105 @@ check "Basic Table Loading":
   is table: name, age row: "Bob", 12 row: "Alice", 15 end
 end
 
+
+check "Table ordering":
+  fun slow-val(n):
+    fun wasteTime(i):
+      if i == 0: n
+      else: wasteTime(i - 1)
+      end
+    end
+    {
+      val: n,
+      method _lessthan(self, right):
+        wasteTime(3000) < right.val
+      end,
+      method _greaterthan(self, right):
+        wasteTime(3000) > right.val
+      end,
+      method _equals(self, right, eq):
+        eq(wasteTime(3000), right.val)
+      end,
+      method _output(self): VS.vs-value(n) end
+    }
+  end
+
+  t = table: x, y, z
+    row: slow-val(1), slow-val(1), slow-val(1)
+    row: slow-val(2), slow-val(1), slow-val(1)
+    row: slow-val(3), slow-val(1), slow-val(1)
+    row: slow-val(4), slow-val(1), slow-val(1)
+    row: slow-val(5), slow-val(1), slow-val(1)
+    row: slow-val(6), slow-val(1), slow-val(1)
+    row: slow-val(7), slow-val(1), slow-val(1)
+    row: slow-val(8), slow-val(1), slow-val(1)
+    row: slow-val(9), slow-val(1), slow-val(1)
+    row: slow-val(1), slow-val(2), slow-val(1)
+    row: slow-val(2), slow-val(2), slow-val(1)
+    row: slow-val(3), slow-val(2), slow-val(1)
+    row: slow-val(4), slow-val(2), slow-val(1)
+    row: slow-val(5), slow-val(2), slow-val(1)
+    row: slow-val(6), slow-val(2), slow-val(1)
+    row: slow-val(7), slow-val(2), slow-val(1)
+    row: slow-val(8), slow-val(2), slow-val(1)
+    row: slow-val(9), slow-val(2), slow-val(1)
+    row: slow-val(1), slow-val(1), slow-val(2)
+    row: slow-val(2), slow-val(1), slow-val(2)
+    row: slow-val(3), slow-val(1), slow-val(2)
+    row: slow-val(4), slow-val(1), slow-val(2)
+    row: slow-val(5), slow-val(1), slow-val(2)
+    row: slow-val(6), slow-val(1), slow-val(2)
+    row: slow-val(7), slow-val(1), slow-val(2)
+    row: slow-val(8), slow-val(1), slow-val(2)
+    row: slow-val(9), slow-val(1), slow-val(2)
+    row: slow-val(1), slow-val(2), slow-val(2)
+    row: slow-val(2), slow-val(2), slow-val(2)
+    row: slow-val(3), slow-val(2), slow-val(2)
+    row: slow-val(4), slow-val(2), slow-val(2)
+    row: slow-val(5), slow-val(2), slow-val(2)
+    row: slow-val(6), slow-val(2), slow-val(2)
+    row: slow-val(7), slow-val(2), slow-val(2)
+    row: slow-val(8), slow-val(2), slow-val(2)
+    row: slow-val(9), slow-val(2), slow-val(2)
+  end
+  sort-t = table: x, y, z
+    row: slow-val(9), slow-val(2), slow-val(1)
+    row: slow-val(8), slow-val(2), slow-val(1)
+    row: slow-val(7), slow-val(2), slow-val(1)
+    row: slow-val(6), slow-val(2), slow-val(1)
+    row: slow-val(5), slow-val(2), slow-val(1)
+    row: slow-val(4), slow-val(2), slow-val(1)
+    row: slow-val(3), slow-val(2), slow-val(1)
+    row: slow-val(2), slow-val(2), slow-val(1)
+    row: slow-val(1), slow-val(2), slow-val(1)
+    row: slow-val(9), slow-val(1), slow-val(1)
+    row: slow-val(8), slow-val(1), slow-val(1)
+    row: slow-val(7), slow-val(1), slow-val(1)
+    row: slow-val(6), slow-val(1), slow-val(1)
+    row: slow-val(5), slow-val(1), slow-val(1)
+    row: slow-val(4), slow-val(1), slow-val(1)
+    row: slow-val(3), slow-val(1), slow-val(1)
+    row: slow-val(2), slow-val(1), slow-val(1)
+    row: slow-val(1), slow-val(1), slow-val(1)
+    row: slow-val(9), slow-val(2), slow-val(2)
+    row: slow-val(8), slow-val(2), slow-val(2)
+    row: slow-val(7), slow-val(2), slow-val(2)
+    row: slow-val(6), slow-val(2), slow-val(2)
+    row: slow-val(5), slow-val(2), slow-val(2)
+    row: slow-val(4), slow-val(2), slow-val(2)
+    row: slow-val(3), slow-val(2), slow-val(2)
+    row: slow-val(2), slow-val(2), slow-val(2)
+    row: slow-val(1), slow-val(2), slow-val(2)
+    row: slow-val(9), slow-val(1), slow-val(2)
+    row: slow-val(8), slow-val(1), slow-val(2)
+    row: slow-val(7), slow-val(1), slow-val(2)
+    row: slow-val(6), slow-val(1), slow-val(2)
+    row: slow-val(5), slow-val(1), slow-val(2)
+    row: slow-val(4), slow-val(1), slow-val(2)
+    row: slow-val(3), slow-val(1), slow-val(2)
+    row: slow-val(2), slow-val(1), slow-val(2)
+    row: slow-val(1), slow-val(1), slow-val(2)
+  end
+  order t: z ascending, y descending, x descending end is sort-t
+
+end

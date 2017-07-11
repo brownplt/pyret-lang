@@ -179,6 +179,12 @@ check "table loading checks":
       + "end") satisfies CS.is-table-sanitizer-bad-column
 end
 
+check "table headers":
+  c("table: a, b, a row: 1, 2, 3 end") satisfies CS.is-table-duplicate-column-name
+  c("load-table: a, b, a source: src end") satisfies CS.is-table-duplicate-column-name
+  c("load-table: timestamp, name, class source: src end") satisfies CS.is-reserved-name
+end
+
 check "tuple bindings":
   cwfs("data D: d({x;y}) end") satisfies sc("Tuple binding not allowed")
   cwfs("let var {x;y} = 10: x end") satisfies sc("Variable bindings must be names")
@@ -196,6 +202,36 @@ check "reactors":
   cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named todraw")
   cwfs("reactor: method f(self): 5 end end") satisfies sc("cannot contain method fields")
   cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
+end
+
+check "malformed reactors":
+  c("reactor:\n" +
+    "  init: nothing,\n" +
+    "  on-tick: lam(_):\n" +
+    "      1 > true * 2\n" +
+    "      1 + _\n" +
+    "    end,\n" +
+    "end") satisfies CS.is-block-needed
+  c("reactor:\n" +
+    "  init: nothing,\n" +
+    "  on-tick: lam(_):\n" +
+    "      1 > true * 2\n" +
+    "    end,\n" +
+    "end") satisfies CS.is-mixed-binops
+end  
+
+check "empty data definitions":
+  cok("data NoVariants: end") is empty
+  cok("data NoVariants:\nend") is empty
+end
+
+check "duplicated names in data defintiions":
+  c("data Foo: is-Foo end") satisfies CS.is-duplicate-is-data
+  c("data Foo: Foo end") satisfies CS.is-data-variant-duplicate-name
+  c("data is-Foo3: Foo3 | baz end") satisfies CS.is-duplicate-is-data-variant
+  c("data Foo: bar | is-bar end") satisfies CS.is-duplicate-is-variant
+  c("data Foo: is-bar | bar end") satisfies CS.is-duplicate-is-variant
+  c("data Foo: bar | bar end") satisfies CS.is-duplicate-variant
 end
 
 #|
@@ -220,32 +256,6 @@ end
           expect(e.length).toEqual(1);
           return true;
         });
-        P.wait(done);
-      });
-      xit("malformed datatypes", function(done){
-        P.checkCompileErrorMsg("datatype Foo:\n" +
-                               "  | foo() with constructor(self): self end\n" +
-                               "  | foo with constructor(self): self end\n" +
-                               "end",
-                               "Constructor name foo appeared more than once.");
-
-        P.checkCompileErrorMsg("datatype Foo:\n" +
-                               "  | foo() with constructor(self): self end\n" +
-                               "  | bar() with constructor(self): self end\n" +
-                               "  | baz() with constructor(self): self end\n" +
-                               "  | foo(a) with constructor(self): self end\n" +
-                               "end",
-                               "Constructor name foo appeared more than once.");
-
-        P.checkCompileErrorMsg("datatype Foo:\n" +
-                               "  | bang with constructor(self): self end\n" +
-                               "  | bar() with constructor(self): self end\n" +
-                               "  | bang() with constructor(self): self end\n" +
-                               "  | foo() with constructor(self): self end\n" +
-                               "  | foo(a) with constructor(self): self end\n" +
-                               "end",
-                               "Constructor name bang appeared more than once.");
-
         P.wait(done);
       });
       it("malformed cases", function(done) {

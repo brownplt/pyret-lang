@@ -1,5 +1,3 @@
-#lang pyret
-
 provide {
   check-well-formed: check-well-formed
 } end
@@ -95,7 +93,7 @@ end
 is-s-block = A.is-s-block
 fun ensure-empty-block(loc, typ, block :: A.Expr % (is-s-block)):
   if not(PARAM-current-where-everywhere):
-    if block.stmts.length() == 0: nothing
+    if is-empty(block.stmts): nothing
     else:
       add-error(C.unwelcome-where(tostring(typ), loc, block.l))
     end
@@ -250,26 +248,43 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
   end
 end
 
-fun ensure-unique-variant-ids(variants :: List<A.Variant>):
-  cases(List) variants:
-    | empty => nothing
+fun ensure-unique-variant-ids(variants :: List<A.Variant>, name :: String, data-loc :: Loc):
+  cases(List) variants block:
+    | empty => true
     | link(f, rest) =>
-      cases(Option) lists.find(lam(b): b.name == f.name end, rest):
-        | some(found) => add-error(C.duplicate-variant(f.name, found.l, f.l))
-        | none => ensure-unique-variant-ids(rest)
+      if f.name == name:
+        add-error(C.data-variant-duplicate-name(f.name, f.l, data-loc))
+      else if f.name == ("is-" + name):
+        add-error(C.duplicate-is-data(name, f.l, data-loc))
+      else if ("is-" + f.name) == name:
+        add-error(C.duplicate-is-data-variant(f.name, data-loc, f.l))
+      else:
+        nothing
       end
+      for each(b from rest):
+        if b.name == f.name block:
+          add-error(C.duplicate-variant(f.name, b.l, f.l))
+        else if b.name == ("is-" + f.name):
+          add-error(C.duplicate-is-variant(f.name, b.l, f.l))
+        else if ("is-" + b.name) == f.name:
+          add-error(C.duplicate-is-variant(b.name, f.l, b.l))
+        else:
+          nothing
+        end
+      end
+      ensure-unique-variant-ids(rest, name, data-loc)
   end
 end
 
 
 fun wf-last-stmt(block-loc, stmt :: A.Expr):
   cases(A.Expr) stmt:
-    | s-let(l, _, _, _)                => add-error(C.block-ending(l, block-loc, "let-binding"))
-    | s-var(l, _, _)                   => add-error(C.block-ending(l, block-loc, "var-binding"))
-    | s-rec(l, _, _)                   => add-error(C.block-ending(l, block-loc, "rec-binding"))
-    | s-fun(l, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
-    | s-data(l, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
-    | s-contract(l, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-let(l, _, _, _)                   => add-error(C.block-ending(l, block-loc, "let-binding"))
+    | s-var(l, _, _)                      => add-error(C.block-ending(l, block-loc, "var-binding"))
+    | s-rec(l, _, _)                      => add-error(C.block-ending(l, block-loc, "rec-binding"))
+    | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
+    | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
+    | s-contract(l, _, _)                 => add-error(C.block-ending(l, block-loc, "contract"))
     | else => nothing
   end
 end
@@ -288,7 +303,7 @@ fun reachable-ops(self, l, op-l, op, ast):
         reachable-ops(self, l, op-l, op, left2)
         reachable-ops(self, l, op-l, op, right2)
       else:
-        add-error(C.mixed-binops(opname(op), op-l,  opname(op2), op-l2))
+        add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
       end
       true
     | else => ast.visit(self)
@@ -314,21 +329,27 @@ fun wf-examples-body(visitor, body):
 end
 
 fun wf-table-headers(loc, headers):
-  num-headers = headers.length()
-  if num-headers == 0 block:
-    add-error(C.table-empty-header(loc))
-    true
-  else:
-    for each(i from range(0, num-headers)):
-      hi = headers.get(i)
-      for each(j from range(i + 1, num-headers)):
-        hj = headers.get(j)
-        when hi.name == hj.name:
-          add-error(C.table-duplicate-column-name(hi, hj))
+  cases(List) headers block:
+    | empty =>
+      add-error(C.table-empty-header(loc))
+      true
+    | link(first, rest) =>
+      fun dups(shadow first, shadow rest) block:
+        when (reserved-names.has-key(first.name)):
+          reserved-name(first.l, first.name)
+        end
+        for each(hname from rest):
+          when first.name == hname.name:
+            add-error(C.table-duplicate-column-name(first, hname))
+          end
+        end
+        cases(List) rest:
+          | empty => nothing
+          | link(snd, tail) => dups(snd, tail)
         end
       end
-    end
-    true
+      dups(first, rest)
+      true
   end
 end
 
@@ -337,23 +358,22 @@ fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
 end
 
-var last-visited-loc = nothing
+var parent-block-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
   end,
   method s-special-import(self, l, kind, args) block:
-    last-visited-loc := l
     if kind == "my-gdrive":
-      if args.length() <> 1 block:
+      if not(is-link(args) and is-empty(args.rest)) block:
         add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file"]))
         false
       else:
         true
       end
     else if kind == "shared-gdrive":
-      if args.length() <> 2 block:
+      if not(is-link(args) and is-link(args.rest) and is-empty(args.rest.rest)) block:
         add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id, which you can get from the share URL"]))
         false
       else:
@@ -362,7 +382,7 @@ well-formed-visitor = A.default-iter-visitor.{
     else if kind == "js-http":
       true
     else if kind == "gdrive-js":
-      if args.length() <> 2:
+      if not(is-link(args) and is-link(args.rest) and is-empty(args.rest.rest)):
         add-error(C.import-arity-mismatch(l, kind, args, 2, [list: "the name of the file", "the file's id"]))
       else:
         true
@@ -372,101 +392,103 @@ well-formed-visitor = A.default-iter-visitor.{
       #wf-error("Unsupported import type " + kind + ".  Did you mean my-gdrive or shared-gdrive?", l)
     end
   end,
-  method s-data(self, l, name, params, mixins, variants, shares, _check) block:
-    add-error(C.non-toplevel("data declaration", l, last-visited-loc))
-    last-visited-loc := l
+  method s-data(self, l, name, params, mixins, variants, shares, _check-loc, _check) block:
+    add-error(C.non-toplevel("data declaration", l, parent-block-loc))
     true
   end,
-  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
-    add-error(C.non-toplevel("data declaration", l, last-visited-loc))
-    last-visited-loc := l
+  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check-loc, _check) block:
+    add-error(C.non-toplevel("data declaration", l, parent-block-loc))
     true
   end,
   method s-type(self, l, name, params, ann) block:
-    add-error(C.non-toplevel("type alias", l, last-visited-loc))
-    last-visited-loc := l
+    add-error(C.non-toplevel("type alias", l, parent-block-loc))
     true
   end,
   method s-newtype(self, l, name, namet) block:
-    add-error(C.non-toplevel("newtype", l, last-visited-loc))
-    last-visited-loc := l
+    add-error(C.non-toplevel("newtype", l, parent-block-loc))
     true
   end,
   method s-let-expr(self, l, binds, body, blocky) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    lists.all(_.visit(self), binds) and body.visit(self)
+    ans = lists.all(_.visit(self), binds) and body.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-letrec-bind(self, l, bind, expr) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) => nothing
       | s-tuple-bind(l2, _, _) =>
-        last-visited-loc := l
         wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
         nothing
     end
-    bind.visit(self) and expr.visit(self)
+    ans = bind.visit(self) and expr.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-letrec(self, l, binds, body, blocky) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    lists.all(_.visit(self), binds) and body.visit(self)
+    ans = lists.all(_.visit(self), binds) and body.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-type-let-expr(self, l, binds, body, blocky) block:
-    add-error(C.non-toplevel("type alias", l, last-visited-loc))
-    last-visited-loc := l
+    add-error(C.non-toplevel("type alias", l, parent-block-loc))
     true
   end,
   method s-op(self, l, op-l, op, left, right) block:
-    last-visited-loc := l
     reachable-ops(self, l, op-l, op, left) and reachable-ops(self, l, op-l, op, right)
   end,
   method s-cases-branch(self, l, pat-loc, name, args, body) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
     end
     ensure-unique-ids(args.map(_.bind))
-    lists.all(_.visit(self), args) and body.visit(self)
+    ans = lists.all(_.visit(self), args) and body.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-singleton-cases-branch(self, l, pat-loc, name, body) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
     end
-    body.visit(self)
+    ans = body.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-var(self, l, bind, val) block:
-    last-visited-loc := l
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) =>
-        last-visited-loc := l
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
         bind.visit(self) and val.visit(self)
       | s-tuple-bind(l2, _, _) =>
-        last-visited-loc := l
         wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
         true
     end
   end,
   method s-rec(self, l, bind, val) block:
-    last-visited-loc := l
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) =>
-        last-visited-loc := l
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-rec(l.at-start() + bind.l))
         end
         bind.visit(self) and val.visit(self)
       | s-tuple-bind(l2, _, _) =>
-        last-visited-loc := l
         wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
         true
     end
@@ -474,33 +496,33 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-var-bind(self, l, bind, val) block:
     cases(A.Bind) bind block:
     | s-bind(_,_,_,_) =>
-        last-visited-loc := l
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
        bind.visit(self) and val.visit(self)
     | s-tuple-bind(l2, _, _) =>
-      last-visited-loc := l
       wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
       true
     end
   end,
   method s-block(self, l, stmts):
     if is-empty(stmts) block:
-      add-error(C.wf-empty-block(last-visited-loc))
+      add-error(C.wf-empty-block(parent-block-loc))
       true
     else:
-      wf-last-stmt(l, stmts.last())
-      wf-block-stmts(self, l, stmts)
+      wf-last-stmt(parent-block-loc, stmts.last())
+      wf-block-stmts(self, parent-block-loc, stmts)
       true
     end
   end,
+  method s-user-block(self, l :: Loc, body :: A.Expr) block:
+    parent-block-loc := l
+    body.visit(self)
+  end,
   method s-tuple-bind(self, l, fields, as-name) block:
-    last-visited-loc := l
     true
   end,
   method s-bind(self, l, shadows, name, ann) block:
-    last-visited-loc := l
     when (reserved-names.has-key(name.tosourcestring())):
       reserved-name(l, name.tosourcestring())
     end
@@ -510,7 +532,6 @@ well-formed-visitor = A.default-iter-visitor.{
     name.visit(self) and ann.visit(self)
   end,
   method s-check-test(self, l, op, refinement, left, right) block:
-    last-visited-loc := l
     when not(in-check-block):
       add-error(C.unwelcome-test(l))
     end
@@ -524,13 +545,17 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     left.visit(self) and self.option(right)
   end,
-  method s-method-field(self, l, name, params, args, ann, doc, body, _check, blocky) block:
-    last-visited-loc := l
+  method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := cases(Option) _check-loc:
+      | none => l
+      | some(cl) => l.upto-end(cl)
+    end
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
-    when args.length() == 0:
-      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)))
+    when is-empty(args):
+      add-error(C.no-arguments(A.s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -540,26 +565,35 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    ans = lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    cases(Option) _check-loc:
+      | none => nothing
+      | some(cl) => parent-block-loc := cl.upto-end(l)
+    end
+    shadow ans = ans and wrap-visit-check(self, _check)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-data-field(self, l, name, value) block:
-    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     value.visit(self)
   end,
   method s-mutable-field(self, l, name, ann, value) block:
-    last-visited-loc := l
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
     ann.visit(self) and value.visit(self)
   end,
-  method s-method(self, l, name, params, args, ann, doc, body, _check, blocky) block:
-    last-visited-loc := l
-    when args.length() == 0:
-      add-error(C.no-arguments(A.s-method(l, name, params, args, ann, doc, body, _check, blocky)))
+  method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := cases(Option) _check-loc:
+      | none => l
+      | some(cl) => l.upto-end(cl)
+    end
+    when is-empty(args):
+      add-error(C.no-arguments(A.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)))
     end
     ensure-unique-ids(args)
     cases(Option) _check:
@@ -569,10 +603,21 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    ans = lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    cases(Option) _check-loc:
+      | none => nothing
+      | some(cl) => parent-block-loc := cl.upto-end(l)
+    end
+    shadow ans = ans and wrap-visit-check(self, _check)
+    parent-block-loc := old-pbl
+    ans
   end,
-  method s-lam(self, l, name, params, args, ann, doc, body, _check, blocky) block:
-    last-visited-loc := l
+  method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := cases(Option) _check-loc:
+      | none => l
+      | some(cl) => l.upto-end(cl)
+    end
     ensure-unique-ids(args)
     cases(Option) _check:
       | none => nothing
@@ -581,11 +626,22 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    ans = lists.all(_.visit(self), params)
+    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    cases(Option) _check-loc:
+      | none => nothing
+      | some(cl) => parent-block-loc := cl.upto-end(l)
+    end
+    shadow ans = ans and wrap-visit-check(self, _check)
+    parent-block-loc := old-pbl
+    ans
   end,
-  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky) block:
-    last-visited-loc := l
+  method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := cases(Option) _check-loc:
+      | none => l
+      | some(cl) => l.upto-end(cl)
+    end
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
@@ -593,11 +649,17 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-blocky-blocks(l, [list: body])
     end
     ensure-unique-ids(args)
-    lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and wrap-visit-check(self, _check)
+    ans = lists.all(_.visit(self), params)
+      and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    cases(Option) _check-loc:
+      | none => nothing
+      | some(cl) => parent-block-loc := cl.upto-end(l)
+    end
+    shadow ans = ans and wrap-visit-check(self, _check)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-obj(self, l, fields) block:
-    last-visited-loc := l
     ensure-unique-fields(fields.reverse())
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
@@ -611,24 +673,29 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   method s-check(self, l, name, body, keyword-check) block:
-    last-visited-loc := l
-    if not(keyword-check) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := l
+    ans = if not(keyword-check) block:
       wrap-visit-check(self, some(body))
       wf-examples-body(self, body)
     else:
       wrap-visit-check(self, some(body))
     end
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-when(self, l, test, block, blocky) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: block])
     end
-    test.visit(self) and block.visit(self)
+    ans = test.visit(self) and block.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-if(self, l, branches, blocky) block:
-    last-visited-loc := l
-    when branches.length() == 1:
+    when is-link(branches) and is-empty(branches.rest):
       add-error(C.single-branch-if(A.s-if(l, branches, blocky)))
     end
     when not(blocky):
@@ -637,41 +704,56 @@ well-formed-visitor = A.default-iter-visitor.{
     lists.all(_.visit(self), branches)
   end,
   method s-if-else(self, l, branches, _else, blocky) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
-    lists.all(_.visit(self), branches) and _else.visit(self)
+    ans = lists.all(_.visit(self), branches) and _else.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-if-pipe(self, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    lists.all(_.visit(self), branches)
+    ans = lists.all(_.visit(self), branches)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-if-pipe-else(self, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
-    lists.all(_.visit(self), branches) and _else.visit(self)
+    ans = lists.all(_.visit(self), branches) and _else.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-cases(self, l, typ, val, branches, blocky) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     ensure-unique-cases(branches)
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
+    ans = typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-cases-else(self, l, typ, val, branches, _else, blocky) block:
-    last-visited-loc := l
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     ensure-unique-cases(branches)
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
-    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
+    ans = typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-for(self, l, iterator, bindings, ann, body, blocky) block:
     when not(blocky):
@@ -680,20 +762,21 @@ well-formed-visitor = A.default-iter-visitor.{
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
   method s-frac(self, l, num, den) block:
-    last-visited-loc := l
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
     true
   end,
   method s-id(self, l, id) block:
-    last-visited-loc := l
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
     end
     true
   end,
-  method s-provide(self, l, expr):
+  method s-provide(self, l, expr) block:
+    when not(A.is-s-obj(expr)):
+      add-error(C.non-object-provide(l))
+    end
     true
   end,
   method s-reactor(self, l, fields):
@@ -709,13 +792,14 @@ well-formed-visitor = A.default-iter-visitor.{
       fields-dict = SD.make-mutable-string-dict()
       ok-fields = C.reactor-fields
       for each(f from fields) block:
-        when not(ok-fields.member(f.name)):
-          wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name + " ", f.l)
+        when not(ok-fields.has-key(f.name)):
+          wf-error("Valid options for reactors are " + ok-fields.keys-list().join-str(", ") + ", but found one named " + f.name + " ", f.l)
         end
         cases(Option<A.Loc>) fields-dict.get-now(f.name):
           | none => fields-dict.set-now(f.name, f.l)
           | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
         end
+        f.visit(self)
       end
       true
     end
@@ -842,49 +926,71 @@ top-level-visitor = A.default-iter-visitor.{
       add-error(C.underscore-as(underscores.first.l, "a data variant name"))
     end
     check-underscore-name(with-members, "a field name")
-    is-empty(underscores) and
-      lists.all(_.visit(well-formed-visitor), binds) and lists.all(_.visit(well-formed-visitor), with-members)
+    lists.each(_.visit(well-formed-visitor), binds)
+    lists.each(_.visit(well-formed-visitor), with-members)
+    true
   end,
   method s-singleton-variant(self, l, name, with-members) block:
     ensure-unique-ids(fields-to-binds(with-members))
-    lists.all(_.visit(well-formed-visitor), with-members)
+    lists.each(_.visit(well-formed-visitor), with-members)
+    true
   end,
-  method s-data(self, l, name, params, mixins, variants, shares, _check) block:
-    ensure-unique-variant-ids(variants)
+  method s-data(self, l, name, params, mixins, variants, shares, _check-loc, _check) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := cases(Option) _check-loc:
+      | none => l
+      | some(cl) => l.upto-end(cl)
+    end
+    ensure-unique-variant-ids(variants, name, l)
     check-underscore-name(variants, "a data variant name")
     check-underscore-name(shares, "a shared field name")
     check-underscore-name([list: {l: l, name: name}], "a datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
-    params-v = lists.all(_.visit(well-formed-visitor), params)
-    mixins-v = lists.all(_.visit(well-formed-visitor), mixins)
-    variants-v = lists.all(_.visit(self), variants)
-    shares-v = lists.all(_.visit(well-formed-visitor), shares)
+    lists.each(_.visit(well-formed-visitor), params)
+    lists.each(_.visit(well-formed-visitor), mixins)
+    lists.each(_.visit(self), variants)
+    lists.each(_.visit(well-formed-visitor), shares)
     cur-shared := the-cur-shared
-    params-v and mixins-v and variants-v and shares-v and wrap-visit-check(well-formed-visitor, _check)
-  end,
-  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check) block:
-    ensure-unique-variant-ids(variants)
-    underscores = variants.filter(lam(v): v.name == "_" end)
-    when not(is-empty(underscores)):
-      add-error(C.underscore-as(underscores.first.l, "a data variant name"))
+    cases(Option) _check-loc:
+      | none => nothing
+      | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-visit-check(well-formed-visitor, _check)
+    parent-block-loc := old-pbl
+    true
+  end,
+  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check-loc, _check) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := cases(Option) _check-loc:
+      | none => l
+      | some(cl) => l.upto-end(cl)
+    end
+    ensure-unique-variant-ids(variants, name, l)
+    check-underscore-name(variants, "a data variant name")
+    check-underscore-name(shared, "a shared field name")
+    check-underscore-name([list: {l: l, name: name}], "a datatype name")
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shared)
-    ret = lists.all(_.visit(well-formed-visitor), params)
-    and lists.all(_.visit(well-formed-visitor), mixins)
-    and lists.all(_.visit(well-formed-visitor), variants)
-    and lists.all(_.visit(well-formed-visitor), shared)
+    lists.each(_.visit(well-formed-visitor), params)
+    lists.each(_.visit(well-formed-visitor), mixins)
+    lists.each(_.visit(well-formed-visitor), variants)
+    lists.each(_.visit(well-formed-visitor), shared)
     cur-shared := the-cur-shared
-    is-empty(underscores) and
-      ret and wrap-visit-check(well-formed-visitor, _check)
+    cases(Option) _check-loc:
+      | none => nothing
+      | some(cl) => parent-block-loc := cl.upto-end(l)
+    end
+    wrap-visit-check(well-formed-visitor, _check)
+    parent-block-loc := old-pbl
+    true
   end,
 
   # Everything else delegates to the non-toplevel visitor
   method s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
   end,
-  method s-include(_, l, import-type, name):
+  method s-include(_, l, import-type):
     well-formed-visitor.s-include(l, import-type)
   end,
   method s-import-types(_, l, import-type, name, types):
@@ -932,8 +1038,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-user-block(_, l :: Loc, body :: A.Expr):
     well-formed-visitor.s-user-block(l, body)
   end,
-  method s-fun(_, l, name, params, args, ann, doc, body, _check, blocky):
-    well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check, blocky)
+  method s-fun(_, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
   method s-var(_, l :: Loc, name :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-var(l, name, value)
@@ -995,11 +1101,11 @@ top-level-visitor = A.default-iter-visitor.{
   method s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)
   end,
-  method s-lam(_, l :: Loc, name :: String, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
-    well-formed-visitor.s-lam(l, name, params, args, ann, doc, body, _check, blocky)
+  method s-lam(_, l :: Loc, name :: String, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check-loc :: Option<Loc>, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
-  method s-method(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
-    well-formed-visitor.s-method(l, name, params, args, ann, doc, body, _check, blocky)
+  method s-method(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check-loc :: Option<Loc>, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
   method s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
     well-formed-visitor.s-extend(l, supe, fields)
@@ -1058,8 +1164,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-mutable-field(_, l :: Loc, name :: String, ann :: A.Ann, value :: A.Expr):
     well-formed-visitor.s-mutable-field(l, name, ann, value)
   end,
-  method s-method-field(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check :: Option<A.Expr>, blocky):
-    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check, blocky)
+  method s-method-field(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check-loc :: Option<Loc>, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
   method s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
     well-formed-visitor.s-for-bind(l, bind, value)
@@ -1107,7 +1213,7 @@ fun check-well-formed(ast) -> C.CompileResult<A.Program, Any> block:
   errors := empty
   in-check-block := false
   ans =
-    if ast.visit(top-level-visitor) and (errors.length() == 0): C.ok(ast)
+    if ast.visit(top-level-visitor) and is-empty(errors): C.ok(ast)
     else: C.err(errors.reverse())
     end
   # cleanup

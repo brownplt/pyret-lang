@@ -8,7 +8,10 @@
 *.log
 *.jarr
 
+playground/*
+
 # benchmark
+tools/benchmark/auto-report-programs/*.js
 tools/benchmark/TODO
 tools/benchmark/sandbox*
 tools/benchmark/nodelint*
@@ -63,3 +66,6 @@ tests/pyret/standalone/importer.jarr
 *.arr.js
 
 compiled/
+
+.pyret-parley.*.pid
+.pyret-parley.*.lock

@@ -56,8 +56,15 @@
     function detectAndComplainAboutOperatorWhitespace(stmts, fileName) {
       for (var i = 1; i < stmts.length; i++) {
         if (isSignedNumberAsStmt(stmts[i]) &&
-            stmts[i].pos.startRow === stmts[i - 1].pos.endRow)
-          RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, stmts[i].pos));
+            stmts[i].pos.startRow === stmts[i - 1].pos.endRow) {
+          var pos = stmts[i].pos;
+          var n = RUNTIME.makeNumber;
+          RUNTIME.ffi.throwParseErrorBadOper(
+            RUNTIME.getField(srcloc, "srcloc")
+              .app(RUNTIME.makeString(fileName),
+                   n(pos.startRow), n(pos.startCol), n(pos.startChar),
+                   n(pos.startRow), n(pos.startCol + 1), n(pos.startChar + 1)));
+        }
       }
     }
     function translate(node, fileName) {
@@ -376,6 +383,7 @@
           // (fun-expr FUN fun-name fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
+          var checkRes = tr(node.kids[6]);
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1]),
                  header.tyParams,
@@ -383,16 +391,17 @@
                  header.returnAnn,
                  tr(node.kids[4]),
                  tr(node.kids[5]),
-                 tr(node.kids[6]),
+                 checkRes[0], checkRes[1],
                  isBlock);
         },
         'data-expr': function(node) {
           // (data-expr DATA NAME params COLON variant ... sharing-part check END)
+          var checkRes = tr(node.kids[node.kids.length - 2]);
           return RUNTIME.getField(ast, 's-data')
             .app(pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), empty,
                  makeListTr(node.kids, 4, node.kids.length - 3),
                  tr(node.kids[node.kids.length - 3]),
-                 tr(node.kids[node.kids.length - 2]));
+                 checkRes[0], checkRes[1]);
         },
         'assign-expr': function(node) {
           // (assign-expr id COLONEQUAL e)
@@ -474,10 +483,11 @@
         'where-clause': function(node) {
           if (node.kids.length === 0) {
             // (where-clause)
-            return RUNTIME.ffi.makeNone();
+            return [RUNTIME.ffi.makeNone(), RUNTIME.ffi.makeNone()];
           } else {
             // (where-clause WHERE block)
-            return RUNTIME.ffi.makeSome(tr(node.kids[1]));
+            return [RUNTIME.ffi.makeSome(makePyretPos(fileName, node.kids[0].pos)),
+                    RUNTIME.ffi.makeSome(tr(node.kids[1]))];
           }
         },
         'check-op': function(node) {
@@ -646,9 +656,10 @@
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, 's-method-field')
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
+                   tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
           }
         },
         'tuple-name-list' : function(node) {
@@ -797,10 +808,6 @@
                  tr(node.kids[node.kids.length - 3]),      // return-ann
                  tr(node.kids[node.kids.length - 1]));     // body
         },
-        'for-do': function(node) {
-          return RUNTIME.getField(ast, 's-for-do')
-            .app(pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -1).map(tr)));
-        },
         'for-then': function(node) {
           // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
           return RUNTIME.getField(ast, 's-for')
@@ -829,9 +836,10 @@
             // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, "s-method-field")
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
-                   tr(node.kids[4]), tr(node.kids[5]), tr(node.kids[6]), isBlock);
+                   tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
           }
         },
         'fields': function(node) {
@@ -860,7 +868,17 @@
           if (node.kids.length === 0) {
             return empty;
           } else {
-            return makeListComma(node.kids);
+            return tr(node.kids[0]);
+          }
+        },
+        'comma-binops': function(node) {
+          return makeListComma(node.kids);
+        },
+        'trailing-opt-comma-binops': function(node) {
+          if (node.kids.length === 0) {
+            return empty;
+          } else {
+            return tr(node.kids[0]);
           }
         },
         'cases-args': function(node) {
@@ -947,7 +965,7 @@
           }
         },
         'construct-expr': function(node) {
-          // LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
+          // LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
           return RUNTIME.getField(ast, 's-construct')
             .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
         },
@@ -981,9 +999,9 @@
             .app(pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
         },
         'bracket-expr': function(node) {
-          // (bracket-expr obj PERIOD LBRACK field RBRACK)
+          // (bracket-expr obj LBRACK field RBRACK)
           return RUNTIME.getField(ast, 's-bracket')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'cases-expr': function(node) {
           var isBlock = (node.kids[5].name === "BLOCK");
@@ -1049,17 +1067,19 @@
           // (lambda-expr LAM fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-lam')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
-                 tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+                 tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
         },
         'method-expr': function(node) {
           // (method-expr METHOD fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
-                 tr(node.kids[3]), tr(node.kids[4]), tr(node.kids[5]), isBlock);
+                 tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
         },
         'extend-expr': function(node) {
           // (extend-expr e PERIOD LBRACE fields RBRACE)
@@ -1191,12 +1211,10 @@
             pos(node.pos), makeList(columns), table);
         },
         'column-order': function(node) {
-          console.log(node);
           var column = name(node.kids[0]);
           var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ASCENDING')
                 : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'DESCENDING')
                 : undefined;
-          console.log(direction);
           return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
                                                             column,
                                                             direction);
@@ -1205,7 +1223,7 @@
           // TABLE-ORDER NAME COLON column-orderings end
           return RUNTIME.getField(ast, 's-table-order').app(pos(node.pos),
                                                             tr(node.kids[1]),
-                                                            tr(node.kids[3]));
+                                                            makeListComma(node.kids, 3, node.kids.length - 1, tr));
         },
         'table-filter': function(node) {
           var columns = new Array();
@@ -1308,6 +1326,7 @@
     }
 
     function parseDataRaw(data, fileName) {
+      var message = "";
       try {
         const toks = tokenizer.Tokenizer;
         const grammar = parser.PyretGrammar;
@@ -1319,9 +1338,9 @@
         var countParses = grammar.countAllParses(parsed);
         if (countParses == 0) {
           var nextTok = toks.curTok; 
-          console.error("There were " + countParses + " potential parses.\n" +
-                        "Parse failed, next token is " + nextTok.toString(true) +
-                        " at " + fileName + ", " + nextTok.pos.toString(true));
+          message = "There were " + countParses + " potential parses.\n" +
+                      "Parse failed, next token is " + nextTok.toString(true) +
+                      " at " + fileName + ", " + nextTok.pos.toString(true);
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "UNTERMINATED-STRING")
@@ -1330,6 +1349,8 @@
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-OPER")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
+          else if (typeof opLookup[String(nextTok.value).trim()] === "function")
+            RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
           else
             RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
         }
@@ -1337,7 +1358,7 @@
         if (countParses === 1) {
           var ast = grammar.constructUniqueParse(parsed);
           //          console.log(ast.toString());
-          return translate(ast, fileName);
+          return RUNTIME.ffi.makeRight(translate(ast, fileName));
         } else {
           var asts = grammar.constructAllParses(parsed);
           throw "Non-unique parse";
@@ -1345,11 +1366,17 @@
             //console.log("Parse " + i + ": " + asts[i].toString());
             //            console.log(("" + asts[i]) === ("" + asts2[i]));
           }
-          return translate(ast, fileName);
+          return RUNTIME.ffi.makeRight(translate(ast, fileName));
         }
       } catch(e) {
-        // console.error("Fatal error in parsing: ", e);
-        throw e;
+        if (RUNTIME.isPyretException(e)) {
+          return RUNTIME.ffi.makeLeft(RUNTIME.makeObject({
+            exn: e.exn,
+            message: RUNTIME.makeString(message)
+          }));
+        } else {
+          throw e;
+        }
       }
     }
 
@@ -1357,17 +1384,30 @@
       RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
+      var result = parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
+      return RUNTIME.ffi.cases(RUNTIME.ffi.isEither, "is-Either", result, {
+        left: function(err) {
+          var exn = RUNTIME.getField(err, "exn");
+          var message = RUNTIME.getField(err, "message");
+          console.error(message);
+          RUNTIME.raise(exn);
+        },
+        right: function(ast) {
+          return ast;
+        }
+      });
+    }
+
+    function maybeParsePyret(data, fileName) {
+      RUNTIME.ffi.checkArity(2, arguments, "maybe-surface-parse");
+      RUNTIME.checkString(data);
+      RUNTIME.checkString(fileName);
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
-    return RUNTIME.makeObject({
-      'provide-plus-types': RUNTIME.makeObject({
-        'values': RUNTIME.makeObject({
-          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse")
-        }),
-        'types': {}
-      }),
-      answer: NAMESPACE.get("nothing")
-    });
+    return RUNTIME.makeModuleReturn({
+          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse"),
+          'maybe-surface-parse': RUNTIME.makeFunction(maybeParsePyret, "maybe-surface-parse"),
+        }, {});
   }
 })

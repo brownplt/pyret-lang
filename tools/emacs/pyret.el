@@ -1025,6 +1025,24 @@ is used to limit the scan."
                    ((> (pyret-indent-vars cur-opened) 0) (decf (pyret-indent-vars cur-opened)))
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
                    (t (incf (pyret-indent-vars cur-closed)))))
+                 ((equal h 'provide)
+                  (cond
+                   ((> (pyret-indent-vars cur-opened) 0) (decf (pyret-indent-vars cur-opened)))
+                   ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
+                   ;; NOTE (Philip): I dislike this 'cur-closed' and
+                   ;;                'defered-closed' business. Unless
+                   ;;                I'm just not seeing it, I can't
+                   ;;                express the idea that the line should
+                   ;;                act like 'cur-closed' was incremented
+                   ;;                if 'end' is the only thing on the
+                   ;;                line, and 'defered-closed' was
+                   ;;                incremented otherwise; playing
+                   ;;                with some edge cases would seem
+                   ;;                to indicate that this is the
+                   ;;                prefered behavior. Nevertheless,
+                   ;;                I've relegated my concerns to this
+                   ;;                tirade.
+                   (t (incf (pyret-indent-vars cur-closed)))))
                  ;; Things that are counted and closeable by end
                  ((or (equal h 'fun) (equal h 'when) (equal h 'for) (equal h 'if) (equal h 'block) (equal h 'let))
                   (cond

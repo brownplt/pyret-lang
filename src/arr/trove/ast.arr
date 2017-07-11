@@ -22,6 +22,7 @@ fold = lists.fold
 type Option = option.Option
 some = option.some
 none = option.none
+is-none = option.is-none
 
 type Loc = S.Srcloc
 
@@ -189,6 +190,10 @@ fun MakeName(start):
 end
 
 global-names = MakeName(0)
+
+data AppInfo:
+  | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
+end
 
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>, blocky :: Boolean) -> PP.PPrintDoc:
@@ -464,9 +469,14 @@ data DefinedValue:
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
+  | s-defined-var(name :: String, id :: Name) with:
+    method label(self): "s-defined-var" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id.toname()))
+    end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(_): raise("No visitor field for " + self.label()) end)
   end
 end
 data DefinedType:
@@ -565,6 +575,7 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ) with:
@@ -773,6 +784,7 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ) with:
@@ -789,6 +801,7 @@ data Expr:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ) with:
@@ -884,6 +897,14 @@ data Expr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
+  | s-app-enriched(l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo) with:
+    # this is used only in the step before transforming the program to ANF
+    method label(self): "s-app" end,
+    method tosource(self):
+      PP.group(self._fun.tosource()
+          + PP.parens(PP.nest(INDENT,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())))))
+    end
   | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
     method label(self): "s-prim-app" end,
     method tosource(self):
@@ -938,10 +959,10 @@ data Expr:
   | s-get-bang(l :: Loc, obj :: Expr, field :: String) with:
     method label(self): "s-get-bang" end,
     method tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
-  | s-bracket(l :: Loc, obj :: Expr, field :: Expr) with:
+  | s-bracket(l :: Loc, obj :: Expr, key :: Expr) with:
     method label(self): "s-bracket" end,
     method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
-        PP.surround(INDENT, 0, PP.lbrack, self.field.tosource(), PP.rbrack))
+        PP.surround(INDENT, 0, PP.lbrack, self.key.tosource(), PP.rbrack))
     end
   | s-data(
       l :: Loc,
@@ -950,6 +971,7 @@ data Expr:
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
       ) with:
     method label(self): "s-data" end,
@@ -983,6 +1005,7 @@ data Expr:
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
     ) with:
     method label(self): "s-data-expr" end,
@@ -1045,7 +1068,7 @@ data Expr:
       end
     end
   | s-reactor(l :: Loc, fields :: List<Member>) with:
-    method label(self): "s-table-extend" end,
+    method label(self): "s-reactor" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.str("reactor: end"),
         PP.str("reactor:"), PP.commabreak, PP.str("end"), self.fields.map(_.tosource()))
@@ -1090,12 +1113,12 @@ data Expr:
     end
   | s-table-order(l :: Loc,
       table   :: Expr,
-      ordering :: ColumnSort) with:
+      ordering :: List<ColumnSort>) with:
     method label(self): "s-table-order" end,
     method tosource(self):
       PP.surround(INDENT, 1,
         PP.flow([list: str-order, self.table.tosource() + str-colon]),
-        self.ordering.tosource(),
+        PP.flow-map(PP.commabreak, _.tosource(), self.ordering),
         str-end)
     end
   | s-table-filter(l :: Loc,
@@ -1201,7 +1224,7 @@ data Bind:
         end
       end
     end,
-    method label(self): "s_bind" end
+    method label(self): "s-bind" end
   | s-tuple-bind(l :: Loc, fields :: List<Bind>, as-name :: Option<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
@@ -1239,6 +1262,7 @@ data Member:
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ) with:
@@ -1373,7 +1397,7 @@ data VariantMemberType:
     method tosource(self): PP.mt-doc end
   | s-mutable with:
     method label(self): "s-mutable" end,
-    method tosource(self): PP.str("mutable ") end
+    method tosource(self): PP.str("ref ") end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1584,9 +1608,13 @@ data Ann:
     method label(self): "a-arrow" end,
     method tosource(self):
       ann = PP.separate(str-space,
-        [list: PP.separate(PP.commabreak, self.args.map(_.tosource()))] + [list: str-arrow, self.ret.tosource()])
-      if (self.use-parens): PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
-      else: ann
+        [list:
+          PP.separate(PP.commabreak, self.args.map(_.tosource())),
+          str-arrow, self.ret.tosource()])
+      if self.use-parens:
+        PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else:
+        ann
       end
     end,
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
@@ -1613,7 +1641,7 @@ data Ann:
     end,
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     method label(self): "a-pred" end,
-    method tosource(self): self.ann.tosource() + PP.parens(self.exp.tosource()) end,
+    method tosource(self): self.ann.tosource() + str-percent + PP.parens(self.exp.tosource()) end,
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     method label(self): "a-dot" end,
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
@@ -1652,7 +1680,7 @@ fun binding-type-ids(stmt) -> List<Name>:
   cases(Expr) stmt:
     | s-newtype(l, name, _) => [list: {bind-type: "normal", name: name}]
     | s-type(l, name, params,  _) => [list: {bind-type: "normal", name: name}]
-    | s-data(l, name, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
+    | s-data(l, name, _, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
     | else => empty
   end
 end
@@ -1689,8 +1717,8 @@ fun binding-ids(stmt) -> List<Name>:
     | s-let(_, b, _, _) => bind-ids(b)
     | s-var(_, b, _) => bind-ids(b)
     | s-rec(_, b, _) => bind-ids(b)
-    | s-fun(l, name, _, _, _, _, _, _, _) => [list: s-name(l, name)]
-    | s-data(l, name, _, _, variants, _, _) =>
+    | s-fun(l, name, _, _, _, _, _, _, _, _) => [list: s-name(l, name)]
+    | s-data(l, name, _, _, variants, _, _, _) =>
       s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
     | else => [list: ]
   end
@@ -1740,6 +1768,9 @@ default-map-visitor = {
 
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
+  end,
+  method s-defined-var(self, name, id):
+    s-defined-var(name, id.visit(self))
   end,
   method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
@@ -1861,8 +1892,8 @@ default-map-visitor = {
     s-user-block(l, body.visit(self))
   end,
 
-  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
-    s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
+  method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    s-fun(l, name, params, args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), _check-loc, self.option(_check), blocky)
   end,
 
   method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
@@ -1949,6 +1980,10 @@ default-map-visitor = {
     s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    s-check-expr(l, expr.visit(self), ann.visit(self))
+  end,
+
   method s-paren(self, l :: Loc, expr :: Expr):
     s-paren(l, expr.visit(self))
   end,
@@ -1962,10 +1997,11 @@ default-map-visitor = {
       ann :: Ann,
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ):
-    s-lam(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
+    s-lam(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), _check-loc, self.option(_check), blocky)
   end,
   method s-method(
       self,
@@ -1976,10 +2012,11 @@ default-map-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ):
-    s-method(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
+    s-method(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), _check-loc, self.option(_check), blocky)
   end,
   method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(l, supe.visit(self), fields.map(_.visit(self)))
@@ -2020,6 +2057,9 @@ default-map-visitor = {
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(l, _fun.visit(self), args.map(_.visit(self)))
   end,
+  method s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo):
+    s-app-enriched(l, _fun.visit(self), args.map(_.visit(self)), app-info)
+  end,
   method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
     s-prim-app(l, _fun, args.map(_.visit(self)))
   end,
@@ -2059,8 +2099,8 @@ default-map-visitor = {
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(l, obj.visit(self), field)
   end,
-  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s-bracket(l, obj.visit(self), field.visit(self))
+  method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+    s-bracket(l, obj.visit(self), key.visit(self))
   end,
   method s-data(
       self,
@@ -2070,6 +2110,7 @@ default-map-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
     ):
     s-data(
@@ -2079,6 +2120,7 @@ default-map-visitor = {
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
+        _check-loc,
         self.option(_check)
       )
   end,
@@ -2091,6 +2133,7 @@ default-map-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
     ):
     s-data-expr(
@@ -2101,6 +2144,7 @@ default-map-visitor = {
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
+        _check-loc,
         self.option(_check)
       )
   end,
@@ -2134,6 +2178,7 @@ default-map-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ):
@@ -2145,6 +2190,7 @@ default-map-visitor = {
       ann.visit(self),
       doc,
       body.visit(self),
+      _check-loc,
       self.option(_check),
       blocky
       )
@@ -2192,8 +2238,8 @@ default-map-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(l, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(l, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(l, column.visit(self), table.visit(self))
@@ -2269,6 +2315,9 @@ default-iter-visitor = {
 
   method s-defined-value(self, name, val):
     val.visit(self)
+  end,
+  method s-defined-var(self, name, id):
+    id.visit(self)
   end,
   method s-defined-type(self, name, typ):
     typ.visit(self)
@@ -2391,7 +2440,7 @@ default-iter-visitor = {
     body.visit(self)
   end,
 
-  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
+  method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
     lists.app(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
@@ -2480,6 +2529,10 @@ default-iter-visitor = {
     self.option(refinement) and left.visit(self) and self.option(right)
   end,
 
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    expr.visit(self) and ann.visit(self)
+  end,
+
   method s-paren(self, l :: Loc, expr :: Expr):
     expr.visit(self)
   end,
@@ -2493,6 +2546,7 @@ default-iter-visitor = {
       ann :: Ann,
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
       ):
@@ -2508,6 +2562,7 @@ default-iter-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
       ):
@@ -2591,8 +2646,8 @@ default-iter-visitor = {
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     obj.visit(self)
   end,
-  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    obj.visit(self) and field.visit(self)
+  method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+    obj.visit(self) and key.visit(self)
   end,
   method s-data(
       self,
@@ -2602,6 +2657,7 @@ default-iter-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
       ):
     lists.all(_.visit(self), params)
@@ -2619,6 +2675,7 @@ default-iter-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
       ):
     namet.visit(self)
@@ -2658,6 +2715,7 @@ default-iter-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
       ):
@@ -2710,8 +2768,8 @@ default-iter-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    table.visit(self)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    table.visit(self) and ordering.all(_.visit(self))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     column.visit(self) and table.visit(self)
@@ -2793,6 +2851,9 @@ dummy-loc-visitor = {
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
+  method s-defined-var(self, name, id):
+    s-defined-var(name, id.visit(self))
+  end,
   method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
   end,
@@ -2846,7 +2907,7 @@ dummy-loc-visitor = {
     s-provide-none(dummy-loc)
   end,
   method s-provide-types(self, l, anns):
-    s-provide(dummy-loc, anns.map(_.visit(self)))
+    s-provide-types(dummy-loc, anns.map(_.visit(self)))
   end,
   method s-provide-types-all(self, l):
     s-provide-types-all(dummy-loc)
@@ -2914,8 +2975,8 @@ dummy-loc-visitor = {
     s-user-block(dummy-loc, body.visit(self))
   end,
 
-  method s-fun(self, l, name, params, args, ann, doc, body, _check, blocky):
-    s-fun(dummy-loc, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
+  method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    s-fun(dummy-loc, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), if is-none(_check-loc): none else: some(dummy-loc) end, self.option(_check), blocky)
   end,
 
   method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
@@ -3015,10 +3076,11 @@ dummy-loc-visitor = {
       ann :: Ann,
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ):
-    s-lam(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
+    s-lam(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), if is-none(_check): none else: some(dummy-loc) end, self.option(_check), blocky)
   end,
   method s-method(
       self,
@@ -3029,10 +3091,11 @@ dummy-loc-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ):
-    s-method(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), self.option(_check), blocky)
+    s-method(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), if is-none(_check-loc): none else: some(dummy-loc) end, self.option(_check), blocky)
   end,
   method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(dummy-loc, supe.visit(self), fields.map(_.visit(self)))
@@ -3106,8 +3169,8 @@ dummy-loc-visitor = {
   method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
     s-get-bang(dummy-loc, obj.visit(self), field)
   end,
-  method s-bracket(self, l :: Loc, obj :: Expr, field :: Expr):
-    s-bracket(dummy-loc, obj.visit(self), field.visit(self))
+  method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+    s-bracket(dummy-loc, obj.visit(self), key.visit(self))
   end,
   method s-data(
       self,
@@ -3117,6 +3180,7 @@ dummy-loc-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
     ):
     s-data(
@@ -3126,6 +3190,7 @@ dummy-loc-visitor = {
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
+        if is-none(_check-loc): none else: some(dummy-loc) end,
         self.option(_check)
       )
   end,
@@ -3138,6 +3203,7 @@ dummy-loc-visitor = {
       mixins :: List<Expr>,
       variants :: List<Variant>,
       shared-members :: List<Member>,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>
     ):
     s-data-expr(
@@ -3148,6 +3214,7 @@ dummy-loc-visitor = {
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
         shared-members.map(_.visit(self)),
+        if is-none(_check-loc): none else: some(dummy-loc) end,
         self.option(_check)
       )
   end,
@@ -3181,6 +3248,7 @@ dummy-loc-visitor = {
       ann :: Ann, # return type
       doc :: String,
       body :: Expr,
+      _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
     ):
@@ -3192,6 +3260,7 @@ dummy-loc-visitor = {
       ann.visit(self),
       doc,
       body.visit(self),
+      if is-none(_check-loc): none else: some(dummy-loc) end,
       self.option(_check),
       blocky
       )
@@ -3239,8 +3308,8 @@ dummy-loc-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(dummy-loc, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(dummy-loc, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(dummy-loc, column.visit(self), table.visit(self))

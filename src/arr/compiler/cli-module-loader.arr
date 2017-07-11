@@ -12,6 +12,8 @@ import string-dict as SD
 import render-error-display as RED
 import file as F
 import filelib as FS
+import error as ERR
+import system as SYS
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -307,32 +309,57 @@ fun compile(path, options):
   compiled
 end
 
-fun run(path, options):
-  prog = build-program(path, options)
-  result = L.run-program(R.make-runtime(), L.empty-realm(), prog.js-ast.to-ugly-source(), options)
-  if L.is-success-result(result):
-    print(L.render-check-results(result))
-  else:
-    print(L.render-error-message(result))
+fun handle-compilation-errors(problems, options) block:
+  for lists.each(e from problems) block:
+    options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
+    options.log-error("\n")
+  end
+  raise("There were compilation errors")
+end
+
+fun propagate-exit(result) block:
+  when L.is-exit(result):
+    code = L.get-exit-code(result)
+    SYS.exit(code)
+  end
+  when L.is-exit-quiet(result):
+    code = L.get-exit-code(result)
+    SYS.exit-quiet(code)
   end
 end
 
-fun build-program(path, options) block:
+fun run(path, options, subsequent-command-line-arguments):
+  stats = SD.make-mutable-string-dict()
+  maybe-program = build-program(path, options, stats)
+  cases(Either) maybe-program block:
+    | left(problems) =>
+      handle-compilation-errors(problems, options)
+    | right(program) =>
+      command-line-arguments = link(path, subsequent-command-line-arguments)
+      result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options, command-line-arguments)
+      if L.is-success-result(result):
+        L.render-check-results(result)
+      else:
+        _ = propagate-exit(result)
+        L.render-error-message(result)
+      end
+  end
+end
+
+fun build-program(path, options, stats) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
 
-  print-progress = lam(s):
+  print-progress-clearing = lam(s, to-clear):
     when options.display-progress:
-      print(s)
+      options.log(s, to-clear)
     end
   end
+  print-progress = lam(s): print-progress-clearing(s, none) end
   var str = "Gathering dependencies..."
   fun clear-and-print(new-str) block:
-    print-progress("\r")
-    print-progress(string-repeat(" ", string-length(str)))
-    print-progress("\r")
+    print-progress-clearing(new-str, some(string-length(str)))
     str := new-str
-    print-progress(str)
   end
   print-progress(str)
   base-module = CS.dependency("file", [list: path])
@@ -351,16 +378,21 @@ fun build-program(path, options) block:
   cached-modules = starter-modules.count-now()
   var num-compiled = cached-modules
   shadow options = options.{
-    compile-module: true,
     method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + ": " + locator.name())
     end,
-    method on-compile(_, locator, loadable) block:
+    method on-compile(_, locator, loadable, trace) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
+      when options.collect-times:
+        comp = for map(stage from trace):
+          stage.name + ": " + tostring(stage.time) + "ms"
+        end
+        stats.set-now(locator.name(), comp)
+      end
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
@@ -372,25 +404,21 @@ fun build-program(path, options) block:
       else:
         cases(CL.Loadable) loadable:
           | module-as-string(prov, env, rp) =>
-            CL.module-as-string(prov, env, JSP.ccp-file(module-path))
+            CL.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
           | else => loadable
         end
       end
     end
   }
-
   CL.compile-standalone(wl, starter-modules, options)
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
-  maybe-program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) => 
-      for lists.each(e from problems) block:
-        print-error(RED.display-to-string(e.render-reason(), torepr, empty))
-        print-error("\n")
-      end
-      raise("There were compilation errors")
+      handle-compilation-errors(problems, options)
     | right(program) =>
       config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))
@@ -398,19 +426,30 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
       end
 
-      MS.make-standalone(program.natives, program.js-ast, JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+      when options.collect-times: stats.set-now("standalone", time-now()) end
+      ans = MS.make-standalone(program.natives, program.js-ast,
+        JSON.j-obj(config.freeze()).serialize(), options.standalone-file)
+      when options.collect-times block:
+        standalone-end = time-now() - stats.get-value-now("standalone")
+        stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])
+        for SD.each-key-now(key from stats):
+          print(key + ": \n" + stats.get-value-now(key).join-str(", \n") + "\n")
+        end
+      end
+      ans
   end
 end
 
 fun build-require-standalone(path, options):
-  program = build-program(path, options)
+  stats = SD.make-mutable-string-dict()
+  program = build-program(path, options, stats)
 
   natives = j-list(true, for C.map_list(n from program.natives): n end)
 
   define-name = j-id(A.s-name(A.dummy-loc, "define"))
 
   prog = j-block([clist:
-      j-app(define-name, [clist: natives, j-fun([clist:],
+      j-app(define-name, [clist: natives, j-fun(J.next-j-fun-id(), [clist:],
         j-block([clist:
           j-return(program.js-ast)
         ]))

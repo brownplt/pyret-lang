@@ -94,6 +94,16 @@ data Srcloc:
         self
       end
     end,
+    method upto-end(self, other :: Srcloc%(is-srcloc)):
+      # Note: assumes that both locations are from same file
+      if self.start-char <= other.end-char:
+        srcloc(self.source,
+          self.start-line, self.start-column, self.start-char,
+          other.end-line, other.end-column, other.end-char)
+      else:
+        self
+      end
+    end,
     method is-builtin(self): false end
 sharing:
   method after(self, other): other.before(self) end

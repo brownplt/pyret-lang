@@ -140,8 +140,13 @@ sharing:
   method add-binding(self, term-key :: String, assigned-type :: Type) -> Context:
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.set(term-key, assigned-type), self.constraints, self.info)
   end,
+  method remove-binding(self, term-key :: String) -> Context:
+    current-type = self.binds.get-value(term-key)
+    new-info = tc-info(self.info.types.set(term-key, current-type), self.info.aliases, self.info.data-types)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.remove(term-key), self.constraints, new-info)
+  end,
   method add-dict-to-bindings(self, dict :: SD.StringDict<Type>) -> Context:
-    new-binds = dict.keys-list().foldl(lam(key, bindings):
+    new-binds = dict.fold-keys(lam(key, bindings):
       bindings.set(key, dict.get-value(key))
     end, self.binds)
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, self.constraints, self.info)
@@ -168,13 +173,13 @@ sharing:
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-level(), self.info)
   end,
   method solve-level(self) -> FoldResult<ConstraintSolution>:
-    self.constraints.solve-level(self).bind(lam({new-system; solution}, context):
+    self.constraints.solve-level(self).bind(lam({new-system; solution}, context) block:
       fold-result(solution, context.set-constraints(new-system))
     end)
   end,
   # this method calls generalize as it will only ever be called on let-bound bindings
   method substitute-in-binds(self, solution :: ConstraintSolution):
-    new-binds = self.binds.keys-list().foldl(lam(key, binds):
+    new-binds = self.binds.fold-keys(lam(key, binds):
       bound-type = binds.get-value(key)
       binds.set(key, solution.generalize(solution.apply(bound-type)))
     end, self.binds)
@@ -271,7 +276,7 @@ sharing:
         | t-bot(_, _) =>
           {typ; var-mapping}
         | t-record(fields, l, inferred) =>
-          {new-fields; fields-mapping} = fields.keys-list().foldr(lam(key, {new-fields; fields-mapping}):
+          {new-fields; fields-mapping} = fields.fold-keys(lam(key, {new-fields; fields-mapping}):
             field-typ = fields.get-value(key)
             {new-typ; typ-mapping} = collect-vars(field-typ, fields-mapping)
             {new-fields.set(key, new-typ); typ-mapping}
@@ -309,7 +314,7 @@ sharing:
       end
     end
     {new-typ; vars-mapping} = collect-vars(typ, [string-dict: ])
-    vars = vars-mapping.keys-list().map(lam(key): vars-mapping.get-value(key) end)
+    vars = vars-mapping.map-keys(lam(key): vars-mapping.get-value(key) end)
     if is-empty(vars): typ else: t-forall(vars, new-typ, typ.l, false) end
   end
 end
@@ -397,7 +402,7 @@ sharing:
     end
   end,
   method add-level(self):
-    constraint-system(empty-list-set, empty, empty, SD.make-string-dict(), SD.make-string-dict(), self)
+    constraint-system(empty-tree-set, empty, empty, SD.make-string-dict(), SD.make-string-dict(), self)
   end,
   method solve-level-helper(self, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     solve-helper-constraints(self, solution, context).bind(lam({system; shadow solution}, shadow context):
@@ -411,19 +416,20 @@ sharing:
   method solve-level(self, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     cases(ConstraintSystem) self:
       | no-constraints =>
-        fold-result({self; constraint-solution(empty-list-set, [string-dict: ])}, context)
+        fold-result({self; constraint-solution(empty-tree-set, [string-dict: ])}, context)
       | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
         # introduce a half level so any constraints depending on test inference can be solved after test inference
         shadow next-system = next-system.add-level()
-        {shadow variables; shadow next-system} = example-types.keys-list().foldr(lam(key, {shadow variables; shadow next-system}):
+        {shadow variables; shadow next-system} = example-types.fold-keys(lam(key, {shadow variables; shadow next-system}):
           {existential; _; _; _} = example-types.get-value(key)
           {variables.remove(existential); next-system.add-variable(existential)}
         end, {variables; next-system})
         system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system)
-        system.solve-level-helper(constraint-solution(empty-list-set, [string-dict: ]), context).bind(lam({shadow system; solution}, shadow context):
+        system.solve-level-helper(constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow system; solution}, shadow context):
           # This is solving the level introduced above
           shadow system = system.next-system.add-variable-set(system.variables)
           system.solve-level-helper(solution, context).bind(lam({shadow system; shadow solution}, shadow context):
+            shadow solution = constraint-solution(variables, solution.substitutions)
             cases(ConstraintSystem) system:
               | no-constraints =>
                 fold-result({system; solution}, context)
@@ -449,10 +455,10 @@ fun substitute-in-constraints(new-type :: Type, type-var :: Type, constraints ::
 end
 
 fun substitute-in-field-constraints(new-type :: Type, type-var :: Type, field-constraints :: StringDict<{Type; StringDict<List<Type>>}>):
-  field-constraints.keys-list().foldr(lam(key, new-constraints):
+  field-constraints.fold-keys(lam(key, new-constraints):
     {constraint-type; field-mappings} = field-constraints.get-value(key)
     new-constraint-type = constraint-type.substitute(new-type, type-var)
-    new-field-mappings = field-mappings.keys-list().foldr(lam(field-name, new-field-mappings):
+    new-field-mappings = field-mappings.fold-keys(lam(field-name, new-field-mappings):
       types = field-mappings.get-value(field-name)
       new-types = types.map(lam(typ): typ.substitute(new-type, type-var) end)
       new-field-mappings.set(field-name, new-types)
@@ -462,7 +468,7 @@ fun substitute-in-field-constraints(new-type :: Type, type-var :: Type, field-co
 end
 
 fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>}>):
-  example-types.keys-list().foldr(lam(key, new-example-types):
+  example-types.fold-keys(lam(key, new-example-types):
     {existential; info; typs} = example-types.get-value(key)
     new-example-types.set(key, {existential; info; typs.map(lam(typ): typ.substitute(new-type, type-var) end)})
   end, [string-dict: ])
@@ -482,7 +488,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                         field-constraints,
                         example-types,
                         system.next-system),
-      constraint-solution(empty-list-set, substitutions),
+      constraint-solution(empty-tree-set, substitutions),
       context)
   end
 
@@ -546,7 +552,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                 shadow b-onto = foldr2(lam(shadow b-onto, variable, exists):
                   b-onto.substitute(exists, variable)
                 end, b-onto, b-introduces, new-existentials)
-                shadow system = system.add-variable-set(list-to-list-set(new-existentials))
+                shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
                 solve-helper-constraints(system.add-constraint(subtype, b-onto), solution, context)
               | else =>
                 cases(Type) subtype:
@@ -643,7 +649,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                     shadow a-onto = foldr2(lam(shadow a-onto, variable, exists):
                       a-onto.substitute(exists, variable)
                     end, a-onto, a-introduces, new-existentials)
-                    shadow system = system.add-variable-set(list-to-list-set(new-existentials))
+                    shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
                     solve-helper-constraints(system.add-constraint(a-onto, supertype), solution, context)
                   | t-ref(a-typ, a-loc, _) =>
                     cases(Type) supertype:
@@ -683,7 +689,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
       shadow refinement-constraints = partitioned.is-true
       normal-constraints = partitioned.is-false
       if is-link(normal-constraints):
-        shadow system = constraint-system(variables, normal-constraints, field-constraints, example-types, next-system)
+        shadow system = constraint-system(variables, normal-constraints, refinement-constraints, field-constraints, example-types, next-system)
         solve-helper-constraints(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
           solve-helper-refinements(system, solution, context)
         end)
@@ -700,7 +706,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
             end
           end, [string-dict: ])
 
-          {temp-system; temp-variables} = mappings.keys-list().foldl(lam(key, {temp-system; temp-variables}):
+          {temp-system; temp-variables} = mappings.fold-keys(lam(key, {temp-system; temp-variables}):
             {existential; refinements} = mappings.get-value(key)
             temp-variable = new-existential(existential.l, false)
             shadow temp-system = temp-system.add-variable(temp-variable)
@@ -713,23 +719,23 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
               end
             end, temp-system)
             {temp-system; temp-variables.add(temp-variable.key())}
-          end, {system; empty-list-set})
+          end, {system; empty-tree-set})
 
-          solve-helper-constraints(temp-system, constraint-solution(empty-list-set, [string-dict: ]), context).bind(lam({shadow temp-system; temp-solution}, shadow context):
+          solve-helper-constraints(temp-system, constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow temp-system; temp-solution}, shadow context):
             cases(ConstraintSolution) temp-solution:
               | constraint-solution(_, temp-substitutions) =>
                 temp-keys-set = temp-substitutions.keys()
                 shadow temp-keys-set = temp-keys-set.difference(temp-variables)
                 # TODO(MATT): make this more robust
                 if (temp-keys-set.size() > 0): # or not(temp-system.refinement-constraints.length() == refinement-constraints.length()): # some change in refinement constraints
-                  shadow solution = constraint-solution(empty-list-set, temp-substitutions.keys-list().foldl(lam(key, shadow substitutions):
+                  shadow solution = constraint-solution(empty-tree-set, temp-substitutions.fold-keys(lam(key, shadow substitutions):
                     substitutions.set(key, temp-substitutions.get-value(key))
                   end, solution.substitutions))
                   solve-helper-refinements(temp-system, solution, context)
                 else:
                   # merge all constraints for each existential variable
                   # same data-refinements get merged otherwise goes to the inner data type
-                  shadow substitutions = mappings.keys-list().foldl(lam(key, shadow substitutions):
+                  shadow substitutions = mappings.fold-keys(lam(key, shadow substitutions):
                     {exists; refinements} = mappings.get-value(key)
                     merged-type = refinements.rest.foldl(lam(refinement, merged):
                       cases(Type) merged:
@@ -748,7 +754,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
                     end, refinements.first)
                     substitutions.set(exists.key(), {merged-type; exists})
                   end, solution.substitutions)
-                  fold-result({constraint-system(variables, empty, empty, field-constraints, example-types, next-system); constraint-solution(empty-list-set, substitutions)}, context)
+                  fold-result({constraint-system(variables, empty, empty, field-constraints, example-types, next-system); constraint-solution(empty-tree-set, substitutions)}, context)
                 end
             end
           end)
@@ -791,7 +797,7 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
                 if variables.member(typ):
                   fold-errors([list: C.unable-to-infer(typ.l)])
                 else:
-                  shadow next-system = field-mappings.keys-list().foldl(lam(field-name, shadow next-system):
+                  shadow next-system = field-mappings.fold-keys(lam(field-name, shadow next-system):
                     field-types = field-mappings.get-value(field-name)
                     field-types.foldl(lam(field-type, shadow next-system):
                       next-system.add-field-constraint(typ, field-name, field-type)
@@ -835,13 +841,13 @@ fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolu
         partitioned = partition(lam(typ): typ.free-variables().size() == 0 end, fun-examples)
         complete-examples = partitioned.is-true
         incomplete-examples = partitioned.is-false
-        cases(List<Type>) complete-examples block:
+        cases(List<Type>) complete-examples:
           | link(first, rest) =>
             generalized = rest.foldr(generalize-type, first)
             first-structure = find-structure(first)
             common-structure = rest.foldr(find-common-structure, first-structure)
             new-type = maintain-common-structure(common-structure, generalized)
-            fold-result({system; constraint-solution(empty-list-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
+            fold-result({system; constraint-solution(empty-tree-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
           | empty => fold-errors([list: C.unann-failed-test-inference(existential.l)])
         end
       end, example-types.keys-list(), context, {system; solution})
@@ -966,8 +972,7 @@ end
 
 fun find-common-structure(typ :: Type, structure :: Structure) -> Structure:
   new-structure = find-structure(typ)
-  new-keys = new-structure.keys-list()
-  new-keys.foldr(lam(new-key, result-structure):
+  new-structure.fold-keys(lam(new-key, result-structure):
     cases(Option<Set<Path>>) structure.get(new-key):
       | none => result-structure
       | some(old-set) =>
@@ -1033,7 +1038,7 @@ fun flatten-tree-with-paths(typ :: Type) -> List<{Type; Path}>:
       | t-bot(_, _) =>
         [list: {typ; current-path}]
       | t-record(fields, _, _) =>
-        field-pairs = fields.keys-list().foldr(lam(field-name, pairs):
+        field-pairs = fields.fold-keys(lam(field-name, pairs):
           pairs.append(_flatten-tree-with-paths(fields.get-value(field-name), current-path.append([list: record-path(field-name)])))
         end, empty)
         field-pairs.append([list: {typ; current-path}])
@@ -1178,7 +1183,7 @@ fun instantiate-forall(typ :: Type, context :: Context) -> FoldResult<Type>:
         shadow onto = foldr2(lam(shadow onto, a-var, a-exists):
           onto.substitute(a-exists, a-var)
         end, onto, introduces, new-existentials)
-        shadow context = context.add-variable-set(list-to-list-set(new-existentials))
+        shadow context = context.add-variable-set(list-to-tree-set(new-existentials))
         fold-result(onto, context)
       end)
     | else =>
@@ -1246,7 +1251,7 @@ fun instantiate-data-type(typ :: Type, context :: Context) -> FoldResult<DataTyp
       | t-data-refinement(data-type, variant-name, _, _) =>
         instantiate-data-type(data-type, context).bind(lam(shadow data-type, shadow context):
           variant = data-type.get-variant-value(variant-name)
-          new-with-fields = variant.with-fields.keys-list().foldl(lam(key, new-with-fields):
+          new-with-fields = variant.with-fields.fold-keys(lam(key, new-with-fields):
             new-with-fields.set(key, variant.with-fields.get-value(key))
           end, data-type.fields)
           new-fields = variant.fields.foldl(lam({field-name; field-type}, new-fields):
@@ -1267,7 +1272,7 @@ fun instantiate-data-type(typ :: Type, context :: Context) -> FoldResult<DataTyp
   end
 
   helper(typ, context).bind(lam(data-type, shadow context):
-    if data-type.params.length() == 0:
+    if is-empty(data-type.params):
       fold-result(data-type, context)
     else:
       fold-errors([list: C.cant-typecheck(tostring(typ) + " expected " + tostring(data-type.params.length()) + " type arguments, but received none.", typ.l)])

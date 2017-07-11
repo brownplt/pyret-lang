@@ -1,4 +1,4 @@
-define(["jglr/jglr"], function(E) {
+define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
@@ -259,7 +259,7 @@ define(["jglr/jglr"], function(E) {
     {name: "SOURCECOLON", val: new RegExp(kw("source:"), STICKY_REGEXP)},
     {name: "REACTOR", val: new RegExp(kw("reactor"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
-    {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
+    {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},

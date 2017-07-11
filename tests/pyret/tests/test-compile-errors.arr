@@ -24,6 +24,11 @@ check:
     cok("fun f(): 5 \n ... end") is empty
     cok("fun f(): 5 \n ... 3 end") is empty
   end
+
+  check "provides":
+    c("provide _ end") satisfies CS.is-non-object-provide
+    c("provide a end") satisfies CS.is-non-object-provide
+  end
   
   check "underscores":
     c("a = _") satisfies CS.is-underscore-as-expr
@@ -36,7 +41,6 @@ check:
     c("lam(): _ end") satisfies CS.is-underscore-as-expr
     c("method(self): _ end") satisfies CS.is-underscore-as-expr
     c("{x: _}") satisfies CS.is-underscore-as-expr
-    c("provide _ end") satisfies CS.is-underscore-as-expr
 
     c("a :: _ = 5") satisfies CS.is-underscore-as-ann
     c("a :: _.List = 5") satisfies CS.is-underscore-as-ann

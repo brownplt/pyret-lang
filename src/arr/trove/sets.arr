@@ -1,9 +1,9 @@
 #lang pyret/library
 
 provide {
-  set: list-set-maker,
-  list-set: list-set-maker,
-  tree-set: tree-set-maker,
+  set: list-set,
+  list-set: list-set,
+  tree-set: tree-set,
   empty-set: empty-list-set,
   empty-list-set: empty-list-set,
   empty-tree-set: empty-tree-set,
@@ -289,24 +289,6 @@ data Set:
           end
       end
     end,
-    method _tostring(self, shadow tostring):
-      "[set: " +
-      self.elems.foldl(lam(elem, acc):
-          if acc == "": tostring(elem)
-          else: tostring(elem) + ", " + acc
-          end
-        end, "") +
-      "]"
-    end,
-    method _torepr(self, shadow torepr):
-      "[list-set: " +
-      self.elems.foldl(lam(elem, acc):
-          if acc == "": torepr(elem)
-          else: torepr(elem) + ", " + acc
-          end
-        end, "") +
-      "]"
-    end,
     method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
 
     method fold(self, f :: (Any, Any -> Any), base :: Any):
@@ -395,24 +377,6 @@ data Set:
         | branch(v, _, _, _) =>
           pick-some(v, tree-set(t.remove(v)))
       end
-    end,
-    method _tostring(self, shadow tostring):
-      "[tree-set: " +
-      self.elems.fold(lam(acc, elem):
-          if acc == "": tostring(elem)
-          else: acc + ", " + tostring(elem)
-          end
-        end, "") +
-      "]"
-    end,
-    method _torepr(self, shadow torepr):
-      "[tree-set: " +
-      self.elems.fold(lam(acc, elem):
-          if acc == "": torepr(elem)
-          else: acc + ", " + torepr(elem)
-          end
-        end, "") +
-      "]"
     end,
     method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
 
@@ -668,7 +632,7 @@ fun makeSet5(a, b, c, d, e):
   end
 end
 
-list-set-maker = {
+shadow list-set = {
   make: arr-to-list-set,
   make0: lam(): empty-list-set end,
   make1: lam(a): list-set(link(a, empty)) end,
@@ -678,7 +642,7 @@ list-set-maker = {
   make5: lam(a, b, c, d, e): list-set(makeSet5(a, b, c, d, e)) end
 }
 
-tree-set-maker = {
+shadow tree-set = {
   make: arr-to-tree-set,
   make0: lam(): empty-tree-set end,
   make1: lam(a): empty-tree-set.add(a) end,
@@ -687,3 +651,10 @@ tree-set-maker = {
   make4: lam(a, b, c, d): empty-tree-set.add(a).add(b).add(c).add(d) end,
   make5: lam(a, b, c, d, e): empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
 }
+
+empty-set = empty-list-set
+shadow set = list-set
+shadow list-to-set = list-to-list-set
+shadow fold = set-fold
+shadow all = set-all
+shadow any = set-any

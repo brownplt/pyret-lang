@@ -75,7 +75,7 @@
                     var expanded = t.expandType(dts[k], t.expandRecord(shorthands, {}));
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, expanded)
+                      typ: t.toPyretType(RUNTIME, expanded)
                     });
                   });
                 }
@@ -100,7 +100,7 @@
 
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, expanded)
+                      typ: t.toPyretType(RUNTIME, expanded)
                     });
                   });
                 }
@@ -123,7 +123,7 @@
 
                     return RUNTIME.makeObject({
                       name: k,
-                      typ: t.toPyret(RUNTIME, expanded)
+                      value: t.bindToPyret(RUNTIME, expanded)
                     });
                   });
                 }
@@ -147,6 +147,11 @@
     }
     var O = RUNTIME.makeObject;
     return O({
+      "defined-types": {},
+      "defined-values": {
+        "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator, "builtin-raw-locator"),
+        "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString, "builtin-raw-locator-from-str")
+      },
       "provide-plus-types": O({
         types: { },
         values: O({

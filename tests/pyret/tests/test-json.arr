@@ -54,8 +54,10 @@ check "serialize":
   s("false") is "false"
   s("null") is "null"
 
-  s('{"foo": 1, "baz": true}') is
-    '{"baz": true, "foo": 1}' # should write better comparison for this
+  foo-baz = lam(st):
+    (st == '{"baz": true, "foo": 1}') or (st == '{"foo": 1, "baz": true}')
+  end
+  s('{"foo": 1, "baz": true}') satisfies foo-baz
   s('[1,2,3]') is '[1, 2, 3]'
   s('[[[]]]') is '[[[]]]'
   s('[5, null, {"hello": "world"}]') is

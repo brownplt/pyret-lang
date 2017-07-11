@@ -95,7 +95,7 @@ expr: paren-expr | id-expr | prim-expr
     | obj-expr | tuple-expr | tuple-get
     | dot-expr
     | template-expr
-#    | bracket-expr NOTE(joe): commented out until it has semantics
+    | bracket-expr  # NOTE(joe): experimental for access
     | get-bang-expr | update-expr
     | extend-expr
     | if-expr | if-pipe-expr | cases-expr
@@ -140,7 +140,9 @@ app-expr: expr app-args
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE opt-comma-binops RPAREN
-opt-comma-binops: [binop-expr (COMMA binop-expr)*]
+opt-comma-binops: [comma-binops]
+comma-binops: binop-expr (COMMA binop-expr)*
+trailing-opt-comma-binops: (comma-binops [COMMA] | )
 # app-arg-elt: binop-expr COMMA
 
 # at least one annotation must be provided
@@ -163,7 +165,7 @@ field: key COLON binop-expr
      | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
 key: NAME
 
-construct-expr: LBRACK construct-modifier binop-expr COLON opt-comma-binops RBRACK
+construct-expr: LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
 construct-modifier: | LAZY
 
 table-expr: TABLE table-headers table-rows END
@@ -182,7 +184,7 @@ reactor-expr: REACTOR COLON
 END
 
 dot-expr: expr DOT NAME
-bracket-expr: expr DOT LBRACK binop-expr RBRACK
+bracket-expr: expr LBRACK binop-expr RBRACK
 
 get-bang-expr: expr BANG NAME
 
@@ -205,7 +207,7 @@ for-expr: FOR expr PARENNOSPACE [for-bind (COMMA for-bind)*] RPAREN return-ann (
 column-order : NAME (ASCENDING|DESCENDING)
 table-select : TABLE-SELECT NAME (COMMA NAME)* FROM expr END
 table-filter : TABLE-FILTER expr [USING binding (COMMA binding)*] COLON binop-expr END
-table-order  : TABLE-ORDER  expr COLON column-order END
+table-order  : TABLE-ORDER  expr COLON column-order (COMMA column-order)* END
 table-extract: TABLE-EXTRACT NAME FROM expr END
 table-update : TABLE-UPDATE expr [USING binding (COMMA binding)*] COLON obj-fields END
 table-extend : TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON table-extend-fields END
