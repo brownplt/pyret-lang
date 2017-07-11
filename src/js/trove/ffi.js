@@ -161,11 +161,6 @@
       runtime.checkString(field);
       raise(err("field-not-found")(loc, object, runtime.makeString(field)));
     }
-    function throwConstructorSyntaxNonConstructor(exprLoc, constrLoc) {
-      checkSrcloc(exprLoc);
-      checkSrcloc(constrLoc);
-      raise(err("constructor-syntax-non-constructor")(exprLoc, constrLoc));
-    }
     function throwLookupConstructorNotObject(loc, constrName, field) {
       checkSrcloc(loc);
       runtime.checkString(constrName);
@@ -538,7 +533,6 @@
       throwInternalError: throwInternalError,
       throwSpinnakerError: throwSpinnakerError,
       throwFieldNotFound: throwFieldNotFound,
-      throwConstructorSyntaxNonConstructor: throwConstructorSyntaxNonConstructor,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
       throwLookupNonTuple: throwLookupNonTuple,
