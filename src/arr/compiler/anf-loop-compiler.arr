@@ -665,7 +665,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
                 j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0))),
       j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
           # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
-          # j-expr(j-//app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+          # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
           j-expr(j-assign(local-compiler.cur-ans, (rt-method("makeCont", cl-empty))))]))
 
   gas-check-or-comment = if is-flat:
