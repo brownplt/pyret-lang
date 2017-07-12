@@ -3060,39 +3060,32 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function eachLoop(fun, start, stop) {
       var i = start;
-      var started = false;
-      function restart(ar) {
-        if(thisRuntime.isActivationRecord(ar)) {
-          i = ar.vars[0];
-          started = ar.vars[1];
-          if (started) {
-            i = i + 1;
-          }
-        }
-        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+      function restart(_) {
+        var res = thisRuntime.nothing;
+        if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          res = thisRuntime.makeCont();
         }
-        while(true) {
-          started = true;
-          if(i >= stop) {
-            ++thisRuntime.GAS;
-            return thisRuntime.nothing;
-          }
-          var res = fun.app(i);
-
-          if (thisRuntime.isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] =
-              thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
-            return res;
-          }
-
+        while(!thisRuntime.isContinuation(res)) {
           if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }  
-          else { i = i + 1; }
+            res = thisRuntime.makeCont();
+          }
+          else {
+            if(i >= stop) {
+              ++thisRuntime.GAS;
+              // NOTE(joe): this is the one true return value/exit of the loop
+              return thisRuntime.nothing;
+            }
+            else {
+              res = fun.app(i);
+              i = i + 1;
+            }
+          }
         }
+        res.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], []);
+        return res;
       }
       return restart();
     }
