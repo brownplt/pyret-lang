@@ -5255,6 +5255,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     /** type {!PBase} */
     var builtins = makeObject({
+      // NOTE(joe): this is initialized later, in loaders
+      'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),

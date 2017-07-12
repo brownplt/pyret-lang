@@ -634,7 +634,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
           A.s-array(dummy, sanitizers)])
 
-      A.s-prim-app(l, "openTable", [list: loaded])
+      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
 
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
