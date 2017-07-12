@@ -53,23 +53,32 @@
         names.push(header[0]);
         sanitizers.push(header[1]);
       }
-      for(var i = 0; i < contents.length; ++i) {
-        runtime.checkArray(contents[i]);
-        if (contents[i].length !== headers.length) {
-          if (i === 0) {
-            runtime.ffi.throwMessageException("Contents must match header size");
-          } else {
-            runtime.ffi.throwMessageException("Contents must be rectangular");
+      return runtime.safeCall(function() {
+        return runtime.eachLoop(runtime.makeFunction(function(i) {
+          runtime.checkArray(contents[i]);
+          if (contents[i].length !== headers.length) {
+            if (i === 0) {
+              runtime.ffi.throwMessageException("Contents must match header size");
+            } else {
+              runtime.ffi.throwMessageException("Contents must be rectangular");
+            }
           }
-        }
-        for (var j = 0; j < contents[i].length; ++j) {
-          runtime.checkCellContent(contents[i][j]);
-        }
-        contents[i] = runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
-          return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
-        }), contents[i]);
-      }
-      return makeTable(names, contents);
+          // This loop is stack safe, since it's just a brand-checker
+          for (var j = 0; j < contents[i].length; ++j) {
+            runtime.checkCellContent(contents[i][j]);
+          }
+          return runtime.safeCall(function() {
+            return runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
+              return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
+            }), contents[i]);
+          }, function(new_contents_i) {
+            contents[i] = new_contents_i;
+            return runtime.nothing;
+          }, "openTable:assign-rows");
+        }), 0, contents.length);
+      }, function(_) {
+        return makeTable(names, contents);
+      }, "openTable");
     }
 
     function makeTable(headers, rows) {
