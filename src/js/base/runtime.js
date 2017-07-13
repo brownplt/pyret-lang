@@ -5248,8 +5248,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     /** type {!PBase} */
     var builtins = makeObject({
-      // NOTE(joe): this is initialized later, in loaders
+      // NOTE(joe): this is initialized later, in postLoadHooks for data-source and for table,
+      // but provided here because they show up in desugaring
       'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),
+      'as-loader-option': makeFunction(function(type, arg1, arg2) { return thisRuntime.asLoaderOption(type, arg1, arg2); }),
+
+
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),
