@@ -610,7 +610,7 @@ fun desugar-expr(expr :: A.Expr):
         cases(A.LoadTableSpec) s:
           | s-sanitize(_, name, sanitizer) =>
             # Convert to loader option
-            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"),
+            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
               [list:
                 A.s-str(dummy, "sanitizer"),
                 A.s-str(dummy, name.toname()),
