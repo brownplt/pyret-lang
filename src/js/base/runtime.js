@@ -3152,9 +3152,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var TOS = 0;
 
       var sync = options.sync || false;
-      var initialGas = thisRuntime.INITIAL_GAS;
+      var initialGas = options.initialGas || thisRuntime.INITIAL_GAS;
+      var initialRunGas = options.initialRunGas || initialGas * 10;
       thisRuntime.GAS = initialGas;
-      thisRuntime.RUNGAS = sync ? Infinity : initialGas * 10;
+      thisRuntime.RUNGAS = sync ? Infinity : initialRunGas;
 
       var threadIsCurrentlyPaused = false;
       var threadIsDead = false;
@@ -3236,7 +3237,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             }
             while(theOneTrueStackHeight > 0) {
               if(!sync && thisRuntime.RUNGAS <= 1) {
-                thisRuntime.RUNGAS = initialGas * 10;
+                thisRuntime.RUNGAS = initialRunGas;
                 TOS++;
                 // CONSOLE.log("Setting timeout to resume iter");
                 util.suspend(iter);
@@ -3267,7 +3268,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                 // console.log("BOUNCING");
                 BOUNCES++;
                 thisRuntime.GAS = initialGas;
-                thisRuntime.RUNGAS = initialGas * 10;
+                thisRuntime.RUNGAS = initialRunGas;
                 for(var i = val.stack.length - 1; i >= 0; i--) {
     //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
                   theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
@@ -3354,7 +3355,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return;
       }
       thisRuntime.GAS = initialGas;
-      thisRuntime.RUNGAS = initialGas * 10;
+      thisRuntime.RUNGAS = initialRunGas;
       iter();
     }
 
@@ -3516,8 +3517,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return v.val.exn;
     }
 
-    function runThunk(f, then) {
-      return thisRuntime.run(f, thisRuntime.namespace, {}, then);
+    function runThunk(f, then, options) {
+      return thisRuntime.run(f, thisRuntime.namespace, options || {}, then);
     }
 
     function execThunk(thunk) {
