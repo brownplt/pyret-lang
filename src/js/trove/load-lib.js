@@ -47,13 +47,22 @@
       return m;
     }
 
-    function makeModuleResult(runtimeForModule, result, realm, compileResult) {
+    function makeModuleResult(runtimeForModule, result, realm, compileResult, program) {
       return runtime.makeOpaque({
         runtime: runtimeForModule,
         result: result,
         realm: realm,
-        compileResult: compileResult
+        compileResult: compileResult,
+        program: program
       });
+    }
+
+    function getModuleResultProgram(result) {
+      return result.val.program;
+    }
+
+    function enrichStack(exn, program) {
+      return stackLib.convertExceptionToPyretStackTrace(exn, program);
     }
 
     function checkSuccess(mr, field) {
@@ -344,12 +353,12 @@
             // on in the chain of loading that stopped main from running
             result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
 
-            restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
+            restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing, program));
           }
           else {
             var finalResult = otherRuntime.makeSuccessResult(mainResult);
             finalResult.stats = result.stats;
-            restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing));
+            restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing, program));
           }
         });
       });
@@ -383,6 +392,8 @@
         types: types,
         internal: {
           makeRealm: makeRealm,
+          enrichStack: enrichStack,
+          getModuleResultProgram: getModuleResultProgram,
           getModuleResultAnswer: getModuleResultAnswer,
           getModuleResultChecks: getModuleResultChecks,
           getModuleResultTypes: getModuleResultTypes,
