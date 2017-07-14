@@ -610,7 +610,7 @@ fun desugar-expr(expr :: A.Expr):
         cases(A.LoadTableSpec) s:
           | s-sanitize(_, name, sanitizer) =>
             # Convert to loader option
-            as-option = A.s-prim-app(dummy, "asLoaderOption",
+            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
               [list:
                 A.s-str(dummy, "sanitizer"),
                 A.s-str(dummy, name.toname()),
@@ -634,7 +634,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
           A.s-array(dummy, sanitizers)])
 
-      A.s-prim-app(l, "openTable", [list: loaded])
+      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
 
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
@@ -811,7 +811,7 @@ fun desugar-expr(expr :: A.Expr):
             # Header
             A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
             # Data
-            A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
+            A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
               A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
                 A.s-let-expr(A.dummy-loc,
                   link(
@@ -849,7 +849,7 @@ fun desugar-expr(expr :: A.Expr):
           # Header
           A.s-array(A.dummy-loc,  columns.map(_.name)),
           # Data
-          A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
+          A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-array(A.dummy-loc,
                 columns.map(lam(c):
@@ -867,7 +867,7 @@ fun desugar-expr(expr :: A.Expr):
           get-table-column(table.l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
         # Table Construction
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
-          A.s-prim-app(A.dummy-loc, "raw_array_map", [list:
+          A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
@@ -902,7 +902,7 @@ fun desugar-expr(expr :: A.Expr):
           # Header
           A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
           # Data
-          A.s-prim-app(A.dummy-loc, "raw_array_filter", [list:
+          A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-filter")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-let-expr(A.dummy-loc,
                 columns.map(lam(column):

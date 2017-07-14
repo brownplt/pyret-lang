@@ -3060,39 +3060,32 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function eachLoop(fun, start, stop) {
       var i = start;
-      var started = false;
-      function restart(ar) {
-        if(thisRuntime.isActivationRecord(ar)) {
-          i = ar.vars[0];
-          started = ar.vars[1];
-          if (started) {
-            i = i + 1;
-          }
-        }
-        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+      function restart(_) {
+        var res = thisRuntime.nothing;
+        if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
+          res = thisRuntime.makeCont();
         }
-        while(true) {
-          started = true;
-          if(i >= stop) {
-            ++thisRuntime.GAS;
-            return thisRuntime.nothing;
-          }
-          var res = fun.app(i);
-
-          if (thisRuntime.isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] =
-              thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
-            return res;
-          }
-
+        while(!thisRuntime.isContinuation(res)) {
           if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }  
-          else { i = i + 1; }
+            res = thisRuntime.makeCont();
+          }
+          else {
+            if(i >= stop) {
+              ++thisRuntime.GAS;
+              // NOTE(joe): this is the one true return value/exit of the loop
+              return thisRuntime.nothing;
+            }
+            else {
+              res = fun.app(i);
+              i = i + 1;
+            }
+          }
         }
+        res.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], []);
+        return res;
       }
       return restart();
     }
@@ -5255,6 +5248,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     /** type {!PBase} */
     var builtins = makeObject({
+      // NOTE(joe): this is initialized later, in postLoadHooks for data-source and for table,
+      // but provided here because they show up in desugaring
+      'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),
+      'as-loader-option': makeFunction(function(type, arg1, arg2) { return thisRuntime.asLoaderOption(type, arg1, arg2); }),
+
+
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),

@@ -1357,12 +1357,12 @@ data RuntimeError:
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
-      ED.maybe-stack-loc(
-        if self.fun-def-loc.is-builtin():
+      ED.maybe-stack-loc(0
+        #|if self.fun-def-loc.is-builtin():
           0
         else:
           1
-        end, false,
+        end|#, false,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:

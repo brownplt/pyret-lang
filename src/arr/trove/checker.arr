@@ -291,6 +291,9 @@ data TestResult:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
+    method access-stack(self, get-stack):
+      get-stack(self.actual-exn)
+    end,
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
@@ -358,6 +361,11 @@ data TestResult:
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         ED.embed(self.actual-exn)]
+    end,
+    method access-stack(self, get-stack) block:
+      print("Thes stack is being accessed")
+      print(get-stack(self.actual-exn))
+      get-stack(self.actual-exn)
     end,
     method _output(self):
       VS.vs-constr("failure-exn",
@@ -482,6 +490,10 @@ data TestResult:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
     end
+sharing:
+  # By default, just return an empty stack.  Override this in the cases
+  # that actually have an exception to report
+  method access-stack(self, stack-getter): empty end
 end
 
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
@@ -711,8 +723,9 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
             total: s.total + 1
           }
         | else =>
+          stack = tr.access-stack(get-stack)
           m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
-            + RED.display-to-string(tr.render-reason(), torepr, empty)
+            + RED.display-to-string(tr.render-reason(), torepr, stack)
           s.{
             message: m,
             failed: s.failed + 1,

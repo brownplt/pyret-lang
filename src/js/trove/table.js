@@ -1,16 +1,18 @@
 ({
   requires: [
     { "import-type": "builtin", name: "valueskeleton" },
+    { "import-type": "builtin", name: "equality" },
     { "import-type": "builtin", name: "ffi" }
   ],
   nativeRequires: [
     "pyret-base/js/type-util"
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, VSlib, ffi, t) {
+  theModule: function(runtime, namespace, uri, VSlib, EQlib, ffi, t) {
     var get = runtime.getField;
 
     var VS = get(VSlib, "values");
+    var EQ = get(EQlib, "values");
     
     var brandTable = runtime.namedBrander("table", ["table: table brander"]);
     var annTable   = runtime.makeBranderAnn(brandTable, "Table");
@@ -53,23 +55,32 @@
         names.push(header[0]);
         sanitizers.push(header[1]);
       }
-      for(var i = 0; i < contents.length; ++i) {
-        runtime.checkArray(contents[i]);
-        if (contents[i].length !== headers.length) {
-          if (i === 0) {
-            runtime.ffi.throwMessageException("Contents must match header size");
-          } else {
-            runtime.ffi.throwMessageException("Contents must be rectangular");
+      return runtime.safeCall(function() {
+        return runtime.eachLoop(runtime.makeFunction(function(i) {
+          runtime.checkArray(contents[i]);
+          if (contents[i].length !== headers.length) {
+            if (i === 0) {
+              runtime.ffi.throwMessageException("Contents must match header size");
+            } else {
+              runtime.ffi.throwMessageException("Contents must be rectangular");
+            }
           }
-        }
-        for (var j = 0; j < contents[i].length; ++j) {
-          runtime.checkCellContent(contents[i][j]);
-        }
-        contents[i] = runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
-          return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
-        }), contents[i]);
-      }
-      return makeTable(names, contents);
+          // This loop is stack safe, since it's just a brand-checker
+          for (var j = 0; j < contents[i].length; ++j) {
+            runtime.checkCellContent(contents[i][j]);
+          }
+          return runtime.safeCall(function() {
+            return runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
+              return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
+            }), contents[i]);
+          }, function(new_contents_i) {
+            contents[i] = new_contents_i;
+            return runtime.nothing;
+          }, "openTable:assign-rows");
+        }), 0, contents.length);
+      }, function(_) {
+        return makeTable(names, contents);
+      }, "openTable");
     }
 
     function makeTable(headers, rows) {
@@ -400,25 +411,18 @@
               return neq();
             }
           }
-          for (var i = 0; i < rows.length; ++i) {
-            var selfRow = rows[i];
+          return runtime.raw_array_fold(runtime.makeFunction(function(ans, selfRow, i) {
+            if (ffi.isNotEqual(ans)) { return ans; }
             var otherRow = otherRows[i];
-            var colEqual = function(j) {
-              return function() {
-                return equals.app(selfRow[j], otherRow[j]);
-              };
-            };
-            var liftEquals = function(r) {
-              return ffi.isEqual(r);
-            };
-            for (var j = 0; j < headers.length; ++j) {
-              // XXX -- this is NOT stacksafe!
-              if (!(runtime.safeCall(colEqual(j), liftEquals))) {
-                return neq();
-              }
-            }
-          }
-          return eq();
+            return runtime.raw_array_fold(runtime.makeFunction(function(ans, selfRowJ, j) {
+              if (ffi.isNotEqual(ans)) { return ans; }
+              return runtime.safeCall(function() {
+                return equals.app(selfRowJ, otherRow[j]);
+              }, function(eqAns) {
+                return get(EQ, "equal-and").app(ans, eqAns);
+              }, "equals:combine-cells");
+            }), ans, selfRow, 0);
+          }), eq(), rows, 0);
         }),
         
         '_output': runtime.makeMethod0(function(_) {
