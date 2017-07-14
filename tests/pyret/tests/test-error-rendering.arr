@@ -60,6 +60,4 @@ f()
   # Should report the callee at line 2
   message satisfies string-contains(_, ":2:2-2:9")
 
-  print(message)
-
 end

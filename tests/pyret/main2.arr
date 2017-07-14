@@ -2,6 +2,7 @@ import file("./tests/test-strings.arr") as _
 import file("./tests/test-format.arr") as _
 import file("./tests/test-numbers.arr") as _
 import file("./tests/test-errors.arr") as _
+import file("./tests/test-error-rendering.arr") as _
 import file("./tests/test-import.arr") as _
 import file("./tests/test-sets.arr") as _
 import file("./tests/test-binops.arr") as _
