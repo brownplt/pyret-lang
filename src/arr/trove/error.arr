@@ -1306,7 +1306,7 @@ data RuntimeError:
                   else:
                     [ED.locs:]
                   end; self.fun-def-loc}
-              | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
+              | s-app(_,_,args) => {args.map(_.l); self.fun-def-loc}
               | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
               | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
               | s-method(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
