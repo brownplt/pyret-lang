@@ -167,8 +167,8 @@
 ;; String handling effectively ripped from Emacs' python.el
 
 (eval-and-compile
-  (defconst pyret-rx-constituents
-    `((string-delimiter . ,(rx (and
+  (defconst pyret-rx-constituents-1
+    `((string-delimiter-OLD . ,(rx (and
                                 ;; Match even number of backslashes.
                                 (or (not (any ?\\ ?\' ?\" ?\`)) point
                                     ;; Quotes might be preceded by a escaped quote.
@@ -177,19 +177,44 @@
                                 (* ?\\ ?\\)
                                 ;; Match single or triple quotes of any kind.
                                 (group (or  "\"" "\"\"\"" "'" "```")))))
+      (sqs-string-delimiter . ,(rx (and (or (not (any ?\\ ?\')) point
+                                            (and (or (not (any ?\\)) point) ?\\
+                                                 (* ?\\ ?\\) (any ?\')))
+                                        (* ?\\ ?\\)
+                                        (group (or "'")))))
+      (dqs-string-delimiter . ,(rx (and (or (not (any ?\\ ?\")) point
+                                            (and (or (not (any ?\\)) point) ?\\
+                                                 (* ?\\ ?\\) (any ?\")))
+                                        (* ?\\ ?\\)
+                                        (group (or "\"")))))
       (tqs-string-delimiter . ,(rx (and
                                 ;; Match even number of backslashes.
-                                (or (not (any ?\\ ?\' ?\" ?\`)) point
-                                    ;; Quotes might be preceded by a escaped quote.
-                                    (and (or (not (any ?\\)) point) ?\\
-                                         (* ?\\ ?\\) (any ?\' ?\")))
-                                (* ?\\ ?\\)
+                                (or (not (any ?\`)) point)
                                 ;; Match single or triple quotes of any kind.
                                 (group (or "```")))))))
+  (defconst pyret-rx-constituents-2
+    (cl-macrolet ((with-pyret-rx (&rest body)
+                                 (let ((rx-constituents (append pyret-rx-constituents-1 rx-constituents)))
+                                   (rx-to-string `(and ,@body)))))
+      `((string-delimiter . ,(with-pyret-rx (or sqs-string-delimiter
+                                                dqs-string-delimiter
+                                                tqs-string-delimiter)
+                            ;;(and
+                            ;;    ;; Match even number of backslashes.
+                            ;;    ;;(or (not (any ?\\ ?\' ?\" ?\`)) point
+                            ;;    ;;    ;; Quotes might be preceded by a escaped quote.
+                            ;;    ;;    (and (or (not (any ?\\)) point) ?\\
+                            ;;    ;;         (* ?\\ ?\\) (any ?\' ?\")))
+                            ;;    ;;(* ?\\ ?\\)
+                            ;;    ;; Match single or triple quotes of any kind.
+                               ;;    (group (or "```"))))
+                               )))))
   (defmacro pyret-rx (&rest regexps)
     "Pyret mode specialized rx macro.
 This variant of `rx' supports common Pyret named REGEXPS."
-    (let ((rx-constituents (append pyret-rx-constituents rx-constituents)))
+    (let ((rx-constituents (append pyret-rx-constituents-1
+                                   pyret-rx-constituents-2
+                                   rx-constituents)))
       (cond ((null regexps)
              (error "No regexp"))
             ((cdr regexps)
@@ -226,6 +251,12 @@ This variant of `rx' supports common Pyret named REGEXPS."
   (save-excursion
     (goto-char start)
     (let* ((multiline-string (eq 'multiline (get-text-property (point) 'pyret-string)))
+           (single-line-string-start (save-excursion (goto-char start) (eq (get-text-property (point) 'pyret-string) 'single)))
+           (single-line-string-end (save-excursion (goto-char end) (eq (get-text-property (point) 'pyret-string) 'single)))
+           (bol (save-excursion (goto-char start) (beginning-of-line) (point)))
+           (eol (save-excursion (goto-char end) (end-of-line) (point)))
+           (min-start (if single-line-string-start bol (point-min)))
+           (max-end (if single-line-string-end eol (point-max)))
            (new-start (save-excursion
                         ;;(message "Extending: new-start: goto-char")
                         (goto-char start)
@@ -238,7 +269,7 @@ This variant of `rx' supports common Pyret named REGEXPS."
                         ;;(message "Extending: new-start: post-when")
                         (when (equal ?\` (char-before))
                           (re-search-backward "[^`]" nil t))
-                        (min start (point))))
+                        (max min-start (min start (point)))))
            (new-end (save-excursion
                       ;;(message "Extending: new-end")
                       (goto-char end)
@@ -255,16 +286,18 @@ This variant of `rx' supports common Pyret named REGEXPS."
                                   (max cur-new-end (point))
                                 (point-max)))
                           cur-new-end))))
+           (new-end (min new-end max-end))
            (new-start (save-excursion
                         (if (and multiline-string (= 1 (pyret-count-triple-quotes-in-region new-start new-end)))
                             (save-match-data
                               (if (re-search-backward (pyret-rx tqs-string-delimiter) nil t)
                                   (min new-start (point))
                                 (point-min)))
-                          new-start))))
+                          new-start)))
+           (new-start (max new-start min-start)))
       ;;(if (and (= start new-start)
       ;;         (= end new-end))
-      ;;    (message "Propertizing range (%s, %s): %s" start end (pyret-debug-preview-region start end))
+      ;;    (message "Propertizing range (%s, %s): %S" start end (pyret-debug-preview-region start end))
       ;;  (message "Propertizing NEW range (%s, %s) -> (%s, %s): %s" start end new-start new-end (pyret-debug-preview-region start end)))
       (and (or (not (= start new-start))
                (not (= end new-end)))
@@ -272,7 +305,13 @@ This variant of `rx' supports common Pyret named REGEXPS."
 
 (defun pyret-syntax-propertize-function (start end)
   ;;(message "Propertizing: removing properties")
-  (remove-text-properties start end '(pyret-string pyret-string-start pyret-string-end syntax-multiline))
+  (remove-text-properties start end
+                          '(pyret-string
+                            pyret-string-unterminated
+                            pyret-string-start
+                            pyret-string-end
+                            syntax-multiline
+                            font-lock-multiline))
   ;;(message "Propertizing: funcall (%d, %d)" start end)
   
   (save-excursion
@@ -295,9 +334,28 @@ is used to limit the scan."
       (setq i (1+ i)))
     i))
 
+(defun pyret-extract-quote ()
+  "Extracts the quote from the current match data, which should be the
+result of matching on `string-delimiter'. As a side effect, the match data
+will be updated to place the matched string in group 1 (removing the other
+matches). This function returns a cons cell containing the quote character and
+the number of quote characters in the match."
+  (cl-flet ((set-match-group (n)
+                             (let* ((match-data (match-data)))
+                               (setq match-data (list (car match-data) (cadr match-data)
+                                                      (nth (* 2 n) match-data)
+                                                      (nth (1+ (* 2 n)) match-data)))
+                               (set-match-data match-data))))
+    (cond ((match-string-no-properties 1) (cons ?\' 1))                     ;; single quote
+          ((match-string-no-properties 2) (set-match-group 2) (cons ?\" 1)) ;; double quote
+          ((match-string-no-properties 3) (set-match-group 3) (cons ?\` 3)) ;; triple quote
+          (t (cons nil 0)))))
+
 (defun pyret-syntax-stringify ()
   "Put `syntax-table' property correctly on single/triple quotes."
-  (let* ((num-quotes (length (match-string-no-properties 1)))
+  (let* ((char-and-num-quotes (pyret-extract-quote))
+         (quote-char (car char-and-num-quotes))
+         (num-quotes (cdr char-and-num-quotes))
          (ppss (prog2
                    (backward-char num-quotes)
                    (syntax-ppss)
@@ -311,6 +369,7 @@ is used to limit the scan."
                string-start
                (pyret-syntax-count-quotes
                 (char-before) string-start quote-starting-pos))))
+    ;;(message "Processing quote of length %d ending at %d" num-quotes (point))
     (cond (in-comment nil)
           ((and string-start (= num-closing-quotes 0))
            ;; This set of quotes doesn't match the string starting
@@ -336,7 +395,9 @@ is used to limit the scan."
                     (put-text-property quote-starting-pos (point)
                                        'font-lock-multiline t)
                     (put-text-property quote-starting-pos (point)
-                                       'syntax-multiline t))
+                                       'syntax-multiline t)
+                    (remove-text-properties quote-starting-pos (point)
+                                            '(pyret-string-unterminated)))
              (progn (goto-char (point-max)) ;; no more triple-quotes in the file, so go to end
                     (put-text-property (1- (point)) (point)
                                        'syntax-table (string-to-syntax "|"))
@@ -351,12 +412,58 @@ is used to limit the scan."
                     (put-text-property quote-starting-pos (point)
                                        'font-lock-multiline t)
                     (put-text-property quote-starting-pos (point)
+                                       'pyret-string-unterminated t)
+                    (put-text-property quote-starting-pos (point)
                                        'syntax-multiline t))))
           ((not string-start)
-           ;; This set of quotes delimit the start of a string.
-           (put-text-property quote-starting-pos (1+ quote-starting-pos)
-                              'syntax-table (string-to-syntax "|")))
-          ((= num-quotes num-closing-quotes)
+           (let* ((eol (save-excursion (end-of-line) (point)))
+                  (terminator (cond ((eq quote-char ?\')
+                                     (re-search-forward (pyret-rx sqs-string-delimiter) eol t))
+                                    ((eq quote-char ?\")
+                                     (re-search-forward (pyret-rx dqs-string-delimiter) eol t))
+                                    (t (warn "Invalid size-one quote. Please report a bug with this message.") nil))))
+             (if terminator
+                 (progn (goto-char (match-end 1))
+                        ;;(message "Terminated %c string at %d-%d" quote-char quote-starting-pos (point))
+                        (put-text-property (1- (point)) (point)
+                                           'syntax-table (string-to-syntax "\""))
+                        (put-text-property quote-starting-pos (1+ quote-starting-pos)
+                                           'syntax-table (string-to-syntax "\""))
+                        (put-text-property quote-starting-pos (point)
+                                           'pyret-string 'single)
+                        (put-text-property quote-starting-pos (point)
+                                           'pyret-string-start quote-starting-pos)
+                        (put-text-property quote-starting-pos (point)
+                                           'pyret-string-end (point))
+                        (remove-text-properties quote-starting-pos (point)
+                                                '(syntax-multiline font-lock-multiline pyret-string-unterminated)))
+               ;; In this case, we have an unterminated, single/double-quoted string.
+               (progn (goto-char eol)
+                      ;;(message "Unterminated %c string at %d" quote-char quote-starting-pos)
+                      ;; We need to add the string-fence properties to trigger the
+                      ;; syntactic font lock to run
+                      (if (<= (- (point) quote-starting-pos) 1)
+                          ;; FIXME: HACK HACK HACK
+                          ;; (without this, an unterminated string at the end of the line
+                          ;;  will have the same start and end character, so the syntax
+                          ;;  parser will think it's just the beginning of a multiline string.)
+                          (put-text-property quote-starting-pos (1+ quote-starting-pos)
+                                             'face font-lock-warning-face)
+                        (put-text-property (1- (point)) (point)
+                                           'syntax-table (string-to-syntax "|"))
+                        (put-text-property quote-starting-pos (1+ quote-starting-pos)
+                                           'syntax-table (string-to-syntax "|")))
+                      (put-text-property quote-starting-pos (point)
+                                         'pyret-string 'single)
+                      (put-text-property quote-starting-pos (point)
+                                         'pyret-string-unterminated t)
+                      (put-text-property quote-starting-pos (point)
+                                         'pyret-string-start quote-starting-pos)
+                      (put-text-property quote-starting-pos (point)
+                                         'pyret-string-end (point))
+                      (remove-text-properties quote-starting-pos (point)
+                                              '(syntax-multiline font-lock-multiline))))))
+          ((and (= num-quotes num-closing-quotes) (= num-quotes 3))
            ;;(when (= num-quotes 3)
            ;;  (message (format "TQS found: %d--%d" string-start quote-ending-pos)))
            (put-text-property string-start quote-ending-pos 'pyret-string (if (= 3 num-quotes) 'multiline 'single))
@@ -486,7 +593,8 @@ is used to limit the scan."
     (modify-syntax-entry ?= "." st)
     (modify-syntax-entry ?- "_" st)
     (modify-syntax-entry ?, "." st)
-    (modify-syntax-entry ?' "\"" st)
+    ;;(modify-syntax-entry ?' "\"" st)
+    (modify-syntax-entry ?\" "." st)
     (modify-syntax-entry ?{ "(}" st)
     (modify-syntax-entry ?} "){" st)
     (modify-syntax-entry ?. "." st)
@@ -523,6 +631,8 @@ is used to limit the scan."
 (defsubst pyret-in-string ()
   (progn
     (get-text-property (point) 'pyret-string)))
+(defsubst pyret-in-unterminated-string ()
+  (get-text-property (point) 'pyret-string-unterminated))
 (defun pyret-in-long-string ()
   (equal (get-text-property (point) 'pyret-string) 'multiline))
 (defsubst pyret-in-comment ()
@@ -1580,10 +1690,20 @@ in (nil if we're not in a string).")
   (add-to-list 'text-property-default-nonsticky '(pyret-strtype . t)))
 
 (defun pyret-font-lock-syntactic-face-function (state)
-  (if (nth 3 state)
-      (progn
-        font-lock-string-face)
-    font-lock-comment-face))
+  (cond ((pyret-in-unterminated-string) font-lock-warning-face)
+        ((nth 4 state) font-lock-comment-face)
+        ((nth 3 state) font-lock-string-face)
+        (t (warn "Unhandled state: %s" state) font-lock-comment-face)))
+
+(defun pyret-font-lock-extend-after-change-region-function (beg end old-len)
+  (pyret-syntax-propertize-extend-region-function beg end))
+
+(defun pyret-font-lock-extend-region-function ()
+  (let ((adjusted (pyret-syntax-propertize-extend-region-function font-lock-beg font-lock-end)))
+    (when adjusted
+      (setq font-lock-beg (car adjusted))
+      (setq font-lock-end (cdr adjusted))
+      t)))
 
 (defun pyret-startup-runner ()
   "Runs initialization hooks for Pyret mode. This function runs once."
@@ -1603,8 +1723,10 @@ in (nil if we're not in a string).")
   (set (make-local-variable 'pyret-dialect) 'Pyret)
   (set (make-local-variable 'font-lock-defaults) '(pyret-font-lock-keywords))
   (set (make-local-variable 'syntax-propertize-function) 'pyret-syntax-propertize-function)
-  (set (make-local-variable 'syntax-propertize-extend-region-functions) '(pyret-syntax-propertize-extend-region-function))
+  (set (make-local-variable 'syntax-propertize-extend-region-functions) '(syntax-propertize-wholelines syntax-propertize-multiline pyret-syntax-propertize-extend-region-function))
   (set (make-local-variable 'font-lock-syntactic-face-function) 'pyret-font-lock-syntactic-face-function)
+  ;;(set (make-local-variable 'font-lock-extend-after-change-region-function) 'pyret-font-lock-extend-after-change-region-function)
+  ;;(set (make-local-variable 'font-lock-extend-region-functions) (cons 'pyret-font-lock-extend-region-function font-lock-extend-region-functions))
   ;;(set (make-local-variable 'font-lock-syntactic-keywords) pyret-font-lock-syntactic-keywords)
   (font-lock-refresh-defaults)
   (set (make-local-variable 'comment-start) "#")
