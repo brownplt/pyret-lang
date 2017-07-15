@@ -119,9 +119,19 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
 
   const number = new RegExp("^[-+]?" + unsigned_decimal_part, STICKY_REGEXP);
 
-  const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const unsignedRationalorDecimal = "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")";
 
-  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
+  const numberwithoutIntegerPart = "^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?";
+
+  const nonRoughnumwithDots = "^[+-]?" + unsignedRationalorDecimal + "\\.\\.+";
+
+  const badRoughnum = "^~[+-]?" + unsignedRationalorDecimal + "(?:\\.\\.(?!\\.)|\\.\\.\\.\\.+)";
+
+  const badNumber = new RegExp("(?:" + numberwithoutIntegerPart + "|" +
+    nonRoughnumwithDots + "|" +
+    badRoughnum + ")", STICKY_REGEXP);
+
+  const roughnum = new RegExp("^~[-+]?"  + unsignedRationalorDecimal + "(\\.\\.\\.)?", STICKY_REGEXP);
 
   const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
 
