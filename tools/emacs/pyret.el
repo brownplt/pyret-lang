@@ -50,15 +50,28 @@
       (function (lambda (&optional N)
                   (interactive "^p")
                   ;;(message "Got here")
-                  (or N (setq N 1))
-                  (self-insert-command N)
-                  (ignore-errors
-                    (when (and (not (pyret-in-string))
-                               (save-excursion (forward-char -3)
-                                               (and (not (pyret-in-string))
-                                                    (looking-at "```")))
-                               (not (looking-at "```")))
-                      (save-excursion (self-insert-command 3)))))))
+                  (if (and (boundp 'smartparens-mode) smartparens-mode)
+                      ;; Smartparens already handles this
+                      (self-insert-command N)
+                    ;; For non-smartparens, we manage inserts here.
+                    (or N (setq N 1))
+                    (self-insert-command N)
+                    (ignore-errors
+                      (let* ((pyret-string-type (and (syntax-ppss) (pyret-in-string)))
+                             (in-sqs-or-dqs (eq pyret-string-type 'single))
+                             (is-last-opener
+                              (save-excursion (forward-char -3)
+                                              (and (not (nth 3 (syntax-ppss)))
+                                                   (looking-at "```")
+                                                   (= (get-text-property (point) 'pyret-string-start) (point)))))
+                             (is-already-closed (and (syntax-ppss)
+                                                     (not (get-text-property (point) 'pyret-string-unterminated))
+                                                     (not (eobp)))))
+                        (when (and (not in-sqs-or-dqs)
+                                   is-last-opener
+                                   (or (not pyret-string-type)
+                                       (not is-already-closed)))
+                          (save-excursion (self-insert-command 3)))))))))
     (define-key map (kbd "d")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -1776,12 +1789,35 @@ in (nil if we're not in a string).")
           (pyret-mode)))))
    (buffer-list)))
 
+(defun pyret-point-at-last-tqs-opener-p (id action ctx)
+  "Returns non-nil if the backtick at the current point finishes a triple-quoted string opener."
+  (let* ((pyret-string-type (and (syntax-ppss) (pyret-in-string)))
+         (in-sqs-or-dqs (eq pyret-string-type 'single))
+         (is-last-opener
+          (ignore-errors
+            (save-excursion (forward-char -3)
+                            (and (not (nth 3 (syntax-ppss)))
+                                 (looking-at "```")
+                                 (= (get-text-property (point) 'pyret-string-start) (point))))))
+         (is-already-closed (and (syntax-ppss)
+                                 (not (get-text-property (point) 'pyret-string-unterminated))
+                                 (not (eobp)))))
+    (and (not (eq ctx 'comment))
+         (not in-sqs-or-dqs)
+         is-last-opener
+         (or (not pyret-string-type)
+             (not is-already-closed)))))
+
+(defun pyret-point-not-at-last-tqs-opener-p (id action ctx)
+  "Inverse of `pyret-point-at-last-tqs-opener-p'."
+  (not (pyret-point-at-last-tqs-opener-p id action ctx)))
+
 (defun pyret-smartparens-setup ()
   (message "Setting up smartparens...")
   (when (require 'smartparens nil 'noerror)
     (sp-with-modes '(pyret-mode)
       (sp-local-pair "`" nil :actions nil)
-      (sp-local-pair "```" "```"))))
+      (sp-local-pair "```" "```" :actions '(insert wrap) :unless '(pyret-point-not-at-last-tqs-opener-p)))))
 
 (add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
 
