@@ -41,7 +41,7 @@ fun check-ann(l :: S.Srcloc, expr :: A.Expr, ann :: A.Ann) -> A.Expr:
 end
 
 fun get-table-column(l, e, column):
-  A.s-app(A.dummy-loc,
+  A.s-app(l,
     A.s-dot(A.dummy-loc, e, "_column-index"),
     [list:
       A.s-srcloc(A.dummy-loc, l),
@@ -864,7 +864,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(table.l, desugar-expr(table), lam(t): t end)),
         A.s-let-bind(A.dummy-loc, col.id-b,
-          get-table-column(table.l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
+          get-table-column(l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
         # Table Construction
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
           A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
