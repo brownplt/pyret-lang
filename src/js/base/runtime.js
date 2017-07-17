@@ -1024,7 +1024,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     */
     function PObject(dict, brands) {
       /**@type {!Object.<string, !PBase>}*/
-      this.dict = dict;
+      this.dict = Object.create(null);
+      for (var prop in dict)
+        this.dict[prop] = dict[prop];
 
       /**@type {!Object.<string, Boolean>}*/
       this.brands = brands;

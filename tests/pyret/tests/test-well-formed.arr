@@ -83,6 +83,10 @@ check "bad-checks":
   c("check: 5 raises-violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
 end
 
+check "bad objects":
+  c("{__proto__: 42}") satisfies CS.is-reserved-name
+end
+
 check "malformed blocks":
   c("fun foo():\n" + 
        " x = 10\n" + 
