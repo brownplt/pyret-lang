@@ -216,6 +216,46 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd```asd```")).toBe(false);
     });
   });   
+  describe("lexing", function() {
+    it("shouldn't lex bad numbers", function() {
+      expect(parse("2")).not.toBe(false);
+      expect(parse("2.")).toBe(false);
+      expect(parse("2..")).toBe(false);
+      expect(parse("2...")).toBe(false);
+      expect(parse("2....")).toBe(false);
+      expect(parse("2.....")).toBe(false);
+      expect(parse(".2")).toBe(false);
+      expect(parse(".2.")).toBe(false);
+      expect(parse(".2..")).toBe(false);
+      expect(parse(".2...")).toBe(false);
+      expect(parse(".2....")).toBe(false);
+      expect(parse(".2.....")).toBe(false);
+      expect(parse("2.3")).not.toBe(false);
+      expect(parse("2.3.")).toBe(false);
+      expect(parse("2.3..")).toBe(false);
+      expect(parse("2.3...")).toBe(false);
+      expect(parse("2.3....")).toBe(false);
+      expect(parse("2.3.....")).toBe(false);
+      expect(parse("~2")).not.toBe(false);
+      expect(parse("~2.")).toBe(false);
+      expect(parse("~2..")).toBe(false);
+      expect(parse("~2...")).not.toBe(false);
+      expect(parse("~2....")).toBe(false);
+      expect(parse("~2.....")).toBe(false);
+      expect(parse("~.2")).toBe(false);
+      expect(parse("~.2.")).toBe(false);
+      expect(parse("~.2..")).toBe(false);
+      expect(parse("~.2...")).toBe(false);
+      expect(parse("~.2....")).toBe(false);
+      expect(parse("~.2.....")).toBe(false);
+      expect(parse("~2.3")).not.toBe(false);
+      expect(parse("~2.3.")).toBe(false);
+      expect(parse("~2.3..")).toBe(false);
+      expect(parse("~2.3...")).not.toBe(false);
+      expect(parse("~2.3....")).toBe(false);
+      expect(parse("~2.3.....")).toBe(false);
+    });
+  });
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
       expect(parse("let: 10 end")).toBe(false);
