@@ -41,7 +41,7 @@ fun check-ann(l :: S.Srcloc, expr :: A.Expr, ann :: A.Ann) -> A.Expr:
 end
 
 fun get-table-column(l, e, column):
-  A.s-app(A.dummy-loc,
+  A.s-app(l,
     A.s-dot(A.dummy-loc, e, "_column-index"),
     [list:
       A.s-srcloc(A.dummy-loc, l),
@@ -50,7 +50,7 @@ fun get-table-column(l, e, column):
 end
 
 fun check-has-column(tbl, tbl-l, col, col-l):
-  A.s-app(A.dummy-loc,
+  A.s-app(tbl-l,
     A.s-dot(A.dummy-loc, tbl, "_column-index"),
     [list:
       A.s-srcloc(A.dummy-loc, tbl-l),
@@ -59,7 +59,7 @@ fun check-has-column(tbl, tbl-l, col, col-l):
 end
 
 fun check-no-column(tbl, tbl-l, col, col-l):
-  A.s-app(A.dummy-loc,
+  A.s-app(tbl-l,
     A.s-dot(A.dummy-loc, tbl, "_no-column"),
     [list:
       A.s-srcloc(A.dummy-loc, tbl-l),
@@ -439,19 +439,6 @@ fun desugar-expr(expr :: A.Expr):
       name = "for-body<" + l.format(false) + ">"
       the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
-    | s-sql(l, inspect-clause, where-clause, project-clause) =>
-      d-map    = lam(e): A.s-dot(e.l, e, "map") end
-      d-filter = lam(e): A.s-dot(e.l, e, "filter") end
-      d-app    = lam(m, p):
-        A.s-app(A.dummy-loc, m, [list:
-          A.s-lam(p.l, empty, [list: inspect-clause.bind], A.a-blank, "", p, none, none, false)]) end
-      desugar-expr(
-        cases(Option) where-clause:
-          | some(pred) =>
-            d-app(d-map(d-app(d-filter(inspect-clause.value), pred)), project-clause)
-          | none       =>
-            d-app(d-map(inspect-clause.value) , project-clause)
-        end)
     | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
@@ -772,7 +759,7 @@ fun desugar-expr(expr :: A.Expr):
               A.s-array(A.dummy-loc,  extensions.map(lam(e):A.s-str(e.l, e.name) end))]),
             # Data
               with-initialized-reducers(
-                A.s-app(A.dummy-loc, A.s-id(l, A.s-global("raw-array-map-1")), [list:
+                A.s-app(l, A.s-id(l, A.s-global("raw-array-map-1")), [list:
                     data-pop-mapfun(true),
                     data-pop-mapfun(false),
                     A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]))])]), true)
@@ -811,7 +798,7 @@ fun desugar-expr(expr :: A.Expr):
             # Header
             A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
             # Data
-            A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
+            A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
               A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
                 A.s-let-expr(A.dummy-loc,
                   link(
@@ -849,7 +836,7 @@ fun desugar-expr(expr :: A.Expr):
           # Header
           A.s-array(A.dummy-loc,  columns.map(_.name)),
           # Data
-          A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
+          A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-array(A.dummy-loc,
                 columns.map(lam(c):
@@ -864,10 +851,10 @@ fun desugar-expr(expr :: A.Expr):
         A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(table.l, desugar-expr(table), lam(t): t end)),
         A.s-let-bind(A.dummy-loc, col.id-b,
-          get-table-column(table.l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
+          get-table-column(l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
         # Table Construction
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
-          A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
+          A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
@@ -902,7 +889,7 @@ fun desugar-expr(expr :: A.Expr):
           # Header
           A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
           # Data
-          A.s-app(A.dummy-loc, A.s-id(A.dummy-loc, g("raw-array-filter")), [list:
+          A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-filter")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-let-expr(A.dummy-loc,
                 columns.map(lam(column):

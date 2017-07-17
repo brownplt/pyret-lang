@@ -375,8 +375,9 @@
         '_column-index': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
           ffi.checkArity(4, arguments, "_column-index");
           var col_index = headerIndex['column:'+col_name];
-          if(col_index === undefined)
-            ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
+          if(col_index === undefined) {
+            ffi.throwMessageException("The table does not have a column named `"+col_name+"`.  Valid columns for this table are " + Object.keys(headerIndex).map(function(k) { return k.slice(7); }).join(", "));
+          }
           return col_index;
         }),
         
