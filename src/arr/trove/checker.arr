@@ -555,7 +555,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     method check-is-roughly(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
-          within(~0.0)(lv, rv),
+          within(~0.000001)(lv, rv),
           lam(): failure-not-equal(loc, none, lv, rv) end)
       end
       nothing
