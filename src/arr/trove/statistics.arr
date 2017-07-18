@@ -37,14 +37,14 @@ fun median(l :: List) -> Number:
 
   sorted = l.sort()
   size = length(sorted)
-  index_of_median = num-floor(size / 2)
+  index-of-median = num-floor(size / 2)
   cases (List) sorted:
     | empty => raise(E.message-exception("The input list is empty"))
     | link(first, rest) => 
       if is-odd(size):
-        sorted.get(index_of_median)
+        sorted.get(index-of-median)
       else:
-        (sorted.get(index_of_median) + sorted.get(index_of_median - 1)) / 2
+        (sorted.get(index-of-median) + sorted.get(index-of-median - 1)) / 2
       end
   end
 end
@@ -157,9 +157,9 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
   else if x.length() < 2:
     raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
   else:
-    xpt_xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
-    xpt_x_xpt_y = (math.sum(x) * math.sum(y)) / x.length()
-    covariance = xpt_xy - xpt_x_xpt_y
+    xpt-xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
+    xpt-x-xpt-y = (math.sum(x) * math.sum(y)) / x.length()
+    covariance = xpt-xy - xpt-x-xpt-y
     v1 = math.sum(map(lam(n): n * n end, x))
     v2 = (math.sum(x) * math.sum(x)) / x.length()
     variance = v1 - v2
