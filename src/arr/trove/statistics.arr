@@ -1,25 +1,34 @@
 #lang pyret/library
 
-provide *
+provide {
+    mean: mean,
+    median: median,
+    modes: modes,
+    has-mode: has-mode,
+    mode-smallest: mode-smallest,
+    mode-largest: mode-largest,
+    mode-any: mode-any,
+    stdev: stdev,
+    linear-regression: linear-regression,
+    r-squared: r-squared
+} end
 provide-types *
 import global as _
-import option as O
-import either as E
-import equality as equality
-import valueskeleton as VS
-import lists as L
+include lists
+import error as E
 import math as math
+import string-dict as SD
 
-fun mean(l :: L.List<Number>) -> Number:
+fun mean(l :: List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
-  if L.length(l) == 0:
-    raise("The input list is empty")
+  if length(l) == 0:
+    raise(E.message-exception("The input list is empty"))
   else:
-    math.sum(l) / L.length(l)
+    math.sum(l) / length(l)
   end
 end
 
-fun median(l :: L.List) -> Number:
+fun median(l :: List) -> Number:
   doc: "returns the median element of the list"
 
   fun is-odd(n :: Number) -> Boolean:
@@ -27,11 +36,11 @@ fun median(l :: L.List) -> Number:
   end
 
   sorted = l.sort()
-  size = L.length(sorted)
+  size = length(sorted)
   index_of_median = num-floor(size / 2)
-  cases (L.List) sorted:
-    |empty => raise("The input list is empty")
-    |link(first, rest) => 
+  cases (List) sorted:
+    | empty => raise(E.message-exception("The input list is empty"))
+    | link(first, rest) => 
       if is-odd(size):
         sorted.get(index_of_median)
       else:
@@ -40,70 +49,99 @@ fun median(l :: L.List) -> Number:
   end
 end
 
-fun modes(l :: L.List) -> L.List<Number>:
-  doc: ```returns a list containing each mode of the input list, 
-       or an empty list if the input list is empty```
-  length-of-repeated = lam(lst :: L.List<Number>) -> L.List<{Number; Number}>:
-    aggregate = lam(prev :: L.List<{Number; Number}>, current-val :: Number) 
-      -> L.List<{Number; Number}>:
-      
-      cases (L.List) prev:
-        | empty => [L.list: {current-val; 1}]
-        | link(first, rest) => 
-          prev-val = first.{0}
-          prev-count = first.{1}
-          
-          if within(~0.0)(prev-val, current-val):
-            L.link({prev-val; prev-count + 1}, rest)
-          else:
-            L.link({current-val; 1}, prev)
-          end
-      end
-    end
-    
-    L.fold(aggregate, [L.list: ], lst)
-  end
+fun group-and-count(l :: List<Number>) -> List<{Number; Number}> block:
+  doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
   
-  sorted-list = l.sort()
-  number-counts = length-of-repeated(sorted-list)
-  
-  find-maximal-appearing = lam(prev :: L.List<{Number; Number}>, 
-      current-elt :: {Number; Number}) -> L.List<{Number; Number}>:
-    
-    cases (L.List) prev:
-      | empty => [L.list: current-elt]
-      | link(f, r) =>
-        current-elt-count = current-elt.{1}
-        list-head-count = f.{1}
-        
-        if current-elt-count > list-head-count:
-          [L.list: current-elt]
-        else if current-elt-count == list-head-count:
-          L.link(current-elt, prev)
+  nums-sorted = l.sort()
+  cases(List) nums-sorted:
+    | empty => empty
+    | link(first, rest) =>
+      {front; acc} = for fold({{cur; count}; lst} from {{first; 1}; empty}, n from rest):
+        if within(~0.0)(cur, n):
+          {{cur; count + 1}; lst}
         else:
-          prev
+          {{n; 1}; link({cur; count}, lst)}
         end
-    end
+      end
+      link(front, acc)
   end
-
-  maximal-appearing = L.fold(find-maximal-appearing, [L.list: ], number-counts)
-  L.map(lam(x :: {Number; Number}): x.{0} end, maximal-appearing)
+end
   
+fun modes-helper(l :: List<Number>) -> {Number; List<Number>}:
+  doc: ```Returns the frequency of the modes and a list containing each mode of the input list, 
+       or an empty list if the input list is empty.  The modes are returned in sorted order```
+
+  num-counts = group-and-count(l)
+  max-repeat = for fold(max from 0, {_; count} from num-counts):
+    num-max(max, count)
+  end
+  { max-repeat;
+    # This fold reverses the order of num-counts, so it winds up in increasing order
+    for fold(acc from empty, {num; count} from num-counts):
+      if count == max-repeat:
+        link(num, acc)
+      else:
+        acc
+      end
+    end }
 end
 
-fun mode(l :: L.List) -> Number:
-  doc: ```returns an option containing the mode of the
-       input list, or raises an error if input list is empty.
-       If the input has multiple modes, this function
-       returns the mode with the least value```
-
-  cases (L.List) modes(l):
-    | empty => raise("The input list is empty")
-    | link(f, r) => f
+fun modes(l :: List<Number>) -> List<Number>:
+  doc: ```returns a list containing each mode of the input list, or empty if there are no duplicate values```
+  {max-repeat; ms} = modes-helper(l)
+  if max-repeat < 2:
+    [list: ]
+  else:
+    ms
   end
 end
 
-fun stdev(l :: L.List) -> Number:
+fun has-mode(l :: List<Number>) -> Boolean:
+  doc: "Returns true if the list contains at least one mode, i.e. a duplicated value"
+  num-counts = group-and-count(l)
+  max-repeat = for fold(max from 0, {_; count} from num-counts):
+    num-max(max, count)
+  end
+  max-repeat > 1
+end
+
+fun mode-smallest(l :: List<Number>) -> Number:
+  doc: "Returns the smallest mode of the list, if there is one"
+  {max-repeat; ms} = modes-helper(l)
+  if max-repeat == 0:
+    raise(E.message-exception("The input list is empty"))
+  else if max-repeat == 1:
+    raise(E.message-exception("There are no duplicate values in this list"))
+  else:
+    ms.first
+  end
+end
+
+fun mode-largest(l :: List<Number>) -> Number:
+  doc: "Returns the largest mode of the list, if there is one"
+  {max-repeat; ms} = modes-helper(l)
+  if max-repeat == 0:
+    raise(E.message-exception("The input list is empty"))
+  else if max-repeat == 1:
+    raise(E.message-exception("There are no duplicate values in this list"))
+  else:
+    ms.last()
+  end
+end
+
+fun mode-any(l :: List<Number>) -> Number:
+  doc: "Returns some mode of the list, if there is one"
+  {max-repeat; ms} = modes-helper(l)
+  if max-repeat == 0:
+    raise(E.message-exception("The input list is empty"))
+  else if max-repeat == 1:
+    raise(E.message-exception("There are no duplicate values in this list"))
+  else:
+    ms.get(num-random(ms.length()))
+  end
+end
+  
+fun stdev(l :: List) -> Number:
   doc: ```returns the standard deviation of the list 
        of numbers, or raises an error if the list is empty```
   reg-mean = mean(l)
@@ -112,17 +150,17 @@ fun stdev(l :: L.List) -> Number:
   num-sqrt(sq-mean)
 end
 
-fun linear-regression(x :: L.List<Number>, y :: L.List<Number>) -> (Number -> Number):
+fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number):
   doc: "returns a linear predictor function calculated with ordinary least squares regression"
   if x.length() <> y.length():
-    raise("linear-regression: input lists must have equal lengths")
+    raise(E.message-exception("linear-regression: input lists must have equal lengths"))
   else if x.length() < 2:
-    raise("linear-regression: input lists must have at least 2 elements each")
+    raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
   else:
-    xpt_xy = math.sum(L.map2(lam(xi, yi): xi * yi end, x, y))
+    xpt_xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
     xpt_x_xpt_y = (math.sum(x) * math.sum(y)) / x.length()
     covariance = xpt_xy - xpt_x_xpt_y
-    v1 = math.sum(L.map(lam(n): n * n end, x))
+    v1 = math.sum(map(lam(n): n * n end, x))
     v2 = (math.sum(x) * math.sum(x)) / x.length()
     variance = v1 - v2
     beta = covariance / variance
@@ -136,11 +174,11 @@ fun linear-regression(x :: L.List<Number>, y :: L.List<Number>) -> (Number -> Nu
   end
 end
 
-fun r-squared(x :: L.List<Number>, y :: L.List<Number>, f :: (Number -> Number)) -> Number:
+fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> Number:
   y-mean = mean(y)
-  f-of-x = L.map(f, x)
-  ss-tot = math.sum(L.map(lam(yi): num-sqr(yi - y-mean) end, y))
-  ss-res = math.sum(L.map2(lam(yi, fi): num-sqr(yi - fi) end, y, f-of-x))
+  f-of-x = map(f, x)
+  ss-tot = math.sum(map(lam(yi): num-sqr(yi - y-mean) end, y))
+  ss-res = math.sum(map2(lam(yi, fi): num-sqr(yi - fi) end, y, f-of-x))
 
   if within-abs(0.0000001)(~0, ss-res):
     1
