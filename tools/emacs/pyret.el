@@ -98,6 +98,15 @@
                     (when (or (save-excursion (forward-char -6) (pyret-EXCEPT))
                               (save-excursion (forward-char -6) (pyret-IS-NOT)))
                       (pyret-smart-tab))))))
+    (define-key map (kbd "y")
+      (function (lambda (&optional N)
+                  (interactive "^p")
+                  (or N (setq N 1))
+                  (self-insert-command N)
+                  (ignore-errors
+                    (when (save-excursion (forward-char -10) (pyret-IS-ROUGHLY))
+                      (pyret-smart-tab))))))
+      
     (define-key map (kbd ":")
       (function (lambda (&optional N)
                   (interactive "^p")
@@ -130,7 +139,7 @@
      "of" "ascending" "descending" "sanitize" "using"))
 (defconst pyret-keywords-hyphen
   '("provide-types" "type-let" 
-    "is-not" "raises-other-than"
+    "is-not" "is-roughly" "raises-other-than"
     "does-not-raise" "raises-satisfies" "raises-violates"))
 (defconst pyret-keywords-colon
   '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"
