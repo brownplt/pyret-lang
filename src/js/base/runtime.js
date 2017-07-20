@@ -4259,7 +4259,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
           if(!(isBoolean(res))) {
-            return ffi.throwNonBooleanCondition(["raw-array-filter"], "Boolean", res);
+            return thisRuntime.ffi.throwNonBooleanCondition(["raw-array-filter"], "Boolean", res);
           }
           if(isPyretTrue(res)){
             newArray.push(arr[currentIndex]);
