@@ -1024,7 +1024,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     */
     function PObject(dict, brands) {
       /**@type {!Object.<string, !PBase>}*/
-      this.dict = dict;
+      this.dict = Object.create(null);
+      for (var prop in dict)
+        this.dict[prop] = dict[prop];
 
       /**@type {!Object.<string, Boolean>}*/
       this.brands = brands;
@@ -1599,7 +1601,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a); }
 
         return thisRuntime.safeCall(function() {
-          display.app(val);
+          return display.app(val);
         }, function(_) {
           return val;
         }, "print");
@@ -1639,7 +1641,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a); }
 
         return thisRuntime.safeCall(function() {
-          display_error.app(val);
+          return display_error.app(val);
         }, function(_) {
           return val;
         }, "print-error");
