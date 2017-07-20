@@ -868,6 +868,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-table-filter(l, column-binds, predicate) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
+      pred-res = mk-id-ann(predicate.l, "pred", A.a-name(predicate.l, A.s-type-global("Boolean")))
 
       columns =
         column-binds.binds.map(lam(c):
@@ -895,8 +896,10 @@ fun desugar-expr(expr :: A.Expr):
                 columns.map(lam(column):
                   A.s-let-bind(A.dummy-loc, column.val.id-b,
                     A.s-prim-app(A.dummy-loc, "raw_array_get",
-                        [list: row.id-e, column.idx.id-e])) end),
-                    desugar-expr(predicate), true), none, none, true),
+                          [list: row.id-e, column.idx.id-e])) end),
+                    A.s-let-expr(A.dummy-loc,
+                      [list: A.s-let-bind(predicate.l, pred-res.id-b, desugar-expr(predicate))],
+                      pred-res.id-e, true), true), none, none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     | else => raise("NYI (desugar): " + torepr(expr))
   end
