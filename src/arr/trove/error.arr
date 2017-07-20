@@ -708,8 +708,8 @@ data RuntimeError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
-          ED.text("for the test in the"), ED.text(self.typ), ED.text("expression at"),
+          ED.text("Expected "), ED.code(ED.text("true")), ED.text(" or "), ED.code(ED.text("false")),
+          ED.text(" for the test in the "), ED.text(self.typ), ED.text(" expression at "),
           draw-and-highlight(self.loc), ED.text(" but got:")],
         ED.embed(self.value)]
     end
