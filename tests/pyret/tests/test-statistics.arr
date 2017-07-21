@@ -69,7 +69,7 @@ check "linear regression":
 	f(0) is-roughly -5
 	f(2.5) is-roughly 0
 
-	r-squared(x1, y1, f) is 1
+	r-squared(x1, y1, f) is-roughly 1
 
 	x2 = [list: -3, 1, 2, 4]
 	y2 = [list: ~4, ~1.5, ~0, -2.2]
