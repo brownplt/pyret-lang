@@ -66,8 +66,8 @@ check "linear regression":
 
   f = linear-regression(x1, y1)
 
-	f(0) is -5
-	f(2.5) is 0
+	f(0) is-roughly -5
+	f(2.5) is-roughly 0
 
 	r-squared(x1, y1, f) is 1
 
