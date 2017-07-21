@@ -158,7 +158,7 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
     raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
   else:
     xpt-xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
-    xpt-x-xpt-y = (math.sum(x) * math.sum(y)) / x.length()
+    xpt-x-xpt-y = (math.sum(x) * math.sum(map(num-to-roughnum, y))) / x.length()
     covariance = xpt-xy - xpt-x-xpt-y
     v1 = math.sum(map(lam(n): n * n end, x))
     v2 = (math.sum(x) * math.sum(x)) / x.length()
