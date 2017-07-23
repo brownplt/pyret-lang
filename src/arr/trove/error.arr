@@ -1423,7 +1423,7 @@ data RuntimeError:
                         if _fun.label() == "s-dot":
                           [ED.locs: _fun.obj.l] + args.map(_.l)
                         else:
-                          args
+                          args.map(_.l)
                         end
                       | s-for(_, _, args, _, _, _) => args.map(_.l)
                       | else  => [ED.locs: ast.l]
