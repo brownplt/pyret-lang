@@ -20,11 +20,11 @@ check:
 
   num-exp(5000) raises "exp: argument too large"
 
-  num-modulo(0.5, 5) raises "first argument 1/2 is not an integer"
-  num-modulo(5, 0.5) raises "second argument 1/2 is not an integer"
+  num-modulo(0.5, 5) raises "NumInteger"
+  num-modulo(5, 0.5) raises "NumInteger"
   num-modulo(6, 0) raises "second argument is zero"
 
-  num-sqrt(-3) raises "negative argument"
+  num-sqrt(-3) raises "NumNonNegative"
 
   num-acos(-2) raises "acos: out of domain"
   num-acos(2) raises "acos: out of domain"
@@ -32,8 +32,8 @@ check:
   num-asin(-2) raises "asin: out of domain"
   num-asin(2) raises "asin: out of domain"
 
-  num-to-string-digits(3, 1/2) raises "digits should be an integer"
-  num-to-string-digits(3, ~3) raises "digits should be an integer"
+  num-to-string-digits(3, 1/2) raises "NumInteger"
+  num-to-string-digits(3, ~3) raises "NumInteger"
 
 
   num-equal(~3, ~4) raises "cannot be compared for equality"
@@ -148,7 +148,7 @@ check:
   num-floor(5.1) is 5
   num-floor(-5.5) is -6
 
-  num-log(0) raises "non-positive argument"
+  num-log(0) raises "NumPositive"
   num-log(1) is 0
   num-log(num-exp(1)) satisfies around(1, 0.0001)
 

@@ -635,6 +635,7 @@
 
       toArray: toArray,
       isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
+      List: runtime.makePrimAnn("List", function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }),
       isLink : isLink,
       isEmpty : isEmpty,
 
