@@ -327,6 +327,11 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("provide-types { List :: List } end")).toBe(false);
     });
 
+    it ("shouldn't parse empty comma-separated things with trailing comma", function() {
+      expect(parse("{,}")).toBe(false);
+      expect(parse('x :: {,} = {}')).toBe(false);
+    });
+
     it("should parse all comma-separated things", function() {
       expect(parse('import foo from quuz')).not.toBe(false);
       expect(parse('import foo, bar, baz from quuz')).not.toBe(false);
