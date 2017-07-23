@@ -35,7 +35,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       var allToks = "Str was " + JSON.stringify(testname) + "\n";
       for (var t = 0; t < toks.length; t++) {
         if (t > 0) allToks += "\n";
-        allToks += "Tok[" + t + "] = " + toks[t].toString(true) 
+        allToks += "Tok[" + t + "] = " + toks[t].toString(true)
           + " at pos " + toks[t].pos.toString(true);
       }
       allToks += "Expected " + JSON.stringify(expected) + ", but got " + JSON.stringify(actual)
@@ -54,7 +54,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
   }
   describe("lexing", function() {
     const tok_words = [
-      "an-ident", 
+      "an-ident",
       "import", "provide-types", "provide", "as", "newtype", "type-let", "type", "lazy",
       "var", "letrec", "let", "fun", "lam", "true", "false", "method", "doc:", "check:", "check",
       "try:", "except", "cases", "when", "ask:", "otherwise:", "if", "then:", "else:", "else if", "else",
@@ -63,7 +63,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       "```a one line string```", "```a two\nline string```", "\"a string\"", "'a string'",
     ];
     const tok_opers = [
-      ".", "!", "%", ",", "->", "=>", ":=", "::", ":", "|", 
+      ".", "!", "%", ",", "->", "=>", ":=", "::", ":", "|",
       " ^ ", " + ", " - ", " * ", " / ", " <= ", " >= ", " == ", " <> ", " < ", " > ", "<", ">",
       "[", "]", "{", "}", "(", ")", "=", ";", "\\"
     ];
@@ -203,7 +203,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
           }
         }
       }
-      console.log("Finished token-triple tests");      
+      console.log("Finished token-triple tests");
     });
   });
   describe("lexing", function() {
@@ -215,7 +215,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd``\\````")).not.toBe(false);
       expect(parse("```asd```asd```")).toBe(false);
     });
-  });   
+  });
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
       expect(parse("let: 10 end")).toBe(false);
@@ -246,6 +246,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
 
     it("should parse provide-types", function() {
       expect(parse("provide-types { List :: List }")).not.toBe(false);
+      expect(parse("provide-types { List :: List, }")).not.toBe(false);
       expect(parse("provide-types { List :: List, x :: (Number -> String) }")).not.toBe(false);
     });
 
@@ -369,6 +370,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse('for map(a from b, c from d, e from f): 5 end')).not.toBe(false);
       expect(parse('x :: {} = 5')).not.toBe(false);
       expect(parse('x :: {foo:: A} = 5')).not.toBe(false);
+      expect(parse('x :: {foo:: A,} = 5')).not.toBe(false);
       expect(parse('x :: {foo:: A, bar :: B, baz:: C} = 5')).not.toBe(false);
       expect(parse('x :: -> A')).not.toBe(false);
       expect(parse('x :: A -> A')).not.toBe(false);
@@ -508,8 +510,8 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("{ref x :: { z :: Number}: 22, ref y :: String: \"a\"}")).not.toBe(false);
 
       expect(parse("{x :: Number: 5}")).toBe(false);
-      expect(parse("{ ref ref y :: String: 5 }")).toBe(false); 
-      expect(parse("{ ref ref: 5 }")).toBe(false); 
+      expect(parse("{ ref ref y :: String: 5 }")).toBe(false);
+      expect(parse("{ ref ref: 5 }")).toBe(false);
     });
 
     it("should parse imports", function() {
@@ -521,7 +523,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse('import gdrive("a", "b") as G')).not.toBe(false);
       expect(parse('import gdrive() as G')).toBe(false);
     });
-    
+
     it("should parse includes", function() {
       expect(parse('include modname')).not.toBe(false);
       expect(parse('include file("modname.arr")')).not.toBe(false);
@@ -546,7 +548,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse('check: o is =~ o2 end')).toBe(false);
       expect(parse('check: o is<=> o2 end')).not.toBe(false);
       expect(parse('check: o is <=> o2 end')).toBe(false);
-      
+
       expect(parse('check: o is-not== o2 end')).not.toBe(false);
       expect(parse('check: o is-not == o2 end')).toBe(false);
       expect(parse('check: o is-not=~ o2 end')).not.toBe(false);
@@ -657,7 +659,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("table: h1 row: 3 3 row: 4 end")).toBe(false);
       expect(parse("table: h1 row: 3 row: 4 4 end")).toBe(false);
       expect(parse("table: h1 h2 row 3, 4 end")).toBe(false);
-      
+
       expect(parse("table: h1 row: 3 end")).not.toBe(false);
       expect(parse("table: h1 row: 3 row: 4 end")).not.toBe(false);
       expect(parse("table: h1, h2 row: 3, 3 row: 4, 4 end")).not.toBe(false);
@@ -727,5 +729,5 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     });
   });
 
-  
+
 });
