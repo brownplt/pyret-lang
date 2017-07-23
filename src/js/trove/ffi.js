@@ -523,6 +523,10 @@
     var isEmpty = gf(L, "is-empty").app;
     var isLink = gf(L, "is-link").app;
 
+    function isList(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }
+
+    runtime.makePrimAnn("List", isList);
+
     return runtime.makeJSModuleReturn({
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
@@ -634,9 +638,8 @@
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
       toArray: toArray,
-      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
-      List: runtime.makePrimAnn("List", function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }),
-      isLink : isLink,
+      isList: isList,
+      isLink: isLink,
       isEmpty : isEmpty,
 
       isErrorDisplay: isErrorDisplay,
