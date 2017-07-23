@@ -1156,7 +1156,7 @@
         'record-ann': function(node) {
           // (record-ann LBRACE ann-field (COMMA ann-field)* RBRACE)
           return RUNTIME.getField(ast, 'a-record')
-            .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
+            .app(pos(node.pos), tr(node.kids[1]));
         },
         'tuple-ann': function(node) {
           // (tuple LBRACE ann (SEMI ann)* [SEMI] RBRACE
