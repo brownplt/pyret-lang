@@ -1893,7 +1893,10 @@ data ParseError:
           [ED.para:
             ED.text("Pyret didn't expect your program to "),
             ED.highlight(ED.text("end"),[ED.locs: self.loc],-1),
-            ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
+            ED.text(" as soon as it did:")],
+           ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
       else:
         [ED.error: 
           [ED.para:
