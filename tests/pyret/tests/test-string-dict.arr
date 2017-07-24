@@ -248,7 +248,7 @@ check "ISD Annotation Errors":
   isd.map-keys(true) raises "Function"
   isd.fold-keys(1,1) raises "Function"
 
-  string-dict-of(1, 1) raises "List"
+  SD.string-dict-of(1, 1) raises "List"
 end
 
 check "MSD Annotation Errors":
