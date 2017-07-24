@@ -235,3 +235,32 @@ check "merge-now":
   s5 is=~ [SD.mutable-string-dict: "a", 5]
 end
 
+check "ISD Annotation Errors":
+  isd = [SD.string-dict: "a", 1]
+
+  isd.get(0)         raises "String"
+  isd.get-value(0)   raises "String"
+  isd.set(true, 2)   raises "String"
+  isd.has-key(true)  raises "String"
+  isd.merge(true)    raises "StringDict"
+  isd.remove(true)   raises "String"
+  isd.each-key(true) raises "Function"
+  isd.map-keys(true) raises "Function"
+  isd.fold-keys(1,1) raises "Function"
+
+  string-dict-of(1, 1) raises "List"
+end
+
+check "MSD Annotation Errors":
+  msd = [SD.mutable-string-dict: "a", 1]
+
+  msd.get-now(0)         raises "String"
+  msd.get-value-now(0)   raises "String"
+  msd.set-now(true, 2)   raises "String"
+  msd.has-key-now(true)  raises "String"
+  msd.merge-now(true)    raises "MutableStringDict"
+  msd.remove-now(true)   raises "String"
+  msd.each-key-now(true) raises "Function"
+  msd.map-keys-now(true) raises "Function"
+  msd.fold-keys-now(1,1) raises "Function"
+end

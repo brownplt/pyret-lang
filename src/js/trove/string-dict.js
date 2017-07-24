@@ -752,7 +752,9 @@
     //////////////////////////////////////////////////
     var getISD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get'], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "get",
+        [key],
+        [runtime.String]);
       var missing_value = {};
       var val = self.$underlyingMap.get(key, missing_value);
       if (val === missing_value) {
@@ -764,7 +766,9 @@
 
     var getValueISD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-value'], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "get-value",
+        [key],
+        [runtime.String]);
       var missing_value = {};
       var val = self.$underlyingMap.get(key, missing_value);
       if (val === missing_value) {
@@ -775,15 +779,18 @@
 
     var setISD = runtime.makeMethod2(function(self, key, val) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['set'], 3, $a); }
-      runtime.checkString(key);
-      runtime.checkPyretVal(val);
+      runtime.checkArgsInternal("string-dict", "set",
+        [key,            val],
+        [runtime.String, runtime.Any]);
       var newMap = self.$underlyingMap.set(key, val);
       return makeImmutableStringDict(newMap);
     });
 
     var mergeISD = runtime.makeMethod1(function(self, other) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge"], 2, $a); }
-      checkISD(other);
+      runtime.checkArgsInternal("string-dict", "merge",
+        [other],
+        [annImmutable]);
       var otherKeys = runtime.getField(other, "keys-list").app();
       var otherKeysArr = runtime.ffi.toArray(otherKeys);
       if (otherKeysArr.length === 0) { return self; }
@@ -796,14 +803,18 @@
 
     var removeISD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['remove'], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "remove",
+        [key],
+        [runtime.String]);
       var newMap = self.$underlyingMap.remove(key);
       return makeImmutableStringDict(newMap);
     });
 
     var hasKeyISD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['has-key'], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "has-key",
+        [key],
+        [runtime.String]);
       var missing_value = {};
       var val = self.$underlyingMap.get(key, missing_value);
       if (val === missing_value) {
@@ -815,13 +826,17 @@
 
     var eachKeyISD = runtime.makeMethod1(function(self, f) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["each-key"], 2, $a); }
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "each-key",
+        [f],
+        [runtime.Function]);
       return runtime.raw_array_each(f, self.$underlyingMap.keys());
     });
 
     var mapKeysISD = runtime.makeMethod1(function(self, f) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["map-keys"], 2, $a); }
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "map-keys",
+        [f],
+        [runtime.Function]);
       return runtime.safeCall(function() { return runtime.raw_array_map(f, self.$underlyingMap.keys()); },
                               runtime.ffi.makeList,
                               "map-keys")
@@ -829,8 +844,9 @@
 
     var foldKeysISD = runtime.makeMethod2(function(self, f, init) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["fold-keys"], 3, $a); }
-      runtime.checkFunction(f);
-      runtime.checkPyretVal(init);
+      runtime.checkArgsInternal("string-dict", "fold-keys",
+        [f,                init],
+        [runtime.Function, runtime.Any]);
       return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(key, acc); }),
                                     init, self.$underlyingMap.keys(), 0);
     });
@@ -924,7 +940,9 @@
     //////////////////////////////////////////////////
     var getMSD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-now'], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "get-now",
+        [key],
+        [runtime.String]);
       var val = self.$underlyingDict[key];
       if (val === undefined) {
         return runtime.ffi.makeNone();
@@ -935,7 +953,9 @@
 
     var getValueMSD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["get-value-now"], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "get-value-now",
+        [key],
+        [runtime.String]);
       var val = self.$underlyingDict[key];
       if (val === undefined) {
         runtime.ffi.throwMessageException("Key " + key + " not found");
@@ -945,18 +965,21 @@
 
     var setMSD = runtime.makeMethod2(function(self, key, val) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["set-now"], 3, $a); }
+      runtime.checkArgsInternal("string-dict", "set-now",
+        [key,            val],
+        [runtime.String, runtime.Any]);
       if (self.$sealed) {
         runtime.ffi.throwMessageException("Cannot modify sealed string dict");
       }
-      runtime.checkString(key);
-      runtime.checkPyretVal(val);
       self.$underlyingDict[key] = val;
       return runtime.nothing;
     });
 
     var mergeMSD = runtime.makeMethod1(function(self, other) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge-now"], 2, $a); }
-      checkMSD(other);
+      runtime.checkArgsInternal("string-dict", "merge-now",
+        [other],
+        [annMutable]);
       for (var key in other.$underlyingDict)
         self.$underlyingDict[key] = other.$underlyingDict[key];
       return runtime.nothing;
@@ -972,17 +995,21 @@
 
     var removeMSD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["remove-now"], 2, $a); }
+      runtime.checkArgsInternal("string-dict", "remove-now",
+        [key],
+        [runtime.String]);
       if (self.$sealed) {
         runtime.ffi.throwMessageException("Cannot modify sealed string dict");
       }
-      runtime.checkString(key);
       delete self.$underlyingDict[key];
       return runtime.nothing;
     });
 
     var hasKeyMSD = runtime.makeMethod1(function(self, key) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["has-key-now"], 2, $a); }
-      runtime.checkString(key);
+      runtime.checkArgsInternal("string-dict", "has-key-now",
+        [key],
+        [runtime.String]);
       if (key in self.$underlyingDict) {
         return runtime.makeBoolean(true);
       } else {
@@ -1008,13 +1035,17 @@
 
     var eachKeyMSD = runtime.makeMethod1(function(self, f) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["each-key-now"], 2, $a); }
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "each-key-now",
+        [f],
+        [runtime.Function]);
       return runtime.raw_array_each(f, Object.keys(self.$underlyingDict));
     });
 
     var mapKeysMSD = runtime.makeMethod1(function(self, f) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["map-keys-now"], 2, $a); }
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "map-keys-now",
+        [f],
+        [runtime.Function]);
       return runtime.safeCall(function() { return runtime.raw_array_map(f, Object.keys(self.$underlyingDict)); },
                               runtime.ffi.makeList,
                               "map-keys-now");
@@ -1022,8 +1053,9 @@
 
     var foldKeysMSD = runtime.makeMethod2(function(self, f, init) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["fold-keys-now"], 3, $a); }
-      runtime.checkFunction(f);
-      runtime.checkPyretVal(init)
+      runtime.checkArgsInternal("string-dict", "fold-keys-now",
+        [f,                init],
+        [runtime.Function, runtime.Any]);
       return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(key, acc); }),
                                     init, Object.keys(self.$underlyingDict), 0);
     });
@@ -1214,7 +1246,9 @@
 
     function createConstImmutableStringDict(names, val) {
       arity(2, arguments, "string-dict-of");
-      runtime.checkList(names);
+      runtime.checkArgsInternal("string-dict", "string-dict-of",
+        [names,        val],
+        [runtime.List, runtime.Any]);
       var arr = runtime.ffi.toArray(names);
       var map = emptyMap();
       arr.forEach(function(k) {
@@ -1225,47 +1259,51 @@
 
     function mapKeys(f, isd) {
       arity(2, arguments, "map-keys");
-      jsCheckISD(isd);
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "map-keys",
+        [f,                isd],
+        [runtime.Function, annImmutable]);
       return runtime.getColonField(isd, "map-keys").full_meth(isd, f);
     }
     
     function mapKeysNow(f, msd) {
       arity(2, arguments, "map-keys-now");
-      jsCheckMSD(msd);
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "map-keys-now",
+        [f,                msd],
+        [runtime.Function, annMutable]);
       return runtime.getColonField(msd, "map-keys-now").full_meth(msd, f);
     }
 
     function foldKeys(f, init, isd) {
       arity(3, arguments, "fold-keys");
-      jsCheckISD(isd);
-      runtime.checkFunction(f);
-      runtime.checkPyretVal(init);
+      runtime.checkArgsInternal("string-dict", "fold-keys",
+        [f,                init,        isd],
+        [runtime.Function, runtime.Any, annImmutable]);
       return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(acc, key); }),
                                     init, isd.$underlyingMap.keys(), 0);
     }
     
     function foldKeysNow(f, init, msd) {
       arity(3, arguments, "fold-keys-now");
-      jsCheckMSD(msd);
-      runtime.checkFunction(f);
-      runtime.checkPyretVal(init);
+      runtime.checkArgsInternal("string-dict", "fold-keys-now",
+        [f,                init,        msd],
+        [runtime.Function, runtime.Any, annMutable]);
       return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(acc, key); }),
                                     init, Object.keys(msd.$underlyingDict), 0);
     }
 
     function eachKey(f, isd) {
       arity(2, arguments, "each-key-now");
-      jsCheckISD(isd);
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "each-key",
+        [f,                isd],
+        [runtime.Function, annImmutable]);
       return runtime.getColonField(isd, "each-key").full_meth(isd, f);
     }
     
     function eachKeyNow(f, msd) {
       arity(2, arguments, "each-key-now");
-      jsCheckMSD(msd);
-      runtime.checkFunction(f);
+      runtime.checkArgsInternal("string-dict", "each-key-now",
+        [f,                msd],
+        [runtime.Function, annMutable]);
       return runtime.getColonField(msd, "each-key-now").full_meth(msd, f);
     }
 
