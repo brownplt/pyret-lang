@@ -157,14 +157,15 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
   else if x.length() < 2:
     raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
   else:
-    xpt-xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
-    xpt-x-xpt-y = (math.sum(x) * math.sum(map(num-to-roughnum, y))) / x.length()
+    y-rough = map(num-to-roughnum, y)
+    xpt-xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y-rough))
+    xpt-x-xpt-y = (math.sum(x) * math.sum(y-rough)) / x.length()
     covariance = xpt-xy - xpt-x-xpt-y
     v1 = math.sum(map(lam(n): n * n end, x))
     v2 = (math.sum(x) * math.sum(x)) / x.length()
     variance = v1 - v2
     beta = covariance / variance
-    alpha = mean(y) - (beta * mean(x))
+    alpha = mean(y-rough) - (beta * mean(x))
 
     fun predictor(in :: Number) -> Number:
       (beta * in) + alpha
@@ -175,10 +176,11 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
 end
 
 fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> Number:
-  y-mean = mean(y)
+  y-rough = map(num-to-roughnum, y)
+  y-mean = mean(y-rough)
   f-of-x = map(f, x)
-  ss-tot = math.sum(map(lam(yi): num-sqr(yi - y-mean) end, y))
-  ss-res = math.sum(map2(lam(yi, fi): num-sqr(yi - fi) end, y, f-of-x))
+  ss-tot = math.sum(map(lam(yi): num-sqr(yi - y-mean) end, y-rough))
+  ss-res = math.sum(map2(lam(yi, fi): num-sqr(yi - fi) end, y-rough, f-of-x))
 
   if within-abs(0.0000001)(~0, ss-res):
     1
