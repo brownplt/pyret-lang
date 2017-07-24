@@ -116,7 +116,7 @@ expr: paren-expr | id-expr | prim-expr
 
 template-expr : DOTDOTDOT
 
-bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | UNKNOWN
+bad-expr: UNTERMINATED-STRING | UNTERMINATED-BLOCK-COMMENT | BAD-OPER | BAD-NUMBER | BAD-DENOMINATOR | UNKNOWN
 
 # paren-exprs must be preceded by a space, so as not be be confused with
 # function application

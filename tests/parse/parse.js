@@ -216,6 +216,20 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd```asd```")).toBe(false);
     });
   });   
+  describe("lexing", function() {
+    it("shouldn't allow 0 as denominator", function() {
+      expect(parse("1/2")).not.toBe(false);
+      expect(parse("1/0")).toBe(false);
+      expect(parse("1/02")).not.toBe(false);
+      expect(parse("10/2")).not.toBe(false);
+      expect(parse("1/00")).toBe(false);
+      expect(parse("~1/2")).not.toBe(false);
+      expect(parse("~1/0")).toBe(false);
+      expect(parse("~1/02")).not.toBe(false);
+      expect(parse("~10/2")).not.toBe(false);
+      expect(parse("~1/00")).toBe(false);
+    });
+  });
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
       expect(parse("let: 10 end")).toBe(false);

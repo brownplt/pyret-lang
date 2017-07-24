@@ -427,6 +427,9 @@
     function throwParseErrorBadNumber(loc) {
       raise(err("parse-error-bad-number")(loc));
     }
+    function throwParseErrorBadDenominator(loc) {
+      raise(err("parse-error-bad-denominator")(loc));
+    }
     function throwParseErrorBadOper(loc) {
       raise(err("parse-error-bad-operator")(loc));
     }
@@ -568,6 +571,7 @@
       throwParseErrorEOF: throwParseErrorEOF,
       throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
       throwParseErrorBadNumber: throwParseErrorBadNumber,
+      throwParseErrorBadDenominator: throwParseErrorBadDenominator,
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 

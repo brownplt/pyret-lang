@@ -121,6 +121,8 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
 
   const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
+  const badDenominator = new RegExp("^~?[+-]?" + "[0-9]+/0+(?![0-9])", STICKY_REGEXP);
+
   const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
 
   const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
@@ -282,6 +284,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BY", val: new RegExp(kw("by"), STICKY_REGEXP)},
 
     {name: "BAD-NUMBER", val: badNumber},
+    {name: "BAD-DENOMINATOR", val: badDenominator},
     {name: "DOTDOTDOT", val: dotdotdot},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},

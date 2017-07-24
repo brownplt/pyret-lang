@@ -1965,6 +1965,29 @@ data ParseError:
           draw-and-highlight(self.loc),
           ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
+  | parse-error-bad-denominator(loc) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks ")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text(" is probably a number, but number literals in Pyret cannot have zero as denominator.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks your program has a number at "),
+            ED.loc(self.loc),
+            ED.text(", but number literals in Pyret cannot have zero as denominator.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error: [ED.para-nospace:
+          ED.text("Pyret thinks your program probably has a number at "),
+          draw-and-highlight(self.loc),
+          ED.text("; number literals in Pyret cannot have zero as denominator.")]]
+    end
   | parse-error-bad-check-operator(loc) with:
     method render-fancy-reason(self, src-available):
       if src-available(self.loc):

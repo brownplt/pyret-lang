@@ -1342,6 +1342,8 @@
             RUNTIME.ffi.throwParseErrorUnterminatedString(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-NUMBER")
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
+          else if (nextTok.name === "BAD-DENOMINATOR")
+            RUNTIME.ffi.throwParseErrorBadDenominator(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-OPER")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
           else if (typeof opLookup[String(nextTok.value).trim()] === "function")
