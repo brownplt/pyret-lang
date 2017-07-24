@@ -50,7 +50,7 @@
       if (node.name !== "expr") return false;       node = node.kids[0];
       if (node.name !== "prim-expr") return false;  node = node.kids[0];
       if (node.name !== "num-expr") return false;   node = node.kids[0];
-      if (node.name !== "NUMBER") return false; 
+      if (node.name !== "NUMBER") return false;
       return node.value[0] === '-' || node.value[0] === '+';
     }
     function detectAndComplainAboutOperatorWhitespace(stmts, fileName) {
@@ -118,7 +118,7 @@
       function symbol(tok) {
         return RUNTIME.makeString(tok.value);
       }
-      function string(tok) { 
+      function string(tok) {
         if (tok.value.substring(0, 3) === "```")
           return RUNTIME.makeString(tok.value.slice(3, -3).trim());
         else
@@ -332,7 +332,7 @@
           // to create the default let-expr or var-expr constructions
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
           return RUNTIME.getField(ast, 's-let-expr')
-            .app(pos(node.pos), 
+            .app(pos(node.pos),
                  makeListComma(node.kids, 1, node.kids.length - 3, translators["let-binding"]),
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
@@ -342,8 +342,8 @@
           // to create the default let-expr constructions
           var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
           return RUNTIME.getField(ast, 's-letrec')
-            .app(pos(node.pos), 
-                 makeListComma(node.kids, 1, node.kids.length - 3, translators["letrec-binding"]), 
+            .app(pos(node.pos),
+                 makeListComma(node.kids, 1, node.kids.length - 3, translators["letrec-binding"]),
                  tr(node.kids[node.kids.length - 2]), isBlock);
         },
         'let-binding': function(node) {
@@ -418,12 +418,12 @@
           if (node.kids.length === 3) {
             // (check-expr CHECKCOLON body END)
             return RUNTIME.getField(ast, 's-check')
-              .app(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]), 
+              .app(pos(node.pos), RUNTIME.ffi.makeNone(), tr(node.kids[1]),
                    RUNTIME.makeBoolean(node.kids[0].name === "CHECKCOLON"));
           } else {
             // (check-expr CHECK STRING COLON body END)
             return RUNTIME.getField(ast, 's-check')
-              .app(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]), 
+              .app(pos(node.pos), RUNTIME.ffi.makeSome(string(node.kids[1])), tr(node.kids[3]),
                    RUNTIME.makeBoolean(node.kids[0].name === "CHECK"));
           }
         },
@@ -458,14 +458,14 @@
             var mkOp = RUNTIME.getField(ast, 's-op').app;
             var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos),
                             pos(node.kids[1].pos),
-                            tr(node.kids[1]), 
+                            tr(node.kids[1]),
                             tr(node.kids[0]),
                             tr(node.kids[2]));
             for(var i = 4; i < node.kids.length; i += 2) {
-              expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos), 
+              expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos),
                           pos(node.kids[i - 1].pos),
-                          tr(node.kids[i - 1]), 
-                          expr, 
+                          tr(node.kids[i - 1]),
+                          expr,
                           tr(node.kids[i]));
             }
             return expr;
@@ -546,11 +546,11 @@
             return tr(node.kids[1]);
           }
         },
-        
+
         'binding': function(node) {
           return tr(node.kids[0]);
         },
-        
+
         'tuple-binding' : function(node) {
           var lastBinding = node.kids.length - 1;
           var optAsBinding;
@@ -566,12 +566,12 @@
           return RUNTIME.getField(ast, 's-tuple-bind')
             .app(pos(node.pos), makeListComma(node.kids, 1, lastBinding), optAsBinding);
         },
-           
+
         'name-binding': function(node) {
           if (node.kids.length === 1) {
             // (binding name)
             return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]), 
+              .app(pos(node.pos), RUNTIME.pyretFalse, name(node.kids[0]),
                    RUNTIME.getField(ast, 'a-blank'));
           } else if (node.kids.length === 3) {
             // (binding name COLONCOLON ann)
@@ -580,7 +580,7 @@
           } else if (node.kids.length === 2) {
             // (binding SHADOW name)
             return RUNTIME.getField(ast, 's-bind')
-              .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]), 
+              .app(pos(node.pos), RUNTIME.pyretTrue, name(node.kids[1]),
                    RUNTIME.getField(ast, 'a-blank'));
           } else {
             // (binding SHADOW name COLONCOLON ann)
@@ -628,7 +628,7 @@
           } else {
             // (variant-members LPAREN mem (COMMA mem)* RPAREN)
             return makeListComma(node.kids, 1, node.kids.length - 1);
-          }          
+          }
         },
         'key': function(node) {
           if (node.kids[0].name === "NAME") {
@@ -794,7 +794,7 @@
                 : RUNTIME.ffi.makeSome(tr(node.kids[3]));
           var project = tr(node.kids[node.kids.length - 2]);
           return RUNTIME.getField(ast, 's-sql')
-            .app( pos(node.pos), 
+            .app( pos(node.pos),
                   inspect, // from
                   where, // where
                   project); // project
@@ -802,7 +802,7 @@
         'do-expr': function(node) {
           // (do FOR iter binds ... return COLON body END)
           return RUNTIME.getField(ast, 's-do')
-            .app(pos(node.pos), 
+            .app(pos(node.pos),
                  tr(node.kids[1]),                         // iterator
                  makeList(node.kids.slice(3, -4).map(tr)), // bindings
                  tr(node.kids[node.kids.length - 3]),      // return-ann
@@ -1035,7 +1035,7 @@
           if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
             // (if-expr IF test (BLOCK|COLON) body branch ... ELSECOLON else END)
             return RUNTIME.getField(ast, 's-if-else')
-              .app(pos(node.pos), 
+              .app(pos(node.pos),
                    makeList([RUNTIME.getField(ast, 's-if-branch')
                              .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
                             0, 1,
@@ -1044,7 +1044,7 @@
           } else {
             // (if-expr IF test (BLOCK|COLON) body branch ... END)
             return RUNTIME.getField(ast, 's-if')
-              .app(pos(node.pos), 
+              .app(pos(node.pos),
                    makeList([RUNTIME.getField(ast, 's-if-branch')
                              .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
                             0, 1,
@@ -1143,10 +1143,20 @@
               .app(pos(node.pos), name(node.kids[0]));
           }
         },
+        'comma-ann-field': function(node) {
+          return makeListComma(node.kids);
+        },
+        'trailing-opt-comma-ann-field': function(node) {
+          if (node.kids.length === 0) {
+            return empty;
+          } else {
+            return tr(node.kids[0]);
+          }
+        },
         'record-ann': function(node) {
           // (record-ann LBRACE ann-field (COMMA ann-field)* RBRACE)
           return RUNTIME.getField(ast, 'a-record')
-            .app(pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 1));
+            .app(pos(node.pos), tr(node.kids[1]));
         },
         'tuple-ann': function(node) {
           // (tuple LBRACE ann (SEMI ann)* [SEMI] RBRACE
@@ -1162,19 +1172,19 @@
           if (node.kids.length === 2) {
             // (noparen-arrow-ann THINARROW result)
             return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), 
+              .app(pos(node.pos),
                    empty, tr(node.kids[1]),
                    RUNTIME.pyretFalse);
           } else {
             // (noparen-arrow-ann comma-anns THINARROW result)
             return RUNTIME.getField(ast, 'a-arrow')
-              .app(pos(node.pos), 
+              .app(pos(node.pos),
                    tr(node.kids[0]), tr(node.kids[2]),
                    RUNTIME.pyretFalse);
           }
         },
         //TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON obj-fields end
-        //           0    1      3       4                -4    -3         -2  -1 
+        //           0    1      3       4                -4    -3         -2  -1
         'table-extend': function(node) {
           var columns = new Array();
           for (var i = 3; i < node.kids.length - 3; i+=2)
@@ -1215,7 +1225,7 @@
           var direction = node.kids[1].name == "ASCENDING"  ? RUNTIME.getField(ast, 'ASCENDING')
                 : node.kids[1].name == "DESCENDING" ? RUNTIME.getField(ast, 'DESCENDING')
                 : undefined;
-          return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos), 
+          return RUNTIME.getField(ast, 's-column-sort').app(pos(node.pos),
                                                             column,
                                                             direction);
         },
@@ -1337,7 +1347,7 @@
         //console.log("Result:");
         var countParses = grammar.countAllParses(parsed);
         if (countParses == 0) {
-          var nextTok = toks.curTok; 
+          var nextTok = toks.curTok;
           message = "There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toString(true) +
                       " at " + fileName + ", " + nextTok.pos.toString(true);
