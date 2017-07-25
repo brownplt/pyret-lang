@@ -569,8 +569,8 @@ define("pyret-base/js/js-numbers", function() {
 
     if (lessThanOrEqual(ratDelta, 1, errbacks)) {
       var absDelta = multiply(ratDelta, abs(ratTv, errbacks), errbacks)
-      if (deltaIsRough && toRoughnum(absDelta).n === Number.MIN_VALUE) {
-        if (argNumsAreRough && Math.abs(toRoughnum(err).n) === Number.MIN_VALUE) {
+      if (deltaIsRough && toRoughnum(absDelta, errbacks).n === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(err, errbacks).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
                             computedValue + ' ' + trueValue + ' ' + delta)
         }
@@ -581,7 +581,7 @@ define("pyret-base/js/js-numbers", function() {
       var errRatio = divide(err, abs(ratTv, errbacks), errbacks)
 
       if (deltaIsRough && delta.n === Number.MIN_VALUE) {
-        if (argNumsAreRough && Math.abs(toRoughnum(errRatio).n) === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(errRatio, errbacks).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
                             computedValue + ' ' + trueValue + ' ' + delta)
         }
@@ -1201,16 +1201,44 @@ define("pyret-base/js/js-numbers", function() {
       return bnRemainder.call(m, n);
     });
 
+  var splitIntintoMantissaExpt = function(s) {
+    var str = s.toString();
+    var c0 = str[0];
+    var sign = '';
+
+
+    if (c0 === '-' || c0 === '+') {
+      str = str.substring(1);
+      if (c0 === '-') {
+        sign = '-';
+      }
+    }
+
+    var d0 = str[0];
+    str = str.substring(1);
+
+    var mantissa = Number(sign + d0 + '.' + str);
+    var expt = str.substring(1).length;
+
+    return [mantissa, expt];
+  };
+
   // _integerDivideToFixnum: integer-pyretnum integer-pyretnum -> fixnum
   var _integerDivideToFixnum = makeIntegerBinop(
     function(m, n) {
       return m / n;
     },
     function(m, n) {
-      return toFixnum(m) / toFixnum(n);
+      var xm = splitIntintoMantissaExpt(m);
+      var xn = splitIntintoMantissaExpt(n);
+      var r = Number(String(xm[0] / xn[0]) + 'e' + 
+        String(xm[1] - xn[1]));
+      return r;
     },
-    {ignoreOverflow: true,
-     doNotCoerceToFloating: true});
+    { ignoreOverflow: false,
+      doNotCoerceToFloating: true
+    }
+  );
 
   // _integerEquals: integer-pyretnum integer-pyretnum -> boolean
   var _integerEquals = makeIntegerBinop(
@@ -1487,6 +1515,7 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.toExact = Rational.prototype.toRational;
+
 
   Rational.prototype.toFixnum = function() {
     return _integerDivideToFixnum(this.n, this.d);
@@ -3593,42 +3622,13 @@ define("pyret-base/js/js-numbers", function() {
   BigInteger.prototype.toExact = BigInteger.prototype.toRational;
 
   BigInteger.prototype.toFixnum = function() {
-    var str = this.toString();
-    var expt = 0;
-    var negativeP = false;
-    var c0 = str[0];
-
-    var i, slen, result;
-
-    if (c0 === '-' || c0 === '+') {
-      str = str.substring(1);
-      if (c0 === '-') {
-        negativeP = true;
-      }
-    }
-
-    slen = str.length;
-
-    for(i = slen - 1;  i >= 0; i--) {
-      if (str[i] === '0') {
-        expt++;
-      } else {
-        slen = i + 1;
-        str = str.substring(0, slen);
-        break;
-      }
-    }
-
-    str = str + 'e' + expt;
-
-    result = Number(str);
-
-    if (negativeP) {
-      result = - result;
-    }
-
-    return result;
-  } ;
+    var a = splitIntintoMantissaExpt(this);
+    //console.log('bigint.tofixnum of', this);
+    //console.log('split = ', a);
+    var r = Number(String(a[0]) + 'e' + String(a[1]));
+    //console.log('returning', r);
+    return r;
+  }
 
   BigInteger.prototype.toRoughnum = function(errbacks) {
     return Roughnum.makeInstance(this.toFixnum(), errbacks);
