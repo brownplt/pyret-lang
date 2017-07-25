@@ -104,6 +104,13 @@ data Srcloc:
         self
       end
     end,
+    method contains(self, other):
+      is-srcloc(other)
+        and (self.start-line <= other.start-line)
+        and (self.start-char <= other.start-char)
+        and (self.end-line >= other.end-line)
+        and (self.end-char >= other.end-char)
+    end,
     method is-builtin(self): false end
 sharing:
   method after(self, other): other.before(self) end
