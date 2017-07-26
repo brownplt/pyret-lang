@@ -1201,11 +1201,25 @@ define("pyret-base/js/js-numbers", function() {
       return bnRemainder.call(m, n);
     });
 
-  var splitIntintoMantissaExpt = function(s) {
+  // splitIntIntoMantissaExpt: integer-pyretnum -> [JS-double, JS-int]
+  // 
+  // splitIntIntoMantissaExpt takes an integer s (either unboxed or BigInteger)
+  //   and returns [mantissa, exponent]
+  //   such that s ~= mantissa * 10^exponent.
+  // mantissa is a JS-double, and is chosen to be have one non-zero digit 
+  //   to the left of the decimal point.
+  // Because mantissa is a JS-double, there is in general a loss of precision.
+  // splitIntIntoMantissaExpt is used to create a best-possible JS-double version
+  //   of its argument arbitrarily precise integer.
+  // E.g., splitIntIntoMantissaExpt(256) returns
+  //   [2.56, 2]
+  // splitIntIntoMantissaExpt(111222333444555666777888999) returns
+  //   [1.1122233344455567, 26]
+  //
+  var splitIntIntoMantissaExpt = function(s) {
     var str = s.toString();
     var c0 = str[0];
     var sign = '';
-
 
     if (c0 === '-' || c0 === '+') {
       str = str.substring(1);
@@ -1224,13 +1238,24 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   // _integerDivideToFixnum: integer-pyretnum integer-pyretnum -> fixnum
+  //
+  // _integerDivideToFixnum takes two integers (possibly BigIntegers) and 
+  //   returns the best fixnum representing their quotient.
+  // If the args are both JS-doubles, the JS quotient is returned if it
+  //   doesn't overflow.
+  // If it does overflow, or if at least of the args is a BigInt, then
+  //   splitIntIntoMantissaExpt is used to convert the args to
+  //   [mantissa, exponent] form. The result a*10^b, where
+  //   a = the mantissae's quotient, and
+  //   b = the exponents' difference
+  //
   var _integerDivideToFixnum = makeIntegerBinop(
     function(m, n) {
       return m / n;
     },
     function(m, n) {
-      var xm = splitIntintoMantissaExpt(m);
-      var xn = splitIntintoMantissaExpt(n);
+      var xm = splitIntIntoMantissaExpt(m);
+      var xn = splitIntIntoMantissaExpt(n);
       var r = Number(String(xm[0] / xn[0]) + 'e' + 
         String(xm[1] - xn[1]));
       return r;
@@ -3622,7 +3647,7 @@ define("pyret-base/js/js-numbers", function() {
   BigInteger.prototype.toExact = BigInteger.prototype.toRational;
 
   BigInteger.prototype.toFixnum = function() {
-    var a = splitIntintoMantissaExpt(this);
+    var a = splitIntIntoMantissaExpt(this);
     //console.log('bigint.tofixnum of', this);
     //console.log('split = ', a);
     var r = Number(String(a[0]) + 'e' + String(a[1]));
