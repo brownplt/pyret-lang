@@ -1206,7 +1206,7 @@ define("pyret-base/js/js-numbers", function() {
   // splitIntIntoMantissaExpt takes an integer s (either unboxed or BigInteger)
   //   and returns [mantissa, exponent]
   //   such that s ~= mantissa * 10^exponent.
-  // mantissa is a JS-double, and is chosen to be have one non-zero digit 
+  // mantissa is a JS-double, and is chosen to have one non-zero digit
   //   to the left of the decimal point.
   // Because mantissa is a JS-double, there is in general a loss of precision.
   // splitIntIntoMantissaExpt is used to create a best-possible JS-double version
@@ -1243,7 +1243,7 @@ define("pyret-base/js/js-numbers", function() {
   //   returns the best fixnum representing their quotient.
   // If the args are both JS-doubles, the JS quotient is returned if it
   //   doesn't overflow.
-  // If it does overflow, or if at least of the args is a BigInt, then
+  // If it does overflow, or if at least one of the args is a BigInt, then
   //   splitIntIntoMantissaExpt is used to convert the args to
   //   [mantissa, exponent] form. The result a*10^b, where
   //   a = the mantissae's quotient, and
