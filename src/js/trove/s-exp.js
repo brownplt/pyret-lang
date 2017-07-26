@@ -9,8 +9,8 @@
     var vals = gf(sstruct, "values");
     var typs = gf(sstruct, "types");
     function readSexp(s) {
+      RUNTIME.checkArity(1, arguments, "s-exp", false);
       RUNTIME.checkString(s);
-      RUNTIME.checkArity(1, arguments);
       // Wrap in quotes to satisfy parser for simple atoms like "a"
       var jsVal = new sexp("(" + s + ")");
       var sList = gf(vals, "s-list");

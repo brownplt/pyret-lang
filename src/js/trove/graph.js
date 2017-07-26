@@ -59,7 +59,7 @@
        * http://emptypipes.org/2015/02/15/selectable-force-directed-graph/
        */
 
-      RUNTIME.checkArity(2, arguments, "show-graph");
+      RUNTIME.checkArity(2, arguments, "show-graph", false);
 
       var checkGraph = RUNTIME.makeCheckType(PyretGraph.app, "Graph");
       var checkGraphOptions = function(v) {
@@ -670,7 +670,7 @@
        * Part of this function is adapted from:
        * http://www.d3noob.org/2014/01/tree-diagrams-in-d3js_11.html
        */
-      RUNTIME.checkArity(2, arguments, "show-tree");
+      RUNTIME.checkArity(2, arguments, "show-tree", false);
 
       var checkTree = RUNTIME.makeCheckType(PyretTree.app, "Tree");
       var checkTreeOptions = function(v) {

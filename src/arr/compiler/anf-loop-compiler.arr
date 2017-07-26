@@ -372,11 +372,11 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   end
 end
 
-fun arity-check(loc-expr, arity :: Number):
+fun arity-check(loc-expr, arity :: Number, is-method :: Boolean):
   #|[list:
     j-if1(j-binop(j-dot(ARGUMENTS, "length"), j-neq, j-num(arity)),
       j-block([list:
-          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS])]))
+          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS]), j-bool(is-method)]))
       ]))]|#
   len = j-id(compiler-name("l"))
   iter = j-id(compiler-name("i"))
@@ -388,7 +388,7 @@ fun arity-check(loc-expr, arity :: Number):
           j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
           j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
             j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
-          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
+          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t, j-bool(is-method)]))]))]
 end
 
 no-vars = D.make-mutable-string-dict
@@ -512,7 +512,7 @@ end
 var total-time = 0
 
 show-stack-trace = false
-fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean) -> J.JBlock block:
+fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean, is-method :: Boolean) -> J.JBlock block:
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
@@ -615,7 +615,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   trace-enter = rt-method("traceEnter", entryExit)
   first-entry-stmts = cases(Option) opt-arity:
     | some(arity) =>
-      stmts = cl-append(arity-check(local-compiler.get-loc(l), arity),
+      stmts = cl-append(arity-check(local-compiler.get-loc(l), arity, is-method),
         copy-formals-to-args)
       if show-stack-trace:
         cl-snoc(stmts, trace-enter)
@@ -1021,7 +1021,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
       j-list(false, cl-empty)
     end
     compiled-branch-fun =
-      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true, false)
+      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true, false, false)
     preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
@@ -1213,7 +1213,7 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
       j-var(temp,
         j-fun(J.next-j-fun-id(), make-fun-name(compiler, l),
           CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
-          compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat)))])
+          compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat, false)))])
 end
 
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
@@ -1418,7 +1418,7 @@ compiler-visitor = {
       j-var(temp-full,
         j-fun(J.next-j-fun-id(), make-fun-name(self, l),
           CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
-          compile-fun-body(l, step, temp-full, self.{allow-tco: true}, args, some(len), body, true, false)
+          compile-fun-body(l, step, temp-full, self.{allow-tco: true}, args, some(len), body, true, false, true)
         ))
     method-expr = if len < 9:
       rt-method(string-append("makeMethod", tostring(len - 1)), [clist: j-id(temp-full), j-str(name)])
@@ -1509,7 +1509,7 @@ compiler-visitor = {
               [clist: val],
               j-block(
                 cl-snoc(
-                  arity-check(self.get-loc(loc), 1),
+                  arity-check(self.get-loc(loc), 1, false),
                   j-return(rt-method("makeBoolean", [clist: rt-method("hasBrand", [clist: j-id(val), b])])))
                 )
               ),
@@ -2057,7 +2057,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false, dispatches: cases-dispatches}
   visited-body = compile-fun-body(l, step, toplevel-name,
     body-compiler, # resumer gets js-id-of'ed in compile-fun-body
-    [list: resumer-bind], none, prog, true, false)
+    [list: resumer-bind], none, prog, true, false, false)
   toplevel-fun = j-fun(J.next-j-fun-id(), make-fun-name(body-compiler, l), [clist: formal-shadow-name(resumer)], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
   module-body = j-block(
