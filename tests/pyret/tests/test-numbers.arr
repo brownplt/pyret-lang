@@ -284,4 +284,18 @@ check "rough fractions -- proper, improper, integral -- recognized, provided den
   ~3/2 is%(within(0.01)) ~1.5
   num-is-roughnum(~10/2) is true
   ~10/2 is%(within(0.1)) ~5
+  #
+  num-is-roughnum(~+1/2) is true
+  ~+1/2 is%(within(0.01)) ~+0.5
+  num-is-roughnum(~+3/2) is true
+  ~+3/2 is%(within(0.01)) ~+1.5
+  num-is-roughnum(~+10/2) is true
+  ~+10/2 is%(within(0.1)) ~+5
+  #
+  num-is-roughnum(~-1/2) is true
+  ~-1/2 is%(within(0.01)) ~-0.5
+  num-is-roughnum(~-3/2) is true
+  ~-3/2 is%(within(0.01)) ~-1.5
+  num-is-roughnum(~-10/2) is true
+  ~-10/2 is%(within(0.1)) ~-5
 end
