@@ -276,3 +276,26 @@ check "floor/ceiling/round of bigrats":
   num-ceiling(+123123123123123123123123124.5) is 123123123123123123123123125
   num-ceiling(-123123123123123123123123124.5) is -123123123123123123123123124
 end
+
+check "rough fractions -- proper, improper, integral -- recognized, provided denr != 0":
+  num-is-roughnum(~1/2) is true
+  ~1/2 is%(within(0.01)) ~0.5
+  num-is-roughnum(~3/2) is true
+  ~3/2 is%(within(0.01)) ~1.5
+  num-is-roughnum(~10/2) is true
+  ~10/2 is%(within(0.1)) ~5
+  #
+  num-is-roughnum(~+1/2) is true
+  ~+1/2 is%(within(0.01)) ~+0.5
+  num-is-roughnum(~+3/2) is true
+  ~+3/2 is%(within(0.01)) ~+1.5
+  num-is-roughnum(~+10/2) is true
+  ~+10/2 is%(within(0.1)) ~+5
+  #
+  num-is-roughnum(~-1/2) is true
+  ~-1/2 is%(within(0.01)) ~-0.5
+  num-is-roughnum(~-3/2) is true
+  ~-3/2 is%(within(0.01)) ~-1.5
+  num-is-roughnum(~-10/2) is true
+  ~-10/2 is%(within(0.1)) ~-5
+end
