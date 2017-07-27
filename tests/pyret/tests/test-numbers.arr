@@ -292,3 +292,26 @@ check "non-erroring roughnum coercion for rationals and bigints whenever feasibl
   num-is-roughnum(num-to-roughnum(s)) is true # but s isn't
   num-to-roughnum(s) is%(within(0.001e307)) 3.10748e307
 end
+
+check "rough fractions -- proper, improper, integral -- recognized, provided denr != 0":
+  num-is-roughnum(~1/2) is true
+  ~1/2 is%(within(0.01)) ~0.5
+  num-is-roughnum(~3/2) is true
+  ~3/2 is%(within(0.01)) ~1.5
+  num-is-roughnum(~10/2) is true
+  ~10/2 is%(within(0.1)) ~5
+  #
+  num-is-roughnum(~+1/2) is true
+  ~+1/2 is%(within(0.01)) ~+0.5
+  num-is-roughnum(~+3/2) is true
+  ~+3/2 is%(within(0.01)) ~+1.5
+  num-is-roughnum(~+10/2) is true
+  ~+10/2 is%(within(0.1)) ~+5
+  #
+  num-is-roughnum(~-1/2) is true
+  ~-1/2 is%(within(0.01)) ~-0.5
+  num-is-roughnum(~-3/2) is true
+  ~-3/2 is%(within(0.01)) ~-1.5
+  num-is-roughnum(~-10/2) is true
+  ~-10/2 is%(within(0.1)) ~-5
+end

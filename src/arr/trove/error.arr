@@ -1233,19 +1233,12 @@ data RuntimeError:
                   | some(ast) =>
                     applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
                     arg-locs = ast.args.map(_.l)
-                    is-method = (ast.label() == "s-dot") # NOTE: Can't use cases, because of layering violations
-                    all-locs = 
-                      if is-method:
-                        [ED.locs: ast.obj.l] + arg-locs
-                      else:
-                        arg-locs
-                      end
-                    fun-method = if is-method: "method" else: "function" end
+                    fun-method = "constructor"
                     [ED.sequence:
                       ed-intro(fun-method + " application expression", fun-app-loc, -1, true),
                       ED.cmcode(fun-app-loc),
                       [ED.para:
-                        ED.highlight(ED.ed-args(fun-app-arity), all-locs, 1),
+                        ED.highlight(ED.ed-args(fun-app-arity), arg-locs, 1),
                         ED.text(were-was + " passed to the "),
                         applicant,
                         ED.text(".")],
@@ -1283,7 +1276,7 @@ data RuntimeError:
       if src-available(self.fun-def-loc):
         fun is-underscore(arg):
           cases(Any) arg:
-            | s-id(_, id) => 
+            | s-id(_, id) =>
               cases(Any) id:
                 | s-underscore(_) => true
                 | else            => false
@@ -1391,162 +1384,221 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
       were-was = if fun-app-arity == 1: " was" else: " were" end
-      fun helper(rest):
-        [ED.error: 
-          cases(O.Option) maybe-stack-loc(
-                if self.fun-def-loc.is-builtin(): 
-                  0 
-                else: 
-                  1 
-                end, false):
-            | some(fun-app-loc) =>
-              if fun-app-loc.is-builtin():
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("Evaluating the function application in "),
-                    ED.loc(fun-app-loc),
-                    ED.text(" errored.  Expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                  [ED.para:
-                    ED.ed-args(fun-app-arity),
-                    ED.text(were-was + " passed to the left side.")],
-                  rest(ED.text("left side"))]
-              else if src-available(fun-app-loc):
-                cases(O.Option) maybe-ast(fun-app-loc):
-                  | some(ast) =>
-                    fun-loc = cases(Any) ast:
-                      | s-app(_, _fun, _) => _fun.l
-                      | s-for(_, _fun, _, _, _, _) => _fun.l
-                      | else  => ast.l
-                    end
-                    args = cases(Any) ast:
-                      | s-app(_, _fun, args) =>
-                        if _fun.label() == "s-dot":
-                          [ED.locs: _fun.obj.l] + args.map(_.l)
-                        else:
-                          args.map(_.l)
-                        end
-                      | s-for(_, _, args, _, _, _) => args.map(_.l)
-                      | else  => [ED.locs: ast.l]
-                    end
-                    args-locs = if fun-app-arity == 0:
-                      [ED.locs: fun-loc.at-end().upto-end(ast.l)]
-                    else:
-                      args
-                    end
-                    applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
-                    fun-method =
-                      if (ast.label() == "s-app") and (ast._fun.label() == "s-dot"): "method"
-                      else: "function"
-                      end
-                    [ED.sequence:
-                      ed-intro(fun-method + " application expression", fun-app-loc, -1, true),
-                      ED.cmcode(fun-app-loc),
-                      [ED.para:
-                        ED.highlight(ED.ed-args(fun-app-arity), args-locs, 1),
-                        ED.text(were-was + " passed to the "),
-                        applicant,
-                        ED.text(".")],
-                      rest(applicant)]
-                  | none      =>
-                    [ED.sequence:
-                      ed-intro("function application expression", fun-app-loc, -1, true),
-                      ED.cmcode(fun-app-loc),
-                      [ED.para:
-                        ED.ed-args(fun-app-arity),
-                        ED.text(were-was + " passed to the left side.")],
-                      rest(ED.text("applicant"))]
-                end
-              else:
-                [ED.sequence:
-                  ed-simple-intro("function application expression", fun-app-loc), 
-                  [ED.para:
-                    ED.text("The applicant had "),
-                    ED.ed-args(fun-app-arity),
-                    ED.text(" passed to it.")],
-                  rest(ED.text("left side"))]
-              end
-            | none =>
-              [ED.sequence:
-                [ED.para:
-                  ED.text("A function application expression failed.")],
-                [ED.para:
-                  ED.text("The applicant had "),
-                  ED.ed-args(fun-app-arity),
-                  ED.text(" passed to it.")],
-                rest(ED.text("left side"))]
-          end]
-      end
-      
-      if src-available(self.fun-def-loc):
-        fun is-underscore(arg):
-          cases(Any) arg:
-            | s-id(_, id) => 
-              cases(Any) id:
-                | s-underscore(_) => true
-                | else            => false
-              end
-            | else                => false
+
+      fun locs-from-application-ast(ast) block:
+        fun adjust(fun-loc, args):
+          if fun-app-arity == 0:
+            [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+          else:
+            args
           end
         end
-        cases(O.Option) maybe-ast(self.fun-def-loc):
-          | some(ast) =>
-            {args; fun-def-snippet-loc} = cases(Any) ast:
-              | s-op(_,_,_,l,r) =>
-                l-underscore = is-underscore(l)
-                r-underscore = is-underscore(r)
-                { if l-underscore and r-underscore:
-                    [ED.locs: l.id.l, r.id.l]
-                  else if l-underscore:
-                    [ED.locs: l.id.l]
-                  else if r-underscore:
-                    [ED.locs: r.id.l]
-                  else:
-                    [ED.locs:]
-                  end; self.fun-def-loc}
-              | s-app(_, _, args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-              | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-              | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-              | s-method(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-              | s-method-field(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-              | s-dot(_, obj, _)      => {[ED.locs: obj.id.l]; self.fun-def-loc}
-              | s-extend(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
-              | s-update(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
-              | s-get-bang(_, obj, _) => {[ED.locs: obj.id.l]; self.fun-def-loc}
+        cases(Any) ast:
+          | s-app(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
+          # TODO: `s-for` is distinct enough that it probably requires specialized wording.
+          | s-for(l, _fun, args, _, b, _) => {l; _fun.l; adjust(_fun.l, [ED.locs: b.l] + args.map(_.l))}
+          | s-op(l,_,_,l-op,r-op)         => {l; r-op.l; [ED.locs: l-op.l]}
+          | else  => block:
+            # This _really_ should not happen.
+            {ast.l; ast.l; [ED.locs: ast.l]}
             end
-            helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" was defined to accept "),
-                    ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
-                    ED.text(":")],
-                  ED.cmcode(fun-def-snippet-loc)]
-              end)
-          | none      =>
-            helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" was defined to accept "),
-                    ED.ed-args(self.fun-def-arity),
-                    ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
-              end)
         end
-      else:
-        helper(lam(applicant):
+      end
+
+      fun is-underscore(arg):
+        cases(Any) arg:
+          | s-id(_, id) => 
+            cases(Any) id:
+              | s-underscore(_) => true
+              | else            => false
+            end
+          | else                => false
+        end
+      end
+
+      fun locs-from-definition-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-op(_,_,_,l,r) =>
+            {[ED.locs: l, r]
+              .filter(is-underscore)
+              .map(_.id.l);
+              self.fun-def-loc}
+          | s-app(_, _, args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
+          | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-method(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-method-field(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-dot(_, obj, _)      => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-extend(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-update(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-get-bang(_, obj, _) => {[ED.locs: obj.id.l]; self.fun-def-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      application-loc =
+        maybe-stack-loc(if self.fun-def-loc.is-builtin(): 0 else: 1 end, false)
+          ^ and-if(src-available)
+
+      definition-contained =
+        application-loc
+          .and-then(_.contains(self.fun-def-loc))
+          .or-else(false)
+
+      destructured-application =
+        (application-loc ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-application-ast)
+
+      destructured-definition =
+        (O.some(self.fun-def-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-definition-ast)
+
+      fun operator-prose(arguments, operator):
+        [ED.para:
+          arguments,
+          ED.text(were-was + " passed to the "),
+          operator,
+          ED.text(".")]
+      end
+
+      fun definition-prose(operator, defined, parameters, show-definition):
+        if show-definition:
+          [ED.sequence:
             [ED.para:
               ED.text("The "),
-              applicant,
-              ED.text(" was defined in "),
-              ED.loc(self.fun-def-loc),
-              ED.text(" accepting "),
-              ED.ed-args(self.fun-def-arity),
-              ED.text(".")]
-          end)
+              operator,
+              ED.text(" evaluated to a function "),
+              defined,
+              ED.text(" to accept "),
+              parameters,
+              ED.text(":")],
+            ED.cmcode(self.fun-def-loc)]
+        else if src-available(self.fun-def-loc):
+          [ED.para:
+            ED.text("The "),
+            operator,
+            ED.text(" evaluated to a function "),
+            defined,
+            ED.text(" to accept "),
+            parameters,
+            ED.text(".")]
+        else:
+          [ED.para:
+            ED.text("The "),
+            operator,
+            ED.text(" evaluated to a function accepting "),
+            parameters,
+            ED.text(".")]
+        end
       end
+
+      fun explanation-prose(application-expression, parameters, arguments):
+        [ED.para:
+          ED.text("An "),
+          application-expression,
+          ED.text(" expects the number of "),
+          parameters,
+          ED.text(" and "),
+          arguments,
+          ED.text(" to be the same.")]
+      end
+
+      arguments = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(_, args, 3)
+          end)
+        .or-else({(v): v })
+
+      application-expression = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(ED.text("application expression"), [ED.locs: app-loc], -1)
+          end)
+        .or-else(ED.text("application"))
+
+      operator = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(ED.text("operator"), [ED.locs: op-loc],
+              if definition-contained:
+                -2
+              else:
+                2
+              end)
+          end)
+        .or-else(ED.text("operator"))
+
+      parameters = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(_, params, 4)
+          end)
+        .or-else({(v): v })
+
+      defined = destructured-definition
+        .and-then(
+          lam(v):
+            ED.highlight(ED.text("defined"), [ED.locs: self.fun-def-loc], -5)
+          end)
+        .or-else(ED.text("defined"))
+
+      [ED.error:
+        destructured-application
+          .and-then(
+            lam(v):
+              {app-loc; op-loc; args} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("This "),
+                  application-expression,
+                  ED.text(" errored:")],
+                ED.cmcode(app-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("An application in "),
+              ED.loc(self.fun-def-loc),
+              ED.text(" errored.")]),
+        operator-prose(arguments(ED.ed-args(fun-app-arity)), operator),
+        definition-prose(
+          operator,
+          defined,
+          parameters(ED.ed-params(self.fun-def-arity)),
+          not(definition-contained) and src-available(self.fun-def-loc)),
+        explanation-prose(application-expression,
+          parameters(ED.text("parameters")),
+          arguments(ED.text("arguments")))]
     end,
     method render-reason(self):
       num-args = self.fun-app-args.length()

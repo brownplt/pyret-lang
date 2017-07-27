@@ -509,7 +509,7 @@ fun desugar-expr(expr :: A.Expr):
           else if op == "op^":
             operands = collect-carets(expr)
             for fold(acc from desugar-expr(operands.first), f from operands.rest):
-              A.s-app(f.l, desugar-expr(f), [list: acc])
+              A.s-app(l, desugar-expr(f), [list: acc])
             end
           else:
             raise("No implementation for " + op)
