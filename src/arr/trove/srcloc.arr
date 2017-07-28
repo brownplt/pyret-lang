@@ -21,6 +21,9 @@ data Srcloc:
         | srcloc(_, _, _, _, _, _, _) => false
       end
     end,
+    method contains(self, other):
+      false
+    end,
     method is-builtin(self): true end
   | srcloc(
         source :: String,
