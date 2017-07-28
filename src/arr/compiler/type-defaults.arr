@@ -63,6 +63,9 @@ tvb = t-var(A.global-names.make-atom("B"))
 tvc = t-var(A.global-names.make-atom("C"))
 tvd = t-var(A.global-names.make-atom("D"))
 tve = t-var(A.global-names.make-atom("E"))
+tvf = t-var(A.global-names.make-atom("F"))
+tvg = t-var(A.global-names.make-atom("G"))
+tvh = t-var(A.global-names.make-atom("H"))
 
 fun make-default-aliases():
   default-aliases = [SD.string-dict:
@@ -107,12 +110,12 @@ fun make-default-types() block:
   ]))
 
   # Need to be fixed to correct type:
-  default-typs.set-now(A.s-global("raw-array-get").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-set").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-of").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-length").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-top)
-  default-typs.set-now(A.s-global("raw-array-fold").key(), t-top)
+  default-typs.set-now(A.s-global("raw-array-get").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], tva)))
+  default-typs.set-now(A.s-global("raw-array-set").key(), t-forall([list: tva], t-arrow([list: t-array(tva), t-number, tva], t-array(tva))))
+  default-typs.set-now(A.s-global("raw-array-of").key(), t-forall([list: tva], t-arrow([list: tva, t-number], t-array(tva))))
+  default-typs.set-now(A.s-global("raw-array-length").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], t-number)))
+  default-typs.set-now(A.s-global("raw-array-to-list").key(), t-forall([list: tva], t-arrow([list: t-array(tva)], t-app(t-list, [list: tva]))))
+  default-typs.set-now(A.s-global("raw-array-fold").key(), t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva, t-number], tvb), tvb, t-array(tva), t-number], tvb)))
   default-typs.set-now(A.s-global("raw-array-from-list").key(), t-top)
   default-typs.set-now(A.s-global("raw-array-join-str").key(), t-top)
   default-typs.set-now(A.s-global("raw-array").key(), t-top)
@@ -168,6 +171,15 @@ fun make-default-types() block:
   default-typs.set-now(A.s-global("_greaterequal").key(), t-number-binop)
   default-typs.set-now(A.s-global("print").key(), t-forall([list: tva], t-arrow([list: tva], tva)))
   default-typs.set-now(A.s-global("display").key(), t-forall([list: tva], t-arrow([list: tva], tva)))
+
+  default-typs.set-now("getMaker", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "make", t-arrow([list: t-array(tvb)], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: t-array(tvb)], tva))))
+  default-typs.set-now("getLazyMaker", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "lazy-make", t-arrow([list: t-array(t-arrow([list: ], tvb))], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: t-array(t-arrow([list: ], tvb))], tva))))
+  default-typs.set-now("getMaker0", t-forall([list: tva], t-arrow([list: t-record([string-dict: "make0", t-arrow([list: ], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: ], tva))))
+  default-typs.set-now("getMaker1", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "make1", t-arrow([list: tvb], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb], tva))))
+  default-typs.set-now("getMaker2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-record([string-dict: "make2", t-arrow([list: tvb, tvc], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc], tva))))
+  default-typs.set-now("getMaker3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-record([string-dict: "make3", t-arrow([list: tvb, tvc, tvd], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd], tva))))
+  default-typs.set-now("getMaker4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-record([string-dict: "make4", t-arrow([list: tvb, tvc, tvd, tve], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd, tve], tva))))
+  default-typs.set-now("getMaker5", t-forall([list: tva, tvb, tvc, tvd, tve, tvf], t-arrow([list: t-record([string-dict: "make5", t-arrow([list: tvb, tvc, tvd, tve, tvf], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd, tve, tvf], tva))))
 
   default-typs.freeze()
 end

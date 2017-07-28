@@ -240,11 +240,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
         end
       end, context)
 
-      #print("\n\n")
-      #each(lam(x) block:
+      # print("\n\n")
+      # each(lam(x) block:
       #  print(x)
       #  print("\n")
-      #end, body.tosource().pretty(72))
+      # end, body.tosource().pretty(72))
 
       tc-result = checking(body, t-top(l, false), true, context)
       cases(TypingResult) tc-result:
@@ -263,18 +263,18 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
 end
 
 fun checking(e, expect-typ, top-level, context) block:
-  #print("\n\n")
-  #print("checking:\n")
-  #each(lam(x) block:
+  # print("\n\n")
+  # print("checking:\n")
+  # each(lam(x) block:
   #  print(x)
   #  print("\n")
-  #end, e.tosource().pretty(72))
-  #print("has type: " + tostring(expect-typ) + "\n    (")
-  #result = _checking(e, expect-typ, top-level, context)
-  #print("\n\nresult:\n")
-  #print(result)
-  #print("\n    )")
-  #result
+  # end, e.tosource().pretty(72))
+  # print("has type: " + tostring(expect-typ) + "\n    (")
+  # result = _checking(e, expect-typ, top-level, context)
+  # print("\n\nresult:\n")
+  # print(result)
+  # print("\n    )")
+  # result
   _checking(e, expect-typ, top-level, context)
 end
 
@@ -569,18 +569,18 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
 end
 
 fun synthesis(e, top-level, context) block:
-  #print("\n\n")
-  #print("synthesis on:\n")
-  #each(lam(x) block:
+  # print("\n\n")
+  # print("synthesis on:\n")
+  # each(lam(x) block:
   #  print(x)
   #  print("\n")
-  #end, e.tosource().pretty(72))
-  #print("    (")
-  #result = _synthesis(e, top-level, context)
-  #print("\n\nresult:\n")
-  #print(result)
-  #print("\n    )")
-  #result
+  # end, e.tosource().pretty(72))
+  # print("    (")
+  # result = _synthesis(e, top-level, context)
+  # print("\n\nresult:\n")
+  # print(result)
+  # print("\n    )")
+  # result
   _synthesis(e, top-level, context)
 end
 
@@ -889,6 +889,7 @@ end
 
 fun check-synthesis(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: Context) -> TypingResult:
   synthesis(e, top-level, context).bind(lam(new-expr, new-type, shadow context):
+    # TODO(MATT): decide whether this should return new-type or expect-type
     typing-result(new-expr, new-type, context.add-constraint(new-type, expect-type))
   end)
 end
