@@ -933,10 +933,10 @@ data Expr:
   | s-num(l :: Loc, n :: Number) with:
     method label(self): "s-num" end,
     method tosource(self): PP.number(self.n) end
-  | s-frac(l :: Loc, num :: Number, den :: Number) with:
+  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
     method label(self): "s-frac" end,
     method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
-  | s-rfrac(l :: Loc, num :: Number, den :: Number) with:
+  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
     method label(self): "s-rfrac" end,
     method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
@@ -2087,10 +2087,10 @@ default-map-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     s-num(l, n)
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(l, num, den)
   end,
-  method s-rfrac(self, l :: Loc, num :: Number, den :: Number):
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-rfrac(l, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -2637,10 +2637,10 @@ default-iter-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     true
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     true
   end,
-  method s-rfrac(self, l :: Loc, num :: Number, den :: Number):
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     true
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -3163,10 +3163,10 @@ dummy-loc-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     s-num(dummy-loc, n)
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(dummy-loc, num, den)
   end,
-  method s-rfrac(self, l :: Loc, num :: Number, den :: Number):
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-rfrac(dummy-loc, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
