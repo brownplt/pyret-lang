@@ -1636,7 +1636,7 @@ compiler-visitor = {
         | a-variant(l2, constr-loc, _, members, with-members) =>
           constr-vname = js-id-of(const-id(vname))
           compiled-constr =
-            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, members,
+            make-variant-constructor(l2, variant-base-id, variant-brand-obj-id, members,
               refl-name, j-id(refl-ref-fields-mask-id), j-id(refl-fields-id), j-id(variant-base-id))
           {
             stmts: stmts ^
