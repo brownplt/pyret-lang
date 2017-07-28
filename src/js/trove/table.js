@@ -84,7 +84,7 @@
     }
 
     function makeTable(headers, rows) {
-      ffi.checkArity(2, arguments, "makeTable");
+      ffi.checkArity(2, arguments, "makeTable", false);
       
       var headerIndex = {};
       
@@ -354,18 +354,18 @@
         }),
 
         'get-row': runtime.makeMethod1(function(_, row_index) {
-          ffi.checkArity(2, arguments, "get-row");
+          ffi.checkArity(2, arguments, "get-row", true);
           runtime.checkArrayIndex("get-row", rows, row_index);
           return getRowContentAsGetter(headers, rows[row_index]);
         }),
         
         'length': runtime.makeMethod0(function(_) {
-          ffi.checkArity(1, arguments, "length");
+          ffi.checkArity(1, arguments, "length", true);
           return runtime.makeNumber(rows.length);
         }),
         
         'get-column': runtime.makeMethod1(function(_, col_name) {
-          ffi.checkArity(2, arguments, "get-column");
+          ffi.checkArity(2, arguments, "get-column", true);
           if(!hasColumn(col_name)) {
             ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
           }
@@ -373,7 +373,7 @@
         }),
         
         '_column-index': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
-          ffi.checkArity(4, arguments, "_column-index");
+          ffi.checkArity(4, arguments, "_column-index", true);
           var col_index = headerIndex['column:'+col_name];
           if(col_index === undefined) {
             ffi.throwMessageException("The table does not have a column named `"+col_name+"`.  Valid columns for this table are " + Object.keys(headerIndex).map(function(k) { return k.slice(7); }).join(", "));
@@ -382,7 +382,7 @@
         }),
         
         '_no-column': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
-          ffi.checkArity(4, arguments, "_column-index");
+          ffi.checkArity(4, arguments, "_column-index", true);
           var col_index = headerIndex['column:'+col_name];
           if(col_index != undefined)
             ffi.throwMessageException("The table already has a column named `"+col_name+"`.");
@@ -390,7 +390,7 @@
         }),
         
         '_equals': runtime.makeMethod2(function(self, other, equals) {
-          ffi.checkArity(3, arguments, "_equals");
+          ffi.checkArity(3, arguments, "_equals", true);
           // is the other a table
           // same number of columns?
           // same number of rows?
@@ -427,7 +427,7 @@
         }),
         
         '_output': runtime.makeMethod0(function(_) {
-          ffi.checkArity(1, arguments, "_output");
+          ffi.checkArity(1, arguments, "_output", true);
           var vsValue = get(VS, "vs-value").app;
           var vsString = get(VS, "vs-str").app;
           return get(VS, "vs-table").app(

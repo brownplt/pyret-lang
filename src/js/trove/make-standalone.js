@@ -17,7 +17,7 @@
 
     */
     function makeStandalone(deps, body, configJSON, standaloneFile) {
-      runtime.checkArity(4, arguments, ["make-standalone"]);
+      runtime.checkArity(4, arguments, ["make-standalone"], false);
       runtime.checkList(deps);
       runtime.checkString(configJSON);
 

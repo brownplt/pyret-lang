@@ -1404,10 +1404,11 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
-  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
+  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args, is-method) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
       were-was = if fun-app-arity == 1: " was" else: " were" end
+      function-or-method = if self.is-method: "method" else: "function" end
 
       fun locs-from-application-ast(ast) block:
         fun adjust(fun-loc, args):
@@ -1419,6 +1420,7 @@ data RuntimeError:
         end
         cases(Any) ast:
           | s-app(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
+          | s-dot(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
           # TODO: `s-for` is distinct enough that it probably requires specialized wording.
           | s-for(l, _fun, args, _, b, _) => {l; _fun.l; adjust(_fun.l, [ED.locs: b.l] + args.map(_.l))}
           | s-op(l,_,_,l-op,r-op)         => {l; r-op.l; [ED.locs: l-op.l]}
@@ -1485,7 +1487,6 @@ data RuntimeError:
 
       application-loc =
         maybe-stack-loc(if self.fun-def-loc.is-builtin(): 0 else: 1 end, false)
-          ^ and-if(src-available)
 
       definition-contained =
         application-loc
@@ -1494,6 +1495,7 @@ data RuntimeError:
 
       destructured-application =
         (application-loc ^
+           and-if(src-available) ^
            and-maybe(maybe-ast))
           .and-then(locs-from-application-ast)
 
@@ -1517,7 +1519,7 @@ data RuntimeError:
             [ED.para:
               ED.text("The "),
               operator,
-              ED.text(" evaluated to a function "),
+              ED.text(" evaluated to a " + function-or-method + " "),
               defined,
               ED.text(" to accept "),
               parameters,
@@ -1527,7 +1529,7 @@ data RuntimeError:
           [ED.para:
             ED.text("The "),
             operator,
-            ED.text(" evaluated to a function "),
+            ED.text(" evaluated to a " + function-or-method + " "),
             defined,
             ED.text(" to accept "),
             parameters,
@@ -1536,7 +1538,7 @@ data RuntimeError:
           [ED.para:
             ED.text("The "),
             operator,
-            ED.text(" evaluated to a function accepting "),
+            ED.text(" evaluated to a " + function-or-method + " accepting "),
             parameters,
             ED.text(".")]
         end
@@ -1611,9 +1613,7 @@ data RuntimeError:
             end)
           .or-else(
             [ED.para:
-              ED.text("An application in "),
-              ED.loc(self.fun-def-loc),
-              ED.text(" errored.")]),
+              ED.text("An application errored.")]),
         operator-prose(arguments(ED.ed-args(fun-app-arity)), operator),
         definition-prose(
           operator,

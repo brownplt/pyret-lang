@@ -345,17 +345,18 @@
       throwUninitializedId(runtime.makeSrcloc(loc), name);
     }
 
-    function throwArityError(funLoc, arity, args) {
+    function throwArityError(funLoc, arity, args, isMethod) {
       checkSrcloc(funLoc);
       runtime.checkNumber(arity);
       runtime.checkList(args);
-      raise(err("arity-mismatch")(funLoc, arity, args));
+      runtime.checkBoolean(isMethod);
+      raise(err("arity-mismatch")(funLoc, arity, args, isMethod));
     }
 
-    function throwArityErrorC(funLoc, arity, args) {
+    function throwArityErrorC(funLoc, arity, args, isMethod) {
       var loc = runtime.makeSrcloc(funLoc);
       var argsPyret = makeList(args);
-      throwArityError(loc, arity, argsPyret);
+      throwArityError(loc, arity, argsPyret, isMethod);
     }
 
     function throwConstructorArityErrorC(funLoc, name, arity, args) {

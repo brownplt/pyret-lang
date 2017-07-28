@@ -1391,7 +1391,7 @@
     }
 
     function parsePyret(data, fileName) {
-      RUNTIME.ffi.checkArity(2, arguments, "surface-parse");
+      RUNTIME.ffi.checkArity(2, arguments, "surface-parse", false);
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
       var result = parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
@@ -1409,7 +1409,7 @@
     }
 
     function maybeParsePyret(data, fileName) {
-      RUNTIME.ffi.checkArity(2, arguments, "maybe-surface-parse");
+      RUNTIME.ffi.checkArity(2, arguments, "maybe-surface-parse", false);
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
