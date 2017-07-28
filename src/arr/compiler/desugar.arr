@@ -520,7 +520,9 @@ fun desugar-expr(expr :: A.Expr):
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
     | s-num(_, _) => expr
+      # num, den are exact ints, and s-frac desugars to the exact rational num/den
     | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
+      # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
     | s-rfrac(l, num, den) => A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
