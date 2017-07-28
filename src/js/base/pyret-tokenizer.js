@@ -297,7 +297,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BAR", val: bar, parenIsForExp: true},
 
     {name: "RATIONAL", val: rational},
-    {name: "RATIONAL", val: roughrational},
+    {name: "ROUGHRATIONAL", val: roughrational},
     {name: "NUMBER", val: number},
     {name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},

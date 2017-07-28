@@ -936,6 +936,9 @@ data Expr:
   | s-frac(l :: Loc, num :: Number, den :: Number) with:
     method label(self): "s-frac" end,
     method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+  | s-rfrac(l :: Loc, num :: Number, den :: Number) with:
+    method label(self): "s-rfrac" end,
+    method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
     method label(self): "s-bool" end,
     method tosource(self): PP.str(tostring(self.b)) end
@@ -2087,6 +2090,9 @@ default-map-visitor = {
   method s-frac(self, l :: Loc, num :: Number, den :: Number):
     s-frac(l, num, den)
   end,
+  method s-rfrac(self, l :: Loc, num :: Number, den :: Number):
+    s-rfrac(l, num, den)
+  end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
   end,
@@ -2634,6 +2640,9 @@ default-iter-visitor = {
   method s-frac(self, l :: Loc, num :: Number, den :: Number):
     true
   end,
+  method s-rfrac(self, l :: Loc, num :: Number, den :: Number):
+    true
+  end,
   method s-bool(self, l :: Loc, b :: Boolean):
     true
   end,
@@ -3156,6 +3165,9 @@ dummy-loc-visitor = {
   end,
   method s-frac(self, l :: Loc, num :: Number, den :: Number):
     s-frac(dummy-loc, num, den)
+  end,
+  method s-rfrac(self, l :: Loc, num :: Number, den :: Number):
+    s-rfrac(dummy-loc, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)

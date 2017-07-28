@@ -767,6 +767,12 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     true
   end,
+  method s-rfrac(self, l, num, den) block:
+    when den == 0:
+      add-error(C.zero-fraction(l, num))
+    end
+    true
+  end,
   method s-id(self, l, id) block:
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
@@ -1133,6 +1139,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
+  end,
+  method s-rfrac(_, l :: Loc, num, den):
+    well-formed-visitor.s-rfrac(l, num, den)
   end,
   method s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)

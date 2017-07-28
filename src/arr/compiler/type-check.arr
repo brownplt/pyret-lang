@@ -545,6 +545,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-frac(l, num, den) =>
           check-synthesis(e, expect-type, top-level, context)
+        | s-rfrac(l, num, den) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-bool(l, b) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-str(l, s) =>
@@ -799,6 +801,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-num(l, n) =>
       typing-result(e, t-number(l), context)
     | s-frac(l, num, den) =>
+      typing-result(e, t-number(l), context)
+    | s-rfrac(l, num, den) =>
       typing-result(e, t-number(l), context)
     | s-bool(l, b) =>
       typing-result(e, t-boolean(l), context)
