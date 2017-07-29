@@ -1040,11 +1040,11 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
   end
 end
 fun cases-preamble(compiler, compiled-val, branch, cases-loc):
+  constructor-loc = j-dot(compiled-val, "$loc")
   cases(N.ACasesBranch) branch:
     | a-cases-branch(l2, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
-      constructor-loc    = j-dot(compiled-val, "$loc")
       checker =
         j-if1(j-binop(obj-expected-arity, j-neq, branch-given-arity),
           j-block1(
@@ -1055,14 +1055,14 @@ fun cases-preamble(compiler, compiled-val, branch, cases-loc):
                       obj-expected-arity, compiler.get-loc(cases-loc), constructor-loc]))),
               j-block1(
                 j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                    [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))))))
+                    [clist: compiler.get-loc(l2), j-true, compiler.get-loc(cases-loc), constructor-loc]))))))
       [clist: checker]
-    | a-singleton-cases-branch(_, pat-loc, _, _) =>
+    | a-singleton-cases-branch(l2, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block1(
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))))
+                [clist: compiler.get-loc(l2), j-false, compiler.get-loc(cases-loc), constructor-loc]))))
       [clist: checker]
   end
 end
@@ -1646,10 +1646,10 @@ compiler-visitor = {
             constructor: j-field(vname, j-id(constr-vname)),
             predicate: predicate
           }
-        | a-singleton-variant(_, _, with-members) =>
+        | a-singleton-variant(l2, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeDataValue", [clist: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id)])),
+            constructor: j-field(vname, rt-method("makeDataValue", [clist: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id), j-false, self.get-loc(l2)])),
             predicate: predicate
           }
       end

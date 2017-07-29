@@ -378,17 +378,19 @@
       throwCasesArityError(loc, arity, fields, cloc, constructorLoc);
     }
 
-    function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
+    function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc, constructorLoc) {
       checkSrcloc(branchLoc);
       runtime.checkBoolean(shouldBeSingleton);
       checkSrcloc(casesLoc)
-      raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc));
+      checkSrcloc(constructorLoc)
+      raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc, constructorLoc));
     }
 
-    function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc) {
+    function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc, constructorLoc) {
       var loc = runtime.makeSrcloc(branchLoc);
       var cloc = runtime.makeSrcloc(casesLoc);
-      throwCasesSingletonError(loc, shouldBeSingleton, cloc);
+      var constructorLoc = runtime.makeSrcloc(constructorLoc);
+      throwCasesSingletonError(loc, shouldBeSingleton, cloc, constructorLoc);
     }
 
     function throwNonBooleanCondition(locArray, type, val) {

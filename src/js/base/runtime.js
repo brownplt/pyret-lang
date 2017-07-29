@@ -1113,7 +1113,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return C;
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored) {
+    function makeDataValue(dict, brands, $name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored, $loc) {
       if (_ignored) { // POLYGLOT
         $arity = $mut_fields_mask;
         $mut_fields_mask = constructor;
@@ -1121,7 +1121,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       var ret = new PObject(dict, brands);
       ret.$name = $name;
-      ret.$loc = $name;
+      ret.$loc = $loc || [$name];
       ret.$app_fields = $app_fields;
       ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;

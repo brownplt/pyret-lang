@@ -1019,66 +1019,219 @@ data RuntimeError:
             [ED.para:
               ED.text("The " + self.opname + " operator expects to be given two Numbers.")]])]
     end
-  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc) with:
+  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc, constructor-loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.branch-loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A cases branch in "),
-            ED.loc(self.branch-loc),
-            if self.should-be-singleton:
-              ED.text("errored. The branch has an argument list but the corresponding variant is a singleton.")
-            else:
-              ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
-            end]]
-      else if src-available(self.branch-loc):
-        cases(O.Option) maybe-ast(self.cases-loc):
-          | some(ast) =>
-            branch = ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
-            [ED.error:
-              [ED.para:
-                ED.text("Matching the pattern of this "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
-                ED.text(" errored:")],
-              ED.cmcode(self.branch-loc),
-              if self.should-be-singleton:
-                [ED.para:
-                  ED.text("The "),
-                  ED.highlight(ED.text("branch"), [ED.locs: self.branch-loc], -1),
-                  ED.text(" has an "),
-                  ED.highlight(ED.text("argument list"), branch.args.map(_.l), 0),
-                  ED.text(" but the corresponding variant is a singleton.")]
-              else:
-                [ED.para:
-                  ED.text("The branch doesn't have an argument list in its "),
-                  ED.highlight(ED.text("pattern"), [ED.locs: branch.pat-loc], 0),
-                  ED.text(", but the corresponding variant is not a singleton.")]
-              end]
-          | none      =>
-            [ED.error:
-              [ED.para:
-                ED.text("Matching a patten of this "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], 0),
-                ED.text(" errored.")],
-              if self.should-be-singleton:
-                [ED.para:
-                  ED.text("The branch has an argument list but the corresponding variant is a singleton.")]
-              else:
-                [ED.para:
-                  ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")]
-              end]
+      fun locs-from-cases-ast(ast) block:
+        cases(Any) ast:
+          | s-cases-branch(_, pat-loc, name, args, _) =>
+            {pat-loc; args.map(_.l)}
+          | s-singleton-cases-branch(_, pat-loc, name, _) =>
+            {pat-loc; nothing}
         end
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The cases branch at "),
-            ED.loc(self.branch-loc),
-            if self.should-be-singleton:
-              ED.text("errored. The branch has an argument list but the corresponding variant is a singleton.")
-            else:
-              ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
-            end]]
       end
+
+      fun maybe-first(l):
+        cases(Any) l:
+          | link(first, rest) => O.some(first)
+          | empty => O.none
+        end
+      end
+
+      fun locs-from-constructor-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-variant(l, constr-loc, _, members, _) =>
+            {members.map(_.l); constr-loc}
+          | s-singleton-variant(l, name, with-members) =>
+            # We really need a `constr-loc` equivalent for `s-singleton-variant`.
+            {nothing;
+              maybe-first(with-members)
+                .and-then(_.l)
+                .and-then(l.upto)
+                .or-else(l)}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.branch-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-cases-ast)
+
+      destructured-definition =
+        (O.some(self.constructor-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-constructor-ast)
+
+      constructor-loc =
+        destructured-definition
+          .and-then({(v) block:
+            v.{1}})
+          .or-else(self.constructor-loc)
+
+      fun pattern-prose(pattern, bindings):
+        [ED.para:
+          ED.text("The "),
+          pattern,
+          ED.text(" has "),
+          bindings,
+          ED.text(".")]
+      end
+
+      fun observation-prose(pattern, bindings, variant, members):
+        if self.should-be-singleton:
+          if src-available(constructor-loc):
+            [ED.sequence:
+              [ED.para:
+                ED.text("The "),
+                pattern,
+                ED.text(" has a "),
+                bindings,
+                ED.text(", but refers to a "),
+                variant,
+                ED.text(" that is a singleton:")],
+              ED.cmcode(constructor-loc)]
+          else:
+            [ED.para:
+              ED.text("The "),
+              pattern,
+              ED.text(" has a "),
+              bindings,
+              ED.text(", but refers to a "),
+              variant,
+              ED.text(" that is a singleton.")]
+          end
+        else:
+          if src-available(constructor-loc):
+            [ED.sequence:
+              [ED.para:
+                ED.text("The "),
+                pattern,
+                ED.text(" has no binding list, but refers to a "),
+                variant,
+                ED.text(" that has a "),
+                members,
+                ED.text(":")],
+              ED.cmcode(constructor-loc)]
+          else:
+            [ED.para:
+              ED.text("The "),
+              pattern,
+              ED.text(" has no binding list, but refers to a "),
+              variant,
+              ED.text(" that has a "),
+              members,
+              ED.text(".")]
+          end
+        end
+      end
+
+      fun explanation-prose(pattern, variant):
+        [ED.para:
+          ED.text("A "),
+          pattern,
+          ED.text(" must match the "),
+          variant,
+          ED.text(" that it refers to.")]
+      end
+
+      bindings = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            if is-nothing(binds):
+              {(w): w }
+            else:
+              ED.highlight(_, binds, 3)
+            end
+          end)
+        .or-else({(v): v })
+
+      pattern = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            ED.highlight(_, [ED.locs: pat-loc],
+              if self.should-be-singleton:
+                -1
+              else:
+                1
+              end)
+          end)
+        .or-else({(v): v })
+
+      fields = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            if is-nothing(params):
+              {(w): w }
+            else:
+              ED.highlight(_, params, 4)
+            end
+          end)
+        .or-else({(v): v })
+
+      variant = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(ED.text("variant"), [ED.locs: def-loc],
+              if self.should-be-singleton:
+                5
+              else:
+                -5
+              end)
+          end)
+        .or-else(ED.text("variant"))
+
+      [ED.error:
+        destructured-pattern
+          .and-then(
+            lam(v):
+              {pat-loc; binds} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("Matching this "),
+                  pattern(ED.text("cases branch pattern")),
+                  ED.text(" errored:")],
+                ED.cmcode(pat-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("Matching a cases branch pattern errored.")]),
+        observation-prose(
+          pattern(ED.text("branch")),
+          bindings(ED.text("binding list")),
+          variant,
+          fields(ED.text("fields list"))),
+        explanation-prose(
+          pattern(ED.text("cases branch pattern")),
+          variant)]
     end,
     method render-reason(self):
       if self.branch-loc.is-builtin():
