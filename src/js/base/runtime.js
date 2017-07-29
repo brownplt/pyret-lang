@@ -1090,7 +1090,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
     }
 
-    function makeDataTypeConstructor($name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored) {
+    function makeDataTypeConstructor($name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored, $loc) {
 
       if (_ignored) { // POLYGLOT
         $arity = $mut_fields_mask;
@@ -1104,6 +1104,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       C.prototype = new PObject({}, []);
       C.prototype.$name = $name;
+      C.prototype.$loc = $loc;
       C.prototype.$app_fields = $app_fields;
       C.prototype.$mut_fields_mask = $mut_fields_mask;
       C.prototype.$arity = $arity;
@@ -1120,6 +1121,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       var ret = new PObject(dict, brands);
       ret.$name = $name;
+      ret.$loc = $name;
       ret.$app_fields = $app_fields;
       ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
@@ -5327,7 +5329,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
         var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflFields", "constructor", "base"];
         var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n"
-        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor, false, " + constArr(loc) + ");"
         + constrFun]));
         return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflFields, constructor, base);
       }

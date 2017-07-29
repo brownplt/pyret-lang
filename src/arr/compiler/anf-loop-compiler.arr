@@ -1041,17 +1041,18 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
 end
 fun cases-preamble(compiler, compiled-val, branch, cases-loc):
   cases(N.ACasesBranch) branch:
-    | a-cases-branch(_, pat-loc, name, args, body) =>
+    | a-cases-branch(l2, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
+      constructor-loc    = j-dot(compiled-val, "$loc")
       checker =
         j-if1(j-binop(obj-expected-arity, j-neq, branch-given-arity),
           j-block1(
             j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
               j-block1(
                 j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                    [clist: compiler.get-loc(pat-loc), branch-given-arity,
-                      obj-expected-arity, compiler.get-loc(cases-loc)]))),
+                    [clist: compiler.get-loc(l2), branch-given-arity,
+                      obj-expected-arity, compiler.get-loc(cases-loc), constructor-loc]))),
               j-block1(
                 j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
                     [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))))))

@@ -1104,93 +1104,168 @@ data RuntimeError:
             end]]
       end
     end
-  | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
+  | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc, constructor-loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.branch-loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("Matching a cases branch in "),
-            ED.loc(self.cases-loc),
-            ED.text(" errored because of a problem with the branch pattern in "),
-            ED.loc(self.branch-loc),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The cases pattern had "),
-            ED.ed-field-bindings(self.num-args),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The corresponding variant of the datatype had "),
-            ED.ed-fields(self.actual-arity)],
-          [ED.para:
-            ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
-      else if src-available(self.branch-loc):
-        cases(O.Option) maybe-ast(self.cases-loc):
-          | some(cases-ast) =>
-            branch = cases-ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
-            [ED.error:
-              [ED.para:
-                ED.text("Matching the "),
-                ED.highlight(ED.text("pattern"), [ED.locs: branch.pat-loc], 0),
-                ED.text(" of this "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
-                ED.text(" errored.")],
-              ED.cmcode(branch.pat-loc),
-              [ED.para:
-                ED.text("The cases pattern had "),
-                cases(Any) branch:
-                  | s-cases-branch(_, pat-loc, name, args, _) =>
-                    args-locs = if self.num-args == 0:
-                      name-len = string-length(name)
-                      [ED.locs: S.srcloc(pat-loc.source,
-                          pat-loc.start-line, pat-loc.start-column + name-len, pat-loc.start-char + name-len,
-                          pat-loc.end-line, pat-loc.end-column, pat-loc.end-char)]
-                    else:
-                      args.map(_.l)
-                    end
-                    ED.highlight(ED.ed-field-bindings(self.num-args),args-locs, 1)
-                  | s-singleton-cases-branch(_, _, _, _) => ED.ed-field-bindings(self.num-args)
-                end,
-                ED.text(".")],
-              [ED.para:
-                ED.text("The corresponding variant is declared with "),
-                ED.ed-fields(self.actual-arity)],
-              [ED.para:
-                ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
-          | none      =>
-            [ED.error:
-              [ED.para:
-                ED.text("Matching the pattern of a "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
-                ED.text(" errored.")],
-              ED.cmcode(self.pat-loc),
-              [ED.para:
-                ED.text("The cases pattern had "),
-                ED.ed-field-bindings(self.num-args),
-                ED.text(".")],
-              [ED.para:
-                ED.text("The corresponding variant is declared with "),
-                ED.ed-fields(self.actual-arity)],
-              [ED.para:
-                ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
+      were-was = if self.num-args == 1: " was" else: " were" end
+
+      fun locs-from-cases-ast(ast) block:
+        fun adjust(fun-loc, args):
+          if self.num-args == 0:
+            [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+          else:
+            args
+          end
         end
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("Matching a cases branch in "),
-            ED.loc(self.cases-loc),
-            ED.text(" errored because of a problem with the branch pattern in "),
-            ED.loc(self.branch-loc),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The cases pattern had "),
-            ED.ed-field-bindings(self.num-args),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The corresponding variant of the datatype had "),
-            ED.ed-fields(self.actual-arity)],
-          [ED.para:
-            ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
+        cases(Any) ast:
+          | s-cases-branch(_, pat-loc, name, args, _) =>
+            {pat-loc; args.map(_.l)}
+        end
       end
+
+      fun locs-from-constructor-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-variant(l, constr-loc, _, members, _) =>
+            {members.map(_.l); constr-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.branch-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-cases-ast)
+
+      destructured-definition =
+        (O.some(self.constructor-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-constructor-ast)
+
+      fun pattern-prose(pattern, bindings):
+        [ED.para:
+          ED.text("The "),
+          pattern,
+          ED.text(" has "),
+          bindings,
+          ED.text(".")]
+      end
+
+      fun observation-prose(pattern, bindings, variant, members):
+        if src-available(self.constructor-loc):
+          [ED.sequence:
+            [ED.para:
+              ED.text("The "),
+              pattern,
+              ED.text(" has "),
+              bindings,
+              ED.text(", but refers to a "),
+              variant,
+              ED.text(" that has "),
+              members,
+              ED.text(":")],
+            ED.cmcode(self.constructor-loc)]
+        else:
+          [ED.para:
+            ED.text("The "),
+            pattern,
+            ED.text(" refers to a "),
+            variant,
+            ED.text(" that has "),
+            members,
+            ED.text(".")]
+        end
+      end
+
+      fun explanation-prose(pattern, parameters, bindings):
+        [ED.para:
+          ED.text("A "),
+          pattern,
+          ED.text(" expects the number of "),
+          parameters,
+          ED.text(" and "),
+          bindings,
+          ED.text(" to be the same.")]
+      end
+
+      bindings = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            ED.highlight(_, binds, 3)
+          end)
+        .or-else({(v): v })
+
+      pattern = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            ED.highlight(_, [ED.locs: pat-loc], -1)
+          end)
+        .or-else({(v): v })
+
+      fields = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(_, params, 4)
+          end)
+        .or-else({(v): v })
+
+      variant = destructured-definition
+        .and-then(
+          lam(v):
+            ED.highlight(ED.text("variant"), [ED.locs: self.constructor-loc], -5)
+          end)
+        .or-else(ED.text("variant"))
+
+      [ED.error:
+        destructured-pattern
+          .and-then(
+            lam(v):
+              {pat-loc; binds} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("Matching this "),
+                  pattern(ED.text("cases branch pattern")),
+                  ED.text(" errored:")],
+                ED.cmcode(pat-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("Matching a cases branch pattern errored.")]),
+        observation-prose(
+          pattern(ED.text("branch")),
+          bindings(ED.ed-bindings(self.num-args)),
+          variant,
+          fields(ED.ed-fields(self.actual-arity))),
+        explanation-prose(
+          pattern(ED.text("cases branch pattern")),
+          fields(ED.text("fields")),
+          bindings(ED.text("bindings")))]
     end,
     method render-reason(self):
       [ED.error:

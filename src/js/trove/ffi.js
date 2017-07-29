@@ -362,18 +362,20 @@
       raise(err("constructor-arity-mismatch")(loc, name, arity, argsPyret));
     }
 
-    function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
+    function throwCasesArityError(branchLoc, arity, fields, casesLoc, constructorLoc) {
       checkSrcloc(branchLoc);
       runtime.checkNumber(arity);
       runtime.checkNumber(fields);
-      checkSrcloc(casesLoc)
-      raise(err("cases-arity-mismatch")(branchLoc, arity, fields, casesLoc));
+      checkSrcloc(casesLoc);
+      checkSrcloc(constructorLoc);
+      raise(err("cases-arity-mismatch")(branchLoc, arity, fields, casesLoc, constructorLoc));
     }
 
-    function throwCasesArityErrorC(branchLoc, arity, fields, casesLoc) {
+    function throwCasesArityErrorC(branchLoc, arity, fields, casesLoc, constructorLoc) {
       var loc = runtime.makeSrcloc(branchLoc);
       var cloc = runtime.makeSrcloc(casesLoc);
-      throwCasesArityError(loc, arity, fields, cloc);
+      var constructorLoc = runtime.makeSrcloc(constructorLoc);
+      throwCasesArityError(loc, arity, fields, cloc, constructorLoc);
     }
 
     function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
