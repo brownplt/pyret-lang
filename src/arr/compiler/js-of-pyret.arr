@@ -10,6 +10,7 @@ import sets as S
 
 import file("anf.arr") as N
 import file("anf-loop-compiler.arr") as AL
+import file("vhull-compiler.arr") as VH
 import file("ast-anf.arr") as AA
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
@@ -474,14 +475,22 @@ fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, o
   anfed = add-phase("ANFed", N.anf-program(program-ast))
   flatness-env = add-phase("Build flatness env", make-prog-flatness-env(anfed, bindings, env))
   flat-provides = add-phase("Get flat-provides", get-flat-provides(provides, flatness-env, anfed))
-  compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, options))
-  {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
+  if options.straight-line:
+    compiled = anfed.visit(VH.vhull-compiler(
+      env, add-phase, flatness-env, flat-provides, options))
+    {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
+  else:
+    compiled = anfed.visit(AL.splitting-compiler(
+      env, add-phase, flatness-env, flat-provides, options))
+    {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
+  end
 end
 
 fun println(s) block:
   print(s + "\n")
 end
 
+# NOTE(rachit): This function is no longer used.
 fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
 #  each(println, program-ast.tosource().pretty(80))
   anfed = N.anf-program(program-ast)

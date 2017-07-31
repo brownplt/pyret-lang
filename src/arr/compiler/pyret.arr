@@ -63,6 +63,8 @@ fun main(args :: List<String>) -> Number:
       C.flag(C.once, "Collect timing information about compilation"),
     "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
+    "straight-line",
+      C.flag(C.once, "Generate code without stack saving logic"),
     "inline-case-body-limit",
       C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
     "bundle-dependencies",
@@ -95,6 +97,7 @@ fun main(args :: List<String>) -> Number:
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
       display-progress = not(r.has-key("no-display-progress"))
+      straight-line = r.has-key("straight-line")
       html-file = if r.has-key("html-file"):
             some(r.get-value("html-file"))
           else:
@@ -130,6 +133,7 @@ fun main(args :: List<String>) -> Number:
                 standalone-file: standalone-file,
                 check-mode : check-mode,
                 type-check : type-check,
+                straight-line : straight-line,
                 allow-shadowed : allow-shadowed,
                 collect-all: false,
                 collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
