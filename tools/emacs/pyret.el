@@ -1830,5 +1830,8 @@ in (nil if we're not in a string).")
 
 (add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
 
+;; Automatically enable pyret-mode on .arr files.
+(add-to-list 'auto-mode-alist '("\\.arr\\'" . pyret-mode))
+
 (provide 'pyret)
 
