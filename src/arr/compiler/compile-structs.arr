@@ -1288,7 +1288,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.highlight(ED.text("This expression"), [list: self.a], 0),
-          ED.text(" on the same line as "),
+          ED.text(" is on the same line as "),
           ED.highlight(ED.text("another expression"), [list: self.b], 1),
           ED.text(":")],
         ED.cmcode(self.a + self.b),
