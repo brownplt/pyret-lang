@@ -1257,14 +1257,20 @@ data CompileError:
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     method render-fancy-reason(self):
+      fun adjust(l):
+        n = string-length(self.id)
+        SL.srcloc(l.source,
+          l.start-line, l.start-column, l.start-char,
+          l.start-line, l.start-column + n, l.start-char + n)
+      end
       old-loc-color = 0
       new-loc-color = 1
       [ED.error:
         [ED.para:
           ED.text("The declaration of the field named "),
-          ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+          ED.highlight(ED.code(ED.text(self.id)), [list: adjust(self.new-loc)], new-loc-color),
           ED.text(" is preceeded by declaration of an field also named "),
-          ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
+          ED.highlight(ED.code(ED.text(self.id)), [list: adjust(self.old-loc)], old-loc-color),
           ED.text(":")],
         ED.cmcode(self.old-loc + self.new-loc),
         [ED.para: ED.text("Pick a different name for one of them.")]]

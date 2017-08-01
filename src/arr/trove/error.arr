@@ -131,7 +131,14 @@ data RuntimeError:
           ED.cmcode(self.loc),
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+            ED.highlight(ED.text("field"),
+              [ED.locs:
+                let l = self.fieldloc,
+                    n = string-length(self.field):
+                    S.srcloc(l.source,
+                      l.start-line, l.start-column, l.start-char,
+                      l.start-line, l.start-column + n, l.start-char + n)
+                end], 0),
             ED.text(" is frozen in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
@@ -162,7 +169,14 @@ data RuntimeError:
           ED.cmcode(self.loc),
           [ED.para:
             ED.text("This "),
-            ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+            ED.highlight(ED.text("field"),
+              [ED.locs:
+                let l = self.fieldloc,
+                    n = string-length(self.field):
+                    S.srcloc(l.source,
+                      l.start-line, l.start-column, l.start-char,
+                      l.start-line, l.start-column + n, l.start-char + n)
+                end], 0),
             ED.text(" is not a mutable reference in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
@@ -201,7 +215,14 @@ data RuntimeError:
           ED.cmcode(self.loc),
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+            ED.highlight(ED.text("field"),
+              [ED.locs:
+                let l = self.fieldloc,
+                    n = string-length(self.field):
+                    S.srcloc(l.source,
+                      l.start-line, l.start-column, l.start-char,
+                      l.start-line, l.start-column + n, l.start-char + n)
+                end], 0),
             ED.text(" does not exist in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
