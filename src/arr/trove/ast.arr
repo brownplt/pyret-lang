@@ -2441,7 +2441,7 @@ default-iter-visitor = {
   end,
 
   method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
-    lists.app(_.visit(self), params)
+    lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
@@ -3632,7 +3632,7 @@ fun search-for-loc(needle :: Loc, haystack :: Any) -> Option<Any> block:
     method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       self.recur(l,
         {(): s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)},
-        {(): lists.app(_.visit(self), params)
+        {(): lists.all(_.visit(self), params)
          and lists.all(_.visit(self), args)
          and ann.visit(self)
          and body.visit(self)
