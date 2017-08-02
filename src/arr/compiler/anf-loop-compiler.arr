@@ -516,10 +516,11 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   doloop = fresh-id(compiler-name("skiploop"))
   elided-frames = fresh-id(compiler-name("elidedFrames"))
   local-compiler = compiler.{make-label: make-label, cur-target: ret-label, cur-step: step, cur-ans: ans, cur-apploc: apploc, args: args.map(_.id).map(js-id-of), elided-frames: elided-frames}
-  # To avoid penalty for assigning to formal parameters and also using the arguments object,
-  # we create a shadow set of formal arguments, and immediately assign them to the "real" ones
-  # in the normal entry case.  This expands the function preamble, but might enable JS optimizations,
-  # so it should be worth it
+  # To avoid penalty for assigning to formal parameters and also using the
+  # arguments object, we create a shadow set of formal arguments, and
+  # immediately assign them to the "real" ones in the normal entry case.  This
+  # expands the function preamble, but might enable JS optimizations, so it
+  # should be worth it
   formal-args = for map(arg from args):
     N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
   end
@@ -1196,7 +1197,8 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
   new-step = fresh-id(compiler-name("step"))
   temp = fresh-id(compiler-name("temp_lam"))
   len = args.length()
-  # NOTE: args may be empty, so we need at least one name ("resumer") for the stack convention
+  # NOTE: args may be empty, so we need at least one name ("resumer") for the
+  # stack convention
   effective-args =
     if len > 0: args
     else: [list: N.a-bind(l, compiler.resumer, A.a-blank)]
@@ -1527,18 +1529,19 @@ compiler-visitor = {
       compiled-locs = for CL.map_list(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
       compiled-vals = for CL.map_list(m from nonblank-anns): j-str(js-id-of(m.bind.id).tosourcestring()) end
 
-      # NOTE(joe 6-14-2014): We cannot currently statically check for if an annotation
-      # is a refinement because of type aliases.  So, we use checkAnnArgs, which takes
-      # a continuation and manages all of the stack safety of annotation checking itself.
+      # NOTE(joe 6-14-2014): We cannot currently statically check for if an
+      # annotation is a refinement because of type aliases.  So, we use
+      # checkAnnArgs, which takes a continuation and manages all of the stack
+      # safety of annotation checking itself.
 
-      # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic solution by
-      # passing the check off to a runtime function that uses JavaScript's Function
-      # to only do the refinement check once.
+      # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic
+      # solution by passing the check off to a runtime function that uses
+      # JavaScript's Function to only do the refinement check once.
       c-exp(
         rt-method("makeVariantConstructor", [clist:
             self.get-loc(l2),
-            # NOTE(joe): Thunked at the JS level because compiled-anns might contain
-            # references to rec ids that should be resolved later
+            # NOTE(joe): Thunked at the JS level because compiled-anns might
+            # contain references to rec ids that should be resolved later
             j-fun(J.next-j-fun-id(), "$synthesizedConstructor_" + base-id.toname(), cl-empty, j-block1(j-return(j-list(false, compiled-anns.anns)))),
             j-list(false, compiled-vals),
             j-list(false, compiled-locs),
@@ -1863,8 +1866,8 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   free-ids = freevars.map-keys-now(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
-    # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,
-    # because shared compiled files didn't agree on globals
+    # NOTE(joe): below, we use the special case for globals for bootstrapping
+    # reasons, because shared compiled files didn't agree on globals
     cases(A.Name) n:
       | s-global(s) =>
         dep = env.globals.values.get-value(n.toname())
