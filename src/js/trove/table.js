@@ -372,20 +372,21 @@
           return runtime.ffi.makeList(getColumn(col_name));
         }),
         
-        '_column-index': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
-          ffi.checkArity(4, arguments, "_column-index", true);
+        '_column-index': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
+          ffi.checkArity(5, arguments, "_column-index", true);
           var col_index = headerIndex['column:'+col_name];
           if(col_index === undefined) {
-            ffi.throwMessageException("The table does not have a column named `"+col_name+"`.  Valid columns for this table are " + Object.keys(headerIndex).map(function(k) { return k.slice(7); }).join(", "));
+            ffi.throwColumnNotFound(operation_loc, col_name, col_loc,
+              runtime.ffi.makeList(Object.keys(headerIndex).map(function(k) { return k.slice(7); })));
           }
           return col_index;
         }),
         
-        '_no-column': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
-          ffi.checkArity(4, arguments, "_column-index", true);
+        '_no-column': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
+          ffi.checkArity(5, arguments, "_no-column", true);
           var col_index = headerIndex['column:'+col_name];
           if(col_index != undefined)
-            ffi.throwMessageException("The table already has a column named `"+col_name+"`.");
+            ffi.throwDuplicateColumn(operation_loc, col_name, col_loc);
           return col_index;
         }),
         

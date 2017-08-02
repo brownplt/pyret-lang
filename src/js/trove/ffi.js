@@ -271,14 +271,6 @@
       raise(err("invalid-array-index")(methodName, array, index, reason));
     }
 
-    function throwInvalidTableColumn(table, table_loc, column, column_loc) {
-      runtime.checkTable(table);
-      runtime.checkString(column);
-      checkSrcloc(table_loc);
-      checkSrcloc(column_loc);
-      raise(err("invalid-table-column")(table, table_loc, column, column_loc));
-    }
-
     function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
       runtime.checkPyretVal(left);
       runtime.checkPyretVal(right);
@@ -418,6 +410,24 @@
     function throwNonFunApp(locArray, funVal) {
       runtime.checkPyretVal(funVal);
       raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal));
+    }
+
+    function throwColumnNotFound(operation_loc, col_name, col_loc, columns) {
+      runtime.checkString(col_name);
+      runtime.checkList(columns);
+      raise(err("column-not-found")(
+        runtime.makeSrcloc(operation_loc),
+        col_name,
+        runtime.makeSrcloc(col_loc),
+        columns));
+    }
+
+    function throwDuplicateColumn(operation_loc, col_name, col_loc) {
+      runtime.checkString(col_name);
+      raise(err("duplicate-column")(
+        runtime.makeSrcloc(operation_loc),
+        col_name,
+        runtime.makeSrcloc(col_loc)));
     }
 
     function throwParseErrorNextToken(loc, nextToken) {
@@ -569,9 +579,10 @@
       throwNoBranchesMatched: throwNoBranchesMatched,
       throwNoCasesMatched: throwNoCasesMatched,
       throwNonFunApp: throwNonFunApp,
+      throwColumnNotFound: throwColumnNotFound,
+      throwDuplicateColumn: throwDuplicateColumn,
       throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
-      throwInvalidTableColumn: throwInvalidTableColumn,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorEOF: throwParseErrorEOF,

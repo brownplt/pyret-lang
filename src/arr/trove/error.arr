@@ -2177,7 +2177,174 @@ data RuntimeError:
             [ED.para: ED.embed(self.value2)]]
       end
     end
-    
+  | column-not-found(operation-loc, column-name, column-loc, columns) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      fun destructure-ast(ast):
+        cases(Any) ast:
+          | s-table-extend(l, column-binds, extensions) =>
+            {"extend";  column-binds.table.l}
+          | s-table-update(l, column-binds, updates) =>
+            {"update";  column-binds.table.l}
+          | s-table-select(l, columns, table) =>
+            {"select";  table.l}
+          | s-table-order(l, table, ordering) =>
+            {"order"  ; table.l}
+          | s-table-filter(l, column-binds, predicate) =>
+            {"sieve"  ; column-binds.table.l}
+          | s-table-extract(l, column, table) =>
+            {"extract"; table.l}
+          | else => {""; self.operation-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.operation-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(destructure-ast)
+
+      table-text =
+        destructured-pattern
+          .and-then({(v): ED.highlight(_, [ED.locs: v.{1}], 0)})
+          .or-else({(v): v})
+
+      column-text =
+        if src-available(self.column-loc):
+          ED.highlight(_, [ED.locs: self.column-loc], 1)
+        else:
+          {(v):v}
+        end
+
+      [ED.error:
+        destructured-pattern
+          .and-then({(v):
+            [ED.sequence:
+              ed-intro("table " + v.{0} + " expression", self.operation-loc, -1, true),
+              ED.cmcode(self.operation-loc)]})
+          .or-else(ed-simple-intro("table operation", self.operation-loc)),
+        [ED.para:
+          ED.text("The "),
+          table-text(ED.text("table")),
+          ED.text(" did not have a column named "),
+          column-text(ED.code(ED.text(self.column-name))),
+          ED.text("; it only had columns named:")],
+         ED.bulleted-sequence(self.columns.map(ED.text).map(ED.code))]
+    end,
+    method render-reason(self):
+      [ED.error:
+        ed-simple-intro("table operation", self.operation-loc),
+        [ED.para:
+          ED.text("The table did not have a column named "),
+          ED.code(ED.text(self.column-name)),
+          ED.text("; it only had columns named:")],
+        ED.bulleted-sequence(self.columns.map(ED.text).map(ED.code))]
+    end
+  | duplicate-column(operation-loc, column-name, column-loc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      fun destructure-ast(ast):
+        cases(Any) ast:
+          | s-table-extend(l, column-binds, extensions) =>
+            {"extend";  column-binds.table.l}
+          | s-table-update(l, column-binds, updates) =>
+            {"update";  column-binds.table.l}
+          | s-table-select(l, columns, table) =>
+            {"select";  table.l}
+          | s-table-order(l, table, ordering) =>
+            {"order"  ; table.l}
+          | s-table-filter(l, column-binds, predicate) =>
+            {"sieve"  ; column-binds.table.l}
+          | s-table-extract(l, column, table) =>
+            {"extract"; table.l}
+          | else => {"operation"; self.operation-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.operation-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(destructure-ast)
+
+      table-text =
+        destructured-pattern
+          .and-then({(v): ED.highlight(_, [ED.locs: v.{1}], 0)})
+          .or-else({(v): v})
+
+      column-text =
+        if src-available(self.column-loc):
+          ED.highlight(_, [ED.locs: self.column-loc], 1)
+        else:
+          {(v):v}
+        end
+
+      [ED.error:
+        destructured-pattern
+          .and-then({(v):
+            [ED.sequence:
+              ed-intro("table " + v.{0} + " expression", self.operation-loc, -1, true),
+              ED.cmcode(self.operation-loc)]})
+          .or-else(ed-simple-intro("table operation", self.operation-loc)),
+        [ED.para:
+          ED.text("The "),
+          table-text(ED.text("table")),
+          ED.text(" already has a column named "),
+          column-text(ED.code(ED.text(self.column-name))),
+          ED.text(".")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        ed-simple-intro("table operation", self.operation-loc),
+        [ED.para:
+          ED.text("The table already has a column named "),
+          ED.code(ED.text(self.column-name)),
+          ED.text(".")]]
+    end
   | user-break with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()

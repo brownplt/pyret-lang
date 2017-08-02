@@ -40,10 +40,11 @@ fun check-ann(l :: S.Srcloc, expr :: A.Expr, ann :: A.Ann) -> A.Expr:
   A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, expr)], id.id-e, true)
 end
 
-fun get-table-column(l, e, column):
+fun get-table-column(op-l, l, e, column):
   A.s-app(l,
     A.s-dot(A.dummy-loc, e, "_column-index"),
     [list:
+      A.s-srcloc(A.dummy-loc, op-l),
       A.s-srcloc(A.dummy-loc, l),
       column.name,
       A.s-srcloc(A.dummy-loc, column.l)])
@@ -58,10 +59,11 @@ fun check-has-column(tbl, tbl-l, col, col-l):
       A.s-srcloc(A.dummy-loc, col-l)])
 end
 
-fun check-no-column(tbl, tbl-l, col, col-l):
+fun check-no-column(op-l, tbl, tbl-l, col, col-l):
   A.s-app(tbl-l,
     A.s-dot(A.dummy-loc, tbl, "_no-column"),
     [list:
+      A.s-srcloc(A.dummy-loc, op-l),
       A.s-srcloc(A.dummy-loc, tbl-l),
       A.s-str(A.dummy-loc, col),
       A.s-srcloc(A.dummy-loc, col-l)])
@@ -747,11 +749,11 @@ fun desugar-expr(expr :: A.Expr):
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
-            get-table-column(column-binds.table.l, tbl.id-e, column)) end)),
+            get-table-column(l, column-binds.table.l, tbl.id-e, column)) end)),
         # Table Construction
         A.s-block(A.dummy-loc, [list:
           A.s-block(A.dummy-loc, extensions.map(lam(extension):
-            check-no-column(tbl.id-e, column-binds.l, extension.name, extension.l) end)),
+            check-no-column(l, tbl.id-e, column-binds.l, extension.name, extension.l) end)),
           A.s-prim-app(A.dummy-loc, "makeTable", [list:
             # Header
             A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
@@ -789,10 +791,10 @@ fun desugar-expr(expr :: A.Expr):
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
-            get-table-column(column-binds.table.l, tbl.id-e, column)) end))
+            get-table-column(l, column-binds.table.l, tbl.id-e, column)) end))
         .append(updates.map(lam(update):
             A.s-let-bind(A.dummy-loc, update.idx.id-b,
-              get-table-column(column-binds.table.l, tbl.id-e, update)) end)),
+              get-table-column(l, column-binds.table.l, tbl.id-e, update)) end)),
         # Table Construction
           A.s-prim-app(A.dummy-loc, "makeTable", [list:
             # Header
@@ -830,7 +832,7 @@ fun desugar-expr(expr :: A.Expr):
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
-            get-table-column(table.l, tbl.id-e, column)) end)),
+            get-table-column(l, table.l, tbl.id-e, column)) end)),
         # Table Construction
         A.s-prim-app(A.dummy-loc, "makeTable", [list:
           # Header
@@ -851,7 +853,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-let-bind(A.dummy-loc, tbl.id-b,
           check-table(table.l, desugar-expr(table), lam(t): t end)),
         A.s-let-bind(A.dummy-loc, col.id-b,
-          get-table-column(l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
+          get-table-column(l, table.l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
         # Table Construction
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
           A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
@@ -884,7 +886,7 @@ fun desugar-expr(expr :: A.Expr):
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
-            get-table-column(column-binds.table.l, tbl.id-e, column)) end)),
+            get-table-column(l, column-binds.table.l, tbl.id-e, column)) end)),
         # Table Construction
         A.s-prim-app(A.dummy-loc, "makeTable", [list:
           # Header
