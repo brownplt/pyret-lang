@@ -1126,6 +1126,12 @@
           return RUNTIME.getField(ast, 's-frac')
             .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
         },
+        'rfrac-expr': function(node) {
+          // (rfrac-expr n)
+          var numden = node.kids[0].value.substring(1).split("/");
+          return RUNTIME.getField(ast, 's-rfrac')
+            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+        },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's-str')
             .app(pos(node.pos), string(node.kids[0]));
