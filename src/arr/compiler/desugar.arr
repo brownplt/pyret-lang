@@ -535,14 +535,23 @@ fun desugar-expr(expr :: A.Expr):
           len = elts.length()
           desugared-elts = elts.map(desugar-expr)
           if len <= 5:
-            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make" + tostring(len))),
+            A.s-app(constructor.l,
+              A.s-prim-app(constructor.l, "getMaker" + tostring(len),
+                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make" + tostring(len)),
+                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
               desugared-elts)
           else:
-            A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "make")),
+            A.s-app(constructor.l,
+              A.s-prim-app(constructor.l, "getMaker",
+                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make"),
+                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
               [list: A.s-array(l, desugared-elts)])
           end
         | s-construct-lazy =>
-          A.s-app(constructor.l, desugar-expr(A.s-dot(constructor.l, constructor, "lazy-make")),
+          A.s-app(constructor.l,
+            A.s-prim-app(constructor.l, "getLazyMaker",
+              [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "lazy-make"),
+                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
             [list: A.s-array(l,
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
       end
@@ -926,13 +935,15 @@ where:
   prog2 = p("[list: 1,2,1 + 2]")
   ds(prog2)
     is A.s-block(d,
-    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make3"),
+    [list:  A.s-app(d,
+        A.s-prim-app(d, "getMaker3", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make3"), A.s-srcloc(d, d), A.s-srcloc(d, d)]),
         [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
 
   prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
   ds(prog3)
     is A.s-block(d,
-    [list:  A.s-app(d, A.s-dot(d, A.s-id(d, A.s-name(d, "list")), "make"),
+    [list:  A.s-app(d,
+        A.s-prim-app(d, "getMaker", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make"), A.s-srcloc(d, d), A.s-srcloc(d, d)]),
         [list:  A.s-array(d,
             [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
               one, two, A.s-app(d, id("_plus"), [list: two, one])])])])
