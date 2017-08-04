@@ -1,5 +1,9 @@
 provide *
 import ast as A
+import string-dict as D
+import srcloc as SL
+import sets as S
+import sha as sha
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J
 import file("gensym.arr") as G
@@ -8,10 +12,7 @@ import file("concat-lists.arr") as CL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
-import string-dict as D
-import srcloc as SL
-import sets as S
-import sha as sha
+import file("anf-loop-compiler.arr") as C
 
 fun get-exp(o): o.exp end
 fun get-id(o): o.id end
@@ -88,43 +89,17 @@ is-c-block = DAG.is-c-block
 string-dict = D.string-dict
 mutable-string-dict = D.mutable-string-dict
 
-rt-name-map = [D.string-dict:
-  "addModuleToNamespace", "aMTN",
-  "checkArityC", "cAC",
-  "checkRefAnns", "cRA",
-  "derefField", "dF",
-  "getColonFieldLoc", "gCFL",
-  "getDotAnn", "gDA",
-  "getField", "gF",
-  "getFieldRef", "gFR",
-  "hasBrand", "hB",
-  "isActivationRecord", "isAR",
-  "isCont", "isC",
-  "isFunction", "isF",
-  "isMethod", "isM",
-  "isPyretException", "isPE",
-  "isPyretTrue", "isPT",
-  "makeActivationRecord", "mAR",
-  "makeBoolean", "mB",
-  "makeBranderAnn", "mBA",
-  "makeCont", "mC",
-  "makeDataValue", "mDV",
-  "makeFunction", "mF",
-  "makeGraphableRef", "mGR",
-  "makeMatch", "mM",
-  "makeMethod", "mMet",
-  "makeMethodN", "mMN",
-  "makeObject", "mO",
-  "makePredAnn", "mPA",
-  "makeRecordAnn", "mRA",
-  "makeTupleAnn", "mTA",
-  "makeVariantConstructor", "mVC",
-  "namedBrander", "nB",
-  "traceEnter", "tEn",
-  "traceErrExit", "tErEx",
-  "traceExit", "tEx",
-  '_checkAnn', '_cA'
-]
+const-id = C.const-id
+compiler-name = C.compiler-name
+wrap-with-srcnode = C.wrap-with-srcnode
+rt-field = C.rt-field
+rt-method = C.rt-method
+app = C.app
+raise-id-exn = C.raise-id-exn
+
+undefined = j-id(const-id("D"))
+RUNTIME = j-id(const-id("R"))
+get-field-loc = j-id(const-id("G"))
 
 effective-ids = D.make-mutable-string-dict()
 js-ids = D.make-mutable-string-dict()
@@ -145,14 +120,6 @@ fun fresh-id(id :: A.Name) -> A.Name:
   end
 end
 
-fun const-id(name :: String):
-  A.s-name(A.dummy-loc, name)
-end
-
-fun compiler-name(id):
-  const-id(string-append("$", id))
-end
-
 fun js-id-of(id :: A.name) -> A.name:
   s = id.key()
   if js-ids.has-key-now(s) block:
@@ -164,25 +131,37 @@ fun js-id-of(id :: A.name) -> A.name:
   end
 end
 
-undefined = j-id(const-id("D"))
-RUNTIME = j-id(const-id("R"))
-get-field-loc = j-id(const-id("G"))
-
 type Loc = SL.Srcloc
 type CList = CL.ConcatList
+type BindType = C.BindType
 clist = CL.clist
 
-fun rt-field(name):
-  j-dot(RUNTIME, name)
+# NOTE(rachit): Find out what `is-fn` does.
+fun compile-a-app(l :: N.Loc, compiler, b :: Option<BindType>, f :: N.AVal,
+      args :: List<N.AVal>,
+      opt-body :: Option<N.AExpr>,
+      app-info :: A.AppInfo,
+      is-fn :: Boolean) block:
+  # Variable to which the result of applications need to be bound.
+  ans = compiler.cur-ans
+
+  compiled-f = f.visit(compiler).exp
+  compiled-args = CL.map_list(_.visit(compiler).expm, args)
+
+  call-code = [clist:
+    j-expr(
+      wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args))))
+  ]
+  ...
 end
 
-fun rt-method(name, args):
-  rt-name = cases(Option) rt-name-map.get(name):
-    | none => name
-    | some(short-name) => short-name
+fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable,
+      opt-body :: Option<N.AExpr>,
+      else-case :: (DAG.CaseResults -> DAG.CaseResults)):
+  cases(N.ALettable) e:
+    | a-app(l2, f, args, app-info) =>
+        compile-a-app(l2, f, args, compiler, b, opt-body, app-info)
   end
-
-  j-method(RUNTIME, rt-name, args)
 end
 
 compiler-visitor = {
@@ -214,31 +193,63 @@ compiler-visitor = {
   method a-seq(self, _, e1, e2):
     raise("a-seq not implemented")
   end,
-  method a-if(self, l :: Loc, cond :: N.AVal, consq :: N.AExpr,
-    alt :: N.AExpr):
-    raise("a-if not implemented")
+  method a-if(self, l :: Loc, cond :: N.AVal, cons :: N.AExpr, alt :: N.AExpr):
+    #|ccons = cons.visit(self)
+    calt = alt.visit(self)
+    ccond = rt-method("checkPyretTrue", [clist: cond.visit(self)])
+    c-block(j-block([clist:
+          j-if(ccond, ccons, calt)
+    ]))|#
+    raise("a-if is not implemented")
   end,
   method a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal,
     branches :: List<N.ACasesBranch>, _else :: N.AExpr):
     raise("a-cases not implemented")
   end,
   method a-update(self, l, obj, fields):
-    raise("a-update not implemented")
+    compiled-obj = obj.visit(self).exp
+    compiled-fields = CL.map_list(_.value.visit(self).exp, fields)
+    field-names = CL.map_list(j-str(_.name), fields)
+    field-locs = CL.map_list(self.get-loc(_.l), fields)
+    c-exp(j-expr(rt-method("checkRefAnns",
+      [clist:
+        compiled-obj,
+        j-list(false, field-names),
+        j-list(false, compiled-fields),
+        j-list(false, field-locs),
+        self.get-loc(l),
+        self.get-loc(obj.l)
+      ]
+    )))
   end,
   method a-lettable(self, _, e :: N.ALettable):
     raise("a-lettable not implemented")
   end,
   method a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
-    raise("a-assign not implemented")
+    visit-value = value.visit(self)
+    c-exp(rt-field("nothing"),
+          cl-snoc(visit-value.other-stmts,
+                  j-expr(
+                    j-dot-assign(j-id(js-id-of(id)), "$var", visit-value.exp)
+                  )
+          )
+    )
   end,
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     raise("a-app not implemented")
   end,
   method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
-    raise("a-prim-app not implemented")
+    visit-args = args.map(_.visit(self))
+    set-loc = [clist:
+      j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
+    ]
+    c-exp(rt-method(f, CL.map_list(get-exp, visit-args)), set-loc)
   end,
   method a-ref(self, l, maybe-ann):
-    raise("a-ref not implemented")
+    cases(Option) maybe-ann:
+      | none => c-exp(rt-method("makeGraphableRef", cl-empty), cl-empty)
+      | some(ann) => raise("Cannot handle annotations in refs yet")
+    end
   end,
   method a-obj(self, l :: Loc, fields :: List<N.AField>):
     visit-fields = fields.map(_.visit(self))
@@ -336,12 +347,27 @@ compiler-visitor = {
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
   end,
   method a-id-safe-letrec(self, l :: Loc, id :: A.Name):
-    raise("a-id-safe-letrec not implemented")
+    s = j-id(js-id-of(id))
+    c-exp(j-dot(s, "$var"), cl-empty)
   end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
-    raise("a-id-letrec not implemented")
+    s = j-id(js-id-of(id))
+    if safe:
+      c-exp(j-dot(s, "$var"), cl-empty)
+    else:
+     c-exp(
+       j-ternary(
+         j-binop(j-dot(s, "$var"), j-eq, undefined),
+         raise-id-exn(self.get-loc(l), id.toname()),
+         j-dot(s, "$var")),
+       cl-empty
+     )
+   end
   end,
   method a-data-expr(self, l, name, namet, variants, shared):
+    fun brand-name(base):
+      js-id-of(compiler-name(string-append("brand-", base))).toname()
+    end
     raise("a-data-expr not implemented")
   end,
   method a-program(self, l, _, imports, body) block:
