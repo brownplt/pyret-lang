@@ -24,7 +24,6 @@ var define, requirejs;
     }
 
     function evaluateModuleFn(moduleObj) {
-        console.log("Evaluating " + moduleObj.name);
 
         if (moduleObj.val != null) {
             throw new Error("Already evaluated " + moduleObj.name);
@@ -32,10 +31,10 @@ var define, requirejs;
 
         var callbackArgs = buildCallbackArgs(moduleObj.deps);
 
-        // Now call it
+        // NOTE(joe): This is independent of Pyret code running, so calling
+        // this function doesn't interact with stack management in any way
         moduleObj.val = moduleObj.callback.apply(null, callbackArgs);
-        moduleObj.resolved = true;
-    }
+        moduleObj.resolved = true; }
 
     define = function(name, deps, callback) {
         //This module might have no dependencies
@@ -48,7 +47,6 @@ var define, requirejs;
             throw new Error("no callback for " + name);
         }
 
-        console.log("define(" + name + ", [" + deps + "])");
         if (name in moduleTable) {
             throw new Error("Module " + name + " already defined");
         }
@@ -74,7 +72,6 @@ var define, requirejs;
         var visitedNodes = {}; // Nodes we're done with
 
         function visitNode(node) {
-            console.log("Visiting " + node);
             if (!(node in moduleTable)) {
                 throw new Error("Unknown module : " + node);
             }
@@ -134,7 +131,6 @@ var define, requirejs;
         }
 
         var loadOrder = getLoadOrder(deps);
-        console.log("The load order is ...\n" + JSON.stringify(loadOrder, null, 2));
 
         for (var i = 0; i < loadOrder.length; i++) {
             var modName = loadOrder[i];

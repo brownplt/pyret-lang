@@ -2,11 +2,7 @@
   requires: [],
   nativeRequires: ["path", "fs"],
   provides: {},
-  theModule: function(runtime, namespace, uri, path, fs, requirejs) {
-    var NODE_BUNDLED_DEPS_FILE = "build/bundled-node-deps.js";
-    var NODE_REQUIRE_DEPS_FILE = "src/js/trove/require-node-dependencies.js";
-    var AMD_LOADER = "src/js/base/amd_loader.js";
-    var HTML_TEMPLATE = "src/scripts/web-standalone-template.html";
+  theModule: function(runtime, namespace, uri, path, fs) {
 
     var READ_OPTIONS = {encoding: 'utf8'};
 
@@ -37,15 +33,25 @@
 
       standaloneFile: File template for the standalone (usually src/js/base/handalone.js)
 
-      bundleDependencies: whether or not to include node js dependencies in the standalone
+      depsFile: File that contains the builtin npm/node dependencies, either as uses of "require" (i.e.
+                dynamically linked) or as the output of `browserify` (i.e. statically linked)
+                NOTE: This path is specified relative to the directory you are building from.
 
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, configJSON, standaloneFile, bundleDependencies) {
-      runtime.checkArity(5, arguments, ["make-standalone"]);
+    function makeStandalone(deps, body, configJSON, standaloneFile, depsFile, thisPyretDir) {
+      runtime.checkArity(6, arguments, ["make-standalone"]);
       runtime.checkList(deps);
+      runtime.checkPyretVal(body);
       runtime.checkString(configJSON);
+      runtime.checkString(standaloneFile);
+      runtime.checkString(depsFile);
+
+      var AMD_LOADER = path.join(thisPyretDir, "js/amd_loader.js");
+
+      // TODO(joe): figure our where web-standalone-template should go
+      var HTML_TEMPLATE = "src/scripts/web-standalone-template.html";
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
@@ -79,12 +85,6 @@
       // Now either write the file containing all dependencies or the file which
       // just defines() the dependencies.
 
-      var depsFile;
-      if (runtime.isPyretTrue(bundleDependencies)) {
-        depsFile = NODE_BUNDLED_DEPS_FILE;
-      } else {
-        depsFile = NODE_REQUIRE_DEPS_FILE;
-      }
       var dependencyCode = fs.readFileSync(depsFile, READ_OPTIONS);
       fs.writeSync(outFile, dependencyCode);
 
