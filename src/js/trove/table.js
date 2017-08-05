@@ -1,16 +1,18 @@
 ({
   requires: [
     { "import-type": "builtin", name: "valueskeleton" },
+    { "import-type": "builtin", name: "equality" },
     { "import-type": "builtin", name: "ffi" }
   ],
   nativeRequires: [
     "pyret-base/js/type-util"
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, VSlib, ffi, t) {
+  theModule: function(runtime, namespace, uri, VSlib, EQlib, ffi, t) {
     var get = runtime.getField;
 
     var VS = get(VSlib, "values");
+    var EQ = get(EQlib, "values");
     
     var brandTable = runtime.namedBrander("table", ["table: table brander"]);
     var annTable   = runtime.makeBranderAnn(brandTable, "Table");
@@ -53,27 +55,36 @@
         names.push(header[0]);
         sanitizers.push(header[1]);
       }
-      for(var i = 0; i < contents.length; ++i) {
-        runtime.checkArray(contents[i]);
-        if (contents[i].length !== headers.length) {
-          if (i === 0) {
-            runtime.ffi.throwMessageException("Contents must match header size");
-          } else {
-            runtime.ffi.throwMessageException("Contents must be rectangular");
+      return runtime.safeCall(function() {
+        return runtime.eachLoop(runtime.makeFunction(function(i) {
+          runtime.checkArray(contents[i]);
+          if (contents[i].length !== headers.length) {
+            if (i === 0) {
+              runtime.ffi.throwMessageException("Contents must match header size");
+            } else {
+              runtime.ffi.throwMessageException("Contents must be rectangular");
+            }
           }
-        }
-        for (var j = 0; j < contents[i].length; ++j) {
-          runtime.checkCellContent(contents[i][j]);
-        }
-        contents[i] = runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
-          return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
-        }), contents[i]);
-      }
-      return makeTable(names, contents);
+          // This loop is stack safe, since it's just a brand-checker
+          for (var j = 0; j < contents[i].length; ++j) {
+            runtime.checkCellContent(contents[i][j]);
+          }
+          return runtime.safeCall(function() {
+            return runtime.raw_array_mapi(runtime.makeFunction(function(v, j) {
+              return sanitizers[j].app(contents[i][j], names[j], runtime.makeNumber(i));
+            }), contents[i]);
+          }, function(new_contents_i) {
+            contents[i] = new_contents_i;
+            return runtime.nothing;
+          }, "openTable:assign-rows");
+        }), 0, contents.length);
+      }, function(_) {
+        return makeTable(names, contents);
+      }, "openTable");
     }
 
     function makeTable(headers, rows) {
-      ffi.checkArity(2, arguments, "makeTable");
+      ffi.checkArity(2, arguments, "makeTable", false);
       
       var headerIndex = {};
       
@@ -130,6 +141,74 @@
         return runtime.makeObject(obj);
       }
 
+      function multiOrder(sourceArr, colComps, destArr) {
+        // sourceArr is a raw JS array of table rows
+        // colComps is an array of 2-element arrays, [true iff ascending, colName]
+        // destArr is the final array in which to place the sorted rows
+        // returns destArr, and mutates destArr
+        var colIdxs = [];
+        var comps = [];
+        var LESS = "less";
+        var EQ = "equal";
+        var MORE = "more";
+        for (var i = 0; i < colComps.length; i++) {
+          comps[i] = (colComps[i][0] ? runtime.lessthan : runtime.greaterthan);
+          colIdxs[i] = headerIndex["column:" + colComps[i][1]];
+          for (var dupIdx = i + 1; dupIdx < colComps.length; dupIdx++) {
+            if (colComps[i][1] === colComps[dupIdx][1]) {
+              runtime.ffi.throwMessageException(
+                "Attempted to sort on the same column multiple times: "
+                  + "'" + colComps[i][1] + "' is used as sort-key " + i
+                  + ", and also as sort-key " + dupIdx);
+            }
+          }
+        }
+        function helper(sourceArr) {
+          var lessers = [];
+          var equals = [];
+          var greaters = [];
+          var pivot = sourceArr[0];
+          equals.push(pivot);
+          return runtime.safeCall(function() {
+            return runtime.eachLoop(runtime.makeFunction(function(rowIdx) {
+              return runtime.safeCall(function() {
+                return runtime.raw_array_fold(runtime.makeFunction(function(order, comp, colIdx) {
+                  if (order !== EQ) return order;
+                  else {
+                    return runtime.safeCall(function() {
+                      return comp(sourceArr[rowIdx][colIdxs[colIdx]], pivot[colIdxs[colIdx]]);
+                    }, function(isLess) {
+                      if (isLess) return LESS;
+                      else return runtime.safeCall(function() {
+                        return runtime.equal_always(sourceArr[rowIdx][colIdxs[colIdx]], pivot[colIdxs[colIdx]]);
+                      }, function(isEqual) {
+                        return (isEqual ? EQ : MORE);
+                      }, "multiOrder-isGreater");
+                    }, "multiOrder-isLess");
+                  }
+                }), EQ, comps, 0);
+              }, function(order) {
+                if (order === LESS) { lessers.push(sourceArr[rowIdx]); }
+                else if (order === EQ) { equals.push(sourceArr[rowIdx]); }
+                else { greaters.push(sourceArr[rowIdx]); }
+                return runtime.nothing;
+              }, "multiOrder-temparrs");
+            }), 1, sourceArr.length); // start from 1, since index 0 is the pivot
+          }, function(_) {
+            return runtime.safeCall(function() {
+              if (lessers.length === 0) { return destArr; }
+              else { return helper(lessers); }
+            }, function(_) {
+              for (var i = 0; i < equals.length; i++)
+                destArr.push(equals[i].slice()); // need to copy here
+              if (greaters.length === 0) { return destArr; }
+              else { return helper(greaters); }
+            }, "multiOrder-finalMoves");
+          });
+        }
+        return helper(sourceArr);
+      }
+
       function order(direction, colname) {
         var asList = runtime.ffi.makeList(rows);
         var index = headerIndex["column:" + colname];
@@ -158,6 +237,15 @@
         }),
         'order-decreasing': runtime.makeMethod1(function(_, colname) {
           return order(false, colname);
+        }),
+
+        'multi-order': runtime.makeMethod1(function(_, colComps) {
+          // colComps is an array of 2-element arrays, [true iff ascending, colName]
+          return runtime.safeCall(function() {
+            return multiOrder(rows, colComps, []);
+          }, function(destArr) {
+            return makeTable(headers, destArr);
+          }, "multi-order");
         }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {
@@ -266,42 +354,44 @@
         }),
 
         'get-row': runtime.makeMethod1(function(_, row_index) {
-          ffi.checkArity(2, arguments, "get-row");
+          ffi.checkArity(2, arguments, "get-row", true);
           runtime.checkArrayIndex("get-row", rows, row_index);
           return getRowContentAsGetter(headers, rows[row_index]);
         }),
         
         'length': runtime.makeMethod0(function(_) {
-          ffi.checkArity(1, arguments, "length");
+          ffi.checkArity(1, arguments, "length", true);
           return runtime.makeNumber(rows.length);
         }),
         
         'get-column': runtime.makeMethod1(function(_, col_name) {
-          ffi.checkArity(2, arguments, "get-column");
+          ffi.checkArity(2, arguments, "get-column", true);
           if(!hasColumn(col_name)) {
             ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
           }
           return runtime.ffi.makeList(getColumn(col_name));
         }),
         
-        '_column-index': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
-          ffi.checkArity(4, arguments, "_column-index");
+        '_column-index': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
+          ffi.checkArity(5, arguments, "_column-index", true);
           var col_index = headerIndex['column:'+col_name];
-          if(col_index === undefined)
-            ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
+          if(col_index === undefined) {
+            ffi.throwColumnNotFound(operation_loc, col_name, col_loc,
+              runtime.ffi.makeList(Object.keys(headerIndex).map(function(k) { return k.slice(7); })));
+          }
           return col_index;
         }),
         
-        '_no-column': runtime.makeMethod3(function(_, table_loc, col_name, col_loc) {
-          ffi.checkArity(4, arguments, "_column-index");
+        '_no-column': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
+          ffi.checkArity(5, arguments, "_no-column", true);
           var col_index = headerIndex['column:'+col_name];
           if(col_index != undefined)
-            ffi.throwMessageException("The table already has a column named `"+col_name+"`.");
+            ffi.throwDuplicateColumn(operation_loc, col_name, col_loc);
           return col_index;
         }),
         
         '_equals': runtime.makeMethod2(function(self, other, equals) {
-          ffi.checkArity(3, arguments, "_equals");
+          ffi.checkArity(3, arguments, "_equals", true);
           // is the other a table
           // same number of columns?
           // same number of rows?
@@ -323,29 +413,22 @@
               return neq();
             }
           }
-          for (var i = 0; i < rows.length; ++i) {
-            var selfRow = rows[i];
+          return runtime.raw_array_fold(runtime.makeFunction(function(ans, selfRow, i) {
+            if (ffi.isNotEqual(ans)) { return ans; }
             var otherRow = otherRows[i];
-            var colEqual = function(j) {
-              return function() {
-                return equals.app(selfRow[j], otherRow[j]);
-              };
-            };
-            var liftEquals = function(r) {
-              return ffi.isEqual(r);
-            };
-            for (var j = 0; j < headers.length; ++j) {
-              // XXX -- this is NOT stacksafe!
-              if (!(runtime.safeCall(colEqual(j), liftEquals))) {
-                return neq();
-              }
-            }
-          }
-          return eq();
+            return runtime.raw_array_fold(runtime.makeFunction(function(ans, selfRowJ, j) {
+              if (ffi.isNotEqual(ans)) { return ans; }
+              return runtime.safeCall(function() {
+                return equals.app(selfRowJ, otherRow[j]);
+              }, function(eqAns) {
+                return get(EQ, "equal-and").app(ans, eqAns);
+              }, "equals:combine-cells");
+            }), ans, selfRow, 0);
+          }), eq(), rows, 0);
         }),
         
         '_output': runtime.makeMethod0(function(_) {
-          ffi.checkArity(1, arguments, "_output");
+          ffi.checkArity(1, arguments, "_output", true);
           var vsValue = get(VS, "vs-value").app;
           var vsString = get(VS, "vs-str").app;
           return get(VS, "vs-table").app(

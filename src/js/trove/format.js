@@ -84,7 +84,7 @@
 
     var vals = {
       format: RUNTIME.makeFunction(function(str, args) {
-        RUNTIME.ffi.checkArity(2, arguments, "format");
+        RUNTIME.ffi.checkArity(2, arguments, "format", false);
         RUNTIME.checkString(str);
         return RUNTIME.makeString(format(RUNTIME.unwrap(str), RUNTIME.ffi.toArray(args)));
       }, "format"),

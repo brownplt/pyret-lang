@@ -148,7 +148,7 @@ data FailureReason:
           [ED.sequence:
             [ED.para:
               ED.text("The "),
-              ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
+              ED.highlight(ED.text(self.name + " annotation"), [ED.locs: loc], 0)],
             ED.cmcode(loc)]
         else:
           [ED.para:

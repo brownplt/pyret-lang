@@ -161,7 +161,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
-      console.error("The error is: ", err);
+
+      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
       return locList;

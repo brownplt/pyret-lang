@@ -18,7 +18,7 @@ break-one = PP.sbreak(1)
 blank-one = PP.blank(1)
 
 fun strpos(uri, loc):
-  [list: uri, loc.start-line, loc.start-column, loc.start-char, loc.end-line, loc.end-column, loc.end-char].join-str(",")
+  [list: "", loc.start-line, loc.start-column, loc.start-char, loc.end-line, loc.end-column, loc.end-char].join-str(",")
 end
 
 

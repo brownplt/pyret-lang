@@ -22,10 +22,6 @@ fun main(args :: List<String>) -> Number block:
 
   this-pyret-dir = P.dirname(P.resolve(C.file-name))
 
-  print(args)
-  print("\n")
-  print("This pyret dir: " + this-pyret-dir + "\n")
-
   options = [D.string-dict:
     "serve",
       C.flag(C.once, "Start the Pyret server"),

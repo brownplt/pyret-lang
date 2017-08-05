@@ -91,10 +91,6 @@ data List<a>:
       self
     end,
 
-    method _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
-
-    method _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String: "[list: ]" end,
-
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
@@ -191,22 +187,6 @@ data List<a>:
     method reverse(self :: List<a>) -> List<a>:
       doc: "Returns a new list containing the same elements as this list, in reverse order"
       reverse-help(self, empty)
-    end,
-
-    method _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
-      "[list: " +
-        for fold(combined from tostring(self.first), elt from self.rest):
-          combined + ", " + tostring(elt)
-        end
-      + "]"
-    end,
-
-    method _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String:
-      "[list: " +
-        for fold(combined from torepr(self.first), elt from self.rest):
-          combined + ", " + torepr(elt)
-        end
-      + "]"
     end,
 
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:

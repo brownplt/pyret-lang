@@ -11,8 +11,8 @@
     var typs = gf(jstruct, "types");
     var sdvals = gf(sdict, "values");
     function readJSON(s) {
+      RUNTIME.checkArity(1, arguments, false);
       RUNTIME.checkString(s);
-      RUNTIME.checkArity(1, arguments);
       var jsVal = JSON.parse(s);
       var jObj = gf(vals, "j-obj");
       var jArr = gf(vals, "j-arr");

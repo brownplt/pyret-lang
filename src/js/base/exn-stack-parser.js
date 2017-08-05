@@ -50,6 +50,7 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
       // will be a length-7 array where the first is the URI of the module
       // the source location, and the remaining 6 are numbers for the line,
       // column, and character offsets of the start and end.
+      posForPyret[0] = uri;
       for(var i = 1; i < posForPyret.length; i += 1) {
         posForPyret[i] = Number(posForPyret[i]);
       }

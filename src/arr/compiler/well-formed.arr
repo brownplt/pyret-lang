@@ -767,6 +767,12 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     true
   end,
+  method s-rfrac(self, l, num, den) block:
+    when den == 0:
+      add-error(C.zero-fraction(l, num))
+    end
+    true
+  end,
   method s-id(self, l, id) block:
     when (reserved-names.has-key(id.tosourcestring())):
       reserved-name(l, id.tosourcestring())
@@ -792,8 +798,8 @@ well-formed-visitor = A.default-iter-visitor.{
       fields-dict = SD.make-mutable-string-dict()
       ok-fields = C.reactor-fields
       for each(f from fields) block:
-        when not(ok-fields.member(f.name)):
-          wf-error("Valid options for reactors are " + ok-fields.join-str(", ") + ", but found one named " + f.name + " ", f.l)
+        when not(ok-fields.has-key(f.name)):
+          wf-error("Valid options for reactors are " + ok-fields.keys-list().join-str(", ") + ", but found one named " + f.name + " ", f.l)
         end
         cases(Option<A.Loc>) fields-dict.get-now(f.name):
           | none => fields-dict.set-now(f.name, f.l)
@@ -1133,6 +1139,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
+  end,
+  method s-rfrac(_, l :: Loc, num, den):
+    well-formed-visitor.s-rfrac(l, num, den)
   end,
   method s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)

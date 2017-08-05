@@ -41,7 +41,7 @@
 
     */
     function makeStandalone(deps, body, configJSON, standaloneFile, depsFile, thisPyretDir) {
-      runtime.checkArity(6, arguments, ["make-standalone"]);
+      runtime.checkArity(6, arguments, ["make-standalone"], false);
       runtime.checkList(deps);
       runtime.checkPyretVal(body);
       runtime.checkString(configJSON);

@@ -412,7 +412,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("Reading this "),
-          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.exp-loc], -1),
+          ED.highlight(ED.text("expression"), [ED.locs: self.exp-loc], -1),
           ED.text(" errored:")],
         ED.cmcode(self.exp-loc),
         [ED.para:
@@ -607,7 +607,7 @@ data CompileError:
         [ED.para:
           ED.text("This "),
           ED.highlight(ED.text("method declaration"), [list: self.expr.l], 0),
-          ED.text(" does not accept at least one argument:")],
+          ED.text(" should accept at least one argument:")],
         ED.cmcode(self.expr.l),
         [ED.para:
           ED.text("When a method is applied, the first argument is a reference to the object it belongs to.")]]
@@ -615,7 +615,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
+          ED.text("Method declarations should accept at least one argument, but the method declaration at "),
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
@@ -893,7 +893,7 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)),
+            ED.text(self.ann.tosource().pretty(1000).first),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
@@ -910,7 +910,7 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
+            ED.text(self.ann.tosource().pretty(1000).first), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
@@ -1257,14 +1257,20 @@ data CompileError:
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     method render-fancy-reason(self):
+      fun adjust(l):
+        n = string-length(self.id)
+        SL.srcloc(l.source,
+          l.start-line, l.start-column, l.start-char,
+          l.start-line, l.start-column + n, l.start-char + n)
+      end
       old-loc-color = 0
       new-loc-color = 1
       [ED.error:
         [ED.para:
           ED.text("The declaration of the field named "),
-          ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+          ED.highlight(ED.code(ED.text(self.id)), [list: adjust(self.new-loc)], new-loc-color),
           ED.text(" is preceeded by declaration of an field also named "),
-          ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
+          ED.highlight(ED.code(ED.text(self.id)), [list: adjust(self.old-loc)], old-loc-color),
           ED.text(":")],
         ED.cmcode(self.old-loc + self.new-loc),
         [ED.para: ED.text("Pick a different name for one of them.")]]
@@ -1288,7 +1294,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.highlight(ED.text("This expression"), [list: self.a], 0),
-          ED.text(" on the same line as "),
+          ED.text(" is on the same line as "),
           ED.highlight(ED.text("another expression"), [list: self.b], 1),
           ED.text(":")],
         ED.cmcode(self.a + self.b),
@@ -2484,6 +2490,8 @@ runtime-provides = provides("builtin://global",
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
     "raw-array-filter", t-top,
+    "raw-array-and-mapi", t-top,
+    "raw-array-or-mapi", t-top,
     "raw-array-map", t-top,
     "raw-array-map-1", t-top,
     "raw-array-join-str", t-top,
@@ -2625,5 +2633,16 @@ standard-imports = extra-imports(
         [list: "Set"])
     ])
 
-reactor-fields = [list: "init", "on-tick", "to-draw", "on-key", "on-mouse", "seconds-per-tick", "stop-when", "title", "close-when-stop"]
-reactor-optional-fields = reactor-fields.rest
+reactor-optional-fields = [SD.string-dict:
+  "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-tick",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "to-draw",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-key",           {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-mouse",         {(l): A.a-name(l, A.s-type-global("Function"))},
+  "stop-when",        {(l): A.a-name(l, A.s-type-global("Function"))},
+  "seconds-per-tick", {(l): A.a-name(l, A.s-type-global("NumPositive"))},
+  "title",            {(l): A.a-name(l, A.s-type-global("String"))},
+  "close-when-stop",  {(l): A.a-name(l, A.s-type-global("Boolean"))}
+]
+
+reactor-fields = reactor-optional-fields.set("init", {(l): A.a-any(l)})

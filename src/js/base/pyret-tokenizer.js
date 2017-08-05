@@ -121,9 +121,11 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
 
   const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
-  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?"  + unsigned_decimal_part, STICKY_REGEXP);
 
   const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
+
+  const roughrational = new RegExp("^~[-+]?" + unsigned_rational_part, STICKY_REGEXP);
 
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
@@ -295,6 +297,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BAR", val: bar, parenIsForExp: true},
 
     {name: "RATIONAL", val: rational},
+    {name: "ROUGHRATIONAL", val: roughrational},
     {name: "NUMBER", val: number},
     {name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},

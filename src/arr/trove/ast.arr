@@ -933,9 +933,12 @@ data Expr:
   | s-num(l :: Loc, n :: Number) with:
     method label(self): "s-num" end,
     method tosource(self): PP.number(self.n) end
-  | s-frac(l :: Loc, num :: Number, den :: Number) with:
+  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
     method label(self): "s-frac" end,
     method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
+    method label(self): "s-rfrac" end,
+    method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
     method label(self): "s-bool" end,
     method tosource(self): PP.str(tostring(self.b)) end
@@ -1113,12 +1116,12 @@ data Expr:
     end
   | s-table-order(l :: Loc,
       table   :: Expr,
-      ordering :: ColumnSort) with:
+      ordering :: List<ColumnSort>) with:
     method label(self): "s-table-order" end,
     method tosource(self):
       PP.surround(INDENT, 1,
         PP.flow([list: str-order, self.table.tosource() + str-colon]),
-        self.ordering.tosource(),
+        PP.flow-map(PP.commabreak, _.tosource(), self.ordering),
         str-end)
     end
   | s-table-filter(l :: Loc,
@@ -1224,7 +1227,7 @@ data Bind:
         end
       end
     end,
-    method label(self): "s_bind" end
+    method label(self): "s-bind" end
   | s-tuple-bind(l :: Loc, fields :: List<Bind>, as-name :: Option<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
@@ -1980,6 +1983,10 @@ default-map-visitor = {
     s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    s-check-expr(l, expr.visit(self), ann.visit(self))
+  end,
+
   method s-paren(self, l :: Loc, expr :: Expr):
     s-paren(l, expr.visit(self))
   end,
@@ -2080,8 +2087,11 @@ default-map-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     s-num(l, n)
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(l, num, den)
+  end,
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+    s-rfrac(l, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
@@ -2234,8 +2244,8 @@ default-map-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(l, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(l, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(l, column.visit(self), table.visit(self))
@@ -2437,7 +2447,7 @@ default-iter-visitor = {
   end,
 
   method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
-    lists.app(_.visit(self), params)
+    lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
@@ -2523,6 +2533,10 @@ default-iter-visitor = {
 
   method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
     self.option(refinement) and left.visit(self) and self.option(right)
+  end,
+
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    expr.visit(self) and ann.visit(self)
   end,
 
   method s-paren(self, l :: Loc, expr :: Expr):
@@ -2623,7 +2637,10 @@ default-iter-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     true
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+    true
+  end,
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     true
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -2760,8 +2777,8 @@ default-iter-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    table.visit(self)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    table.visit(self) and ordering.all(_.visit(self))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     column.visit(self) and table.visit(self)
@@ -3146,8 +3163,11 @@ dummy-loc-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     s-num(dummy-loc, n)
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(dummy-loc, num, den)
+  end,
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+    s-rfrac(dummy-loc, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)
@@ -3300,8 +3320,8 @@ dummy-loc-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(dummy-loc, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(dummy-loc, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(dummy-loc, column.visit(self), table.visit(self))
@@ -3348,3 +3368,969 @@ dummy-loc-visitor = {
     a-field(dummy-loc, name.visit(self), ann.visit(self))
   end
 }
+
+fun search-for-loc(needle :: Loc, haystack :: Any) -> Option<Any> block:
+  doc: ```Consumes a visitable and a loc and recursively walks the
+          visitable until the a term with a matching location is found.```
+
+  var found = nothing
+
+  haystack.visit({
+    method recur(self, l, construct, contains):
+      ask block:
+        | l == needle then:
+          found := construct()
+          false
+        | l.contains(needle) then:
+          contains()
+        | otherwise: true
+      end
+    end,
+
+
+    method option(self, opt):
+      cases(Option) opt:
+        | none => true
+        | some(v) => v.visit(self)
+      end
+    end,
+
+    method s-underscore(self, l):
+      self.recur(l,
+        {(): s-underscore(l)},
+        {(): true})
+    end,
+
+    method s-name(self, l, s):
+      self.recur(l,
+        {(): s-name(l,s)},
+        {(): true})
+    end,
+
+    method s-global(self, s):
+      true
+    end,
+
+    method s-type-global(self, s):
+      true
+    end,
+
+    method s-atom(self, base, serial):
+      true
+    end,
+
+    method s-defined-value(self, name, val):
+      val.visit(self)
+    end,
+
+    method s-defined-var(self, name, id):
+      id.visit(self)
+    end,
+
+    method s-defined-type(self, name, typ):
+      typ.visit(self)
+    end,
+
+    method s-module(self, l, answer, dv, dt, provides, types, checks):
+      answer.visit(self)
+        and lists.all(_.visit(self), dv)
+        and lists.all(_.visit(self), dt)
+        and provides.visit(self)
+        and lists.all(_.visit(self), types)
+        and checks.visit(self)
+    end,
+
+    method s-program(self, l, _provide, provided-types, imports, body):
+      _provide.visit(self)
+        and provided-types.visit(self)
+        and lists.all(_.visit(self), imports)
+        and body.visit(self)
+    end,
+
+    method s-import(self, l, import-type, name):
+      self.recur(l,
+        {(): s-import(l, import-type, name)},
+        {(): import-type.visit(self)
+         and name.visit(self)})
+    end,
+
+    method s-import-complete(self, l, values, types, mod, vals-name, types-name):
+      self.recur(l,
+        {(): s-import-complete(l, values, types, mod, vals-name, types-name)},
+        {(): lists.all(_.visit(self), values)
+         and lists.all(_.visit(self), types)
+         and mod.visit(self)
+         and vals-name.visit(self)
+         and types-name.visit(self)})
+    end,
+
+    method s-include(self, l, import-type):
+      self.recur(l,
+        {(): s-include(l, import-type)},
+        {(): import-type.visit(self)})
+    end,
+
+    method s-const-import(self, l, mod):
+      self.recur(l,
+        {(): s-const-import(l, mod)},
+        {(): true})
+    end,
+
+    method s-special-import(self, l, kind, args):
+      self.recur(l,
+        {(): s-special-import(l, kind, args)},
+        {(): true})
+    end,
+
+    method s-import-types(self, l, import-type, name, types):
+      self.recur(l,
+        {(): s-import-types(l, import-type, name, types)},
+        {(): types.visit(self)})
+    end,
+
+    method s-import-fields(self, l, fields, import-type):
+      self.recur(l,
+        {(): s-import-fields(l, fields, import-type)},
+        {(): lists.all(_.visit(self), fields)})
+    end,
+
+    method s-provide-complete(self, l, vals, typs, datas):
+      self.recur(l,
+        {(): s-provide-complete(l, vals, typs, datas)},
+        {(): true})
+    end,
+
+    method s-provide(self, l, expr):
+      self.recur(l,
+        {(): s-provide(l, expr)},
+        {(): expr.visit(self)})
+    end,
+
+    method s-provide-all(self, l):
+      ask block:
+        | l == needle then:
+          found := s-provide-all(l)
+          false
+        | otherwise: true
+      end
+    end,
+
+    method s-provide-none(self, l):
+      self.recur(l,
+        {(): s-provide-none(l)},
+        {(): true})
+    end,
+
+    method s-provide-types(self, l, anns):
+      self.recur(l,
+        {(): s-provide-types(l, anns)},
+        {(): lists.all(_.visit(self), anns)})
+    end,
+
+    method s-provide-types-all(self, l):
+      self.recur(l,
+        {(): s-provide-types-all(l)},
+        {(): true})
+    end,
+
+    method s-provide-types-none(self, l):
+      ask block:
+        | l == needle then:
+          found := s-provide-types-none(l)
+          false
+        | otherwise: true
+      end
+    end,
+
+    method s-template(self, l):
+      self.recur(l,
+        {(): s-template(l)},
+        {(): true})
+    end,
+
+    method s-bind(self, l, shadows, name, ann):
+      self.recur(l,
+        {(): s-bind(l, shadows, name, ann)},
+        {(): ann.visit(self)})
+    end,
+
+    method s-tuple-bind(self, l, fields, as-name):
+      self.recur(l,
+        {(): s-tuple-bind(l, fields, as-name)},
+        {(): lists.all(_.visit(self), fields)
+         and self.option(as-name)})
+    end,
+
+    method s-var-bind(self, l, bind, expr):
+      self.recur(l,
+        {(): s-var-bind(l, bind, expr)},
+        {(): bind.visit(self)
+        and expr.visit(self)})
+    end,
+
+    method s-let-bind(self, l, bind, expr):
+      self.recur(l,
+        {(): s-let-bind(l, bind, expr)},
+        {(): bind.visit(self)
+         and expr.visit(self)})
+    end,
+
+    method s-type-bind(self, l, name, params, ann):
+      self.recur(l,
+        {(): s-type-bind(l, name, params, ann)},
+        {(): name.visit(self)
+         and ann.visit(self)
+         and lists.all(_.visit(self), params)})
+    end,
+
+    method s-newtype-bind(self, l, name, namet):
+      self.recur(l,
+        {(): s-newtype-bind(l, name, namet)},
+        {(): name.visit(self)
+         and namet.visit(self)})
+    end,
+
+    method s-type-let-expr(self, l, binds, body, blocky):
+      self.recur(l,
+        {(): s-type-let-expr(l, binds, body, blocky)},
+        {(): lists.all(_.visit(self), binds)
+         and body.visit(self)})
+    end,
+
+    method s-let-expr(self, l, binds, body, blocky):
+      self.recur(l,
+        {(): s-let-expr(l, binds, body, blocky)},
+        {(): lists.all(_.visit(self), binds)
+         and body.visit(self)})
+    end,
+
+    method s-letrec-bind(self, l, bind, expr):
+      self.recur(l,
+        {(): s-letrec-bind(l, bind, expr)},
+        {(): bind.visit(self)
+         and expr.visit(self)})
+    end,
+
+    method s-letrec(self, l, binds, body, blocky):
+      self.recur(l,
+        {(): s-letrec(l, binds, body, blocky)},
+        {(): lists.all(_.visit(self), binds)
+         and body.visit(self)})
+    end,
+
+    method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
+      self.recur(l,
+        {(): s-hint-exp(l, hints, exp)},
+        {(): exp.visit(self)})
+    end,
+
+    method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
+      self.recur(l,
+        {(): s-instantiate(l, expr, params)},
+        {(): expr.visit(self)
+         and lists.all(_.visit(self), params)})
+    end,
+
+    method s-block(self, l, stmts) block:
+      lists.all(_.visit(self), stmts)
+    end,
+
+    method s-user-block(self, l :: Loc, body :: Expr):
+      self.recur(l,
+        {(): s-user-block(l, body)},
+        {(): body.visit(self)})
+    end,
+
+    method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+      self.recur(l,
+        {(): s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)},
+        {(): lists.all(_.visit(self), params)
+         and lists.all(_.visit(self), args)
+         and ann.visit(self)
+         and body.visit(self)
+         and self.option(_check)})
+    end,
+
+    method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+      self.recur(l,
+        {(): s-type(l, name, params, ann)},
+        {(): name.visit(self)
+         and ann.visit(self)
+         and lists.all(_.visit(self), params)})
+    end,
+
+    method s-newtype(self, l :: Loc, name :: Name, namet :: Name):
+      self.recur(l,
+        {(): s-newtype(l, name, namet)},
+        {(): name.visit(self)
+         and namet.visit(self)})
+    end,
+
+    method s-var(self, l :: Loc, name :: Bind, value :: Expr):
+      self.recur(l,
+        {(): s-var(l, name, value)},
+        {(): name.visit(self)
+         and value.visit(self)})
+    end,
+
+    method s-rec(self, l :: Loc, name :: Bind, value :: Expr):
+      self.recur(l,
+        {(): s-rec(l, name, value)},
+        {(): name.visit(self)
+         and value.visit(self)})
+    end,
+
+    method s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
+      self.recur(l,
+        {(): s-let(l, name, value, keyword-val)},
+        {(): name.visit(self)
+         and value.visit(self)})
+    end,
+
+    method s-ref(self, l :: Loc, ann :: Option<Ann>):
+      self.recur(l,
+        {(): s-ref(l, ann)},
+        {(): self.option(ann)})
+    end,
+
+    method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):
+      self.recur(l,
+        {(): s-when(l, test, block, blocky)},
+        {(): test.visit(self)
+         and block.visit(self)})
+    end,
+
+    method s-contract(self, l :: Loc, name :: Name, ann :: Ann):
+      self.recur(l,
+        {(): s-contract(l, name, ann)},
+        {(): name.visit(self)
+         and ann.visit(self)})
+    end,
+
+    method s-assign(self, l :: Loc, id :: Name, value :: Expr):
+      self.recur(l,
+        {(): s-assign(l, id, value)},
+        {(): id.visit(self)
+         and value.visit(self)})
+    end,
+
+    method s-if-branch(self, l :: Loc, test :: Expr, body :: Expr):
+      self.recur(l,
+        {(): s-if(l, test, body)},
+        {(): test.visit(self)
+         and body.visit(self)})
+    end,
+
+    method s-if-pipe-branch(self, l :: Loc, test :: Expr, body :: Expr):
+      self.recur(l,
+        {(): s-if-pipe-branch(l, test, body)},
+        {(): test.visit(self)
+         and body.visit(self)})
+    end,
+
+    method s-if(self, l :: Loc, branches :: List<IfBranch>, blocky :: Boolean):
+      self.recur(l,
+        {(): s-if(l, branches, blocky)},
+        {(): lists.all(_.visit(self), branches)})
+    end,
+
+    method s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr, blocky :: Boolean):
+      self.recur(l,
+        {(): s-if-else(l, branches, _else, blocky)},
+        {(): lists.all(_.visit(self), branches)
+         and _else.visit(self)})
+    end,
+
+    method s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>, blocky :: Boolean):
+      self.recur(l,
+        {(): s-if-pipe(l, branches, blocky)},
+        {(): lists.all(_.visit(self), branches)})
+    end,
+
+    method s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr, blocky :: Boolean):
+      self.recur(l,
+        {(): s-if-pipe-else(l, branches, _else, blocky)},
+        {(): lists.all(_.visit(self), branches)
+         and _else.visit(self)})
+    end,
+
+    method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
+      self.recur(l,
+        {(): s-cases-bind(l, typ, bind)},
+        {(): bind.visit(self)})
+    end,
+
+    method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
+      self.recur(l,
+        {(): s-cases-branch(l, pat-loc, name, args, body)},
+        {(): lists.all(_.visit(self), args)
+         and body.visit(self)})
+    end,
+
+    method s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
+      self.recur(l,
+        {(): s-singleton-cases-branch(l, pat-loc, name, body)},
+        {(): body.visit(self)})
+    end,
+
+    method s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean):
+      self.recur(l,
+        {(): s-cases(l, typ, val, branches, blocky)},
+        {(): typ.visit(self)
+         and val.visit(self)
+         and lists.all(_.visit(self), branches)})
+    end,
+
+    method s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr, blocky :: Boolean):
+      self.recur(l,
+        {(): s-cases-else(l, typ, val, branches, _else, blocky)},
+        {(): typ.visit(self)
+         and val.visit(self)
+         and lists.all(_.visit(self), branches)
+         and _else.visit(self)})
+    end,
+
+    method s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
+      self.recur(l,
+        {(): s-op(l, op-l, op, left, right)},
+        {(): left.visit(self)
+         and right.visit(self)})
+    end,
+
+    method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
+      self.recur(l,
+        {(): s-check-test(l, op, refinement, left, right)},
+        {(): self.option(refinement)
+         and left.visit(self)
+         and self.option(right)})
+    end,
+
+    method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+      self.recur(l,
+        {(): s-check-expr(l, expr, ann)},
+        {(): expr.visit(self)
+         and ann.visit(self)})
+    end,
+
+    method s-paren(self, l :: Loc, expr :: Expr):
+      self.recur(l,
+        {(): s-paren(l, expr)},
+        {(): expr.visit(self)})
+    end,
+
+    method s-lam(
+        self,
+        l :: Loc,
+        name :: String,
+        params :: List<Name>,
+        args :: List<Bind>,
+        ann :: Ann,
+        doc :: String,
+        body :: Expr,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>,
+        blocky :: Boolean
+        ):
+      self.recur(l,
+        {(): s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)},
+        {(): lists.all(_.visit(self), params)
+         and lists.all(_.visit(self), args)
+         and ann.visit(self)
+         and body.visit(self)
+         and self.option(_check)})
+    end,
+
+    method s-method(
+        self,
+        l :: Loc,
+        name :: String,
+        params :: List<Name>,
+        args :: List<Bind>, # Value parameters
+        ann :: Ann, # return type
+        doc :: String,
+        body :: Expr,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>,
+        blocky :: Boolean
+        ):
+      self.recur(l,
+        {(): s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)},
+        {(): lists.all(_.visit(self), params)
+         and lists.all(_.visit(self), args)
+         and ann.visit(self)
+         and body.visit(self)
+         and self.option(_check)})
+    end,
+
+    method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+      self.recur(l,
+        {(): s-extend(l, supe, fields)},
+        {(): supe.visit(self)
+         and lists.all(_.visit(self), fields)})
+    end,
+
+    method s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
+      self.recur(l,
+        {(): s-update(l, supe, fields)},
+        {(): supe.visit(self)
+         and lists.all(_.visit(self), fields)})
+    end,
+
+    method s-tuple(self, l :: Loc, fields :: List<Expr>):
+      self.recur(l,
+        {(): s-tuple(l, fields)},
+        {(): lists.all(_.visit(self), fields)})
+    end,
+
+    method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
+      self.recur(l,
+        {(): s-tuple-get(l, tup, index, index-loc)},
+        {(): tup.visit(self)})
+    end,
+
+    method s-obj(self, l :: Loc, fields :: List<Member>):
+      self.recur(l,
+        {(): s-obj(l, fields)},
+        {(): lists.all(_.visit(self), fields)})
+    end,
+
+    method s-array(self, l :: Loc, values :: List<Expr>):
+      self.recur(l,
+        {(): s-array(l, values)},
+        {(): lists.all(_.visit(self), values)})
+    end,
+
+    method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
+      self.recur(l,
+        {(): s-construct(l, mod, constructor, values)},
+        {(): constructor.visit(self)
+         and lists.all(_.visit(self), values)})
+    end,
+
+    method s-reactor(self, l :: Loc, fields :: List<Member>):
+      self.recur(l,
+        {(): s-reactor(l, fields)},
+        {(): lists.all(_.visit(self), fields)})
+    end,
+
+    method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
+      self.recur(l,
+        {(): s-table(l, headers, rows)},
+        {(): lists.all(_.visit(self), headers)
+         and lists.all(_.visit(self), rows)})
+    end,
+
+    method s-table-row(self, l :: Loc, elems :: List<Expr>):
+      self.recur(l,
+        {(): s-table-row(l, elems)},
+        {(): lists.all(_.visit(self), elems)})
+    end,
+
+    method s-load-table(self, l :: Loc, headers :: List<FieldName>, spec :: List<LoadTableSpec>):
+      self.recur(l,
+        {(): s-load-table(l, headers, spec)},
+        {(): lists.all(_.visit(self), headers)
+         and lists.all(_.visit(self), spec)})
+    end,
+
+    method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
+      self.recur(l,
+        {(): s-field-name(l, name, ann)},
+        {(): true})
+    end,
+
+    method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>) block:
+      self.recur(l,
+        {(): s-app(l, _fun, args)},
+        {(): _fun.visit(self)
+         and lists.all(_.visit(self), args)})
+    end,
+
+    method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+      self.recur(l,
+        {(): s-prim-app(l, _fun, args)},
+        {(): lists.all(_.visit(self), args)})
+    end,
+
+    method s-prim-val(self, l :: Loc, name :: String):
+      self.recur(l,
+        {(): s-prim-val(l, name)},
+        {(): true})
+    end,
+
+    method s-id(self, l :: Loc, id :: Name):
+      self.recur(l,
+        {(): s-id(l, id)},
+        {(): id.visit(self)})
+    end,
+
+    method s-id-var(self, l :: Loc, id :: Name):
+      self.recur(l,
+        {(): s-id-var(l, id)},
+        {(): id.visit(self)})
+    end,
+
+    method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+      self.recur(l,
+        {(): s-id-letrec(l, id, safe)},
+        {(): id.visit(self)})
+    end,
+
+    method s-undefined(self, l :: Loc):
+      self.recur(l,
+        {(): s-undefined(l)},
+        {(): true})
+    end,
+
+    method s-srcloc(self, l, shadow loc):
+      self.recur(l,
+        {(): s-srcloc(l, loc)},
+        {(): true})
+    end,
+
+    method s-num(self, l :: Loc, n :: Number):
+      self.recur(l,
+        {(): s-num(l, n)},
+        {(): true})
+    end,
+
+    method s-frac(self, l :: Loc, num :: Number, den :: Number):
+      self.recur(l,
+        {(): s-frac(l, num, den)},
+        {(): true})
+    end,
+
+    method s-bool(self, l :: Loc, b :: Boolean):
+      self.recur(l,
+        {(): s-bool(l, b)},
+        {(): true})
+    end,
+
+    method s-str(self, l :: Loc, s :: String):
+      self.recur(l,
+        {(): s-str(l, s)},
+        {(): true})
+    end,
+
+    method s-dot(self, l :: Loc, obj :: Expr, field :: String):
+      self.recur(l,
+        {(): s-dot(l, obj, field)},
+        {(): obj.visit(self)})
+    end,
+
+    method s-get-bang(self, l :: Loc, obj :: Expr, field :: String):
+      self.recur(l,
+        {(): s-get-bang(l, obj, field)},
+        {(): obj.visit(self)})
+    end,
+
+    method s-bracket(self, l :: Loc, obj :: Expr, key :: Expr):
+      self.recur(l,
+        {(): s-bracket(l, obj, key)},
+        {(): obj.visit(self)
+         and key.visit(self)})
+    end,
+
+    method s-data(
+        self,
+        l :: Loc,
+        name :: String,
+        params :: List<Name>, # type params
+        mixins :: List<Expr>,
+        variants :: List<Variant>,
+        shared-members :: List<Member>,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>
+        ):
+      self.recur(l,
+        {(): s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check)},
+        {(): lists.all(_.visit(self), params)
+         and lists.all(_.visit(self), mixins)
+         and lists.all(_.visit(self), variants)
+         and lists.all(_.visit(self), shared-members)
+         and self.option(_check)})
+    end,
+
+    method s-data-expr(
+        self,
+        l :: Loc,
+        name :: String,
+        namet :: Name,
+        params :: List<Name>, # type params
+        mixins :: List<Expr>,
+        variants :: List<Variant>,
+        shared-members :: List<Member>,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>
+        ):
+      self.recur(l,
+        {(): s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check)},
+        {(): namet.visit(self)
+         and lists.all(_.visit(self), params)
+         and lists.all(_.visit(self), mixins)
+         and lists.all(_.visit(self), variants)
+         and lists.all(_.visit(self), shared-members)
+         and self.option(_check)})
+    end,
+
+    method s-for(
+        self,
+        l :: Loc,
+        iterator :: Expr,
+        bindings :: List<ForBind>,
+        ann :: Ann,
+        body :: Expr,
+        blocky :: Boolean
+        ):
+      self.recur(l,
+        {(): s-for(l, iterator, bindings, ann, body, blocky)},
+        {(): iterator.visit(self)
+         and lists.all(_.visit(self), bindings)
+         and ann.visit(self)
+         and body.visit(self)})
+    end,
+
+    method s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
+      self.recur(l,
+        {(): s-check(l, name, body, keyword-check)},
+        {(): body.visit(self)})
+    end,
+
+    method s-data-field(self, l :: Loc, name :: String, value :: Expr):
+      self.recur(l,
+        {(): s-data-field(l, name, value)},
+        {(): value.visit(self)})
+    end,
+
+    method s-mutable-field(self, l :: Loc, name :: String, ann :: Ann, value :: Expr):
+      self.recur(l,
+        {(): s-mutable-field(l, name, ann, value)},
+        {(): ann.visit(self)
+         and value.visit(self)})
+    end,
+
+    method s-method-field(
+        self,
+        l :: Loc,
+        name :: String,
+        params :: List<Name>,
+        args :: List<Bind>, # Value parameters
+        ann :: Ann, # return type
+        doc :: String,
+        body :: Expr,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>,
+        blocky :: Boolean
+        ):
+      self.recur(l,
+        {(): s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)},
+        {(): lists.all(_.visit(self), args)
+         and lists.all(_.visit(self), args)
+         and ann.visit(self)
+         and body.visit(self)
+         and self.option(_check)})
+    end,
+
+    method s-for-bind(self, l :: Loc, bind :: Bind, value :: Expr):
+      self.recur(l,
+        {(): s-for-bind(l, l, bind, value)},
+        {(): bind.visit(self)
+         and value.visit(self)})
+    end,
+
+    method s-column-binds(self, l :: Loc, binds :: List<Bind>, table :: Expr):
+      self.recur(l,
+        {(): s-column-binds(l, binds, table)},
+        {(): binds.all(_.visit(self))
+         and table.visit(self)})
+    end,
+
+    method s-variant-member(self, l :: Loc, member-type :: VariantMemberType, bind :: Bind):
+      self.recur(l,
+        {(): s-variant-member(l, member-type, bind)},
+        {(): bind.visit(self)})
+    end,
+
+    method s-variant(
+        self,
+        l :: Loc,
+        constr-loc :: Loc,
+        name :: String,
+        members :: List<VariantMember>,
+        with-members :: List<Member>
+        ):
+      self.recur(l,
+        {(): s-variant(l, constr-loc, name, members, with-members)},
+        {(): lists.all(_.visit(self), members)
+         and lists.all(_.visit(self), with-members)})
+    end,
+
+    method s-singleton-variant(
+        self,
+        l :: Loc,
+        name :: String,
+        with-members :: List<Member>
+        ):
+      self.recur(l,
+        {(): s-singleton-variant(l, name, with-members)},
+        {(): lists.all(_.visit(self), with-members)})
+    end,
+
+    method s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
+      self.recur(l,
+        {(): s-column-sort(l, column, direction)},
+        {(): column.visit(self) })
+    end,
+
+    method s-table-extend(self, l, column-binds :: ColumnBinds, extensions :: List<Member>):
+      self.recur(l,
+        {(): s-table-extend(l, column-binds, extensions)},
+        {(): column-binds.visit(self)
+         and extensions.all(_.visit(self))})
+    end,
+
+    method s-table-update(self, l, column-binds :: ColumnBinds, updates :: List<Member>):
+      self.recur(l,
+        {(): s-table-update(l, column-binds, updates)},
+        {(): column-binds.visit(self)
+         and updates.all(_.visit(self))})
+    end,
+
+    method s-table-filter(self, l, column-binds :: ColumnBinds, predicate :: Expr):
+      self.recur(l,
+        {(): s-table-filter(l, column-binds, predicate)},
+        {(): column-binds.visit(self)
+         and predicate.visit(self)})
+    end,
+
+    method s-table-select(self, l, columns :: List<Name>, table :: Expr):
+      self.recur(l,
+        {(): s-table-select(l, columns, table)},
+        {(): columns.all(_.visit(self))
+         and table.visit(self)})
+    end,
+
+    method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+      self.recur(l,
+        {(): s-table-order(l, table, ordering)},
+        {(): table.visit(self)
+         and ordering.all(_.visit(self))})
+    end,
+
+    method s-table-extract(self, l, column :: Name, table :: Expr):
+      self.recur(l,
+        {(): s-table-extract(l, column, table)},
+        {(): column.visit(self)
+         and table.visit(self)})
+    end,
+
+    method s-table-extend-field(self, l, name :: String, value :: Expr, ann :: Ann):
+      self.recur(l,
+        {(): s-table-extend-field(l, name, value, ann)},
+        {(): value.visit(self)
+         and ann.visit(self)})
+    end,
+
+    method s-table-extend-reducer(self, l, name :: String, reducer :: Expr, col :: Name, ann :: Ann):
+      self.recur(l,
+        {(): s-table-extend-reducer(l, name, reducer, col, ann)},
+        {(): reducer.visit(self)
+         and col.visit(self)
+         and ann.visit(self)})
+    end,
+
+    method s-sanitize(self, l, name, sanitizer):
+      self.recur(l,
+        {(): s-sanitize(l, name, sanitizer)},
+        {(): name.visit(self)
+         and sanitizer.visit(self)})
+    end,
+
+    method s-table-src(self, l, src):
+      self.recur(l,
+        {(): s-table-src(l, src)},
+        {(): src.visit(self)})
+    end,
+
+    method a-blank(self):
+      true
+    end,
+
+    method a-any(self, l):
+      self.recur(l,
+        {(): a-any(l)},
+        {(): true})
+    end,
+
+    method a-name(self, l, id):
+      self.recur(l,
+        {(): a-name(l, id)},
+        {(): true})
+    end,
+
+    method a-type-var(self, l, id):
+      self.recur(l,
+        {(): a-type-var(l, id)},
+        {(): true})
+    end,
+
+    method a-arrow(self, l, args, ret, use-parens):
+      self.recur(l,
+        {(): a-arrow(l, args, ret, use-parens)},
+        {(): lists.all(_.visit(self), args)
+         and ret.visit(self)})
+    end,
+
+    method a-method(self, l, args, ret):
+      self.recur(l,
+        {(): a-method(l, args, ret)},
+        {(): lists.all(_.visit(self), args)
+         and ret.visit(self)})
+    end,
+
+    method a-record(self, l, fields):
+      self.recur(l,
+        {(): a-record(l, fields)},
+        {(): lists.all(_.visit(self), fields)})
+    end,
+
+    method a-tuple(self, l, fields):
+      self.recur(l,
+        {(): a-tuple(l, fields)},
+        {(): lists.all(_.visit(self), fields)})
+    end,
+
+    method a-app(self, l, ann, args):
+      self.recur(l,
+        {(): a-app(l, ann, args)},
+        {(): ann.visit(self)
+         and lists.all(_.visit(self), args)})
+    end,
+
+    method a-pred(self, l, ann, exp):
+      self.recur(l,
+        {(): a-pred(l, ann, exp)},
+        {(): ann.visit(self)
+         and exp.visit(self)})
+    end,
+
+    method a-dot(self, l, obj, field):
+      self.recur(l,
+        {(): a-dot(l, obj, field)},
+        {(): obj.visit(self)})
+    end,
+
+    method a-field(self, l, name, ann):
+      self.recur(l,
+        {(): a-field(l, name, ann)},
+        {(): ann.visit(self)})
+    end
+  })
+
+  if is-nothing(found):
+    none
+  else:
+    some(found)
+  end
+
+end
