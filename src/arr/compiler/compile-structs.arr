@@ -2631,6 +2631,7 @@ standard-imports = extra-imports(
     ])
 
 reactor-optional-fields = [SD.string-dict:
+  "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-tick",          {(l): A.a-name(l, A.s-type-global("Function"))},
   "to-draw",          {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-key",           {(l): A.a-name(l, A.s-type-global("Function"))},

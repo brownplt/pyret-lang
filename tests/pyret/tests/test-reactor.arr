@@ -90,3 +90,10 @@ check "simulate-trace":
 
 
 end
+
+check "make sure last-image works":
+  reactor:
+    init: 5,
+    last-image: lam(x): nothing end
+  end
+end
