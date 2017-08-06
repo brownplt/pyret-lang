@@ -914,7 +914,7 @@ data RuntimeError:
             [ED.sequence:
               [ED.para:
                 ED.text("A " + self.opdesc + " ("),
-                ED.code(self.opname),
+                ED.code(ED.text(self.opname)),
                 ED.text(") expression errored.")],
               [ED.para:
                 ED.text("The left side was:")],
@@ -949,7 +949,7 @@ data RuntimeError:
           [ED.sequence:
             [ED.para:
               ED.text("A "),
-              ED.code(self.opname),
+              ED.code(ED.text(self.opname)),
               ED.text(" expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
@@ -1024,7 +1024,7 @@ data RuntimeError:
             [ED.sequence:
               [ED.para:
                 ED.text("A " + self.opdesc + " ("),
-                ED.code(self.opname),
+                ED.code(ED.text(self.opname)),
                 ED.text(") expression errored.")],
               [ED.para:
                 ED.text("The left side was:")],
@@ -1053,7 +1053,7 @@ data RuntimeError:
           [ED.sequence:
             [ED.para:
               ED.text("A "),
-              ED.code(self.opname),
+              ED.code(ED.text(self.opname)),
               ED.text(" expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
