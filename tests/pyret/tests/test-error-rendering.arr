@@ -71,7 +71,5 @@ check "table row length mismatch":
 
   message = L.render-error-message(ans.v).message
   message satisfies string-contains(_, "The row could not be constructed")
-  message satisfies string-contains(_, "\"cola\", \"colb\"")
-  message satisfies string-contains(_, "1, 2, 3")
 end
 
