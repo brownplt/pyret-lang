@@ -5396,6 +5396,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // but provided here because they show up in desugaring
       'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),
       'as-loader-option': makeFunction(function(type, arg1, arg2) { return thisRuntime.asLoaderOption(type, arg1, arg2); }),
+      'raw-make-row': makeFunction(function(arr) { // arr is a raw array of 2-tuples
+        thisRuntime.checkArray(arr);
+        return thisRuntime.makeRowFromArray(arr);
+      }),
 
 
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),

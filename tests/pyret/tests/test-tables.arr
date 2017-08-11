@@ -200,7 +200,7 @@ check "Table ordering":
 end
 
 
-raw-row = { make: lam(x): x end } # no-op for now as I work things out
+raw-row = TS.raw-row
 
 check "raw-row":
   r1 = [raw-row: {"a"; 3}, {"b"; 4}]
@@ -209,9 +209,9 @@ check "raw-row":
 
   [raw-row: {"a"; 3}, {"b"; 4}] is r1
 
-  [raw-row: {"a"; 3}, {"a"; 5}] raises "duplicate"
+  [raw-row: {"a"; 3}, {"a"; 5}] raises "Duplicate"
 
-  r1["f"] raises "no such column"
+  r1["f"] raises "No such column"
 end
 
 
@@ -243,7 +243,7 @@ check "generated constructors":
   r2 = t2.row(4, 5, "paris")
   r2["a"] is 4
   r2["b"] is 5
-  r2["c"] is "hamburg"
+  r2["c"] is "paris"
 
   # Original should be unchanged
   t.row(3, 4) is [raw-row: {"a"; 3}, {"b"; 4}]

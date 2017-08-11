@@ -13,6 +13,9 @@
 
     var VS = get(VSlib, "values");
     var EQ = get(EQlib, "values");
+
+    var eq  = function() { return ffi.equal; };
+    var neq = function(left, right) { return ffi.notEqual.app('', left, right); };
     
     var brandTable = runtime.namedBrander("table", ["table: table brander"]);
     var annTable   = runtime.makeBranderAnn(brandTable, "Table");
@@ -32,15 +35,63 @@
         }
       });
 
+    var rowEquals = runtime.makeMethod2(function(self, other, rec) {
+        runtime.checkRow(self);
+        runtime.checkRow(other);
+        var headers1 = self.$underlyingTable.headerIndex;
+        var headers2 = other.$underlyingTable.headerIndex;
+        var hk1 = Object.keys(headers1);
+        var hk2 = Object.keys(headers2);
+        var rowData1 = self.$rowData;
+        var rowData2 = other.$rowData;
+        if(rowData1.length !== rowData2.length) {
+          return neq(self, other);
+        }
+        if(hk1.length !== hk2.length) {
+          return neq(self, other);
+        }
+        for(var i = 0; i < hk1.length; i += 1) {
+          if(headers1[hk1[i]] !== headers2[hk1[i]]) {
+            return neq(self, other);
+          }
+        }
+        return runtime.raw_array_fold(runtime.makeFunction(function(ans, val1, j) {
+          if (ffi.isNotEqual(ans)) { return ans; }
+          return runtime.safeCall(function() {
+            return rec.app(val1, rowData2[j]);
+          }, function(eqAns) {
+            return get(EQ, "equal-and").app(ans, eqAns);
+          }, "equals:combine-cells");
+        }), eq(), rowData1, 0);
+      });
 
     function makeRow(underlyingTable, rowData) {
       var rowVal = runtime.makeObject({
-        "get-value": rowGetValue
+        "get-value": rowGetValue,
+        "_equals": rowEquals
       });
       rowVal = applyBrand(brandRow, rowVal);
       rowVal.$underlyingTable = underlyingTable;
       rowVal.$rowData = rowData;
       return rowVal;
+    }
+
+    function makeRowFromArray(rawArrayOfTuples) {
+      var headerIndex = [];
+      var rowData = [];
+
+      // TODO(joe): error checking here for bogus values, or elsewhere?
+      // May be good to keep this fast and do checks in Pyret-land
+      for(var i = 0; i < rawArrayOfTuples.length; i += 1) {
+        var colname = rawArrayOfTuples[i].vals[0];
+        if(headerIndex["column:" + colname] !== undefined) {
+          return runtime.ffi.throwMessageException("Duplicate column name in row: " + colname);
+        }
+        headerIndex["column:" + colname] = i;
+        rowData[i] = rawArrayOfTuples[i].vals[1];
+      }
+
+      return makeRow({ headerIndex: headerIndex }, rowData);
     }
 
     function applyBrand(brand, val) {
@@ -427,20 +478,18 @@
           // same number of rows?
           // columns have same names?
           // each row has the same elements
-          var eq  = function() { return ffi.equal; };
-          var neq = function() { return ffi.notEqual.app('', self, other); };
           if (!hasBrand(brandTable, other)) {
-            return neq();
+            return neq(self, other);
           }
           var otherHeaders = get(other, "_header-raw-array");
           var otherRows = get(other, "_rows-raw-array");
           if (headers.length !== otherHeaders.length
               || rows.length !== otherRows.length) {
-            return neq();
+            return neq(self, other);
           }
           for (var i = 0; i < headers.length; ++i) {
             if (headers[i] != otherHeaders[i]) {
-              return neq();
+              return neq(self, other);
             }
           }
           return runtime.raw_array_fold(runtime.makeFunction(function(ans, selfRow, i) {
@@ -479,6 +528,7 @@
         RowAnn : annRow,
         makeTable: makeTable,
         makeRow: makeRow,
+        makeRowFromArray: makeRowFromArray,
         openTable: openTable,
         isTable: isTable,
         isRow: isRow
