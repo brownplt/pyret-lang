@@ -310,7 +310,7 @@
 
       function makeRowFromValues(vals) {
         if(headers.length !== vals.length) {
-          throw runtime.ffi.throwRowLengthMismatch(headers, vals);
+          throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), vals);
         }
         return makeRow({ headerIndex: headerIndex }, vals);
       }
@@ -525,7 +525,7 @@
 
         'row': runtime.makeMethodN(function(self, ...args) {
           if(headers.length !== args.length) {
-            throw runtime.ffi.throwRowLengthMismatch(headers, args);
+            throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), args);
           }
           return makeRow({ headerIndex: headerIndex }, args);
         }),

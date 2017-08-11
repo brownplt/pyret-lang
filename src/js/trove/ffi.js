@@ -346,7 +346,7 @@
     }
 
     function throwRowLengthMismatch(colnames, providedVals) {
-      runtime.checkArray(colnames);
+      runtime.checkTable(colnames);
       runtime.checkArray(providedVals);
       raise(err("row-length-mismatch")(colnames, providedVals));
     }

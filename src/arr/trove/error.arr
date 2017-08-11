@@ -1979,17 +1979,21 @@ data RuntimeError:
         | some(l) =>
           [ED.error:
             ed-intro("row construction", l, -1, true),
-            [ED.para: ED.text("The row could not be constructed because the number of expected columns didn't match the number of provided values:")],
+            [ED.para: ED.text("The row could not be constructed because the number of expected columns didn't match the number of provided values.")],
+            [ED.para: ED.text("Expected columns:")],
             ED.embed(self.colnames),
-            ED.embed(self.provided-vals)]
+            [ED.para: ED.text("Provided values:")],
+            vert-list-values(raw-array-to-list(self.provided-vals))]
         | none => self.render-reason()
       end
     end,
     method render-reason(self):
       [ED.error:
-        [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values")],
+        [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values.")],
+        [ED.para: ED.text("Expected columns:")],
         ED.embed(self.colnames),
-        ED.embed(self.provided-vals)]
+        [ED.para: ED.text("Provided values:")],
+        vert-list-values(raw-array-to-list(self.provided-vals))]
     end
 
   | non-function-app(loc, non-fun-val) with:
