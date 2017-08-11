@@ -336,6 +336,23 @@
           }, "multi-order");
         }),
 
+        'add-column': runtime.makeMethod2(function(_, colname, eltList) {
+          ffi.checkArity(3, arguments, "add-column", true);
+          runtime.checkString(colname);
+          runtime.checkList(eltList);
+          var asArray = runtime.ffi.toArray(eltList);
+          if(rows.length !== asArray.length) {
+            throw runtime.ffi.throwMessageException("column-length-mismatch");
+          }
+
+          var newRows = [];
+          for(var i = 0; i < rows.length; i += 1) {
+            newRows.push(rows[i].concat([asArray[i]]));
+          }
+          
+          return makeTable(headers.concat([colname]), newRows);
+        }),
+
         'stack': runtime.makeMethod1(function(_, otherTable) {
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");
           if(otherHeaders.length !== headers.length) {
@@ -401,7 +418,7 @@
         }),
 
 
-        'add-column': runtime.makeMethod1(function(_, colname, func) {
+        'build-column': runtime.makeMethod1(function(_, colname, func) {
           var wrappedFunc = function(rawRow) {
             return runtime.safeCall(function() {
               return func.app(getRowContentAsGetter(headers, rawRow));

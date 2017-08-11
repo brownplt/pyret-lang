@@ -235,7 +235,7 @@ check "generated constructors":
   t.row(1) raises-satisfies E.is-row-length-mismatch
 
 
-  t2 = t.add-column("c", {(r): "tokyo"})
+  t2 = t.build-column("c", {(r): "tokyo"})
 
   t2.row(1, 2) raises-satisfies E.is-row-length-mismatch
   t2.row(1, 2, "hamburg") is [raw-row: {"a"; 1}, {"b"; 2}, {"c"; "hamburg"}]
@@ -272,5 +272,21 @@ check "generated collection constructor":
   [t.new-row: 1] raises-satisfies E.is-row-length-mismatch
 end
 
+check "add-column":
+  t = table: a, b, c
+    row: 1, 2, "hamburg" 
+    row: 4, 5, 6
+  end
 
+  t2 = t.add-column("d", [list: "red", "blue"])
+  answer = table: a, b, c, d
+    row: 1, 2, "hamburg", "red"
+    row: 4, 5, 6, "blue"
+  end
+  t2 is answer
+
+  t.add-column("d", [list:]) raises "column-length-mismatch"
+  t.add-column("d", [list: 5, 6, 7, 8]) raises "column-length-mismatch"
+  t.add-column("d") raises-satisfies E.is-arity-mismatch
+end
 
