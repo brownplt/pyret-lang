@@ -17,6 +17,32 @@
     var brandTable = runtime.namedBrander("table", ["table: table brander"]);
     var annTable   = runtime.makeBranderAnn(brandTable, "Table");
 
+    var brandRow = runtime.namedBrander("row", ["table: row brander"]);
+    var annRow   = runtime.makeBranderAnn(brandRow, "Row");
+
+    var rowGetValue = runtime.makeMethod1(function(self, arg) {
+        ffi.checkArity(2, arguments, "get-value", false);
+        runtime.checkString(arg);
+        var index = self.$underlyingTable.headerIndex["column:" + arg];
+        if(typeof index === "number") {
+          return self.$rowData[index];
+        }
+        else {
+          return ffi.throwMessageException("No such column: " + arg);
+        }
+      });
+
+
+    function makeRow(underlyingTable, rowData) {
+      var rowVal = runtime.makeObject({
+        "get-value": rowGetValue
+      });
+      rowVal = applyBrand(brandRow, rowVal);
+      rowVal.$underlyingTable = underlyingTable;
+      rowVal.$rowData = rowData;
+      return rowVal;
+    }
+
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
     }
@@ -27,6 +53,10 @@
     
     function isTable(val) {
       return hasBrand(brandTable,  val);
+    }
+
+    function isRow(val) {
+      return hasBrand(brandRow,  val);
     }
 
     function openTable(info) {
@@ -313,7 +343,7 @@
         }),
 
 
-        'add': runtime.makeMethod1(function(_, colname, func) {
+        'add-column': runtime.makeMethod1(function(_, colname, func) {
           var wrappedFunc = function(rawRow) {
             return runtime.safeCall(function() {
               return func.app(getRowContentAsGetter(headers, rawRow));
@@ -435,15 +465,24 @@
             headers.map(function(hdr){return vsString(hdr);}),
             rows.map(function(row){return row.map(
               function(elm){return vsValue(elm);});}));
+        }),
+
+        'row': runtime.makeMethodN(function(self, ...args) {
+          runtime.checkArity(headers.length, args, "row", true);
+          return makeRow({ headerIndex: headerIndex }, args);
         })
       }));
     }
     
     return runtime.makeJSModuleReturn({
-      TableAnn : annTable,
-      makeTable: makeTable,
-      openTable: openTable,
-      isTable: isTable },
+        TableAnn : annTable,
+        RowAnn : annRow,
+        makeTable: makeTable,
+        makeRow: makeRow,
+        openTable: openTable,
+        isTable: isTable,
+        isRow: isRow
+      },
       {});
   }
 })

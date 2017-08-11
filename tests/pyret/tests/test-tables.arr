@@ -1,6 +1,7 @@
 import data-source as DS
 import tables as TS
 import valueskeleton as VS
+import error as E
 
 
 tbl = table: name, age
@@ -197,3 +198,62 @@ check "Table ordering":
   order t: z ascending, y descending, x descending end is sort-t
 
 end
+
+
+raw-row = { make: lam(x): x end } # no-op for now as I work things out
+
+check "raw-row":
+  r1 = [raw-row: {"a"; 3}, {"b"; 4}]
+  r1["a"] is 3
+  r1["b"] is 4
+
+  [raw-row: {"a"; 3}, {"b"; 4}] is r1
+
+  [raw-row: {"a"; 3}, {"a"; 5}] raises "duplicate"
+
+  r1["f"] raises "no such column"
+end
+
+
+check "generated constructors":
+  t = table: a, b
+    row: 1, 2
+  end
+
+  t.row(3, 4) is [raw-row: {"a"; 3}, {"b"; 4}]
+  t.row(~3, ~4) is-roughly [raw-row: {"a"; ~3}, {"b"; ~4}]
+
+  r1 = t.row(3, 4)
+  r1["a"] is 3
+  r1["b"] is 4
+
+  r1["f"] raises "No such column"
+
+  t.row(3, 4) is t.row(3, 4)
+
+  t.row(1, 2, 3) raises-satisfies E.is-arity-mismatch
+  t.row(1) raises-satisfies E.is-arity-mismatch
+
+
+  t2 = t.add-column("c", {(r): "tokyo"})
+
+  t2.row(1, 2) raises-satisfies E.is-arity-mismatch
+  t2.row(1, 2, "hamburg") is [raw-row: {"a"; 1}, {"b"; 2}, {"c"; "hamburg"}]
+
+  r2 = t2.row(4, 5, "paris")
+  r2["a"] is 4
+  r2["b"] is 5
+  r2["c"] is "hamburg"
+
+  # Original should be unchanged
+  t.row(3, 4) is [raw-row: {"a"; 3}, {"b"; 4}]
+  t.row(~3, ~4) is-roughly [raw-row: {"a"; ~3}, {"b"; ~4}]
+
+  r1a = t.row(3, 4)
+  r1a["a"] is 3
+  r1a["b"] is 4
+
+end
+
+
+
