@@ -519,8 +519,24 @@
         'row': runtime.makeMethodN(function(self, ...args) {
           runtime.checkArity(headers.length, args, "row", true);
           return makeRow({ headerIndex: headerIndex }, args);
+        }),
+
+        'new-row': runtime.makeObject({
+          make: runtime.makeFunction(function(ar) { return makeRowFromValues(ar); }),
+          make0: runtime.makeFunction(function( ) { return makeRowFromValues([]); }),
+          make1: runtime.makeFunction(function(v) { return makeRowFromValues([v]); }),
+          make2: runtime.makeFunction(function(v1, v2) { return makeRowFromValues([v1, v2]); }),
+          make3: runtime.makeFunction(function(v1, v2, v3) { return makeRowFromValues([v1, v2, v3]); }),
+          make4: runtime.makeFunction(function(v1, v2, v3, v4) { return makeRowFromValues([v1, v2, v3, v4]); }),
+          make5: runtime.makeFunction(function(v1, v2, v3, v4, v5) { return makeRowFromValues([v1, v2, v3, v4, v5]); })
         })
       }));
+      function makeRowFromValues(vals) {
+        if(headers.length !== vals.length) {
+          throw runtime.ffi.throwMessageException("Invalid row length, this table requires " + headers.length + " columns");
+        }
+        return makeRow({ headerIndex: headerIndex }, vals);
+      }
     }
     
     return runtime.makeJSModuleReturn({

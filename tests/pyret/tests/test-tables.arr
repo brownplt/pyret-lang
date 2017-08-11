@@ -255,5 +255,19 @@ check "generated constructors":
 
 end
 
+check "generated collection constructor":
+  t = table: a, b
+    row: 1, 2
+  end
+
+  [t.new-row: 3, 4] is [raw-row: {"a"; 3}, {"b"; 4}]
+  [t.new-row: ~3, ~4] is-roughly [raw-row: {"a"; ~3}, {"b"; ~4}]
+
+  r1 = [t.new-row: 3, 4]
+  r1["a"] is 3
+  r1["b"] is 4
 
 
+  [t.new-row: 1, 2, 3] raises "Invalid row length"
+  [t.new-row: 1] raises "Invalid row length"
+end
