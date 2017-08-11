@@ -308,6 +308,13 @@
 
       }
 
+      function makeRowFromValues(vals) {
+        if(headers.length !== vals.length) {
+          throw runtime.ffi.throwRowLengthMismatch(headers, vals);
+        }
+        return makeRow({ headerIndex: headerIndex }, vals);
+      }
+
       return applyBrand(brandTable, runtime.makeObject({
 
         '_header-raw-array': headers,
@@ -517,7 +524,9 @@
         }),
 
         'row': runtime.makeMethodN(function(self, ...args) {
-          runtime.checkArity(headers.length, args, "row", true);
+          if(headers.length !== args.length) {
+            throw runtime.ffi.throwRowLengthMismatch(headers, args);
+          }
           return makeRow({ headerIndex: headerIndex }, args);
         }),
 
@@ -531,12 +540,6 @@
           make5: runtime.makeFunction(function(v1, v2, v3, v4, v5) { return makeRowFromValues([v1, v2, v3, v4, v5]); })
         })
       }));
-      function makeRowFromValues(vals) {
-        if(headers.length !== vals.length) {
-          throw runtime.ffi.throwMessageException("Invalid row length, this table requires " + headers.length + " columns");
-        }
-        return makeRow({ headerIndex: headerIndex }, vals);
-      }
     }
     
     return runtime.makeJSModuleReturn({

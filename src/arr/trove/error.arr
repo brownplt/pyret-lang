@@ -1715,6 +1715,7 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
+
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args, is-method) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
@@ -1971,6 +1972,26 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
+
+  | row-length-mismatch(colnames, provided-vals) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      cases(O.Option) maybe-stack-loc(0, true):
+        | some(l) =>
+          [ED.error:
+            ed-intro("row construction", l, -1, true),
+            [ED.para: ED.text("The row could not be constructed because the number of expected columns didn't match the number of provided values:")],
+            ED.embed(self.colnames),
+            ED.embed(self.provided-vals)]
+        | none => self.render-reason()
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values")],
+        ED.embed(self.colnames),
+        ED.embed(self.provided-vals)]
+    end
+
   | non-function-app(loc, non-fun-val) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():

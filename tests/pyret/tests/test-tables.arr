@@ -231,13 +231,13 @@ check "generated constructors":
 
   t.row(3, 4) is t.row(3, 4)
 
-  t.row(1, 2, 3) raises-satisfies E.is-arity-mismatch
-  t.row(1) raises-satisfies E.is-arity-mismatch
+  t.row(1, 2, 3) raises-satisfies E.is-row-length-mismatch
+  t.row(1) raises-satisfies E.is-row-length-mismatch
 
 
   t2 = t.add-column("c", {(r): "tokyo"})
 
-  t2.row(1, 2) raises-satisfies E.is-arity-mismatch
+  t2.row(1, 2) raises-satisfies E.is-row-length-mismatch
   t2.row(1, 2, "hamburg") is [raw-row: {"a"; 1}, {"b"; 2}, {"c"; "hamburg"}]
 
   r2 = t2.row(4, 5, "paris")
@@ -268,6 +268,9 @@ check "generated collection constructor":
   r1["b"] is 4
 
 
-  [t.new-row: 1, 2, 3] raises "Invalid row length"
-  [t.new-row: 1] raises "Invalid row length"
+  [t.new-row: 1, 2, 3] raises-satisfies E.is-row-length-mismatch
+  [t.new-row: 1] raises-satisfies E.is-row-length-mismatch
 end
+
+
+

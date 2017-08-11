@@ -61,3 +61,17 @@ f()
   message satisfies string-contains(_, ":2:2-2:9")
 
 end
+
+
+check "table row length mismatch":
+  ans = C.run-to-result(```
+    t = table: cola, colb end  
+    [t.new-row: 1, 2, 3]
+  ```)
+
+  message = L.render-error-message(ans.v).message
+  message satisfies string-contains(_, "The row could not be constructed")
+  message satisfies string-contains(_, "\"cola\", \"colb\"")
+  message satisfies string-contains(_, "1, 2, 3")
+end
+
