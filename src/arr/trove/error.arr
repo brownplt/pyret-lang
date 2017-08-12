@@ -15,6 +15,9 @@ end
 fun vert-list-values(vals):
   ED.v-sequence(vals.map(lam(val): [ED.para: ED.embed(val)] end))
 end
+fun horz-list-values(vals):
+  [ED.para: ED.h-sequence(vals.map(lam(val): ED.embed(val) end), ",") ]
+end
 
 fun ed-simple-intro(name, loc):
   if loc.is-builtin():
@@ -1983,7 +1986,7 @@ data RuntimeError:
             [ED.para: ED.text("Expected columns:")],
             ED.embed(self.colnames),
             [ED.para: ED.text("Provided values:")],
-            vert-list-values(raw-array-to-list(self.provided-vals))]
+            horz-list-values(raw-array-to-list(self.provided-vals))]
         | none => self.render-reason()
       end
     end,
