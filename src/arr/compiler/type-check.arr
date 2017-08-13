@@ -2090,6 +2090,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l, false)), context)
+    | a-arrow-argnames(l, args, ret, use-parens) =>
+      to-type(A.a-arrow(l, args.map(_.ann), ret, use-parens), context)
     | a-arrow(l, args, ret, _) =>
       fold-arg-typs = map-fold-result(lam(arg, shadow context):
         to-type(arg, context).bind(lam(maybe-new-typ, shadow context):

@@ -418,6 +418,10 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
+  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann) block:
+    add-error(C.non-toplevel("contract declaration", l, parent-block-loc))
+    true
+  end,
   method s-letrec-bind(self, l, bind, expr) block:
     old-pbl = parent-block-loc
     parent-block-loc := l
@@ -1063,7 +1067,8 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
   method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
-    well-formed-visitor.s-contract(l, name, ann)
+    # TODO
+    true
   end,
   method s-assign(_, l :: Loc, id :: A.Name, value :: A.Expr):
     well-formed-visitor.s-assign(l, id, value)
@@ -1196,6 +1201,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
+  end,
+  method a-arrow-argnames(_, l, args, ret, use-parens):
+    well-formed-visitor.a-arrow-argnames(l, args, ret, use-parens)
   end,
   method a-method(_, l, args, ret):
     well-formed-visitor.a-method(l, args, ret)
