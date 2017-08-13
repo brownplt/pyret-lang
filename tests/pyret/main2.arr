@@ -10,8 +10,7 @@ import file("./tests/test-letrec.arr") as _
 import file("./tests/test-output.arr") as _
 import file("./tests/test-array.arr") as _
 import file("./tests/test-constructors.arr") as _
-# NOTE(joe): contracts relies on exec/eval
-#import file("./tests/test-contracts.arr") as _
+import file("./tests/test-contracts.arr") as _
 import file("./tests/test-s-exp.arr") as _
 import file("./tests/test-json.arr") as _
 import file("./tests/test-refs.arr") as _
