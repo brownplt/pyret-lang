@@ -415,6 +415,10 @@
           return runtime.ffi.makeList(results);
         }),
 
+        'column-names': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "column-names", true);
+          return runtime.ffi.makeList(headers);
+        }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");

@@ -374,3 +374,15 @@ check "column-n":
   t.column(-1) raises-satisfies E.is-generic-type-mismatch
   t.column(1.2) raises-satisfies E.is-generic-type-mismatch
 end
+
+check "column-names":
+  t = table: a, b end
+  t.column-names() is [list: "a", "b"]
+  t.column-names(5) raises-satisfies E.is-arity-mismatch
+
+  t2 = table: a end
+  t2.column-names() is [list: "a"]
+
+  t3 = table: a end.add-column("a nother column", [list:])
+  t3.column-names() is [list: "a", "a nother column"]
+end
