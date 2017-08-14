@@ -388,6 +388,16 @@
           return makeRow({ headerIndex: headerIndex }, rows[rowFix]);
         }),
 
+        'all-rows': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "all-rows", true);
+          return runtime.ffi.makeList(
+            rows.map(function(r) {
+              return makeRow({ headerIndex: headerIndex }, r);
+            })
+          );
+        }),
+
+
         'column': runtime.makeMethod1(function(_, colname) {
           ffi.checkArity(2, arguments, "column", true);
           runtime.checkString(colname);

@@ -386,3 +386,25 @@ check "column-names":
   t3 = table: a end.add-column("a nother column", [list:])
   t3.column-names() is [list: "a", "a nother column"]
 end
+
+check "all-rows":
+  t = table: a, b end
+  t.all-rows() is empty
+
+  t2 = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+  end
+  t2.all-rows() is [list:
+    t2.row(1, 2, 3),
+    t2.row(4, 5, 6)
+  ]
+
+  t3 = table: num1, num2, num3
+    row: 1, 2, 3
+  end
+  t3.add-row(t3.row(7, 8, 9)).all-rows() is [list:
+    t3.row(1, 2, 3),
+    [raw-row: {"num1"; 7}, {"num2"; 8}, {"num3"; 9}]
+  ]
+end
