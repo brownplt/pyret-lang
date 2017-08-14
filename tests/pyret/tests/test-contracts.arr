@@ -343,3 +343,27 @@ check "tuple contracts":
   run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{5351}}; \"fqwfq\"}") is%(output) contract-error
   run-str("x :: {Number; Number; {Number; String}} = {412; 5412; {412; \"fgwdef\"; 5135}}") is%(output) contract-error
 end
+
+check "standalone contract statements":
+  should-work-simple =
+    ```
+    double :: Number -> Number
+    fun double(n): n + n end
+    double(5)
+    ```
+  run-str(should-work-simple) is%(output) success
+  should-work-with-check =
+    ```
+    double :: Number -> Number
+    check: double(5) is 10 end
+    fun double(n): n + n end
+    ```
+  run-str(should-work-with-check) is%(output) success
+  fail-trailing =
+    ```
+    fun double(n): n + n end
+    double :: Number -> Number
+    ```
+  CH.get-compile-errs(fail-trailing).first satisfies CS.is-contract-unused
+end
+

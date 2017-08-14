@@ -426,25 +426,58 @@ data CompileError:
           ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
           ED.text(" is already defined at "), ED.loc(self.defn-loc)]]
     end
-  | contract-non-function(loc :: Loc, name :: String, defn-loc :: Loc) with:
+  | contract-non-function(loc :: Loc, name :: String, defn-loc :: Loc, defn-is-function :: Boolean) with:
     method render-fancy-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("Function contracts may only be specified for functions, and the contract for "),
-          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
-        ED.cmcode(self.loc),
-        [ED.para:
-          ED.text(" does not "),
-          ED.highlight(ED.text("correspond"), [list: self.defn-loc], -1),
-          ED.text(" to a function: ")],
-        ED.cmcode(self.defn-loc)]
+      if self.defn-is-function:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
+            ED.text(" is not a valid function contract, but "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.defn-loc], -1),
+            ED.text(" is defined as a function.")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("The contract and the "),
+            ED.highlight(ED.text("definition"), [list: self.defn-loc], -1),
+            ED.text(" must be consistent.")],
+          ED.cmcode(self.defn-loc)]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
+            ED.text(" is a function contract, but "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.defn-loc], -1),
+            ED.text(" is not defined as a function.")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("The contract and the "),
+            ED.highlight(ED.text("definition"), [list: self.defn-loc], -1),
+            ED.text(" must be consistent.")],
+          ED.cmcode(self.defn-loc)]
+      end
     end,
     method render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("Function contracts may only be specified for functions, and the contract for "),
-          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
-          ED.text(" does not correspond to a function at "), ED.loc(self.defn-loc)]]
+      if self.defn-is-function:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+            ED.text(" is not a valid function contract, but "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.defn-loc),
+            ED.text(" is defined as a function.")],
+          [ED.para: ED.text("The contract and the definition must be consistent.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+            ED.text(" is a function contract, but "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.defn-loc),
+            ED.text(" is not defined as a function.")],
+          [ED.para: ED.text("The contract and the definition must be consistent.")]]
+      end
     end
   | contract-inconsistent-names(loc :: Loc, name :: String, defn-loc :: Loc) with:
     method render-fancy-reason(self):

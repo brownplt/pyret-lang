@@ -218,12 +218,12 @@ fun weave-contracts(contracts, rev-binds) block:
                           acc)                        
                       end
                     else:
-                      errors := link(C.contract-non-function(c.l, id-name, l), errors)
+                      errors := link(C.contract-non-function(c.l, id-name, l, true), errors)
                       link(fun-to-lam(bind), acc)
                     end
                   | else =>
                     if A.is-a-arrow(c.ann) or A.is-a-arrow-argnames(c.ann) block:
-                      errors := link(C.contract-non-function(c.l, id-name, bind.value.l), errors)
+                      errors := link(C.contract-non-function(c.l, id-name, bind.value.l, false), errors)
                       link(bind, acc)
                     else:
                       link(rebuild-bind(bind, A.s-bind(l, shadows, id, c.ann), bind.value), acc)
@@ -675,7 +675,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.standard-builtins).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog, C.standard-builtins).ast.visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -1419,7 +1419,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
 where:
   p = PP.surface-parse(_, "test")
   px = p("x")
-  resolved = C.resolved(px, empty, [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:])
+  resolved = C.resolved-names(px, empty, [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:])
   unbound1 = check-unbound-ids-bad-assignments(px, resolved, C.standard-builtins)
   unbound1.length() is 1
 end
