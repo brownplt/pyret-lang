@@ -296,6 +296,16 @@ check "add-row":
     row: false, false, 11
   end
 
+  t2 = table: a, b, c
+    row: true, false, 10
+    row: false, false, 11
+  end
+
+  t3 = table: c, a, b
+    row: 10, true, false
+    row: 11, false, false
+  end
+
   answer = table: a, b, c
     row: true, false, 10
     row: false, false, 11
@@ -304,9 +314,15 @@ check "add-row":
 
   t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; 12}]) is answer
   t.add-row(t.row(true, true, 12)) is answer
+  t.add-row(t2.row(true, true, 12)) is answer
 
   t.add-row("a", t.row(true, true, 12)) raises-satisfies E.is-arity-mismatch
   t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
+
+  t.add-row([raw-row:]) raises "row-length"
+  t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; false}, {"d"; 22}]) raises "row-length"
+
+  t.add-row(t3.row(10, false, true)) raises "row-name"
 
 end
 
@@ -328,3 +344,18 @@ check "row-n":
   t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
 end
 
+check "column":
+  t = table: a, b
+    row: "stockholm", 22
+    row: "beijing", 43
+    row: "jakarta", 7
+  end
+
+  t.column("a") is [list: "stockholm", "beijing", "jakarta"]
+  t.column("b") is [list: 22, 43, 7]
+
+  t.column("d") raises "no-such-column"
+  t.column("d", 2) raises-satisfies E.is-arity-mismatch
+  t.column(0) raises-satisfies E.is-generic-type-mismatch
+
+end

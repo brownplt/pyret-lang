@@ -356,6 +356,17 @@
         'add-row': runtime.makeMethod1(function(_, row) {
           ffi.checkArity(2, arguments, 'add-row', true);
           runtime.checkRow(row);
+          var theseKeys = Object.keys(headerIndex);
+          var rowKeys = Object.keys(row.$underlyingTable.headerIndex);
+          if(theseKeys.length !== rowKeys.length) {
+            throw runtime.ffi.throwMessageException("add-row-length");
+          }
+          for(var i = 0; i < theseKeys.length; i += 1) {
+            if(headerIndex["column:" + headers[i]] !== 
+                row.$underlyingTable.headerIndex["column:" + headers[i]]) {
+              throw runtime.ffi.throwMessageException("row-name-mismatch: " + headers[i]);
+            }
+          }
           // NOTE(joe): Here we do not copy all the sub-arrays with the
           // existing data, we just copy the outer array containing them.
           // This relies on the assumption that we never mutate the
@@ -375,6 +386,19 @@
             throw runtime.ffi.throwMessageException("row-n-too-large");
           }
           return makeRow({ headerIndex: headerIndex }, rows[rowFix]);
+        }),
+
+        'column': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "column", true);
+          runtime.checkString(colname);
+          var lookupName = "column:" + colname;
+          if(!(lookupName in headerIndex)) {
+            throw runtime.ffi.throwMessageException("no-such-column");
+          }
+          var results = rows.map(function(r) {
+            return r[headerIndex[lookupName]];
+          });
+          return runtime.ffi.makeList(results);
         }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {
