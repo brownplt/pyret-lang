@@ -363,8 +363,8 @@ data TestResult:
         ED.embed(self.actual-exn)]
     end,
     method access-stack(self, get-stack) block:
-      print("Thes stack is being accessed")
-      print(get-stack(self.actual-exn))
+      # print("The stack is being accessed")
+      # print(get-stack(self.actual-exn))
       get-stack(self.actual-exn)
     end,
     method _output(self):

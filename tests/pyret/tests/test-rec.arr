@@ -1,15 +1,10 @@
+import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import file("../test-compile-helper.arr") as H
 
-import "compiler/compile-structs.arr" as CS
-import "../test-compile-helper.arr" as H
-
-compile-str = H.compile-str
-
-is-unbound-failure = lam(e): CS.is-err(e) and CS.is-unbound-id(e.problems.first) end
-is-pointless-rec = lam(e): CS.is-err(e) and CS.is-pointless-rec(e.problems.first) end
 is-ok = CS.is-ok
 
 check "pointless":
-  compile-str("rec _ = 5") satisfies is-pointless-rec
+  H.get-compile-errs("rec _ = 5").first satisfies CS.is-pointless-rec
 end
 
 check "boundaries":
@@ -18,28 +13,28 @@ check "boundaries":
   z = 10
   rec y = lam(): x end
   ```
-  compile-str(no-propagate-through-let) satisfies is-unbound-failure
+  H.get-compile-errs(no-propagate-through-let).first satisfies CS.is-unbound-id
 
   no-propagate-through-var = ```
   rec x = lam(): y end
   var z = 10
   rec y = lam(): x end
   ```
-  compile-str(no-propagate-through-var) satisfies is-unbound-failure
+  H.get-compile-errs(no-propagate-through-var).first satisfies CS.is-unbound-id
 
   no-propagate-through-let-var = ```
   rec x = lam(): y end
   var z = 10
   y = lam(): x end
   ```
-  compile-str(no-propagate-through-let-var) satisfies is-unbound-failure
+  H.get-compile-errs(no-propagate-through-let-var).first satisfies CS.is-unbound-id
 
   no-propagate-through-fun-let = ```
   rec x = lam(): y end
   fun f(): x end
   y = lam(): x end
   ```
-  compile-str(no-propagate-through-fun-let) satisfies is-unbound-failure
+  H.get-compile-errs(no-propagate-through-fun-let).first satisfies CS.is-unbound-id
 end
 
 check "recursive":
@@ -48,7 +43,7 @@ check "recursive":
   data D: mt end
   rec y = lam(): x end
   ```
-  compile-str(propagate-through-data) satisfies is-ok
+  H.get-compile-errs(propagate-through-data) is empty
 
   propagate-through-datas = ```
   rec x = lam() -> D2: y() + mt + mt2 end
@@ -56,14 +51,14 @@ check "recursive":
   data D2: mt2 | mt3 end
   rec y = lam(): x end
   ```
-  compile-str(propagate-through-data) satisfies is-ok
+  H.get-compile-errs(propagate-through-data) is empty
 
   propagate-through-fun = ```
   rec x = lam(): y end
   fun f(): y end
   rec y = lam(): x end
   ```
-  compile-str(propagate-through-fun) satisfies is-ok
+  H.get-compile-errs(propagate-through-fun) is empty
 
   propagate-through-funs = ```
   rec x = lam(): y end
@@ -71,7 +66,7 @@ check "recursive":
   fun g(): y end
   rec y = lam(): x end
   ```
-  compile-str(propagate-through-fun) satisfies is-ok
+  H.get-compile-errs(propagate-through-fun) is empty
 
   propagate-through-funs-and-data = ```
   rec x = lam() -> D: f() + mt + g() + y() end
@@ -80,7 +75,7 @@ check "recursive":
   fun g(): y end
   rec y = lam(): x end
   ```
-  compile-str(propagate-through-fun) satisfies is-ok
+  H.get-compile-errs(propagate-through-fun) is empty
 
 end
 
