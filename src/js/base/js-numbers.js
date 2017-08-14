@@ -981,6 +981,13 @@ define("pyret-base/js/js-numbers", function() {
   var remainder = function(x, y, errbacks) {
     if (isInteger(x) && isInteger(y)) {
       return _integerRemainder(x, y);
+    } else if (isRational(x) && isRational(y)) {
+      var xn = numerator(x); var xd = denominator(x);
+      var yn = numerator(y); var yd = denominator(y);
+      var new_d = lcm(xd, yd, errbacks);
+      var new_xn = multiply(xn, divide(new_d, xd, errbacks), errbacks);
+      var new_yn = multiply(yn, divide(new_d, yd, errbacks), errbacks);
+      return divide(remainder(new_xn, new_yn, errbacks), new_d);
     } else {
       var res = toFixnum(x) % toFixnum(y);
       return Roughnum.makeInstance(res, errbacks);
