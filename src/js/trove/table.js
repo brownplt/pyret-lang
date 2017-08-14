@@ -425,6 +425,20 @@
           return runtime.ffi.makeList(results);
         }),
 
+        'all-columns': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "all-columns", true);
+          var collists = new Array(headers.length);
+          for(var i = 0; i < headers.length; i += 1) {
+            collists[i] = []; 
+          }
+          for(var i = 0; i < rows.length; i += 1) {
+            for(var j = 0; j < headers.length; j += 1) {
+              collists[j].push(rows[i][j]);
+            }
+          }
+          return runtime.ffi.makeList(collists.map(runtime.ffi.makeList));
+        }),
+
         'column-names': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "column-names", true);
           return runtime.ffi.makeList(headers);

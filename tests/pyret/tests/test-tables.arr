@@ -408,3 +408,19 @@ check "all-rows":
     [raw-row: {"num1"; 7}, {"num2"; 8}, {"num3"; 9}]
   ]
 end
+
+check "all-columns":
+  t = table: a, b end
+  t.all-columns() is [list: empty, empty]
+
+  t2 = table: a, b, c
+    row: "orange", "red", true
+    row: "banana", "blue", false
+  end
+
+  t2.all-columns() is [list:
+    [list: "orange", "banana"],
+    [list: "red", "blue"],
+    [list: true, false]
+  ]
+end
