@@ -1136,14 +1136,24 @@ top-level-visitor = A.default-iter-visitor.{
   method s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
     well-formed-visitor.s-construct(l, mod, constructor, values)
   end,
-  method s-app(_, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
-    well-formed-visitor.s-app(l, _fun, args)
+  method s-app(self, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
+    if (A.is-s-dot(_fun) and A.is-s-id(_fun.obj)
+        and (_fun.obj.id.toname() == "builtins") and (_fun.field == "trace-value")):
+      # this is effectively still a top-level expression, so don't penalize it
+      # for being inside a desugaring-introduced function call
+      _fun.visit(self) and lists.all(_.visit(self), args)
+    else:
+      well-formed-visitor.s-app(l, _fun, args)
+    end
   end,
   method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
     well-formed-visitor.s-prim-app(l, _fun, args)
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
+  end,
+  method s-reactor(self, l, fields):
+    well-formed-visitor.s-reactor(l, fields)
   end,
   method s-rfrac(_, l :: Loc, num, den):
     well-formed-visitor.s-rfrac(l, num, den)
