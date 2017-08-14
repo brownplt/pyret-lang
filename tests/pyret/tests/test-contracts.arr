@@ -312,6 +312,13 @@ check "standalone contract statements":
     ) is%(output) success
   run-str(
     ```
+    foo :: (n :: Number, s :: String, b :: Boolean) -> Number
+    fun foo(n, s, b): 5 end
+    foo(3, "named argument order is fine", true)
+    ```
+    ) is%(output) success
+  run-str(
+    ```
     double :: Number -> Number
     fun double(n): n + n end
     double("not a number")
