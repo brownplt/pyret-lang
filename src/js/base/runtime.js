@@ -5796,6 +5796,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_tostring': num_tostring,
       'num_to_string': num_tostring,
       'num_tostring_digits': num_tostring_digits,
+      'num_to_fixnum': num_to_fixnum,
 
       'string_contains': string_contains,
       'string_append': string_append,
@@ -5868,6 +5869,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'checkString' : checkString,
       'checkNumber' : checkNumber,
+      'checkExactnum' : checkExactnum,
+      'checkRoughnum' : checkRoughnum,
+      'checkNumInteger' : checkNumInteger,
+      'checkNumRational' : checkNumRational,
+      'checkNumPositive' : checkNumPositive,
+      'checkNumNegative' : checkNumNegative,
+      'checkNumNonPositive' : checkNumNonPositive,
+      'checkNumNonNegative' : checkNumNonNegative,
       'checkBoolean' : checkBoolean,
       'checkObject' : checkObject,
       'checkFunction' : checkFunction,

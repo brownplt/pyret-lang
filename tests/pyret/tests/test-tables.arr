@@ -309,3 +309,22 @@ check "add-row":
   t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
 
 end
+
+check "row-n":
+  t = table: a, b
+    row: "stockholm", 22
+    row: "beijing", 43
+  end
+
+  t.row-n(0) is t.row("stockholm", 22)
+  t.row-n(1) is t.row("beijing", 43)
+  t.row-n(0) is [t.new-row: "stockholm", 22]
+  t.row-n(1) is [t.new-row: "beijing", 43]
+
+  t.row-n(45) raises-satisfies E.is-message-exception
+  t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
+  t.row-n(4.3) raises-satisfies E.is-generic-type-mismatch
+  t.row-n("a") raises-satisfies E.is-generic-type-mismatch
+  t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
+end
+

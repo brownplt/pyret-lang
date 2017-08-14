@@ -366,6 +366,17 @@
           return makeTable(headers, newRows);
         }),
 
+        'row-n': runtime.makeMethod1(function(_, row) {
+          ffi.checkArity(2, arguments, "row-n", true);
+          runtime.checkNumNonNegative(row);
+          runtime.checkNumInteger(row);
+          var rowFix = runtime.num_to_fixnum(row);
+          if(rowFix >= rows.length) {
+            throw runtime.ffi.throwMessageException("row-n-too-large");
+          }
+          return makeRow({ headerIndex: headerIndex }, rows[rowFix]);
+        }),
+
         'stack': runtime.makeMethod1(function(_, otherTable) {
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");
           if(otherHeaders.length !== headers.length) {
