@@ -25,6 +25,8 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
     var one;
     var none;
     var two;
+    var three;
+    var nthree;
     var four;
     var twty;
     var seven;
@@ -45,6 +47,8 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
         one = rt.makeNumber(1);
         none = rt.makeNumber(-1);
         two = rt.makeNumber(2);
+        three = rt.makeNumber(3);
+        nthree = rt.makeNumber(-3);
         four = rt.makeNumber(4);
         six = rt.makeNumber(6);
         twty = rt.makeNumber(20);
@@ -327,6 +331,15 @@ define(["./matchers", "js/js-numbers"], function (matchers, jsnums) {
           expect(tostring(seven)).toEqual("7");
           expect(tostring(twty)).toEqual("20");
           expect(tostring(half)).toEqual("1/2");
+      });
+
+      it("should do remainder of non-ints, rats", function() {
+        var tostring = function(val) { return rt.toReprJS(val, rt.ReprMethods._tostring); };
+
+        expect(tostring(jsnums.remainder( five,  three))).toEqual( '2');
+        expect(tostring(jsnums.remainder(nfive,  three))).toEqual('-2');
+        expect(tostring(jsnums.remainder( five, nthree))).toEqual( '2');
+        expect(tostring(jsnums.remainder(nfive, nthree))).toEqual('-2');
       });
 
       });
