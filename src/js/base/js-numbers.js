@@ -979,15 +979,12 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var remainder = function(x, y, errbacks) {
-    if (! isInteger(x)) {
-      errbacks.throwDomainError('remainder: the first argument ' + x.toString() +
-                                " is not an integer.", x);
+    if (isInteger(x) && isInteger(y)) {
+      return _integerRemainder(x, y);
+    } else {
+      var res = toFixnum(x) % toFixnum(y);
+      return Roughnum.makeInstance(res, errbacks);
     }
-    if (! isInteger(y)) {
-      errbacks.throwDomainError('remainder: the second argument ' + y.toString() +
-                                " is not an integer.", y);
-    }
-    return _integerRemainder(x, y);
   };
 
   //////////////////////////////////////////////////////////////////////
