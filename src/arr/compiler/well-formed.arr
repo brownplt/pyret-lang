@@ -896,10 +896,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end
 }
 
-top-level-visitor = well-formed-visitor.{
-  # Most behaviors are delegated to the non-toplevel visitor,
-  # but these expression forms are handled specially at the toplevel:
-
+top-level-visitor = A.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
@@ -999,25 +996,232 @@ top-level-visitor = well-formed-visitor.{
     true
   end,
 
+  # Everything else delegates to the non-toplevel visitor
+  method s-import(_, l, import-type, name):
+    well-formed-visitor.s-import(l, import-type, name)
+  end,
+  method s-include(_, l, import-type):
+    well-formed-visitor.s-include(l, import-type)
+  end,
+  method s-import-types(_, l, import-type, name, types):
+    well-formed-visitor.s-import-types(l, import-type, name, types)
+  end,
+  method s-import-fields(_, l, fields, import-type):
+    well-formed-visitor.s-import-fields(l, fields, import-type)
+  end,
+  method s-provide(_, l, expr):
+    well-formed-visitor.s-provide(l, expr)
+  end,
+  method s-provide-types(_, l, anns):
+    well-formed-visitor.s-provide-types(l, anns)
+  end,
+  method s-bind(_, l, shadows, name, ann):
+    well-formed-visitor.s-bind(l, shadows, name, ann)
+  end,
+  method s-var-bind(_, l, bind, expr):
+    well-formed-visitor.s-var-bind(l, bind, expr)
+  end,
+  method s-let-bind(_, l, bind, expr):
+    well-formed-visitor.s-let-bind(l, bind, expr)
+  end,
+  method s-template(self, l):
+    well-formed-visitor.s-template(l)
+  end,
+  method s-let-expr(_, l, binds, body, blocky):
+    well-formed-visitor.s-let-expr(l, binds, body, blocky)
+  end,
+  method s-letrec-bind(_, l, bind, expr) block:
+    well-formed-visitor.s-letrec-bind(l, bind, expr)
+  end,
+  method s-letrec(_, l, binds, body, blocky):
+    well-formed-visitor.s-letrec(l, binds, body, blocky)
+  end,
+  method s-hint-exp(_, l :: Loc, hints :: List<A.Hint>, exp :: A.Expr):
+    well-formed-visitor.s-hint-exp(l, hints, exp)
+  end,
+  method s-instantiate(_, l :: Loc, expr :: A.Expr, params :: List<A.Ann>):
+    well-formed-visitor.s-instantiate(l, expr, params)
+  end,
+  method s-block(_, l, stmts):
+    well-formed-visitor.s-block(l, stmts)
+  end,
+  method s-user-block(_, l :: Loc, body :: A.Expr):
+    well-formed-visitor.s-user-block(l, body)
+  end,
+  method s-fun(_, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
+    well-formed-visitor.s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
+  end,
+  method s-var(_, l :: Loc, name :: A.Bind, value :: A.Expr):
+    well-formed-visitor.s-var(l, name, value)
+  end,
+  method s-rec(_, l :: Loc, name :: A.Bind, value :: A.Expr):
+    well-formed-visitor.s-rec(l, name, value)
+  end,
+  method s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
+    well-formed-visitor.s-let(l, name, value, keyword-val)
+  end,
+  method s-ref(_, l :: Loc, ann :: A.Ann):
+    well-formed-visitor.s-ref(l, ann)
+  end,
+  method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
+    well-formed-visitor.s-when(l, test, block, blocky)
+  end,
   method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
     # TODO
     true
   end,
-  method s-app(self, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>) block:
-    if (A.is-s-dot(_fun) and A.is-s-id(_fun.obj)
-        and (_fun.obj.id.toname() == "builtins") and (_fun.field == "trace-value")):
-      # this is effectively still a top-level expression, so don't penalize it
-      # for being inside a desugaring-introduced function call
-      _fun.visit(self) and lists.all(_.visit(self), args)
-    else:
-      well-formed-visitor.s-app(l, _fun, args)
-    end
+  method s-assign(_, l :: Loc, id :: A.Name, value :: A.Expr):
+    well-formed-visitor.s-assign(l, id, value)
+  end,
+  method s-if-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
+    well-formed-visitor.s-if-branch(l, test, body)
+  end,
+  method s-if-pipe-branch(_, l :: Loc, test :: A.Expr, body :: A.Expr):
+    well-formed-visitor.s-if-pipe-branch(l, test, body)
+  end,
+  method s-if(_, l :: Loc, branches :: List<A.IfBranch>, blocky :: Boolean):
+    well-formed-visitor.s-if(l, branches, blocky)
+  end,
+  method s-if-else(_, l :: Loc, branches :: List<A.IfBranch>, _else :: A.Expr, blocky :: Boolean):
+    well-formed-visitor.s-if-else(l, branches, _else, blocky)
+  end,
+  method s-if-pipe(_, l :: Loc, branches :: List<A.IfPipeBranch>, blocky :: Boolean):
+    well-formed-visitor.s-if-pipe(l, branches, blocky)
+  end,
+  method s-if-pipe-else(_, l :: Loc, branches :: List<A.IfPipeBranch>, _else :: A.Expr, blocky :: Boolean):
+    well-formed-visitor.s-if-pipe-else(l, branches, _else, blocky)
+  end,
+  method s-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, args :: List<A.CasesBind>, body :: A.Expr):
+    well-formed-visitor.s-cases-branch(l, pat-loc, name, args, body)
+  end,
+  method s-singleton-cases-branch(_, l :: Loc, pat-loc :: Loc, name :: String, body :: A.Expr):
+    well-formed-visitor.s-singleton-cases-branch(l, pat-loc, name, body)
+  end,
+  method s-cases(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, blocky :: Boolean):
+    well-formed-visitor.s-cases(l, typ, val, branches, blocky)
+  end,
+  method s-cases-else(_, l :: Loc, typ :: A.Ann, val :: A.Expr, branches :: List<A.CasesBranch>, _else :: A.Expr, blocky :: Boolean):
+    well-formed-visitor.s-cases-else(l, typ, val, branches, _else, blocky)
+  end,
+  method s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
+    well-formed-visitor.s-op(l, op-loc, op, left, right)
+  end,
+  method s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
+    well-formed-visitor.s-check-test(l, op, refinement, left, right)
+  end,
+  method s-paren(_, l :: Loc, expr :: A.Expr):
+    well-formed-visitor.s-paren(l, expr)
+  end,
+  method s-lam(_, l :: Loc, name :: String, params :: List<String>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check-loc :: Option<Loc>, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
+  end,
+  method s-method(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check-loc :: Option<Loc>, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
+  end,
+  method s-extend(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
+    well-formed-visitor.s-extend(l, supe, fields)
+  end,
+  method s-update(_, l :: Loc, supe :: A.Expr, fields :: List<A.Member>):
+    well-formed-visitor.s-update(l, supe, fields)
+  end,
+  method s-tuple-get(_, l :: Loc, tup, index, index-loc):
+    well-formed-visitor.s-tuple-get(l, tup, index, index-loc)
+  end,
+  method s-obj(_, l :: Loc, fields :: List<A.Member>):
+    well-formed-visitor.s-obj(l, fields)
+  end,
+  method s-array(_, l :: Loc, values :: List<A.Expr>):
+    well-formed-visitor.s-array(l, values)
+  end,
+  method s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
+    well-formed-visitor.s-construct(l, mod, constructor, values)
+  end,
+  method s-app(_, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
+    well-formed-visitor.s-app(l, _fun, args)
+  end,
+  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
+    well-formed-visitor.s-prim-app(l, _fun, args)
+  end,
+  method s-frac(_, l :: Loc, num, den):
+    well-formed-visitor.s-frac(l, num, den)
+  end,
+  method s-rfrac(_, l :: Loc, num, den):
+    well-formed-visitor.s-rfrac(l, num, den)
+  end,
+  method s-id(_, l :: Loc, id :: A.Name):
+    well-formed-visitor.s-id(l, id)
+  end,
+  method s-id-var(_, l :: Loc, id :: A.Name):
+    well-formed-visitor.s-id-var(l, id)
+  end,
+  method s-id-letrec(_, l :: Loc, id :: A.Name, safe :: Boolean):
+    well-formed-visitor.s-id-letrec(l, id, safe)
+  end,
+  method s-dot(_, l :: Loc, obj :: A.Expr, field :: String):
+    well-formed-visitor.s-dot(l, obj, field)
+  end,
+  method s-get-bang(_, l :: Loc, obj :: A.Expr, field :: String):
+    well-formed-visitor.s-get-bang(l, obj, field)
+  end,
+  method s-bracket(_, l :: Loc, obj :: A.Expr, field :: A.Expr):
+    well-formed-visitor.s-bracket(l, obj, field)
+  end,
+  method s-for(_, l :: Loc, iterator :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr, blocky :: Boolean):
+    well-formed-visitor.s-for(l, iterator, bindings, ann, body, blocky)
+  end,
+  method s-check(_, l :: Loc, name :: Option<String>, body :: A.Expr, keyword-check :: Boolean):
+    well-formed-visitor.s-check(l, name, body, keyword-check)
+  end,
+  method s-data-field(_, l :: Loc, name :: String, value :: A.Expr):
+    well-formed-visitor.s-data-field(l, name, value)
+  end,
+  method s-mutable-field(_, l :: Loc, name :: String, ann :: A.Ann, value :: A.Expr):
+    well-formed-visitor.s-mutable-field(l, name, ann, value)
+  end,
+  method s-method-field(_, l :: Loc, name :: String, params :: List<A.Name>, args :: List<A.Bind>, ann :: A.Ann, doc :: String, body :: A.Expr, _check-loc :: Option<Loc>, _check :: Option<A.Expr>, blocky):
+    well-formed-visitor.s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
+  end,
+  method s-for-bind(_, l :: Loc, bind :: A.Bind, value :: A.Expr):
+    well-formed-visitor.s-for-bind(l, bind, value)
   end,
   method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind) block:
     cases(A.Bind) bind:
      | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
      | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member", l2)
     end
+  end,
+  method s-table(_, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>):
+    well-formed-visitor.s-table(l, header, rows)
+  end,
+  method s-load-table(_, l, header, spec):
+    well-formed-visitor.s-load-table(l, header, spec)
+  end,
+  method s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
+    well-formed-visitor.s-table-extend(l, column-binds, extensions)
+  end,
+  method a-arrow(_, l, args, ret, use-parens):
+    well-formed-visitor.a-arrow(l, args, ret, use-parens)
+  end,
+  method a-arrow-argnames(_, l, args, ret, use-parens):
+    well-formed-visitor.a-arrow-argnames(l, args, ret, use-parens)
+  end,
+  method a-method(_, l, args, ret):
+    well-formed-visitor.a-method(l, args, ret)
+  end,
+  method a-record(_, l, fields):
+    well-formed-visitor.a-record(l, fields)
+  end,
+  method a-app(_, l, ann, args):
+    well-formed-visitor.a-app(l, ann, args)
+  end,
+  method a-pred(_, l, ann, exp):
+    well-formed-visitor.a-pred(l, ann, exp)
+  end,
+  method a-dot(_, l, obj, field):
+    well-formed-visitor.a-dot(l, obj, field)
+  end,
+  method a-field(_, l, name, ann):
+    well-formed-visitor.a-field(l, name, ann)
   end
 }
 
