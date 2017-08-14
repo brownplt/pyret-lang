@@ -357,5 +357,20 @@ check "column":
   t.column("d") raises "no-such-column"
   t.column("d", 2) raises-satisfies E.is-arity-mismatch
   t.column(0) raises-satisfies E.is-generic-type-mismatch
+end
 
+check "column-n":
+  t = table: a, b
+    row: "stockholm", 22
+    row: "beijing", 43
+    row: "jakarta", 7
+  end
+
+  t.column-n(0) is [list: "stockholm", "beijing", "jakarta"]
+  t.column-n(1) is [list: 22, 43, 7]
+
+  t.column-n(3) raises "column-n-too-large"
+  t.column("d", 2) raises-satisfies E.is-arity-mismatch
+  t.column(-1) raises-satisfies E.is-generic-type-mismatch
+  t.column(1.2) raises-satisfies E.is-generic-type-mismatch
 end

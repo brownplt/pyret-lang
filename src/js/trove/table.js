@@ -401,6 +401,21 @@
           return runtime.ffi.makeList(results);
         }),
 
+        'column-n': runtime.makeMethod1(function(_, n) {
+          ffi.checkArity(2, arguments, "column-n", true);
+          runtime.checkNumNonNegative(n);
+          runtime.checkNumInteger(n);
+          var lookupIndex = runtime.num_to_fixnum(n);
+          if(lookupIndex >= headers.length) {
+            throw runtime.ffi.throwMessageException("column-n-too-large");
+          }
+          var results = rows.map(function(r) {
+            return r[lookupIndex];
+          });
+          return runtime.ffi.makeList(results);
+        }),
+
+
         'stack': runtime.makeMethod1(function(_, otherTable) {
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");
           if(otherHeaders.length !== headers.length) {
