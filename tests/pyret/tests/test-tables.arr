@@ -290,3 +290,22 @@ check "add-column":
   t.add-column("d") raises-satisfies E.is-arity-mismatch
 end
 
+check "add-row":
+  t = table: a, b, c
+    row: true, false, 10
+    row: false, false, 11
+  end
+
+  answer = table: a, b, c
+    row: true, false, 10
+    row: false, false, 11
+    row: true, true, 12
+  end
+
+  t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; 12}]) is answer
+  t.add-row(t.row(true, true, 12)) is answer
+
+  t.add-row("a", t.row(true, true, 12)) raises-satisfies E.is-arity-mismatch
+  t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
+
+end

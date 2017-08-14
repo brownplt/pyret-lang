@@ -353,6 +353,19 @@
           return makeTable(headers.concat([colname]), newRows);
         }),
 
+        'add-row': runtime.makeMethod1(function(_, row) {
+          ffi.checkArity(2, arguments, 'add-row', true);
+          runtime.checkRow(row);
+          // NOTE(joe): Here we do not copy all the sub-arrays with the
+          // existing data, we just copy the outer array containing them.
+          // This relies on the assumption that we never mutate the
+          // underlying arrays in tables, and avoids significant copying.
+          // Note also that add-column doesn't get to do this sharing because
+          // of the row-major organization of tables.
+          var newRows = rows.concat([row.$rowData]);
+          return makeTable(headers, newRows);
+        }),
+
         'stack': runtime.makeMethod1(function(_, otherTable) {
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");
           if(otherHeaders.length !== headers.length) {
