@@ -345,25 +345,70 @@ check "tuple contracts":
 end
 
 check "standalone contract statements":
-  should-work-simple =
+  run-str(
     ```
     double :: Number -> Number
     fun double(n): n + n end
     double(5)
     ```
-  run-str(should-work-simple) is%(output) success
-  should-work-with-check =
+    ) is%(output) success
+  run-str(
+    ```
+    double :: Number -> Number
+    fun double(n): n + n end
+    double("hi")
+    ```) is%(output) contract-error
+  run-str(
     ```
     double :: Number -> Number
     check: double(5) is 10 end
     fun double(n): n + n end
     ```
-  run-str(should-work-with-check) is%(output) success
-  fail-trailing =
+    ) is%(output) success
+  run-str(
     ```
     fun double(n): n + n end
     double :: Number -> Number
     ```
-  CH.get-compile-errs(fail-trailing).first satisfies CS.is-contract-unused
+    ) is%(output) compile-error(CS.is-contract-unused)
+  run-str(
+    ```
+    include file
+    input-file :: String -> Boolean
+    ```
+    ) is%(output) compile-error(CS.is-contract-on-import)
+  run-str(
+    ```
+    double :: Number -> Number
+    double :: Number -> Number
+    fun double(n): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-redefined)
+  run-str(
+    ```
+    double :: Number -> Number
+    fun double(n :: Number): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-redefined)
+  run-str(
+    ```
+    double :: Number
+    fun double(n): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-non-function)
+  run-str(
+    ```
+    double :: Number -> Number
+    double = 5
+    ```) is%(output) compile-error(CS.is-contract-non-function)
+  run-str(
+    ```
+    double :: (x :: Number) -> Number
+    fun double(n): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-inconsistent-names)
+  run-str(
+    ```
+    is-even :: Number -> Boolean
+    fun is-odd(n): true end
+    is-odd :: Number -> Boolean
+    fun is-even(n): true end
+    ```) is%(output) compile-error(lam(e): CS.is-contract-bad-loc(e) and (e.name == "is-odd") end)
 end
 
