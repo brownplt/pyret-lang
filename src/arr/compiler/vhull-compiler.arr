@@ -120,7 +120,7 @@ fun fresh-id(id :: A.Name) -> A.Name:
   end
 end
 
-fun js-id-of(id :: A.name) -> A.name:
+fun js-id-of(id :: A.Name) -> A.Name:
   s = id.key()
   if js-ids.has-key-now(s) block:
     js-ids.get-value-now(s)
@@ -135,6 +135,61 @@ type Loc = SL.Srcloc
 type CList = CL.ConcatList
 type BindType = C.BindType
 clist = CL.clist
+
+var total-time = 0
+
+fun compile-anns(visitor, binds :: List<N.ABind>):
+  for lists.fold(acc from cl-empty, b from binds):
+    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+      acc
+    else if A.is-a-typle(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
+      check-tup-len = j-block([clist:
+        j-expr(rt-method("checkTupleBind",
+          [clist:
+            j-id(js-id-of(b.id)),
+            j-num(b.ann.fields.length()),
+            visitor.get-loc(b.ann.l)]))])
+      cl-snoc(acc, check-tup-len)
+    else:
+      ann-result = fresh-id(compiler-name("ann-check"))
+      compiled-ann = C.compile-ann(b.ann, visitor)
+      new-case = j-block(cl-append(compiled-ann.other-stmts,
+        [clist:
+          j-var(ann-result, rt-method("_checkAnn",
+            [clist:
+              visitor.get-loc(b.ann.l),
+              compiled-ann.exp,
+              j-id(js-id-of(b.id))
+            ]
+          ))
+        ]
+      ))
+      cl-snoc(acc, new-case)
+    end
+  end
+end
+
+fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
+      args :: List<N.ABind>,
+      opt-arity :: Option<Number>,
+      body :: N.AExpr,
+      should-report-error-frame :: Boolean,
+      is-flat :: Boolean) -> J.JBlock block:
+
+  # All functions return the final answer using this variable.
+  ans = fresh-id(compiler-name("ans"))
+  local-compiler = compiler.{cur-ans: ans}
+
+  # NOTE(rachit): Skipping the formal-args reassignment optimization here.
+  visited-body = body.visit(local-compiler)
+  ann-checks = compile-anns(local-compiler, args)
+  main-body-block =
+    cl-empty
+    ^ cl-append(_, ann-checks)
+    ^ cl-snoc(_, visited-body.block)
+    ^ cl-append(_, visited-body.new-cases)
+  ...
+end
 
 # NOTE(rachit): Find out what `is-fn` does.
 fun compile-a-app(l :: N.Loc, compiler, b :: Option<BindType>, f :: N.AVal,
@@ -155,12 +210,30 @@ fun compile-a-app(l :: N.Loc, compiler, b :: Option<BindType>, f :: N.AVal,
   ...
 end
 
+fun compile-method-app(l, compiler, obj, methname, args):
+  c-obj = obj.visit(compiler).exp
+  c-args = CL.map_list(_.visit(compiler).exp, args)
+
+  #|if J.is-j-id(compiled-obj):
+    call = wrap-with-srcnode(l,
+      rt-method("maybeMethodCall",
+        cl-append([clist: c-obj,
+          j-str(methname),
+          compiler.get-loc(l)
+        ], c-args)
+      )
+    )|#
+  ...
+end
+
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable,
       opt-body :: Option<N.AExpr>,
       else-case :: (DAG.CaseResults -> DAG.CaseResults)):
   cases(N.ALettable) e:
     | a-app(l2, f, args, app-info) =>
         compile-a-app(l2, f, args, compiler, b, opt-body, app-info)
+    | a-method-app(l2, obj, m, args) =>
+        compile-method-app(l2, compiler, obj, m, args)
   end
 end
 
@@ -169,7 +242,28 @@ compiler-visitor = {
     raise("a-module not implemented")
   end,
   method a-type-let(self, l, bind, body):
-    raise("a-type-let not implemented")
+    cases(N.ATypeBind) bind:
+      | a-type-bind(l2, name, ann) =>
+        visited-body = body.visit(self)
+        compiled-ann = C.compile-ann(ann, self)
+        c-block(
+          j-block(
+            compiled-ann.other-stmts ^
+            cl-snoc(_, j-var(js-id-of(name), compiled-ann.exp)) ^
+            cl-append(_, visited-body.block.stmts)),
+          visited-body.new-cases)
+      | a-newtype-bind(l2, name, nameb) =>
+        brander-id = js-id-of(nameb)
+        visited-body = body.visit(self)
+        c-block(
+          j-block(
+            [clist:
+              j-var(brander-id, rt-method("namedBrander", [clist: j-str(name.toname()), self.get-loc(l2)])),
+              j-var(js-id-of(name), rt-method("makeBranderAnn", [clist: j-id(brander-id), j-str(name.toname())]))
+            ] ^
+            cl-append(_, visited-body.block.stmts)),
+          visited-body.new-cases)
+    end
   end,
   method a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     raise("a-let not implemented")
@@ -223,7 +317,8 @@ compiler-visitor = {
     )))
   end,
   method a-lettable(self, _, e :: N.ALettable):
-    raise("a-lettable not implemented")
+    # TODO(rachit): This may have to change for if.
+    e.visit(self)
   end,
   method a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     visit-value = value.visit(self)
@@ -236,7 +331,9 @@ compiler-visitor = {
     )
   end,
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
-    raise("a-app not implemented")
+    compiled-f = f.visit(self).exp
+    compiled-args = CL.map_list(_.visit(self).exp, args)
+    j-expr(app(l, compiled-f, compiled-args))
   end,
   method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
     visit-args = args.map(_.visit(self))
@@ -370,11 +467,23 @@ compiler-visitor = {
     end
     raise("a-data-expr not implemented")
   end,
-  method a-program(self, l, _, imports, body) block:
-    raise("a-program not implemented")
-  end
 }
 
 fun vhull-compiler(env, add-phase, flatness-env, provides, options):
-  compiler-visitor
+  compiler-visitor.{
+    uri: provides.from-uri,
+    add-phase: add-phase,
+    options: options,
+    flatness-en: flatness-env,
+    method a-program(self, l, _, imports, body) block:
+      total-time := 0
+      freevars = N.freevars-e(body)
+      add-phase("Freevars-e", freevars)
+      ans = C.compile-module(self, l, imports, body, freevars, provides, env,
+        flatness-env)
+      add-phase(string-append("Total simplification: ", tostring(total-time)),
+        nothing)
+      ans
+    end
+  }
 end
