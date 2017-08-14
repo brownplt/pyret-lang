@@ -8,20 +8,11 @@ import either as E
 
 compile-str = CH.compile-str
 run-to-result = CH.run-to-result
-
-run-str = lam(str): 
-  result = run-to-result(str)
-  cases(E.Either) result block:
-    | left(err) =>
-      { program: str, success: false, runtime: false, errors: err }
-    | right(ans) =>
-      if L.is-success-result(ans):
-        { program: str, success: true, runtime: true, ans: ans }
-      else:
-        { program: str, success: false, runtime: true, errors: ans }
-      end
-  end
-end
+run-str = CH.run-str
+output = CH.output
+contract-error = CH.contract-error
+compile-error = CH.compile-error
+success = CH.success
 
 #  compiled = C.compile-str(str)
 #  cases(CS.CompileResult) compiled:
@@ -30,46 +21,6 @@ end
 #  end
 #end
 
-fun output(act, exp):
-  if exp.success:
-    act.success
-  else:
-    (exp.runtime == act.runtime) and exp.check-errors(act.errors)
-  end
-end
-
-success = { success: true, runtime: true }
-
-fun check-contract-error(errors):
-  string-contains(L.render-error-message(errors).message, "annotation")
-end
-
-contract-error = { success: false, runtime: true, check-errors: check-contract-error }
-
-fun field-error(fields):
-  { success: false,
-    runtime: true,
-    check-errors: lam(errors):
-        msg = L.render-error-message(errors).message
-        for lists.all(f from fields):
-          string-contains(msg, "field `" + f + "`")
-        end
-      end
-  }
-end
-
-fun compile-error(check-err):
-  {
-    success: false,
-    runtime: false,
-    check-errors:
-      lam(errors):
-        for lists.any(err from errors):
-          lists.any(check-err, err.problems)
-        end
-      end
-  }
-end
 
 check "should work for flat contracts":
   contract-errors = [list:
@@ -354,57 +305,80 @@ check "standalone contract statements":
     ) is%(output) success
   run-str(
     ```
-    double :: Number -> Number
-    fun double(n): n + n end
-    double("hi")
-    ```) is%(output) contract-error
+    foo :: Number, String, Boolean -> Number
+    fun foo(n, s, b): 5 end
+    foo(3, "argument order is fine", true)
+    ```
+    ) is%(output) success
   run-str(
     ```
     double :: Number -> Number
+    fun double(n): n + n end
+    double("not a number")
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    foo :: Number, String -> String
+    fun foo(_, s): s end
+    foo("underscores don't mess up weaving", "at all")
+    ```
+    ) is%(output) contract-error
+  run-str(
+    ```
+    double :: Number -> Number
+    # check blocks don't break up scope
     check: double(5) is 10 end
     fun double(n): n + n end
     ```
     ) is%(output) success
   run-str(
     ```
+    # wrong order
     fun double(n): n + n end
     double :: Number -> Number
     ```
     ) is%(output) compile-error(CS.is-contract-unused)
   run-str(
     ```
+    # included functions don't need contracts
     include file
     input-file :: String -> Boolean
     ```
     ) is%(output) compile-error(CS.is-contract-on-import)
   run-str(
     ```
+    # duplicated contract
     double :: Number -> Number
     double :: Number -> Number
     fun double(n): n * 2 end
     ```) is%(output) compile-error(CS.is-contract-redefined)
   run-str(
     ```
+    # contract on annotated function
     double :: Number -> Number
     fun double(n :: Number): n * 2 end
     ```) is%(output) compile-error(CS.is-contract-redefined)
   run-str(
     ```
+    # obviously wrong kind of annotation
     double :: Number
     fun double(n): n * 2 end
     ```) is%(output) compile-error(CS.is-contract-non-function)
   run-str(
     ```
+    # obviously wrong kind of annotation
     double :: Number -> Number
     double = 5
     ```) is%(output) compile-error(CS.is-contract-non-function)
   run-str(
     ```
+    # bad argument names
     double :: (x :: Number) -> Number
     fun double(n): n * 2 end
     ```) is%(output) compile-error(CS.is-contract-inconsistent-names)
   run-str(
     ```
+    # wrong contract order
     is-even :: Number -> Boolean
     fun is-odd(n): true end
     is-odd :: Number -> Boolean
