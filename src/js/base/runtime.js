@@ -1726,7 +1726,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
         }).join("\n") :
       "<no stack trace>";
-      return toReprJS(this.exn, ReprMethods._tostring) + "\n" + stackStr;
+      return "(internal error rendering PyretFailException) \n" + stackStr;
     };
     PyretFailException.prototype.getStack = function() {
       return this.pyretStack.map(makeSrcloc);
@@ -5446,7 +5446,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var results = [];
       return thisRuntime.safeCall(function() {
         return thisRuntime.eachLoop(makeFunction(function(i) {
-          thisRuntime.pauseStack(function(restarter) {
+          return thisRuntime.pauseStack(function(restarter) {
             thisRuntime.runThunk(function() {
               return thisRuntime.toReprJS(vals[i].val, vals[i].method || reprMethod);
             }, function(res) {
@@ -5472,38 +5472,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       } else {
         var prologue = "Spying";
         return thisRuntime.safeCall(function() {
-          var toBeRepred = [];
-          toBeRepred.push({name: "Message", val: message, method: thisRuntime.ReprMethods._tostring});
-          for (var i = 0; i < names.length; i++)
-            toBeRepred.push({name: names[i], val: vals[i]});
-          return toReprArray(toBeRepred, thisRuntime.ReprMethods._torepr);
+          vals = [message].concat(vals);
+          return raw_array_map(torepr, vals);
         }, function(rendered) {
-          var anyErrors = false;
-          if (rendered[0].val !== undefined) {
-            if (rendered[0].val !== "")
-              prologue += " " + rendered[0].val;
-          } else {
-            anyErrors = true;
-            prologue += " <could not render spy message; details below>";
-          }
+          if (rendered[0] !== "\"\"")
+            prologue += " " + rendered[0];
           prologue += " (at " + thisRuntime.getField(makeSrcloc(loc), "format").app(true) + ")";
           theOutsideWorld.stdout(prologue + "\n");
           for (var i = 1; i < rendered.length; i++) {
-            if (rendered[i].val !== undefined) {
-              theOutsideWorld.stdout("  " + rendered[i].name + ": " + rendered[i].val + "\n");
-            } else {
-              anyErrors = true;
-              theOutsideWorld.stdout("  " + rendered[i].name + ": <could not render value; details below>\n");
-            }
-          }
-          if (anyErrors) {
-            theOutsideWorld.stdout("Errors while rendering spy block:\n");
-            for (var i = 0; i < rendered.length; i++) {
-              if (rendered[i].exn !== undefined) {
-                theOutsideWorld.stdout("  For " + rendered[i].name + ":\n");
-                theOutsideWorld.stdout(String(rendered[i].exn) + "\n");
-              }
-            }
+            theOutsideWorld.stdout("  " + names[i - 1] + ": " + rendered[i] + "\n");
           }
           return thisRuntime.nothing;
         }, "spy");
