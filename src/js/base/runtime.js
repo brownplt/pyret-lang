@@ -1620,7 +1620,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.safeCall(function() {
           return display.app(val);
         }, function(_) {
-          return nothing;
+          return val;
         }, "print");
       }, "print");
 
@@ -1635,14 +1635,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a, false); }
         if (isString(val)) {
           theOutsideWorld.stdout(val);
-          return nothing;
+          return val;
         }
         else {
           return thisRuntime.safeCall(function() {
             return toReprJS(val, ReprMethods._tostring);
           }, function(repr) {
             theOutsideWorld.stdout(repr);
-            return nothing;
+            return val;
           }, "display");
         }
       }, "display");
@@ -1660,7 +1660,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.safeCall(function() {
           return display_error.app(val);
         }, function(_) {
-          return nothing;
+          return val;
         }, "print-error");
       }, "print-error");
 
@@ -1675,14 +1675,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a, false); }
         if (isString(val)) {
           theOutsideWorld.stderr(val);
-          return nothing;
+          return val;
         }
         else {
           return thisRuntime.safeCall(function() {
             return toReprJS(val, ReprMethods._tostring);
           }, function(repr) {
             theOutsideWorld.stderr(repr);
-            return nothing;
+            return val;
           }, "display-error");
         }
       }, "display-error");
