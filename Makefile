@@ -90,8 +90,6 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
-                      -allow-builtin-overrides \
-                      --builtin-js-dir build/phase0/trove \
                       --compiled-dir build/phaseA/compiled/ \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
@@ -323,8 +321,9 @@ test-clean:
 	$(call RMDIR, tests/compiled)
 
 # Written this way because cmd.exe complains about && in command lines
-new-bootstrap: no-diff-standalone
+new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 	cp $(PHASEC)/pyret.jarr $(PYRET_COMP0)
+	cp -r $(PHASEC)/js $(PHASE0)/
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 
