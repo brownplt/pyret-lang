@@ -115,7 +115,8 @@ sharing:
   end,
   method to-list(self): self.to-list-acc(empty) end,
   method map-to-list-left(self, f): revmap-to-list-acc(self, f, empty).reverse() end,
-  method map-to-list(self, f): self.map-to-list-acc(f, empty) end
+  method map-to-list(self, f): self.map-to-list-acc(f, empty) end,
+  method find(self, f): find(f, self) end
 where:
   ce = concat-empty
   co = concat-singleton
@@ -152,6 +153,30 @@ fun revmap-to-list-acc(self, f, revhead):
   else if is-concat-snoc(self):
     newhead = revmap-to-list-acc(self.head, f, revhead)
     link(f(self.last), newhead) # order of operations matters
+  end
+end
+
+rec shadow find = lam<a>(f :: (a -> Boolean), l :: ConcatList<a>) -> Option<a>:
+  doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
+
+  cases (ConcatList) l:
+    | concat-empty => none
+    | concat-singleton(e) => if f(e): some(e) else: none end
+    | concat-append(l1, l2) =>
+      result-left = find(f, l1)
+      if is-none(result-left):
+        find(f, l2)
+      else:
+        result-left
+      end
+    | concat-cons(e, r) => if f(e): some(e) else: find(f, r) end
+    | concat-snoc(r, e) =>
+      result-left = find(f, r)
+      if is-none(result-left):
+        if f(e): some(e) else: none end
+      else:
+        result-left
+      end
   end
 end
 

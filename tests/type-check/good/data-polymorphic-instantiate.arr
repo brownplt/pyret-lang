@@ -3,7 +3,7 @@ data My-List<A>:
   | my-link(first :: A, rest :: My-List<A>)
 end
 
-fun is-my-list-empty<A>(l :: My-List<A>):
+fun is-my-list-empty<A>(l :: My-List<A>) -> Boolean:
   cases (My-List<A>) l:
     | my-empty() => true
     | my-link(_, _) => false

@@ -4,6 +4,7 @@ import cmdline as C
 import either as E
 import parse-pyret as P
 import string-dict as SD
+import pprint as PP
 import file("../../src/arr/compiler/desugar.arr") as D
 import file("../../src/arr/compiler/desugar-check.arr") as DC
 import ast as A
@@ -17,6 +18,10 @@ import file("../../src/arr/compiler/anf.arr") as N
 import file("../../src/arr/compiler/js-of-pyret.arr") as JS
 import file("../../src/arr/compiler/desugar-check.arr") as CH
 import file as F
+import file("../../src/arr/compiler/js-ast.arr") as J
+
+# this value is the limit of number of steps that could be inlined in case body
+DEFAULT-INLINE-CASE-LIMIT = 5
 
 cl-options = [SD.string-dict:
   "width",
@@ -26,7 +31,9 @@ cl-options = [SD.string-dict:
   "check-mode",
     C.flag(C.once, "Compile code with check-mode enabled"),
   "type-check",
-    C.flag(C.once, "Type check code")
+    C.flag(C.once, "Type check code"),
+  "inline-case-body-limit",
+    C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
 ]
 
 parsed-options = C.parse-cmdline(cl-options)
@@ -35,21 +42,56 @@ compile-str = lam(filename, options):
   base-module = CS.dependency("file-no-cache", [list: filename])
   base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
+  traces = SD.make-mutable-string-dict()
   result = CL.compile-program(wlist, options.{
       collect-all: true,
       method before-compile(_, _): nothing end,
-      method on-compile(_, _, loadable): loadable end
+      method on-compile(_, locator, loadable, trace) block:
+        traces.set-now(locator.name(), trace)
+        loadable
+      end
     })
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List<CS.CompileResult>) errors:
     | empty =>
-      E.right(result.loadables)
+      E.right({result.loadables; traces})
     | link(_, _) =>
-      E.left(result.loadables)
+      E.left({result.loadables; traces})
   end
 end
 
 println = lam(s): print(s + "\n") end
+
+fun pretty-result(result):
+  if A.is-Program(result): result.tosource()
+  else if AN.is-AProg(result): result.tosource()
+  else if JS.is-CompiledCodePrinter(result): result.pyret-to-js-pretty()
+  else if CS.is-NameResolution(result): result.ast.tosource()
+  else if J.is-JExpr(result) or J.is-JStmt(result) or J.is-JBlock(result): result.tosource()
+  else if CS.is-CompileResult(result):
+    cases(CS.CompileResult) result:
+      | ok(c) => pretty-result(c)
+      | err(problems) => PP.flow-map(PP.hardline, lam(p): PP.str(tostring(p)) end, problems)
+    end
+  else if is-nothing(result): PP.mt-doc
+  else if SD.is-mutable-string-dict(result):
+    PP.surround-separate(2, 1, PP.lbrace + PP.rbrace,
+      PP.lbrace, PP.commabreak, PP.rbrace,
+      result.keys-list-now().sort().map(
+        lam(k):
+          PP.nest(2, PP.str(k) + PP.str(" => ") + PP.nest(2, pretty-result(result.get-value-now(k))))
+        end))
+  else if SD.is-string-dict(result):
+    PP.surround-separate(2, 1, PP.lbrace + PP.rbrace,
+      PP.lbrace, PP.commabreak, PP.rbrace,
+      result.keys-list().sort().map(
+        lam(k):
+          PP.nest(2, PP.str(k) + PP.str(" => ") + PP.nest(2, pretty-result(result.get-value(k))))
+        end))
+  else: PP.str(torepr(result))
+  end
+end
+
 
 
 cases (C.ParsedArguments) parsed-options block:
@@ -63,6 +105,7 @@ cases (C.ParsedArguments) parsed-options block:
       end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
+    inline-case-body-limit = opts.get-value("inline-case-body-limit")
     println("Success")
     cases (List) rest block:
       | empty => println("Require a file name")
@@ -71,6 +114,8 @@ cases (C.ParsedArguments) parsed-options block:
         options = CS.default-compile-options.{
           check-mode: check-mode,
           type-check: type-check,
+          proper-tail-calls: true,
+          inline-case-body-limit: inline-case-body-limit
         }
         compiled = compile-str(file, options)
         println("")
@@ -78,33 +123,18 @@ cases (C.ParsedArguments) parsed-options block:
         comp = cases(E.Either) compiled block:
           | left(v) =>
             println("Compilation failed")
-            v.last().result-printer.tolist()
-          | right(v) => v.last().result-printer.tolist()
+            {_; traces} = v
+            traces.get-value-now(file)
+          | right(v) =>
+            {_; traces} = v
+            traces.get-value-now(file)
         end
 
         for each(phase from comp) block:
           println("\n")
-          println(">>>>>>>>>>>>>>>>>>\n")
-          println(phase.name + ":\n")
-          if A.is-Program(phase.result) block: each(println, phase.result.tosource().pretty(print-width))
-          else if AN.is-AProg(phase.result): each(println, phase.result.tosource().pretty(print-width))
-          else if JS.is-CompiledCodePrinter(phase.result): println(phase.result.pyret-to-js-pretty(print-width))
-          else if CS.is-NameResolution(phase.result): each(println, phase.result.ast.tosource().pretty(print-width))
-          else if CS.is-CompileResult(phase.result):
-            cases(CS.CompileResult) phase.result block:
-              | ok(c) =>
-                if A.is-Program(c) block: each(println, c.tosource().pretty(print-width))
-                else if JS.is-CompiledCodePrinter(c): println(c.pyret-to-js-pretty(print-width))
-                else:
-                  println("Unknown CompileResult result type")
-                  println(torepr(c))
-                end
-              | err(problems) => each(println, problems.map(tostring))
-            end
-          else:
-            println("Unknown phase result type")
-            println(torepr(phase.result))
-          end
+          println(">>>>>>>>>>>>>>>>>>")
+          println(phase.name + ":   " + tostring(phase.time) + "ms")
+          each(println, pretty-result(phase.result).pretty(print-width))
         end
     end
   | arg-error(m, _) =>

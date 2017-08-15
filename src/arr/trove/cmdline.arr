@@ -38,6 +38,7 @@ import string-dict as D
 import lists as lists
 import either as E
 import option as O
+import valueskeleton as VS
 
 type Option = O.Option
 some = O.some
@@ -102,10 +103,10 @@ end
 
 
 data ParamRepeat:
-  | once with: method _tostring(_, ts): "may be used at most once" end
-  | many with: method _tostring(_, ts): "may be repeated" end
-  | required-once with: method _tostring(_, ts): "must be used exactly once" end
-  | required-many with: method _tostring(_, ts): "must be used at least once" end
+  | once with: method _output(_): VS.vs-value("may be used at most once") end
+  | many with: method _output(_): VS.vs-value("may be repeated") end
+  | required-once with: method _output(_): VS.vs-value("must be used exactly once") end
+  | required-many with: method _output(_): VS.vs-value("must be used at least once") end
 end
 
 data Param:
@@ -124,10 +125,9 @@ fun is-Param_(l):
 end
 
 # options : Dictionary of Params
-fun usage-info(options-raw) -> List<String>:
-  options = options-raw
+fun usage-info(options) -> List<String>:
   option-info = 
-    for lists.map(key from options.keys().to-list()):
+    for D.map-keys(key from options):
       cases(Param) options.get-value(key):
         | flag(repeated, desc) =>
           format("  -~a: ~a (~a)", [list: key, desc, repeated])
@@ -164,7 +164,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
   arguments do not satisfy the requirements of the Params dictionary.```
   opts-dict = options
   options-and-aliases =
-    for lists.fold(acc from {options: opts-dict, aliases: D.make-string-dict()}, key from opts-dict.keys().to-list()):
+    for D.fold-keys(acc from {options: opts-dict, aliases: D.make-string-dict()}, key from opts-dict):
       if is-arg-error(acc): acc
       else:
         cur-option = opts-dict.get-value(key)
@@ -363,7 +363,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
     parsed-results = process(success(D.make-string-dict(), [list: ]), 1, args)
     cases(ParsedArguments) parsed-results:
       | success(parsed, other) =>
-        filled-missing-defaults = for lists.fold(acc from parsed, key from opts-dict.keys-list()):
+        filled-missing-defaults = for D.fold-keys(acc from parsed, key from opts-dict):
           cases(Param) opts-dict.get-value(key):
             | next-val-default(_, default, _, repeated, _) =>
               if not(acc.has-key(key)) and ((repeated == once) or (repeated == many)): acc.set(key, default)

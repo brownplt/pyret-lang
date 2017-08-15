@@ -144,11 +144,27 @@
       raise(err("internal-error")(runtime.makeString(message), otherArgs));
     }
 
+    function makeInternalError(message, otherArgs) {
+      runtime.checkString(message);
+      runtime.checkList(otherArgs);
+      return err("internal-error")(runtime.makeString(message), otherArgs);
+    }
+
+    function throwSpinnakerError(loc, stepNum) {
+      runtime.checkNumber(stepNum);
+      raise(err("spinnaker-error")(runtime.makeSrcloc(loc), stepNum));
+    }
+
     function throwFieldNotFound(loc, object, field) {
       checkSrcloc(loc);
       runtime.checkPyretVal(object);
       runtime.checkString(field);
       raise(err("field-not-found")(loc, object, runtime.makeString(field)));
+    }
+    function throwConstructorSyntaxNonConstructor(exprLoc, constrLoc) {
+      checkSrcloc(exprLoc);
+      checkSrcloc(constrLoc);
+      raise(err("constructor-syntax-non-constructor")(exprLoc, constrLoc));
     }
     function throwLookupConstructorNotObject(loc, constrName, field) {
       checkSrcloc(loc);
@@ -260,14 +276,6 @@
       raise(err("invalid-array-index")(methodName, array, index, reason));
     }
 
-    function throwInvalidTableColumn(table, table_loc, column, column_loc) {
-      runtime.checkTable(table);
-      runtime.checkString(column);
-      checkSrcloc(table_loc);
-      checkSrcloc(column_loc);
-      raise(err("invalid-table-column")(table, table_loc, column, column_loc));
-    }
-
     function throwNumStringBinopError(left, right, opname, opdesc, methodname) {
       runtime.checkPyretVal(left);
       runtime.checkPyretVal(right);
@@ -329,17 +337,18 @@
       throwUninitializedId(runtime.makeSrcloc(loc), name);
     }
 
-    function throwArityError(funLoc, arity, args) {
+    function throwArityError(funLoc, arity, args, isMethod) {
       checkSrcloc(funLoc);
       runtime.checkNumber(arity);
       runtime.checkList(args);
-      raise(err("arity-mismatch")(funLoc, arity, args));
+      runtime.checkBoolean(isMethod);
+      raise(err("arity-mismatch")(funLoc, arity, args, isMethod));
     }
 
-    function throwArityErrorC(funLoc, arity, args) {
+    function throwArityErrorC(funLoc, arity, args, isMethod) {
       var loc = runtime.makeSrcloc(funLoc);
       var argsPyret = makeList(args);
-      throwArityError(loc, arity, argsPyret);
+      throwArityError(loc, arity, argsPyret, isMethod);
     }
 
     function throwConstructorArityErrorC(funLoc, name, arity, args) {
@@ -350,31 +359,35 @@
       raise(err("constructor-arity-mismatch")(loc, name, arity, argsPyret));
     }
 
-    function throwCasesArityError(branchLoc, arity, fields, casesLoc) {
+    function throwCasesArityError(branchLoc, arity, fields, casesLoc, constructorLoc) {
       checkSrcloc(branchLoc);
       runtime.checkNumber(arity);
       runtime.checkNumber(fields);
-      checkSrcloc(casesLoc)
-      raise(err("cases-arity-mismatch")(branchLoc, arity, fields, casesLoc));
+      checkSrcloc(casesLoc);
+      checkSrcloc(constructorLoc);
+      raise(err("cases-arity-mismatch")(branchLoc, arity, fields, casesLoc, constructorLoc));
     }
 
-    function throwCasesArityErrorC(branchLoc, arity, fields, casesLoc) {
+    function throwCasesArityErrorC(branchLoc, arity, fields, casesLoc, constructorLoc) {
       var loc = runtime.makeSrcloc(branchLoc);
       var cloc = runtime.makeSrcloc(casesLoc);
-      throwCasesArityError(loc, arity, fields, cloc);
+      var constructorLoc = runtime.makeSrcloc(constructorLoc);
+      throwCasesArityError(loc, arity, fields, cloc, constructorLoc);
     }
 
-    function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc) {
+    function throwCasesSingletonError(branchLoc, shouldBeSingleton, casesLoc, constructorLoc) {
       checkSrcloc(branchLoc);
       runtime.checkBoolean(shouldBeSingleton);
       checkSrcloc(casesLoc)
-      raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc));
+      checkSrcloc(constructorLoc)
+      raise(err("cases-singleton-mismatch")(branchLoc, shouldBeSingleton, casesLoc, constructorLoc));
     }
 
-    function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc) {
+    function throwCasesSingletonErrorC(branchLoc, shouldBeSingleton, casesLoc, constructorLoc) {
       var loc = runtime.makeSrcloc(branchLoc);
       var cloc = runtime.makeSrcloc(casesLoc);
-      throwCasesSingletonError(loc, shouldBeSingleton, cloc);
+      var constructorLoc = runtime.makeSrcloc(constructorLoc);
+      throwCasesSingletonError(loc, shouldBeSingleton, cloc, constructorLoc);
     }
 
     function throwNonBooleanCondition(locArray, type, val) {
@@ -404,6 +417,24 @@
       raise(err("non-function-app")(runtime.makeSrcloc(locArray), funVal));
     }
 
+    function throwColumnNotFound(operation_loc, col_name, col_loc, columns) {
+      runtime.checkString(col_name);
+      runtime.checkList(columns);
+      raise(err("column-not-found")(
+        runtime.makeSrcloc(operation_loc),
+        col_name,
+        runtime.makeSrcloc(col_loc),
+        columns));
+    }
+
+    function throwDuplicateColumn(operation_loc, col_name, col_loc) {
+      runtime.checkString(col_name);
+      raise(err("duplicate-column")(
+        runtime.makeSrcloc(operation_loc),
+        col_name,
+        runtime.makeSrcloc(col_loc)));
+    }
+
     function throwParseErrorNextToken(loc, nextToken) {
       raise(err("parse-error-next-token")(loc, nextToken));
     }
@@ -418,6 +449,9 @@
     }
     function throwParseErrorBadOper(loc) {
       raise(err("parse-error-bad-operator")(loc));
+    }
+    function throwParseErrorBadCheckOper(loc) {
+      raise(err("parse-error-bad-check-operator")(loc));
     }
 
     function throwModuleLoadFailureL(names) {
@@ -509,6 +543,10 @@
     var isEmpty = gf(L, "is-empty").app;
     var isLink = gf(L, "is-link").app;
 
+    function isList(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }
+
+    runtime.makePrimAnn("List", isList);
+
     return runtime.makeJSModuleReturn({
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
@@ -517,7 +555,9 @@
       throwNumStringBinopError: throwNumStringBinopError,
       throwNumericBinopError: throwNumericBinopError,
       throwInternalError: throwInternalError,
+      throwSpinnakerError: throwSpinnakerError,
       throwFieldNotFound: throwFieldNotFound,
+      throwConstructorSyntaxNonConstructor: throwConstructorSyntaxNonConstructor,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
       throwLookupNonTuple: throwLookupNonTuple,
@@ -545,15 +585,17 @@
       throwNoBranchesMatched: throwNoBranchesMatched,
       throwNoCasesMatched: throwNoCasesMatched,
       throwNonFunApp: throwNonFunApp,
+      throwColumnNotFound: throwColumnNotFound,
+      throwDuplicateColumn: throwDuplicateColumn,
       throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
-      throwInvalidTableColumn: throwInvalidTableColumn,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorEOF: throwParseErrorEOF,
       throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
       throwParseErrorBadNumber: throwParseErrorBadNumber,
       throwParseErrorBadOper: throwParseErrorBadOper,
+      throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
@@ -584,12 +626,15 @@
       isUnknown: isUnknown,
       isEqualityResult: isEqualityResult,
 
+      makeInternalError: makeInternalError,
       makeMessageException: makeMessageException,
       makeUserException: makeUserException,
       makeModuleLoadFailureL: makeModuleLoadFailureL,
 
       userBreak: gf(ERR, "user-break"),
       isUserBreak: errPred("is-user-break"),
+      isExit: errPred("is-exit"),
+      isExitQuiet: errPred("is-exit-quiet"),
 
       errPred: errPred,
 
@@ -615,8 +660,8 @@
       makeRight: function(r) { return runtime.getField(E, "right").app(r); },
 
       toArray: toArray,
-      isList: function(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); },
-      isLink : isLink,
+      isList: isList,
+      isLink: isLink,
       isEmpty : isEmpty,
 
       isErrorDisplay: isErrorDisplay,

@@ -10,7 +10,7 @@
 # shows that it is simple to build "each" from this.
 fun loop(f, i :: { init :: Any, test :: (Any -> Boolean), next :: (Any -> Any) }) -> Nothing:
   doc: "A C-like loop construct."
-  if i.test(i.init):
+  if i.test(i.init) block:
     f(i.init)
     loop(f, i.{ init: i.next(i.init) })
   else:
@@ -43,7 +43,7 @@ where:
   fun each-loop(f, lst):
     loop(f, { init: lst, test: is-link, next: _.rest })
   end
-  for loop(i from { init: 10, test: _ < 20, next: _ + 1 }):
+  for loop(i from { init: 10, test: _ < 20, next: _ + 1 }) block:
     sum := 0
     nums = range(0, i)
     for each(elt from nums):
@@ -64,7 +64,7 @@ fun gcd(a, b):
   if b == 0: a else: gcd(b, num-modulo(a, b)) end
 end
 
-fun pollard-rho(n :: Number) -> Option:
+fun pollard-rho(n :: Number) -> Option block:
   doc: "Attempts to factor the given number using Pollard's rho algorithm."
   fun f-m(m):
     lam(x): num-modulo(((x * x) + m), n) end
@@ -72,14 +72,14 @@ fun pollard-rho(n :: Number) -> Option:
   var factor = none
   for loop(fs from { init: map(f-m, [list: -1,2,-3]),
                      test: lam(fs): is-none(factor) and is-link(fs) end,
-                     next: _.rest }):
+                     next: _.rest }) block:
     f = fs.first
     var x = 2
     var y = 2
     var d = 1
     for loop(i from { init: nothing,
                       test: lam(_): d == 1 end,
-                      next: lam(_): nothing end }):
+                      next: lam(_): nothing end }) block:
       x := f(x)
       y := f(f(y))
       d := gcd(num-abs(x - y), n)

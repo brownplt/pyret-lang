@@ -25,13 +25,20 @@ end
 val = lam(str): L.get-result-answer(get-run-answer(str)) end
 msg = lam(str): L.render-error-message(get-run-answer(str)) end
 
+fun startswith(hay, needle):
+  needle-len = string-length(needle)
+  hay-len = string-length(hay)
+  (needle-len <= hay-len) and
+  string-equal(string-substring(hay, 0, needle-len), needle)
+end
+
 check:
   r = RT.make-runtime()
 
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, CLI.module-finder)
+  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
   fun restart(src, type-check):
     i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
-    repl.restart-interactions(i, type-check)
+    repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
   end
   fun next-interaction(src):
     i = repl.make-interaction-locator(lam(): src end)
@@ -128,5 +135,128 @@ check:
   result27 = next-interaction("a + e.{1} + f.{0} + g.{1} + h")
   val(result27) is some(27)
 
-end
+  result28 = restart("var var-to-change-at-repl = 7", false)
+  result29 = next-interaction("var-to-change-at-repl := 5\nvar-to-change-at-repl")
+  val(result29) is some(5)
+  result30 = next-interaction("var-to-change-at-repl")
+  val(result30) is some(5)
+  result31 = next-interaction("fun f(): var-to-change-at-repl end")
+  result32 = next-interaction("var-to-change-at-repl := 22")
+  result33 = next-interaction("f()")
+  val(result33) is some(22)
 
+  # Make sure a stack 3 levels deep works
+  result34 = restart("fun f(): 9() end", false)
+  result35 = next-interaction("fun g(): f() end")
+  result36 = next-interaction("g()")
+  result36.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result36.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 9",
+    "interactions://1: line 1, column 9",
+    "interactions://2: line 1, column 0"]
+
+  # Call a bunch of flat functions
+  result37 = restart("fun f(o): o.x end\n" +
+                     "fun g(): f({}) end\n" +
+                     "fun h(): f({x: \"a\"}) end\n" +
+                     "fun j(): string-append(g(), h()) end", false)
+  result38 = next-interaction("j()")
+  result38.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result38.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 10",
+    "definitions://: line 2, column 9",
+    "definitions://: line 4, column 23",
+    "interactions://1: line 1, column 0"]
+
+  #Call a tail-recursive function that has an error at the deepest level
+  result39 = restart("fun len(l, acc):\n" +
+  "  cases (List) l:\n" +
+  "    | empty => l.notafield\n" +
+  "    | link(_, r) => len(r, 1 + acc)\n" +
+  "  end\n" +
+  "end",
+  false)
+  result40 = next-interaction("len(range(0, 10), 0)")
+  stacktrace = L.get-result-stacktrace(result40.v)
+
+  # Due to tail call optimization, the stack trace may not have any of the
+  # "middle" frames, though it should definitely have the topmost and bottom
+  # most frames.
+  raw-array-get(stacktrace, 0) is "definitions://: line 3, column 15"
+  raw-array-get(stacktrace,
+    raw-array-length(stacktrace) - 1) is "interactions://1: line 1, column 0"
+
+  result41 = restart("fun f(o): o.x end\n" +
+                     "fun g(): f(5)\n end", false)
+  result42 = next-interaction("g()")
+  result42.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result42.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 10",
+    "definitions://: line 2, column 9",
+    "interactions://1: line 1, column 0"]
+
+  #Method call test
+  result43 = restart("fun f(o): o.x() end\n" +
+                     "fun g(): f({x: 5})\n end", false)
+  result44 = next-interaction("g()")
+  result44.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result44.v) is=~
+  [raw-array:
+    "definitions://: line 1, column 10",
+    "definitions://: line 2, column 9",
+    "interactions://1: line 1, column 0"]
+
+  # stacktrace through list.map()
+  result45 = restart("fun f():\n" +
+    "h = lam(x): 9() end\n" +
+    "[list: 1, 2, 3].map(h)\n" +
+    "end", false)
+  result46 = next-interaction("f()")
+  result46.v satisfies L.is-failure-result
+  stacktrace46 = L.get-result-stacktrace(result46.v)
+
+  raw-array-length(stacktrace46) is 5
+  raw-array-get(stacktrace46, 0) is "definitions://: line 2, column 12"
+  # Don't check the actual line number in the builtin:lists
+  startswith(raw-array-get(stacktrace46, 1), "builtin://lists:")
+  startswith(raw-array-get(stacktrace46, 2), "builtin://lists:")
+  raw-array-get(stacktrace46, 3) is "definitions://: line 3, column 0"
+  raw-array-get(stacktrace46, 4) is "interactions://1: line 1, column 0"
+
+  # stacktrace through builtin raw-list-map
+  result47 = restart("fun f():\n" +
+    "h = lam(x): x.somefield end\n" +
+    "builtins.raw-list-map(h, [list: 1, 2, 3])\n" +
+    "end", false)
+  result48 = next-interaction("f()")
+  result48.v satisfies L.is-failure-result
+  L.get-result-stacktrace(result48.v) is=~
+  [raw-array:
+    "definitions://: line 2, column 12",
+    "definitions://: line 3, column 0",
+    "interactions://1: line 1, column 0"]
+
+
+  result49 = restart("fun sum(x):\n" +
+    "if x == 0:\n" +
+    "  9()\n" +
+    "else:\n" +
+    "  x + sum(x - 1)\n" +
+    "end\n" +
+  "end", false)
+
+  # Should be plenty enough to bounce
+  ncalls = 1000
+  result50 = next-interaction("sum(" + tostring(ncalls) + ")")
+  result50.v satisfies L.is-failure-result
+  stacktrace50-list = raw-array-to-list(L.get-result-stacktrace(result50.v))
+
+  stacktrace50-list is
+  [list: "definitions://: line 3, column 2"] +
+  repeat(ncalls, "definitions://: line 5, column 6") +
+  [list: "interactions://1: line 1, column 0"]
+
+end

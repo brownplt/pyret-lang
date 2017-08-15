@@ -212,3 +212,50 @@ check "non-equality result from equals":
   o = { method _equals(_, _, _): true end }
   o == {} raises "EqualityResult"
 end
+
+check "https://github.com/brownplt/pyret-lang/issues/896":
+  var firsteq = nothing
+  var secondeq = nothing
+  
+  o = {
+    method _equals(self, other, eq) block:
+      v1 = {}
+      v2 = {x:"a"}
+      firsteq := eq([list: v1], [list: v2])
+      secondeq := eq(v1, v2)
+      eq(1, 1)
+    end
+  }
+  o == {}
+  firsteq satisfies E.is-NotEqual
+  secondeq satisfies E.is-NotEqual
+end
+
+check "https://github.com/brownplt/pyret-lang/issues/896":
+  var firsteq = nothing
+  var secondeq = nothing
+  
+  o = {
+    method _equals(self, other, eq) block:
+      v1 = {}
+      v2 = {x:"a"}
+      firsteq := eq(v1, v2)
+      secondeq := eq(v1, v2)
+      eq(1, 1)
+    end
+  }
+  o == {}
+  firsteq satisfies E.is-NotEqual
+  secondeq satisfies E.is-NotEqual
+end
+
+check "https://github.com/brownplt/pyret-lang/issues/895":
+  list-to-set([list:
+    [list: "top","mid-a"],
+    [list: "top","mid-b","low-b-a"],
+    [list: "top","mid-b"]]) is-not
+  list-to-set([list:
+    [list: [list: "top","mid-a"]],
+    [list: "top","mid-b"],
+    [list: "top","mid-b","low-b-a"]])
+end

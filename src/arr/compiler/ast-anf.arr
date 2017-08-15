@@ -170,7 +170,7 @@ data AExpr:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(elt): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -250,7 +250,7 @@ end
 
 
 data ACasesBranch:
-  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
+  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ACasesBind>, body :: AExpr) with:
     method label(self): "a-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
@@ -276,6 +276,11 @@ data ADefinedValue:
     method label(self): "a-defined-value" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
+    end
+  | a-defined-var(name :: String, id :: A.Name) with:
+    method label(self): "a-defined-var" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.toname())
     end
 sharing:
   method visit(self, visitor):
@@ -351,7 +356,7 @@ data ALettable:
     method tosource(self):
       PP.group(PP.nest(INDENT, self.id.to-compiled-source() + str-spacecolonequal + break-one + self.value.tosource()))
     end
-  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>) with:
+  | a-app(l :: Loc, _fun :: AVal, args :: List<AVal>, app-info :: A.AppInfo) with:
     method label(self): "a-app" end,
     method tosource(self):
       PP.group(self._fun.tosource()
@@ -469,6 +474,9 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
+  | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
+    method label(self): "a-id-safe-letrec" end,
+    method tosource(self): PP.str("~" + tostring(self.id)) end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -526,8 +534,8 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
-    | a-app(_, f, args) =>
-      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val))
+    | a-app(_, f, args, app-info) =>
+      a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), app-info)
     | a-method-app(_, obj, meth, args) =>
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
@@ -571,6 +579,7 @@ fun strip-loc-val(val :: AVal):
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
+    | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
   end
 end
 
@@ -612,7 +621,7 @@ default-map-visitor = {
   method a-cases-bind(self, l, typ, bind):
     a-cases-bind(l, typ, bind.visit(self))
   end,
-  method a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
+  method a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ACasesBind>, body :: AExpr):
     a-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
   method a-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr):
@@ -639,8 +648,8 @@ default-map-visitor = {
   method a-assign(self, l :: Loc, id :: A.Name, value :: AVal):
     a-assign(l, id, value.visit(self))
   end,
-  method a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>):
-    a-app(l, _fun.visit(self), args.map(_.visit(self)))
+  method a-app(self, l :: Loc, _fun :: AVal, args :: List<AVal>, app-info :: A.AppInfo):
+    a-app(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
   method a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
     a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))
@@ -713,6 +722,9 @@ default-map-visitor = {
   end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     a-id-letrec(l, id, safe)
+  end,
+  method a-id-safe-letrec(self, l :: Loc, id :: A.Name):
+    a-id-safe-letrec(l, id)
   end
 }
 
@@ -722,10 +734,7 @@ fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
   end
 end
 
-rec get-ann = _.ann
-
 fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
-  lst-a = freevars-list-acc(_, seen-so-far)
   cases(A.Ann) ann block:
     | a-blank => seen-so-far
     | a-any(l) => seen-so-far
@@ -736,12 +745,15 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-dot(l, left, right) =>
       seen-so-far.set-now(left.key(), left)
       seen-so-far
-    | a-arrow(l, args, ret, _) => lst-a(link(ret, args))
-    | a-method(l, args, ret) => lst-a(link(ret, args))
-    | a-record(l, fields) => lst-a(fields.map(get-ann))
-    | a-tuple(l, fields) => lst-a(fields)
-    | a-app(l, a, args) => lst-a(link(a, args))
-    | a-method-app(l, a, _, args) => lst-a(link(a, args))
+    | a-arrow(l, args, ret, _) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
+    | a-method(l, args, ret) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
+    | a-record(l, fields) =>
+      for fold(acc from seen-so-far, f from fields):
+        freevars-ann-acc(f.ann, acc)
+      end
+    | a-tuple(l, fields) => freevars-list-acc(fields, seen-so-far)
+    | a-app(l, a, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
+    | a-method-app(l, a, _, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
     | a-pred(l, a, pred) =>
       name = cases(A.Expr) pred:
         | s-id(_, n) => n
@@ -794,7 +806,7 @@ where:
   y = n("y")
   freevars-e(
       a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4)),
-        a-lettable(d, a-val(d, a-id(d, y))))).keys().to-list() is [list: y.key()]
+        a-lettable(d, a-val(d, a-id(d, y))))).keys-list() is [list: y.key()]
 end
 
 fun freevars-variant-acc(v :: AVariant, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
@@ -810,8 +822,6 @@ fun freevars-variant-acc(v :: AVariant, seen-so-far :: NameDict<A.Name>) -> Name
   end
 end
 
-rec get-id = _.id
-
 fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   for fold(acc from seen-so-far, b from branches):
     cases(ACasesBranch) b block:
@@ -819,8 +829,8 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
         from-body = freevars-e-acc(body, acc)
         shadow args = args.map(_.bind)
         without-args = from-body
-        for each(arg from args.map(get-id)):
-          without-args.remove-now(arg.key())
+        for each(arg from args):
+          without-args.remove-now(arg.id.key())
         end
         for fold(inner-acc from without-args, arg from args):
           freevars-ann-acc(arg.ann, inner-acc)
@@ -844,10 +854,14 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
             freevars-e-acc(_else, seen-so-far))))
     | a-if(_, c, t, a) =>
       freevars-e-acc(a, freevars-e-acc(t, freevars-v-acc(c, seen-so-far)))
+    | a-array(_, vs) =>
+      for fold(acc from seen-so-far, shadow v from vs):
+        freevars-v-acc(v, acc)
+      end
     | a-assign(_, id, v) =>
       seen-so-far.set-now(id.key(), id)
       freevars-v-acc(v, seen-so-far)
-    | a-app(_, f, args) =>
+    | a-app(_, f, args, _) =>
       from-f = freevars-v-acc(f, seen-so-far)
       for fold(acc from from-f, arg from args):
         freevars-v-acc(arg, acc)
@@ -864,8 +878,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-lam(_, _, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       without-args = from-body
-      for each(arg from args.map(get-id)):
-        without-args.remove-now(arg.key())
+      for each(arg from args):
+        without-args.remove-now(arg.id.key())
       end
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
@@ -874,8 +888,8 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-method(_, _, args, ret, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       without-args = from-body
-      for each(arg from args.map(get-id)):
-        without-args.remove-now(arg.key())
+      for each(arg from args):
+        without-args.remove-now(arg.id.key())
       end
       from-args = for fold(acc from without-args, a from args):
         freevars-ann-acc(a.ann, acc)
@@ -942,6 +956,9 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-id-letrec(_, id, _) =>
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
+    | a-id-safe-letrec(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far

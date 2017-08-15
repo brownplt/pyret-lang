@@ -1,4 +1,4 @@
-define(["jglr/jglr"], function(E) {
+define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
   const Grammar = E.Grammar
   const Nonterm = E.Nonterm
   const Token = E.Token
@@ -121,9 +121,11 @@ define(["jglr/jglr"], function(E) {
 
   const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
-  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?"  + unsigned_decimal_part, STICKY_REGEXP);
 
   const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
+
+  const roughrational = new RegExp("^~[-+]?" + unsigned_rational_part, STICKY_REGEXP);
 
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
@@ -260,7 +262,7 @@ define(["jglr/jglr"], function(E) {
     {name: "SOURCECOLON", val: new RegExp(kw("source:"), STICKY_REGEXP)},
     {name: "REACTOR", val: new RegExp(kw("reactor"), STICKY_REGEXP)},
     {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
-    {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP)},
+    {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP), parenIsForExp: true},
     {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},
     {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
@@ -296,6 +298,7 @@ define(["jglr/jglr"], function(E) {
     {name: "BAR", val: bar, parenIsForExp: true},
 
     {name: "RATIONAL", val: rational},
+    {name: "ROUGHRATIONAL", val: roughrational},
     {name: "NUMBER", val: number},
     {name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},

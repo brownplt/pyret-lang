@@ -2,9 +2,16 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["pyret-base/js/secure-loader"],
+  nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
+    var EXIT_SUCCESS = 0;
+    var EXIT_ERROR = 1;
+    var EXIT_ERROR_RENDERING_ERROR = 2;
+    var EXIT_ERROR_DISPLAYING_ERROR = 3;
+    var EXIT_ERROR_CHECK_FAILURES = 4;
+    var EXIT_ERROR_JS = 5;
+    var EXIT_ERROR_UNKNOWN = 6;
 
 
     var brandModule = runtime.namedBrander("module", ["load-lib: module brander"]);
@@ -40,13 +47,22 @@
       return m;
     }
 
-    function makeModuleResult(runtimeForModule, result, realm, compileResult) {
+    function makeModuleResult(runtimeForModule, result, realm, compileResult, program) {
       return runtime.makeOpaque({
         runtime: runtimeForModule,
         result: result,
         realm: realm,
-        compileResult: compileResult
+        compileResult: compileResult,
+        program: program
       });
+    }
+
+    function getModuleResultProgram(result) {
+      return result.val.program;
+    }
+
+    function enrichStack(exn, program) {
+      return stackLib.convertExceptionToPyretStackTrace(exn, program);
     }
 
     function checkSuccess(mr, field) {
@@ -58,6 +74,11 @@
         console.error(mr.val.result);
         console.error(mr.val.result.exn);
         runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
+      }
+    }
+    function checkExn(mr) {
+      if (!(mr.val.runtime.isFailureResult(mr.val.result))) {
+        runtime.ffi.throwMessageException("Tried to get exn of non-failing module result.");
       }
     }
     function isSuccessResult(mr) {
@@ -84,6 +105,21 @@
     }
     function getResultProvides(mr) {
       return mr.val.provides;
+    }
+    function getResultStackTrace(mr) {
+      var runtime = mr.val.runtime;
+      if (!runtime.isFailureResult(mr.val.result)) {
+        runtime.ffi.throwMessageException("Tried to get stacktrace of non-failing module result.");
+      }
+
+      var res = getModuleResultResult(mr);
+      var stackString = runtime.printPyretStack(res.exn.pyretStack);
+      var stackFrames = stackString.split("\n");
+      var pyretStackFrames = stackFrames.map(function(frameString){
+        return runtime.makeString(frameString.trim());
+      });
+
+      return runtime.makeArray(pyretStackFrames);
     }
     function getModuleResultRuntime(mr) {
       return mr.val.runtime;
@@ -124,39 +160,83 @@
       checkSuccess(mr, "checks");
       return mr.val.runtime.getField(mr.val.result.result, "checks");
     }
+    function getModuleResultExn(mr) {
+      checkExn(mr);
+      return mr.val.result.exn.exn;
+    }
+    function getErrorModField(mr, field) {
+      var execRt = mr.val.runtime;
+      var errorMod = execRt.modules["builtin://error"];
+      var error = execRt.getField(errorMod, "provide-plus-types");
+      var errorValues = execRt.getField(error, "values")
+      return execRt.getField(errorValues, field);
+    }
+    function isExit(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      var toCall = getErrorModField(mr, "is-exit");
+      return runtime.unwrap(toCall.app(exn));
+    }
+    function isExitQuiet(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      var toCall = getErrorModField(mr, "is-exit-quiet");
+      return runtime.unwrap(toCall.app(exn));
+    }
+    function getExitCode(mr) {
+      checkExn(mr);
+      var exn = mr.val.result.exn.exn;
+      return mr.val.runtime.getField(exn, "code");
+    }
     function renderCheckResults(mr) {
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         var checkerMod = execRt.modules["builtin://checker"];
         var checker = execRt.getField(checkerMod, "provide-plus-types");
         var toCall = execRt.getField(execRt.getField(checker, "values"), "render-check-results-stack");
         var getStack = function(err) {
-          console.error("The error is: ", err);
-          var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
+          // console.error("The error is: ", err);
+          var locArray = err.val.pyretStack.map(execRt.makeSrcloc);
           var locList = execRt.ffi.makeList(locArray);
           return locList;
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
         execRt.runThunk(function() { return toCall.app(checks, getStackP); },
-          function(printedCheckResult) {
-            if(execRt.isSuccessResult(printedCheckResult)) {
-              if(execRt.isString(printedCheckResult.result)) {
-                restarter.resume(runtime.makeString(execRt.unwrap(printedCheckResult.result)));
+          function(renderedCheckResults) {
+            var resumeWith = {
+              message: "Unknown error!",
+              'exit-code': EXIT_ERROR_UNKNOWN
+            };
+
+            if(execRt.isSuccessResult(renderedCheckResults)) {
+              resumeWith.message = execRt.unwrap(execRt.getField(renderedCheckResults.result, "message"));
+              var errs = execRt.getField(renderedCheckResults.result, "errored");
+              var failed = execRt.getField(renderedCheckResults.result, "failed");
+              if(errs !== 0 || failed !== 0) {
+                resumeWith["exit-code"] = EXIT_ERROR_CHECK_FAILURES;
+              } else {
+                resumeWith["exit-code"] = EXIT_SUCCESS;
               }
             }
-            else if(execRt.isFailureResult(printedCheckResult)) {
-              console.error(printedCheckResult.exn.dict);
-              restarter.resume(runtime.makeString("There was an exception while formatting the check results"));
+            else if(execRt.isFailureResult(renderedCheckResults)) {
+              console.error(renderedCheckResults.exn);
+              resumeWith.message = "There was an exception while formatting the check results";
+              resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
             }
+
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString(resumeWith.message),
+              'exit-code': runtime.makeNumber(resumeWith["exit-code"])
+            }));
           });
       });
     }
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         // TODO(joe): This works because it's a builtin and already loaded on execRt.
         // In what situations may this not work?
         var rendererrorMod = execRt.modules["builtin://render-error-display"];
@@ -188,11 +268,16 @@
           }
         }, function(v) {
           if(execRt.isSuccessResult(v)) {
-            return restarter.resume(v.result)
+            restarter.resume(runtime.makeObject({
+              message: v.result,
+              'exit-code': runtime.makeNumber(EXIT_ERROR)
+            }));
           } else {
-            console.error("load error");
-            console.error("There was an exception while rendering the exception: ", v.exn);
-
+            console.error(v.exn);
+            restarter.resume(runtime.makeObject({
+              message: runtime.makeString("Load error: there was an exception while rendering the exception."),
+              'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
+            }));
           }
         })
       });
@@ -203,13 +288,16 @@
     }
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
-    function runProgram(otherRuntimeObj, realmObj, programString) {
+    function runProgram(otherRuntimeObj, realmObj, programString, options, commandLineArguments) {
+      var checkAll = runtime.getField(options, "check-all");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
+      otherRuntime.setParam("command-line-arguments", runtime.ffi.toArray(commandLineArguments));
       var realm = Object.create(runtime.getField(realmObj, "realm").val);
       var program = loader.safeEval("return " + programString, {});
       var staticModules = program.staticModules;
       var depMap = program.depMap;
       var toLoad = program.toLoad;
+      var uris = program.uris;
 
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
@@ -217,7 +305,7 @@
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
+        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
@@ -243,13 +331,13 @@
         "builtin://checker": function(checker) {
           var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), true);
+          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
           otherRuntime.setParam("current-checker", currentChecker);
         }
       };
 
 
-      runtime.pauseStack(function(restarter) {
+      return runtime.pauseStack(function(restarter) {
         var mainReached = false;
         var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {
@@ -263,37 +351,49 @@
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
-            restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing));
+            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
+
+            restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing, program));
           }
           else {
             var finalResult = otherRuntime.makeSuccessResult(mainResult);
             finalResult.stats = result.stats;
-            restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing));
+            restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing, program));
           }
         });
       });
 
     }
+    var vals = {
+      "run-program": runtime.makeFunction(runProgram, "run-program"),
+      "is-success-result": runtime.makeFunction(isSuccessResult, "is-success-result"),
+      "is-failure-result": runtime.makeFunction(isFailureResult, "is-failure-result"),
+      "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
+      "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
+      "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
+      "get-result-stacktrace": runtime.makeFunction(getResultStackTrace, "get-result-stacktrace"),
+      "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
+      "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
+      "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm"),
+      "is-exit": runtime.makeFunction(isExit, "is-exit"),
+      "is-exit-quiet": runtime.makeFunction(isExitQuiet, "is-exit-quiet"),
+      "get-exit-code": runtime.makeFunction(getExitCode, "get-exit-code"),
+    };
+    var types = {
+      Module: annModule,
+      ModuleResult: annModuleResult,
+      Realm: annRealm
+    };
     return runtime.makeObject({
+      'defined-values': vals,
+      'defined-types': types,
       "provide-plus-types": runtime.makeObject({
-        values: runtime.makeObject({
-          "run-program": runtime.makeFunction(runProgram, "run-program"),
-          "is-success-result": runtime.makeFunction(isSuccessResult, "is-success-result"),
-          "is-failure-result": runtime.makeFunction(isFailureResult, "is-failure-result"),
-          "get-result-answer": runtime.makeFunction(getAnswerForPyret, "get-result-answer"),
-          "get-result-realm": runtime.makeFunction(getRealm, "get-result-realm"),
-          "get-result-compile-result": runtime.makeFunction(getResultCompileResult, "get-result-compile-result"),
-          "render-check-results": runtime.makeFunction(renderCheckResults, "render-check-results"),
-          "render-error-message": runtime.makeFunction(renderErrorMessage, "render-error-message"),
-          "empty-realm": runtime.makeFunction(emptyRealm, "empty-realm")
-        }),
-        types: {
-          Module: annModule,
-          ModuleResult: annModuleResult,
-          Realm: annRealm
-        },
+        values: runtime.makeObject(vals),
+        types: types,
         internal: {
           makeRealm: makeRealm,
+          enrichStack: enrichStack,
+          getModuleResultProgram: getModuleResultProgram,
           getModuleResultAnswer: getModuleResultAnswer,
           getModuleResultChecks: getModuleResultChecks,
           getModuleResultTypes: getModuleResultTypes,

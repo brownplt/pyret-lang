@@ -16,23 +16,22 @@ t-nothing = T.t-nothing(A.dummy-loc)
 t-str = T.t-string(A.dummy-loc)
 t-boolean = T.t-boolean(A.dummy-loc)
 t-number = T.t-number(A.dummy-loc)
-t-arrow = T.t-arrow(_, _, A.dummy-loc)
-t-top = T.t-top(A.dummy-loc)
-t-member = T.t-member(_, _)
-t-bot = T.t-bot(A.dummy-loc)
-t-record = T.t-record(_, A.dummy-loc)
-t-forall = T.t-forall(_, _, A.dummy-loc)
-t-var = T.t-var(_, A.dummy-loc)
+t-arrow = T.t-arrow(_, _, A.dummy-loc, false)
+t-top = T.t-top(A.dummy-loc, false)
+t-bot = T.t-bot(A.dummy-loc, false)
+t-record = T.t-record(_, A.dummy-loc, false)
+t-forall = T.t-forall(_, _, A.dummy-loc, false)
+t-var = T.t-var(_, A.dummy-loc, false)
 t-array = T.t-array(_, A.dummy-loc)
 t-string = T.t-string(A.dummy-loc)
 t-option = T.t-option(_, A.dummy-loc)
-t-data = T.t-data(_, _, _, A.dummy-loc)
-t-variant = T.t-variant(_, _, _)
-t-singleton-variant = T.t-variant(_, _)
-t-app = T.t-app(_, _, A.dummy-loc)
-t-name = T.t-name(_, _, A.dummy-loc)
+t-data = T.t-data(_, _, _, _, A.dummy-loc)
+t-variant = T.t-variant(_, _, _, A.dummy-loc)
+t-singleton-variant = T.t-singleton-variant(_, _, A.dummy-loc)
+t-app = T.t-app(_, _, A.dummy-loc, false)
+t-name = T.t-name(_, _, A.dummy-loc, false)
 
-
+is-t-app = T.is-t-app
 
 type URI = String
 type StringDict = SD.StringDict
@@ -55,15 +54,66 @@ data NativeModule:
   | requirejs(path :: String)
 end
 
+data BindOrigin:
+  | bo-local(loc :: Loc)
+  | bo-module(mod :: Option<A.ImportType>, uri :: URI)
+end
+
+data ValueBinder:
+  | vb-letrec
+  | vb-let
+  | vb-var
+  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
+end
+
+data ValueBind:
+  | value-bind(
+      origin :: BindOrigin,
+      binder :: ValueBinder,
+      atom :: A.Name,
+      ann :: A.Ann,
+      expr :: Option<A.Expr>)
+end
+
+data TypeBinder:
+  | tb-type-let
+  | tb-type-var
+  | tb-module(uri :: URI)
+end
+
+data TypeBind:
+  | type-bind(
+      origin :: BindOrigin,
+      binder :: TypeBinder,
+      atom :: A.Name,
+      ann :: Option<A.Ann>)
+end
+
+#|
+data ScopeBinding:
+  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
+  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
+  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
+end
+
+data TypeBinding:
+  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
+  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
+end
+|#
+
 data NameResolution:
   | resolved(
       ast :: A.Program,
       errors :: List<CompileError>,
-      bindings :: SD.MutableStringDict,
-      type-bindings :: SD.MutableStringDict,
-      datatypes :: SD.MutableStringDict)
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
+      datatypes :: SD.MutableStringDict<A.Expr>)
 end
-
 
 # Used to describe when additional module imports should be added to a
 # program.  See wrap-extra-imports
@@ -85,13 +135,19 @@ end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
+end
+
+data ValueExport:
+  | v-just-type(t :: T.Type)
+  | v-var(t :: T.Type)
+  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
 data Provides:
   | provides(
       from-uri :: URI,
-      values :: StringDict<T.Type>,
+      values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.Type>
     )
@@ -107,44 +163,55 @@ end
 
 rag = raw-array-get
 
-fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.TypeVariable>):
+fun value-export-from-raw(uri, val-export, tyvar-env :: SD.StringDict<T.Type>) -> ValueExport block:
+  t = val-export.tag
+  typ = type-from-raw(uri, val-export.typ, tyvar-env)
+  if t == "v-fun":
+    v-fun(typ, t, none)
+  else:
+    v-just-type(typ)
+  end
+end
+
+fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
   tfr = type-from-raw(uri, _, tyvar-env)
   # TODO(joe): Make this do something intelligent when location information
   # is available
   l = SL.builtin(uri)
   t = typ.tag
+  #print("\n\ntyp: " + tostring(typ))
   ask:
-    | t == "any" then: T.t-top(l)
+    | t == "any" then: T.t-top(l, false)
     | t == "record" then:
-      T.t-record(for map(f from typ.fields): T.t-member(f.name, tfr(f.value)) end, l)
+      T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l, false)
     | t == "tuple" then:
-      T.t-tuple(for map(e from typ.elts): tfr(e) end, l)
+      T.t-tuple(for map(e from typ.elts): tfr(e) end, l, false)
     | t == "name" then:
       if typ.origin.import-type == "$ELF":
-        T.t-name(T.local, A.s-type-global(typ.name), l)
+        T.t-name(T.local, A.s-type-global(typ.name), l, false)
       else if typ.origin.import-type == "uri":
-        T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l)
+        T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l, false)
       else:
-        T.t-name(T.dependency(make-dep(typ.origin)), A.s-type-global(typ.name), l)
+        T.t-name(T.dependency(make-dep(typ.origin)), A.s-type-global(typ.name), l, false)
       end
     | t == "tyvar" then:
-      cases(Option<T.TypeVariable>) tyvar-env.get(typ.name):
+      cases(Option<T.Type>) tyvar-env.get(typ.name):
         | none => raise("Unbound type variable " + typ.name + " in provided type.")
-        | some(tv) => T.t-var(tv, l)
+        | some(tv) => T.t-var(tv, l, false)
       end
     | t == "forall" then:
       new-env = for fold(new-env from tyvar-env, a from typ.args):
         tvn = A.global-names.make-atom(a)
         new-env.set(a, tvn)
       end
-      params = for map(k from new-env.keys-list()):
-        T.t-var(new-env.get-value(k), l)
+      params = for SD.map-keys(k from new-env):
+        T.t-var(new-env.get-value(k), l, false)
       end
-      T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l)
+      T.t-forall(params, type-from-raw(uri, typ.onto, new-env), l, false)
     | t == "tyapp" then:
-      T.t-app(tfr(typ.onto), map(tfr, typ.args), l)
+      T.t-app(tfr(typ.onto), map(tfr, typ.args), l, false)
     | t == "arrow" then:
-      T.t-arrow(map(tfr, typ.args), tfr(typ.ret), l)
+      T.t-arrow(map(tfr, typ.args), tfr(typ.ret), l, false)
     | otherwise: raise("Unknown raw tag for type: " + t)
   end
 end
@@ -154,13 +221,12 @@ fun tvariant-from-raw(uri, tvariant, env):
   t = tvariant.tag
   ask:
     | t == "variant" then:
-      members = for map(tm from tvariant.vmembers):
-        # TODO(joe): Exporting ref fields?
-        T.t-member(tm.name, type-from-raw(uri, tm.typ, env))
-      end
-      T.t-variant(tvariant.name, members, empty)
+      members = tvariant.vmembers.foldr(lam(tm, members):
+        link({tm.name; type-from-raw(uri, tm.typ, env)}, members)
+      end, empty)
+      t-variant(tvariant.name, members, [string-dict: ])
     | t == "singleton-variant" then:
-      T.t-singleton-variant(tvariant.name, empty)
+      t-singleton-variant(tvariant.name, [string-dict: ])
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
@@ -176,32 +242,35 @@ fun datatype-from-raw(uri, datatyp):
       tvn = A.global-names.make-atom(a)
       pdict.set(a, tvn)
     end
-    params = for map(k from pdict.keys-list()):
-      T.t-var(pdict.get-value(k), l)
+    params = for SD.map-keys(k from pdict):
+      T.t-var(pdict.get-value(k), l, false)
     end
     variants = map(tvariant-from-raw(uri, _, pdict), datatyp.variants)
-    members = for map(tm from datatyp.methods):
-      # TODO(joe): Exporting ref fields?
-      T.t-member(tm.name, type-from-raw(uri, tm.value, pdict))
-    end
-    temp-data = t-data(datatyp.name, variants, members)
-    if is-empty(params):
-      temp-data
-    else:
-      t-forall(params, temp-data)
-    end
+    members = datatyp.methods.foldl(lam(tm, members):
+      members.set(tm.name, type-from-raw(uri, tm.value, pdict))
+    end, [string-dict: ])
+    t-data(datatyp.name, params, variants, members)
   end
 end
-
-
 
 fun provides-from-raw-provides(uri, raw):
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
-    if is-string(v):
-      vdict.set(v, t-top)
+    if is-string(v) block:
+      vdict.set(v, v-just-type(t-top))
     else:
-      vdict.set(v.name, type-from-raw(uri, v.typ, SD.make-string-dict()))
+      if v.value.bind == "var":
+        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      else if v.value.bind == "fun":
+        flatness = if is-number(v.value.flatness):
+          some(v.value.flatness)
+        else:
+          none
+        end
+        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
+      else:
+        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      end
     end
   end
   aliases = raw.aliases
@@ -268,16 +337,13 @@ data CompileError:
         draw-and-highlight(self.loc)]
     end
   | wf-empty-block(loc :: A.Loc) with:
-    # semi-counterfactual loc on this error
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("This "),
           ED.highlight(ED.text("block"),[list: self.loc], 0),
           ED.text(" is empty:")],
-        ED.cmcode(self.loc),
-        [ED.para:
-          ED.text("A block should end with an expression.")]]
+        ED.cmcode(self.loc)]
     end,
     method render-reason(self):
       [ED.error:
@@ -341,14 +407,14 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
-  | mixed-binops(op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+  | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Reading this "),
-          ED.highlight(ED.text("arithmetic expression"), [ED.locs: self.op-a-loc + self.op-b-loc], -1),
+          ED.highlight(ED.text("expression"), [ED.locs: self.exp-loc], -1),
           ED.text(" errored:")],
-        ED.cmcode(self.op-a-loc + self.op-b-loc),
+        ED.cmcode(self.exp-loc),
         [ED.para:
           ED.text("The "),
           ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
@@ -541,7 +607,7 @@ data CompileError:
         [ED.para:
           ED.text("This "),
           ED.highlight(ED.text("method declaration"), [list: self.expr.l], 0),
-          ED.text(" does not accept at least one argument:")],
+          ED.text(" should accept at least one argument:")],
         ED.cmcode(self.expr.l),
         [ED.para:
           ED.text("When a method is applied, the first argument is a reference to the object it belongs to.")]]
@@ -549,7 +615,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Method declarations are expected to accept at least one argument, but the method declaration at "),
+          ED.text("Method declarations should accept at least one argument, but the method declaration at "),
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
@@ -759,7 +825,10 @@ data CompileError:
             [ED.para:
               ED.text("The identifier "),
               ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 0)),
-              ED.text(" is unbound. It is "),
+              ED.text(" is unbound:")],
+             ED.cmcode(self.id.l),
+            [ED.para:
+              ED.text("It is "),
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], 0),
               ED.text(" but not previously defined.")]]
       end
@@ -824,7 +893,7 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)),
+            ED.text(self.ann.tosource().pretty(1000).first),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
@@ -841,38 +910,72 @@ data CompileError:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
-            ED.text(self.ann.tosource().pretty(1000)), ED.text("at"),
+            ED.text(self.ann.tosource().pretty(1000).first), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
+          ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
           [ED.error:
             [ED.para:
               ED.text("The name "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" at "),
               ED.loc(self.ann.l),
               ED.text(" is used to indicate a type, but a definition of a type named "),
-              ED.code(ED.text(self.ann.id.toname())),
+              ED.code(ED.text(ann-name)),
               ED.text(" could not be found.")]]
       end
     end
-  | type-id-used-as-value(loc :: Loc, name :: A.Name) with:
+  | type-id-used-in-dot-lookup(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The "),
           ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
-          ED.text(" is being used as a value.")],
+          ED.text(" is being used with a dot accessor as if to access a type within another module.")],
         ED.cmcode(self.loc),
         [ED.para:
-          ED.text("but it is defined as a type.")]]
+          ED.text("but it does not refer to a module.")]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("The name "),
           ED.text(tostring(self.name)),
-          ED.text(" is used as a value at "),
+          ED.text(" is being used with a dot accessor as if to access a type within another module at "),
           draw-and-highlight(self.loc),
+          ED.text(", but it does not refer to a module.")]]
+    end
+  | type-id-used-as-value(id :: A.Name, origin :: BindOrigin) with:
+    method render-fancy-reason(self):
+      intro =
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("name"), [ED.locs: self.id.l], 0),
+          ED.text(" is being used as a value:")]
+      usage = ED.cmcode(self.id.l)
+      cases(BindOrigin) self.origin:
+        | bo-local(loc) =>
+          [ED.error: intro, usage,
+            [ED.para:
+              ED.text("But it is "),
+              ED.highlight(ED.text("defined as a type"), [ED.locs: loc], 1),
+              ED.text(":")],
+            ED.cmcode(loc)]
+        | bo-module(_, uri) =>
+          [ED.error: intro, usage,
+            [ED.para:
+              ED.text("But it is defined as a type in "),
+              ED.embed(uri),
+              ED.text(".")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(self.id.s),
+          ED.text(" is used as a value at "),
+          draw-and-highlight(self.id.l),
           ED.text(", but it is defined as a type.")]]
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
@@ -1154,14 +1257,20 @@ data CompileError:
     end
   | duplicate-field(id :: String, new-loc :: Loc, old-loc :: Loc) with:
     method render-fancy-reason(self):
+      fun adjust(l):
+        n = string-length(self.id)
+        SL.srcloc(l.source,
+          l.start-line, l.start-column, l.start-char,
+          l.start-line, l.start-column + n, l.start-char + n)
+      end
       old-loc-color = 0
       new-loc-color = 1
       [ED.error:
         [ED.para:
           ED.text("The declaration of the field named "),
-          ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+          ED.highlight(ED.code(ED.text(self.id)), [list: adjust(self.new-loc)], new-loc-color),
           ED.text(" is preceeded by declaration of an field also named "),
-          ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
+          ED.highlight(ED.code(ED.text(self.id)), [list: adjust(self.old-loc)], old-loc-color),
           ED.text(":")],
         ED.cmcode(self.old-loc + self.new-loc),
         [ED.para: ED.text("Pick a different name for one of them.")]]
@@ -1185,7 +1294,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.highlight(ED.text("This expression"), [list: self.a], 0),
-          ED.text(" on the same line as "),
+          ED.text(" is on the same line as "),
           ED.highlight(ED.text("another expression"), [list: self.b], 1),
           ED.text(":")],
         ED.cmcode(self.a + self.b),
@@ -1219,16 +1328,39 @@ data CompileError:
           ED.loc(self.a + self.b),
           ED.text(". Either remove one, or separate them.")]]
     end
+  | type-mismatch(type-1 :: T.Type, type-2 :: T.Type) with:
+    method render-fancy-reason(self):
+      {type-1; type-2} = if self.type-1.l.before(self.type-2.l): {self.type-1; self.type-2} else: {self.type-2; self.type-1} end
+      [ED.error:
+        [ED.para:
+          ED.text("Type checking failed because of a type inconsistency.")],
+        [ED.para:
+          ED.text("The type constraint "),
+          ED.highlight(ED.text(tostring(type-1)), [list: type-1.l], 0),
+          ED.text(" was incompatible with the type constraint "),
+          ED.highlight(ED.text(tostring(type-2)), [list: type-2.l], 1)]]
+    end,
+    method render-reason(self):
+      {type-1; type-2} = if self.type-1.l.before(self.type-2.l): {self.type-1; self.type-2} else: {self.type-2; self.type-1} end
+      [ED.error:
+        [ED.para:
+          ED.text("Type checking failed because of a type inconsistency.")],
+        [ED.para:
+          ED.text("The type constraint "),
+          ED.code(ED.text(tostring(type-1))),
+          ED.text(" at "), draw-and-highlight(type-1.l),
+          ED.text(" was incompatible with the type constraint "),
+          ED.code(ED.text(tostring(type-2))),
+          ED.text(" at "), draw-and-highlight(type-2.l)]]
+    end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because it found a "),
           ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
-          ED.text(" but it "),
-          ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
-          ED.text(" a "),
-          ED.text(self.expected-name)]]
+          ED.text(" but it expected a "),
+          ED.highlight(ED.text(self.expected-name), [list: self.expected-loc], 1)]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1246,11 +1378,10 @@ data CompileError:
         [ED.para:
           ED.cmcode(self.e.l)],
         [ED.para:
-          ED.text("becuase it found a "),
+          ED.text("because it found a "),
           ED.highlight(ED.text(self.bad-name), [list: self.bad-loc], 0),
-          ED.text(" but it "),
-          ED.highlight(ED.text("expected"), [list: self.expected-loc], 1),
-          ED.text(" a "), ED.text(self.expected-name)]]
+          ED.text(" but it expected a "),
+          ED.highlight(ED.text(self.expected-name), [list: self.expected-loc], 1)]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1264,39 +1395,22 @@ data CompileError:
           ED.text(" but it was expected to be of type "), ED.code(ED.text(self.expected-name)),
           ED.text(" because of "), draw-and-highlight(self.expected-loc)]]
     end
-  | bad-type-instantiation(expected :: List<T.Type>, given :: List<T.Type>, ann :: A.Ann) with:
+  | bad-type-instantiation(app-type :: T.Type%(is-t-app), expected-length :: Any) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the type instantiation")],
-       [ED.para:
-          ED.code([ED.sequence:
-              ED.highlight(ED.h-sequence(self.ann.ann.tosource().pretty(80).map(ED.text),""), [list: self.ann.ann.l], 0),
-              ED.text("<"),
-              ED.h-sequence(self.ann.args.map(lam(ann):
-                  ED.highlight(ED.h-sequence(ann.tosource().pretty(80).map(ED.text), ""), [list: ann.l], 1) end), ","),
-              ED.text(">")])],
-        [ED.para:
-          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ED.highlight(ED.ed-params(self.given.length()), self.ann.args.map(_.l), 1),
-          ED.text(", but the type accepts "),
-          ED.embed(self.expected.length()),
-          ED.text(" parameters.")]]
+          ED.text("The type checker rejected your program because the type application "),
+          ED.highlight(ED.embed(self.app-type), [list: self.app-type.l], 0),
+          ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
+          ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The type checker rejected your program because the type instantiation")],
-       [ED.para:
-          ED.code(ED.v-sequence(self.ann.tosource().pretty(80).map(ED.text)))],
-        [ED.para:
-          ED.text(" at "),
-          ED.loc(self.ann.l),
-          ED.text("should give exactly the same number of parameters as the type accepts. However, the type instantiation is given "),
-          ED.ed-params(self.given.length()),
-          ED.text(", but the type accepts "),
-          ED.embed(self.expected.length()),
-          ED.text(" parameters.")]]
+          ED.text("The type checker rejected your program because the type application "),
+          ED.highlight(ED.embed(self.app-type), [list: self.app-type.l], 0),
+          ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
+          ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end
   | incorrect-number-of-args(app-expr, fun-typ) with:
     method render-fancy-reason(self):
@@ -1311,7 +1425,7 @@ data CompileError:
           ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
         [ED.para:
           ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), 1),
-          ED.text(" " + if self.app-expr.args.length() == 1: "is" else: "are" end 
+          ED.text(" " + if self.app-expr.args.length() == 1: "is " else: "are " end 
                 + "given, but the type signature of the "),
           ed-applicant],
         [ED.para:
@@ -1417,7 +1531,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the object type")],
-         ED.highlight(ED.embed(self.obj), [list: self.obj-loc], 0),
+         ED.highlight(ED.text(self.obj), [list: self.obj-loc], 0),
         [ED.para:
           ED.text("does not have a field named "),
           ED.code(ED.highlight(ED.text(self.field-name), [list: self.access-loc], 1))]]
@@ -1461,6 +1575,110 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
+  | data-variant-duplicate-name(id :: String, found :: Loc, data-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.found], 0),
+          ED.text(" has the same name as its "),
+          ED.highlight(ED.text("containing datatype"), [list: self.data-loc], 1), ED.text(".")],
+        ED.cmcode(self.found),
+        ED.cmcode(self.data-loc),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(" predicates will shadow each other.  Please rename either the variant or the datatype to avoid this.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.found),
+          ED.text(" has the same name as its containing datatype.  The "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(" predicates will shadow each other.  Please rename either the variant or the datatype to avoid this.")]]
+    end,
+  | duplicate-is-variant(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("another variant"), [list: self.is-found], 1),
+          ED.text(" is defined with that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename one of the variants so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but another variant is defined with that name.  Please rename one of the variants so their names do not collide.")]]
+    end,
+  | duplicate-is-data(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("data definition"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("one of its variants"), [list: self.is-found], 1),
+          ED.text(" is defined with that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The data definition "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but one of its variants is defined with that name.  Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+  | duplicate-is-data-variant(id :: String, is-found :: Loc, base-found :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("This "),
+          ED.highlight(ED.text("variant"), [list: self.base-found], 0),
+          ED.text(" will create a predicate named "), ED.code(ED.text("is-" + self.id)),
+          ED.text(", but "),
+          ED.highlight(ED.text("the data definition"), [list: self.is-found], 1),
+          ED.text(" already uses that name:")],
+        ED.cmcode(self.base-found),
+        ED.cmcode(self.is-found),
+        [ED.para:
+          ED.text("Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The variant "),
+          ED.code(ED.text(self.id)),
+          ED.text(" at "),
+          ED.loc(self.base-found),
+          ED.text(" will create a predicate named "),
+          ED.code(ED.text("is-" + self.id)),
+          ED.text(", but its surrounding data definition already uses that name.  Please rename either the variant or the data definition so their names do not collide.")]]
+    end,
   | duplicate-branch(id :: String, found :: Loc, previous :: Loc) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -1488,7 +1706,7 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
-  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.Type, cases-loc :: A.Loc) with:
+  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1623,7 +1841,7 @@ data CompileError:
           ED.text(". However, the branch pattern binds "),
           ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), 1),
           ED.text(" and the variant is declared as having "),
-          ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], 3)]]
+          ED.highlight(ed-fields(self.variant.fields.count()), [list: A.dummy-loc], 3)]]
     end,
     method render-reason(self):
       fun ed-fields(n):
@@ -1704,13 +1922,32 @@ data CompileError:
     end
   | unable-to-infer(loc :: A.Loc) with:
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Unable to infer the type of "), 
+          ED.highlight(ED.text("this"), [list: self.loc], 0),
+          ED.text(". Please add an annotation.")]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para-nospace:
           ED.text("Unable to infer the type of "), draw-and-highlight(self.loc),
           ED.text(". Please add an annotation.")]]
+    end
+  | unann-failed-test-inference(function-loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker could not infer the type of the "),
+          ED.highlight(ED.text("function"), [list: self.function-loc], 0),
+          ED.text(". Please add type annotations to the arguments.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The type checker could not infer the type of the function at"),
+          draw-and-highlight(self.function-loc),
+          ED.text(". Please add type annotations to the arguments.")]]
     end
   | toplevel-unann(arg :: A.Bind) with:
     method render-fancy-reason(self):
@@ -1720,14 +1957,29 @@ data CompileError:
           ED.highlight(ED.text("argument"), [list: self.arg.l], 0),
           ED.text(" at "),
           ED.cmcode(self.arg.l),
-          ED.text(" needs a type annotation.")]]
+          ED.text(" needs a type annotation. Alternatively, provide a where: block with examples of the function's use.")]]
     end,
     method render-reason(self):
       [ED.error:
         [ED.para:
           ED.text("The "),
           ED.text("argument at"), draw-and-highlight(self.arg.l),
-          ED.text(" needs a type annotation.")]]
+          ED.text(" needs a type annotation. Alternatively, provide a where: block with examples of the function's use.")]]
+    end
+  | polymorphic-return-type-unann(function-loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("function"), [list: self.function-loc], 0),
+          ED.text(" is polymorphic. Please annotate its return type.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The function at "),
+          draw-and-highlight(self.function-loc),
+          ED.text(" is polymorphic. Please annotate its return type.")]]
     end
   | binop-type-error(binop :: A.Expr, tl :: T.Type, tr :: T.Type, etl :: T.Type, etr :: T.Type) with:
     method render-fancy-reason(self):
@@ -1784,7 +2036,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("This program cannot be type-checked. Please send it to the developers. " + "The reason that it cannot be type-checked is: " + self.reason +
+          ED.text("This program cannot be type-checked. " + "The reason that it cannot be type-checked is: " + self.reason +
         " at "), ED.cmcode(self.loc)]]
     end
   | unsupported(message :: String, blame-loc :: A.Loc) with:
@@ -1799,10 +2051,25 @@ data CompileError:
           draw-and-highlight(self.blame-loc),
           ED.text(")")]]
     end
-  | no-module(loc :: A.Loc, mod-name :: String) with:
-    #### TODO ###
+  | non-object-provide(loc :: A.Loc) with:
     method render-fancy-reason(self):
-      self.render-reason()
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal"),
+          ED.cmcode(self.loc)]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("Couldn't read the program because the provide statement must contain an object literal at "),
+          draw-and-highlight(self.loc)]]
+    end
+  | no-module(loc :: A.Loc, mod-name :: String) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("There is no module imported with the name "),
+          ED.highlight(ED.text(self.mod-name), [list: self.loc], 0)]]
     end,
     method render-reason(self):
       [ED.error:
@@ -2028,30 +2295,47 @@ end
 
 type CompileOptions = {
   check-mode :: Boolean,
+  check-all :: Boolean,
   type-check :: Boolean,
   allow-shadowed :: Boolean,
   collect-all :: Boolean,
+  collect-times :: Boolean,
   ignore-unbound :: Boolean,
   proper-tail-calls :: Boolean,
-  compile-module :: Boolean,
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,
+  log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
   before-compile :: Function
 }
 
 default-compile-options = {
   check-mode : true,
+  check-all : true,
   type-check : false,
   allow-shadowed : false,
   collect-all: false,
+  collect-times: false,
   ignore-unbound: false,
   proper-tail-calls: true,
-  compile-module: true,
+  inline-case-body-limit: 5,
   compiled-cache: "compiled",
   display-progress: true,
-  method on-compile(_, locator, loadable): loadable end,
+  log: lam(s, to-clear):
+    cases(Option) to-clear block:
+      | none => print(s)
+      | some(n) =>
+        print("\r")
+        print(string-repeat(" ", n))
+        print("\r")
+        print(s)
+    end
+  end,
+  log-error: lam(s):
+    print-error(s)
+  end,
+  method on-compile(_, locator, loadable, _): loadable end,
   method before-compile(_, _): nothing end,
   standalone-file: "src/js/base/handalone.js"
 }
@@ -2078,29 +2362,29 @@ runtime-provides = provides("builtin://global",
     "print-error", t-forall1(lam(a): t-arrow([list: a], a) end),
     "display-error", t-forall1(lam(a): t-arrow([list: a], a) end),
     "tostring", t-arrow([list: t-top], t-str),
+    "to-string", t-arrow([list: t-top], t-str),
     "torepr", t-arrow([list: t-top], t-str),
+    "to-repr", t-arrow([list: t-top], t-str),
     "brander", t-top,
     "raise", t-arrow([list: t-top], t-bot),
     "nothing", t-nothing,
-    "builtins", t-record([list:
-        t-member("has-field", t-arrow([list: t-record(empty)], t-boolean)),
-        t-member("trace-value", t-arrow([list: t-top, t-top], t-bot)),
-        t-member("current-checker", t-arrow([list: ], t-record([list: # Cheat on these types for now.
-            t-member("run-checks", t-bot),
-            t-member("check-is", t-bot),
-            t-member("check-is-refinement", t-bot),
-            t-member("check-is-not", t-bot),
-            t-member("check-is-not-refinement", t-bot),
-            t-member("check-is-refinement", t-bot),
-            t-member("check-is-not-refinement", t-bot),
-            t-member("check-satisfies", t-bot),
-            t-member("check-satisfies-not", t-bot),
-            t-member("check-raises-str", t-bot),
-            t-member("check-raises-not", t-bot),
-            t-member("check-raises-other-str", t-bot),
-            t-member("check-raises-satisfies", t-bot),
-            t-member("check-raises-violates" , t-bot)
-        ])))
+    "builtins", t-record([string-dict:
+        "has-field", t-arrow([list: t-record([string-dict: ])], t-boolean),
+        "trace-value", t-arrow([list: t-top, t-top], t-bot),
+        "current-checker", t-arrow([list: ], t-record([string-dict: # Cheat on these types for now.
+            "run-checks", t-bot,
+            "check-is", t-bot,
+            "check-is-not", t-bot,
+            "check-is-not-refinement", t-bot,
+            "check-is-refinement", t-bot,
+            "check-satisfies", t-bot,
+            "check-satisfies-not", t-bot,
+            "check-raises-str", t-bot,
+            "check-raises-not", t-bot,
+            "check-raises-other-str", t-bot,
+            "check-raises-satisfies", t-bot,
+            "check-raises-violates" , t-bot
+        ]))
     ]),
     "not", t-arrow([list: t-boolean], t-boolean),
     "is-nothing", t-pred,
@@ -2127,6 +2411,8 @@ runtime-provides = provides("builtin://global",
     "string-contains", t-top,
     "string-append", t-top,
     "string-length", t-top,
+    "string-isnumber", t-top,
+    "string-is-number", t-top,
     "string-tonumber", t-top,
     "string-to-number", t-arrow([list: t-string], t-option(t-number)),
     "string-repeat", t-top,
@@ -2136,7 +2422,9 @@ runtime-provides = provides("builtin://global",
     "string-split-all", t-top,
     "string-char-at", t-top,
     "string-toupper", t-top,
+    "string-to-upper", t-top,
     "string-tolower", t-top,
+    "string-to-lower", t-top,
     "string-explode", t-top,
     "string-index-of", t-top,
     "string-to-code-point", t-top,
@@ -2198,15 +2486,22 @@ runtime-provides = provides("builtin://global",
     "raw-array-length", t-top,
     "raw-array-to-list", t-top,
     "raw-array-fold", t-top,
+    "raw-array-filter", t-top,
+    "raw-array-and-mapi", t-top,
+    "raw-array-or-mapi", t-top,
+    "raw-array-map", t-top,
+    "raw-array-map-1", t-top,
+    "raw-array-join-str", t-top,
+    "raw-array-from-list", t-top,
     "raw-array", t-record(
-      [list:
-        t-member("make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end)),
-        t-member("make0", t-forall1(lam(a): t-arrow([list: ], t-array(a)) end)),
-        t-member("make1", t-forall1(lam(a): t-arrow([list: a], t-array(a)) end)),
-        t-member("make2", t-forall1(lam(a): t-arrow([list: a, a], t-array(a)) end)),
-        t-member("make3", t-forall1(lam(a): t-arrow([list: a, a, a], t-array(a)) end)),
-        t-member("make4", t-forall1(lam(a): t-arrow([list: a, a, a, a], t-array(a)) end)),
-        t-member("make5", t-forall1(lam(a): t-arrow([list: a, a, a, a, a], t-array(a)) end))
+      [string-dict:
+        "make", t-forall1(lam(a): t-arrow([list: t-array(a)], t-array(a)) end),
+        "make0", t-forall1(lam(a): t-arrow([list: ], t-array(a)) end),
+        "make1", t-forall1(lam(a): t-arrow([list: a], t-array(a)) end),
+        "make2", t-forall1(lam(a): t-arrow([list: a, a], t-array(a)) end),
+        "make3", t-forall1(lam(a): t-arrow([list: a, a, a], t-array(a)) end),
+        "make4", t-forall1(lam(a): t-arrow([list: a, a, a, a], t-array(a)) end),
+        "make5", t-forall1(lam(a): t-arrow([list: a, a, a, a, a], t-array(a)) end)
       ]),
     "ref-get", t-top,
     "ref-set", t-top,
@@ -2239,14 +2534,14 @@ runtime-provides = provides("builtin://global",
      "RawArray", t-top  ],
   [string-dict:])
 
-runtime-builtins = for fold(rb from [string-dict:], k from runtime-provides.values.keys().to-list()):
+runtime-builtins = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
   rb.set(k, "builtin(global)")
 end
 
-runtime-types = for fold(rt from [string-dict:], k from runtime-provides.aliases.keys().to-list()):
+runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
   rt.set(k, "builtin(global)")
 end
-shadow runtime-types = for fold(rt from runtime-types, k from runtime-provides.data-definitions.keys().to-list()):
+shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
   rt.set(k, "builtin(global)")
 end
 
@@ -2335,5 +2630,16 @@ standard-imports = extra-imports(
         [list: "Set"])
     ])
 
-reactor-fields = [list: "init", "on-tick", "to-draw", "on-key", "on-mouse", "seconds-per-tick", "stop-when", "title", "close-when-stop"]
-reactor-optional-fields = reactor-fields.rest
+reactor-optional-fields = [SD.string-dict:
+  "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-tick",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "to-draw",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-key",           {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-mouse",         {(l): A.a-name(l, A.s-type-global("Function"))},
+  "stop-when",        {(l): A.a-name(l, A.s-type-global("Function"))},
+  "seconds-per-tick", {(l): A.a-name(l, A.s-type-global("NumPositive"))},
+  "title",            {(l): A.a-name(l, A.s-type-global("String"))},
+  "close-when-stop",  {(l): A.a-name(l, A.s-type-global("Boolean"))}
+]
+
+reactor-fields = reactor-optional-fields.set("init", {(l): A.a-any(l)})

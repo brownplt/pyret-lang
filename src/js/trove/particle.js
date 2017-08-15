@@ -190,7 +190,7 @@
 
     var values = makeObject({
       "on-particle": makeFunction(function(onEvent,config) {
-        runtime.ffi.checkArity(2, arguments, "on-particle");
+        runtime.ffi.checkArity(2, arguments, "on-particle", false);
         runtime.checkFunction(onEvent);
         checkConfigInfoType(config);
         core = runtime.getField(config, "core")
@@ -200,7 +200,7 @@
         return runtime.makeOpaque(new OnParticle(onEvent,eName,options));
       }, "on-particle"),
       "to-particle": makeFunction(function(toEvent,config) {
-        runtime.ffi.checkArity(2, arguments, "to-particle");
+        runtime.ffi.checkArity(2, arguments, "to-particle", false);
         runtime.checkFunction(toEvent);
         checkConfigInfoType(config);
         core = runtime.getField(config, "core")
@@ -211,7 +211,7 @@
       }, "to-particle"),
       // direct Particle stream access
       "send-event": makeFunction(function(core, event) {
-        runtime.ffi.checkArity(2, arguments, "send-event");
+        runtime.ffi.checkArity(2, arguments, "send-event", false);
         checkCoreInfoType(core);
         checkEventType(event);
         eName = runtime.getField(event, "name");
@@ -226,7 +226,7 @@
       "is-core": pyIsCore,
       "is-no-core": pyIsNoCore,
       "configure-core": makeFunction(function(core, config) {
-        runtime.ffi.checkArity(2, arguments, "configure-core");
+        runtime.ffi.checkArity(2, arguments, "configure-core", false);
         checkCoreObj(core);
         checkPinConfigType(config);
         options = core_to_options(core);
@@ -234,7 +234,7 @@
         return pyConfig.app(core, config);
       }, "configure-core"),
       "clear-core-config": makeFunction(function(core) {
-        runtime.ffi.checkArity(1, arguments, "clear-core-config");
+        runtime.ffi.checkArity(1, arguments, "clear-core-config", false);
         checkCoreObj(core);
         options = {
           'acc': runtime.getField(core, "access"),
@@ -279,11 +279,6 @@
       "D7": runtime.getField(pStruct_vals, "D7")
     });
 
-    return makeObject({
-      'provide-plus-types': makeObject({
-        'values': values,
-        'types': {}
-      })
-    });
+    return runtime.makeModuleReturn(values, {});
   }
 })

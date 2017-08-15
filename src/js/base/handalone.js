@@ -1,9 +1,12 @@
-require = require("requirejs");
-require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
+if(typeof window === 'undefined') {
+var require = require("requirejs");
+}
+require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
   var toLoad = program.toLoad;
+  var uris = program.uris;
 
   var main = toLoad[toLoad.length - 1];
 
@@ -151,7 +154,9 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
-      console.error("The error is: ", err);
+
+      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
       return locList;
@@ -159,7 +164,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     var getStackP = runtime.makeFunction(getStack, "get-stack");
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
-    runtime.safeCall(function() {
+    return runtime.safeCall(function() {
       return toCall.app(checks, getStackP);
     }, function(summary) {
       if(runtime.isObject(summary)) {
@@ -183,7 +188,11 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
-      var pyretStack = res.exn.pyretStack;
+
+      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
+      debugger;
+      
+
       execRt.runThunk(
         function() {
           if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {
@@ -197,7 +206,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
             console.error("While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                           + "\nPyret encountered an error rendering that error:\n" + JSON.stringify(reasonResult)
                           + "\nStack:\n" + JSON.stringify(exnStack)
-                          + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
+                          + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true));
             process.exit(EXIT_ERROR_RENDERING_ERROR);
           } else {
             execRt.runThunk(
@@ -220,7 +229,7 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
                       "While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                       + "\ndisplaying that error produced another error:\n" + JSON.stringify(printResult)
                       + "\nStack:\n" + JSON.stringify(exnStack)
-                      + "\nPyret stack:\n" + execRt.printPyretStack(pyretStack, true));
+                      + "\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack, true));
                   process.exit(EXIT_ERROR_DISPLAYING_ERROR);
                 }
               }, "errordisplay->to-string");
@@ -236,6 +245,20 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
     }
   }
 
+  function isExit(execRt, result) {
+    var exn = result.exn.exn;
+    return execRt.ffi.isExit(exn) || execRt.ffi.isExitQuiet(exn);
+  }
+
+  function processExit(execRt, exn) {
+    var exitCode = execRt.getField(exn, "code");
+    if (execRt.ffi.isExit(exn)) {
+      var message = "Exited with code " + exitCode.toString() + "\n";
+      process.stdout.write(message);
+    }
+    process.exit(exitCode);
+  }
+
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
       //console.log("The program completed successfully");
@@ -243,6 +266,10 @@ require(["pyret-base/js/runtime", "program"], function(runtimeLib, program) {
       process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
+
+      if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
+        processExit(runtime, result.exn.exn);
+      }
       console.error("The run ended in error:");
       try {
         renderErrorMessageAndExit(runtime, result);

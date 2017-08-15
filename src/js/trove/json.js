@@ -11,8 +11,8 @@
     var typs = gf(jstruct, "types");
     var sdvals = gf(sdict, "values");
     function readJSON(s) {
+      RUNTIME.checkArity(1, arguments, false);
       RUNTIME.checkString(s);
-      RUNTIME.checkArity(1, arguments);
       var jsVal = JSON.parse(s);
       var jObj = gf(vals, "j-obj");
       var jArr = gf(vals, "j-arr");
@@ -55,30 +55,24 @@
       }
       return convert(jsVal);
     }
-    return RUNTIME.makeObject({
-      answer: RUNTIME.nothing,
-      "provide-plus-types": RUNTIME.makeObject({
-        "values": RUNTIME.makeObject({
-          "j-obj": gf(vals, "j-obj"),
-          "j-arr": gf(vals, "j-arr"),  
-          "j-num": gf(vals, "j-num"),
-          "j-str": gf(vals, "j-str"),
-          "j-bool": gf(vals, "j-bool"),
-          "j-null" : gf(vals, "j-null"),
-          "is-j-obj": gf(vals, "is-j-obj"),
-          "is-j-arr": gf(vals, "is-j-arr"),
-          "is-j-num": gf(vals, "is-j-num"),
-          "is-j-str": gf(vals, "is-j-str"),
-          "is-j-bool": gf(vals, "is-j-bool"),
-          "is-j-null": gf(vals, "is-j-null"),
-          "read-json": RUNTIME.makeFunction(readJSON, "read-json"),
-          "tojson": gf(vals, "tojson")
-        }),
-        "types": {
-          "JSON": typs["JSON"]
-        }
-      })
-    });
+    var values = {
+      "j-obj": gf(vals, "j-obj"),
+      "j-arr": gf(vals, "j-arr"),  
+      "j-num": gf(vals, "j-num"),
+      "j-str": gf(vals, "j-str"),
+      "j-bool": gf(vals, "j-bool"),
+      "j-null" : gf(vals, "j-null"),
+      "is-j-obj": gf(vals, "is-j-obj"),
+      "is-j-arr": gf(vals, "is-j-arr"),
+      "is-j-num": gf(vals, "is-j-num"),
+      "is-j-str": gf(vals, "is-j-str"),
+      "is-j-bool": gf(vals, "is-j-bool"),
+      "is-j-null": gf(vals, "is-j-null"),
+      "read-json": RUNTIME.makeFunction(readJSON, "read-json"),
+      "tojson": gf(vals, "tojson"),
+      "to-json": gf(vals, "tojson")
+    };
+    return RUNTIME.makeModuleReturn(values, {JSON: typs["JSON"]});
 
   }
 })

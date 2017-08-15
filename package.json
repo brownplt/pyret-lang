@@ -9,24 +9,30 @@
     "test": "tests"
   },
   "dependencies": {
-    "mustache": "^0.8.1",
+    "ascii-table": "~0.0.9",
+    "benchmark": "2.0.0",
+    "codemirror": "git://github.com/jpolitz/CodeMirror",
+    "command-line-args": "^3.0.1",
+    "error-stack-parser": "^2.0.1",
+    "http": "0.0.0",
     "jasmine-node": "1.14.5",
-    "sweet.js": "~0.4.2",
-    "jquery": "~2.1.0",
-    "ses": "~0.0.0",
-    "requirejs": "~2.1.15",
+    "js-sha256": "^0.5.0",
+    "lockfile": "^1.0.2",
     "q": "~1.0.1",
-    "lodash": "~2.4.1",
+    "requirejs": "~2.1.15",
     "s-expression": "~2.2.0",
     "seedrandom": "~2.3.10",
-    "codemirror": "git://github.com/jpolitz/CodeMirror",
-    "benchmark": "2.0.0",
-    "ascii-table": "~0.0.9",
-    "d3": "~3",
-    "d3-tip": "git://github.com/sorawee/d3-tip"
+    "sha.js": "^2.4.8",
+    "source-map": "^0.5.6",
+    "stacktrace-js": "^1.3.1",
+    "websocket": "^1.0.23"
   },
   "devDependencies": {},
+  "bin": {
+    "pyret": "src/server/pyret.js"
+  },
   "scripts": {
+    "install": "make phaseA-deps",
     "test": "make test-all"
   },
   "repository": {

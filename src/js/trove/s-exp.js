@@ -9,8 +9,8 @@
     var vals = gf(sstruct, "values");
     var typs = gf(sstruct, "types");
     function readSexp(s) {
+      RUNTIME.checkArity(1, arguments, "s-exp", false);
       RUNTIME.checkString(s);
-      RUNTIME.checkArity(1, arguments);
       // Wrap in quotes to satisfy parser for simple atoms like "a"
       var jsVal = new sexp("(" + s + ")");
       var sList = gf(vals, "s-list");
@@ -52,24 +52,20 @@
         RUNTIME.ffi.throwMessageException("Invalid s-expression: " + s);
       }
     }
-    return RUNTIME.makeObject({
-      answer: RUNTIME.nothing,
-      "provide-plus-types": RUNTIME.makeObject({
-        "values": RUNTIME.makeObject({
-          "s-list": gf(vals, "s-list"),
-          "s-num": gf(vals, "s-num"),
-          "s-str": gf(vals, "s-str"),
-          "s-sym": gf(vals, "s-sym"),
-          "is-s-list": gf(vals, "is-s-list"),
-          "is-s-num": gf(vals, "is-s-num"),
-          "is-s-str": gf(vals, "is-s-str"),
-          "is-s-sym": gf(vals, "is-s-sym"),
-          "read-s-exp": RUNTIME.makeFunction(readSexp)
-        }),
-        "types": {
-          "S-Exp": typs["S-Exp"]
-        }
-      })
-    });
+    var values = {
+      "s-list": gf(vals, "s-list"),
+      "s-num": gf(vals, "s-num"),
+      "s-str": gf(vals, "s-str"),
+      "s-sym": gf(vals, "s-sym"),
+      "is-s-list": gf(vals, "is-s-list"),
+      "is-s-num": gf(vals, "is-s-num"),
+      "is-s-str": gf(vals, "is-s-str"),
+      "is-s-sym": gf(vals, "is-s-sym"),
+      "read-s-exp": RUNTIME.makeFunction(readSexp)
+    };
+    var types = {
+      "S-Exp": typs["S-Exp"]
+    };
+    return RUNTIME.makeModuleReturn(values, types);
   }
 })

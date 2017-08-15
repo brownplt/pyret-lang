@@ -13,3 +13,6 @@ import file("./regression/cases-expr-parse.arr") as _
 import file("./regression/check-scope.arr") as _
 import file("./regression/anf-of-vars.arr") as _
 import file("./regression/var-statement.arr") as _
+import file("./regression/string-dict-equality.arr") as _
+import file("./regression/stack-safe-each-loop.arr") as _
+import file("./regression/proto-fields.arr") as _

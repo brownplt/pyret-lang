@@ -104,7 +104,7 @@ An integer is either a fixnum or a BigInteger.
 
 */
 
-define(function() {
+define("pyret-base/js/js-numbers", function() {
   'use strict';
   // Abbreviation
   var Numbers = {};
@@ -116,6 +116,7 @@ define(function() {
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y, errbacks) {
+
       if (options.isXSpecialCase && options.isXSpecialCase(x, errbacks))
         return options.onXSpecialCase(x, y, errbacks);
       if (options.isYSpecialCase && options.isYSpecialCase(y, errbacks))
@@ -125,6 +126,7 @@ define(function() {
           typeof(y) === 'number') {
         return onFixnums(x, y, errbacks);
       }
+
       if (typeof(x) === 'number') {
         x = liftFixnumInteger(x, y);
       }
@@ -337,6 +339,9 @@ define(function() {
       if (isOverflow(sum)) {
         return (makeBignum(x)).add(makeBignum(y));
       }
+      else {
+        return sum;
+      }
     }
     return addSlow(x, y, errbacks);
   };
@@ -361,8 +366,20 @@ define(function() {
      onYSpecialCase: function(x, y, errbacks) { return x; }
     });
 
+  var subtract = function(x, y, errbacks) {
+    if (typeof(x) === 'number' && typeof(y) === 'number') {
+      var diff = x - y;
+      if (isOverflow(diff)) {
+        return (makeBignum(x)).subtract(makeBignum(y));
+      } else {
+        return diff;
+      }
+    }
+    return subtractSlow(x, y, errbacks);
+  };
+
   // subtract: pyretnum pyretnum -> pyretnum
-  var subtract = makeNumericBinop(
+  var subtractSlow = makeNumericBinop(
     function(x, y, errbacks) {
       var diff = x - y;
       if (isOverflow(diff)) {
@@ -469,8 +486,17 @@ define(function() {
       }
     });
 
+  var equals = function(x, y, errbacks) {
+    if (x === y) { return true; }
+    else {
+      if (typeof x === "number" && typeof y === "number") { return false; }
+      else {
+        return equalsSlow(x, y, errbacks);
+      }
+    }
+  };
   // equals: pyretnum pyretnum -> boolean
-  var equals = makeNumericBinop(
+  var equalsSlow = makeNumericBinop(
     function(x, y, errbacks) {
       return x === y;
     },
@@ -543,8 +569,8 @@ define(function() {
 
     if (lessThanOrEqual(ratDelta, 1, errbacks)) {
       var absDelta = multiply(ratDelta, abs(ratTv, errbacks), errbacks)
-      if (deltaIsRough && toRoughnum(absDelta).n === Number.MIN_VALUE) {
-        if (argNumsAreRough && Math.abs(toRoughnum(err).n) === Number.MIN_VALUE) {
+      if (deltaIsRough && toRoughnum(absDelta, errbacks).n === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(err, errbacks).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
                             computedValue + ' ' + trueValue + ' ' + delta)
         }
@@ -555,7 +581,7 @@ define(function() {
       var errRatio = divide(err, abs(ratTv, errbacks), errbacks)
 
       if (deltaIsRough && delta.n === Number.MIN_VALUE) {
-        if (argNumsAreRough && Math.abs(toRoughnum(errRatio).n) === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(errRatio, errbacks).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
                             computedValue + ' ' + trueValue + ' ' + delta)
         }
@@ -566,40 +592,44 @@ define(function() {
   }
 
   // greaterThanOrEqual: pyretnum pyretnum -> boolean
-  var greaterThanOrEqual = makeNumericBinop(
-    function(x, y, errbacks) {
+  var greaterThanOrEqual = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x >= y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.greaterThanOrEqual(y);
-    });
+    })(x, y, errbacks);
+  }
 
   // lessThanOrEqual: pyretnum pyretnum -> boolean
-  var lessThanOrEqual = makeNumericBinop(
-    function(x, y, errbacks){
+  var lessThanOrEqual = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x <= y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.lessThanOrEqual(y);
-    });
+    })(x, y, errbacks);
+  };
 
   // greaterThan: pyretnum pyretnum -> boolean
-  var greaterThan = makeNumericBinop(
-    function(x, y, errbacks){
+  var greaterThan = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x > y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.greaterThan(y);
-    });
+    })(x, y, errbacks);
+  };
 
   // lessThan: pyretnum pyretnum -> boolean
-  var lessThan = makeNumericBinop(
-    function(x, y, errbacks){
+  var lessThan = function(x, y, errbacks) {
+    if(typeof x === "number" && typeof y === "number") {
       return x < y;
-    },
-    function(x, y, errbacks) {
+    }
+    return makeNumericBinop(undefined, function(x, y, errbacks) {
       return x.lessThan(y);
-    });
+    })(x, y, errbacks);
+  };
 
   // expt: pyretnum pyretnum -> pyretnum
   var expt = makeNumericBinop(
@@ -1171,16 +1201,69 @@ define(function() {
       return bnRemainder.call(m, n);
     });
 
+  // splitIntIntoMantissaExpt: integer-pyretnum -> [JS-double, JS-int]
+  // 
+  // splitIntIntoMantissaExpt takes an integer s (either unboxed or BigInteger)
+  //   and returns [mantissa, exponent]
+  //   such that s ~= mantissa * 10^exponent.
+  // mantissa is a JS-double, and is chosen to have one non-zero digit
+  //   to the left of the decimal point.
+  // Because mantissa is a JS-double, there is in general a loss of precision.
+  // splitIntIntoMantissaExpt is used to create a best-possible JS-double version
+  //   of its argument arbitrarily precise integer.
+  // E.g., splitIntIntoMantissaExpt(256) returns
+  //   [2.56, 2]
+  // splitIntIntoMantissaExpt(111222333444555666777888999) returns
+  //   [1.1122233344455567, 26]
+  //
+  var splitIntIntoMantissaExpt = function(s) {
+    var str = s.toString();
+    var c0 = str[0];
+    var sign = '';
+
+    if (c0 === '-' || c0 === '+') {
+      str = str.substring(1);
+      if (c0 === '-') {
+        sign = '-';
+      }
+    }
+
+    var d0 = str[0];
+    str = str.substring(1);
+
+    var mantissa = Number(sign + d0 + '.' + str);
+    var expt = str.substring(1).length;
+
+    return [mantissa, expt];
+  };
+
   // _integerDivideToFixnum: integer-pyretnum integer-pyretnum -> fixnum
+  //
+  // _integerDivideToFixnum takes two integers (possibly BigIntegers) and 
+  //   returns the best fixnum representing their quotient.
+  // If the args are both JS-doubles, the JS quotient is returned if it
+  //   doesn't overflow.
+  // If it does overflow, or if at least one of the args is a BigInt, then
+  //   splitIntIntoMantissaExpt is used to convert the args to
+  //   [mantissa, exponent] form. The result a*10^b, where
+  //   a = the mantissae's quotient, and
+  //   b = the exponents' difference
+  //
   var _integerDivideToFixnum = makeIntegerBinop(
     function(m, n) {
       return m / n;
     },
     function(m, n) {
-      return toFixnum(m) / toFixnum(n);
+      var xm = splitIntIntoMantissaExpt(m);
+      var xn = splitIntIntoMantissaExpt(n);
+      var r = Number(String(xm[0] / xn[0]) + 'e' + 
+        String(xm[1] - xn[1]));
+      return r;
     },
-    {ignoreOverflow: true,
-     doNotCoerceToFloating: true});
+    { ignoreOverflow: false,
+      doNotCoerceToFloating: true
+    }
+  );
 
   // _integerEquals: integer-pyretnum integer-pyretnum -> boolean
   var _integerEquals = makeIntegerBinop(
@@ -1457,6 +1540,7 @@ define(function() {
   };
 
   Rational.prototype.toExact = Rational.prototype.toRational;
+
 
   Rational.prototype.toFixnum = function() {
     return _integerDivideToFixnum(this.n, this.d);
@@ -1928,7 +2012,7 @@ define(function() {
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
 
 
-  var roughnumDecRegexp = new RegExp("^~([-+]?\\d*(?:\\.\\d*)?(?:[Ee][-+]?\\d+)?)$");
+  var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?)$");
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
 
@@ -2004,7 +2088,8 @@ define(function() {
 
     aMatch = x.match(roughnumRatRegexp);
     if (aMatch) {
-      return Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])).toRoughnum();
+      return toRoughnum(Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])),
+        errbacks);
     }
 
     aMatch = x.match(roughnumDecRegexp);
@@ -3563,42 +3648,13 @@ define(function() {
   BigInteger.prototype.toExact = BigInteger.prototype.toRational;
 
   BigInteger.prototype.toFixnum = function() {
-    var str = this.toString();
-    var expt = 0;
-    var negativeP = false;
-    var c0 = str[0];
-
-    var i, slen, result;
-
-    if (c0 === '-' || c0 === '+') {
-      str = str.substring(1);
-      if (c0 === '-') {
-        negativeP = true;
-      }
-    }
-
-    slen = str.length;
-
-    for(i = slen - 1;  i >= 0; i--) {
-      if (str[i] === '0') {
-        expt++;
-      } else {
-        slen = i + 1;
-        str = str.substring(0, slen);
-        break;
-      }
-    }
-
-    str = str + 'e' + expt;
-
-    result = Number(str);
-
-    if (negativeP) {
-      result = - result;
-    }
-
-    return result;
-  } ;
+    var a = splitIntIntoMantissaExpt(this);
+    //console.log('bigint.tofixnum of', this);
+    //console.log('split = ', a);
+    var r = Number(String(a[0]) + 'e' + String(a[1]));
+    //console.log('returning', r);
+    return r;
+  }
 
   BigInteger.prototype.toRoughnum = function(errbacks) {
     return Roughnum.makeInstance(this.toFixnum(), errbacks);

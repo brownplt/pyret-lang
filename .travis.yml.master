@@ -1,0 +1,30 @@
+git:
+  submodules: false
+before_install:
+- sudo apt-get update
+- sudo apt-get install parallel
+#- sudo apt-get install --fix-missing liblog-log4perl-perl libnet-amazon-s3-perl libnet-amazon-perl
+#  libnet-amazon-s3-tools-perl parallel cpanminus
+#- sudo cpanm Config::Tiny
+#- mkdir -p ~/bin
+#- echo "id=$AWS_ID" > ~/.aws
+#- echo "key=$AWS_SECRET" >> ~/.aws
+#- wget -O ~/bin/s3 http://repo.or.cz/w/s3.git?a=blob_plain;f=s3;hb=HEAD
+#- chmod a+x ~/bin/s3
+#- s3 add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip'
+#  --acl 'public-read' :pyret-horizon/current/travis-acl-test src/js/base/runtime-anf.js
+- wget -O setup.sh http://mirror.racket-lang.org/installers/6.0.1/racket-6.0.1-x86_64-linux-ubuntu-precise.sh
+- export PATH=$PATH:~/bin/
+- chmod 770 setup.sh
+- echo y >  setup_commands
+- echo 1 >> setup_commands
+- echo   >> setup_commands
+language: node_js
+node_js:
+- 6.2.1
+install:
+  - sudo ./setup.sh < setup_commands
+  - make install
+before_script: make -j3
+script:
+  - make all-pyret-test

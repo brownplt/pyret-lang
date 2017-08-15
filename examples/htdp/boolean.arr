@@ -4,8 +4,8 @@ true and true
 true and false
 true or false
 false or false
-not false
+not(false)
 
-(("hello world".length() == ("11".tonumber()))
+((string-length("hello world") == string-to-number("11").or-else("failed"))
   or ("hello world" == "good morning"))
- and (("hello world".length() + 60) >= 80)
+ and ((string-length("hello world") + 60) >= 80)

@@ -27,11 +27,11 @@ z :: Number = lam(thing :: Foo): thing.h(3) end(foo2)
 
 data Maybe<A>:
   | some-thing(value :: A) with:
-    method bind<B>(self, f :: (A -> Maybe<B>)):
+    method bind<B>(self, f :: (A -> Maybe<B>)) -> Maybe<B>:
       f(self.value)
     end
   | not-a-thing with:
-    method bind<B>(self, f :: (A -> Maybe<B>)):
+    method bind<B>(self, f :: (A -> Maybe<B>)) -> Maybe<B>:
       not-a-thing
     end
 end

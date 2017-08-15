@@ -7,6 +7,7 @@ import srcloc as SL
 import error as E
 import error-display as ED
 import render-error-display as RED
+import valueskeleton as VS
 
 import ffi as _
 
@@ -59,12 +60,12 @@ data CheckBlockResult:
     )
 end
 
-fun report-value(operand, refinement, value):
+fun report-value(operand, value):
   [ED.sequence:
     [ED.para:
       ED.text("The "),
       operand,
-      ED.text(" evaluated to:")],
+      ED.text(" side was:")],
     ED.embed(value)]
 end
 
@@ -79,8 +80,8 @@ data TestResult:
           | some(test-ast) =>
             lhs-ast = test-ast.left
             rhs-ast = test-ast.right.value
-            ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
-            ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 2)
+            ed-lhs = ED.highlight(ED.text("left"),  [ED.locs: lhs-ast.l], 0)
+            ed-rhs = ED.highlight(ED.text("right"), [ED.locs: rhs-ast.l], 2)
             ed-op = cases(Option) test-ast.refinement:
               | none    =>
                 ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
@@ -93,32 +94,40 @@ data TestResult:
             end
             [ED.error:
               [ED.para:
-                ED.text("The binary test operator "),
+                ED.text("The test operator "),
                 ED.code(ed-op),
-                ED.text(" reported failure for the test ")],
+                ED.text(" failed for the test:")],
                ED.cmcode(self.loc),
               [ED.para:
                 cases(Any) test-ast.op:
                   | s-op-is-roughly(_) =>
                     [ED.sequence:
-                    ED.text("because it reports success if and only if the "),
-                   ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are equal (allowing for rough equality).")]
-                  | s-op-is(_) => [ED.sequence:
-                    ED.text("because it reports success if and only if the predicate "),
+                    ED.text("It succeeds only if the "),
+                   ed-lhs, ED.text(" and "), ed-rhs, ED.text(" sides are equal (allowing for rough equality).")]
+                  | s-op-is(_) =>
                     cases(Option) test-ast.refinement:
-                      | none => ED.code(ED.text("equal-always"))
-                      | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], 1)
-                    end,
-                    ED.text(" is satisfied when the "),
-                     ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
+                      | none =>
+                        [ED.sequence:
+                          ED.text("It succeeds only if the "),
+                          ed-lhs, ED.text(" and "), ed-rhs, ED.text(" sides are equal.")]
+                      | some(e) =>
+                        [ED.sequence:
+                          ED.text("It succeeds only if the "),
+                          ED.highlight(ED.text("predicate"), [list: e.l], 1),
+                          ED.text(" is satisfied when the "),
+                          ed-lhs, ED.text(" and "), ed-rhs,
+                          ED.text(" sides are applied to it.")]
+                    end
                   | s-op-is-op(_, op) =>
                     [ED.sequence:
-                      ED.text("because it reports success if and only if the predicate "),
-                      ED.code(ED.text(get-op-fun-name(op))), ED.text(" is satisfied when the "),
-                      ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
+                      ED.text("It succeeds only if the predicate "),
+                      ED.code(ED.text(get-op-fun-name(op))),
+                      ED.text(" is satisfied when the "),
+                      ed-lhs, ED.text(" and "), ed-rhs,
+                      ED.text(" sides are applied to it.")]
                 end],
-                report-value(ed-lhs, self.refinement, self.left),
-                report-value(ed-rhs, self.refinement, self.right)]
+                report-value(ed-lhs, self.left),
+                report-value(ed-rhs, self.right)]
           | none      => self.render-reason()
         end
       else:
@@ -143,8 +152,8 @@ data TestResult:
           | some(test-ast) =>
             lhs-ast = test-ast.left
             rhs-ast = test-ast.right.value
-            ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
-            ed-rhs = ED.highlight(ED.text("right operand"), [ED.locs: rhs-ast.l], 2)
+            ed-lhs = ED.highlight(ED.text("left"),  [ED.locs: lhs-ast.l], 0)
+            ed-rhs = ED.highlight(ED.text("right"), [ED.locs: rhs-ast.l], 2)
             ed-op = cases(Option) test-ast.refinement:
               | none    =>
                 ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
@@ -157,28 +166,37 @@ data TestResult:
             end
             [ED.error:
               [ED.para:
-                ED.text("The binary test operator "),
+                ED.text("The test operator "),
                 ED.code(ed-op),
-                ED.text(" reported failure for the test ")],
+                ED.text(" failed for the test:")],
                ED.cmcode(self.loc),
               [ED.para:
                 cases(Any) test-ast.op:
-                  | s-op-is-not(_) => [ED.sequence:
-                    ED.text("because it reports success if and only if the predicate "),
+                  | s-op-is-not(_) =>
                     cases(Option) test-ast.refinement:
-                      | none => ED.code(ED.text("equal-always"))
-                      | some(e) => ED.highlight(ED.text("predicate"), [list: e.l], 1)
-                    end,
-                    ED.text(" is not satisfied when the "),
-                     ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
-                  | s-op-is-not-op(_, op) => [ED.sequence:
-                    ED.text("because it reports success if and only if the predicate "),
-                    ED.code(ED.text(get-op-fun-name(op))), ED.text(" is not satisfied when the "),
-                    ed-lhs, ED.text(" and the "), ed-rhs, ED.text(" are applied to it.")]
+                      | none =>
+                        [ED.sequence:
+                          ED.text("It succeeds only if the "),
+                          ed-lhs, ED.text(" and "), ed-rhs, ED.text(" sides are not equal.")]
+                      | some(e) =>
+                        [ED.sequence:
+                          ED.text("It succeeds only if the "),
+                          ED.highlight(ED.text("predicate"), [list: e.l], 1),
+                          ED.text(" is not satisfied when the "),
+                          ed-lhs, ED.text(" and "), ed-rhs,
+                          ED.text(" sides are applied to it.")]
+                    end
+                  | s-op-is-not-op(_, op) =>
+                    [ED.sequence:
+                      ED.text("It succeeds only if the predicate "),
+                      ED.code(ED.text(get-op-fun-name(op))),
+                      ED.text(" is not satisfied when the "),
+                      ed-lhs, ED.text(" and "), ed-rhs,
+                      ED.text(" sides are applied to it.")]
                 end],
-                report-value(ed-lhs, self.refinement, self.left),
-                report-value(ed-rhs, self.refinement, self.right)]
-          | none => self.render-reason()
+                report-value(ed-lhs, self.left),
+                report-value(ed-rhs, self.right)]
+          | none      => self.render-reason()
         end
       else:
         self.render-reason()
@@ -202,17 +220,17 @@ data TestResult:
           | some(test-ast) =>
             lhs-ast = test-ast.left
             rhs-ast = test-ast.right.value
-            ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
+            ed-lhs = ED.highlight(ED.text("left side"),  [ED.locs: lhs-ast.l], 0)
             ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
 
             [ED.error:
               [ED.para:
-                ED.text("The binary test operator "),
+                ED.text("The test operator "),
                 ED.code(ED.text("satisfies")),
-                ED.text(" reported failure for the test ")],
+                ED.text(" failed for the test:")],
                ED.cmcode(self.loc),
               [ED.para:
-                ED.text("because it reports success if and only if the "),
+                ED.text("It succeeds only if the "),
                 ed-rhs,
                 ED.text(" is satisfied when the value of the "),
                 ed-lhs,
@@ -240,22 +258,22 @@ data TestResult:
           | some(test-ast) =>
             lhs-ast = test-ast.left
             rhs-ast = test-ast.right.value
-            ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
+            ed-lhs = ED.highlight(ED.text("left side"),  [ED.locs: lhs-ast.l], 0)
             ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
             [ED.error:
               [ED.para:
-                ED.text("The binary test operator "),
+                ED.text("The test operator "),
                 ED.code(ED.text("violates")),
-                ED.text(" reported failure for the test ")],
+                ED.text(" failed for the test:")],
                ED.cmcode(self.loc),
               [ED.para:
-                ED.text("because it reports success if and only if the "),
+                ED.text("It succeeds only if the "),
                 ed-rhs,
                 ED.text(" is not satisfied when the value of the "),
                 ed-lhs,
                 ED.text(" is applied to it. The value of the "),
                 ed-lhs,
-                ED.text(" is:")],
+                ED.text(" was:")],
               ED.embed(self.val)]
           | none =>
             self.render-reason()
@@ -273,13 +291,23 @@ data TestResult:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
     end,
+    method access-stack(self, get-stack):
+      get-stack(self.actual-exn)
+    end,
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         ED.embed(self.actual-exn),
         [ED.para: ED.text("when expecting ")],
         ED.embed(self.exn-expected)]
-    end
+    end,
+    method _output(self):
+      VS.vs-constr("failure-wrong-exn",
+        [list:
+          VS.vs-value(self.loc),
+          VS.vs-value(self.exn-expected),
+          VS.vs-value(exn-unwrap(self.actual-exn))])
+    end,
   | failure-right-exn(loc :: Loc, exn-not-expected, actual-exn) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
@@ -290,7 +318,14 @@ data TestResult:
         ED.embed(self.actual-exn),
         [ED.para: ED.text("and expected it not to contain ")],
         ED.embed(self.exn-not-expected)]
-    end
+    end,
+    method _output(self):
+      VS.vs-constr("failure-right-exn",
+        [list:
+          VS.vs-value(self.loc),
+          VS.vs-value(self.exn-not-expected),
+          VS.vs-value(exn-unwrap(self.actual-exn))])
+    end,
   | failure-exn(loc :: Loc, actual-exn, exn-place :: CheckOperand) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
@@ -301,13 +336,13 @@ data TestResult:
             lhs-ast = test-ast.left
             [ED.error:
               [ED.para:
-                ED.text("The testing statement")],
+                ED.text("The testing statement failed:")],
                ED.cmcode(self.loc),
               ED.paragraph(
-                [list: ED.text("reported failure for the test, because it did not expect the evaluation of the ")] +
+                [list: ED.text("It did not expect the evaluation of the ")] +
                 cases(CheckOperand) self.exn-place:
-                  | on-left =>       [list: ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], -1)]
-                  | on-right =>      [list: ED.highlight(ED.text("right operand"), [ED.locs: test-ast.right.value.l], -1)]
+                  | on-left =>       [list: ED.highlight(ED.text("left side"),  [ED.locs: lhs-ast.l], -1)]
+                  | on-right =>      [list: ED.highlight(ED.text("right side"), [ED.locs: test-ast.right.value.l], -1)]
                   | on-refinement =>
                     cases(Option<Any>) test-ast.refinement: # Ought to be Option<A.Expr>
                       | some(v) => [list: ED.highlight(ED.text("refinement"),   [ED.locs: v.l], -1)]
@@ -326,7 +361,19 @@ data TestResult:
       [ED.error:
         [ED.para: ED.text("Got unexpected exception ")],
         ED.embed(self.actual-exn)]
-    end
+    end,
+    method access-stack(self, get-stack) block:
+      print("Thes stack is being accessed")
+      print(get-stack(self.actual-exn))
+      get-stack(self.actual-exn)
+    end,
+    method _output(self):
+      VS.vs-constr("failure-exn",
+        [list:
+          VS.vs-value(self.loc),
+          VS.vs-value(exn-unwrap(self.actual-exn)),
+          VS.vs-value(self.exn-place)])
+    end,
   | failure-no-exn(loc :: Loc, exn-expected :: Option<String>) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       cases(Option) self.exn-expected:
@@ -349,23 +396,23 @@ data TestResult:
           | some(test-ast) =>
             lhs-ast = test-ast.left
             rhs-ast = test-ast.right.value
-            ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
+            ed-lhs = ED.highlight(ED.text("left side"),  [ED.locs: lhs-ast.l], 0)
             ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
 
             [ED.error:
               [ED.para:
-                ED.text("The binary test operator "),
+                ED.text("The test operator "),
                 ED.code(ED.text("raises-satisfies")),
-                ED.text(" reported failure for the test ")],
+                ED.text(" failed for the test:")],
                ED.cmcode(self.loc),
               [ED.para:
-                ED.text("because it reports success if and only if the "),
+                ED.text("It succeeds only if the "),
                 ed-rhs,
                 ED.text(" is satisfied when the value of the exception raised by the "),
                 ed-lhs,
                 ED.text(" is applied to it. The value of the "),
                 ed-lhs,
-                ED.text(" is:")],
+                ED.text(" was:")],
               ED.embed(self.exn)]
           | none => self.render-reason()
         end
@@ -377,6 +424,13 @@ data TestResult:
       [ED.error:
         [ED.para: ED.text("Predicate failed for exception:")],
         [ED.para: ED.embed(exn-unwrap(self.exn))]]
+    end,
+    method _output(self):
+      VS.vs-constr("failure-raise-not-satisfied",
+        [list:
+          VS.vs-value(self.loc),
+          VS.vs-value(exn-unwrap(self.exn)),
+          VS.vs-value(self.pred)])
     end
   | failure-raise-not-dissatisfied(loc :: Loc, exn, pred) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -387,17 +441,17 @@ data TestResult:
           | some(test-ast) =>
             lhs-ast = test-ast.left
             rhs-ast = test-ast.right.value
-            ed-lhs = ED.highlight(ED.text("left operand"),  [ED.locs: lhs-ast.l], 0)
+            ed-lhs = ED.highlight(ED.text("left side"),  [ED.locs: lhs-ast.l], 0)
             ed-rhs = ED.highlight(ED.text("predicate"), [ED.locs: rhs-ast.l], 2)
 
             [ED.error:
               [ED.para:
-                ED.text("The binary test operator "),
+                ED.text("The test operator "),
                 ED.code(ED.text("raises-satisfies")),
-                ED.text(" reported failure for the test ")],
+                ED.text(" failed for the test:")],
                ED.cmcode(self.loc),
               [ED.para:
-                ED.text("because it reports success if and only if the "),
+                ED.text("It succeeds only if the "),
                 ed-rhs,
                 ED.text(" is not satisfied when the value of the exception raised by the "),
                 ed-lhs,
@@ -415,6 +469,13 @@ data TestResult:
       [ED.error:
         [ED.para: ED.text("Predicate succeeded for exception (it should have failed):")],
         [ED.para: ED.embed(exn-unwrap(self.exn))]]
+    end,
+    method _output(self):
+      VS.vs-constr("failure-raise-not-dissatisfied",
+        [list:
+          VS.vs-value(self.loc),
+          VS.vs-value(exn-unwrap(self.exn)),
+          VS.vs-value(self.pred)])
     end
   # This is not so much a test result as an error in a test case:
   # Maybe pull it out in the future?
@@ -429,6 +490,10 @@ data TestResult:
         [ED.para: ED.text("The custom equality funtion must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
     end
+sharing:
+  # By default, just return an empty stack.  Override this in the cases
+  # that actually have an exception to report
+  method access-stack(self, stack-getter): empty end
 end
 
 fun make-check-context(main-module-name :: String, check-all :: Boolean):
@@ -466,7 +531,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun reset-results(): current-results := [list: ] end
   {
     method run-checks(self, module-name, checks):
-      when check-all or (module-name == main-module-name):
+      when check-all or (module-name == main-module-name) block:
         for each(c from checks) block:
           results-before = current-results
           reset-results()
@@ -490,7 +555,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     method check-is-roughly(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
         check-bool(loc,
-          within(~0.0)(lv, rv),
+          within(~0.000001)(lv, rv),
           lam(): failure-not-equal(loc, none, lv, rv) end)
       end
       nothing
@@ -658,8 +723,9 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
             total: s.total + 1
           }
         | else =>
+          stack = tr.access-stack(get-stack)
           m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
-            + RED.display-to-string(tr.render-reason(), torepr, empty)
+            + RED.display-to-string(tr.render-reason(), torepr, stack)
           s.{
             message: m,
             failed: s.failed + 1,

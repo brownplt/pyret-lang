@@ -14,8 +14,11 @@ check:
   sd.get-compiled() satisfies is-some
 
   sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
-  sd.get-compiled().value.provides.values.keys() is [tree-set: "is-mutable-string-dict", "is-string-dict", "make-mutable-string-dict", "make-string-dict", "mutable-string-dict", "string-dict", "string-dict-of"]
-
+  sd.get-compiled().value.provides.values.keys() is [tree-set: "each-key",
+    "each-key-now", "fold-keys", "fold-keys-now", "is-mutable-string-dict",
+    "is-string-dict", "make-mutable-string-dict", "make-string-dict",
+    "map-keys", "map-keys-now", "mutable-string-dict", "string-dict",
+    "string-dict-of"]
   # TODO(joe): reinstate these once types come back
   # sd.get-compiled().value.provides.data-definitions.keys() is [tree-set: "MutableStringDict", "StringDict"]
   # sd.get-compiled().value.provides.values.keys() is [tree-set:
@@ -67,16 +70,16 @@ check:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
   wlist = CL.compile-worklist(dfind, floc, {})
-  wlist.length() is 25
+  wlist.length() is 27
   wlist.get(0).locator.uri() is "builtin://global"
   wlist.get(0).locator.name() is "global"
   wlist.get(1).locator.uri() is "builtin://valueskeleton"
   wlist.get(1).locator.name() is "valueskeleton"
   wlist.get(2).locator.uri() is "builtin://string-dict"
   wlist.get(2).locator.name() is "string-dict"
-  wlist.get(23).locator.uri() is "protocol://bar"
-  wlist.get(23).locator is string-to-locator("bar")
-  wlist.get(24).locator is floc
+  wlist.get(25).locator.uri() is "protocol://bar"
+  wlist.get(25).locator is string-to-locator("bar")
+  wlist.get(26).locator is floc
 
   # TODO(joe): this requires some better eval support than we have
   # ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
@@ -84,7 +87,7 @@ check:
 
   bazloc = string-to-locator("baz")
   wlist2 = CL.compile-worklist(dfind, bazloc, {})
-  wlist2.length() is 24
+  wlist2.length() is 26
   # TODO(joe): this requires some better eval support than we have
   # ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   # ans2.v satisfies L.is-success-result

@@ -17,7 +17,7 @@
 
     */
     function makeStandalone(deps, body, configJSON, standaloneFile) {
-      runtime.checkArity(4, arguments, ["make-standalone"]);
+      runtime.checkArity(4, arguments, ["make-standalone"], false);
       runtime.checkList(deps);
       runtime.checkString(configJSON);
 
@@ -41,36 +41,65 @@
       var realOut = config.out;
       config.out = path.join(storeDir, "program-deps.js");
       config.name = "program-require";
-      runtime.pauseStack(function(restarter) {
-        requirejs.optimize(config, function(result) {
-          var programWithDeps = fs.readFileSync(config.out, {encoding: 'utf8'});
-          // Browser/node check based on window below
-          fs.open(realOut, "w", function(err, outFile) {
-            if (err) throw err;
-            fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
-            fs.writeSync(outFile, "requirejs = require(\"requirejs\");\n");
-            fs.writeSync(outFile, "define = requirejs.define;\n}\n");
-            fs.writeSync(outFile, programWithDeps);
-            fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
-            var writeRealOut = function(str) { 
-              fs.writeSync(outFile, str, {encoding: 'utf8'}); 
-              return runtime.nothing; 
-            };
-            runtime.runThunk(function() { 
-              return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
-            }, function(_) {
-              fs.writeSync(outFile, "\n});\n");
-              fs.writeSync(outFile, handalone);
-              fs.fsyncSync(outFile);
-              fs.closeSync(outFile);
-              restarter.resume(true);
-            });
-          });
-        }, function(err) {
-          console.error("Error while using requirejs optimizer: ", err); 
-          restarter.error(runtime.ffi.makeMessageException("Error while using requirejs optimizer: ", String(err)));
+      if(config["use-raw-files"]) {
+        var outFile = fs.openSync(realOut, "w");
+        var filesToFetch = config["raw-js"];
+        fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
+        fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
+        fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
+        var toFetchKeys = Object.keys(filesToFetch);
+        toFetchKeys.sort();
+        toFetchKeys.forEach(function(f) {
+          var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
+          fs.writeSync(outFile, contents);
         });
-      });
+        fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
+        var writeRealOut = function(str) { 
+          fs.writeSync(outFile, str, {encoding: 'utf8'}); 
+          return runtime.nothing; 
+        };
+        return runtime.safeCall(function() { 
+          return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
+        }, function(_) {
+          fs.writeSync(outFile, "\n});\n");
+          fs.writeSync(outFile, handalone);
+          fs.fsyncSync(outFile);
+          fs.closeSync(outFile);
+          return true;
+        });
+      }
+      else {
+        return runtime.pauseStack(function(restarter) {
+          requirejs.optimize(config, function(result) {
+            var programWithDeps = fs.readFileSync(config.out, {encoding: 'utf8'});
+            // Browser/node check based on window below
+            fs.open(realOut, "w", function(err, outFile) {
+              if (err) throw err;
+              fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
+              fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
+              fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
+              fs.writeSync(outFile, programWithDeps);
+              fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
+              var writeRealOut = function(str) { 
+                fs.writeSync(outFile, str, {encoding: 'utf8'}); 
+                return runtime.nothing; 
+              };
+              runtime.runThunk(function() { 
+                return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
+              }, function(_) {
+                fs.writeSync(outFile, "\n});\n");
+                fs.writeSync(outFile, handalone);
+                fs.fsyncSync(outFile);
+                fs.closeSync(outFile);
+                restarter.resume(true);
+              });
+            });
+          }, function(err) {
+            console.error("Error while using requirejs optimizer: ", err); 
+            restarter.error(runtime.ffi.makeMessageException("Error while using requirejs optimizer: ", String(err)));
+          });
+        });
+      }
     }
     return runtime.makeModuleReturn({
       "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone")

@@ -1,4 +1,4 @@
-define([], function() {
+define("pyret-base/js/type-util", [], function() {
 
   var any = { "tag": "any" };
   var string = { "tag": "name", "module": "builtin", "name": "String" }
@@ -107,10 +107,36 @@ define([], function() {
     };
   }
 
-  function toPyret(runtime, typ) {
+  function bindToPyret(runtime, value) {
+    var wrapper = function(t) {
+      return runtime.makeObject({ bind: "let", typ: t });
+    };
+    var typ;
+    if(value.bind) {
+      if(value.bind === "fun") {
+        typ = value.typ;
+        wrapper = function(t) {
+          var flatness = value.flatness == parseInt(value.flatness) ? value.flatness : false;
+          return runtime.makeObject({ bind: "fun", name: value.name || "", flatness: flatness, typ: t});
+        };
+      }
+      else if(value.bind === "var") {
+        typ = value.typ;
+        wrapper = function(t) {
+          return runtime.makeObject({ bind: "var", typ: t });
+        };
+      }
+    }
+    else {
+      typ = value;
+    }
+    return wrapper(toPyretType(runtime, expandType(typ)));
+  }
+
+  function toPyretType(runtime, typ) {
     var O = runtime.makeObject;
     var L = runtime.ffi.makeList;
-    var tp = function(thing) { return toPyret(runtime, thing); };
+    var tp = function(thing) { return toPyretType(runtime, thing); };
     if(typ === "tany") { return O({ tag: "any" }); }
     switch(typ.tag) {
       case "any":
@@ -189,6 +215,7 @@ define([], function() {
     }
   }
 
+  // I can't find anywhere where this function is called
   function providesToPyret(runtime, provides) {
     if(Array.isArray(provides.values)) {
       var values = provides.values;
@@ -197,7 +224,7 @@ define([], function() {
       var values = Object.keys(provides.values).map(function(k) {
         return runtime.makeObject({
           name: k,
-          typ: toPyret(runtime, provides.values[k])
+          typ: toPyretValueExport(runtime, provides.values[k])
         });
       });
     }
@@ -208,7 +235,7 @@ define([], function() {
       var aliases = Object.keys(provides.aliases).map(function(k) {
         return runtime.makeObject({
           name: k,
-          typ: toPyret(runtime, provides.aliases[k])
+          typ: toPyretType(runtime, provides.aliases[k])
         });
       });
     }
@@ -220,7 +247,7 @@ define([], function() {
         var datatypes = Object.keys(provides.datatypes).map(function(k) {
           return runtime.makeObject({
             name: k,
-            typ: toPyret(runtime, provides.datatypes[k])
+            typ: toPyretType(runtime, provides.datatypes[k])
           });
         });
       }
@@ -236,6 +263,9 @@ define([], function() {
   }
 
   function expandType(typ, shorthands) {
+    if(typ.bind) {
+      return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
+    }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
     function mkName(origin, name) {
@@ -404,6 +434,20 @@ define([], function() {
       }
     }
     else if(iO(typ)) {
+      // If the object a ValueExport, we want to return an object that's
+      // exactly the same, but with the typ field expanded.
+      if (typ.bind == "fun") {
+        var o = {};
+        Object.keys(typ).forEach(function(k) {
+          if (k == "typ") {
+            o[k] = expandType(typ.typ, shorthands);
+          }
+          else {
+            o[k] = typ[k];
+          }
+        });
+        return o;
+      }
       return typ;
     }
     else {
@@ -435,7 +479,8 @@ define([], function() {
     localType: localType,
     record: record,
     dataType: dataType,
-    toPyret: toPyret,
+    toPyretType: toPyretType,
+    bindToPyret: bindToPyret,
     providesToPyret: providesToPyret,
     expandType: expandType,
     expandRecord: expandRecord

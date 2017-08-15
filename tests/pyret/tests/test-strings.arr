@@ -10,8 +10,8 @@ check:
 end
 
 check:
-  string-substring("abc", 1.5, 3) raises "start"
-  string-substring("abc", 1, 1.5) raises "end"
+  string-substring("abc", 1.5, 3) raises "NumInteger"
+  string-substring("abc", 1, 1.5) raises "NumInteger"
 end
 
 check:
@@ -50,6 +50,14 @@ check:
   #string-tonumber("100000000000000000000000000000000000001")
   #  is 100000000000000000000000000000000000001
   string-tonumber("1/2") is 0.5
+
+  # hyphenated version also bound
+  string-to-number("1/2") is some(0.5)
+  
+  "1/2" satisfies string-is-number
+  "abc" violates string-is-number
+  "3+5i" violates string-is-number
+  "1a2" violates string-is-number
 
   string-repeat("a", 4) is "aaaa"
   string-repeat("a", 0) is ""
@@ -150,3 +158,14 @@ check:
 
 end
 
+check "case":
+  string-to-upper("a") is "A"
+  string-to-upper("I'm not yelling!") is "I'M NOT YELLING!"
+  string-to-upper("ß") is "SS"
+  string-to-upper("λαμβδα") is "ΛΑΜΒΔΑ"
+
+  string-to-lower("A") is "a"
+  string-to-lower("I'M NOT YELLING!") is "i'm not yelling!"
+  string-to-lower("SS") is "ss"
+  string-to-lower("ΛΑΜΒΔΑ") is "λαμβδα"
+end

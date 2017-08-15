@@ -207,44 +207,64 @@ check "shuffle":
   num-random-seed(0)
   l-mixed2 = lists.shuffle(l)
   l-mixed2 is l-mixed
+
+  two-elts = [list: 1, 2]
+  {saw-same; saw-different} =
+    for fold({saw-same; saw-different} from {false; false}, i from range(0, 100)):
+      same = (lists.shuffle(two-elts) == two-elts)
+      {
+        saw-same or same;
+        saw-different or not(same)
+      }
+    end
+  saw-same is true
+  saw-different is true
 end
 
-check "numeric helpers":
-  lists.length([list:]) is 0
-  lists.length([list:1, 2, 3]) is 3
+check "string helper":
+  lists.join-str([list: "a", "b"], ",") is "a,b"
+  lists.join-str([list: "", "", ""], "") is ""
+  lists.join-str([list: "", "a", ""], ",") is ",a,"
+  lists.join-str([list:], ",") is ""
+  lists.join-str([list: "a"], ",") is "a"
+  lists.join-str([list: "a", "b", "c", "d", "e"], "  ") is "a  b  c  d  e"
+end
 
-  lists.mean([list: 1, 2, 3]) is 2
-  lists.mean([list:]) raises "empty"
-  lists.mean([list: "a"]) raises "num-string-binop-error"
+check "sort as a function":
+  lists.sort([list: 1, 5, 6, 2, 3]) is [list: 1, 2, 3, 5, 6]
 
-  lists.median([list: 1, 2, 3]) is 2
-  lists.median([list: 1.2, ~1.2]) is-roughly ~1.2
+  lists.sort([list: "dog", "Dog", "DOG"]) is [list: "DOG", "Dog", "dog"]
 
-  # assuming the sort is stable, these make sense
-  lists.median([list: ~1, 1, ~1]) is 1
-  lists.median([list: 1, ~1, ~1]) is-roughly ~1
+  lists.sort-by([list:
+      { name: "Bob", age: 22 },
+      { name: "Amy", age: 5 },
+      { name: "Bob", age: 17 },
+      { name: "Joan", age: 43 },
+      { name: "Alex", age: 3 }],
+    lam(p1, p2): p1.age < p2.age end,
+    lam(p1, p2): p1.age == p2.age end)
+    is
+    [list:
+      { name: "Alex", age: 3 },
+      { name: "Amy", age: 5 },
+      { name: "Bob", age: 17 },
+      { name: "Bob", age: 22 },
+      { name: "Joan", age: 43 }]
+end
 
-  lists.max([list:]) raises "empty"
-  lists.min([list:]) raises "empty"
-
-  lists.max([list: 1, 2, ~3]) is-roughly ~3
-  lists.max([list: -1, 0, 1]) is 1
-
-  lists.min([list: -1, -10, 1/2]) is -10
-  lists.min([list: 1/10, 1/100, 1/100000000000000000000000]) is 1/100000000000000000000000
-
-  lists.stdev([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 1.41
-  lists.stdev([list: 1, 1, 1, 1]) is-roughly ~0
-  lists.stdev([list:]) raises "empty"
-
-  lists.mean([list:]) raises "empty"
-  lists.mean([list: 1, 3, 4]) is 8/3
-  lists.mean([list: ~1, 3, 4]) is%(within(0.01)) 8/3
-  lists.mean([list: 1/2]) is 1/2
-
+check "distinct":
   lists.distinct([list: ~1, ~1]) is-roughly [list: ~1, ~1]
   lists.distinct([list: ~1, ~1, 1]) is-roughly [list: ~1, ~1, 1]
   lists.distinct([list: ~1, ~1, 1, 1]) is-roughly [list: ~1, ~1, 1]
   lists.distinct([list: ~1, ~2, ~3]) is-roughly [list: ~1, ~2, ~3]
-
 end
+
+check "more utility functions":
+  lists.last([list: 1]) is 1
+  lists.last([list: 1, 2, 3, 4, 5, 6, 7]) is 7
+
+  lists.append([list: 1, 2, 3], [list: 4, 5, 6]) is [list: 1, 2, 3, 4, 5, 6]
+
+  lists.push(empty, 1) is link(1, empty)
+end
+

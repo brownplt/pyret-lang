@@ -1,5 +1,13 @@
-define(["./namespace", "./js-numbers", "./codePoint", "seedrandom", "./runtime-util"],
-function (Namespace, jsnums, codePoint, seedrandom, util) {
+define("pyret-base/js/runtime",
+  ["pyret-base/js/namespace",
+   "pyret-base/js/js-numbers",
+   "pyret-base/js/codePoint",
+   "pyret-base/js/runtime-util",
+   "pyret-base/js/exn-stack-parser",
+   "pyret-base/js/secure-loader",
+   "seedrandom"],
+function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
+  Error.stackTraceLimit = Infinity;
 
   if(util.isBrowser()) {
     var require = requirejs;
@@ -321,11 +329,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return s;
       },
       "data": function(val, pushTodo) {
-        var vals = val.$app_fields_raw(function(/* varargs */) {
-          var ans = new Array(arguments.length);
-          for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
-          return ans;
-        });
+        var vals = [];
+        if (val.$constructor.$fieldNames) {
+          for (var i = 0; i < val.$constructor.$fieldNames.length; i++) {
+            vals[i] = val.dict[val.$constructor.$fieldNames[i]];
+          }
+        }
         pushTodo(undefined, val, undefined, vals, "render-data",
                  { arity: val.$arity, implicitRefs: val.$mut_fields_mask,
                    fields: val.$constructor.$fieldNames, constructorName: val.$name });
@@ -457,6 +466,19 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function getField(obj, field) {
       return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
     }
+
+    function getMaker(obj, makerField, exprLoc, constrLoc) {
+      var maker = isObject(obj) && obj.dict[makerField];
+      if (!isFunction(maker)) {
+        if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
+          throw Error("FFI or thisRuntime.ffi., val, field is not yet defined, and lookup of field " + makeField + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(constrLoc));
+        } else {
+          throw thisRuntime.ffi.throwConstructorSyntaxNonConstructor(makeSrcloc(exprLoc), makeSrcloc(constrLoc));
+        }
+      }
+      return maker;
+    }
+
 
     function extendObj(loc, val, extension) {
       if (!isObject(val)) { thisRuntime.ffi.throwExtendNonObject(makeSrcloc(loc), val); }
@@ -636,6 +658,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return b === pyretFalse;
     }
 
+    function checkPyretTrue(b) {
+      checkBoolean(b);
+      return b === pyretTrue;
+    }
+
     /*********************
             Function
     **********************/
@@ -746,85 +773,38 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeMethod(meth, full_meth, name) {
       return new PMethod(meth, full_meth, name);
     }
-    var app0 = function(obj) {
-      var that = this;
-      return function() { return that.full_meth(obj); }
-    };
-    var app1 = function(obj) {
-      var that = this;
-      return function(v) { return that.full_meth(obj, v); };
-    };
-    var app2 = function(obj) {
-      var that = this;
-      return function(v1, v2) { return that.full_meth(obj, v1, v2); };
-    };
-    var app3 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3) { return that.full_meth(obj, v1, v2, v3); };
-    };
-    var app4 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4) { return that.full_meth(obj, v1, v2, v3, v4); };
-    };
-    var app5 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5) { return that.full_meth(obj, v1, v2, v3, v4, v5); };
-    };
-    var app6 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5, v6) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6); };
-    };
-    var app7 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5, v6, v7) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6, v7); };
-    };
-    var app8 = function(obj) {
-      var that = this;
-      return function(v1, v2, v3, v4, v5, v6, v7, v8) { return that.full_meth(obj, v1, v2, v3, v4, v5, v6, v7, v8); };
-    };
     var appN = function(obj) {
       var that = this;
-      return function() {
-        var argList = new Array(arguments.length);
-        for (var i = 0; i < arguments.length; i++) argList[i] = arguments[i];
-        return that.full_meth.apply(null, [obj].concat(argList));
-      };
+      return function() { return that.full_meth(obj, ...arguments); }
     }
-    function makeMethod0(meth, name) {
-      return new PMethod(app0, meth, name);
-    }
-    function makeMethod1(meth, name) {
-      return new PMethod(app1, meth, name);
-    }
-    function makeMethod2(meth, name) {
-      return new PMethod(app2, meth, name);
-    }
-    function makeMethod3(meth, name) {
-      return new PMethod(app3, meth, name);
-    }
-    function makeMethod3(meth, name) {
-      return new PMethod(app3, meth, name);
-    }
-    function makeMethod4(meth, name) {
-      return new PMethod(app4, meth, name);
-    }
-    function makeMethod5(meth, name) {
-      return new PMethod(app5, meth, name);
-    }
-    function makeMethod6(meth, name) {
-      return new PMethod(app6, meth, name);
-    }
-    function makeMethod7(meth, name) {
-      return new PMethod(app7, meth, name);
-    }
-    function makeMethod8(meth, name) {
-      return new PMethod(app8, meth, name);
+
+    function maybeMethodCall(obj, fieldname, loc, ...args) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, ...args);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(...args);
+      }
     }
 
     function makeMethodFromFun(meth, name) {
       return new PMethod(appN, meth, name);
     }
     var makeMethodN = makeMethodFromFun;
+    var makeMethod0 = makeMethodN;
+    var makeMethod1 = makeMethodN;
+    var makeMethod2 = makeMethodN;
+    var makeMethod3 = makeMethodN;
+    var makeMethod4 = makeMethodN;
+    var makeMethod5 = makeMethodN;
+    var makeMethod6 = makeMethodN;
+    var makeMethod7 = makeMethodN;
+    var makeMethod8 = makeMethodN;
 
     function callIfPossible0(L, fun, obj) {
       if (isMethod(fun)) {
@@ -954,6 +934,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return ref.anns;
     }
     function refEndGraph(ref) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["ref-end-graph"], 1, $a, false); }
       if(ref.state >= UNGRAPHABLE) {
         thisRuntime.ffi.throwMessageException("Attempted to end graphing of already-done with graph ref");
       }
@@ -977,6 +958,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return ref;
     }
     function freezeRef(ref) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["ref-freeze"], 1, $a, false); }
       if(ref.state >= SET) {
         ref.state = FROZEN;
         return ref;
@@ -993,6 +975,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
     /* Not stack-safe */
     function setRef(ref, value) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["ref-set"], 2, $a, false); }
       if(ref.state === UNGRAPHABLE || ref.state === SET) {
         return checkAnn(["references"], ref.anns, value, function(_) {
           ref.value = value;
@@ -1003,6 +986,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       thisRuntime.ffi.throwMessageException("Attempted to set an unsettable ref");
     }
     function getRef(ref) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["ref-get"], 1, $a, false); }
       if(ref.state >= SET) { return ref.value; }
       thisRuntime.ffi.throwMessageException("Attempt to get an unset ref");
     }
@@ -1053,7 +1037,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     */
     function PObject(dict, brands) {
       /**@type {!Object.<string, !PBase>}*/
-      this.dict = dict;
+      this.dict = Object.create(null);
+      for (var prop in dict)
+        this.dict[prop] = dict[prop];
 
       /**@type {!Object.<string, Boolean>}*/
       this.brands = brands;
@@ -1117,14 +1103,42 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
-    function makeDataValue(dict, brands, $name, $app_fields, $app_fields_raw, $arity, $mut_fields_mask, constructor) {
+    function makeDataTypeConstructor($name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored, $loc) {
+
+      if (_ignored) { // POLYGLOT
+        $arity = $mut_fields_mask;
+        $mut_fields_mask = constructor;
+        constructor = _ignored;
+      }
+      
+      function C(dict, brands) {
+        this.dict = dict;
+        this.brands = brands;
+      }
+      C.prototype = new PObject({}, []);
+      C.prototype.$name = $name;
+      C.prototype.$loc = $loc;
+      C.prototype.$app_fields = $app_fields;
+      C.prototype.$mut_fields_mask = $mut_fields_mask;
+      C.prototype.$arity = $arity;
+      C.prototype.$constructor = constructor
+
+      return C;
+    }
+
+    function makeDataValue(dict, brands, $name, $app_fields, $arity, $mut_fields_mask, constructor, _ignored, $loc) {
+      if (_ignored) { // POLYGLOT
+        $arity = $mut_fields_mask;
+        $mut_fields_mask = constructor;
+        constructor = _ignored;
+      }
       var ret = new PObject(dict, brands);
       ret.$name = $name;
+      ret.$loc = $loc || [$name];
       ret.$app_fields = $app_fields;
-      ret.$app_fields_raw = $app_fields_raw;
       ret.$mut_fields_mask = $mut_fields_mask;
       ret.$arity = $arity;
-      ret.$constructor = constructor
+      ret.$constructor = constructor;
       return ret;
     }
 
@@ -1156,6 +1170,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    function getValue(obj, key) {
+      // TODO(joe): faster impl for builtins?
+      return thisRuntime.getField(obj, "get-value").app(key);
+    }
+
     /**The representation of an array
        A PArray is simply a JavaScript array
     */
@@ -1165,12 +1184,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function makeArray(arr) {
       return arr;
     }
-
+ 
     /************************
           Type Checking
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
+        debugger;
         thisRuntime.ffi.throwTypeMismatch(val, typeName);
       }
       return true;
@@ -1195,14 +1215,16 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return false;
     }
 
-    var checkArity = function(expected, args, source) {
+    var checkArity = function(expected, args, source, isMethod) {
+      isMethod = isMethod || false;
       if (expected !== args.length) {
-        throw thisRuntime.ffi.throwArityErrorC([source], expected, args);
+        throw thisRuntime.ffi.throwArityErrorC([source], expected, args, isMethod);
       }
     }
-    var checkArityC = function(cloc, expected, args) {
+    var checkArityC = function(cloc, expected, args, isMethod) {
+      isMethod = isMethod || false;
       if (expected !== args.length) {
-        throw thisRuntime.ffi.throwArityErrorC(cloc, expected, args);
+        throw thisRuntime.ffi.throwArityErrorC(cloc, expected, args, isMethod);
       }
     }
 
@@ -1218,7 +1240,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         throw("MakeCheckType was called with the wrong number of arguments: expected 2, got " + arguments.length);
       }
       return function(val) {
-        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["runtime"], 1, $a); }
+        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["runtime"], 1, $a, false); }
         return checkType(val, test, typeName);
       };
     }
@@ -1248,7 +1270,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     function confirm(val, test) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["runtime"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["runtime"], 2, $a, false); }
       if(!test(val)) {
         thisRuntime.ffi.throwMessageException("Pyret Type Error: " + test + ": " + JSON.stringify(val))
       }
@@ -1275,11 +1297,11 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var brandSrcloc = srcloc || ["brander-brand: " + thisBrandStr]
       var brander = makeObject({
         'test': makeFunction(function(obj) {
-          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(testSrcloc, 1, $a); }
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(testSrcloc, 1, $a, false); }
           return makeBoolean(hasBrand(obj, thisBrandStr));
         }, "is-" + name),
         'brand': makeFunction(function(obj) {
-          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(brandSrcloc, 1, $a); }
+          if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(brandSrcloc, 1, $a, false); }
           return obj.brand(thisBrandStr);
         }, "brand-" + name)
       });
@@ -1292,7 +1314,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @return {!PBase}
       */
       function() {
-        if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander"], 0, $a); }
+        if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["brander"], 0, $a, false); }
         return namedBrander("brander", undefined);
       },
       "brander"
@@ -1438,6 +1460,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               else if (next.dict["_output"] && isMethod(next.dict["_output"])) {
                 var m = getColonField(next, "_output");
                 var s = m.full_meth(next);
+                // Early exit for user-thrown exception here
+                if(isContinuation(s)) { return s; }
                 reprMethods["valueskeleton"](next, thisRuntime.unwrap(s), pushTodo);
               }
               else if(isDataValue(next)) {
@@ -1468,46 +1492,43 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function toReprFun($ar) {
         var $step = 0;
         var $ans = undefined;
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            $step = $ar.step;
-            $ans = $ar.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              $step = 1;
-              return toReprHelp();
-            case 1:
-              if (stack.length === 0) {
-                thisRuntime.ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
-              }
-              var top = stack[stack.length - 1];
-              var a = thisRuntime.unwrap($ans);
-              if (thisRuntime.ffi.isValueSkeleton(a)) {
-                reprMethods["valueskeleton"](top.todo[top.todo.length - 1], a, pushTodo);
-              } else {
-                // this is essentially finishVal
-                top.todo.pop();
-                top.done.push(a);
-              }
-              $step = 0;
-              break;
+        if (thisRuntime.isActivationRecord($ar)) {
+          $step = $ar.step;
+          $ans = $ar.ans;
+        }
+        while(true) {
+          switch($step) {
+          case 0:
+            $step = 1;
+            $ans = toReprHelp();
+            if(isContinuation($ans)) { break; }
+            return $ans;
+          case 1:
+            if (stack.length === 0) {
+              thisRuntime.ffi.throwInternalError("Somehow we've drained the toRepr worklist, but have results coming back");
             }
+            var top = stack[stack.length - 1];
+            var a = thisRuntime.unwrap($ans);
+            if (thisRuntime.ffi.isValueSkeleton(a)) {
+              reprMethods["valueskeleton"](top.todo[top.todo.length - 1], a, pushTodo);
+            } else {
+              // this is essentially finishVal
+              top.todo.pop();
+              top.done.push(a);
+            }
+            $step = 0;
+            continue;
           }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["runtime torepr"],
-              toReprFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["runtime torepr"]);
-          }
-          throw $e;
+          break;
+        }
+        if(isContinuation($ans)) {
+          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["runtime torepr"],
+            toReprFun,
+            $step,
+            [],
+            []);
+          return $ans;
         }
       }
       function reenterToReprFun(val) {
@@ -1523,46 +1544,40 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             return undefined;
           }
         }
-        try {
-          if (thisRuntime.isActivationRecord(val)) {
-            $step = val.step;
-            $ans = val.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              stackOfStacks.push(stack);
-              stack = [{
-                arrays: getOld("arrays"),
-                objects: getOld("objects"),
-                refs: getOld("refs"),
-                todo: [val],
-                done: [],
-                extra: { implicitRefs: [false] },
-                root: val
-              }];
-              $step = 1;
-              $ans = toReprFun();
-              break;
-            case 1:
-              stack = stackOfStacks.pop();
-              return $ans;
-            }
-          }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["runtime torepr (reentrant)"],
-              reenterToReprFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["runtime torepr"]);
-          }
-          throw $e;
+        if (thisRuntime.isActivationRecord(val)) {
+          $step = val.step;
+          $ans = val.ans;
         }
+        while(true) {
+          switch($step) {
+          case 0:
+            stackOfStacks.push(stack);
+            stack = [{
+              arrays: getOld("arrays"),
+              objects: getOld("objects"),
+              refs: getOld("refs"),
+              todo: [val],
+              done: [],
+              extra: { implicitRefs: [false] },
+              root: val
+            }];
+            $step = 1;
+            $ans = toReprFun();
+            if(isContinuation($ans)) { break; }
+            continue;
+          case 1:
+            stack = stackOfStacks.pop();
+            return $ans;
+          }
+          break;
+        }
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+          ["runtime torepr (reentrant)"],
+          reenterToReprFun,
+          $step,
+          [],
+          []);
+        return $ans;
       }
       var toReprFunPy = makeFunction(reenterToReprFun, "toReprFun");
       return reenterToReprFun(val);
@@ -1583,17 +1598,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     /**@type {PFunction} */
     var torepr = makeFunction(function(val) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["torepr"], 1, $a); }
-      return makeString(toReprJS(val, ReprMethods._torepr));
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["torepr"], 1, $a, false); }
+      return toReprJS(val, ReprMethods._torepr);
     }, "torepr");
     var tostring = makeFunction(function(val) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["tostring"], 1, $a); }
-      if(isString(val)) {
-        return makeString(val);
-      }
-      else {
-        return makeString(toReprJS(val, ReprMethods._tostring));
-      }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["tostring"], 1, $a, false); }
+      if(isString(val)) { return val; }
+      else { return toReprJS(val, ReprMethods._tostring); }
     }, "tostring");
 
     var print = makeFunction(
@@ -1604,10 +1615,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @return {!PBase} the value given in
       */
       function(val){
-        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a); }
+        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a, false); }
 
         return thisRuntime.safeCall(function() {
-          display.app(val);
+          return display.app(val);
         }, function(_) {
           return nothing;
         }, "print");
@@ -1621,7 +1632,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @return {!PBase} the value given in
       */
       function(val){
-        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a); }
+        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a, false); }
         if (isString(val)) {
           theOutsideWorld.stdout(val);
           return nothing;
@@ -1644,10 +1655,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @return {!PBase} the value given in
       */
       function(val){
-        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a); }
+        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a, false); }
 
         return thisRuntime.safeCall(function() {
-          display_error.app(val);
+          return display_error.app(val);
         }, function(_) {
           return nothing;
         }, "print-error");
@@ -1661,7 +1672,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @return {!PBase} the value given in
       */
       function(val){
-        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a); }
+        if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a, false); }
         if (isString(val)) {
           theOutsideWorld.stderr(val);
           return nothing;
@@ -1750,14 +1761,16 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @param {!PBase} val the value to raise
       */
     function(val) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raise"], 1, $a); }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raise"], 1, $a, false); }
       if(thisRuntime.isObject(val) &&
          (thisRuntime.hasField(val, "render-reason")
           || thisRuntime.hasField(val, "render-fancy-reason"))){
-        throw new PyretFailException(val);
+        var err = new PyretFailException(val);
       } else {
-        throw new PyretFailException(thisRuntime.ffi.makeUserException(val));
+        var err = new PyretFailException(thisRuntime.ffi.makeUserException(val));
       }
+      err.stackAtThrow = new Error().stack;
+      throw err;
     };
     /** type {!PFunction} */
     // function raiseUserException(err) {
@@ -1773,7 +1786,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
          @return {!PBase}
       */
     function(obj, str) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["has-field"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["has-field"], 2, $a, false); }
       checkString(str);
       return makeBoolean(hasProperty(obj.dict, str));
     };
@@ -1821,22 +1834,37 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       var stackOfToCompare = [];
       var toCompare = { stack: [], curAns: thisRuntime.ffi.equal };
-      var cache = {left: [], right: []};
+      var cache = {left: [], right: [], equal: []};
       function findPair(obj1, obj2) {
         for (var i = 0; i < cache.left.length; i++) {
           if (cache.left[i] === obj1 && cache.right[i] === obj2)
-            return true;
+            return cache.equal[i];
         }
         return false;
+      }
+      function setCachePair(obj1, obj2, val) {
+        for (var i = 0; i < cache.left.length; i++) {
+          if (cache.left[i] === obj1 && cache.right[i] === obj2) {
+            cache.equal[i] = val;
+            return;
+          }
+        }
+// throw new Error("Internal error: tried to 
       }
       function cachePair(obj1, obj2) {
         cache.left.push(obj1);
         cache.right.push(obj2);
+        cache.equal.push(thisRuntime.ffi.equal);
+        return cache.equal.length;
       }
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
           current = toCompare.stack.pop();
+          if(current.setCache) {
+            cache.equal[current.index - 1] = toCompare.curAns;
+            continue;
+          }
           curLeft = current.left;
           curRight = current.right;
 
@@ -1875,10 +1903,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
             }
           } else {
-            if (findPair(curLeft, curRight)) {
-              continue; // Already checked this pair of objects
+            var curPair = findPair(curLeft, curRight);
+            if (curPair !== false) {
+              // Already checked this pair of objects
+              toCompare.curAns = curPair
+              continue;
             } else {
-              cachePair(curLeft, curRight);
+              var index = cachePair(curLeft, curRight);
+              toCompare.stack.push({ setCache: true, index: index, left: curLeft, right: curRight });
               if (isRef(curLeft) && isRef(curRight)) {
                 if (alwaysFlag && !(isRefFrozen(curLeft) && isRefFrozen(curRight))) { // In equal-always, non-identical refs are not equal
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight); // We would've caught identical refs already
@@ -1930,29 +1962,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 }
                 else if (isObject(curLeft) && curLeft.dict["_equals"]) {
                   /* Two objects with the same brands and the left has an _equals method */
-                  // If this call stack-throws,
+                  // If this call stack-returns,
                   var newAns = getColonField(curLeft, "_equals").full_meth(curLeft, curRight, equalFunPy);
+                  if(isContinuation(newAns)) { return newAns; }
                   // the continuation stacklet will get the result, and combine them manually
                   toCompare.curAns = combineEquality(toCompare.curAns, newAns);
                 }
                 else if (isDataValue(curLeft) && isDataValue(curRight)) {
                   /* Two data values with the same brands and no equals method on the left */
-                  var fieldsLeft = curLeft.$app_fields_raw(function(/* varargs */) {
-                    var ans = new Array(arguments.length);
-                    for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
-                    return ans;
-                  });
-                  if (fieldsLeft.length > 0) {
-                    var fieldsRight = curRight.$app_fields_raw(function(/* varargs */) {
-                      var ans = new Array(arguments.length);
-                      for (var i = 0; i < arguments.length; i++) ans[i] = arguments[i];
-                      return ans;
-                    });
-                    var fieldNames = curLeft.$constructor.$fieldNames;
-                    for (var k = 0; k < fieldsLeft.length; k++) {
+                  var fieldNames = curLeft.$constructor.$fieldNames;
+                  if (fieldNames && fieldNames.length > 0) {
+                    for (var k = 0; k < fieldNames.length; k++) {
                       toCompare.stack.push({
-                        left: fieldsLeft[k],
-                        right: fieldsRight[k],
+                        left: curLeft.dict[fieldNames[k]],
+                        right: curRight.dict[fieldNames[k]],
                         path: current.path + "." + fieldNames[k]
                       });
                     }
@@ -1988,72 +2011,66 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       function equalFun($ar) {
         var $step = 0;
         var $ans = undefined;
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            $step = $ar.step;
-            $ans = $ar.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              $step = 1;
-              return equalHelp();
-            case 1:
-              toCompare.curAns = combineEquality(toCompare.curAns, $ans);
-              $step = 0;
-              break;
+        if (thisRuntime.isActivationRecord($ar)) {
+          $step = $ar.step;
+          $ans = $ar.ans;
+        }
+        while(true) {
+          switch($step) {
+          case 0:
+            $step = 1;
+            $ans = equalHelp();
+            if(isContinuation($ans)) {
+              $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+                stackFrameDesc,
+                equalFun,
+                $step,
+                [],
+                []);
             }
+            return $ans;
+          case 1:
+            toCompare.curAns = combineEquality(toCompare.curAns, $ans);
+            $step = 0;
+            break;
           }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              stackFrameDesc,
-              equalFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(stackFrameDesc);
-          }
-          throw $e;
         }
       }
       function reenterEqualFun(left, right) {
         // arity check
         var $step = 0;
         var $ans = undefined;
-        try {
-          if (thisRuntime.isActivationRecord(left)) {
-            $step = left.step;
-            $ans = left.ans;
-          }
-          while(true) {
-            switch($step) {
-            case 0:
-              stackOfToCompare.push(toCompare);
-              toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
-              $step = 1;
-              $ans = equalFun();
-              break;
-            case 1:
-              toCompare = stackOfToCompare.pop();
+        if (thisRuntime.isActivationRecord(left)) {
+          $step = left.step;
+          $ans = left.ans;
+        }
+        while(true) {
+          switch($step) {
+          case 0:
+            stackOfToCompare.push(toCompare);
+            toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
+            $step = 1;
+            $ans = equalFun();
+            if(isContinuation($ans)) {
+              $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+                stackFrameDesc,
+                reenterEqualFun,
+                $step,
+                [],
+                []);
               return $ans;
             }
+            break;
+          case 1:
+            for(var i = 0; i < toCompare.stack.length; i++) {
+              var current = toCompare.stack[i];
+              if(current.setCache) {
+                cache.equal[current.index - 1] = $ans;
+              }
+            }
+            toCompare = stackOfToCompare.pop();
+            return $ans;
           }
-        } catch($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              stackFrameDesc,
-              reenterEqualFun,
-              $step,
-              [],
-              []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(stackFrameDesc);
-          }
-          throw $e;
         }
       }
       var equalFunPy = makeFunction(reenterEqualFun, "equalFun");
@@ -2061,43 +2078,46 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function equalWithinAbsNow3(tol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3"], 1, $a); }
-      thisRuntime.checkNumber(tol);
-      if (jsnums.lessThan(tol, 0, NumberErrbacks)) {
-        thisRuntime.ffi.throwMessageException('negative tolerance ' + tol);
-      }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-abs-now3",
+        [tol],
+        [thisRuntime.NumNonNegative]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3(...)"], 2, $a, false); }
         return equal3(l, r, false, tol);
       }, "within-abs-now3(...)");
     };
 
     function equalWithinRelNow3(relTol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3"], 1, $a); }
-      thisRuntime.checkNumber(relTol);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-rel-now3",
+        [relTol],
+        [thisRuntime.Number]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3(...)"], 2, $a, false); }
         return equal3(l, r, false, relTol, true);
       }, "within-rel-now3(...)");
     };
 
     function equalWithinAbs3(tol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3"], 1, $a); }
-      thisRuntime.checkNumber(tol);
-      if (jsnums.lessThan(tol, 0, NumberErrbacks)) {
-        thisRuntime.ffi.throwMessageException('negative tolerance ' + tol);
-      }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-abs3",
+        [tol],
+        [thisRuntime.NumNonNegative]);
+
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3(...)"], 2, $a, false); }
         return equal3(l, r, true, tol);
       }, "within-abs3(...)");
     };
 
     function equalWithinRel3(relTol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3"], 1, $a); }
-      thisRuntime.checkNumber(relTol);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-rel3",
+        [relTol],
+        [thisRuntime.Number]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3(...)"], 2, $a, false); }
         return equal3(l, r, true, relTol);
       }, "within-rel3(...)");
     };
@@ -2111,13 +2131,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     function equalWithinAbsNow(tol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now"], 1, $a); }
-      thisRuntime.checkNumber(tol);
-      if (jsnums.lessThan(tol, 0, NumberErrbacks)) {
-        thisRuntime.ffi.throwMessageException('negative tolerance ' + tol);
-      }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-abs-now",
+        [tol],
+        [thisRuntime.NumNonNegative]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now(...)"], 2, $a, false); }
         return safeCall(function() {
           return equal3(l, r, false, tol);
         }, equalityToBool, "within-abs-now(...)");
@@ -2125,13 +2144,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     function equalWithinAbs(tol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs"], 1, $a); }
-      thisRuntime.checkNumber(tol);
-      if (jsnums.lessThan(tol, 0, NumberErrbacks)) {
-        thisRuntime.ffi.throwMessageException('negative tolerance ' + tol);
-      }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-abs",
+        [tol],
+        [thisRuntime.Number]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs(...)"], 2, $a, false); }
         return safeCall(function () {
           return equal3(l, r, true, tol);
         }, equalityToBool, "within-abs(...)");
@@ -2139,10 +2157,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     function equalWithinRelNow(relTol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now"], 1, $a); }
-      thisRuntime.checkNumber(relTol);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-rel-now",
+        [relTol],
+        [thisRuntime.Number]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now(...)"], 2, $a, false); }
         return safeCall(function () {
           return equal3(l, r, false, relTol, true);
         }, equalityToBool, "within-rel-now(...)");
@@ -2150,10 +2170,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     function equalWithinRel(relTol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
-      thisRuntime.checkNumber(relTol);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("equality", "within-rel",
+        [relTol],
+        [thisRuntime.Number]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel(...)"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel(...)"], 2, $a, false); }
         return safeCall(function () {
           return equal3(l, r, true, relTol, true);
         }, equalityToBool, "within-rel(...)");
@@ -2162,12 +2184,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     // JS function from Pyret values to Pyret equality answers
     function equalAlways3(left, right) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always3"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always3"], 2, $a, false); }
       return equal3(left, right, true);
     };
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalAlways(v1, v2) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a, false); }
       if(typeof v1 === "number" || typeof v1 === "string" || typeof v1 === "boolean") {
         return v1 === v2;
       }
@@ -2177,12 +2199,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
     // JS function from Pyret values to Pyret equality answers
     function equalNow3(left, right) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now3"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now3"], 2, $a, false); }
       return equal3(left, right, false);
     };
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalNow(v1, v2) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now"], 2, $a, false); }
       return safeCall(function() {
         return equal3(v1, v2, false);
       }, equalityToBool, "equal-now");
@@ -2287,7 +2309,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
     // Pyret function from Pyret values to Pyret booleans
     var samePyPy = makeFunction(function(v1, v2) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["same"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["same"], 2, $a, false); }
       return makeBoolean(same(v1, v2));
     }, "same");
     // JS function from Pyret values to Pyret booleans
@@ -2309,12 +2331,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
     // Pyret function from Pyret values to Pyret equality answers
     var identical3Py = makeFunction(function(v1, v2) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical3"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical3"], 2, $a, false); }
       return identical3(v1, v2);
     }, "identical3");
     // JS function from Pyret values to JS true/false or throws
     function identical(v1, v2) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical"], 2, $a, false); }
       var ans = identical3(v1, v2);
       if (thisRuntime.ffi.isEqual(ans)) { return true; }
       else if (thisRuntime.ffi.isNotEqual(ans)) { return false; }
@@ -2329,8 +2351,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["gensym"], 1, $a); }
-      checkString(base);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["gensym"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("runtime", "gensym",
+        [base],
+        [thisRuntime.String]);
       return makeString(unwrap(base) + String(gensymCounter++))
     }, "gensym");
 
@@ -2343,23 +2367,23 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     // implementation in Pyret that is used by the standard evaluator
     var nullChecker = makeObject({
       "run-checks": makeFunction(function(moduleName, checks) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-checks"], 2, $a); }
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-checks"], 2, $a, false); }
         return nothing;
       }, "run-checks"),
       "check-is": makeFunction(function(left, right, loc) {
-        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 3, $a); }
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is"], 3, $a, false); }
         return nothing;
       }, "check-is"),
       "check-is-roughly": makeFunction(function(left, right, loc) {
-        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is-roughly"], 3, $a); }
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-is-roughly"], 3, $a, false); }
         return nothing;
       }, "check-is"),
       "check-satisfies": makeFunction(function(left, pred, loc) {
-        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 3, $a); }
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["check-satisfies"], 3, $a, false); }
         return nothing;
       }, "check-satisfies"),
       "results": makeFunction(function() {
-        if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["results"], 0, $a); }
+        if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["results"], 0, $a, false); }
         return nothing;
       }, "results")
     });
@@ -2393,12 +2417,14 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     function returnOrRaise(result, val, after) {
       if(thisRuntime.ffi.isOk(result)) { return after(val); }
-      if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
-      throw "Internal error: got invalid result from annotation check";
+      if(thisRuntime.ffi.isFail(result)) { debugger; raiseJSJS(result); }
+      console.trace();
+      console.error("Invalid result from annotation check: ", result);
+      throw new Error("Internal error: got invalid result from annotation check");
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn || ann instanceof PTupleAnn);
+      return !(ann.refinement || ann instanceof PRecordAnn || (ann instanceof PTupleAnn && !ann.isCheap));
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2406,13 +2432,16 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return returnOrRaise(ann.check(compilerLoc, val), val, after);
       }
       else {
-        return safeCall(function() {
+        return checkAnnSafe(compilerLoc, ann, val, after);
+      }
+    }
+    function checkAnnSafe(compilerLoc, ann, val, after) {
+      return safeCall(function() {
           return ann.check(compilerLoc, val);
         }, function(result) {
           return returnOrRaise(result, val, after);
         },
         "checkAnn");
-      }
     }
 
     function checkAnnArg(compilerLoc, ann, args, index, funName) {
@@ -2464,7 +2493,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         throw "Internal error: got invalid result from annotation check";
       } else {
         return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val);
+          //if(thisRuntime.isContinuation(res)) { console.trace(); }
+          return res;
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) { return val; }
           if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
@@ -2480,7 +2511,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
       else {
         return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val);
+          //if(thisRuntime.isContinuation(res)) { console.trace(); }
+          return res;
         }, function(result) {
           return returnOrRaise(result, val, after);
         },
@@ -2714,10 +2747,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       this.locs = locs;
       this.anns = anns;
       var hasRefinement = false;
+      var isCheap = true;
       for (var i = 0; i < anns.length; i++) {
         hasRefinement = hasRefinement || anns[i].refinement;
+        isCheap = isCheap && isCheapAnnotation(anns[i]);
       }
       this.refinement = hasRefinement;
+      this.isCheap = isCheap;
     }
     
     function makeTupleAnn(locs, anns) {
@@ -2735,7 +2771,28 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         //return ffi.throwMessageException("lengths not equal");
         return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
+      if (this.isCheap) {
+        for (var i = 0; i < this.anns.length; i++) {
+          // is this right, or should this.locs be indexed in reversed order?
+          var result = this.anns[i].check(this.locs[i], val.vals[i]);
+          if (thisRuntime.ffi.isFail(result))
+            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
+        }
+        return thisRuntime.ffi.contractOk;
+      }
 
+      // Fast path for no refinements, since arbitrary stack space can't be consumed
+      if(!that.hasRefinement) {
+        for(var i = 0; i < that.anns.length; i++) {
+          var result = that.anns[i].check(that.locs[i], val.vals[i]);
+          if(!thisRuntime.ffi.isOk(result)) {
+            return result;
+          }
+        }
+        return thisRuntime.ffi.contractOk;
+      }
+
+      // Slow path for annotations with refinements, which may call back into Pyret
       function deepCheckFields(remainingAnns) {
         var thisAnn;
         return safeCall(function() {
@@ -2845,7 +2902,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return that.createMissingFieldsError(compilerLoc, val);
         }
       }
+      
+      // Fast path: no refinements, so no deep stack/pause potential
+      if(!that.hasRefinement) {
+        for(var i = 0; i < that.fields.length; i++) {
+          var thisField = that.fields[i];
+          var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField));
+          if(!thisRuntime.ffi.isOk(result)) {
+            return result;
+          }
+        }
+        return thisRuntime.ffi.contractOk;
+      }
 
+      // Slow path: has refinement, so need to stack guard
       function deepCheckFields(remainingFields) {
         var thisField;
         return safeCall(function() {
@@ -2926,6 +2996,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
     function makeCont() { return new Cont([]); }
     function isCont(v) { return v instanceof Cont; }
+    function isContinuation(v) { return typeof v === "object" && v instanceof Cont; }
     Cont.prototype._toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ?
@@ -2970,6 +3041,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function safeCall(fun, after, stackFrame) {
       var $ans = undefined;
       var $step = 0;
+      var skipLoop = false;
       if (thisRuntime.isActivationRecord(fun)) {
         var $ar = fun;
         $step = $ar.step;
@@ -2979,81 +3051,69 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         stackFrame = $ar.args[2];
         $fun_ans = $ar.vars[0];
       }
-      try {
-        if (--thisRuntime.GAS <= 0) {
-          thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
-        }
-        while(true) {
-          switch($step) {
-          case 0:
-            $step = 1;
-            $ans = fun();
-            break;
-          case 1:
-            var $fun_ans = $ans;
-            $step = 2;
-            $ans = after($fun_ans);
-            break;
-          case 2: return $ans;
-          }
-        }
-      } catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(
-              "safeCall for " + stackFrame,
-              safeCall,
-              $step,
-              [ fun, after, stackFrame ],
-              [ $fun_ans ]
-            );
-        }
-        if (thisRuntime.isPyretException($e)) {
-          $e.pyretStack.push(stackFrame);
-        }
-        throw $e;
+      if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        skipLoop = true;
+        $ans = thisRuntime.makeCont();
       }
+      while(!skipLoop) {
+        switch($step) {
+        case 0:
+          $step = 1;
+          $ans = fun();
+          if(isContinuation($ans)) { break;}
+          continue;
+        case 1:
+          var $fun_ans = $ans;
+          $step = 2;
+          $ans = after($fun_ans);
+          if(isContinuation($ans)) { break;}
+          continue;
+        case 2: ++thisRuntime.GAS; return $ans;
+        }
+        break;
+      }
+      $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+        thisRuntime.makeActivationRecord(
+          "safeCall for " + stackFrame,
+          safeCall,
+          $step,
+          [ fun, after, stackFrame ],
+          [ $fun_ans ]
+        );
+      return $ans;
     }
 
     function eachLoop(fun, start, stop) {
       var i = start;
-      var started = false;
-      var currentRunCount = 0;
-      if(thisRuntime.isActivationRecord(fun)) {
-        var ar = fun
-        i = ar.vars[0];
-        fun = ar.vars[1];
-        stop = ar.vars[2];
-        started = ar.vars[3];
-        if (started) {
-          i = i + 1;
-        }
-      }
-      try {
+      function restart(_) {
+        var res = thisRuntime.nothing;
         if (--thisRuntime.GAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          res = thisRuntime.makeCont();
         }
-        while(true) {
-          started = true;
-          if(i >= stop) { return thisRuntime.nothing; }
-          fun.app(i);
-
-          if (++currentRunCount >= 1000) {
+        while(!thisRuntime.isContinuation(res)) {
+          if (--thisRuntime.RUNGAS <= 0) {
             thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
-          }  
-          else { i = i + 1; }
+            res = thisRuntime.makeCont();
+          }
+          else {
+            if(i >= stop) {
+              ++thisRuntime.GAS;
+              // NOTE(joe): this is the one true return value/exit of the loop
+              return thisRuntime.nothing;
+            }
+            else {
+              res = fun.app(i);
+              i = i + 1;
+            }
+          }
         }
+        res.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord("eachLoop", restart, true, [], []);
+        return res;
       }
-      catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord("eachLoop", eachLoop, true, [], [i, fun, stop, started]);
-        }
-        throw $e;
-      }
+      return restart();
     }
 
     var RUN_ACTIVE = false;
@@ -3118,7 +3178,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       var TOS = 0;
 
       var sync = options.sync || false;
-      var initialGas = thisRuntime.INITIAL_GAS;
+      var initialGas = options.initialGas || thisRuntime.INITIAL_GAS;
+      var initialRunGas = options.initialRunGas || initialGas * 10;
+      thisRuntime.GAS = initialGas;
+      thisRuntime.RUNGAS = sync ? Infinity : initialRunGas;
 
       var threadIsCurrentlyPaused = false;
       var threadIsDead = false;
@@ -3190,7 +3253,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             if (manualPause !== null) {
               var thePause = manualPause;
               manualPause = null;
-              pauseStack(function(restarter) {
+              return pauseStack(function(restarter) {
                 thePause.setHandlers({
                   resume: function() { restarter.resume(val); },
                   break: restarter.break,
@@ -3198,9 +3261,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 });
               });
             }
-            var frameCount = 0;
             while(theOneTrueStackHeight > 0) {
-              if(!sync && frameCount++ > 100) {
+              if(!sync && thisRuntime.RUNGAS <= 1) {
+                thisRuntime.RUNGAS = initialRunGas;
                 TOS++;
                 // CONSOLE.log("Setting timeout to resume iter");
                 util.suspend(iter);
@@ -3211,8 +3274,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
               theOneTrueStack[theOneTrueStackHeight] = undefined;
               // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
               // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
-              next.ans = val;
+              if(!isContinuation(val)) {
+                next.ans = val;
+              }
               // CONSOLE.log("GAS = ", thisRuntime.GAS);
+
+
 
               if (next.fun instanceof Function) {
                 val = next.fun(next);
@@ -3223,9 +3290,45 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                 CONSOLE.log(theOneTrueStack);
                 throw false;
               }
+              if(next.fun instanceof Function && thisRuntime.isContinuation(val)) {
+                // console.log("BOUNCING");
+                BOUNCES++;
+                thisRuntime.GAS = initialGas;
+                thisRuntime.RUNGAS = initialRunGas;
+                for(var i = val.stack.length - 1; i >= 0; i--) {
+    //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
+                  theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
+                }
+                // console.log("The new stack height is ", theOneTrueStackHeight);
+                // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
+                //   if (f && f.from) { return f.from.toString(); }
+                //   else { return f; }
+                // }));
+
+                if(isPause(val)) {
+                  thisThread.pause();
+                  val.pause.setHandlers(thisThread.handlers);
+                  if(val.resumer) { val.resumer(val.pause); }
+                  return;
+                }
+                else if(thisRuntime.isCont(val)) {
+                  if(sync) {
+                    loop = true;
+                    // DON'T return; we synchronously loop back to the outer while loop
+                    continue;
+                  }
+                  else {
+                    TOS++;
+                    util.suspend(iter);
+                    return;
+                  }
+                }
+              }
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
           } catch(e) {
+            debugger;
+//            console.error("Exceptions should no longer be thrown: ", e);
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
               BOUNCES++;
@@ -3278,6 +3381,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return;
       }
       thisRuntime.GAS = initialGas;
+      thisRuntime.RUNGAS = initialRunGas;
       iter();
     }
 
@@ -3329,6 +3433,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function isActivationRecord(obj) {
       return obj instanceof ActivationRecord;
     }
+    function isInitializedActivationRecord(obj) {
+      return obj instanceof ActivationRecord && !(obj.ans === UNINITIALIZED_ANSWER);
+    }
 
     // we can set verbose to true to include the <builtin> srcloc positions
     // and the "safecall for ..." internal frames
@@ -3363,7 +3470,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       RUN_ACTIVE = false;
       thisRuntime.EXN_STACKHEIGHT = 0;
       var pause = new PausePackage();
-      throw makePause(pause, resumer);
+      return makePause(pause, resumer);
     }
 
     function PausePackage() {
@@ -3436,11 +3543,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return v.val.exn;
     }
 
-    function runThunk(f, then) {
-      return thisRuntime.run(f, thisRuntime.namespace, {}, then);
+    function runThunk(f, then, options) {
+      return thisRuntime.run(f, thisRuntime.namespace, options || {}, then);
     }
 
     function execThunk(thunk) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-task"], 1, $a, false); }
       function wrapResult(res) {
         if(isSuccessResult(res)) {
           return thisRuntime.ffi.makeLeft(res.result);
@@ -3456,7 +3564,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           return;
         }
       }
-      thisRuntime.pauseStack(function(restarter) {
+      return thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3473,7 +3581,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     function runWhileRunning(thunk) {
-      thisRuntime.pauseStack(function(restarter) {
+      return thisRuntime.pauseStack(function(restarter) {
         thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3490,7 +3598,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 1000;
+    var INITIAL_GAS = theOutsideWorld.initialGas || 500;
 
     var DEBUGLOG = true;
     /**
@@ -3514,7 +3622,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
 
     var plus = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_plus"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_plus"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.add(l, r, NumberErrbacks));
       } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
@@ -3529,7 +3637,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var minus = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_minus"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_minus"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.subtract(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_minus")) {
@@ -3542,7 +3650,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var times = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_times"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_times"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.multiply(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_times")) {
@@ -3555,7 +3663,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var divide = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_divide"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_divide"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeNumberBig(jsnums.divide(l, r, NumberErrbacks));
       } else if (thisRuntime.isObject(l) && hasProperty(l.dict, "_divide")) {
@@ -3568,7 +3676,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var lessthan = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_lessthan"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_lessthan"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.lessThan(l, r, NumberErrbacks));
       } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
@@ -3583,7 +3691,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var greaterthan = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_greaterthan"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_greaterthan"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.greaterThan(l, r, NumberErrbacks));
       } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
@@ -3598,7 +3706,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var lessequal = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_lessequal"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_lessequal"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.lessThanOrEqual(l, r, NumberErrbacks));
       } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
@@ -3613,7 +3721,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var greaterequal = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_greaterequal"], 2, $a); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["_greaterequal"], 2, $a, true); }
       if (thisRuntime.isNumber(l) && thisRuntime.isNumber(r)) {
         return thisRuntime.makeBoolean(jsnums.greaterThanOrEqual(l, r, NumberErrbacks));
       } else if (thisRuntime.isString(l) && thisRuntime.isString(r)) {
@@ -3642,9 +3750,27 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
 
+    var raw_array_from_list = function(lst) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-from-list",
+        [lst],
+        [thisRuntime.List]);
+      return thisRuntime.ffi.toArray(lst);
+    };
+
+    var raw_array_join_str = function(arr, str) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-join-str"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-join-str",
+        [arr,                  str],
+        [thisRuntime.RawArray, thisRuntime.String]);
+      return arr.join(str);
+    };
+
     var raw_array_of = function(val, len) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-of"], 2, $a); }
-      thisRuntime.checkNumber(len);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-of"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-of",
+        [len],
+        [thisRuntime.Number]);
       var arr = new Array(len);
       var i = 0;
       while(i < len) {
@@ -3663,44 +3789,52 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         f = $ar.args[0];
         len = $ar.args[1];
       } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
-        thisRuntime.checkFunction(f);
-        thisRuntime.checkNumber(len);
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a, false); }
+        thisRuntime.checkArgsInternal("RawArrays", "raw-array-build",
+          [f,                    len],
+          [thisRuntime.Function, thisRuntime.Number]);
         var curIdx = 0;
         var arr = new Array();
         var $ans;
         var $step = 0;
       }
-      var currentRunCount = 0;
-      try {
-        if (--thisRuntime.GAS <= 0) {
+      var cleanQuit = true;
+      if (--thisRuntime.GAS <= 0) {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        cleanQuit = false;
+        $ans = thisRuntime.makeCont();
+      }
+      
+      while (cleanQuit && (curIdx < len)) {
+        if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          cleanQuit = false;
+          $ans = thisRuntime.makeCont();
+          break;
         }
-        
-        while (curIdx < len) {
-          if (++currentRunCount >= 1000) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
+        switch($step) {
+        case 0:
+          $step = 1;
+          $ans = f.app(curIdx);
+          if(isContinuation($ans)) {
+            cleanQuit = false;
+            break;
           }
-          switch($step) {
-          case 0:
-            $step = 1;
-            $ans = f.app(curIdx);
-            // no need to break
-          case 1:
-            arr.push($ans);
-            $step = 0;
-            curIdx++;
-          }
+        case 1:
+          arr.push($ans);
+          $step = 0;
+          curIdx++;
+          continue;
         }
+        break;
+      }
+      if(cleanQuit) {
         return arr;
-      } catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
-        }
-        throw $e;
+      }
+      else {
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
+        return $ans;
       }
     }
 
@@ -3714,61 +3848,71 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         f = $ar.args[0];
         len = $ar.args[1];
       } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
-        thisRuntime.checkFunction(f);
-        thisRuntime.checkNumber(len);
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a, false); }
+        thisRuntime.checkArgsInternal("RawArrays", "raw-array-build",
+          [f,                    len],
+          [thisRuntime.Function, thisRuntime.Number]);
         var curIdx = 0;
         var arr = new Array();
         var $ans;
         var $step = 0;
       }
-      var currentRunCount = 0;
-      try {
-        if (--thisRuntime.GAS <= 0) {
+      var cleanQuit = true;
+      if (--thisRuntime.GAS <= 0) {
+        thisRuntime.EXN_STACKHEIGHT = 0;
+        $ans = thisRuntime.makeCont();
+        cleanQuit = false;
+      }
+      
+      while (cleanQuit && curIdx < len) {
+        if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
-          throw thisRuntime.makeCont();
+          $ans = thisRuntime.makeCont();
+          cleanQuit = false;
         }
-        
-        while (curIdx < len) {
-          if (++currentRunCount >= 1000) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            throw thisRuntime.makeCont();
+        switch($step) {
+        case 0:
+          $step = 1;
+          $ans = f.app(curIdx);
+          // no need to break
+        case 1:
+          if (thisRuntime.isContinuation($ans)) {
+            cleanQuit = false;
+            break;
           }
-          switch($step) {
-          case 0:
-            $step = 1;
-            $ans = f.app(curIdx);
-            // no need to break
-          case 1:
-            if (thisRuntime.ffi.isSome($ans)) {
-              arr.push(thisRuntime.getField($ans, "value"));
-            }
-            $step = 0;
-            curIdx++;
+          if (thisRuntime.ffi.isSome($ans)) {
+            arr.push(thisRuntime.getField($ans, "value"));
           }
+          $step = 0;
+          curIdx++;
+          continue;
         }
+        break;
+      }
+      if(cleanQuit) {
         return arr;
-      } catch($e) {
-        if (thisRuntime.isCont($e)) {
-          $e.stack[thisRuntime.EXN_STACKHEIGHT++] =
-            thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
-        }
-        throw $e;
+      }
+      else {
+        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
+          thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
+        return $ans;
       }
     }
 
     var raw_array_get = function(arr, ix) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a); }
-      thisRuntime.checkArray(arr);
-      thisRuntime.checkNumber(ix);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-get",
+        [arr,                  ix],
+        [thisRuntime.RawArray, thisRuntime.Number]);
       checkArrayIndex("raw-array-get", arr, ix);
       return arr[ix];
     };
 
     var raw_array_obj_destructure = function(arr, keys) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a); }
-      thisRuntime.checkArray(arr);
-      thisRuntime.checkArray(keys);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-obj-destructure",
+        [arr,                  keys],
+        [thisRuntime.RawArray, thisRuntime.RawArray]);
       
       var obj = {}
       for(var i = 0; i < keys.length; i++) {
@@ -3779,36 +3923,44 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     };
 
     var raw_array_set = function(arr, ix, newVal) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-set"], 3, $a); }
-      thisRuntime.checkArray(arr);
-      thisRuntime.checkNumber(ix);
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-set"], 3, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-set",
+        [arr,                  ix],
+        [thisRuntime.RawArray, thisRuntime.Number]);
       checkArrayIndex("raw-array-set", arr, ix);
       arr[ix] = newVal;
       return arr;
     };
 
     var raw_array_length = function(arr) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-length"], 1, $a); }
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-length"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-length",
+        [arr],
+        [thisRuntime.RawArray]);
       return makeNumber(arr.length);
     };
 
     var raw_array_to_list = function(arr) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-to-list"], 1, $a); }
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-to-list"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-to-list",
+        [arr],
+        [thisRuntime.RawArray]);
       return thisRuntime.ffi.makeList(arr);
     };
 
     var raw_array_constructor = function(arr) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array"], 1, $a); }
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-constructor",
+        [arr],
+        [thisRuntime.RawArray]);
       return arr;
     };
 
     var raw_array_concat = function(arr, other) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-concat"], 2, $a); }
-      thisRuntime.checkArray(arr);
-      thisRuntime.checkArray(other);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-concat"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-concat",
+        [arr,                  other],
+        [thisRuntime.RawArray, thisRuntime.RawArray]);
       return arr.concat(other);
     };
 
@@ -3823,149 +3975,228 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     });
 
     var raw_array_fold = function(f, init, arr, start) {
-      if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkPyretVal(init);
-      thisRuntime.checkArray(arr);
-      thisRuntime.checkNumber(start);
-      var currentIndex = -1;
+      if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-fold",
+        [f,                    init,            arr,                  start],
+        [thisRuntime.Function, thisRuntime.Any, thisRuntime.RawArray, thisRuntime.Number]);
+      var currentIndex = start - 1;
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
-        while(++currentIndex < length) {
-          currentAcc = f.app(currentAcc, arr[currentIndex], currentIndex + start);
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex);
+          if(isContinuation(res)) { return res; }
+          currentAcc = res;
         }
         return currentAcc;
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            currentAcc = $ar.ans;
-          }
-          return foldHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-fold"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-fold"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc = $ar.ans;
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-fold"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
 
+
+    var raw_array_bool_mapper = function(name, good, bad) {
+      return function(f, arr, start) {
+        if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC([name], 3, $a, false); }
+        thisRuntime.checkArgsInternal("RawArrays", name,
+          [f,                    arr,                  start],
+          [thisRuntime.Function, thisRuntime.RawArray, thisRuntime.Number]);
+        var currentIndex = start - 1;
+        var length = arr.length;
+        function foldHelp() {
+          while(currentIndex < (length - 1)) {
+            if(--thisRuntime.RUNGAS <= 0) {
+              thisRuntime.EXN_STACKHEIGHT = 0;
+              return thisRuntime.makeCont();
+            }
+            currentIndex += 1;
+            var res = f.app(arr[currentIndex], currentIndex);
+            if(isContinuation(res)) { return res; }
+            if(res === bad) { return res; }
+          }
+          return good;
+        }
+        function foldFun($ar) {
+          var res = foldHelp();
+          if(isContinuation(res)) {
+            res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+              [name],
+              foldFun,
+              0, // step doesn't matter here
+              [], []);
+          }
+          return res;
+        }
+        return foldFun();
+      }
+    };
+
+    var raw_array_and_mapi = raw_array_bool_mapper("raw-array-and-mapi", true, false);
+    var raw_array_or_mapi = raw_array_bool_mapper("raw-array-or-mapi", false, true);
+    
+    
     var raw_array_map = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-map",
+        [f,                    arr],
+        [thisRuntime.Function, thisRuntime.RawArray]);
       var currentIndex = -1;
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
-        while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
       function mapFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            newArray[currentIndex] = $ar.ans;
-          }
-          return mapHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-map"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          newArray[currentIndex] = $ar.ans;
         }
+        var res = mapHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-map"],
+            mapFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return mapFun();
     };
 
+    var raw_array_each = function(f, arr) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-each"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-each",
+        [f,                    arr],
+        [thisRuntime.Function, thisRuntime.RawArray]);
+      var currentIndex = -1;
+      var length = arr.length;
+      function eachHelp() {
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+        }
+        return nothing;
+      }
+      function eachFun($ar) {
+        var res = eachHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-each"],
+            eachFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
+      }
+      return eachFun();
+    };
+
     var raw_array_mapi = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-mapi"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-mapi"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-mapi",
+        [f,                    arr],
+        [thisRuntime.Function, thisRuntime.RawArray]);
       var currentIndex = -1;
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
-        while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex], currentIndex);
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var res = f.app(arr[currentIndex], currentIndex);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
       function mapFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            newArray[currentIndex] = $ar.ans;
-          }
-          return mapHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-map"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          newArray[currentIndex] = $ar.ans;
         }
+        var res = mapHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-mapi"],
+            mapFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return mapFun();
     };
 
     var raw_list_map = function(f, lst) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-map"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkList(lst);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-map"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Lists", "raw-list-map",
+        [f,                    lst],
+        [thisRuntime.Function, thisRuntime.List]);
       var currentAcc = [];
       var currentLst = lst;
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          currentAcc.push(f.app(currentFst));
+          var res = f.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          currentAcc.push(res);
         }
         return thisRuntime.ffi.makeList(currentAcc);
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            currentAcc.push($ar.ans);
-          }
-          return foldHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-map"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-list-map"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc.push($ar.ans);
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-map"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
@@ -3975,175 +4206,173 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
      * the first item in the array
      */
     var raw_array_map1 = function(f1, f, arr) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map1"], 3, $a); }
-      thisRuntime.checkFunction(f1);
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map1"], 3, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-map1",
+        [f1,                   f,                    arr],
+        [thisRuntime.Function, thisRuntime.Function, thisRuntime.RawArray]);
       var currentIndex = -1;
       var length = arr.length;
       var newArray = new Array(length);
       function mapHelp() {
-        if (length === 0) { return newArray; }
-        newArray[++currentIndex] = f1.app(arr[currentIndex]);
-        while(++currentIndex < length) {
-          newArray[currentIndex] = f.app(arr[currentIndex]);
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var toCall = currentIndex === 0 ? f1 : f;
+          var res = toCall.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          newArray[currentIndex] = res;
         }
         return newArray;
       }
       function mapFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            newArray[currentIndex] = $ar.ans;
-          }
-          return mapHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-map1"],
-              mapFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-map1"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          newArray[currentIndex] = $ar.ans;
         }
+        var res = mapHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-map1"],
+            mapFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return mapFun();
     };
 
     var raw_list_filter = function(f, lst) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-filter"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkList(lst);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-filter"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Lists", "raw-list-filter",
+        [f,                    lst],
+        [thisRuntime.Function, thisRuntime.List]);
       var currentAcc = [];
       var currentLst = lst;
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
-          if(f.app(currentFst)) {
+          var res = f.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          if(res) {
             currentAcc.push(currentFst);
           }
         }
         return thisRuntime.ffi.makeList(currentAcc);
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            if($ar.ans) {
-              currentAcc.push(currentFst);
-            }
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          if($ar.ans) {
+            currentAcc.push(currentFst);
           }
-          return foldHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-filter"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-list-filter"]);
-          }
-          throw $e;
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-filter"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
 
     var raw_array_filter = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("RawArrays", "raw-array-filter",
+        [f,                    arr],
+        [thisRuntime.Function, thisRuntime.RawArray]);
       var currentIndex = -1;
       var length = arr.length;
       var newArray = new Array();
       function filterHelp() {
-        while(++currentIndex < length) {
-          if(isPyretTrue(f.app(arr[currentIndex]))){
+        while(currentIndex < (length - 1)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentIndex += 1;
+          var res = f.app(arr[currentIndex]);
+          if(isContinuation(res)) { return res; }
+          if(!(isBoolean(res))) {
+            return thisRuntime.ffi.throwNonBooleanCondition(["raw-array-filter"], "Boolean", res);
+          }
+          if(isPyretTrue(res)){
             newArray.push(arr[currentIndex]);
           }
         }
         return newArray;
       }
       function filterFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            newArray = $ar.ans;
-          }
-          return filterHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-array-filter"],
-              filterFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-array-filter"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          if($ar.ans) { newArray.push(arr[currentIndex]); }
         }
+        var res = filterHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-array-filter"],
+            filterFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return filterFun();
     };
 
     var raw_list_fold = function(f, init, lst) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-fold"], 3, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkPyretVal(init);
-      thisRuntime.checkList(lst);
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-fold"], 3, $a, false); }
+      thisRuntime.checkArgsInternal("Lists", "raw-list-fold",
+        [f,                    init,            lst],
+        [thisRuntime.Function, thisRuntime.Any, thisRuntime.List]);
       var currentAcc = init;
       var currentLst = lst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           currentAcc = f.app(currentAcc, fst);
+          if(isContinuation(currentAcc)) { return currentAcc; }
         }
         return currentAcc;
       }
       function foldFun($ar) {
-        try {
-          if (thisRuntime.isActivationRecord($ar)) {
-            currentAcc = $ar.ans;
-          }
-          return foldHelp();
-        } catch ($e) {
-          if (thisRuntime.isCont($e)) {
-            $e.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              ["raw-list-fold"],
-              foldFun,
-              0, // step doesn't matter here
-              [], []);
-          }
-          if (thisRuntime.isPyretException($e)) {
-            $e.pyretStack.push(["raw-list-fold"]);
-          }
-          throw $e;
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc = $ar.ans;
         }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-fold"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
       }
       return foldFun();
     };
 
 
     var string_substring = function(s, min, max) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-substring"], 3, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkNumber(min);
-      thisRuntime.checkNumber(max);
-      function exactCheck(name, val) {
-        if(!jsnums.isInteger(val)) {
-          thisRuntime.ffi.throwMessageException("substring: expected a positive integer for " + name + " index, but got " + String(val));
-        }
-      }
-      exactCheck("start", min);
-      exactCheck("end", max);
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-substring"], 3, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-substring",
+        [s,                  min,                 max],
+        [thisRuntime.String, thisRuntime.NumInteger, thisRuntime.NumInteger]);
       if(jsnums.greaterThan(min, max, NumberErrbacks)) {
         thisRuntime.ffi.throwMessageException("substring: min index " + String(min) + " is greater than max index " + String(max));
       }
@@ -4157,46 +4386,55 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                                                 jsnums.toFixnum(max, NumberErrbacks)));
     }
     var string_replace = function(s, find, replace) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-replace"], 3, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkString(find);
-      thisRuntime.checkString(replace);
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-replace"], 3, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-replace",
+        [s,                  find,               replace],
+        [thisRuntime.String, thisRuntime.String, thisRuntime.String]);
       return thisRuntime.makeString(s.split(find).join(replace));
     }
 
     var string_equals = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-equals"], 2, $a); }
-      thisRuntime.checkString(l);
-      thisRuntime.checkString(r);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-equals"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-equals",
+        [l,                  r],
+        [thisRuntime.String, thisRuntime.String]);
       return thisRuntime.makeBoolean(l === r);
     }
     var string_append = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-append"], 2, $a); }
-      thisRuntime.checkString(l);
-      thisRuntime.checkString(r);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-append"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-append",
+        [l,                  r],
+        [thisRuntime.String, thisRuntime.String]);
       return thisRuntime.makeString(l.concat(r));
     }
     var string_contains = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-contains"], 2, $a); }
-      thisRuntime.checkString(l);
-      thisRuntime.checkString(r);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-contains"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-contains",
+        [l,                  r],
+        [thisRuntime.String, thisRuntime.String]);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
     var string_length = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-length"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-length"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-length",
+        [s],
+        [thisRuntime.String]);
       return thisRuntime.makeNumber(s.length);
     }
     var string_isnumber = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-isnumber"], 1, $a); }
-      checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-isnumber"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-isnumber",
+        [s],
+        [thisRuntime.String]);
       var num = jsnums.fromString(s, NumberErrbacks);
       if(num !== false) { return true; }
       else { return false; }
     }
     var string_tonumber = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-tonumber"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-tonumber"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-tonumber",
+        [s],
+        [thisRuntime.String]);
       var num = jsnums.fromString(s, NumberErrbacks);
       if(num !== false) {
         return makeNumberBig(/**@type {Bignum}*/ (num));
@@ -4206,8 +4444,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
     var string_to_number = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-number"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-number"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-to-number",
+        [s],
+        [thisRuntime.String]);
       var num = jsnums.fromString(s, NumberErrbacks);
       if(num !== false) {
         return thisRuntime.ffi.makeSome(makeNumberBig(/**@type {Bignum}*/ (num)));
@@ -4217,9 +4457,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
     var string_repeat = function(s, n) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-repeat"], 2, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-repeat"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-repeat",
+        [s,                  n],
+        [thisRuntime.String, thisRuntime.Number]);
       var resultStr = "";
       // TODO(joe): loop up to a fixnum?
       for(var i = 0; i < jsnums.toFixnum(n, NumberErrbacks); i++) {
@@ -4228,16 +4469,18 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.makeString(resultStr);
     }
     var string_split_all = function(s, splitstr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split-all"], 2, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkString(splitstr);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split-all"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-split-all",
+        [s,                  splitstr],
+        [thisRuntime.String, thisRuntime.String]);
 
       return thisRuntime.ffi.makeList(s.split(splitstr).map(thisRuntime.makeString));
     }
     var string_split = function(s, splitstr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split"], 2, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkString(splitstr);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-split",
+        [s,                  splitstr],
+        [thisRuntime.String, thisRuntime.String]);
 
       var idx = s.indexOf(splitstr);
       if (idx === -1)
@@ -4247,9 +4490,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
                                          thisRuntime.makeString(s.slice(idx + splitstr.length))]);
     }
     var string_charat = function(s, n) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-char-at"], 2, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-char-at"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-char-at",
+        [s,                  n],
+        [thisRuntime.String, thisRuntime.Number]);
       if(!jsnums.isInteger(n) || n < 0) {
         thisRuntime.ffi.throwMessageException("string-char-at: expected a positive integer for the index, but got " + n);
       }
@@ -4259,29 +4503,38 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n, NumberErrbacks))));
     }
     var string_toupper = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-toupper"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-toupper"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-toupper",
+        [s],
+        [thisRuntime.String]);
       return thisRuntime.makeString(s.toUpperCase());
     }
     var string_tolower = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-tolower"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-tolower"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-tolower",
+        [s],
+        [thisRuntime.String]);
       return thisRuntime.makeString(s.toLowerCase());
     }
     var string_explode = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-explode"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-explode"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-explode",
+        [s],
+        [thisRuntime.String]);
       return thisRuntime.ffi.makeList(s.split("").map(thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-index-of"], 2, $a); }
-      thisRuntime.checkString(s);
-      thisRuntime.checkString(find);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-index-of"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-index-of",
+        [s,                  find],
+        [thisRuntime.String, thisRuntime.String]);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
     var string_to_code_point = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-point"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-point"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-to-code-point",
+        [s],
+        [thisRuntime.String]);
       if(s.length !== 1) {
         thisRuntime.ffi.throwMessageException("Expected a string of length exactly one, got " + s);
       }
@@ -4297,7 +4550,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.isNumber(val) && jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0, NumberErrbacks);
     }, "Natural Number");
     var string_from_code_point = function(c) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-from-code-point"], 1, $a); }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-from-code-point"], 1, $a, false); }
       checkNatural(c);
       var c = jsnums.toFixnum(c, NumberErrbacks);
       var ASTRAL_CUTOFF = 65535;
@@ -4316,8 +4569,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
     var string_to_code_points = function(s) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-points"], 1, $a); }
-      thisRuntime.checkString(s);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-points"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-to-code-points",
+        [s],
+        [thisRuntime.String]);
       var returnArray = [];
       for(var i = 0; i < s.length; i++) {
         var charCode = string_to_code_point(s[i]);
@@ -4326,8 +4581,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return thisRuntime.ffi.makeList(returnArray);
     }
     var string_from_code_points = function(l) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-from-code-points"], 1, $a); }
-      thisRuntime.checkList(l);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-from-code-points"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Strings", "string-from-code-points",
+        [l],
+        [thisRuntime.List]);
       var arr = thisRuntime.ffi.toArray(l);
       var retStr = "";
       for(var i = 0; i < arr.length; i++) {
@@ -4339,126 +4596,154 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     }
 
     var bool_not = function(l) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["not"], 1, $a); }
-      thisRuntime.checkBoolean(l);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["not"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Booleans", "not",
+        [l],
+        [thisRuntime.Boolean]);
       return thisRuntime.makeBoolean(!l);
     };
 
     var rng = seedrandom("ahoy, world!");
 
     var num_random = function(max) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-random"], 1, $a); }
-      checkNumber(max);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-random"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-random",
+        [max],
+        [thisRuntime.Number]);
       var f = rng();
       return makeNumber(Math.floor(jsnums.toFixnum(max, NumberErrbacks) * f));
     };
 
     var num_random_seed = function(seed) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-random-seed"], 1, $a); }
-      checkNumber(seed);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-random-seed"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-random-seed",
+        [seed],
+        [thisRuntime.Number]);
       rng = seedrandom(String(seed));
       return nothing;
     }
 
     var num_equal = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-equals"], 2, $a); }
-      thisRuntime.checkNumber(l);
-      thisRuntime.checkNumber(r);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-equals"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-equals",
+        [l,                  r],
+        [thisRuntime.Number, thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.equals(l, r, NumberErrbacks));
     };
 
     var num_within_abs = function(delta) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a); }
-      thisRuntime.checkNumber(delta);
-      if (jsnums.lessThan(delta, 0, NumberErrbacks)) {
-        NumberErrbacks.throwToleranceError('negative tolerance ' + delta);
-      }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-within-abs",
+        [delta],
+        [thisRuntime.NumNonNegative]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within"], 2, $a); }
-        thisRuntime.checkNumber(l);
-        thisRuntime.checkNumber(r);
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within"], 2, $a, false); }
+        thisRuntime.checkArgsInternal("Numbers", "from within",
+          [l,                  r],
+          [thisRuntime.Number, thisRuntime.Number]);
         return makeBoolean(jsnums.roughlyEquals(l, r, delta, NumberErrbacks));
       }, "num-within-abs(...)");
     }
 
     var num_within_rel = function(relTol) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
-      thisRuntime.checkNumber(relTol);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "within-rel", [relTol], [thisRuntime.Number]);
       return makeFunction(function(l, r) {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a); }
-        thisRuntime.checkNumber(l);
-        thisRuntime.checkNumber(r);
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a, false); }
+        thisRuntime.checkArgsInternal("Numbers", "from within-rel",
+          [l,                  r],
+          [thisRuntime.Number, thisRuntime.Number]);
         return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, NumberErrbacks));
       }, "num-within-rel(...)");
     }
 
     var num_max = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a); }
-      thisRuntime.checkNumber(l);
-      thisRuntime.checkNumber(r);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-max",
+        [l,                  r],
+        [thisRuntime.Number, thisRuntime.Number]);
       if (jsnums.greaterThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
     var num_min = function(l, r) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a); }
-      thisRuntime.checkNumber(l);
-      thisRuntime.checkNumber(r);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-min",
+        [l,                  r],
+        [thisRuntime.Number, thisRuntime.Number]);
       if (jsnums.lessThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
     var num_abs = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-abs"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-abs"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-abs",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.abs(n, NumberErrbacks));
     }
 
     var num_sin = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sin"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sin"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-sin",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.sin(n, NumberErrbacks));
     }
     var num_cos = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-cos"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-cos"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-cos",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.cos(n, NumberErrbacks));
     }
     var num_tan = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tan"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tan"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-tan",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.tan(n, NumberErrbacks));
     }
     var num_asin = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-asin"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-asin"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-asin",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.asin(n, NumberErrbacks));
     }
     var num_acos = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-acos"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-acos"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-acos",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.acos(n, NumberErrbacks));
     }
     var num_atan = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-atan",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.atan(n, NumberErrbacks));
     }
 
     var num_atan2 = function(y, x) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 2, $a); }
-      thisRuntime.checkNumber(y);
-      thisRuntime.checkNumber(x);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan2"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-atan2",
+        [y,                  x],
+        [thisRuntime.Number, thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.atan2(y, x, NumberErrbacks));
     };
 
     var num_modulo = function(n, mod) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-modulo"], 2, $a); }
-      thisRuntime.checkNumber(n);
-      thisRuntime.checkNumber(mod);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-modulo"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-modulo",
+        [n,                      mod],
+        [thisRuntime.NumInteger, thisRuntime.NumInteger]);
       return thisRuntime.makeNumberBig(jsnums.modulo(n, mod, NumberErrbacks));
     }
     var num_truncate = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-truncate",
+        [n],
+        [thisRuntime.Number]);
       if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
       } else {
@@ -4466,130 +4751,176 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       }
     }
     var num_sqrt = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-sqrt",
+        [n],
+        [thisRuntime.NumNonNegative]);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n, NumberErrbacks));
     }
     var num_sqr = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqr"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqr"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-sqr",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.sqr(n, NumberErrbacks));
     }
     var num_ceiling = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-celing",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
     }
     var num_floor = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-floor",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
     }
     var num_round = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-round",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.round(n, NumberErrbacks));
     }
     var num_round_even = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-round-even",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.roundEven(n, NumberErrbacks));
     }
     var num_log = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-log"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-log"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-log",
+        [n],
+        [thisRuntime.NumPositive]);
       return thisRuntime.makeNumberBig(jsnums.log(n, NumberErrbacks));
     }
     var num_exp = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exp"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exp"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-exp",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.exp(n, NumberErrbacks));
     }
     var num_exact = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exact"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exact"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-exact",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
     }
     var num_to_rational = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-rational"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-rational"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-to-rational",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
     }
     var num_to_roughnum = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-roughnum"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-roughnum"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-to-roughnum",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.toRoughnum(n, NumberErrbacks));
     }
     var num_to_fixnum = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-fixnum"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-fixnum"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-fixnum",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.toFixnum(n, NumberErrbacks));
     }
     var num_is_integer = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-integer"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-integer"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-integer",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
     }
     var num_is_rational = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-rational"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-rational"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-rational",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isRational(n))
     }
     var num_is_roughnum = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-roughnum"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-roughnum"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-roughnum",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isRoughnum(n))
     }
     var num_is_positive = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-positive"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-positive"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-positive",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isPositive(n))
     }
     var num_is_negative = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-negative"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-negative"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-negative",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isNegative(n))
     }
     var num_is_non_positive = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-non-positive"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-non-positive"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-non-positive",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isNonPositive(n))
     }
     var num_is_non_negative = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-non-negative"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-non-negative"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-non-negative",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(jsnums.isNonNegative(n))
     }
     var num_is_fixnum = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-fixnum"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-fixnum"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-fixnum",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-expt"], 2, $a); }
-      thisRuntime.checkNumber(n);
-      thisRuntime.checkNumber(pow);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-expt"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-is-rational",
+        [n,                  pow],
+        [thisRuntime.Number, thisRuntime.Number]);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow, NumberErrbacks));
     }
     var num_tostring = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring"], 1, $a); }
-      thisRuntime.checkNumber(n);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-tostring",
+        [n],
+        [thisRuntime.Number]);
       return thisRuntime.makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring-digits"], 2, $a); }
-      thisRuntime.checkNumber(n);
-      thisRuntime.checkNumber(digits);
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-string-digits"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-to-string-digits",
+        [n,                  digits],
+        [thisRuntime.Number, thisRuntime.NumInteger]);
       return thisRuntime.makeString(jsnums.toStringDigits(n, digits, NumberErrbacks));
     }
     function random(max) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["random"], 1, $a); }
-      thisRuntime.checkNumber(max);
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["random"], 1, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "random",
+        [max],
+        [thisRuntime.Number]);
       return num_random(max);
     }
 
     var time_now = function() {
-      if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["time-now"], 0, $a); }
+      if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["time-now"], 0, $a, false); }
       return new Date().getTime();
     }
 
@@ -4795,7 +5126,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         return m.jsmod;
       }
       else {
-        return thisRuntime.getField(m, "provide-plus-types");
+        return makeObject({
+          values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
+          types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          internal: thisRuntime.getField(m, "provide-plus-types").dict['internal'],
+          'defined-values': m.dict['defined-values'],
+          'defined-types': m.dict['defined-types'],
+        });
       }
     }
 
@@ -4833,7 +5170,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             // CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
-            thisRuntime.pauseStack(function(restarter) {
+            return thisRuntime.pauseStack(function(restarter) {
               // CONSOLE.log("About to load: ", mod.nativeRequires);
               require(mod.nativeRequires, function(/* varargs */) {
                 var nativeInstantiated = Array.prototype.slice.call(arguments);
@@ -4844,15 +5181,42 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           }
         }, function(natives) {
           function continu() {
-            return thisRuntime.safeTail(function() {
-              return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
-            });
+            return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
           }
           if(realm[uri]) {
             return continu();
           }
           return thisRuntime.safeCall(function() {
-            return mod.theModule.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+            var indirectEval = eval;
+            var theModFunction;
+            if(typeof mod.theModule === "function") {
+              theModFunction = mod.theModule;
+              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+            }
+            else if (!util.isBrowser() && typeof mod.theModule === "string") {
+              theModFunction = indirectEval("(" + mod.theModule + ")");
+              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+            }
+            else if (util.isBrowser()) {
+              return thisRuntime.pauseStack(function(resumer) {
+                var p = loader.compileInNewScriptContext(mod.theModule);
+                var instantiated = p.then(function(theModFunction) {
+                  thisRuntime.runThunk(function() {
+                    return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
+                  },
+                  function(r) {
+                    if(thisRuntime.isSuccessResult(r)) {
+                      resumer.resume(r.result);
+                    }
+                    else {
+                      resumer.error(r.exn);
+                    }
+                  });
+                });
+                instantiated.fail(function(val) { return resumer.error(val); });
+                return instantiated;
+              });
+            }
           },
           function(r) {
             // CONSOLE.log("Result from module: ", r);
@@ -4881,18 +5245,21 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       return new JSModuleReturn(jsmod);
     }
 
-    function makeModuleReturn(values, types) {
+    function makeModuleReturn(values, types, internal) {
       return thisRuntime.makeObject({
+        "defined-values": values,
+        "defined-types": types,
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
-          "types": types
+          "types": types,
+          "internal": internal || {}
         })
       });
     }
 
     function makeBrandPredicate(loc, brand, predName) {
       return makeFunction(function(val) {
-        checkArityC(loc, 1, arguments);
+        checkArityC(loc, 1, arguments, false);
         return hasBrand(val, brand);
       }, predName + "-pred");
     }
@@ -4907,9 +5274,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       base,
       brands,
       reflName,
-      reflRefFields,
       reflFields,
-      constructor) {
+      constructor, _ignored) {
+      if (_ignored) { // POLYGLOT
+        reflFields = constructor;
+        constructor = _ignored;
+      }
+      
       function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
       function constArr(arr) { return "[" + arr.map(quote).join(",") + "]"; }
 
@@ -4938,11 +5309,10 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
             constructorBody += "dict['" + argNames[i] + "'] = " + a + ";\n";
           }
         });
-        constructorBody +=
-          "return thisRuntime.makeDataValue(dict, brands, " + quote(reflName) + ", reflRefFields, reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+        constructorBody += "return new Construct(dict, brands)";
 
         //var arityCheck = "thisRuntime.checkArityC(loc, " + allArgs.length + ", arguments);";
-        var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t); }";
+        var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t,false); }";
 
         var checksPlusBody = "";
         if(hasRefinement) {
@@ -4953,11 +5323,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         else {
           checkArgs.forEach(function(a, i) {
             if(checkMuts[i]) {
-              checksPlusBody += "thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "var checkAns = thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
             else {
-              checksPlusBody += "thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
+            //checksPlusBody += "if(thisRuntime.isContinuation(checkAns)) { return checkAns; }";
           });
           checksPlusBody += constructorBody;
         }
@@ -4968,11 +5339,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
           "}\n" +
           checksPlusBody + "\n" +
           "}";
-        //CONSOLE.log(constrFun);
 
-        var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflRefFields", "reflFields", "constructor", "base"];
-        var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n" + constrFun]));
-        return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflRefFields, reflFields, constructor, base);
+        var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflFields", "constructor", "base"];
+        var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n"
+        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor, false, " + constArr(loc) + ");"
+        + constrFun]));
+        return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflFields, constructor, base);
       }
 
       //CONSOLE.log(String(outerFun));
@@ -5002,7 +5374,12 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
       var newns = Namespace.namespace({});
       valFields.forEach(function(vf) {
-        newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        if(hasField(moduleObj, "defined-values")) {
+          newns = newns.set(vf, getField(moduleObj, "defined-values")[vf]);
+        }
+        else {
+          newns = newns.set(vf, getField(getField(moduleObj, "values"), vf));
+        }
       });
       typeFields.forEach(function(tf) {
         newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
@@ -5015,6 +5392,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     /** type {!PBase} */
     var builtins = makeObject({
+      // NOTE(joe): this is initialized later, in postLoadHooks for data-source and for table,
+      // but provided here because they show up in desugaring
+      'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),
+      'as-loader-option': makeFunction(function(type, arg1, arg2) { return thisRuntime.asLoaderOption(type, arg1, arg2); }),
+
+
+      'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
+      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
+      'get-value': makeFunction(getValue, "get-value"),
       'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }, "list-to-raw-array"),
       'has-field': makeFunction(hasField, "has-field"),
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
@@ -5022,7 +5408,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw-list-filter': makeFunction(raw_list_filter, "raw-list-filter"),
       'raw-list-fold': makeFunction(raw_list_fold, "raw-list-fold"),
       'current-checker': makeFunction(function() {
-        if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a); }
+        if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a, false); }
         return getParam("current-checker");
       }, "current-checker"),
       'trace-value': makeFunction(traceValue, "trace-value"),
@@ -5126,7 +5512,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
     var runtimeNamespaceBindings = {
       'torepr': torepr,
+      'to-repr': torepr,
       'tostring': tostring,
+      'to-string': tostring,
       'test-print': print,
       'print': print,
       'display': display,
@@ -5211,6 +5599,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'string-append': makeFunction(string_append, "string-append"),
       'string-length': makeFunction(string_length, "string-length"),
       'string-isnumber': makeFunction(string_isnumber, "string-isnumber"),
+      'string-is-number': makeFunction(string_isnumber, "string-is-number"),
       'string-tonumber': makeFunction(string_tonumber, "string-tonumber"),
       'string-to-number': makeFunction(string_to_number, "string-to-number"),
       'string-repeat': makeFunction(string_repeat, "string-repeat"),
@@ -5220,7 +5609,9 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'string-split-all': makeFunction(string_split_all, "string-split-all"),
       'string-char-at': makeFunction(string_charat, "string-char-at"),
       'string-toupper': makeFunction(string_toupper, "string-toupper"),
+      'string-to-upper': makeFunction(string_toupper, "string-to-upper"),
       'string-tolower': makeFunction(string_tolower, "string-tolower"),
+      'string-to-lower': makeFunction(string_tolower, "string-to-lower"),
       'string-explode': makeFunction(string_explode, "string-explode"),
       'string-index-of': makeFunction(string_indexOf, "string-index-of"),
       'string-to-code-point': makeFunction(string_to_code_point, "string-to-code-point"),
@@ -5237,8 +5628,13 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw-array-set': makeFunction(raw_array_set, "raw-array-set"),
       'raw-array-length': makeFunction(raw_array_length, "raw-array-length"),
       'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
+      'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
+      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
+      'raw-array-and-mapi': makeFunction(raw_array_and_mapi, "raw-array-and-mapi"),
+      'raw-array-or-mapi': makeFunction(raw_array_or_mapi, "raw-array-or-mapi"),
       'raw-array-map': makeFunction(raw_array_map, "raw-array-map"),
+      'raw-array-map-1': makeFunction(raw_array_map1, "raw-array-map-1"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
       'raw-array': raw_array_maker,
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
@@ -5297,6 +5693,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'traceErrExit': traceErrExit,
 
       'isActivationRecord'   : isActivationRecord,
+      'isInitializedActivationRecord'   : isInitializedActivationRecord,
       'makeActivationRecord' : makeActivationRecord,
 
       'GAS': INITIAL_GAS,
@@ -5321,6 +5718,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
 
       'makeCont'    : makeCont,
       'isCont'      : isCont,
+      'isContinuation'      : isContinuation,
       'makePause'   : makePause,
       'isPause'     : isPause,
 
@@ -5339,9 +5737,20 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'extendObj'        : extendObj,
 
       'hasBrand' : hasBrand,
+      'getMaker' : getMaker,
+      // These are all the same function but have different types for arity reasons
+      'getMaker0' : getMaker,
+      'getMaker1' : getMaker,
+      'getMaker2' : getMaker,
+      'getMaker3' : getMaker,
+      'getMaker4' : getMaker,
+      'getMaker5' : getMaker,
+      'getLazyMaker' : getMaker,
 
       'isPyretTrue' : isPyretTrue,
       'isPyretFalse' : isPyretFalse,
+
+      'checkPyretTrue' : checkPyretTrue,
 
       'isBase'      : isBase,
       'isNothing'   : isNothing,
@@ -5385,6 +5794,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'makeMethod8'   : makeMethod8,
       'makeMethodN'   : makeMethodN,
       'makeMethodFromFun' : makeMethodFromFun,
+      'maybeMethodCall': maybeMethodCall,
       'callIfPossible0' : callIfPossible0,
       'callIfPossible1' : callIfPossible1,
       'callIfPossible2' : callIfPossible2,
@@ -5405,6 +5815,7 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'makeUnsafeSetRef' : makeUnsafeSetRef,
       'makeVariantConstructor': makeVariantConstructor,
       'makeDataValue': makeDataValue,
+      'makeDataTypeConstructor': makeDataTypeConstructor,
       'makeMatch': makeMatch,
       'makeOpaque'   : makeOpaque,
 
@@ -5481,10 +5892,15 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'raw_array_concat': raw_array_concat,
       'raw_array_length': raw_array_length,
       'raw_array_to_list': raw_array_to_list,
+      'raw_array_and_mapi': raw_array_and_mapi,
+      'raw_array_or_mapi': raw_array_or_mapi,
       'raw_array_map': raw_array_map,
+      'raw_array_each': raw_array_each,
+      'raw_array_fold': raw_array_fold,
       'raw_array_map1': raw_array_map1,
       'raw_array_mapi': raw_array_mapi,
       'raw_array_filter': raw_array_filter,
+      'raw_array_fold': raw_array_fold,
 
       'not': bool_not,
 
@@ -5563,6 +5979,8 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
+        "defined-values": runtimeNamespaceBindings,
+        "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
           "types": runtimeTypeBindings
@@ -5622,6 +6040,57 @@ function (Namespace, jsnums, codePoint, seedrandom, util) {
         console.error("Dummy throwMessageException: " + thing);
       }
     };
+
+    // Deal with name shortening
+    var nameMap = {
+        'addModuleToNamespace': 'aMTN',
+        'checkArityC': 'cAC',
+        'checkRefAnns': 'cRA',
+        'derefField': 'dF',
+        'getColonFieldLoc': 'gCFL',
+        'getDotAnn': 'gDA',
+        'getField': 'gF',
+        'getFieldRef': 'gFR',
+        'hasBrand': 'hB',
+        'isActivationRecord': 'isAR',
+        'isCont': 'isC',
+        'isFunction': 'isF',
+        'isMethod': 'isM',
+        'isPyretException': 'isPE',
+        'isPyretTrue': 'isPT',
+        'makeActivationRecord': 'mAR',
+        'makeBoolean': 'mB',
+        'makeBranderAnn': 'mBA',
+        'makeCont': 'mC',
+        'makeDataValue': 'mDV',
+        'makeFunction': 'mF',
+        'makeGraphableRef': 'mGR',
+        'makeMatch': 'mM',
+        'makeMethod': 'mMet',
+        'makeMethodN': 'mMN',
+        'makeObject': 'mO',
+        'makePredAnn': 'mPA',
+        'makeRecordAnn': 'mRA',
+        'makeTupleAnn': 'mTA',
+        'makeVariantConstructor': 'mVC',
+        'namedBrander': 'nB',
+        'traceEnter': 'tEn',
+        'traceErrExit': 'tErEx',
+        'traceExit': 'tEx',
+        '_checkAnn': '_cA',
+        'getMaker': 'gM',
+    };
+
+    for (var longName in nameMap) {
+        if (nameMap[longName] in thisRuntime) {
+            throw new Error("Multiple short names for " + nameMap[longName]);
+        }
+
+        if (!(longName in thisRuntime)) {
+            throw new Error("Method not in runtime already " + longName);
+        }
+        thisRuntime[nameMap[longName]] = thisRuntime[longName];
+    }
 
     return thisRuntime;
   }

@@ -19,12 +19,15 @@
     { "import-type": "builtin", name: "table" },
     { "import-type": "builtin", name: "tables" },
     { "import-type": "builtin", name: "reactors" },
-    { "import-type": "builtin", name: "data-source" }
+    { "import-type": "builtin", name: "data-source" },
+    { "import-type": "builtin", "name": "s-exp" },
   ],
   provides: {},
   nativeRequires: [],
   theModule: function(runtime, namespace, uri /* intentionally blank */) {
     return runtime.makeObject({
+      "defined-values": {},
+      "defined-types": {},
       "provide-plus-types": runtime.makeObject({
         "values": runtime.makeObject({}),
         "types": {}

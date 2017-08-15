@@ -7,6 +7,7 @@ import format as F
 import parse-pyret as P
 import string-dict as D
 import filelib as FL
+import system as SYS
 
 data FreshData:
   | fresh-constr()
@@ -108,6 +109,28 @@ check:
   when E.is-non-function-app(e11) block:
     e11.non-fun-val is 5
     e11.loc satisfies S.is-srcloc
+  end
+
+  e-non-ctor-app-1 = get-err(lam(): empty() end)
+  e-non-ctor-app-1 satisfies E.is-non-function-app
+  when E.is-non-function-app(e-non-ctor-app-1) block:
+    e-non-ctor-app-1.non-fun-val is empty
+    e-non-ctor-app-1.loc satisfies S.is-srcloc
+  end
+
+  e-non-ctor-app2 = get-err(lam(): var1() end)
+  e-non-ctor-app2 satisfies E.is-non-function-app
+  when E.is-non-function-app(e-non-ctor-app2) block:
+    e-non-ctor-app2.non-fun-val is var1
+    e-non-ctor-app2.loc satisfies S.is-srcloc
+  end
+
+  some-method = method(x): x end
+  e-method-app = get-err(lam(): some-method() end)
+  e-method-app satisfies E.is-non-function-app
+  when E.is-non-function-app(e-method-app) block:
+    tostring(e-method-app.non-fun-val) is "<function>"
+    e-method-app.loc satisfies S.is-srcloc
   end
 
   e12 = get-err(lam(): num-tostring("two", "arguments") end)
@@ -332,5 +355,17 @@ check:
 
   constr-err = get-err(lam(): fresh-constr.foo end)
   constr-err satisfies E.is-lookup-constructor-not-object
+
+  exit-err-zero = get-err(lam(): SYS.exit(0) end)
+  exit-err-zero satisfies E.is-exit
+
+  exit-err-one = get-err(lam(): SYS.exit(1) end)
+  exit-err-one satisfies E.is-exit
+
+  exit-quiet-err-zero = get-err(lam(): SYS.exit-quiet(0) end)
+  exit-quiet-err-zero satisfies E.is-exit-quiet
+
+  exit-quiet-err-one = get-err(lam(): SYS.exit-quiet(1) end)
+  exit-quiet-err-one satisfies E.is-exit-quiet
 
 end

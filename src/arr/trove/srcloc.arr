@@ -21,6 +21,9 @@ data Srcloc:
         | srcloc(_, _, _, _, _, _, _) => false
       end
     end,
+    method contains(self, other):
+      false
+    end,
     method is-builtin(self): true end
   | srcloc(
         source :: String,
@@ -94,8 +97,24 @@ data Srcloc:
         self
       end
     end,
+    method upto-end(self, other :: Srcloc%(is-srcloc)):
+      # Note: assumes that both locations are from same file
+      if self.start-char <= other.end-char:
+        srcloc(self.source,
+          self.start-line, self.start-column, self.start-char,
+          other.end-line, other.end-column, other.end-char)
+      else:
+        self
+      end
+    end,
+    method contains(self, other):
+      is-srcloc(other)
+        and (self.start-line <= other.start-line)
+        and (self.start-char <= other.start-char)
+        and (self.end-line >= other.end-line)
+        and (self.end-char >= other.end-char)
+    end,
     method is-builtin(self): false end
 sharing:
-  method _output(self): VS.vs-value(self.format(true)) end,
   method after(self, other): other.before(self) end
 end
