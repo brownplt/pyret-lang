@@ -615,8 +615,8 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because "),
-                ED.embed(self.desiredLength),
-                ED.ed-components(" are expected to be bound to values, but the binding was given a tuple containing "),
+                ED.ed-components(self.desiredLength),
+                ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
                 ED.ed-components(self.length),
                 ED.text(":")],
               ED.embed(self.tup)]
