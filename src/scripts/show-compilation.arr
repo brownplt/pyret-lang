@@ -67,6 +67,7 @@ fun pretty-result(result):
   else if AN.is-AProg(result): result.tosource()
   else if JS.is-CompiledCodePrinter(result): result.pyret-to-js-pretty()
   else if CS.is-NameResolution(result): result.ast.tosource()
+  else if CS.is-ScopeResolution(result): result.ast.tosource()
   else if J.is-JExpr(result) or J.is-JStmt(result) or J.is-JBlock(result): result.tosource()
   else if CS.is-CompileResult(result):
     cases(CS.CompileResult) result:

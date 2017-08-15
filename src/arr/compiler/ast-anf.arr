@@ -734,6 +734,12 @@ fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
   end
 end
 
+fun freevars-fields-acc(fields :: List<A.AField>, seen-so-far):
+  for fold(acc from seen-so-far, f from fields):
+    freevars-ann-acc(f.ann, acc)
+  end
+end
+
 fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(A.Ann) ann block:
     | a-blank => seen-so-far
@@ -746,11 +752,9 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
       seen-so-far.set-now(left.key(), left)
       seen-so-far
     | a-arrow(l, args, ret, _) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
+    | a-arrow-argnames(l, args, ret, _) => freevars-fields-acc(args, freevars-ann-acc(ret, seen-so-far))
     | a-method(l, args, ret) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
-    | a-record(l, fields) =>
-      for fold(acc from seen-so-far, f from fields):
-        freevars-ann-acc(f.ann, acc)
-      end
+    | a-record(l, fields) => freevars-fields-acc(fields, seen-so-far)
     | a-tuple(l, fields) => freevars-list-acc(fields, seen-so-far)
     | a-app(l, a, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
     | a-method-app(l, a, _, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))

@@ -1,26 +1,18 @@
 #lang pyret
 
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
-import file("../test-compile-helper.arr") as C
+import file("../test-compile-helper.arr") as CH
+import contracts as C
 import load-lib as L
 import either as E
 
-compile-str = C.compile-str
-run-to-result = C.run-to-result
-
-#|
-run-str = lam(str): 
-  result = run-to-result(str)
-  cases(E.Either) result block:
-    | left(err) => 
-      print-error("expected an answer, but got compilation errors:")
-      for lists.each(e from err):
-        print-error(tostring(e))
-      end
-    | right(ans) => ans
-  end
-end
-|#
+compile-str = CH.compile-str
+run-to-result = CH.run-to-result
+run-str = CH.run-str
+output = CH.output
+contract-error = CH.contract-error
+compile-error = CH.compile-error
+success = CH.success
 
 #  compiled = C.compile-str(str)
 #  cases(CS.CompileResult) compiled:
@@ -29,25 +21,6 @@ end
 #  end
 #end
 
-fun is-contract-error(result):
-  L.is-failure-result(result.v) and string-contains(L.render-error-message(result.v).message, "annotation")
-end
-
-fun is-refinement-error-str(result):
-  L.is-failure-result(result.v) and string-contains(L.render-error-message(result.v).message, "Predicate")
-end
-
-fun is-field-error-str(msg, fields):
-  for lists.all(f from fields):
-    string-contains(msg, "field `" + f + "`")
-  end
-end
-
-fun is-unbound-contract(result):
-  result.v.filter(lam(err):
-    err.problems.filter(CS.is-unbound-type-id).length() > 0
-  end).length() > 0
-end
 
 check "should work for flat contracts":
   contract-errors = [list:
@@ -57,30 +30,25 @@ check "should work for flat contracts":
     "x :: Boolean = 'foo'",
     "x :: Boolean = 5"
   ]
-  for each(program from contract-errors) block:
-    result = C.run-to-result(program)
-    when L.is-success-result(result.v):
-      "Should be error" is program
-    end
-    when L.is-failure-result(result.v):
-      result satisfies is-contract-error
-    end
+  for each(program from contract-errors):
+    run-str(program) is%(output) contract-error
   end
 end
 
 is-sorted = 
-  "fun is-sorted(l):\n" +
-  "  cases(List) l:\n" +
-  "    | empty => true\n" +
-  "    | link(f, r) =>\n" +
-  "      cases(List) r:\n" +
-  "        | empty => true\n" +
-  "        | link(f2, r2) =>\n" +
-  "          (f <= f2) and is-sorted(r)\n" +
-  "      end\n" +
-  "  end\n" +
-  "end\n"
-
+  ```
+  fun is-sorted(l):
+    cases(List) l:
+      | empty => true
+      | link(f, r) =>
+        cases(List) r:
+          | empty => true
+          | link(f2, r2) =>
+            (f <= f2) and is-sorted(r)
+        end
+    end
+  end
+  ``` + "\n"
 check "should work for refinements":
   contract-errors = [list:
     "is-odd = lam(n): num-modulo(n, 2) == 1 end\nx :: String%(is-odd) = 5",
@@ -88,13 +56,7 @@ check "should work for refinements":
     "is-zero-length = lam(s): string-length(s) == 0 end\ns :: String%(is-zero-length) = 'foo'"
   ]
   for each(program from contract-errors) block:
-    result = C.run-to-result(program)
-    when L.is-success-result(result.v):
-      "Should be error" is program
-    end
-    when L.is-failure-result(result.v):
-      result satisfies is-contract-error
-    end
+    run-str(program) is%(output) contract-error
   end
   non-errors = [list:
     "is-odd = lam(n): num-modulo(n, 2) == 1 end\nx :: Number%(is-odd) = 5",
@@ -102,15 +64,10 @@ check "should work for refinements":
     is-sorted + "l :: Any%(is-sorted) = lists.range(0, 100)"
   ]
   for each(program from non-errors) block:
-    result = C.run-to-result(program)
-    result.v satisfies L.is-success-result
-    when not(L.is-success-result(result.v)):
-      "Should succeed" is program
-    end
+    run-str(program) is%(output) success
   end
 end
 
-#|
 check "should work for records":
   contract-errors = [list:
     { p: "x :: { x :: Number } = { x : 'foo' }", f: [list: "x"] },
@@ -123,17 +80,7 @@ check "should work for records":
     { p: is-sorted + "o :: { l1 :: Any%(is-sorted), l2 :: Number } = { l1: lists.range(0, 100), l2: 'foo'}", f: [list: "l2"] }
   ]
   for each(program from contract-errors) block:
-    result = run-to-result(program.p)
-    when L.is-success-result(result.v):
-      "Should be error" is program.p
-    end
-    when L.is-failure-result(result.v) block:
-      msg = L.render-error-message(result.v).message
-      msg satisfies is-field-error-str(_, program.f)
-      when not(is-field-error-str(msg, program.f)):
-        print("Failed for program " + program.p + "\n" + torepr(program.f) + " not present in " + msg)
-      end
-    end
+    run-str(program.p) is%(output) contract-error # NOTE(Ben): used to be field-error(program.f)
   end
 
   non-errors = [list:
@@ -141,11 +88,7 @@ check "should work for records":
     "x :: {} = { x : 'foo' }"
   ]
   for each(program from non-errors) block:
-    result = run-to-result(program)
-    result.v satisfies L.is-success-result
-    when L.is-failure-result(result.v):
-      "Should succeed" is program
-    end
+    run-str(program) is%(output) success
   end
 end
 
@@ -154,98 +97,82 @@ check "should notice unbound contracts":
     "x :: NotAType = 5",
     "x :: (Number -> Fail) = 5",
     "x :: (Number -> { x:: Fail }) = 5",
-    "x :: Numba % (is-even) = 5",
+    "x :: Numba%(is-even) = 5",
     "x :: lisst.List = 10",
     "y = 5\nx :: y = 5"
   ]
   for each(program from contract-errors) block:
-    result = compile-str(program)
-    E.is-left(result) is true
-    when E.is-right(result):
-      "Should be error" is program
-    end
-    when E.is-left(result) == true:
-      result satisfies is-unbound-contract
-    end
+    run-str(program) is%(output) compile-error(CS.is-unbound-type-id)
   end
 end
-|#
 
-#|
 check "should bind types":
   contract-errors = [list:
     "type-let N = Number: x :: N = 'foo'\n x end",
     "type-let S = String, N = Number: x :: (S -> N) = 'foo'\n x end"
   ]
-  for each(program from contract-errors):
-    result = run-str(program)
-    result.success is false
-    when result.success == true:
-      "Should be error" is program
-    end
-    when result.success == false:
-      result satisfies is-contract-error
-    end
+  for each(program from contract-errors) block:
+    run-str(program) is%(output) contract-error
   end
 end
 
 check "should work for lambda-bound annotations":
-  run-str("fun f(x :: Number): x end\n f('foo')") satisfies is-contract-error
-  run-str("fun id(x): x end\n fun f(x) -> Number: id(x) end\n f('foo')") satisfies is-contract-error
-  run-str("fun f(x) -> Number: if true: x else: x end end\n f('foo')") satisfies is-contract-error
-  run-str("fun f(x) -> Number: cases(List) empty: | empty => x | link(_, _) => x end end\n f('foo')") satisfies is-contract-error
-  run-str("fun id(x): x end\n fun f(x) -> Number: if true: id(x) else: id(x) end end\n f('foo')") satisfies is-contract-error
-  run-str("fun id(x): x end\n fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end\n f('foo')") satisfies is-contract-error
+  run-str("fun f(x :: Number): x end\n f('foo')") is%(output) contract-error
+  run-str("fun id(x): x end\n fun f(x) -> Number: id(x) end\n f('foo')") is%(output) contract-error
+  run-str("fun f(x) -> Number: if true: x else: x end end\n f('foo')") is%(output) contract-error
+  run-str("fun f(x) -> Number: cases(List) empty: | empty => x | link(_, _) => x end end\n f('foo')") is%(output) contract-error
+  run-str("fun id(x): x end\n fun f(x) -> Number: if true: id(x) else: id(x) end end\n f('foo')") is%(output) contract-error
+  run-str("fun id(x): x end\n fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end\n f('foo')") is%(output) contract-error
 end
 
 check "should work for method-bound annotations":
-  run-str("o = { m(self, x :: Number): x end }\n o.m('foo')") satisfies is-contract-error
-  run-str("o = { m(self, x) -> Number: x end }\n o.m('foo')") satisfies is-contract-error
+  run-str("o = { method m(self, x :: Number): x end }\n o.m('foo')") is%(output) contract-error
+  run-str("o = { method m(self, x) -> Number: x end }\n o.m('foo')") is%(output) contract-error
   run-str(```
     o = {
-      id(self, n): n end,
-      m(self, x) -> Number: self.id(x) end
+      method id(self, n): n end,
+      method m(self, x) -> Number: self.id(x) end
     }
-    o.m('foo')```) satisfies is-contract-error
+    o.m('foo')```) is%(output) contract-error
   run-str(```
     o = {
-      m(self, x) -> Number: if true: x else: x end end
+      method m(self, x) -> Number: if true: x else: x end end
     }
-    o.m('foo')```) satisfies is-contract-error
+    o.m('foo')```) is%(output) contract-error
   run-str(```
     o = {
-      m(self, x) -> Number: cases(List) empty:
+      method m(self, x) -> Number: cases(List) empty:
         | empty => x
         | link(_, _) => x
       end end
     }
-    o.m('foo')```) satisfies is-contract-error
+    o.m('foo')```) is%(output) contract-error
   run-str(```
     o = {
-      id(self, n): n end,
-      m(self, x) -> Number: if true: self.id(x) else: self.id(x) end end
+      method id(self, n): n end,
+      method m(self, x) -> Number: if true: self.id(x) else: self.id(x) end end
     }
-    o.m('foo')```) satisfies is-contract-error
+    o.m('foo')```) is%(output) contract-error
   run-str(```
     o = {
-      id(self, n): n end,
-      m(self, x) -> Number: cases(List) empty:
+      method id(self, n): n end,
+      method m(self, x) -> Number: cases(List) empty:
         | empty => self.id(x)
         | link(_, _) => self.id(x)
       end end
     }
-    o.m('foo')```) satisfies is-contract-error
+    o.m('foo')```) is%(output) contract-error
 end
 
 
 check "should work for standalone binding constructs":
-  run-str("type N = Number\nx :: N = 'foo'") satisfies is-contract-error
-  run-str("newtype Lyst as LystT").success is true
+  run-str("type N = Number\nx :: N = 'foo'") is%(output) contract-error
+  run-str("newtype Lyst as LystT") is%(output) success
 end
 
 check "should work for data":
-  run-str("data D: | var1 end\nx :: D = 5") satisfies is-contract-error
-  run-str("data D: | var1 end\nx :: D = var1").success is true
+  run-str("data D: | var1 end\nx :: D = 5") is%(output) contract-error
+  run-str("data D: | var1 end\nx :: D = var1") is%(output) success
 end
 
 check "should work with deep refinements":
@@ -253,26 +180,26 @@ check "should work with deep refinements":
   run-str(
     long-is-even +
     "x :: Number % (is-even) = 100000"
-  ).success is true
+  ) is%(output) success
   run-str(
     long-is-even +
     "x :: Number % (is-even) = 100000\n" +
     "x2 :: Number % (is-even) = x + 1"
-  ) satisfies is-contract-error
+  ) is%(output) contract-error
   run-str(
     long-is-even +
     "x :: Number % (is-even) = 100001"
-  ) satisfies is-contract-error
+  ) is%(output) contract-error
   run-str(
     long-is-even +
     "fun f(x) -> Number % (is-even): if is-number(x) and is-even(x): x else: 100001 end end\n" +
     "f(10000)"
-  ).success is true
+  ) is%(output) success
   run-str(
     long-is-even +
     "fun f(x) -> Number % (is-even): if is-number(x) and is-even(x): x else: 100001 end end\n" +
     "f(\"nan\")"
-  ) satisfies is-contract-error
+  ) is%(output) contract-error
 end 
 
 
@@ -296,7 +223,7 @@ check "should work with named refinements":
     [list: c(10000), c(10000)].first.a is 10000
   end
   ```
-  run-str(data-def).render-check-results() satisfies string-contains(_, "Looks shipshape")
+  run-str(data-def) is%(output) success
 
 end
 
@@ -309,7 +236,7 @@ check "should work in cases positions":
     end
   ```
 
-  run-str(data-def) satisfies is-contract-error
+  run-str(data-def) is%(output) contract-error
 
   data-def2 = ```
     data D: d end
@@ -319,52 +246,150 @@ check "should work in cases positions":
     end
   ```
 
-  run-str(data-def2) satisfies is-contract-error
+  run-str(data-def2) is%(output) contract-error
 end
 
 check "Number contracts":
 
-  run-str("x :: Exactnum = 5").success is true
-  run-str("x :: Exactnum = ~5") satisfies is-contract-error
-  run-str("x :: Roughnum = 5") satisfies is-contract-error
-  run-str("x :: Roughnum = ~5").success is true
-  run-str("x :: NumRational = ~5") satisfies is-contract-error
+  run-str("x :: Exactnum = 5") is%(output) success
+  run-str("x :: Exactnum = ~5") is%(output) contract-error
+  run-str("x :: Roughnum = 5") is%(output) contract-error
+  run-str("x :: Roughnum = ~5") is%(output) success
+  run-str("x :: NumRational = ~5") is%(output) contract-error
 
-  run-str("x :: NumInteger = 5.1") satisfies is-contract-error
-  run-str("x :: NumInteger = 5").success is true
+  run-str("x :: NumInteger = 5.1") is%(output) contract-error
+  run-str("x :: NumInteger = 5") is%(output) success
 
-  run-str("x :: NumRational = 5.1").success is true
-  run-str("x :: NumRational = ~1") satisfies is-contract-error
+  run-str("x :: NumRational = 5.1") is%(output) success
+  run-str("x :: NumRational = ~1") is%(output) contract-error
 
-  run-str("x :: NumPositive = ~5").success is true
-  run-str("x :: NumPositive = ~-5") satisfies is-contract-error
-  run-str("x :: NumPositive = 0.1").success is true
-  run-str("x :: NumPositive = -0.1") satisfies is-contract-error
-  run-str("x :: NumPositive = 0") satisfies is-contract-error
+  run-str("x :: NumPositive = ~5") is%(output) success
+  run-str("x :: NumPositive = ~-5") is%(output) contract-error
+  run-str("x :: NumPositive = 0.1") is%(output) success
+  run-str("x :: NumPositive = -0.1") is%(output) contract-error
+  run-str("x :: NumPositive = 0") is%(output) contract-error
 
-  run-str("x :: NumNegative = ~-5").success is true
-  run-str("x :: NumNegative = ~5") satisfies is-contract-error
-  run-str("x :: NumNegative = -0.1").success is true
-  run-str("x :: NumNegative = 0.1") satisfies is-contract-error
-  run-str("x :: NumNegative = 0") satisfies is-contract-error
+  run-str("x :: NumNegative = ~-5") is%(output) success
+  run-str("x :: NumNegative = ~5") is%(output) contract-error
+  run-str("x :: NumNegative = -0.1") is%(output) success
+  run-str("x :: NumNegative = 0.1") is%(output) contract-error
+  run-str("x :: NumNegative = 0") is%(output) contract-error
 
-  run-str("x :: NumNonNegative = ~5").success is true
-  run-str("x :: NumNonNegative = ~-5") satisfies is-contract-error
-  run-str("x :: NumNonNegative = 0.1").success is true
-  run-str("x :: NumNonNegative = -0.1") satisfies is-contract-error
-  run-str("x :: NumNonNegative = 0").success is true
+  run-str("x :: NumNonNegative = ~5") is%(output) success
+  run-str("x :: NumNonNegative = ~-5") is%(output) contract-error
+  run-str("x :: NumNonNegative = 0.1") is%(output) success
+  run-str("x :: NumNonNegative = -0.1") is%(output) contract-error
+  run-str("x :: NumNonNegative = 0") is%(output) success
 
-  run-str("x :: NumNonPositive = ~-5").success is true
-  run-str("x :: NumNonPositive = ~5") satisfies is-contract-error
-  run-str("x :: NumNonPositive = -0.1").success is true
-  run-str("x :: NumNonPositive = 0.1") satisfies is-contract-error
-  run-str("x :: NumNonPositive = 0").success is true
+  run-str("x :: NumNonPositive = ~-5") is%(output) success
+  run-str("x :: NumNonPositive = ~5") is%(output) contract-error
+  run-str("x :: NumNonPositive = -0.1") is%(output) success
+  run-str("x :: NumNonPositive = 0.1") is%(output) contract-error
+  run-str("x :: NumNonPositive = 0") is%(output) success
 end
 
 check "tuple contracts":
-  run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{\"fqswf\"}}; \"fqwfq\"}").success is true
-  run-str("x :: {String; String} = {\"sewhwr\"; 4124}") satisfies is-contract-error
-  run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{5351}}; \"fqwfq\"}") satisfies is-contract-error
-  run-str("x :: {Number; Number; {Number; String}} = {412; 5412; {412; \"fgwdef\"; 5135}}") satisfies is-contract-error
+  run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{\"fqswf\"}}; \"fqwfq\"}") is%(output) success
+  run-str("x :: {String; String} = {\"sewhwr\"; 4124}") is%(output) contract-error
+  run-str("x :: {Number; String; {Number; Number; {String}}; String} = {4124; \"frwfq\"; {5123;531;{5351}}; \"fqwfq\"}") is%(output) contract-error
+  run-str("x :: {Number; Number; {Number; String}} = {412; 5412; {412; \"fgwdef\"; 5135}}") is%(output) contract-error
 end
-|#
+
+check "standalone contract statements":
+  run-str(
+    ```
+    double :: Number -> Number
+    fun double(n): n + n end
+    double(5)
+    ```
+    ) is%(output) success
+  run-str(
+    ```
+    foo :: Number, String, Boolean -> Number
+    fun foo(n, s, b): 5 end
+    foo(3, "argument order is fine", true)
+    ```
+    ) is%(output) success
+  run-str(
+    ```
+    foo :: (n :: Number, s :: String, b :: Boolean) -> Number
+    fun foo(n, s, b): 5 end
+    foo(3, "named argument order is fine", true)
+    ```
+    ) is%(output) success
+  run-str(
+    ```
+    double :: Number -> Number
+    fun double(n): n + n end
+    double("not a number")
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    foo :: Number, String -> String
+    fun foo(_, s): s end
+    foo("underscores don't mess up weaving", "at all")
+    ```
+    ) is%(output) contract-error
+  run-str(
+    ```
+    double :: Number -> Number
+    # check blocks don't break up scope
+    check: double(5) is 10 end
+    fun double(n): n + n end
+    ```
+    ) is%(output) success
+  run-str(
+    ```
+    # wrong order
+    fun double(n): n + n end
+    double :: Number -> Number
+    ```
+    ) is%(output) compile-error(CS.is-contract-unused)
+  run-str(
+    ```
+    # included functions don't need contracts
+    include file
+    input-file :: String -> Boolean
+    ```
+    ) is%(output) compile-error(CS.is-contract-on-import)
+  run-str(
+    ```
+    # duplicated contract
+    double :: Number -> Number
+    double :: Number -> Number
+    fun double(n): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-redefined)
+  run-str(
+    ```
+    # contract on annotated function
+    double :: Number -> Number
+    fun double(n :: Number): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-redefined)
+  run-str(
+    ```
+    # obviously wrong kind of annotation
+    double :: Number
+    fun double(n): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-non-function)
+  run-str(
+    ```
+    # obviously wrong kind of annotation
+    double :: Number -> Number
+    double = 5
+    ```) is%(output) compile-error(CS.is-contract-non-function)
+  run-str(
+    ```
+    # bad argument names
+    double :: (x :: Number) -> Number
+    fun double(n): n * 2 end
+    ```) is%(output) compile-error(CS.is-contract-inconsistent-names)
+  run-str(
+    ```
+    # wrong contract order
+    is-even :: Number -> Boolean
+    fun is-odd(n): true end
+    is-odd :: Number -> Boolean
+    fun is-even(n): true end
+    ```) is%(output) compile-error(lam(e): CS.is-contract-bad-loc(e) and (e.name == "is-odd") end)
+end
+

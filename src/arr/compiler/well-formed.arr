@@ -418,6 +418,10 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
+  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann) block:
+    add-error(C.non-toplevel("contract declaration", l, parent-block-loc))
+    true
+  end,
   method s-letrec-bind(self, l, bind, expr) block:
     old-pbl = parent-block-loc
     parent-block-loc := l
@@ -1063,7 +1067,8 @@ top-level-visitor = A.default-iter-visitor.{
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
   method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
-    well-formed-visitor.s-contract(l, name, ann)
+    # TODO
+    true
   end,
   method s-assign(_, l :: Loc, id :: A.Name, value :: A.Expr):
     well-formed-visitor.s-assign(l, id, value)
@@ -1131,14 +1136,24 @@ top-level-visitor = A.default-iter-visitor.{
   method s-construct(_, l :: Loc, mod :: A.ConstructModifier, constructor :: A.Expr, values :: List<A.Expr>):
     well-formed-visitor.s-construct(l, mod, constructor, values)
   end,
-  method s-app(_, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
-    well-formed-visitor.s-app(l, _fun, args)
+  method s-app(self, l :: Loc, _fun :: A.Expr, args :: List<A.Expr>):
+    if (A.is-s-dot(_fun) and A.is-s-id(_fun.obj)
+        and (_fun.obj.id.toname() == "builtins") and (_fun.field == "trace-value")):
+      # this is effectively still a top-level expression, so don't penalize it
+      # for being inside a desugaring-introduced function call
+      _fun.visit(self) and lists.all(_.visit(self), args)
+    else:
+      well-formed-visitor.s-app(l, _fun, args)
+    end
   end,
   method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
     well-formed-visitor.s-prim-app(l, _fun, args)
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
+  end,
+  method s-reactor(self, l, fields):
+    well-formed-visitor.s-reactor(l, fields)
   end,
   method s-rfrac(_, l :: Loc, num, den):
     well-formed-visitor.s-rfrac(l, num, den)
@@ -1196,6 +1211,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
+  end,
+  method a-arrow-argnames(_, l, args, ret, use-parens):
+    well-formed-visitor.a-arrow-argnames(l, args, ret, use-parens)
   end,
   method a-method(_, l, args, ret):
     well-formed-visitor.a-method(l, args, ret)

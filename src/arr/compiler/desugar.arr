@@ -95,6 +95,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-dot(_, _, _) => a
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
+    | a-arrow-argnames(l, args, ret, use-parens) =>
+      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>

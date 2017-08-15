@@ -106,8 +106,12 @@ data TypeBinding:
 end
 |#
 
+data ScopeResolution:
+  | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
+end
+
 data NameResolution:
-  | resolved(
+  | resolved-names(
       ast :: A.Program,
       errors :: List<CompileError>,
       bindings :: SD.MutableStringDict<ValueBind>,
@@ -382,6 +386,155 @@ data CompileError:
           ED.text(" at "),
           ED.loc(self.loc),
           ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
+    end
+  | contract-on-import(loc :: Loc, name :: String, import-type :: A.ImportType) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Contracts for functions can only be defined once, and the contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
+          ED.text(" is already defined in the "),
+          ED.highlight(ED.code(ED.text(self.import-type.tosource().pretty(1000).join-str(""))),
+            [list: self.import-type.l], 1),
+          ED.text(" library.")],
+        ED.cmcode(self.loc)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Contracts for functions can only be defined once, and the contract for "),
+          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" is already defined in the "),
+          ED.code(ED.text(self.import-type.tosource().pretty(1000).join-str(""))),
+          ED.text(" library.")]]
+    end
+  | contract-redefined(loc :: Loc, name :: String, defn-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Contracts for functions can only be defined once, and the contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
+          ED.text(" is "),
+          ED.highlight(ED.text("already defined"), [list: self.defn-loc], -1),
+          ED.text(": ")],
+        ED.cmcode(self.defn-loc)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Contracts for functions can only be defined once, and the contract for "),
+          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" is already defined at "), ED.loc(self.defn-loc)]]
+    end
+  | contract-non-function(loc :: Loc, name :: String, defn-loc :: Loc, defn-is-function :: Boolean) with:
+    method render-fancy-reason(self):
+      if self.defn-is-function:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
+            ED.text(" is not a valid function contract, but "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.defn-loc], -1),
+            ED.text(" is defined as a function.")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("The contract and the "),
+            ED.highlight(ED.text("definition"), [list: self.defn-loc], -1),
+            ED.text(" must be consistent.")],
+          ED.cmcode(self.defn-loc)]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
+            ED.text(" is a function contract, but "),
+            ED.highlight(ED.code(ED.text(self.name)), [list: self.defn-loc], -1),
+            ED.text(" is not defined as a function.")],
+          ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("The contract and the "),
+            ED.highlight(ED.text("definition"), [list: self.defn-loc], -1),
+            ED.text(" must be consistent.")],
+          ED.cmcode(self.defn-loc)]
+      end
+    end,
+    method render-reason(self):
+      if self.defn-is-function:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+            ED.text(" is not a valid function contract, but "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.defn-loc),
+            ED.text(" is defined as a function.")],
+          [ED.para: ED.text("The contract and the definition must be consistent.")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("The contract for "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+            ED.text(" is a function contract, but "),
+            ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.defn-loc),
+            ED.text(" is not defined as a function.")],
+          [ED.para: ED.text("The contract and the definition must be consistent.")]]
+      end
+    end
+  | contract-inconsistent-names(loc :: Loc, name :: String, defn-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("specifies arguments that are inconsistent with the "),
+          ED.highlight(ED.text("associated definition"), [list: self.defn-loc], -1), ED.text(":")],
+        ED.cmcode(self.defn-loc)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" specifies arguments that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
+    end
+  | contract-unused(loc :: Loc, name :: String) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text(" does not match the name of any function definition.")],
+        [ED.para:
+          ED.text("Contracts must appear just before their function's definition (or just before the function's examples block).  Check the spelling of this contract's name, or move it closer to its function if necessary.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "), ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" does not match the name of any function definition.")],
+        [ED.para:
+          ED.text("Contracts must appear just before their function's definition (or just before the function's examples block).  Check the spelling of this contract's name, or move it closer to its function if necessary.")]]
+    end
+  | contract-bad-loc(loc :: Loc, name :: String, defn-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Contracts must appear just before their associated definition (or just before the function's examples block).  The contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para: ED.text(" comes after its "),
+          ED.highlight(ED.text("associated definition"), [list: self.defn-loc], -1), ED.text(".")],
+        ED.cmcode(self.defn-loc),
+        [ED.para: ED.text("Move the contract just before its function.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Contracts must appear just before their associated definition (or just before the function's examples block).  The contract for "), ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" comes after its associated definition at "), ED.loc(self.defn-loc), ED.text(". Move the contract just before its function.")]]
     end
   | zero-fraction(loc, numerator) with:
     method render-fancy-reason(self):

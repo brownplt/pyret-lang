@@ -9,10 +9,11 @@ import file("./regression/pretty-print-instantiate.arr") as _
 import file("./regression/random-bogus-range.arr") as _
 import file("./regression/seq-of-lettable.arr") as _
 import file("./regression/cases-expr-parse.arr") as _
-#import file("./regression/method-scope.arr") as _
+import file("./regression/method-scope.arr") as _
 import file("./regression/check-scope.arr") as _
 import file("./regression/anf-of-vars.arr") as _
 import file("./regression/var-statement.arr") as _
 import file("./regression/string-dict-equality.arr") as _
 import file("./regression/stack-safe-each-loop.arr") as _
 import file("./regression/proto-fields.arr") as _
+import file("./regression/toplevel-data.arr") as _

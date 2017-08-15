@@ -239,8 +239,9 @@ ann-field: NAME COLONCOLON ann
 
 tuple-ann: LBRACE ann (SEMI ann)* [SEMI] RBRACE
 
-noparen-arrow-ann: [comma-anns] THINARROW ann
-arrow-ann: (PARENSPACE|PARENNOSPACE) [comma-anns] THINARROW ann RPAREN
+noparen-arrow-ann: [arrow-ann-args] THINARROW ann
+arrow-ann-args: comma-anns | (PARENSPACE|PARENNOSPACE) comma-ann-field RPAREN
+arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-args] THINARROW ann RPAREN
 
 app-ann: (name-ann|dot-ann) LANGLE comma-anns RANGLE
 

@@ -1620,6 +1620,21 @@ data Ann:
         ann
       end
     end,
+  | a-arrow-argnames(l :: Loc, args :: List<AField>, ret :: Ann, use-parens :: Boolean) with:
+    method label(self): "a-arrow-argnames" end,
+    method tosource(self):
+      ann = PP.separate(str-space,
+        [list:
+          PP.surround(INDENT, 0, PP.lparen,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())),
+            PP.rparen),
+          str-arrow, self.ret.tosource()])
+      if self.use-parens:
+        PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else:
+        ann
+      end
+    end,
   | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
     method label(self): "a-method" end,
     method tosource(self): PP.str("NYI: A-method") end,
@@ -2271,6 +2286,9 @@ default-map-visitor = {
   method a-arrow(self, l, args, ret, use-parens):
     a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
+  method a-arrow-argnames(self, l, args, ret, use-parens):
+    a-arrow-argnames(l, args.map(_.visit(self)), ret.visit(self), use-parens)
+  end,
   method a-method(self, l, args, ret):
     a-method(l, args.map(_.visit(self)), ret.visit(self))
   end,
@@ -2810,6 +2828,9 @@ default-iter-visitor = {
   method a-arrow(self, l, args, ret, _):
     lists.all(_.visit(self), args) and ret.visit(self)
   end,
+  method a-arrow-argnames(self, l, args, ret, _):
+    lists.all(_.visit(self), args) and ret.visit(self)
+  end,
   method a-method(self, l, args, ret):
     lists.all(_.visit(self), args) and ret.visit(self)
   end,
@@ -3345,6 +3366,9 @@ dummy-loc-visitor = {
   method a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
   method a-arrow(self, l, args, ret, use-parens):
     a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
+  end,
+  method a-arrow-argnames(self, l, args, ret, use-parens):
+    a-arrow-argnames(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
   method a-method(self, l, args, ret):
     a-method(dummy-loc, args.map(_.visit(self)), ret.visit(self))
