@@ -4728,7 +4728,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     var num_atan2 = function(y, x) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 2, $a, false); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan2"], 2, $a, false); }
       thisRuntime.checkArgsInternal("Numbers", "num-atan2",
         [y,                  x],
         [thisRuntime.Number, thisRuntime.Number]);

@@ -910,24 +910,24 @@ data RuntimeError:
                     ED.text("two Numbers, or"),
                     ED.text("two Strings")]]]
             end
-        | none =>
-          [ED.sequence:
-            [ED.para:
-              ED.text("A " + self.opdesc + " ("),
-              ED.code(ED.text(self.opname)),
-              ED.text(") expression errored.")],
-            [ED.para:
-              ED.text("The left side was:")],
-            ED.embed(self.val1),
-            [ED.para:
-              ED.text("The right side was:")],
-            ED.embed(self.val2),
-            [ED.para:
-              ED.text("The " + self.opname + " operator expects to be given:"),
-              [ED.bulleted:
-                ED.text("two Numbers, or"),
-                ED.text("two Strings")]]]
-      end]
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("A " + self.opdesc + " ("),
+                ED.code(ED.text(self.opname)),
+                ED.text(") expression errored.")],
+              [ED.para:
+                ED.text("The left side was:")],
+              ED.embed(self.val1),
+              [ED.para:
+                ED.text("The right side was:")],
+              ED.embed(self.val2),
+              [ED.para:
+                ED.text("The " + self.opname + " operator expects to be given:"),
+                [ED.bulleted:
+                  ED.text("two Numbers, or"),
+                  ED.text("two Strings")]]]
+        end]
     end,
     method render-reason(self):
       [ED.error: ED.maybe-stack-loc(0, false,
@@ -1020,21 +1020,21 @@ data RuntimeError:
                 [ED.para:
                   ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
             end
-        | none =>
-          [ED.sequence:
-            [ED.para:
-              ED.text("A " + self.opdesc + " ("),
-              ED.code(ED.text(self.opname)),
-              ED.text(") expression errored.")],
-            [ED.para:
-              ED.text("The left side was:")],
-            ED.embed(self.val1),
-            [ED.para:
-              ED.text("The right side was:")],
-            ED.embed(self.val2),
-            [ED.para:
-              ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
-      end]
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("A " + self.opdesc + " ("),
+                ED.code(ED.text(self.opname)),
+                ED.text(") expression errored.")],
+              [ED.para:
+                ED.text("The left side was:")],
+              ED.embed(self.val1),
+              [ED.para:
+                ED.text("The right side was:")],
+              ED.embed(self.val2),
+              [ED.para:
+                ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
+        end]
     end,
     method render-reason(self):
       [ED.error: ED.maybe-stack-loc(0, false,
