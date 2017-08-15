@@ -470,8 +470,11 @@ fun get-flat-provides(provides, flatness-env, ast) block:
   end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, options)
-  -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
+fun println(s) block:
+  print(s + "\n")
+end
+
+fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
   anfed = add-phase("ANFed", N.anf-program(program-ast))
   flatness-env = add-phase("Build flatness env", make-prog-flatness-env(anfed, bindings, env))
   flat-provides = add-phase("Get flat-provides", get-flat-provides(provides, flatness-env, anfed))
@@ -484,10 +487,6 @@ fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, o
       env, add-phase, flatness-env, flat-provides, options))
     {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
   end
-end
-
-fun println(s) block:
-  print(s + "\n")
 end
 
 # NOTE(rachit): This function is no longer used.
