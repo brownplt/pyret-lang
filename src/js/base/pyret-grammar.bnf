@@ -20,10 +20,14 @@ comma-names: NAME (COMMA NAME)*
 
 block: stmt*
 
-stmt: type-expr | newtype-expr
+stmt: type-expr | newtype-expr | spy-stmt
     | let-expr | fun-expr | data-expr | when-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
     | contract-stmt
+
+spy-stmt: SPY [binop-expr] COLON [spy-contents] END
+spy-contents: spy-field (COMMA spy-field)*
+spy-field: id-expr | NAME COLON binop-expr
 
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
