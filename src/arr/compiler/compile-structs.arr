@@ -1919,8 +1919,10 @@ data CompileError:
       [ED.error:
         [ED.para-nospace:
           ED.text("Unable to infer the type of "), 
-          ED.highlight(ED.text("this"), [list: self.loc], 0),
-          ED.text(". Please add an annotation.")]]
+          ED.highlight(ED.text("the expression"), [list: self.loc], 0),
+          ED.text(" at"),
+          ED.cmcode(self.loc),
+          ED.text("Please add an annotation.")]]
     end,
     method render-reason(self):
       [ED.error:
