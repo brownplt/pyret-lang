@@ -37,7 +37,6 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
 
     var pyretStack = parsedStack.map(function(frame) {
       var uri = program.uris[frame.hashedURI];
-      // console.log("The URI for ", frame.hashedURI, " is ", uri);
       var moduleSourceMap = staticModules[uri].theMap;
       var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
       consumer.computeColumnSpans();

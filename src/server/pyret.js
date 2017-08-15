@@ -20,7 +20,8 @@ const optionDefinitions = [
   { name: 'allow-builtin-overrides', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'no-check-mode', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'compiled-dir', type: String, group: "pyret-options" },
-  { name: 'standalone-file', type: String, group: "pyret-options", defaultValue: "node_modules/pyret-lang/src/js/base/handalone.js" }
+  { name: 'standalone-file', type: String, group: "pyret-options", defaultValue: "node_modules/pyret-lang/src/js/base/handalone.js" },
+  { name: 'bundle-dependencies', type: Boolean, group: "pyret-options", defaultValue: true }
 
 ];
 

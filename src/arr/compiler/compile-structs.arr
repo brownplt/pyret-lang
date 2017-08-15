@@ -2464,6 +2464,7 @@ type CompileOptions = {
 }
 
 default-compile-options = {
+  this-pyret-dir: ".",
   check-mode : true,
   check-all : true,
   type-check : false,
@@ -2490,6 +2491,8 @@ default-compile-options = {
   end,
   method on-compile(_, locator, loadable, _): loadable end,
   method before-compile(_, _): nothing end,
+  html-file: none,
+  deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js"
 }
 

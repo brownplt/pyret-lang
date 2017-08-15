@@ -9,13 +9,17 @@ define("pyret-base/js/runtime",
 function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
   Error.stackTraceLimit = Infinity;
 
+  /*
+  TODO(joe): Check how this interacts with CPO
   if(util.isBrowser()) {
     var require = requirejs;
   }
   else {
     var require = requirejs.nodeRequire("requirejs");
   }
+  */
 
+  var require = requirejs;
   var AsciiTable;
 
   function copyArgs(args) {
@@ -1190,7 +1194,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
-        debugger;
         thisRuntime.ffi.throwTypeMismatch(val, typeName);
       }
       return true;
@@ -2417,7 +2420,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function returnOrRaise(result, val, after) {
       if(thisRuntime.ffi.isOk(result)) { return after(val); }
-      if(thisRuntime.ffi.isFail(result)) { debugger; raiseJSJS(result); }
+      if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
       console.trace();
       console.error("Invalid result from annotation check: ", result);
       throw new Error("Internal error: got invalid result from annotation check");
@@ -5214,7 +5217,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                   });
                 });
                 instantiated.fail(function(val) { return resumer.error(val); });
-                return instantiated;
+                // NOTE(joe): Intentionally not returning anything; this is the
+                // body of a call to pauseStack
               });
             }
           },

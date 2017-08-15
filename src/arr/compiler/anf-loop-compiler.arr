@@ -272,7 +272,11 @@ fun rt-method(name, args):
 end
 
 fun app(l, f, args):
-  j-method(f, "app", args)
+  cases(SL.Srcloc) l:
+    | builtin(n) => j-method(f, "app", args)
+    | else =>
+      J.j-sourcenode(l, l.source, j-method(f, "app", args))
+  end
 end
 
 fun check-fun(sourcemap-loc, variable-loc, f) block:

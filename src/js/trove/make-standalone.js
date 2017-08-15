@@ -1,8 +1,26 @@
 ({
   requires: [],
-  nativeRequires: ["path", "fs", "requirejs"],
+  nativeRequires: ["path", "fs"],
   provides: {},
-  theModule: function(runtime, namespace, uri, path, fs, requirejs) {
+  theModule: function(runtime, namespace, uri, path, fs) {
+
+    var READ_OPTIONS = {encoding: 'utf8'};
+
+    function makeHtmlFile(bundledJSFile, outfile) {
+      runtime.checkArity(2, arguments, ["make-html-file"]);
+      runtime.checkString(bundledJSFile);
+      runtime.checkString(outfile);
+
+      var template = fs.readFileSync(HTML_TEMPLATE, READ_OPTIONS);
+
+      var relativePath = path.relative(path.dirname(outfile), bundledJSFile);
+      var filtered = template.replace("{{{compiled-jarr-file}}}", relativePath);
+
+
+      fs.writeFileSync(outfile, filtered);
+      return true;
+    }
+
     /*
 
       standaloneStr: A single string containing all the JS-compiled modules,
@@ -13,20 +31,34 @@
       configJSON: A JSON string to parse and use as a configuration option to
       requirejs
 
+      standaloneFile: File template for the standalone (usually src/js/base/handalone.js)
+
+      depsFile: File that contains the builtin npm/node dependencies, either as uses of "require" (i.e.
+                dynamically linked) or as the output of `browserify` (i.e. statically linked)
+                NOTE: This path is specified relative to the directory you are building from.
+
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, configJSON, standaloneFile) {
-      runtime.checkArity(4, arguments, ["make-standalone"], false);
+    function makeStandalone(deps, body, configJSON, standaloneFile, depsFile, thisPyretDir) {
+      runtime.checkArity(6, arguments, ["make-standalone"], false);
       runtime.checkList(deps);
+      runtime.checkPyretVal(body);
       runtime.checkString(configJSON);
+      runtime.checkString(standaloneFile);
+      runtime.checkString(depsFile);
+
+      var AMD_LOADER = path.join(thisPyretDir, "js/amd_loader.js");
+
+      // TODO(joe): figure our where web-standalone-template should go
+      var HTML_TEMPLATE = "src/scripts/web-standalone-template.html";
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
       console.log(process.cwd());
       var config = JSON.parse(configJSON);
       var storeDir = config["baseUrl"];
-      var handalone = fs.readFileSync(standaloneFile, {encoding: 'utf8'});
+      var handalone = fs.readFileSync(standaloneFile, READ_OPTIONS);
       var depsArr = runtime.ffi.toArray(deps);
       depsArr.push("pyret-base/js/runtime");
       var depsStrs = depsArr.map(function(d) { return '"' + d + '"'; });
@@ -41,68 +73,47 @@
       var realOut = config.out;
       config.out = path.join(storeDir, "program-deps.js");
       config.name = "program-require";
-      if(config["use-raw-files"]) {
-        var outFile = fs.openSync(realOut, "w");
-        var filesToFetch = config["raw-js"];
-        fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
-        fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
-        fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
-        var toFetchKeys = Object.keys(filesToFetch);
-        toFetchKeys.sort();
-        toFetchKeys.forEach(function(f) {
-          var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
-          fs.writeSync(outFile, contents);
-        });
-        fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
-        var writeRealOut = function(str) { 
-          fs.writeSync(outFile, str, {encoding: 'utf8'}); 
-          return runtime.nothing; 
-        };
-        return runtime.safeCall(function() { 
-          return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
-        }, function(_) {
-          fs.writeSync(outFile, "\n});\n");
-          fs.writeSync(outFile, handalone);
-          fs.fsyncSync(outFile);
-          fs.closeSync(outFile);
-          return true;
-        });
+      if(!config["use-raw-files"]) {
+        throw new Error("Cannot not use raw-files! RequireJS is gone");
       }
-      else {
-        return runtime.pauseStack(function(restarter) {
-          requirejs.optimize(config, function(result) {
-            var programWithDeps = fs.readFileSync(config.out, {encoding: 'utf8'});
-            // Browser/node check based on window below
-            fs.open(realOut, "w", function(err, outFile) {
-              if (err) throw err;
-              fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
-              fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
-              fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
-              fs.writeSync(outFile, programWithDeps);
-              fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
-              var writeRealOut = function(str) { 
-                fs.writeSync(outFile, str, {encoding: 'utf8'}); 
-                return runtime.nothing; 
-              };
-              runtime.runThunk(function() { 
-                return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
-              }, function(_) {
-                fs.writeSync(outFile, "\n});\n");
-                fs.writeSync(outFile, handalone);
-                fs.fsyncSync(outFile);
-                fs.closeSync(outFile);
-                restarter.resume(true);
-              });
-            });
-          }, function(err) {
-            console.error("Error while using requirejs optimizer: ", err); 
-            restarter.error(runtime.ffi.makeMessageException("Error while using requirejs optimizer: ", String(err)));
-          });
-        });
-      }
+      var outFile = fs.openSync(realOut, "w");
+
+      // Write the amd loader first
+      var loaderContents = fs.readFileSync(AMD_LOADER, READ_OPTIONS);
+      fs.writeSync(outFile, loaderContents);
+
+      // Now either write the file containing all dependencies or the file which
+      // just defines() the dependencies.
+
+      var dependencyCode = fs.readFileSync(depsFile, READ_OPTIONS);
+      fs.writeSync(outFile, dependencyCode);
+
+      var filesToFetch = config["raw-js"];
+      //fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
+      //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
+      //fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
+      Object.keys(filesToFetch).forEach(function(f) {
+        var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
+        fs.writeSync(outFile, contents);
+      });
+      fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
+      var writeRealOut = function(str) {
+        fs.writeSync(outFile, str, {encoding: 'utf8'});
+        return runtime.nothing;
+      };
+      return runtime.safeCall(function() {
+        return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
+      }, function(_) {
+        fs.writeSync(outFile, "\n});\n");
+        fs.writeSync(outFile, handalone);
+        fs.fsyncSync(outFile);
+        fs.closeSync(outFile);
+        return true;
+      });
     }
     return runtime.makeModuleReturn({
-      "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone")
+      "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone"),
+      "make-html-file": runtime.makeFunction(makeHtmlFile, "make-html-file")
     }, {})
   }
 })
