@@ -248,6 +248,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
+    {name: "EXAMPLES", val: new RegExp(colonKw("examples"), STICKY_REGEXP), parenIsForExp: true},
     {name: "TABLE", val: new RegExp(colonKw("table:"), STICKY_REGEXP)},
     {name: "ROW", val: new RegExp(colonKw("row:"), STICKY_REGEXP)},
     {name: "USING", val: new RegExp(colonKw("using"), STICKY_REGEXP)},

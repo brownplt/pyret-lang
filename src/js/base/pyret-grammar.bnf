@@ -59,7 +59,7 @@ return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
 
-check-expr: CHECK STRING COLON block END
+check-expr: (CHECK|EXAMPLES) STRING COLON block END
 check-expr: (CHECKCOLON|EXAMPLESCOLON) block END
 check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
           | binop-expr check-op-postfix
