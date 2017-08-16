@@ -1089,7 +1089,8 @@
                                     elts.push(recursiveToRepr.app(thisKey));
                                     elts.push(result);
                                     return toreprElts();
-                                  });
+                                  },
+                                 "toreprMSD");
         }
       }
       return toreprElts();

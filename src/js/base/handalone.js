@@ -186,7 +186,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
           process.exit(EXIT_SUCCESS);
         }
       }
-    });
+    }, "postLoadHooks[main]:render-check-results-stack");
   }
 
   function renderErrorMessageAndExit(execRt, res) {

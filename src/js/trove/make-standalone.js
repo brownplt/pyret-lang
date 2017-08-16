@@ -109,7 +109,7 @@
         fs.fsyncSync(outFile);
         fs.closeSync(outFile);
         return true;
-      });
+      }, "makeStandalone:print-ugly-source");
     }
     return runtime.makeModuleReturn({
       "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone"),

@@ -223,7 +223,7 @@
           return runtime.getField(asList, "sort-by").app(compare, equal);
         }, function(sortedList) {
           return makeTable(headers, runtime.ffi.toArray(sortedList));
-        });
+        }, "order-sort-by");
 
       }
 
@@ -290,10 +290,10 @@
                 });
                 return runtime.raw_array_fold(reducerWrapped, one, column.slice(1), 1);
               }
-            });
+            }, "reduce-one");
           }, function(answerTuple) {
             return runtime.getTuple(answerTuple, 1, ["tables"]); 
-          });
+          }, "reduce-rest");
         }),
 
         'empty': runtime.makeMethod0(function(_) {
@@ -320,14 +320,14 @@
             },
             function(newVal) {
               return rawRow.concat([newVal]);
-            });
+            }, "table-add-cell");
           };
 
           return runtime.safeCall(function() {
             return runtime.raw_array_map(runtime.makeFunction(wrappedFunc, "func"), rows);
           }, function(newRows) {
             return makeTable(headers.concat([colname]), newRows);
-          });
+          }, "table-add-column");
         }),
 
         'filter-by': runtime.makeMethod2(function(_, colname, pred) {
@@ -338,7 +338,7 @@
             return runtime.raw_array_filter(runtime.makeFunction(wrappedPred, "pred"), rows);
           }, function(filteredRows) {
             return makeTable(headers, filteredRows);
-          });
+          }, "table-filter-by");
         }),
 
 
@@ -350,7 +350,7 @@
             return runtime.raw_array_filter(runtime.makeFunction(wrappedPred, "pred"), rows);
           }, function(filteredRows) {
             return makeTable(headers, filteredRows);
-          });
+          }, "table-filter");
         }),
 
         'get-row': runtime.makeMethod1(function(_, row_index) {
