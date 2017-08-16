@@ -990,8 +990,182 @@ compiler-visitor = {
     fun brand-name(base):
       js-id-of(compiler-name(string-append("brand-", base))).toname()
     end
-    raise("a-data-expr not implemented")
-  end,
+
+    visit-shared-fields = CL.map_list(_.visit(self), shared)
+    shared-fields = visit-shared-fields.map(o-get-field)
+    external-brand = j-id(js-id-of(namet))
+
+    fun make-brand-predicate(loc :: Loc, b :: J.JExpr, pred-name :: String):
+      val = fresh-id(compiler-name("val"))
+      j-field(
+        pred-name,
+        rt-method("makeFunction", [clist:
+            j-fun(J.next-j-fun-id(),
+              make-fun-name(self, l),
+              [clist: val],
+              j-block(
+                cl-snoc(
+                  arity-check(self.get-loc(loc), 1),
+                  j-return(rt-method("makeBoolean", [clist: rt-method("hasBrand", [clist: j-id(val), b])])))
+                )
+              ),
+            j-str(pred-name + "-Tester")
+          ])
+        )
+    end
+
+    fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields-mask, refl-fields, constructor-id):
+
+      nonblank-anns = for filter(m from members):
+        not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
+      end
+      compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
+        compiled = compile-ann(m.bind.ann, self)
+        {
+          anns: cl-snoc(acc.anns, compiled.exp),
+          others: cl-append(acc.others, compiled.other-stmts)
+        }
+      end
+      compiled-locs = for CL.map_list(m from nonblank-anns): self.get-loc(m.bind.ann.l) end
+      compiled-vals = for CL.map_list(m from nonblank-anns): j-str(js-id-of(m.bind.id).tosourcestring()) end
+
+      # NOTE(joe 6-14-2014): We cannot currently statically check for if an
+      # annotation is a refinement because of type aliases.  So, we use
+      # checkAnnArgs, which takes a continuation and manages all of the stack
+      # safety of annotation checking itself.
+
+      # NOTE(joe 5-26-2015): This has been moved to a hybrid static/dynamic
+      # solution by passing the check off to a runtime function that uses
+      # JavaScript's Function to only do the refinement check once.
+      c-exp(
+        rt-method("makeVariantConstructor", [clist:
+            self.get-loc(l2),
+            # NOTE(joe): Thunked at the JS level because compiled-anns might
+            # contain references to rec ids that should be resolved later
+            j-fun(J.next-j-fun-id(), "$synthesizedConstructor_" + base-id.toname(), cl-empty, j-block1(j-return(j-list(false, compiled-anns.anns)))),
+            j-list(false, compiled-vals),
+            j-list(false, compiled-locs),
+            j-list(false, CL.map_list(lam(m): j-bool(N.is-a-mutable(m.member-type)) end, members)),
+            j-list(false, CL.map_list(lam(m): j-str(js-id-of(m.bind.id).tosourcestring()) end, members)),
+            refl-ref-fields-mask,
+            j-id(base-id),
+            j-id(brands-id),
+            refl-name,
+            refl-fields,
+            constructor-id
+          ]),
+        cl-empty)
+    end
+
+    fun compile-variant(v :: N.AVariant):
+      vname = v.name
+      variant-base-id = js-id-of(compiler-name(string-append(vname, "-base")))
+      variant-brand = rt-method("namedBrander", [clist: j-str(vname), self.get-loc(v.l)])
+      variant-brand-id = js-id-of(compiler-name(string-append(vname, "-brander")))
+      variant-brand-obj-id = js-id-of(compiler-name(string-append(vname, "-brands")))
+      variant-brands = j-obj(cl-empty)
+      visit-with-fields = v.with-members.map(_.visit(self))
+
+      refl-base-fields =
+        cases(N.AVariant) v:
+          | a-singleton-variant(_, _, _) => cl-empty
+          | a-variant(_, _, _, members, _) =>
+            [clist:
+              j-field("$fieldNames",
+                j-list(false, CL.map_list(lam(m): j-str(m.bind.id.toname()) end, members)))]
+        end
+
+      f-id = const-id("f")
+      refl-name = j-str(vname)
+
+      refl-ref-fields-mask-id = js-id-of(compiler-name(string-append(vname, "_mutablemask")))
+      refl-ref-fields-mask =
+        cases(N.AVariant) v:
+          | a-singleton-variant(_, _, _) => j-list(false, cl-empty)
+          | a-variant(_, _, _, members, _) =>
+            j-list(false,
+              CL.map_list(lam(m): if N.is-a-mutable(m.member-type): j-true else: j-false end end, members))
+        end
+
+      refl-fields-id = js-id-of(compiler-name(string-append(vname, "_getfields")))
+      refl-fields =
+        cases(N.AVariant) v:
+          | a-variant(_, _, _, members, _) =>
+            j-fun(J.next-j-fun-id(), "singleton_variant",
+              [clist: const-id("f")], j-block1(j-return(j-app(j-id(f-id),
+                    CL.map_list(lam(m):
+                        get-dict-field(THIS, j-str(m.bind.id.toname()))
+                      end, members)))))
+          | a-singleton-variant(_, _, _) =>
+            j-fun(J.next-j-fun-id(), "variant",
+              [clist: const-id("f")], j-block1(j-return(j-app(j-id(f-id), cl-empty))))
+        end
+
+      fun member-count(shadow v):
+        cases(N.AVariant) v:
+          | a-variant(_, _, _, members, _) => members.length()
+          | a-singleton-variant(_, _, _) => 0
+        end
+      end
+
+      match-field = j-field("_match", rt-method("makeMatch", [clist: refl-name, j-num(member-count(v))]))
+
+      stmts =
+        visit-with-fields.foldr(lam(vf, acc): cl-append(vf.other-stmts, acc) end,
+          [clist:
+            j-var(refl-fields-id, refl-fields),
+            j-var(refl-ref-fields-mask-id, refl-ref-fields-mask),
+            j-var(variant-base-id, j-obj(refl-base-fields + shared-fields + CL.map_list(o-get-field, visit-with-fields) + [clist: match-field])),
+            j-var(variant-brand-id, variant-brand),
+            j-var(variant-brand-obj-id, variant-brands),
+            j-expr(j-bracket-assign(
+                j-id(variant-brand-obj-id),
+                j-dot(external-brand, "_brand"),
+                j-true)),
+            j-expr(j-bracket-assign(
+                j-id(variant-brand-obj-id),
+                j-dot(j-id(variant-brand-id), "_brand"),
+                j-true))
+          ])
+      predicate = j-field(A.make-checker-name(vname), get-field-unsafe(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
+
+      cases(N.AVariant) v:
+        | a-variant(l2, constr-loc, _, members, with-members) =>
+          constr-vname = js-id-of(const-id(vname))
+          compiled-constr =
+            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, members,
+              refl-name, j-id(refl-ref-fields-mask-id), j-id(refl-fields-id), j-id(variant-base-id))
+          {
+            stmts: stmts ^
+              cl-append(_,compiled-constr.other-stmts) ^
+              cl-snoc(_, j-var(constr-vname, compiled-constr.exp)),
+            constructor: j-field(vname, j-id(constr-vname)),
+            predicate: predicate
+          }
+        | a-singleton-variant(_, _, with-members) =>
+          {
+            stmts: stmts,
+            constructor: j-field(vname, rt-method("makeDataValue", [clist: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id)])),
+            predicate: predicate
+          }
+      end
+    end
+
+    variant-pieces = variants.map(compile-variant)
+
+    header-stmts = for fold(acc from cl-empty, piece from variant-pieces):
+      cl-append(acc, piece.stmts)
+    end
+    obj-fields = for fold(acc from cl-empty, piece from variant-pieces):
+      cl-append(acc, [clist: piece.predicate, piece.constructor])
+    end
+
+    data-predicate = j-field(name, get-field-unsafe(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
+
+    data-object = rt-method("makeObject", [clist: j-obj(cl-cons(data-predicate, obj-fields))])
+
+    c-exp(data-object, header-stmts)
+  end
 }
 
 fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-env) block:
