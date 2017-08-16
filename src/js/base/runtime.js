@@ -1190,7 +1190,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     ************************/
     function checkType(val, test, typeName) {
       if(!test(val)) {
-        debugger;
         thisRuntime.ffi.throwTypeMismatch(val, typeName);
       }
       return true;
@@ -2417,7 +2416,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function returnOrRaise(result, val, after) {
       if(thisRuntime.ffi.isOk(result)) { return after(val); }
-      if(thisRuntime.ffi.isFail(result)) { debugger; raiseJSJS(result); }
+      if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
       console.trace();
       console.error("Invalid result from annotation check: ", result);
       throw new Error("Internal error: got invalid result from annotation check");
@@ -3327,7 +3326,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
           } catch(e) {
-            debugger;
 //            console.error("Exceptions should no longer be thrown: ", e);
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
