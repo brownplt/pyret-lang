@@ -514,6 +514,63 @@ fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
     cl-append(_, cl-sing(j-return(j-id(ans)))))
 end
 
+fun compile-annotated-let(compiler,
+  b :: N.ABind,
+  binding :: CList<J.JStmt>, # Initialize and set the binding correctly
+  compiled-body :: DAG.CaseResults%(is-c-block)):
+  if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+    c-block(
+      j-block(binding ^ cl-append(_, compiled-body.block.stmts)),
+      compiled-body.new-cases)
+  else if A.is-a-tuple(b.ann) and
+          b.ann.fields.all(lam(a): A.is-a-blank(_) or A.is-a-any(a) end):
+    ann = j-expr(rt-method("checkTupleBind",
+      [clist:
+        j-id(js-id-of(b.id)),
+        j-num(b.ann.fields.length()),
+        compiler.get-loc(b.ann.l)]))
+    c-block(
+      j-block(
+        binding ^
+        cl-append(_, cl-sing(ann)) ^
+        cl-append(compiled-body.block.stmts)),
+      compiled-body.new-cases)
+  else:
+    ann = compile-ann(b.ann, compiler)
+    ann-result = j-expr(rt-method("_checkAnn",
+      [clist: compiler.get-loc(b.ann.l), ann.exp, j-id(js-id-of(b.id))]))
+    c-block(
+      j-block(binding ^
+        cl-append(_, cl-sing(ann-result)) ^
+        cl-append(_, compiled-body.block.stmts)),
+      compiled-body.new-cases)
+  end
+end
+
+fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
+  shadow b = b.value
+  compiled-body = body.visit(compiler)
+  binding = cases (N.ALettable) e:
+    | a-if(l, p, c, a) =>
+      compiled-c = c.visit(compiler.{cur-ans: js-id-of(b.id)})
+      compiled-a = a.visit(compiler.{cur-ans: js-id-of(b.id)})
+      [clist:
+        j-var(js-id-of(b.id), undefined),
+        j-if(
+        rt-method("checkPyretTrue", [clist: p.visit(compiler).exp]),
+        j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
+        j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
+      )]
+    | a-cases(l, typ, val, branches, _else) =>
+      raise("a-cases in a-let not implemented")
+    | else =>
+      compiled-e :: DAG.CaseResults%(is-c-exp) = e.visit(compiler)
+      compiled-e.other-stmts ^
+        cl-append(_, cl-sing(j-var(js-id-of(b.id), compiled-e.exp)))
+    end
+    compile-annotated-let(compiler, b, binding, compiled-body)
+end
+
 # NOTE(rachit): Assumptions about the results of compilation:
 #   - ALettable -> c-exp
 #   - AExpr -> c-block
@@ -590,63 +647,7 @@ compiler-visitor = {
     end
   end,
   method a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    cases (N.ALettable) e:
-      | a-if(l, p, c, a) =>
-        compiled-c = c.visit(self.{cur-ans: js-id-of(b.id)})
-        compiled-a = a.visit(self.{cur-ans: js-id-of(b.id)})
-        compiled-body = body.visit(self)
-        if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
-          c-block(j-block([clist:
-            j-var(js-id-of(b.id), undefined),
-            j-if(
-              rt-method("checkPyretTrue", [clist: p.visit(self).exp]),
-              j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
-              j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
-            )] ^
-            cl-append(_, compiled-body.block.stmts)), compiled-body.new-cases)
-        else:
-          compiled-ann = compile-ann(b.ann, self)
-          ann-result = j-expr(rt-method("_checkAnn",
-            [clist:
-              self.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))]))
-          c-block(j-block([clist:
-            j-var(js-id-of(b.id), undefined),
-            j-if(
-              rt-method("checkPyretTrue", [clist: p.visit(self).exp]),
-              j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
-              j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
-            )] ^
-            cl-append(_, [clist: ann-result]) ^
-            cl-append(_, compiled-body.block.stmts)), compiled-body.new-cases)
-        end
-      | a-cases(l, typ, val, branches, _else) =>
-        raise("a-cases in a-let not implemented")
-      | else => block:
-        compiled-e :: DAG.CaseResults%(is-c-exp) = e.visit(self)
-        compiled-body :: DAG.CaseResults%(is-c-block) = body.visit(self)
-        if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
-          c-block(
-            j-block(
-              compiled-e.other-stmts ^
-              cl-append(_, cl-sing(j-var(js-id-of(b.id), compiled-e.exp))) ^
-              cl-append(_, compiled-body.block.stmts)),
-            compiled-body.new-cases)
-        else:
-          compiled-ann = compile-ann(b.ann, self)
-          ann-result = j-expr(rt-method("_checkAnn",
-            [clist:
-              self.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))]))
-          c-block(
-            j-block(
-              compiled-e.other-stmts ^
-              cl-append(_, cl-sing(j-var(js-id-of(b.id), compiled-e.exp))) ^
-              cl-append(_, compiled-ann.other-stmts) ^
-              cl-append(_, [clist: ann-result]) ^
-              cl-append(_, compiled-body.block.stmts)),
-            compiled-body.new-cases)
-        end
-      end
-    end
+    compile-let(self, b-let(b), e, body)
   end,
   method a-arr-let(self, _, b :: N.ABind, idx :: Number, e :: N.ALettable,
     body :: N.AExpr):
