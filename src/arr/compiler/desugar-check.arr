@@ -105,7 +105,8 @@ fun get-checks(stmts):
             check-name = cases(Option) name block:
               | none =>
                 standalone-counter := standalone-counter + 1
-                "check-block-" + tostring(standalone-counter)
+                (if keyword-check: "check-block-" else: "examples-block-" end)
+                  + tostring(standalone-counter)
               | some(v) => v
             end
             link(check-info(l, check-name, body.visit(check-stmts-visitor)), add-check(rest))
