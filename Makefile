@@ -15,7 +15,15 @@ PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 BUNDLED_DEPS     = build/bundled-node-deps.js
-BROWSERIFY       = `npm bin`/browserify
+# HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
+export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
+SHELL := /bin/bash
+
+
+showpath:
+	@echo my new PATH = $(PATH)
+	@echo `which browserify`
+
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -124,7 +132,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 show-comp: build/show-compilation.jarr
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	$(BROWSERIFY) src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
