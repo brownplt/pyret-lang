@@ -100,6 +100,7 @@
       "num-atan2": "NumBinop",
 
       "num-modulo": "NumBinop",
+      "num-remainder": "NumBinop",
 
       "num-truncate": "NumUnop",
       "num-sqrt": "NumUnop",

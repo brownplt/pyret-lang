@@ -133,6 +133,16 @@ check:
   num-modulo(-17, -5) is -2
   num-modulo(-17, 5) is 3
 
+  num-remainder(5, 3) is 2
+  num-remainder(5, -3) is 2
+  num-remainder(-5, 3) is -2
+  num-remainder(-5, -3) is -2
+
+  num-remainder(4/3, 3/5) is 2/15
+  num-remainder(4/3, -3/5) is 2/15
+  num-remainder(-4/3, 3/5) is -2/15
+  num-remainder(-4/3, -3/5) is -2/15
+
   num-truncate(5.5) is 5
   num-truncate(-5.5) is -5
 
