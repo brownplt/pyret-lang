@@ -303,6 +303,26 @@ fun compile-provided-data(typ :: T.DataType):
   end
 end
 
+fun arity-check(loc-expr, arity :: Number):
+  len = j-id(compiler-name("l"))
+  iter = j-id(compiler-name("i"))
+  t = j-id(compiler-name("t"))
+  [clist:
+    j-var(len.id, j-dot(ARGUMENTS, "length")),
+    j-if1(j-binop(len, j-neq, j-num(arity)),
+      j-block([clist:
+          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
+          j-for(
+            true,
+            j-assign(iter.id, j-num(0)),
+            j-binop(iter, j-lt, len),
+            j-unop(iter, j-incr),
+            j-block1(
+              j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
+          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
+end
+
+
 fun compile-provided-type(typ):
   cases(T.Type) typ:
     | t-name(mod-name, id, l, _) =>
@@ -463,7 +483,7 @@ fun compile-anns(visitor, binds :: List<N.ABind>):
   for lists.fold(acc from cl-empty, b from binds):
     if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
       acc
-    else if A.is-a-typle(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
+    else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
       check-tup-len = j-block([clist:
         j-expr(rt-method("checkTupleBind",
           [clist:
@@ -490,20 +510,34 @@ fun compile-anns(visitor, binds :: List<N.ABind>):
   end
 end
 
+# TODO(rachit): Need to do arity check.
 fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
       args :: List<N.ABind>,
-      body :: N.AExpr,
-      is-flat :: Boolean) -> J.JBlock block:
-
+      opt-arity :: Option<Number>,
+      body :: N.AExpr) -> J.JBlock block:
   # All functions return the final answer using this variable.
   ans = fresh-id(compiler-name("ans"))
   local-compiler = compiler.{cur-ans: ans}
 
-  # NOTE(rachit): Skipping the formal-args reassignment optimization here.
+  f-args = for map(arg from args):
+    N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
+  end
+
+  copy-formal-to-args = for CL.map_list2(formal-arg from f-args, arg from args):
+    j-var(js-id-of(arg.id), j-id(formal-arg.id))
+  end
+
+  preamble = cases(Option) opt-arity:
+    | some(arity) =>
+      cl-append(arity-check(local-compiler.get-loc(l), arity),
+        copy-formal-to-args)
+    | none => copy-formal-to-args
+  end
+
   visited-body :: DAG.CaseResults%(is-c-block) = body.visit(local-compiler)
   ann-checks = compile-anns(local-compiler, args)
   fun-body =
-    cl-empty
+    preamble
     ^ cl-append(_, ann-checks)
     ^ cl-snoc(_, visited-body.block)
     ^ cl-append(_, visited-body.new-cases)
@@ -673,6 +707,17 @@ compiler-visitor = {
       j-block(
         cl-append(v-e1.other-stmts, cl-cons(first-stmt, v-e2.block.stmts))),
         v-e2.new-cases)
+  end,
+  method a-lam(self, l, name, args, ret, body):
+    temp = fresh-id(compiler-name("temp_lam"))
+    c-exp(
+      rt-method("makeFunction", [clist: j-id(temp), j-str(name)]),
+      [clist:
+        j-var(temp,
+          j-fun(J.next-j-fun-id(), make-fun-name(self, l),
+            CL.map_list(lam(arg): formal-shadow-name(arg.id) end, args),
+            compile-fun-body(l, temp, self.{allow-tco: true}, args,
+              some(args.length()), body)))])
   end,
   method a-if(self, l :: Loc, cond :: N.AVal, cons :: N.AExpr, alt :: N.AExpr):
     raise("a-if not bound by a-let. Should never happen.")
@@ -1088,7 +1133,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   }
   visited-body = compile-fun-body(l, toplevel-name,
     body-compiler,
-    [list: ], prog, false)
+    [list: ], none, prog)
   toplevel-fun = j-fun(J.next-j-fun-id(),
     make-fun-name(body-compiler, l), [clist: ], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
