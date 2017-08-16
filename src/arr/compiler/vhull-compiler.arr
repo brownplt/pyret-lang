@@ -195,6 +195,14 @@ fun wrap-with-srcnode(l, expr :: J.JExpr):
   end
 end
 
+fun get-dict-field(obj, field):
+  j-bracket(j-dot(obj, "dict"), field)
+end
+
+fun j-bool(b):
+  if b: j-true else: j-false end
+end
+
 get-field-loc = j-id(const-id("G"))
 throw-uninitialized = j-id(const-id("U"))
 source-name = j-id(const-id("M"))
@@ -206,6 +214,14 @@ ARGUMENTS = j-id(const-id("arguments"))
 
 fun rt-field(name): j-dot(RUNTIME, name) end
 
+fun get-field-unsafe(obj, field, loc-expr):
+  j-app(get-field-loc, [clist: obj, field, loc-expr])
+end
+
+fun get-field-safe(l, obj, field, loc):
+  wrap-with-srcnode(l, get-field-unsafe(obj, field, loc))
+end
+
 fun rt-method(name, args):
   rt-name = cases(Option) rt-name-map.get(name):
     | none => name
@@ -213,6 +229,18 @@ fun rt-method(name, args):
   end
 
   j-method(RUNTIME, rt-name, args)
+end
+
+fun check-fun(sourcemap-loc, variable-loc, f) block:
+  call = cases(SL.Srcloc) sourcemap-loc block:
+    | builtin(_) =>
+      j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])
+    | srcloc(_, _, _, _, _, _, _) =>
+      J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
+        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f]))
+  end
+  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
+    j-block1(j-expr(call)))
 end
 
 fun app(l, f, args):
@@ -779,6 +807,7 @@ compiler-visitor = {
   method a-method-app(self, l, obj, meth, args):
     compiled-obj :: J.JExpr = obj.visit(self).exp
     compiled-args = CL.map_list(lam(a): a.visit(self).exp end, args)
+    ans = self.cur-ans
 
     if J.is-j-id(compiled-obj):
       call = wrap-with-srcnode(l,
@@ -789,10 +818,27 @@ compiler-visitor = {
           compiled-args)))
       # NOTE(rachit): Always assigning to cur-ans here.
       c-exp(
-        j-assign(self.cur-ans, call),
+        j-assign(ans, call),
         cl-empty)
     else:
-      ...
+      obj-id = j-id(fresh-id(compiler-name("obj")))
+      colon-field = rt-method("getColonFieldLoc", [clist: obj-id, j-str(meth),
+        self.get-loc(l)])
+      colon-field-id = j-id(fresh-id(compiler-name("field")))
+      check-method = rt-method("isMethod", [clist: colon-field-id])
+      c-block(j-block([clist:
+        j-var(obj-id.id, compiled-obj),
+        j-var(colon-field-id.id, colon-field),
+        j-if(check-method,
+          j-block([clist:
+            j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
+              cl-cons(obj-id, compiled-args))))]),
+          j-block([clist:
+            check-fun(l, self.get-loc(l), colon-field-id),
+            j-expr(
+              wrap-with-srcnode(l,
+                j-assign(ans, app(l, colon-field-id, compiled-args))))]))]),
+        cl-empty)
     end
   end,
   method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
@@ -835,14 +881,33 @@ compiler-visitor = {
       cl-empty)
   end,
   method a-dot(self, l :: Loc, obj :: N.AVal, field :: String):
-    raise("a-dot not implemented")
+    visit-obj =  obj.visit(self)
+    c-exp(get-field-safe(l, visit-obj.exp, j-str(field), self.get-loc(l)),
+      cl-snoc(visit-obj.other-stmts,
+        j-expr(j-assign(self.cur-apploc, self.get-loc(l)))))
   end,
   method a-colon(self, l :: Loc, obj :: N.AVal, field :: String):
-    raise("a-colon not implemented")
+    visit-obj = obj.visit(self)
+    c-exp(rt-method("getColonFieldLoc",
+      [clist: visit-obj.exp, j-str(field), self.get-loc(l)]),
+      visit-obj.other-stmts)
   end,
   method a-method(self, l :: Loc, name :: String,
     args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr):
-    raise("a-method not implemented")
+      temp-full = fresh-id(compiler-name("temp_full"))
+      len = args.length()
+      full-var =
+        j-var(temp-full,
+          j-fun(J.next-j-fun-id(), make-fun-name(self, l),
+            CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
+            compile-fun-body(l, temp-full, self, args, some(len), body)))
+      method-expr = if len < 9:
+        rt-method(string-append("makeMethod", tostring(len - 1)),
+          [clist: j-id(temp-full), j-str(name)])
+      else:
+        rt-method("makeMethodN", [clist: j-id(temp-full), j-str(name)])
+      end
+      c-exp(method-expr, [clist: full-var])
   end,
   method a-val(self, l :: Loc, v :: N.AVal):
     v.visit(self)
