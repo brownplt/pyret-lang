@@ -9,7 +9,7 @@ import file("gensym.arr") as G
 import file("ast-util.arr") as U
 
 data CheckInfo:
-  | check-info(l :: SL.Srcloc, name :: String, body :: A.Expr)
+  | check-info(l :: SL.Srcloc, name :: String, body :: A.Expr, keyword-check :: Boolean)
 end
 
 
@@ -93,12 +93,12 @@ fun get-checks(stmts):
         cases(A.Expr) stmt:
           | s-fun(l, name, _, _, _, _, _, _, _check, _) =>
             cases(Option) _check:
-              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), add-check(rest))
+              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor), true), add-check(rest))
               | none => add-check(rest)
             end
           | s-data(l, name, _, _, _, _, _, _check) =>
             cases(Option) _check:
-              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor)), add-check(rest))
+              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor), true), add-check(rest))
               | none => add-check(rest)
             end
           | s-check(l, name, body, keyword-check) =>
@@ -109,7 +109,11 @@ fun get-checks(stmts):
                   + tostring(standalone-counter)
               | some(v) => v
             end
-            link(check-info(l, check-name, body.visit(check-stmts-visitor)), add-check(rest))
+            link(check-info(l, check-name, body.visit(check-stmts-visitor), keyword-check), add-check(rest))
+          | s-template(l) =>
+            link(check-info(l, "Incomplete test",
+                A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)]), false),
+              add-check(rest))
           | else => add-check(rest)
         end
     end
@@ -120,11 +124,12 @@ end
 fun create-check-block(l, checks):
   fun create-checker(c):
     cases(CheckInfo) c:
-      | check-info(l2, name, body) =>
+      | check-info(l2, name, body, keyword-check) =>
         check-fun = make-lam(l2, [list: ], body)
         A.s-obj(l2, [list: 
             A.s-data-field(l2, "name", A.s-str(l2, name)),
             A.s-data-field(l2, "run", check-fun),
+            A.s-data-field(l2, "keyword-check", A.s-bool(l2, keyword-check)),
             A.s-data-field(l2, "location", A.s-prim-app(l2, "makeSrcloc", [list: A.s-srcloc(l2, l2)]))
           ])
     end

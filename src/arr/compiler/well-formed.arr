@@ -321,7 +321,7 @@ end
 
 fun wf-examples-body(visitor, body):
   for lists.all(b from body.stmts):
-    if not(A.is-s-check-test(b)) block:
+    if not(A.is-s-check-test(b) or A.is-s-template(b)) block:
       add-error(C.non-example(b))
       true
     else:
