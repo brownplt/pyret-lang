@@ -720,7 +720,15 @@ compiler-visitor = {
               some(args.length()), body)))])
   end,
   method a-if(self, l :: Loc, cond :: N.AVal, cons :: N.AExpr, alt :: N.AExpr):
-    raise("a-if not bound by a-let. Should never happen.")
+    compiled-c = cons.visit(self)
+    compiled-a = alt.visit(self)
+    binding = [clist:
+      j-if(
+        rt-method("checkPyretTrue", [clist: cond.visit(self).exp]),
+        j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
+        j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
+    )]
+    c-block(j-block(binding), cl-empty)
   end,
   method a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal,
     branches :: List<N.ACasesBranch>, _else :: N.AExpr):
@@ -743,12 +751,16 @@ compiler-visitor = {
     )), cl-empty)
   end,
   method a-lettable(self, _, e :: N.ALettable):
-    visit-e :: DAG.CaseResults%(is-c-exp) = e.visit(self)
-    c-block(
-      j-block(visit-e.other-stmts ^
-        cl-append(_, [clist:
-          j-expr(j-assign(self.cur-ans, visit-e.exp))])),
-      cl-empty)
+    visit-e = e.visit(self)
+    if is-c-exp(visit-e):
+      c-block(
+        j-block(visit-e.other-stmts ^
+          cl-append(_, [clist:
+            j-expr(j-assign(self.cur-ans, visit-e.exp))])),
+        cl-empty)
+    else:
+      visit-e
+    end
   end,
   method a-assign(self, l :: Loc, id :: A.Name, value :: N.AVal):
     visit-value = value.visit(self)
