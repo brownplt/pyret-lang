@@ -320,11 +320,39 @@
         '_header-raw-array': headers,
         '_rows-raw-array': rows,
 
-        'order-increasing': runtime.makeMethod1(function(_, colname) {
+        'increasing-by': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "increasing-by", true);
+          runtime.checkString(colname);
           return order(true, colname);
         }),
-        'order-decreasing': runtime.makeMethod1(function(_, colname) {
+        'decreasing-by': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "decreasing-by", true);
+          runtime.checkString(colname);
           return order(false, colname);
+        }),
+        'order-by': runtime.makeMethod2(function(_, colname, increasing) {
+          ffi.checkArity(3, arguments, "order-by", true);
+          runtime.checkString(colname);
+          runtime.checkBoolean(increasing);
+          return order(increasing, colname);
+        }),
+        'order-by-columns': runtime.makeMethod1(function(_, specs) {
+          ffi.checkArity(2, arguments, "order-by-columns", true);
+          runtime.checkList(specs);
+          var specsArray = ffi.toArray(specs);
+          var asArrays = [];
+          for(var i = 0; i < specsArray.length; i += 1) {
+            runtime.checkTuple(specsArray[i]);
+            asArrays.push([
+                runtime.getTuple(specsArray[i], 1),
+                runtime.getTuple(specsArray[i], 0)
+              ]);
+          }
+          return runtime.safeCall(function() {
+            return multiOrder(rows, asArrays, []);
+          }, function(destArr) {
+            return makeTable(headers, destArr);
+          }, "order-by-columns");
         }),
 
         'multi-order': runtime.makeMethod1(function(_, colComps) {

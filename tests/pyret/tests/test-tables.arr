@@ -197,6 +197,39 @@ check "Table ordering":
   end
   order t: z ascending, y descending, x descending end is sort-t
 
+  t.order-by-columns([list: {"z"; true}, {"y"; false}, {"x"; false}])
+    is sort-t
+
+  another-t = table: x, y
+    row: 1, "c"
+    row: 2, "d"
+    row: 3, "a"
+    row: 4, "b"
+  end
+
+  by-y = table: x, y
+    row: 3, "a"
+    row: 4, "b"
+    row: 1, "c"
+    row: 2, "d"
+  end
+
+  another-t.order-by("y", true) is by-y
+  another-t.increasing-by("y") is by-y
+  another-t.order-by-columns([list: {"y"; true}]) is by-y
+
+  by-x = table: x, y
+    row: 4, "b"
+    row: 3, "a"
+    row: 2, "d"
+    row: 1, "c"
+  end
+
+  another-t.order-by("x", false) is by-x
+  another-t.decreasing-by("x") is by-x
+  another-t.order-by-columns([list: {"x"; false}]) is by-x
+
+
 end
 
 
@@ -472,3 +505,4 @@ check "filter-by":
   t.filter-by("a", {(a): a > 3}, 4) raises-satisfies E.is-arity-mismatch
 
 end
+
