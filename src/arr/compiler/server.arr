@@ -27,7 +27,8 @@ fun compile(options):
       standalone-file: options.get("standalone-file").or-else(CS.default-compile-options.standalone-file),
       display-progress: options.get("display-progress").or-else(true),
       log: options.get("log").or-else(CS.default-compile-options.log),
-      log-error: options.get("log-error").or-else(CS.default-compile-options.log-error)
+      log-error: options.get("log-error").or-else(CS.default-compile-options.log-error),
+      bundle-dependencies: options.get("bundle-dependencies").or-else(true)
     })
 end
 

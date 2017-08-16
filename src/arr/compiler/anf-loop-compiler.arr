@@ -272,7 +272,11 @@ fun rt-method(name, args):
 end
 
 fun app(l, f, args):
-  j-method(f, "app", args)
+  cases(SL.Srcloc) l:
+    | builtin(n) => j-method(f, "app", args)
+    | else =>
+      J.j-sourcenode(l, l.source, j-method(f, "app", args))
+  end
 end
 
 fun check-fun(sourcemap-loc, variable-loc, f) block:
@@ -305,6 +309,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-name(_, n) => c-exp(j-id(js-id-of(n)), cl-empty)
     | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
+    | a-arrow-argnames(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
     | a-app(l, base, _) => compile-ann(base, visitor)
     | a-record(l, fields) =>

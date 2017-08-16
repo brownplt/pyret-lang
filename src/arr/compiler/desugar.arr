@@ -6,6 +6,7 @@ import ast as A
 import parse-pyret as PP
 import string-dict as SD
 import srcloc as S
+import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("resolve-scope.arr") as R
@@ -95,6 +96,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-dot(_, _, _) => a
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
+    | a-arrow-argnames(l, args, ret, use-parens) =>
+      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>
@@ -915,6 +918,27 @@ fun desugar-expr(expr :: A.Expr):
                       [list: A.s-let-bind(predicate.l, pred-res.id-b, desugar-expr(predicate))],
                       pred-res.id-e, true), true), none, none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
+    | s-spy-block(l, message, contents) =>
+      ds-message = cases(Option<A.Expr>) message:
+        | none => A.s-str(l, "")
+        | some(msg) => desugar-expr(msg)
+      end
+      ds-contents-list = for map(spy-exp from contents):
+        cases(A.SpyField) spy-exp:
+          | s-spy-name(l2, name) => {A.s-srcloc(l2, l2); A.s-str(l2, name.id.toname()); desugar-expr(name)}
+          | s-spy-expr(l2, name, value) => {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
+        end
+      end
+      ds-contents = for L.foldr(acc from {empty; empty; empty}, ds-content from ds-contents-list):
+        {
+          ds-content.{0} ^ link(_, acc.{0});
+          ds-content.{1} ^ link(_, acc.{1});
+          ds-content.{2} ^ link(_, acc.{2})
+        }
+      end
+      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
+        [list: A.s-srcloc(l, l), ds-message,
+          A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

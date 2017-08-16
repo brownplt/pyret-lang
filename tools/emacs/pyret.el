@@ -132,7 +132,7 @@
 (defconst pyret-keywords-test
   '("is==" "is=~" "is<=>" "is-not==" "is-not=~" "is-not<=>"))
 (defconst pyret-keywords
-   '("fun" "lam" "method" "var" "when" "include" "import" "provide" "type" "newtype" "check" "examples"
+   '("fun" "lam" "method" "spy" "var" "when" "include" "import" "provide" "type" "newtype" "check" "examples"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving" "select" "extend" "transform" "extract" "sieve" "order"
@@ -708,6 +708,7 @@ the number of quote characters in the match."
 (defsubst pyret-FOR () (pyret-keyword "for"))
 (defsubst pyret-FROM () (pyret-keyword "from"))
 (defsubst pyret-TRY () (pyret-keyword "try:"))
+(defsubst pyret-SPY () (pyret-keyword "spy"))
 (defsubst pyret-EXCEPT () (pyret-keyword "except"))
 (defsubst pyret-AS () (pyret-keyword "as"))
 (defsubst pyret-SHARING () (pyret-keyword "sharing:"))
@@ -838,7 +839,7 @@ the number of quote characters in the match."
   "Stores the indentation information of the parse.  Should only be buffer-local.")
 
 (defvar pyret-fun-openers-closed-by-end
-  '(fun when for if block let table loadtable select
+  '(fun spy when for if block let table loadtable select
         extend sieve transform extract order reactor)
   "Stack entries on 'opens' which are closed by the 'end' keyword.")
 
@@ -1051,6 +1052,11 @@ the number of quote characters in the match."
             (incf (pyret-indent-cases defered-opened))
             (push 'ifcond opens)
             (push 'wantcolonorblock opens)
+            (forward-char 3))
+           ((pyret-SPY)
+            (incf (pyret-indent-fun defered-opened))
+            (push 'spy opens)
+            (push 'wantcolon opens)
             (forward-char 3))
            ((pyret-DOC)
             ;; Would ideally add an indentation if the

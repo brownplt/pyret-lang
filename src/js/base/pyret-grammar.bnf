@@ -20,10 +20,14 @@ comma-names: NAME (COMMA NAME)*
 
 block: stmt*
 
-stmt: type-expr | newtype-expr
+stmt: type-expr | newtype-expr | spy-stmt
     | let-expr | fun-expr | data-expr | when-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
     | contract-stmt
+
+spy-stmt: SPY [binop-expr] COLON [spy-contents] END
+spy-contents: spy-field (COMMA spy-field)*
+spy-field: id-expr | NAME COLON binop-expr
 
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
@@ -55,7 +59,7 @@ return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
 
-check-expr: CHECK STRING COLON block END
+check-expr: (CHECK|EXAMPLES) STRING COLON block END
 check-expr: (CHECKCOLON|EXAMPLESCOLON) block END
 check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
           | binop-expr check-op-postfix
@@ -239,8 +243,9 @@ ann-field: NAME COLONCOLON ann
 
 tuple-ann: LBRACE ann (SEMI ann)* [SEMI] RBRACE
 
-noparen-arrow-ann: [comma-anns] THINARROW ann
-arrow-ann: (PARENSPACE|PARENNOSPACE) [comma-anns] THINARROW ann RPAREN
+noparen-arrow-ann: [arrow-ann-args] THINARROW ann
+arrow-ann-args: comma-anns | (PARENSPACE|PARENNOSPACE) comma-ann-field RPAREN
+arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-args] THINARROW ann RPAREN
 
 app-ann: (name-ann|dot-ann) LANGLE comma-anns RANGLE
 

@@ -4,7 +4,8 @@ define("pyret-base/js/runtime-util", [], function() {
     return name + String(gs++);
   }
   function isBrowser() {
-    return requirejs.isBrowser || typeof importScripts !== "undefined";
+    var maybeBrowser = !!(typeof window !== 'undefined' && typeof navigator !== 'undefined' && window.document);
+    return maybeBrowser || typeof importScripts !== "undefined";
   }
 
   var suspend;
@@ -52,7 +53,7 @@ define("pyret-base/js/runtime-util", [], function() {
           }, function(moduleFunVal) {
             RUNTIME.modules[modname] = moduleFunVal;
             return moduleFunVal;
-          });
+          }, "memoModule:moduleFun");
       }
     };
   }
@@ -102,7 +103,7 @@ define("pyret-base/js/runtime-util", [], function() {
               return func.apply(null, [runtime, namespace].concat(deps));
             }, function(result) {
               return wrap(runtime, result);
-            });
+            }, "defineModule:moduleFun");
           });
         });
       }

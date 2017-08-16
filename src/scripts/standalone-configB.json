@@ -17,23 +17,5 @@
     "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js"
   },
   "baseUrl": "./build/phaseB",
-  "optimize": "none",
-  "paths": {
-      "jglr": "../../lib/jglr",
-      "pyret-base": "./",
-      "crypto": "empty:",
-      "sha.js": "empty:",
-      "js-sha256": "empty:",
-      "fs": "empty:",
-      "http": "empty:",
-      "lockfile": "empty:",
-      "path": "empty:",
-      "q": "empty:",
-      "requirejs": "empty:",
-      "s-expression": "empty:",
-      "seedrandom": "empty:",
-      "websocket": "empty:",
-      "source-map": "empty:",
-      "stacktrace-js": "empty:"
-    }
+  "optimize": "none"
 }

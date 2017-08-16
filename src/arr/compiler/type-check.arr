@@ -1254,8 +1254,30 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
             instantiate-data-type(val-type, context).typing-bind(lam(data-type, shadow context):
               branch-tracker = track-branches(data-type)
               temp-result = map-fold-result(lam(branch, shadow context):
+                maybe-key-to-update = cases(Expr) val:
+                  | s-id(_, val-id) =>
+                    some(val-id.key())
+                  | s-id-var(_, val-id) =>
+                    some(val-id.key())
+                  | s-id-letrec(_, val-id, _) =>
+                    some(val-id.key())
+                  | else =>
+                    none
+                end
+                shadow context = cases(Option<String>) maybe-key-to-update:
+                  | some(key-to-update) =>
+                    context.add-binding(key-to-update, t-data-refinement(val-type, branch.name, l, true))
+                  | none =>
+                    context
+                end
                 branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
                 branch-result.bind(lam(branch-type-pair, shadow context):
+                  shadow context = cases(Option<String>) maybe-key-to-update:
+                    | some(key-to-update) =>
+                      context.add-binding(key-to-update, val-type)
+                    | none =>
+                      context
+                  end
                   fold-result(branch-type-pair, context)
                 end)
               end, branches, context)
@@ -2068,6 +2090,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l, false)), context)
+    | a-arrow-argnames(l, args, ret, use-parens) =>
+      to-type(A.a-arrow(l, args.map(_.ann), ret, use-parens), context)
     | a-arrow(l, args, ret, _) =>
       fold-arg-typs = map-fold-result(lam(arg, shadow context):
         to-type(arg, context).bind(lam(maybe-new-typ, shadow context):

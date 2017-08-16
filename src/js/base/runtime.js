@@ -9,13 +9,17 @@ define("pyret-base/js/runtime",
 function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
   Error.stackTraceLimit = Infinity;
 
+  /*
+  TODO(joe): Check how this interacts with CPO
   if(util.isBrowser()) {
     var require = requirejs;
   }
   else {
     var require = requirejs.nodeRequire("requirejs");
   }
+  */
 
+  var require = requirejs;
   var AsciiTable;
 
   function copyArgs(args) {
@@ -1725,7 +1729,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
         }).join("\n") :
       "<no stack trace>";
-      return toReprJS(this.exn, ReprMethods._tostring) + "\n" + stackStr;
+      return "(internal error rendering PyretFailException) \n" + stackStr;
     };
     PyretFailException.prototype.getStack = function() {
       return this.pyretStack.map(makeSrcloc);
@@ -4723,7 +4727,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     var num_atan2 = function(y, x) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 2, $a, false); }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan2"], 2, $a, false); }
       thisRuntime.checkArgsInternal("Numbers", "num-atan2",
         [y,                  x],
         [thisRuntime.Number, thisRuntime.Number]);
@@ -5212,7 +5216,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                   });
                 });
                 instantiated.fail(function(val) { return resumer.error(val); });
-                return instantiated;
+                // NOTE(joe): Intentionally not returning anything; this is the
+                // body of a call to pauseStack
               });
             }
           },
@@ -5413,7 +5418,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a, false); }
         return getParam("current-checker");
       }, "current-checker"),
-      'trace-value': makeFunction(traceValue, "trace-value")
+      'trace-value': makeFunction(traceValue, "trace-value"),
+      'spy': makeFunction(spy, "spy")
     });
 
 
@@ -5426,7 +5432,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return callback(loc, val, uri);
         }, function(_) {
           return val;
-        });
+        }, "custom trace-value");
       }
       else {
         thisRuntime.ffi.throwMessageException("onTrace parameter was not a function: " + callback);
@@ -5436,6 +5442,56 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function makeReactor(init, handlersDict) {
       if(!thisRuntime.hasParam("makeReactor")) { thisRuntime.ffi.throwMessageException("No reactor constructor provided"); }
       return thisRuntime.getParam("makeReactor")(init, handlersDict);
+    }
+    // MUST BE CALLED WHILE ON PYRET STACK
+    function toReprArray(vals, reprMethod) {
+      // vals should be an array of {name: String, val: PyretValue, [method: ReprMethod]} objects
+      // return is an array of either {name: String, val: rendered} objects (on success)
+      // or {name: String, exn: exn} objects (on failure)
+      // but all will run.
+      // Each item can specify its own reprmethod, or the default one can be used
+      var results = [];
+      return thisRuntime.safeCall(function() {
+        return thisRuntime.eachLoop(makeFunction(function(i) {
+          return thisRuntime.pauseStack(function(restarter) {
+            thisRuntime.runThunk(function() {
+              return thisRuntime.toReprJS(vals[i].val, vals[i].method || reprMethod);
+            }, function(res) {
+              if (thisRuntime.isSuccessResult(res)) {
+                results.push({name: vals[i].name, val: res.result, exn: undefined});
+              } else {
+                results.push({name: vals[i].name, val: undefined, exn: res.exn});
+              }
+              restarter.resume(thisRuntime.nothing);
+            });
+          });
+        }, "toReprArray-helper"), 0, vals.length);
+      }, function(_) {
+        return results;
+      }, "toReprArray");
+    }
+    
+    function spy(loc, message, locs, names, vals) {
+      var callback = undefined;
+      if (thisRuntime.hasParam("onSpy")) { callback = thisRuntime.getParam("onSpy"); }
+      if (typeof callback === "function") {
+        return callback(loc, message, locs, names, vals);
+      } else {
+        var prologue = "Spying";
+        return thisRuntime.safeCall(function() {
+          vals = [message].concat(vals);
+          return raw_array_map(torepr, vals);
+        }, function(rendered) {
+          if (rendered[0] !== "\"\"")
+            prologue += " " + rendered[0];
+          prologue += " (at " + thisRuntime.getField(makeSrcloc(loc), "format").app(true) + ")";
+          theOutsideWorld.stdout(prologue + "\n");
+          for (var i = 1; i < rendered.length; i++) {
+            theOutsideWorld.stdout("  " + names[i - 1] + ": " + rendered[i] + "\n");
+          }
+          return thisRuntime.nothing;
+        }, "spy");
+      }
     }
 
     var runtimeNamespaceBindings = {
@@ -5613,6 +5669,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'printPyretStack': printPyretStack,
 
       'traceValue': traceValue,
+      'spy': spy,
 
 
       'traceEnter': traceEnter,
@@ -5858,6 +5915,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'toReprJS' : toReprJS,
       'toRepr' : function(val) { return toReprJS(val, ReprMethods._torepr); },
+      'toReprArray' : toReprArray,
       'ReprMethods' : ReprMethods,
 
       'wrap' : wrap,

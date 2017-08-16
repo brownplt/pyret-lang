@@ -887,6 +887,30 @@ fun distinct(l :: List) -> List:
   end
 end
 
+fun take-while<A>(pred :: (A -> Boolean), lst :: List<A>) -> {List<A>; List<A>}:
+  doc: "Splits a list into two pieces, at the first element that fails the given predicate"
+  var tail = empty
+  fun help(l):
+    cases(List) l:
+      | empty => empty
+      | link(first, rest) =>
+        if pred(first) block:
+          link(first, help(rest))
+        else:
+          tail := l
+          empty
+        end
+    end
+  end
+  { help(lst); tail }
+where:
+  take-while(_ > 0, [list: 5, 3, 1, 0, 1, 2, 3]) is { [list: 5, 3, 1]; [list: 0, 1, 2, 3] }
+  take-while(_ > 0, empty) is { empty; empty }
+  take-while(_ > 0, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
+  take-while(_ > 0, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
+  take-while(_ == true, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
+end
+
 fun join-str(l :: List<String>, s :: String) -> String:
   l.join-str(s)
 end

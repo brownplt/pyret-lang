@@ -459,8 +459,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end)
         end)
 
-    | s-let(_, _, _) => raise("s-let should be handled by anf-block: " + torepr(e))
-    | s-var(_, _, _) => raise("s-var should be handled by anf-block: " + torepr(e))
+    | s-let(_, _, _) => raise("s-let should have been desugared already: " + torepr(e))
+    | s-var(_, _, _) => raise("s-var should have been desugared already: " + torepr(e))
+    | s-spy-block(_, _, _) => raise("s-spy-block should have been desugared already: " + torepr(e))
     | s-user-block(l, body) => raise("s-user-block should have been desugared already: " + torepr(e))
     | else => raise("Missed case in anf: " + torepr(e))
   end

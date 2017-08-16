@@ -159,7 +159,7 @@
             // This unshift prevents duplicate first elements
             thisInteractTrace.shift();
             return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
-          });
+          }, "interact");
         }),
         "start-trace": runtime.makeMethod0(function(self) {
           return makeReactorRaw(init, handlers, true, [init]);
@@ -203,7 +203,7 @@
                   var newTrace = trace;
                 }
                 return makeReactorRaw(newVal, handlers, tracing, newTrace);
-              });
+              }, "react:" + handlerName);
             }
             else {
               runtime.ffi.throwMessageException("No " + handlerName + " handler defined");
@@ -233,7 +233,7 @@
                   }
                 });
               }
-            });
+            }, "react:stop-when");
         }),
         "is-stopped": runtime.makeMethod0(function(self) {
           if(handlers["stop-when"]) {

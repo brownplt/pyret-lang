@@ -14,6 +14,16 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
+BUNDLED_DEPS     = build/bundled-node-deps.js
+# HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
+export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
+SHELL := /bin/bash
+
+
+showpath:
+	@echo my new PATH = $(PATH)
+	@echo `which browserify`
+
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -84,14 +94,11 @@ phaseA: $(PHASEA)/pyret.jarr
 phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
-#	cp src/js/trove/global-phase0.js src/js/trove/global.js # couldn't get allow-builtin-overrides to work
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
-                      -allow-builtin-overrides \
-                      --builtin-js-dir build/phase0/trove \
                       --compiled-dir build/phaseA/compiled/ \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
@@ -124,6 +131,9 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
 
+$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
+	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
                       --build-runnable src/scripts/show-compilation.arr \
@@ -145,6 +155,17 @@ endif
                       --compiled-dir compiled/ \
                       $(EXTRA_FLAGS) \
                       --require-config src/scripts/standalone-configA.json
+
+%.html: $(PHASEA)/pyret.jarr %.arr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
+                      --build-runnable $*.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir compiled/ \
+                      $(EXTRA_FLAGS) \
+                      --require-config src/scripts/standalone-configA.json \
+                      -bundle-dependencies \
+                      --html-file $*.html
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)
 
@@ -302,14 +323,16 @@ clean:
 	$(call RMDIR,$(PHASEC))
 	$(call RMDIR,build/show-comp/compiled)
 	$(call RMDIR,$(RELEASE_DIR))
+	$(call RM,$(BUNDLED_DEPS))
 
 .PHONY : test-clean
 test-clean:
 	$(call RMDIR, tests/compiled)
 
 # Written this way because cmd.exe complains about && in command lines
-new-bootstrap: no-diff-standalone
+new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 	cp $(PHASEC)/pyret.jarr $(PYRET_COMP0)
+	cp -r $(PHASEC)/js $(PHASE0)/
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 

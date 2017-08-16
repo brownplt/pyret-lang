@@ -1082,7 +1082,7 @@
                     } else {
                       return eqElts();
                     }
-                  });
+                  }, "equalsMSD:recursive-equality");
                 }
               }
             }
