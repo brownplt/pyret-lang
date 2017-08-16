@@ -1065,7 +1065,7 @@
             return RUNTIME.getField(ast, 's-if-else')
               .app(pos(node.pos),
                    makeList([RUNTIME.getField(ast, 's-if-branch')
-                             .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
+                             .app(pos2(node.kids[1].pos, node.kids[3].pos), tr(node.kids[1]), tr(node.kids[3]))],
                             0, 1,
                             makeListTr(node.kids, 4, node.kids.length - 3)),
                    tr(node.kids[node.kids.length - 2]), isBlock);
@@ -1074,7 +1074,7 @@
             return RUNTIME.getField(ast, 's-if')
               .app(pos(node.pos),
                    makeList([RUNTIME.getField(ast, 's-if-branch')
-                             .app(pos(node.kids[1].pos), tr(node.kids[1]), tr(node.kids[3]))],
+                             .app(pos2(node.kids[1].pos, node.kids[3].pos), tr(node.kids[1]), tr(node.kids[3]))],
                             0, 1,
                             makeListTr(node.kids, 4, node.kids.length - 1)), isBlock);
           }
