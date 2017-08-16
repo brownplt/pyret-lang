@@ -424,3 +424,51 @@ check "all-columns":
     [list: true, false]
   ]
 end
+
+check "filter":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+    row: 7, 8, 9
+  end
+
+  odds = t.filter({(r): num-modulo(r["a"], 2) == 0 })
+  odds is table: a, b, c
+    row: 4, 5, 6
+  end
+
+  # Rows in filter should be just like rows that come from the row constructor
+  var the-one-row = nothing
+  odds.filter({(r) block:
+    the-one-row := r
+    true
+  })
+  the-one-row is t.row(4, 5, 6)
+
+
+  t.filter({(r): false }) is table: a, b, c end
+  t.filter({(r): true }) is t
+
+
+  t.filter({(r): true }, "foo") raises-satisfies E.is-arity-mismatch
+  t.filter("a") raises-satisfies E.is-generic-type-mismatch
+end
+
+check "filter-by":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+    row: 7, 8, 9
+  end
+
+  odds = t.filter-by("a", {(a): num-modulo(a, 2) == 0 })
+  odds is table: a, b, c
+    row: 4, 5, 6
+  end
+
+  t.filter-by("d", {(a): a > 3}) raises "no-such-column"
+  t.filter-by("a") raises-satisfies E.is-arity-mismatch
+  t.filter-by() raises-satisfies E.is-arity-mismatch
+  t.filter-by("a", {(a): a > 3}, 4) raises-satisfies E.is-arity-mismatch
+
+end

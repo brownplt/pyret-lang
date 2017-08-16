@@ -498,8 +498,6 @@
 
         'drop': runtime.makeMethod1(function(_, colname) {
           var newHeaders = headers.filter(function(h) { return h !== colname; })
-          var dropFunc = function(rawRow) {
-          };
           var newRows = rows.map(function(rawRow) {
             return rawRow.filter(function(h, i) {
               return i !== headerIndex['column:' + colname];
@@ -527,6 +525,12 @@
         }),
 
         'filter-by': runtime.makeMethod2(function(_, colname, pred) {
+          ffi.checkArity(3, arguments, "filter-by", true);
+          runtime.checkString(colname);
+          runtime.checkFunction(pred);
+          if(!(("column:" + colname) in headerIndex)) {
+            throw runtime.ffi.throwMessageException("no-such-column");
+          }
           var wrappedPred = function(rawRow) {
             return pred.app(getRowContentAsRecord(rawRow)[colname]);
           }
@@ -539,8 +543,10 @@
 
 
         'filter': runtime.makeMethod1(function(_, pred) {
+          ffi.checkArity(2, arguments, "filter", true);
+          runtime.checkFunction(pred);
           var wrappedPred = function(rawRow) {
-            return pred.app(getRowContentAsGetter(headers, rawRow));
+            return pred.app(makeRow({ headerIndex: headerIndex }, rawRow));
           }
           return runtime.safeCall(function() {
             return runtime.raw_array_filter(runtime.makeFunction(wrappedPred, "pred"), rows);
