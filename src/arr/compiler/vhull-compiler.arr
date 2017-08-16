@@ -592,12 +592,33 @@ compiler-visitor = {
   method a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     cases (N.ALettable) e:
       | a-if(l, p, c, a) =>
-        visited-p = p.visit(self)
-        visited-c = c.visit(self.{cur-ans: b.id})
-        visited-a = a.visit(self.{cur-ans: b.id})
-        c-block(j-block([clist:
-              j-if(visited-p, visited-c, visited-a)
-        ]), cl-empty)
+        compiled-c = c.visit(self.{cur-ans: js-id-of(b.id)})
+        compiled-a = a.visit(self.{cur-ans: js-id-of(b.id)})
+        compiled-body = body.visit(self)
+        if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+          c-block(j-block([clist:
+            j-var(js-id-of(b.id), undefined),
+            j-if(
+              rt-method("checkPyretTrue", [clist: p.visit(self).exp]),
+              j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
+              j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
+            )] ^
+            cl-append(_, compiled-body.block.stmts)), compiled-body.new-cases)
+        else:
+          compiled-ann = compile-ann(b.ann, self)
+          ann-result = j-expr(rt-method("_checkAnn",
+            [clist:
+              self.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))]))
+          c-block(j-block([clist:
+            j-var(js-id-of(b.id), undefined),
+            j-if(
+              rt-method("checkPyretTrue", [clist: p.visit(self).exp]),
+              j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
+              j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
+            )] ^
+            cl-append(_, [clist: ann-result]) ^
+            cl-append(_, compiled-body.block.stmts)), compiled-body.new-cases)
+        end
       | a-cases(l, typ, val, branches, _else) =>
         raise("a-cases in a-let not implemented")
       | else => block:
@@ -644,25 +665,16 @@ compiler-visitor = {
       compiled-body.new-cases)
   end,
   method a-seq(self, _, e1, e2):
-    raise("a-seq is not implemented")
-    #|v-e1 = e1.visit(self)
+    v-e1 = e1.visit(self)
     v-e2 = e2.visit(self)
     first-stmt = if J.is-JStmt(v-e1.exp): v-e1.exp else: j-expr(v-e1.exp) end
     c-block(
       j-block(
-        cl-append(v-e1.other-stmts, cl-cons(first-stmt, v-e2.block.stmts)),
-        v-e2.new-cases
-      )
-    )|#
+        cl-append(v-e1.other-stmts, cl-cons(first-stmt, v-e2.block.stmts))),
+        v-e2.new-cases)
   end,
   method a-if(self, l :: Loc, cond :: N.AVal, cons :: N.AExpr, alt :: N.AExpr):
-    raise("a-if is not implemented")
-    #|ccons = cons.visit(self)
-    calt = alt.visit(self)
-    ccond = rt-method("checkPyretTrue", [clist: cond.visit(self)])
-    c-block(j-block([clist:
-          j-if(ccond, ccons, calt)
-    ]), cl-empty)|#
+    raise("a-if not bound by a-let. Should never happen.")
   end,
   method a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal,
     branches :: List<N.ACasesBranch>, _else :: N.AExpr):
@@ -685,7 +697,6 @@ compiler-visitor = {
     )), cl-empty)
   end,
   method a-lettable(self, _, e :: N.ALettable):
-    # TODO(rachit): This might have to change because of a-if
     visit-e :: DAG.CaseResults%(is-c-exp) = e.visit(self)
     c-block(
       j-block(visit-e.other-stmts ^
