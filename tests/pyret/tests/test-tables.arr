@@ -458,6 +458,35 @@ check "all-columns":
   ]
 end
 
+check "select-columns":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+    row: 7, 8, 9
+  end
+
+  print(t.select-columns([list: "c", "a"]))
+  print(t.select-columns([list: "c", "a"]).length())
+
+  t.select-columns([list: "c", "a"]) is table: c, a
+    row: 3, 1 
+    row: 6, 4 
+    row: 9, 7 
+  end
+
+  t.select-columns([list: "b"]) is table: b
+    row: 2 
+    row: 5 
+    row: 8 
+  end
+
+  t.select-columns([list:]) raises "zero-columns"
+  t.select-columns([list: "d"]) raises "no-such-column"
+  t.select-columns([list: 1]) raises-satisfies E.is-generic-type-mismatch
+  t.select-columns([list: "a"], 2) raises-satisfies E.is-arity-mismatch
+
+end
+
 check "filter":
   t = table: a, b, c
     row: 1, 2, 3

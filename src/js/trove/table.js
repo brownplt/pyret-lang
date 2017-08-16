@@ -596,11 +596,39 @@
         
         'get-column': runtime.makeMethod1(function(_, col_name) {
           ffi.checkArity(2, arguments, "get-column", true);
+          runtime.checkString(col_name);
           if(!hasColumn(col_name)) {
             ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
           }
           return runtime.ffi.makeList(getColumn(col_name));
         }),
+
+        'select-columns': runtime.makeMethod1(function(_, colnames) {
+          ffi.checkArity(2, arguments, "get-column", true);
+          runtime.checkList(colnames);
+
+          var colnamesList = ffi.toArray(colnames);
+          if(colnamesList.length === 0) {
+            throw ffi.throwMessageException("zero-columns");
+          }
+          for(var i = 0; i < colnamesList.length; i += 1) {
+            runtime.checkString(colnamesList[i]);
+            if(!hasColumn(colnamesList[i])) {
+              throw ffi.throwMessageException("no-such-column");
+            }
+          }
+
+          var newRows = new Array(colnamesList.length);
+          for(var i = 0; i < rows.length; i += 1) {
+            newRows[i] = [];
+            for(var j = 0; j < colnamesList.length; j += 1) {
+              var colIndex = headerIndex['column:' + colnamesList[j]];
+              collists[i].push(rows[i][colIndex]);
+            }
+          }
+          return makeTable(colnamesList, collists);
+        }),
+
         
         '_column-index': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
           ffi.checkArity(5, arguments, "_column-index", true);
