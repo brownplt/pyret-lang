@@ -4742,6 +4742,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         [thisRuntime.NumInteger, thisRuntime.NumInteger]);
       return thisRuntime.makeNumberBig(jsnums.modulo(n, mod, NumberErrbacks));
     }
+
+    var num_remainder = function(n, m) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-remainder"], 2, $a, false); }
+      thisRuntime.checkArgsInternal("Numbers", "num-remainder",
+        [n,                      m],
+        [thisRuntime.Number, thisRuntime.Number]);
+      return thisRuntime.makeNumberBig(jsnums.remainder(n, m, NumberErrbacks));
+    }
+
     var num_truncate = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
       thisRuntime.checkArgsInternal("Numbers", "num-truncate",
@@ -5549,6 +5558,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num-atan': makeFunction(num_atan, "num-atan"),
       'num-atan2': makeFunction(num_atan2, "num-atan2"),
       'num-modulo': makeFunction(num_modulo, "num-modulo"),
+      'num-remainder': makeFunction(num_remainder, "num-remainder"),
       'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
       'num-sqr': makeFunction(num_sqr, "num-sqr"),
@@ -5836,6 +5846,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_atan': num_atan,
       'num_atan2': num_atan2,
       'num_modulo': num_modulo,
+      'num_remainder': num_remainder,
       'num_truncate': num_truncate,
       'num_sqrt': num_sqrt,
       'num_ceiling': num_ceiling,

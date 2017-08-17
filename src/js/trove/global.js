@@ -185,6 +185,7 @@
       "num-tan":{'bind': 'fun', 'flatness': 0, 'name': 'num-tan', 'typ': 'NumUnop'},
 
       "num-modulo":{'bind': 'fun', 'flatness': 0, 'name': 'num-modulo', 'typ': 'NumBinop'},
+      "num-remainder":{'bind': 'fun', 'flatness': 0, 'name': 'num-remainder', 'typ': 'NumBinop'},
 
       "num-ceiling":{'bind': 'fun', 'flatness': 0, 'name': 'num-ceiling', 'typ': 'NumUnop'},
       "num-exact":{'bind': 'fun', 'flatness': 0, 'name': 'num-exact', 'typ': 'NumUnop'},
