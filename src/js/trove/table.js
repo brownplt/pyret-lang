@@ -623,10 +623,10 @@
             newRows[i] = [];
             for(var j = 0; j < colnamesList.length; j += 1) {
               var colIndex = headerIndex['column:' + colnamesList[j]];
-              collists[i].push(rows[i][colIndex]);
+              newRows[i].push(rows[i][colIndex]);
             }
           }
-          return makeTable(colnamesList, collists);
+          return makeTable(colnamesList, newRows);
         }),
 
         

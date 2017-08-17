@@ -465,9 +465,6 @@ check "select-columns":
     row: 7, 8, 9
   end
 
-  print(t.select-columns([list: "c", "a"]))
-  print(t.select-columns([list: "c", "a"]).length())
-
   t.select-columns([list: "c", "a"]) is table: c, a
     row: 3, 1 
     row: 6, 4 
