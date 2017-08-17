@@ -609,7 +609,8 @@ fun compile-cases-branch(compiler, compiled-val, branch, cases-loc):
         j-fun(J.next-j-fun-id(), make-fun-name(compiler, cases-loc),
           CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args),
           compiled-branch-fun)),
-      deref-fields]
+      deref-fields,
+      j-break]
   c-block(j-block(cl-append(preamble, actual-app)),
     cl-empty)
 end
@@ -694,11 +695,28 @@ fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
         j-block(cl-append(compiled-a.block.stmts, compiled-a.new-cases))
       )]
     | a-cases(l, typ, val, branches, _else) =>
-      ...
-      #|compiled-val = val.visit(compiler).exp
-      compiled-branches = branched.map(compile-cases-branch(compiler,
-        compiled-val, _, cases-loc))
-      compiled-else = _else.visit(compiler)|#
+      compiled-val = val.visit(compiler).exp
+      compiled-branches = branches.map(compile-cases-branch(
+        compiler, compiled-val, _, l))
+      compiled-else = _else.visit(compiler)
+
+      # The case name of a branch is the same as the corresponding constructor
+      branch-labels = branches.map(lam(a): a.name end)
+
+      branch-cases = for fold2(acc from cl-empty,
+        label from branch-labels, branch from compiled-branches) block:
+          acc
+          ^ cl-snoc(_, j-case(j-str(label), branch.block))
+          ^ cl-append(_, branch.new-cases)
+      end
+      branch-else-cases =
+        branch-cases
+        ^ cl-snoc(_, j-default(compiled-else.block))
+        ^ cl-append(_, compiled-else.new-cases)
+
+      [clist:
+        j-var(js-id-of(b.id), undefined),
+        j-switch(j-dot(compiled-val, "$name"), branch-else-cases)]
     | else =>
       compiled-e :: DAG.CaseResults%(is-c-exp) = e.visit(compiler)
       compiled-e.other-stmts ^
