@@ -539,13 +539,14 @@ fun compile-anns(visitor, binds :: List<N.ABind>):
 end
 
 # TODO(rachit): Need to do arity check.
+# cur-ans :: JExpr -> JExpr
 fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
       args :: List<N.ABind>,
       opt-arity :: Option<Number>,
       body :: N.AExpr) -> J.JBlock block:
   # All functions return the final answer using this variable.
   ans = fresh-id(compiler-name("ans"))
-  local-compiler = compiler.{cur-ans: ans}
+  local-compiler = compiler.{cur-ans: lam(assign): j-assign(ans, assign) end}
 
   f-args = for map(arg from args):
     N.a-bind(arg.l, formal-shadow-name(arg.id), arg.ann)
@@ -570,8 +571,8 @@ fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
     ^ cl-snoc(_, visited-body.block)
     ^ cl-append(_, visited-body.new-cases)
 
-  j-block(
-    cl-sing(j-var(local-compiler.cur-ans, undefined)) ^
+  res = j-block(
+    cl-sing(j-var(ans, undefined)) ^
     cl-append(_, fun-body) ^
     cl-append(_, cl-sing(j-return(j-id(ans)))))
 end
@@ -600,7 +601,7 @@ fun compile-cases-branch(compiler, compiled-val, branch, cases-loc):
     compile-fun-body(branch.body.l, temp-branch, compiler, branch-args, none,
       branch.body)
   preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
-  deref-fields = j-expr(j-assign(compiler.cur-ans,
+  deref-fields = j-expr(compiler.cur-ans(
     j-method(compiled-val, "$app_fields", [clist:
       j-id(temp-branch), ref-binds-mask])))
   actual-app =
@@ -650,13 +651,13 @@ end
 fun compile-annotated-let(compiler,
   b :: N.ABind,
   binding :: CList<J.JStmt>, # Initialize and set the binding correctly
-  compiled-body :: DAG.CaseResults%(is-c-block)):
+  compiled-body :: DAG.CaseResults%(is-c-block)) block:
   if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
     c-block(
       j-block(binding ^ cl-append(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   else if A.is-a-tuple(b.ann) and
-          b.ann.fields.all(lam(a): A.is-a-blank(_) or A.is-a-any(a) end):
+          b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
     ann = j-expr(rt-method("checkTupleBind",
       [clist:
         j-id(js-id-of(b.id)),
@@ -666,7 +667,7 @@ fun compile-annotated-let(compiler,
       j-block(
         binding ^
         cl-append(_, cl-sing(ann)) ^
-        cl-append(compiled-body.block.stmts)),
+        cl-append(_, compiled-body.block.stmts)),
       compiled-body.new-cases)
   else:
     ann = compile-ann(b.ann, compiler)
@@ -681,15 +682,19 @@ fun compile-annotated-let(compiler,
 end
 
 fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
-  shadow b = b.value
+  bname = b.value
   compiled-body = body.visit(compiler)
-  new-ans = js-id-of(b.id)
+  new-ans = cases(BindType) b:
+    | b-let(v) => lam(assign): j-assign(js-id-of(bname.id), assign) end
+    | b-array(v, idx) =>
+      lam(assign): j-bracket-assign(js-id-of(bname.id), assign) end
+  end
   binding = cases (N.ALettable) e:
     | a-if(l, p, c, a) =>
       compiled-c = c.visit(compiler.{cur-ans: new-ans})
       compiled-a = a.visit(compiler.{cur-ans: new-ans})
       [clist:
-        j-var(js-id-of(b.id), undefined),
+        j-var(js-id-of(bname.id), undefined),
         j-if(
         rt-method("checkPyretTrue", [clist: p.visit(compiler).exp]),
         j-block(cl-append(compiled-c.block.stmts,  compiled-c.new-cases)),
@@ -716,14 +721,14 @@ fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
         ^ cl-append(_, compiled-else.new-cases)
 
       [clist:
-        j-var(js-id-of(b.id), undefined),
+        j-var(js-id-of(bname.id), undefined),
         j-switch(j-dot(compiled-val, "$name"), branch-else-cases)]
     | else =>
       compiled-e :: DAG.CaseResults%(is-c-exp) = e.visit(compiler)
       compiled-e.other-stmts ^
-        cl-append(_, cl-sing(j-var(js-id-of(b.id), compiled-e.exp)))
+        cl-append(_, cl-sing(j-var(js-id-of(bname.id), compiled-e.exp)))
     end
-    compile-annotated-let(compiler, b, binding, compiled-body)
+    compile-annotated-let(compiler, bname, binding, compiled-body)
 end
 
 # NOTE(rachit): Assumptions about the results of compilation:
@@ -808,7 +813,7 @@ compiler-visitor = {
   end,
   method a-arr-let(self, _, b :: N.ABind, idx :: Number, e :: N.ALettable,
     body :: N.AExpr):
-    raise("a-arr-let not implemented")
+    compile-let(self, b-array(b, idx), e, body)
   end,
   method a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable,
     body :: N.AExpr):
@@ -825,11 +830,20 @@ compiler-visitor = {
   method a-seq(self, _, e1, e2):
     v-e1 = e1.visit(self)
     v-e2 = e2.visit(self)
-    first-stmt = if J.is-JStmt(v-e1.exp): v-e1.exp else: j-expr(v-e1.exp) end
-    c-block(
-      j-block(
-        cl-append(v-e1.other-stmts, cl-cons(first-stmt, v-e2.block.stmts))),
+    if is-c-exp(v-e1):
+      first-stmt = if J.is-JStmt(v-e1.exp): v-e1.exp else: j-expr(v-e1.exp) end
+      c-block(
+        j-block(
+          cl-append(v-e1.other-stmts, cl-cons(first-stmt, v-e2.block.stmts))),
+          v-e2.new-cases)
+    else:
+      c-block(
+        j-block(
+          cl-append(
+            v-e1.new-cases,
+            cl-append(v-e1.block.stmts, v-e2.block.stmts))),
         v-e2.new-cases)
+    end
   end,
   method a-lam(self, l, name, args, ret, body):
     temp = fresh-id(compiler-name("temp_lam"))
@@ -903,7 +917,7 @@ compiler-visitor = {
       c-block(
         j-block(visit-e.other-stmts ^
           cl-append(_, [clist:
-            j-expr(j-assign(self.cur-ans, visit-e.exp))])),
+            j-expr(self.cur-ans(visit-e.exp))])),
         cl-empty)
     else:
       visit-e
@@ -920,7 +934,7 @@ compiler-visitor = {
     compiled-args = CL.map_list(lam(a): a.visit(self).exp end, args)
     # NOTE(rachit): Always assigning to cur-ans here.
     c-exp(
-      j-assign(self.cur-ans, app(l, compiled-f, compiled-args)),
+      self.cur-ans(app(l, compiled-f, compiled-args)),
       cl-empty)
   end,
   method a-method-app(self, l, obj, meth, args):
@@ -937,7 +951,7 @@ compiler-visitor = {
           compiled-args)))
       # NOTE(rachit): Always assigning to cur-ans here.
       c-exp(
-        j-assign(ans, call),
+        ans(call),
         cl-empty)
     else:
       obj-id = j-id(fresh-id(compiler-name("obj")))
@@ -950,13 +964,13 @@ compiler-visitor = {
         j-var(colon-field-id.id, colon-field),
         j-if(check-method,
           j-block([clist:
-            j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
+            j-expr(ans(j-app(j-dot(colon-field-id, "full_meth"),
               cl-cons(obj-id, compiled-args))))]),
           j-block([clist:
             check-fun(l, self.get-loc(l), colon-field-id),
             j-expr(
               wrap-with-srcnode(l,
-                j-assign(ans, app(l, colon-field-id, compiled-args))))]))]),
+                ans(app(l, colon-field-id, compiled-args))))]))]),
         cl-empty)
     end
   end,
@@ -1040,7 +1054,7 @@ compiler-visitor = {
     c-exp(
       rt-method("makeTuple",
         [clist: j-list(false,
-          CL.map_list(get-exp, CL.map_list(get-exp, visit-vals)))]),
+          CL.map_list(get-exp, visit-vals))]),
       cl-empty
     )
   end,
