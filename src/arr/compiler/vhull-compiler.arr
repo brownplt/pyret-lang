@@ -12,6 +12,7 @@ import file("concat-lists.arr") as CL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
+import file("compiler-utils.arr") as C
 
 string-dic = D.string-dict
 mutable-string-dict = D.mutable-string-dict
@@ -37,11 +38,34 @@ cl-append = CL.concat-append
 cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
-fun cl-map-sd(f, sd):
-  for D.fold-keys(acc from cl-empty, key from sd):
-    cl-cons(f(key), acc)
-  end
-end
+get-field-loc = C.get-field-loc
+throw-uninitialized = C.throw-uninitialized
+source-name = C.source-name
+undefined = C.undefined
+RUNTIME = C.RUNTIME
+NAMESPACE = C.NAMESPACE
+THIS = C.THIS
+ARGUMENTS = C.ARGUMENTS
+
+j-bool = C.j-bool
+rt-field = C.rt-field
+rt-method = C.rt-method
+get-field-safe = C.get-field-safe
+get-field-unsafe = C.get-field-unsafe
+check-fun = C.check-fun
+app = C.app
+raise-id-exn = C.raise-id-exn
+cl-map-sd = C.cl-map-sd
+make-fun-name = C.make-fun-name
+type-name = C.type-name
+const-id = C.const-id
+compiler-name = C.compiler-name
+ann-loc = C.ann-loc
+rt-name-map = C.rt-name-map
+wrap-with-srcnode = C.wrap-with-srcnode
+get-dict-field = C.get-dict-field
+obj-of-loc = C.obj-of-loc
+arity-check = C.arity-check
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -102,59 +126,6 @@ is-c-exp = DAG.is-c-exp
 is-c-field = DAG.is-c-field
 is-c-block = DAG.is-c-block
 
-fun ann-loc(ann):
-  if A.is-a-blank(ann): A.dummy-loc
-  else: ann.l
-  end
-end
-
-rt-name-map = [D.string-dict:
-  "addModuleToNamespace", "aMTN",
-  "checkArityC", "cAC",
-  "checkRefAnns", "cRA",
-  "derefField", "dF",
-  "getColonFieldLoc", "gCFL",
-  "getDotAnn", "gDA",
-  "getField", "gF",
-  "getFieldRef", "gFR",
-  "hasBrand", "hB",
-  "isActivationRecord", "isAR",
-  "isCont", "isC",
-  "isFunction", "isF",
-  "isMethod", "isM",
-  "isPyretException", "isPE",
-  "isPyretTrue", "isPT",
-  "makeActivationRecord", "mAR",
-  "makeBoolean", "mB",
-  "makeBranderAnn", "mBA",
-  "makeCont", "mC",
-  "makeDataValue", "mDV",
-  "makeFunction", "mF",
-  "makeGraphableRef", "mGR",
-  "makeMatch", "mM",
-  "makeMethod", "mMet",
-  "makeMethodN", "mMN",
-  "makeObject", "mO",
-  "makePredAnn", "mPA",
-  "makeRecordAnn", "mRA",
-  "makeTupleAnn", "mTA",
-  "makeVariantConstructor", "mVC",
-  "namedBrander", "nB",
-  "traceEnter", "tEn",
-  "traceErrExit", "tErEx",
-  "traceExit", "tEx",
-  '_checkAnn', '_cA'
-]
-
-
-fun const-id(name :: String):
-  A.s-name(A.dummy-loc, name)
-end
-
-fun compiler-name(id):
-  const-id(string-append("$", id))
-end
-
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
 effective-ids = D.make-mutable-string-dict()
@@ -187,82 +158,6 @@ fun formal-shadow-name(id :: A.Name) -> A.Name:
   A.s-name(A.dummy-loc, string-append("$", js-id.tosourcestring()))
 end
 
-fun wrap-with-srcnode(l, expr :: J.JExpr):
-  cases(Loc) l:
-    | builtin(name) => expr
-    | srcloc(source, _, _, _, _, _, _) =>
-      J.j-sourcenode(l, source, expr)
-  end
-end
-
-fun get-dict-field(obj, field):
-  j-bracket(j-dot(obj, "dict"), field)
-end
-
-fun j-bool(b):
-  if b: j-true else: j-false end
-end
-
-get-field-loc = j-id(const-id("G"))
-throw-uninitialized = j-id(const-id("U"))
-source-name = j-id(const-id("M"))
-undefined = j-id(const-id("D"))
-RUNTIME = j-id(const-id("R"))
-NAMESPACE = j-id(const-id("NAMESPACE"))
-THIS = j-id(const-id("this"))
-ARGUMENTS = j-id(const-id("arguments"))
-
-fun rt-field(name): j-dot(RUNTIME, name) end
-
-fun get-field-unsafe(obj, field, loc-expr):
-  j-app(get-field-loc, [clist: obj, field, loc-expr])
-end
-
-fun get-field-safe(l, obj, field, loc):
-  wrap-with-srcnode(l, get-field-unsafe(obj, field, loc))
-end
-
-fun rt-method(name, args):
-  rt-name = cases(Option) rt-name-map.get(name):
-    | none => name
-    | some(short-name) => short-name
-  end
-
-  j-method(RUNTIME, rt-name, args)
-end
-
-fun check-fun(sourcemap-loc, variable-loc, f) block:
-  call = cases(SL.Srcloc) sourcemap-loc block:
-    | builtin(_) =>
-      j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])
-    | srcloc(_, _, _, _, _, _, _) =>
-      J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
-        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f]))
-  end
-  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block1(j-expr(call)))
-end
-
-fun app(l, f, args):
-  cases(SL.Srcloc) l:
-    | builtin(n) => j-method(f, "app", args)
-    | else =>
-        J.j-sourcenode(l, l.source, j-method(f, "app", args))
-  end
-end
-
-fun make-fun-name(compiler, loc) -> String:
-  "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
-end
-
-fun type-name(str :: String) -> String:
-  string-append("$type$", str)
-end
-
-fun raise-id-exn(loc, name):
-  j-app(throw-uninitialized, [clist: loc, j-str(name)])
-end
-
 fun import-key(i): AU.import-to-dep-anf(i).key() end
 
 # TODO(rachit): Factor these out from the anf-loop-compiler into compiler-utils
@@ -277,22 +172,6 @@ fun mk-abbrevs(l):
     j-var(const-id("M"), j-str(l.source)),
     j-var(const-id("D"), rt-field("undefined"))
   ]
-end
-
-fun obj-of-loc(l):
-  cases(Loc) l:
-    | builtin(name) => j-list(false, [clist: j-str(name)])
-    | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
-      j-list(false, [clist:
-          j-id(const-id("M")),
-          j-num(start-line),
-          j-num(start-col),
-          j-num(start-char),
-          j-num(end-line),
-          j-num(end-col),
-          j-num(end-char)
-        ])
-  end
 end
 
 fun compile-type-variant(variant):
@@ -330,26 +209,6 @@ fun compile-provided-data(typ :: T.DataType):
           end)])
   end
 end
-
-fun arity-check(loc-expr, arity :: Number):
-  len = j-id(compiler-name("l"))
-  iter = j-id(compiler-name("i"))
-  t = j-id(compiler-name("t"))
-  [clist:
-    j-var(len.id, j-dot(ARGUMENTS, "length")),
-    j-if1(j-binop(len, j-neq, j-num(arity)),
-      j-block([clist:
-          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
-          j-for(
-            true,
-            j-assign(iter.id, j-num(0)),
-            j-binop(iter, j-lt, len),
-            j-unop(iter, j-incr),
-            j-block1(
-              j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
-          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
-end
-
 
 fun compile-provided-type(typ):
   cases(T.Type) typ:
@@ -538,7 +397,6 @@ fun compile-anns(visitor, binds :: List<N.ABind>):
   end
 end
 
-# TODO(rachit): Need to do arity check.
 # cur-ans :: JExpr -> JExpr
 fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
       args :: List<N.ABind>,
@@ -575,6 +433,11 @@ fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
     cl-sing(j-var(ans, undefined)) ^
     cl-append(_, fun-body) ^
     cl-append(_, cl-sing(j-return(j-id(ans)))))
+
+  #|print(tostring(res) + "\n")|#
+  #|print("-------------------------\n")|#
+
+  res
 end
 
 fun compile-cases-branch(compiler, compiled-val, branch, cases-loc):

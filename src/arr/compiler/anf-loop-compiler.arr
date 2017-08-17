@@ -10,6 +10,7 @@ import file("concat-lists.arr") as CL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
+import file("compiler-utils.arr") as C
 import string-dict as D
 import srcloc as SL
 import sets as S
@@ -34,20 +35,6 @@ cl-sing = CL.concat-singleton
 cl-append = CL.concat-append
 cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
-
-fun cl-map-sd(f, sd):
-  for D.fold-keys(acc from cl-empty, key from sd):
-    cl-cons(f(key), acc)
-  end
-end
-
-fun make-fun-name(compiler, loc) -> String:
-  "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
-end
-
-fun type-name(str :: String) -> String:
-  string-append("$type$", str)
-end
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -101,9 +88,35 @@ j-for = J.j-for
 j-raw-code = J.j-raw-code
 make-label-sequence = J.make-label-sequence
 
-fun console-log(lst :: CL.ConcatList) -> J.JStmt:
-  j-expr(j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst))
-end
+get-field-loc = C.get-field-loc
+throw-uninitialized = C.throw-uninitialized
+source-name = C.source-name
+undefined = C.undefined
+RUNTIME = C.RUNTIME
+NAMESPACE = C.NAMESPACE
+THIS = C.THIS
+ARGUMENTS = C.ARGUMENTS
+
+j-bool = C.j-bool
+rt-field = C.rt-field
+rt-method = C.rt-method
+get-field-safe = C.get-field-safe
+get-field-unsafe = C.get-field-unsafe
+check-fun = C.check-fun
+app = C.app
+raise-id-exn = C.raise-id-exn
+cl-map-sd = C.cl-map-sd
+make-fun-name = C.make-fun-name
+type-name = C.type-name
+const-id = C.const-id
+compiler-name = C.compiler-name
+ann-loc = C.ann-loc
+rt-name-map = C.rt-name-map
+wrap-with-srcnode = C.wrap-with-srcnode
+get-dict-field = C.get-dict-field
+obj-of-loc = C.obj-of-loc
+console-log = C.console-log
+arity-check = C.arity-check
 
 is-t-data = T.is-t-data
 
@@ -137,150 +150,17 @@ fun js-id-of(id :: A.Name) -> A.Name:
   end
 end
 
-fun const-id(name :: String):
-  A.s-name(A.dummy-loc, name)
-end
-
-fun compiler-name(id):
-  const-id(string-append("$",id))
-end
-
 fun formal-shadow-name(id :: A.Name) -> A.Name:
   js-id = js-id-of(id)
   A.s-name(A.dummy-loc, string-append("$", js-id.tosourcestring()))
-end
-
-get-field-loc = j-id(const-id("G"))
-throw-uninitialized = j-id(const-id("U"))
-source-name = j-id(const-id("M"))
-undefined = j-id(const-id("D"))
-RUNTIME = j-id(const-id("R"))
-NAMESPACE = j-id(const-id("NAMESPACE"))
-THIS = j-id(const-id("this"))
-ARGUMENTS = j-id(const-id("arguments"))
-
-rt-name-map = [D.string-dict:
-  "addModuleToNamespace", "aMTN",
-  "checkArityC", "cAC",
-  "checkRefAnns", "cRA",
-  "derefField", "dF",
-  "getColonFieldLoc", "gCFL",
-  "getDotAnn", "gDA",
-  "getField", "gF",
-  "getFieldRef", "gFR",
-  "hasBrand", "hB",
-  "isActivationRecord", "isAR",
-  "isCont", "isC",
-  "isFunction", "isF",
-  "isMethod", "isM",
-  "isPyretException", "isPE",
-  "isPyretTrue", "isPT",
-  "makeActivationRecord", "mAR",
-  "makeBoolean", "mB",
-  "makeBranderAnn", "mBA",
-  "makeCont", "mC",
-  "makeDataValue", "mDV",
-  "makeFunction", "mF",
-  "makeGraphableRef", "mGR",
-  "makeMatch", "mM",
-  "makeMethod", "mMet",
-  "makeMethodN", "mMN",
-  "makeObject", "mO",
-  "makePredAnn", "mPA",
-  "makeRecordAnn", "mRA",
-  "makeTupleAnn", "mTA",
-  "makeVariantConstructor", "mVC",
-  "namedBrander", "nB",
-  "traceEnter", "tEn",
-  "traceErrExit", "tErEx",
-  "traceExit", "tEx",
-  '_checkAnn', '_cA'
-]
-
-j-bool = lam(b):
-  if b: j-true else: j-false end
-end
-
-fun obj-of-loc(l):
-  cases(Loc) l:
-    | builtin(name) => j-list(false, [clist: j-str(name)])
-    | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
-      j-list(false, [clist:
-          j-id(const-id("M")),
-          j-num(start-line),
-          j-num(start-col),
-          j-num(start-char),
-          j-num(end-line),
-          j-num(end-col),
-          j-num(end-char)
-        ])
-  end
-end
-
-fun wrap-with-srcnode(l, expr :: J.JExpr):
-  cases(Loc) l:
-    | builtin(name) => expr
-    | srcloc(source, _, _, _, _, _, _) =>
-      J.j-sourcenode(l, source, expr)
-  end
-end
-
-fun get-dict-field(obj, field):
-  j-bracket(j-dot(obj, "dict"), field)
-end
-
-# Use when we're sure the field will exist
-fun get-field-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
-  j-app(get-field-loc, [clist: obj, field, loc-expr])
-end
-
-# When the field may not exist, add source mapping so if we can't find it
-# we get a useful stacktrace
-fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
-  wrap-with-srcnode(l, get-field-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
   rt-method("getFieldRef", [clist: obj, field, loc])
 end
 
-fun raise-id-exn(loc, name):
-  j-app(throw-uninitialized, [clist: loc, j-str(name)])
-end
-
 fun add-stack-frame(exn-id, loc):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [clist: loc])
-end
-
-fun rt-field(name): j-dot(RUNTIME, name) end
-
-fun rt-method(name, args):
-  rt-name = cases(Option) rt-name-map.get(name):
-    | none => name
-    | some(short-name) => short-name
-  end
-
-  j-method(RUNTIME, rt-name, args)
-end
-
-fun app(l, f, args):
-  cases(SL.Srcloc) l:
-    | builtin(n) => j-method(f, "app", args)
-    | else =>
-      J.j-sourcenode(l, l.source, j-method(f, "app", args))
-  end
-end
-
-fun check-fun(sourcemap-loc, variable-loc, f) block:
-  call = cases(SL.Srcloc) sourcemap-loc block:
-    | builtin(_) => 
-      j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])
-    | srcloc(_, _, _, _, _, _, _) =>
-      J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
-        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f]))
-  end
-  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
-    j-block1(j-expr(call)))
 end
 
 c-exp = DAG.c-exp
@@ -289,12 +169,6 @@ c-block = DAG.c-block
 is-c-exp = DAG.is-c-exp
 is-c-field = DAG.is-c-field
 is-c-block = DAG.is-c-block
-
-fun ann-loc(ann):
-  if A.is-a-blank(ann): A.dummy-loc
-  else: ann.l
-  end
-end
 
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
@@ -366,25 +240,6 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-blank => c-exp(rt-field("Any"), cl-empty)
     | a-any(l) => c-exp(rt-field("Any"), cl-empty)
   end
-end
-
-fun arity-check(loc-expr, arity :: Number):
-  #|[list:
-    j-if1(j-binop(j-dot(ARGUMENTS, "length"), j-neq, j-num(arity)),
-      j-block([list:
-          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS])]))
-      ]))]|#
-  len = j-id(compiler-name("l"))
-  iter = j-id(compiler-name("i"))
-  t = j-id(compiler-name("t"))
-  [clist:
-    j-var(len.id, j-dot(ARGUMENTS, "length")),
-    j-if1(j-binop(len, j-neq, j-num(arity)),
-      j-block([clist:
-          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
-          j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
-            j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
-          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t]))]))]
 end
 
 no-vars = D.make-mutable-string-dict
@@ -561,7 +416,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   vars = all-needed-vars.map-keys-now(all-needed-vars.get-value-now(_))
 
   num-vars = vars.length()
-  
+
   switch-cases =
     main-body-cases
   ^ cl-snoc(_, j-case(local-compiler.cur-target, j-block(
@@ -578,7 +433,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         cl-sing(j-return(j-id(local-compiler.cur-ans))))))
   ^ cl-snoc(_, j-default(j-block1(
         j-expr(j-method(rt-field("ffi"), "throwSpinnakerError", [clist: local-compiler.get-loc(l), j-id(step)])))))
-        
+
   act-record = rt-method("makeActivationRecord", [clist:
       j-id(apploc),
       j-id(fun-name),
@@ -656,7 +511,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
     else:
       [clist:
           j-if1(stack-attach-guard,
-            j-block([clist: 
+            j-block([clist:
                 j-expr(j-bracket-assign(j-dot(j-id(local-compiler.cur-ans), "stack"),
                     j-unop(rt-field("EXN_STACKHEIGHT"), J.j-postincr), act-record))
             ])),
@@ -705,7 +560,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
       acc
     else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
       new-label = visitor.make-label()
-      new-case = 
+      new-case =
         j-case(cur-target,
           j-block(
             [clist:
@@ -864,7 +719,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
           #   j-expr(j-assign(ans, rt-method("callIfPossible" + tostring(num-args),
           #         link(compiler.get-loc(l), link(colon-field-id, link(obj-id, compiled-args))))))
           # else:
-            j-if(check-method, j-block([clist: 
+            j-if(check-method, j-block([clist:
                   j-expr(j-assign(ans, j-app(j-dot(colon-field-id, "full_meth"),
                         cl-cons(obj-id, compiled-args))))
                 ]),
@@ -1431,7 +1286,7 @@ compiler-visitor = {
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
   method a-tuple(self, l, values):
-    visit-vals = values.map(_.visit(self)) 
+    visit-vals = values.map(_.visit(self))
     c-exp(rt-method("makeTuple", [clist: j-list(false, CL.map_list(get-exp, visit-vals))]), cl-empty)
   end,
   method a-tuple-get(self, l, tup, index):
@@ -1705,7 +1560,7 @@ check:
 
 end
 |#
-   
+
 fun mk-abbrevs(l):
   loc = const-id("loc")
   name = const-id("name")
@@ -1815,7 +1670,7 @@ fun compile-provides(provides):
               j-field("bind", j-str("var")),
               j-field("typ", compile-provided-type(t))
             ]))
-          | v-fun(t, name, flatness) => 
+          | v-fun(t, name, flatness) =>
             j-field(v, j-obj([clist:
               j-field("bind", j-str("fun")),
               j-field("flatness", flatness.and-then(j-num).or-else(j-false)),
