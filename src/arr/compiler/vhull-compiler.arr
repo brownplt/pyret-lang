@@ -260,7 +260,7 @@ fun type-name(str :: String) -> String:
 end
 
 fun raise-id-exn(loc, name):
-  j-app(throw-uninitialized, [clist: loc, j-str])
+  j-app(throw-uninitialized, [clist: loc, j-str(name)])
 end
 
 fun import-key(i): AU.import-to-dep-anf(i).key() end
