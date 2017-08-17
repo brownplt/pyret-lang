@@ -683,10 +683,11 @@ end
 fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
   shadow b = b.value
   compiled-body = body.visit(compiler)
+  new-ans = js-id-of(b.id)
   binding = cases (N.ALettable) e:
     | a-if(l, p, c, a) =>
-      compiled-c = c.visit(compiler.{cur-ans: js-id-of(b.id)})
-      compiled-a = a.visit(compiler.{cur-ans: js-id-of(b.id)})
+      compiled-c = c.visit(compiler.{cur-ans: new-ans})
+      compiled-a = a.visit(compiler.{cur-ans: new-ans})
       [clist:
         j-var(js-id-of(b.id), undefined),
         j-if(
@@ -697,8 +698,8 @@ fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
     | a-cases(l, typ, val, branches, _else) =>
       compiled-val = val.visit(compiler).exp
       compiled-branches = branches.map(compile-cases-branch(
-        compiler, compiled-val, _, l))
-      compiled-else = _else.visit(compiler)
+        compiler.{cur-ans: new-ans}, compiled-val, _, l))
+      compiled-else = _else.visit(compiler.{cur-ans: new-ans})
 
       # The case name of a branch is the same as the corresponding constructor
       branch-labels = branches.map(lam(a): a.name end)
