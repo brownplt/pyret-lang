@@ -4745,7 +4745,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal("Numbers", "num-remainder",
         [n,                      m],
         [thisRuntime.Number, thisRuntime.Number]);
-      console.log('doing num_remainder', n, m);
       return thisRuntime.makeNumberBig(jsnums.remainder(n, m, NumberErrbacks));
     }
 
