@@ -855,7 +855,31 @@ compiler-visitor = {
   end,
   method a-cases(self, l :: Loc, typ :: A.Ann, val :: N.AVal,
     branches :: List<N.ACasesBranch>, _else :: N.AExpr):
-    raise("a-cases not implemented")
+    # TODO(rachit): This is redundant code. Remove this by writing better
+    # compile-let.
+    compiled-val = val.visit(self).exp
+    compiled-branches = branches.map(compile-cases-branch(
+      self, compiled-val, _, l))
+    compiled-else = _else.visit(self)
+
+    # The case name of a branch is the same as the corresponding constructor
+    branch-labels = branches.map(lam(a): a.name end)
+
+    branch-cases = for fold2(acc from cl-empty,
+      label from branch-labels, branch from compiled-branches) block:
+        acc
+        ^ cl-snoc(_, j-case(j-str(label), branch.block))
+        ^ cl-append(_, branch.new-cases)
+    end
+    branch-else-cases =
+      branch-cases
+      ^ cl-snoc(_, j-default(compiled-else.block))
+      ^ cl-append(_, compiled-else.new-cases)
+
+    binding = [clist:
+      j-switch(j-dot(compiled-val, "$name"), branch-else-cases)]
+
+    c-block(j-block(binding), cl-empty)
   end,
   method a-update(self, l, obj, fields):
     compiled-obj = obj.visit(self).exp
