@@ -49,6 +49,25 @@ fun please-report-bug():
   [ED.para: ED.text("Please report this as a bug.")]
 end
 
+fun and-if(predicate, option):
+  cases(O.Option) option:
+    | none => O.none
+    | some(v) =>
+      if predicate(v):
+        O.some(v)
+      else:
+        O.none
+      end
+  end
+end
+
+fun and-maybe(f, option):
+  cases(O.Option) option:
+    | none => O.none
+    | some(v) => f(v)
+  end
+end
+
 data RuntimeError:
   | multi-error(errors #|:: List<RuntimeError>|#) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1100,39 +1119,16 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.branch-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-cases-ast)
 
       destructured-definition =
         (O.some(self.constructor-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-constructor-ast)
 
       constructor-loc =
@@ -1331,39 +1327,16 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.branch-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-cases-ast)
 
       destructured-definition =
         (O.some(self.constructor-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-constructor-ast)
 
       fun pattern-prose(pattern, bindings):
@@ -1520,29 +1493,6 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       application-loc =
         maybe-stack-loc(0, false)
 
@@ -1553,14 +1503,14 @@ data RuntimeError:
 
       destructured-application =
         (application-loc ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-application-ast)
 
       destructured-definition =
         (O.some(self.fun-def-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-definition-ast)
 
       fun operator-prose(arguments, operator):
@@ -1777,29 +1727,6 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       application-loc =
         maybe-stack-loc(if self.fun-def-loc.is-builtin(): 0 else: 1 end, false)
 
@@ -1810,14 +1737,14 @@ data RuntimeError:
 
       destructured-application =
         (application-loc ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-application-ast)
 
       destructured-definition =
         (O.some(self.fun-def-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-definition-ast)
 
       fun operator-prose(arguments, operator):
@@ -2249,33 +2176,10 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.operation-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(destructure-ast)
 
       table-text =
@@ -2334,33 +2238,10 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.operation-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(destructure-ast)
 
       table-text =
