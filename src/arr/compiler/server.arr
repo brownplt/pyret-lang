@@ -17,6 +17,7 @@ fun compile(options):
     options.get-value("require-config"),
     outfile,
     CS.default-compile-options.{
+      this-pyret-dir : options.get-value("this-pyret-dir"),
       check-mode : not(options.get("no-check-mode").or-else(false)),
       type-check : options.get("type-check").or-else(false),
       allow-shadowed : options.get("allow-shadowed").or-else(false),
@@ -28,11 +29,11 @@ fun compile(options):
       display-progress: options.get("display-progress").or-else(true),
       log: options.get("log").or-else(CS.default-compile-options.log),
       log-error: options.get("log-error").or-else(CS.default-compile-options.log-error),
-      bundle-dependencies: options.get("bundle-dependencies").or-else(true)
+      deps-file: options.get("deps-file").or-else(CS.default-compile-options.deps-file)
     })
 end
 
-fun serve(port):
+fun serve(port, pyret-dir):
   S.make-server(port, lam(msg, send-message) block:
     # print("Got message in pyret-land: " + msg)
     opts = J.read-json(msg).native()
@@ -69,6 +70,7 @@ fun serve(port):
         d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
         send-message(J.j-obj(d).serialize())
       end)
-    compile(with-error)
+    with-pyret-dir = with-error.set("this-pyret-dir", pyret-dir)
+    compile(with-pyret-dir)
   end)
 end

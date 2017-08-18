@@ -26,7 +26,7 @@ fun main(args :: List<String>) -> Number block:
     "serve",
       C.flag(C.once, "Start the Pyret server"),
     "port",
-      C.next-val-default(C.String, "1701", none, C.once, "Port to serve on (default 1701)"),
+      C.next-val-default(C.String, "1701", none, C.once, "Port to serve on (default 1701, can also be UNIX file socket or windows pipe)"),
     "build-standalone",
       C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "build-runnable",
@@ -146,7 +146,7 @@ fun main(args :: List<String>) -> Number block:
           success-code
         else if r.has-key("serve"):
           port = r.get-value("port")
-          S.serve(port)
+          S.serve(port, this-pyret-dir)
           success-code
         else if r.has-key("build-standalone"):
           print-error("Use build-runnable instead of build-standalone\n")

@@ -32,3 +32,6 @@ define("lockfile", [], function () { return lockfile; });
 websocket = nodeRequire("websocket");
 define("websocket", [], function () { return websocket });
 
+ws = nodeRequire("ws");
+define("ws", [], function () { return ws });
+
