@@ -68,6 +68,22 @@ fun and-maybe(f, option):
   end
 end
 
+fun destructure-method-application(l, src-available, maybe-ast):
+  l ^ and-if(src-available, _)
+    ^ and-maybe(maybe-ast, _)
+    ^ and-maybe({(ast):
+        cases(Any) ast:
+          | s-app(_, _fun, args)  =>
+            O.some({cases(Any) _fun:
+                      | s-dot(_, t, m) => O.some(t.l)
+                      | else           => O.none
+                    end; args.map(_.l)})
+          | s-dot(_, _fun, args)  => O.some({O.some(_fun.l); args.map(_.l)})
+          | s-op(_,_,_,l-op,r-op) => O.some({O.some(r-op.l); [ED.locs: l-op.l]})
+          | else                  => O.none
+        end}, _)
+end
+
 data RuntimeError:
   | multi-error(errors #|:: List<RuntimeError>|#) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1926,6 +1942,97 @@ data RuntimeError:
         vert-list-values(raw-array-to-list(self.provided-vals))]
     end
 
+  | col-length-mismatch(colname, expected, actual, value) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      application-loc = maybe-stack-loc(0, true)
+
+      intro-prose =
+        application-loc
+          .and-then({(l):
+            if src-available(l):
+              [ED.sequence:
+                [ED.para:
+                  ED.text("This "),
+                  ED.highlight(
+                    [ED.sequence: ED.code(ED.text("add-column")),
+                                  ED.text(" operation")],
+                    [ED.locs: l], -1),
+                  ED.text(" errored:")],
+                ED.cmcode(l)]
+            else:
+              [ED.para:
+                ED.text("An "),
+                ED.code(ED.text("add-column")),
+                ED.text(" operation in "),
+                ED.loc(l),
+                ED.text(" errored.")]
+            end})
+          .or-else(
+            [ED.para:
+              ED.text("An "),
+              ED.code(ED.text("add-column")),
+              ED.text(" operation errored.")])
+
+      info-prose =
+        destructure-method-application(application-loc, src-available, maybe-ast)
+          .and-then({({maybe-table; args}):
+              tbl = maybe-table
+                  .and-then({(tl): ED.highlight(ED.text("table"), [ED.locs: tl], 0)})
+                  .or-else(ED.text("table"))
+              [ED.para:
+                ED.text("The "),
+                tbl,
+                ED.text(" had "),
+                ED.ed-rows(self.expected),
+                ED.text(", but "),
+                ED.ed-values(self.actual),
+                ED.text(" were "),
+                ED.highlight(ED.text("provided"), [ED.locs: args.get(1)], 1),
+                ED.text(":")]})
+          .or-else(
+            [ED.para:
+              ED.text("The table had "),
+              ED.ed-rows(self.expected),
+              ED.text(", but "),
+              ED.ed-values(self.actual),
+              ED.text(" were provided:")])
+
+      [ED.error:
+        intro-prose,
+        info-prose,
+        ED.embed(self.value),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("add-column")),
+          ED.text(" operation expects the number of provided values to match the number of rows in the table.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        ED.maybe-stack-loc(0, true,
+          {(l):
+            [ED.para:
+              ED.text("An "),
+              ED.code(ED.text("add-column")),
+              ED.text(" operation in "),
+              ED.loc(l),
+              ED.text(" errored.")]},
+          [ED.para:
+            ED.text("An "),
+            ED.code(ED.text("add-column")),
+            ED.text(" operation errored.")]),
+        [ED.para:
+          ED.text("The table had "),
+          ED.ed-rows(self.expected),
+          ED.text(", but "),
+          ED.ed-values(self.actual),
+          ED.text(" were provided:")],
+        ED.embed(self.value),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("add-column")),
+          ED.text(" operation expects the number of provided values to match the number of rows in the table.")]]
+    end
+
   | non-function-app(loc, non-fun-val) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
@@ -2278,6 +2385,7 @@ data RuntimeError:
           ED.code(ED.text(self.column-name)),
           ED.text(".")]]
     end
+
   | user-break with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()

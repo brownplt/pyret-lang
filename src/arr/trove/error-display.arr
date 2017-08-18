@@ -128,6 +128,18 @@ fun ed-components(n):
     text(if n == 1: " component" else: " components" end)]
 end
 
+fun ed-rows(n):
+  [sequence:
+    embed(n),
+    text(if n == 1: " row" else: " rows" end)]
+end
+
+fun ed-values(n):
+  [sequence:
+    embed(n),
+    text(if n == 1: " value" else: " values" end)]
+end
+
 fun ed-nth(n):
   text(
     let last-digit = num-modulo(n,10):

@@ -351,6 +351,13 @@
       raise(err("row-length-mismatch")(colnames, providedVals));
     }
 
+    function throwColLengthMismatch(colname, expected, actual, value) {
+      runtime.checkString(colname);
+      runtime.checkNumber(actual);
+      runtime.checkNumber(expected);
+      raise(err("col-length-mismatch")(colname, expected, actual, value));
+    }
+
     function throwArityErrorC(funLoc, arity, args, isMethod) {
       var loc = runtime.makeSrcloc(funLoc);
       var argsPyret = makeList(args);
@@ -582,6 +589,7 @@
       throwArityError: throwArityError,
       throwArityErrorC: throwArityErrorC,
       throwRowLengthMismatch: throwRowLengthMismatch,
+      throwColLengthMismatch: throwColLengthMismatch,
       throwConstructorArityErrorC: throwConstructorArityErrorC,
       throwCasesArityError: throwCasesArityError,
       throwCasesArityErrorC: throwCasesArityErrorC,

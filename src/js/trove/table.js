@@ -370,7 +370,7 @@
           runtime.checkList(eltList);
           var asArray = runtime.ffi.toArray(eltList);
           if(rows.length !== asArray.length) {
-            throw runtime.ffi.throwMessageException("column-length-mismatch");
+            throw runtime.ffi.throwColLengthMismatch(colname, rows.length, asArray.length, eltList);
           }
 
           var newRows = [];
