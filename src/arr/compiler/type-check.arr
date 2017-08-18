@@ -240,11 +240,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
         end
       end, context)
 
-      #print("\n\n")
-      #each(lam(x) block:
+      # print("\n\n")
+      # each(lam(x) block:
       #  print(x)
       #  print("\n")
-      #end, body.tosource().pretty(72))
+      # end, body.tosource().pretty(72))
 
       tc-result = checking(body, t-top(l, false), true, context)
       cases(TypingResult) tc-result:
@@ -263,18 +263,18 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
 end
 
 fun checking(e, expect-typ, top-level, context) block:
-  #print("\n\n")
-  #print("checking:\n")
-  #each(lam(x) block:
+  # print("\n\n")
+  # print("checking:\n")
+  # each(lam(x) block:
   #  print(x)
   #  print("\n")
-  #end, e.tosource().pretty(72))
-  #print("has type: " + tostring(expect-typ) + "\n    (")
-  #result = _checking(e, expect-typ, top-level, context)
-  #print("\n\nresult:\n")
-  #print(result)
-  #print("\n    )")
-  #result
+  # end, e.tosource().pretty(72))
+  # print("has type: " + tostring(expect-typ) + "\n    (")
+  # result = _checking(e, expect-typ, top-level, context)
+  # print("\n\nresult:\n")
+  # print(result)
+  # print("\n    )")
+  # result
   _checking(e, expect-typ, top-level, context)
 end
 
@@ -450,7 +450,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             typing-result(e, expect-type, context)
           end)
         | s-check-expr(l, expr, ann) =>
-          raise("checking for s-check-expr not implemented")
+          synthesis(expr, false, context) # XXX: this should probably use the annotation instead
         | s-paren(l, expr) =>
           raise("s-paren should have already been desugared")
         | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
@@ -545,6 +545,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-frac(l, num, den) =>
           check-synthesis(e, expect-type, top-level, context)
+        | s-rfrac(l, num, den) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-bool(l, b) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-str(l, s) =>
@@ -569,18 +571,18 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
 end
 
 fun synthesis(e, top-level, context) block:
-  #print("\n\n")
-  #print("synthesis on:\n")
-  #each(lam(x) block:
+  # print("\n\n")
+  # print("synthesis on:\n")
+  # each(lam(x) block:
   #  print(x)
   #  print("\n")
-  #end, e.tosource().pretty(72))
-  #print("    (")
-  #result = _synthesis(e, top-level, context)
-  #print("\n\nresult:\n")
-  #print(result)
-  #print("\n    )")
-  #result
+  # end, e.tosource().pretty(72))
+  # print("    (")
+  # result = _synthesis(e, top-level, context)
+  # print("\n\nresult:\n")
+  # print(result)
+  # print("\n    )")
+  # result
   _synthesis(e, top-level, context)
 end
 
@@ -708,7 +710,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         typing-result(e, result-type, context)
       end)
     | s-check-expr(l, expr, ann) =>
-      raise("synthesis for s-check-expr not implemented")
+      synthesis(expr, false, context) # XXX: this should probably use the annotation instead
     | s-paren(l, expr) =>
       raise("s-paren should have already been desugared")
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
@@ -800,6 +802,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       typing-result(e, t-number(l), context)
     | s-frac(l, num, den) =>
       typing-result(e, t-number(l), context)
+    | s-rfrac(l, num, den) =>
+      typing-result(e, t-number(l), context)
     | s-bool(l, b) =>
       typing-result(e, t-boolean(l), context)
     | s-str(l, s) =>
@@ -889,6 +893,7 @@ end
 
 fun check-synthesis(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: Context) -> TypingResult:
   synthesis(e, top-level, context).bind(lam(new-expr, new-type, shadow context):
+    # TODO(MATT): decide whether this should return new-type or expect-type
     typing-result(new-expr, new-type, context.add-constraint(new-type, expect-type))
   end)
 end
@@ -1249,8 +1254,30 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
             instantiate-data-type(val-type, context).typing-bind(lam(data-type, shadow context):
               branch-tracker = track-branches(data-type)
               temp-result = map-fold-result(lam(branch, shadow context):
+                maybe-key-to-update = cases(Expr) val:
+                  | s-id(_, val-id) =>
+                    some(val-id.key())
+                  | s-id-var(_, val-id) =>
+                    some(val-id.key())
+                  | s-id-letrec(_, val-id, _) =>
+                    some(val-id.key())
+                  | else =>
+                    none
+                end
+                shadow context = cases(Option<String>) maybe-key-to-update:
+                  | some(key-to-update) =>
+                    context.add-binding(key-to-update, t-data-refinement(val-type, branch.name, l, true))
+                  | none =>
+                    context
+                end
                 branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
                 branch-result.bind(lam(branch-type-pair, shadow context):
+                  shadow context = cases(Option<String>) maybe-key-to-update:
+                    | some(key-to-update) =>
+                      context.add-binding(key-to-update, val-type)
+                    | none =>
+                      context
+                  end
                   fold-result(branch-type-pair, context)
                 end)
               end, branches, context)
@@ -2063,6 +2090,8 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
       end
     | a-type-var(l, id) =>
       fold-result(some(t-var(id, l, false)), context)
+    | a-arrow-argnames(l, args, ret, use-parens) =>
+      to-type(A.a-arrow(l, args.map(_.ann), ret, use-parens), context)
     | a-arrow(l, args, ret, _) =>
       fold-arg-typs = map-fold-result(lam(arg, shadow context):
         to-type(arg, context).bind(lam(maybe-new-typ, shadow context):

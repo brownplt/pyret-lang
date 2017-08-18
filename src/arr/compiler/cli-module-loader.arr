@@ -78,7 +78,7 @@ type Loadable = CL.Loadable
 type Either = E.Either
 
 fun uri-to-path(uri, name):
-  crypto.sha256(uri) + "-" + name
+  name + "-" + crypto.sha256(uri)
 end
 
 fun get-cached-if-available(basedir, loc) block:
@@ -419,7 +419,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
       when options.collect-times: stats.set-now("standalone", time-now()) end
       make-standalone-res = MS.make-standalone(program.natives, program.js-ast,
         JSON.j-obj(config.freeze()).serialize(), options.standalone-file,
-        options.bundle-dependencies)
+        options.deps-file, options.this-pyret-dir)
 
       html-res = if is-some(options.html-file):
         MS.make-html-file(outfile, options.html-file.value)

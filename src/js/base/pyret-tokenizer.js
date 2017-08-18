@@ -121,9 +121,11 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
 
   const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
 
-  const roughnum = new RegExp("^~[-+]?"  + "(?:" + unsigned_rational_part + "|" + unsigned_decimal_part + ")", STICKY_REGEXP);
+  const roughnum = new RegExp("^~[-+]?"  + unsigned_decimal_part, STICKY_REGEXP);
 
   const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
+
+  const roughrational = new RegExp("^~[-+]?" + unsigned_rational_part, STICKY_REGEXP);
 
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
@@ -234,6 +236,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "VAR", val: new RegExp(kw("var"), STICKY_REGEXP)},
     {name: "REC", val: new RegExp(kw("rec"), STICKY_REGEXP)},
     {name: "LETREC", val: new RegExp(kw("letrec"), STICKY_REGEXP)},
+    {name: "SPY", val: new RegExp(kw("spy"), STICKY_REGEXP)},
     {name: "LET", val: new RegExp(kw("let"), STICKY_REGEXP)},
     {name: "FUN", val: new RegExp(kw("fun"), STICKY_REGEXP)},
     {name: "LAM", val: new RegExp(kw("lam"), STICKY_REGEXP)},
@@ -245,6 +248,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
     {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
+    {name: "EXAMPLES", val: new RegExp(colonKw("examples"), STICKY_REGEXP), parenIsForExp: true},
     {name: "TABLE", val: new RegExp(colonKw("table:"), STICKY_REGEXP)},
     {name: "ROW", val: new RegExp(colonKw("row:"), STICKY_REGEXP)},
     {name: "USING", val: new RegExp(colonKw("using"), STICKY_REGEXP)},
@@ -295,6 +299,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BAR", val: bar, parenIsForExp: true},
 
     {name: "RATIONAL", val: rational},
+    {name: "ROUGHRATIONAL", val: roughrational},
     {name: "NUMBER", val: number},
     {name: "NUMBER", val: roughnum},
     {name: "LONG_STRING", val: tquot_str},

@@ -6,6 +6,7 @@ import ast as A
 import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
+import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("gensym.arr") as G
@@ -118,23 +119,147 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr> block:
   end
 end
 
+is-s-contract = A.is-s-contract
+type Contract = A.Expr%(is-s-contract)
+
+# Note: binds are maintained in reversed order, for efficiency in adding new items to them
+# They get reversed back to correct order in bind-wrap.
 data BindingGroup:
-  | let-binds(binds :: List<A.LetBind>)
-  | letrec-binds(binds :: List<A.LetrecBind>)
+  | let-binds(contracts :: List<Contract>, binds :: List<A.LetBind>)
+  | letrec-binds(contracts :: List<Contract>, binds :: List<A.LetrecBind>)
   | type-let-binds(binds :: List<A.TypeLetBind>)
 end
 
+var errors = empty # THE MUTABLE LIST OF ERRORS
+
+fun weave-contracts(contracts, rev-binds) block:
+  # When weaving contracts, ensure that the contract location is before the definition
+  # or else give a well-formedness error.
+  # NOTE(Ben): This code is polymorphic over LetBind and LetrecBind
+  contracts-sd = [SD.mutable-string-dict: ]
+  for each(c from contracts):
+    name = c.name.toname()
+    cases(Option) contracts-sd.get-now(name):
+      | none =>
+        contracts-sd.set-now(name, c)
+      | some(c2) =>
+        errors := link(C.contract-redefined(c.l, name, c2.l), errors)
+    end
+  end
+  fun rebuild-bind(bind, new-b, new-v):
+    if      A.is-s-let-bind(bind): A.s-let-bind(bind.l, new-b, new-v)
+    else if A.is-s-var-bind(bind): A.s-var-bind(bind.l, new-b, new-v)
+    else if A.is-s-letrec-bind(bind): A.s-letrec-bind(bind.l, new-b, new-v)
+    end
+  end
+  fun names-match(funargs :: List<A.Bind>, annargs :: List<A.AField>):
+    if is-empty(funargs) and is-empty(annargs): true
+    else if is-empty(funargs) or is-empty(annargs): false
+    else:
+      (funargs.first.id.toname() == annargs.first.name) and names-match(funargs.rest, annargs.rest)
+    end
+  end
+  fun fun-to-lam(bind):
+    new-v = cases(A.Expr) bind.value:
+      | s-fun(l-fun, name, params, args, ret, doc, body, _check-loc, _check, blocky) =>
+        A.s-lam(l-fun, name, params, args, ret, doc, body, _check-loc, _check, blocky)
+      | else => bind.value
+    end
+    if      A.is-s-let-bind(bind): A.s-let-bind(bind.l, bind.b, new-v)
+    else if A.is-s-var-bind(bind): A.s-var-bind(bind.l, bind.b, new-v)
+    else if A.is-s-letrec-bind(bind): A.s-letrec-bind(bind.l, bind.b, new-v)
+    end
+  end
+    
+  ans = for fold(acc from empty, bind from rev-binds):
+    cases(A.Bind) bind.b:
+      | s-bind(l, shadows, id, ann) =>
+        id-name = id.toname()
+        cases(Option) contracts-sd.get-now(id-name) block:
+          | none => link(fun-to-lam(bind), acc)
+          | some(c) =>
+            contracts-sd.remove-now(id-name)
+            if A.is-a-blank(ann) block:
+              if not(c.l.before(bind.value.l)) block:
+                errors := link(C.contract-bad-loc(c.l, id-name, bind.value.l), errors)
+                link(fun-to-lam(bind), acc)
+              else:
+                cases(A.Expr) bind.value:
+                  | s-fun(l-fun, name, params, args, ret, doc, body, _check-loc, _check, blocky) =>
+                    if not(args.all({(a): A.is-a-blank(a.ann)}) and A.is-a-blank(ret)) block:
+                      errors := link(C.contract-redefined(c.l, id-name, l-fun), errors)
+                      link(fun-to-lam(bind), acc)
+                    else if A.is-a-arrow(c.ann):
+                      if c.ann.args.length() <> args.length() block:
+                        errors := link(C.contract-inconsistent-names(c.l, id-name, l-fun), errors)
+                        link(fun-to-lam(bind), acc)
+                      else:
+                        new-args = for map2(a from args, shadow ann from c.ann.args):
+                          A.s-bind(a.l, a.shadows, a.id, ann)
+                        end
+                        link(
+                          rebuild-bind(bind,
+                            bind.b,
+                            A.s-lam(l, name, params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
+                          acc)
+                      end
+                    else if A.is-a-arrow-argnames(c.ann):
+                      if not(names-match(args, c.ann.args)) block:
+                        errors := link(C.contract-inconsistent-names(c.l, id-name, l), errors)
+                        link(fun-to-lam(bind), acc)
+                      else:
+                        new-args = for map2(a from args, shadow ann from c.ann.args):
+                          A.s-bind(a.l, a.shadows, a.id, ann.ann)
+                        end
+                        link(
+                          rebuild-bind(bind,
+                            bind.b,
+                            A.s-lam(l, name, params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
+                          acc)                        
+                      end
+                    else:
+                      errors := link(C.contract-non-function(c.l, id-name, l, true), errors)
+                      link(fun-to-lam(bind), acc)
+                    end
+                  | else =>
+                    if A.is-a-arrow(c.ann) or A.is-a-arrow-argnames(c.ann) block:
+                      errors := link(C.contract-non-function(c.l, id-name, bind.value.l, false), errors)
+                      link(bind, acc)
+                    else:
+                      link(rebuild-bind(bind, A.s-bind(l, shadows, id, c.ann), bind.value), acc)
+                    end
+                end
+              end
+            else:
+              errors := link(C.contract-redefined(c.l, id-name, l), errors)
+              link(fun-to-lam(bind), acc)
+            end
+        end
+      | else => link(bind, acc)
+    end
+  end
+  contracts-sd.each-key-now(lam(c-name):
+      c = contracts-sd.get-value-now(c-name)
+      errors := link(C.contract-unused(c.l, c-name), errors)
+    end)
+  ans
+end
+
 fun bind-wrap(bg, expr) -> A.Expr:
-  cases(List) bg.binds:
-    | empty => expr
+  cases(List) bg.binds block:
+    | empty =>
+      for each(c from bg.contracts):
+        errors := link(C.contract-unused(c.l, c.name.toname()), errors)
+      end
+      expr
     | else =>
       cases(BindingGroup) bg:
-        | let-binds(binds) =>
-          A.s-let-expr(binds.first.l, binds.reverse(), expr, false)
-        | letrec-binds(binds) =>
-          A.s-letrec(binds.first.l, binds.reverse(), expr, false)
-        | type-let-binds(binds) =>
-          A.s-type-let-expr(binds.first.l, binds.reverse(), expr, false)
+        | let-binds(contracts, rev-binds) =>
+          A.s-let-expr(rev-binds.first.l, weave-contracts(contracts, rev-binds), expr, false)
+        | letrec-binds(contracts, rev-binds) =>
+          A.s-letrec(rev-binds.first.l, weave-contracts(contracts, rev-binds), expr, false)
+        | type-let-binds(rev-binds) =>
+          A.s-type-let-expr(rev-binds.first.l, rev-binds.reverse(), expr, false)
       end
   end
 end
@@ -145,10 +270,10 @@ end
 
 fun add-letrec-binds(bg :: BindingGroup, lrbs :: List<A.LetrecBind>, stmts :: List<A.Expr>) -> A.Expr:
   cases(BindingGroup) bg:
-    | letrec-binds(binds) =>
-      desugar-scope-block(stmts, letrec-binds(lrbs + binds))
+    | letrec-binds(contracts, binds) =>
+      desugar-scope-block(stmts, letrec-binds(contracts, lrbs + binds))
     | else =>
-      bind-wrap(bg, desugar-scope-block(stmts, letrec-binds(lrbs)))
+      bind-wrap(bg, desugar-scope-block(stmts, letrec-binds(empty, lrbs)))
   end
 end
 
@@ -190,15 +315,15 @@ fun add-let-binds(bg :: BindingGroup, lbs :: List<A.LetBind>, stmts :: List<A.Ex
     end
   end
   cases(BindingGroup) bg:
-    | let-binds(binds) =>
-      desugar-scope-block(stmts, let-binds(simplified-lbs + binds))
+    | let-binds(contracts, binds) =>
+      desugar-scope-block(stmts, let-binds(contracts, simplified-lbs + binds))
     | else =>
-      bind-wrap(bg, desugar-scope-block(stmts, let-binds(simplified-lbs)))
+      bind-wrap(bg, desugar-scope-block(stmts, let-binds(empty, simplified-lbs)))
   end
 end
 
 fun add-let-bind(bg :: BindingGroup, lb :: A.LetBind, stmts :: List<A.Expr>) -> A.Expr:
- add-let-binds(bg, [list: lb], stmts)
+  add-let-binds(bg, [list: lb], stmts)
 end
 
 fun add-type-let-bind(bg :: BindingGroup, tlb :: A.TypeLetBind, stmts :: List<A.Expr>) -> A.Expr:
@@ -209,6 +334,34 @@ fun add-type-let-bind(bg :: BindingGroup, tlb :: A.TypeLetBind, stmts :: List<A.
       bind-wrap(bg, desugar-scope-block(stmts, type-let-binds(link(tlb, empty))))
   end
 end
+
+fun add-contracts(bg :: BindingGroup, cs :: List<Contract>, stmts :: List<A.Expr>) -> A.Expr:
+  # The type of the next statement determines which binding group this contract belongs in
+  cases(List) stmts block:
+    | empty =>
+      # NOTE(Ben): would rather raise an informative error than a "no cases matched" error,
+      # if somehow this invariant is violated
+      raise("Impossible: well-formedness prohibits contracts being last in block (at " + to-string(cs.first.l) + ")")
+    | link(first, rest) =>
+      # Construct the appropriate binding group (containing just the initial contract)
+      # depending on the next binding: mimics the cases logic in desugar-scope-block, but defers
+      # all actual processing to that function
+      if A.is-s-rec(first) or A.is-s-fun(first) or A.is-s-data-expr(first) or A.is-s-check(first):
+        if is-letrec-binds(bg): # keep the current binding group going
+          desugar-scope-block(stmts, letrec-binds(cs + bg.contracts, bg.binds))
+        else:
+          bind-wrap(bg, desugar-scope-block(stmts, letrec-binds(cs, empty)))
+        end
+      else:
+        if is-let-binds(bg): # keep the current binding group going
+          desugar-scope-block(stmts, let-binds(cs + bg.contracts, bg.binds))
+        else:
+          bind-wrap(bg, desugar-scope-block(stmts, let-binds(cs, empty)))
+        end
+      end
+  end
+end
+
 
 fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) -> A.Expr:
   doc: ```
@@ -221,6 +374,9 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
       cases(A.Expr) f:
         | s-type(l, name, params, ann) =>
           add-type-let-bind(binding-group, A.s-type-bind(l, name, params, ann), rest-stmts)
+        | s-contract(l, name, ann) =>
+          {contracts; shadow rest-stmts} = L.take-while(A.is-s-contract, rest-stmts)
+          add-contracts(binding-group, link(f, contracts), rest-stmts)
         | s-let(l, bind, expr, _) =>
           add-let-bind(binding-group, A.s-let-bind(l, bind, expr), rest-stmts)
         | s-var(l, bind, expr) =>
@@ -231,8 +387,10 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
               A.s-bind(l, false, A.s-name(l, name), A.a-blank),
-              A.s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
-            ), rest-stmts)
+              # NOTE(Ben): deliberately keeping this as an s-fun;
+              # it'll get turned into an s-lam in weave-contracts
+              f
+              ), rest-stmts)
         | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
           fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(loc, id), A.a-blank) end
           fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank) end
@@ -253,8 +411,6 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
             variant-binds(A.s-id-letrec(v.l, blob-id, true), v) + acc
           end
           add-letrec-binds(binding-group, all-binds, rest-stmts)
-        | s-contract(l, name, ann) =>
-          desugar-scope-block(rest-stmts, binding-group)
         | s-check(l, name, body, keyword) =>
           fun b(loc): A.s-bind(loc, false, A.s-underscore(l), A.a-blank) end
           add-letrec-binds(binding-group, [list: A.s-letrec-bind(l, b(l), A.s-check(l, name, body, keyword))], rest-stmts)
@@ -262,7 +418,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
           cases(List) rest-stmts:
             | empty => bind-wrap(binding-group, f)
             | link(_, _) =>
-              rest-stmt = desugar-scope-block(rest-stmts, let-binds(empty))
+              rest-stmt = desugar-scope-block(rest-stmts, let-binds(empty, empty))
               shadow rest-stmts = cases(A.Expr) rest-stmt:
                 | s-block(_, shadow stmts) => link(f, stmts)
                 | else => [list: f, rest-stmt]
@@ -272,7 +428,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
       end
   end
 where:
-  dsb = desugar-scope-block(_, let-binds(empty))
+  dsb = desugar-scope-block(_, let-binds(empty, empty))
   p = lam(str): PP.surface-parse(str, "test").block end
   d = A.dummy-loc
   b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end
@@ -285,9 +441,10 @@ where:
   thunk = lam(e): A.s-lam(d, "", [list: ], [list: ], A.a-blank, "", bk(e), n, n, false) end
 
 
-  compare1 = A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
-                                      A.s-let-bind(d, b("y"), A.s-num(d, 10))],
-                        id("y"), false)
+  compare1 =
+    A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
+      A.s-let-bind(d, b("y"), A.s-num(d, 10))],
+    id("y"), false)
   dsb(p("x = 15 y = 10 y").stmts).visit(A.dummy-loc-visitor)
     is compare1
 
@@ -296,19 +453,19 @@ where:
       A.s-var-bind(d, b("y"), A.s-num(d, 10))], id("y"), false)
 
   bs("x = 7 print(2) var y = 10 y") is
-    A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7))],
-        A.s-block(d, [list:
-            A.s-app(d, id("print"), [list:A.s-num(d, 2)]),
-            A.s-let-expr(d, [list:A.s-var-bind(d, b("y"), A.s-num(d, 10))],
-              id("y"), false)
-        ]), false)
+  A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7))],
+    A.s-block(d, [list:
+        A.s-app(d, id("print"), [list:A.s-num(d, 2)]),
+        A.s-let-expr(d, [list:A.s-var-bind(d, b("y"), A.s-num(d, 10))],
+          id("y"), false)
+      ]), false)
 
   prog = bs("fun f(): 4 end fun g(): 5 end f()")
   prog is A.s-letrec(d, [list:
-            A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
-            A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5)))
-          ],
-          A.s-app(d, id("f"), [list: ]), false)
+      A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
+      A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5)))
+    ],
+    A.s-app(d, id("f"), [list: ]), false)
 
   p-s = lam(e): A.s-app(d, id("print"), [list: e]) end
   pretty = lam(e): e.tosource().pretty(80).join-str("\n") end
@@ -383,7 +540,7 @@ end
 
 desugar-scope-visitor = A.default-map-visitor.{
   method s-block(self, l, stmts):
-    desugar-scope-block(stmts.map(_.visit(self)), let-binds(empty))
+    desugar-scope-block(stmts.map(_.visit(self)), let-binds(empty, empty))
   end,
   method s-let-expr(self, l, binds, body, blocky):
     v-body = body.visit(self)
@@ -436,7 +593,7 @@ desugar-scope-visitor = A.default-map-visitor.{
   end
 }
 
-fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
+fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeResolution:
   doc: ```
        Remove x = e, var x = e, tuple bindings, and fun f(): e end
        and turn them into explicit let and letrec expressions.
@@ -447,20 +604,21 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
          - contains no s-provide in headers
          - contains no s-let, s-var, s-data, s-tuple-bind
        ```
-  cases(A.Program) prog:
+  cases(A.Program) prog block:
     | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
       imports = imports-raw.map(lam(i): expand-import(i, env) end)
       str = A.s-str(l, _)
-      prov = cases(A.Provide) resolve-provide(_provide-raw, body):
+      resolved-provides = resolve-provide(_provide-raw, body)
+      prov = cases(A.Provide) resolved-provides:
         | s-provide-none(_) => A.s-obj(l, [list: ])
         | s-provide(_, block) => block
         | else => raise("Should have been resolved away")
       end
-      provides = resolve-type-provide(provide-types-raw, body)
-      provt = cases(A.ProvideTypes) provides:
+      resolved-type-provides = resolve-type-provide(provide-types-raw, body)
+      provt = cases(A.ProvideTypes) resolved-type-provides:
         | s-provide-types-none(_) => [list: ]
         | s-provide-types(_, anns) => anns
-        | else => raise("Should have been resolve-typed away" + torepr(provides))
+        | else => raise("Should have been resolve-typed away" + torepr(resolved-type-provides))
       end
       # TODO: Need to resolve provide-types here
       with-imports = cases(A.Expr) body:
@@ -488,18 +646,36 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment):
           end
         | else => raise("Impossible")
       end
-
-      A.s-program(l, resolve-provide(_provide-raw, body), resolve-type-provide(provide-types-raw, body),
-        imports, with-provides.visit(desugar-scope-visitor))
+      
+      errors := empty
+      {initial-contracts; stmts} = L.take-while(A.is-s-contract, with-provides.stmts)
+      all-imported-names = [SD.mutable-string-dict: ]
+      for each(im from imports):
+        for each(v from im.values):
+          all-imported-names.set-now(v.toname(), im.import-type)
+        end
+      end
+      remaining = for filter(c from initial-contracts):
+        c-name = c.name.toname()
+        cases(Option) all-imported-names.get-now(c-name) block:
+          | none => true # keep this; it may be needed below
+          | some(im-type) =>
+            errors := link(C.contract-on-import(c.l, c-name, im-type), errors)
+            false
+        end
+      end
+      recombined = A.s-block(with-provides.l, remaining + stmts)
+      visited = recombined.visit(desugar-scope-visitor)
+      C.resolved-scope(A.s-program(l, resolved-provides, resolved-type-provides, imports, visited), errors)
   end
-  
+
 where:
   d = A.dummy-loc
   b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.standard-builtins).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog, C.standard-builtins).ast.visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -664,7 +840,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | else => A.a-name(l, id)
     end
   end
-  
+
   fun handle-column-binds(column-binds :: A.ColumnBinds, visitor):
     env-and-binds = for fold(acc from { env: visitor.env, cbs: [list: ] }, cb from column-binds.binds):
         atom-env = make-atom-for(cb.id, cb.shadows, acc.env, bindings,
@@ -1094,6 +1270,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method a-any(self, l): A.a-any(l) end,
     method a-name(self, l, id): handle-ann(l, self.type-env, id) end,
     method a-arrow(self, l, args, ret, parens): A.a-arrow(l, args.map(_.visit(self)), ret.visit(self), parens) end,
+    method a-arrow-argnames(self, l, args, ret, parens):
+      A.a-arrow-argnames(l, args.map(_.visit(self)), ret.visit(self), parens)
+    end,
     method a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
     method a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
     method a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
@@ -1144,11 +1323,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-table-extent(l, column.visit(self), table)
     end,
   }
-  C.resolved(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
+  C.resolved-names(p.visit(names-visitor), name-errors, bindings, type-bindings, datatypes)
 end
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
-  var errors = [list: ] # THE MUTABLE LIST OF ERRORS
+  var shadow errors = [list: ] # THE MUTABLE LIST OF ERRORS
   bindings = resolved.bindings
   type-bindings = resolved.type-bindings
   fun add-error(err): errors := err ^ link(_, errors) end
@@ -1240,7 +1419,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
 where:
   p = PP.surface-parse(_, "test")
   px = p("x")
-  resolved = C.resolved(px, empty, [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:])
+  resolved = C.resolved-names(px, empty, [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:])
   unbound1 = check-unbound-ids-bad-assignments(px, resolved, C.standard-builtins)
   unbound1.length() is 1
 end

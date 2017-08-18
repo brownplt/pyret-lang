@@ -684,7 +684,7 @@ end
 fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
   cases(ConstraintSystem) system:
     | no-constraints => fold-result({system; solution}, context)
-    | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types,  next-system) =>
+    | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
       partitioned = partition(lam({lhs; _}): TS.is-t-existential(lhs) end, refinement-constraints)
       shadow refinement-constraints = partitioned.is-true
       normal-constraints = partitioned.is-false
@@ -697,67 +697,78 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
         if is-empty(refinement-constraints):
           fold-result({system; solution}, context)
         else:
-          mappings :: StringDict<{Type; List<Type>}> = refinement-constraints.foldl(lam({exists; refinement}, mappings):
-            cases(Option<{Type; List<Type>}>) mappings.get(exists.key()):
-              | none =>
-                mappings.set(exists.key(), {exists; [list: refinement]})
-              | some({_; others}) =>
-                mappings.set(exists.key(), {exists; link(refinement, others)})
-            end
-          end, [string-dict: ])
-
-          {temp-system; temp-variables} = mappings.fold-keys(lam(key, {temp-system; temp-variables}):
-            {existential; refinements} = mappings.get-value(key)
-            temp-variable = new-existential(existential.l, false)
-            shadow temp-system = temp-system.add-variable(temp-variable)
-            shadow temp-system = refinements.foldl(lam(refinement, shadow temp-system):
-              cases(Type) refinement:
-                | t-data-refinement(data-type, variant-name, l, _) =>
-                  temp-system.add-constraint(temp-variable, data-type)
-                | else =>
-                  temp-system.add-constraint(temp-variable, refinement)
+          refinement-partition = partition(lam({exists; _}): variables.member(exists) end, refinement-constraints)
+          shadow refinement-constraints = refinement-partition.is-true
+          next-level-refinements = refinement-partition.is-false
+          if is-link(next-level-refinements):
+            shadow next-system = next-level-refinements.foldl(lam({lhs; rhs}, shadow next-system):
+              next-system.add-constraint(lhs, rhs)
+            end, next-system)
+            shadow system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system)
+            solve-helper-refinements(system, solution, context)
+          else:
+            mappings :: StringDict<{Type; List<Type>}> = refinement-constraints.foldl(lam({exists; refinement}, mappings):
+              cases(Option<{Type; List<Type>}>) mappings.get(exists.key()):
+                | none =>
+                  mappings.set(exists.key(), {exists; [list: refinement]})
+                | some({_; others}) =>
+                  mappings.set(exists.key(), {exists; link(refinement, others)})
               end
-            end, temp-system)
-            {temp-system; temp-variables.add(temp-variable.key())}
-          end, {system; empty-tree-set})
+            end, [string-dict: ])
 
-          solve-helper-constraints(temp-system, constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow temp-system; temp-solution}, shadow context):
-            cases(ConstraintSolution) temp-solution:
-              | constraint-solution(_, temp-substitutions) =>
-                temp-keys-set = temp-substitutions.keys()
-                shadow temp-keys-set = temp-keys-set.difference(temp-variables)
-                # TODO(MATT): make this more robust
-                if (temp-keys-set.size() > 0): # or not(temp-system.refinement-constraints.length() == refinement-constraints.length()): # some change in refinement constraints
-                  shadow solution = constraint-solution(empty-tree-set, temp-substitutions.fold-keys(lam(key, shadow substitutions):
-                    substitutions.set(key, temp-substitutions.get-value(key))
-                  end, solution.substitutions))
-                  solve-helper-refinements(temp-system, solution, context)
-                else:
-                  # merge all constraints for each existential variable
-                  # same data-refinements get merged otherwise goes to the inner data type
-                  shadow substitutions = mappings.fold-keys(lam(key, shadow substitutions):
-                    {exists; refinements} = mappings.get-value(key)
-                    merged-type = refinements.rest.foldl(lam(refinement, merged):
-                      cases(Type) merged:
-                        | t-data-refinement(a-data-type, a-variant-name, a-loc, _) =>
-                          cases(Type) refinement:
-                            | t-data-refinement(b-data-type, b-variant-name, b-loc, _) =>
-                              if a-variant-name == b-variant-name:
-                                merged
-                              else:
-                                a-data-type
-                              end
-                            | else => refinement
-                          end
-                        | else => merged
-                      end
-                    end, refinements.first)
-                    substitutions.set(exists.key(), {merged-type; exists})
-                  end, solution.substitutions)
-                  fold-result({constraint-system(variables, empty, empty, field-constraints, example-types, next-system); constraint-solution(empty-tree-set, substitutions)}, context)
+            {temp-system; temp-variables} = mappings.fold-keys(lam(key, {temp-system; temp-variables}):
+              {existential; refinements} = mappings.get-value(key)
+              temp-variable = new-existential(existential.l, false)
+              shadow temp-system = temp-system.add-variable(temp-variable)
+              shadow temp-system = refinements.foldl(lam(refinement, shadow temp-system):
+                cases(Type) refinement:
+                  | t-data-refinement(data-type, variant-name, l, _) =>
+                    temp-system.add-constraint(temp-variable, data-type)
+                  | else =>
+                    temp-system.add-constraint(temp-variable, refinement)
                 end
-            end
-          end)
+              end, temp-system)
+              {temp-system; temp-variables.add(temp-variable.key())}
+            end, {system; empty-tree-set})
+
+            solve-helper-constraints(temp-system, constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow temp-system; temp-solution}, shadow context):
+              cases(ConstraintSolution) temp-solution:
+                | constraint-solution(_, temp-substitutions) =>
+                  temp-keys-set = temp-substitutions.keys()
+                  shadow temp-keys-set = temp-keys-set.difference(temp-variables)
+                  # TODO(MATT): make this more robust
+                  if (temp-keys-set.size() > 0): # or not(temp-system.refinement-constraints.length() == refinement-constraints.length()): # some change in refinement constraints
+                    shadow solution = constraint-solution(empty-tree-set, temp-substitutions.fold-keys(lam(key, shadow substitutions):
+                      substitutions.set(key, temp-substitutions.get-value(key))
+                    end, solution.substitutions))
+                    solve-helper-refinements(temp-system, solution, context)
+                  else:
+                    # merge all constraints for each existential variable
+                    # same data-refinements get merged otherwise goes to the inner data type
+                    shadow substitutions = mappings.fold-keys(lam(key, shadow substitutions):
+                      {exists; refinements} = mappings.get-value(key)
+                      merged-type = refinements.rest.foldl(lam(refinement, merged):
+                        cases(Type) merged:
+                          | t-data-refinement(a-data-type, a-variant-name, a-loc, _) =>
+                            cases(Type) refinement:
+                              | t-data-refinement(b-data-type, b-variant-name, b-loc, _) =>
+                                if a-variant-name == b-variant-name:
+                                  merged
+                                else:
+                                  a-data-type
+                                end
+                              | else => refinement
+                            end
+                          | else => merged
+                        end
+                      end, refinements.first)
+                      substitutions.set(exists.key(), {merged-type; exists})
+                    end, solution.substitutions)
+                    fold-result({constraint-system(variables, empty, empty, field-constraints, example-types, next-system); constraint-solution(empty-tree-set, substitutions)}, context)
+                  end
+              end
+            end)
+          end
         end
       end
   end

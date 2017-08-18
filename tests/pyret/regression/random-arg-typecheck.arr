@@ -1,4 +1,4 @@
-import error as E
+import contracts as C
 check:
-  random("a") raises-satisfies E.is-generic-type-mismatch
+  random("a") raises-satisfies C.is-fail
 end

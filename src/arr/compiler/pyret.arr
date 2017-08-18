@@ -2,6 +2,7 @@
 
 import cmdline as C
 import file as F
+import pathlib as P
 import render-error-display as RED
 import string-dict as D
 import system as SYS
@@ -17,7 +18,10 @@ DEFAULT-INLINE-CASE-LIMIT = 5
 success-code = 0
 failure-code = 1
 
-fun main(args :: List<String>) -> Number:
+fun main(args :: List<String>) -> Number block:
+
+  this-pyret-dir = P.dirname(P.resolve(C.file-name))
+
   options = [D.string-dict:
     "serve",
       C.flag(C.once, "Start the Pyret server"),
@@ -67,10 +71,10 @@ fun main(args :: List<String>) -> Number:
       C.flag(C.once, "Generate code without stack saving logic"),
     "inline-case-body-limit",
       C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
-    "bundle-dependencies",
-      C.flag(C.once, "Produce a standalone that has all dependencies bundled"),
+    "deps-file",
+      C.next-val(C.String, C.once, "Provide a path to override the default dependencies file"),
     "html-file",
-      C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only valid if using -bundle-dependencies)")
+      C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)")
     ]
 
   params-parsed = C.parse-args(options, args)
@@ -115,9 +119,6 @@ fun main(args :: List<String>) -> Number:
       if not(is-empty(rest)) block:
         print-error("No longer supported\n")
         failure-code
-      else if r.has-key("html-file") and not(r.has-key("bundle-dependencies")):
-        print-error("Cannot use --html-file without -bundle-dependencies")
-        failure-code
       else:
         if r.has-key("build-runnable") block:
           outfile = if r.has-key("outfile"):
@@ -130,6 +131,7 @@ fun main(args :: List<String>) -> Number:
               r.get-value("require-config"),
               outfile,
               CS.default-compile-options.{
+                this-pyret-dir: this-pyret-dir,
                 standalone-file: standalone-file,
                 check-mode : check-mode,
                 type-check : type-check,
@@ -142,7 +144,7 @@ fun main(args :: List<String>) -> Number:
                 compiled-cache: compiled-dir,
                 display-progress: display-progress,
                 inline-case-body-limit: inline-case-body-limit,
-                bundle-dependencies: r.has-key("bundle-dependencies"),
+                deps-file: r.get("deps-file").or-else(CS.default-compile-options.deps-file),
                 html-file: html-file
               })
           success-code

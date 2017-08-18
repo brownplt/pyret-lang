@@ -6,14 +6,14 @@
           var stdout = function() { return document.getElementById("stdout"); };
           var stderr = function() { return document.getElementById("stderr"); };
           window.process = {
-          stdout: {write: function(s) { console.log(s); stdout().innerText += s; } },
-          stderr: {write: function(s) { console.error(s); stderr().innerText += s; } },
-          argv: [],
-          exit: function(err) {
-          if (err != 0) {
-          throw new Error("Program ending with signal: ", err);
-          }
-          }
+            stdout: {write: function(s) { console.log(s); stdout().innerText += s; } },
+            stderr: {write: function(s) { console.error(s); stderr().innerText += s; } },
+            argv: [],
+            exit: function(err) {
+              if (err != 0) {
+                throw new Error("Program ending with signal: ", err);
+              }
+            }
           }
 
         </script>

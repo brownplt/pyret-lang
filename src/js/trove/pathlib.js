@@ -5,13 +5,13 @@
   theModule: function(RUNTIME, NAMESPACE, uri, path) {
     var values = {
       "normalize": RUNTIME.makeFunction(function(p) {
-        RUNTIME.ffi.checkArity(1, arguments, "normalize");
+        RUNTIME.ffi.checkArity(1, arguments, "normalize", false);
         RUNTIME.checkString(p);
         var s = RUNTIME.unwrap(p);
         return RUNTIME.makeString(path.normalize(s));
       }),
       "join": RUNTIME.makeFunction(function(p1, p2) {
-        RUNTIME.ffi.checkArity(2, arguments, "join");
+        RUNTIME.ffi.checkArity(2, arguments, "join", false);
         RUNTIME.checkString(p1);
         RUNTIME.checkString(p2);
         var s1 = RUNTIME.unwrap(p1);
@@ -19,13 +19,13 @@
         return RUNTIME.makeString(path.join(s1, s2));
       }),
       "resolve": RUNTIME.makeFunction(function(p) {
-        RUNTIME.ffi.checkArity(1, arguments, "resolve");
+        RUNTIME.ffi.checkArity(1, arguments, "resolve", false);
         RUNTIME.checkString(p);
         var s = RUNTIME.unwrap(p);
         return RUNTIME.makeString(path.resolve(s));
       }),
       "relative": RUNTIME.makeFunction(function(from, to) {
-        RUNTIME.ffi.checkArity(2, arguments, "relative");
+        RUNTIME.ffi.checkArity(2, arguments, "relative", false);
         RUNTIME.checkString(from);
         RUNTIME.checkString(to);
         var sfrom = RUNTIME.unwrap(from);
@@ -33,19 +33,19 @@
         return RUNTIME.makeString(path.relative(sfrom, sto));
       }),
       "dirname": RUNTIME.makeFunction(function(p) {
-        RUNTIME.ffi.checkArity(1, arguments, "dirname");
+        RUNTIME.ffi.checkArity(1, arguments, "dirname", false);
         RUNTIME.checkString(p);
         var s = RUNTIME.unwrap(p);
         return RUNTIME.makeString(path.dirname(s));
       }),
       "extname": RUNTIME.makeFunction(function(p) {
-        RUNTIME.ffi.checkArity(1, arguments, "extname");
+        RUNTIME.ffi.checkArity(1, arguments, "extname", false);
         RUNTIME.checkString(p);
         var s = RUNTIME.unwrap(p);
         return RUNTIME.makeString(path.extname(s));
       }),
       "basename": RUNTIME.makeFunction(function(p, ext) {
-        RUNTIME.ffi.checkArity(2, arguments, "basename");
+        RUNTIME.ffi.checkArity(2, arguments, "basename", false);
         RUNTIME.checkString(p);
         RUNTIME.checkString(ext);
         var s = RUNTIME.unwrap(p);

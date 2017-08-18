@@ -2,7 +2,7 @@
   "use-raw-files": true,
   "raw-js": {
     "pyret-base/js/codePoint": "build/phaseC/js/codePoint.js",
-    "pyret-base/js/exn-stack-parser.js": "build/phaseC/js/exn-stack-parser.js",
+    "pyret-base/js/exn-stack-parser": "build/phaseC/js/exn-stack-parser.js",
     "pyret-base/js/js-numbers": "build/phaseC/js/js-numbers.js",
     "pyret-base/js/namespace": "build/phaseC/js/namespace.js",
     "pyret-base/js/pyret-parser": "build/phaseC/js/pyret-parser.js",
@@ -17,20 +17,5 @@
     "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js"
   },
   "baseUrl": "./build/phaseC",
-  "optimize": "none",
-  "paths": {
-      "jglr": "../../lib/jglr",
-      "pyret-base": "./",
-      "crypto": "empty:",
-      "fs": "empty:",
-      "http": "empty:",
-      "lockfile": "empty:",
-      "path": "empty:",
-      "q": "empty:",
-      "requirejs": "empty:",
-      "s-expression": "empty:",
-      "seedrandom": "empty:",
-      "websocket": "empty:",
-      "stacktrace-js": "empty:"
-    }
+  "optimize": "none"
 }

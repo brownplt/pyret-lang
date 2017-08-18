@@ -20,10 +20,14 @@ comma-names: NAME (COMMA NAME)*
 
 block: stmt*
 
-stmt: type-expr | newtype-expr
+stmt: type-expr | newtype-expr | spy-stmt
     | let-expr | fun-expr | data-expr | when-expr
     | var-expr | rec-expr | assign-expr | check-test | check-expr
     | contract-stmt
+
+spy-stmt: SPY [binop-expr] COLON [spy-contents] END
+spy-contents: spy-field (COMMA spy-field)*
+spy-field: id-expr | NAME COLON binop-expr
 
 type-expr: TYPE NAME ty-params EQUALS ann
 newtype-expr: NEWTYPE NAME AS NAME
@@ -33,7 +37,7 @@ binding: name-binding | tuple-binding
 tuple-binding: LBRACE (binding SEMI)* binding [SEMI] RBRACE [AS name-binding]
 name-binding: [SHADOW] NAME [COLONCOLON ann]
 
-toplevel-binding: binding 
+toplevel-binding: binding
 # toplevel-binding: [SHADOW] NAME COLONCOLON noparen-arrow-ann
 multi-let-expr: LET let-binding (COMMA let-binding)* (BLOCK|COLON) block END
 let-binding: let-expr | var-expr
@@ -55,7 +59,7 @@ return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]
 
-check-expr: CHECK STRING COLON block END
+check-expr: (CHECK|EXAMPLES) STRING COLON block END
 check-expr: (CHECKCOLON|EXAMPLESCOLON) block END
 check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
           | binop-expr check-op-postfix
@@ -124,10 +128,11 @@ paren-expr: (PARENSPACE|PARENAFTERBRACE) binop-expr RPAREN
 
 id-expr: NAME
 
-prim-expr: num-expr | frac-expr | bool-expr | string-expr
+prim-expr: num-expr | frac-expr | rfrac-expr | bool-expr | string-expr
 
 num-expr: NUMBER
 frac-expr: RATIONAL
+rfrac-expr: ROUGHRATIONAL
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
@@ -207,7 +212,7 @@ for-expr: FOR expr PARENNOSPACE [for-bind (COMMA for-bind)*] RPAREN return-ann (
 column-order : NAME (ASCENDING|DESCENDING)
 table-select : TABLE-SELECT NAME (COMMA NAME)* FROM expr END
 table-filter : TABLE-FILTER expr [USING binding (COMMA binding)*] COLON binop-expr END
-table-order  : TABLE-ORDER  expr COLON column-order END
+table-order  : TABLE-ORDER  expr COLON column-order (COMMA column-order)* END
 table-extract: TABLE-EXTRACT NAME FROM expr END
 table-update : TABLE-UPDATE expr [USING binding (COMMA binding)*] COLON obj-fields END
 table-extend : TABLE-EXTEND expr [USING binding (COMMA binding)*] COLON table-extend-fields END
@@ -231,13 +236,16 @@ user-block-expr: BLOCK block END
 ann: name-ann | record-ann | arrow-ann | app-ann | pred-ann | dot-ann | tuple-ann
 
 name-ann: NAME
-record-ann: LBRACE [ann-field (COMMA ann-field)*] RBRACE
+comma-ann-field: ann-field (COMMA ann-field)*
+trailing-opt-comma-ann-field: (comma-ann-field [COMMA] | )
+record-ann: LBRACE trailing-opt-comma-ann-field RBRACE
 ann-field: NAME COLONCOLON ann
 
 tuple-ann: LBRACE ann (SEMI ann)* [SEMI] RBRACE
 
-noparen-arrow-ann: [comma-anns] THINARROW ann
-arrow-ann: (PARENSPACE|PARENNOSPACE) [comma-anns] THINARROW ann RPAREN
+noparen-arrow-ann: [arrow-ann-args] THINARROW ann
+arrow-ann-args: comma-anns | (PARENSPACE|PARENNOSPACE) comma-ann-field RPAREN
+arrow-ann: (PARENSPACE|PARENNOSPACE) [arrow-ann-args] THINARROW ann RPAREN
 
 app-ann: (name-ann|dot-ann) LANGLE comma-anns RANGLE
 

@@ -125,6 +125,14 @@ data BindType:
   | b-array(value :: N.ABind, idx :: Number)
 end
 
+# this structure stores bindings of case dispatch objects
+# so that the objects can be allocated only once in the top level, avoiding
+# multiple allocations which could affect performance, particularly in recursive
+# functions.
+data Dispatches:
+  | dispatches-box(ref dispatches :: CList<J.JStmt>)
+end
+
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
 effective-ids = D.make-mutable-string-dict()
@@ -163,6 +171,37 @@ fun add-stack-frame(exn-id, loc):
   j-method(j-dot(j-id(exn-id), "pyretStack"), "push", [clist: loc])
 end
 
+fun rt-field(name): j-dot(RUNTIME, name) end
+
+fun rt-method(name, args):
+  rt-name = cases(Option) rt-name-map.get(name):
+    | none => name
+    | some(short-name) => short-name
+  end
+
+  j-method(RUNTIME, rt-name, args)
+end
+
+fun app(l, f, args):
+  cases(SL.Srcloc) l:
+    | builtin(n) => j-method(f, "app", args)
+    | else =>
+      J.j-sourcenode(l, l.source, j-method(f, "app", args))
+  end
+end
+
+fun check-fun(sourcemap-loc, variable-loc, f) block:
+  call = cases(SL.Srcloc) sourcemap-loc block:
+    | builtin(_) =>
+      j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f])
+    | srcloc(_, _, _, _, _, _, _) =>
+      J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
+        j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f]))
+  end
+  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
+    j-block1(j-expr(call)))
+end
+
 c-exp = DAG.c-exp
 c-field = DAG.c-field
 c-block = DAG.c-block
@@ -175,6 +214,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-name(_, n) => c-exp(j-id(js-id-of(n)), cl-empty)
     | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
+    | a-arrow-argnames(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
     | a-app(l, base, _) => compile-ann(base, visitor)
     | a-record(l, fields) =>
@@ -240,6 +280,25 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
     | a-blank => c-exp(rt-field("Any"), cl-empty)
     | a-any(l) => c-exp(rt-field("Any"), cl-empty)
   end
+end
+
+fun arity-check(loc-expr, arity :: Number, is-method :: Boolean):
+  #|[list:
+    j-if1(j-binop(j-dot(ARGUMENTS, "length"), j-neq, j-num(arity)),
+      j-block([list:
+          j-expr(rt-method("checkArityC", [list: loc-expr, j-num(arity), j-method(rt-field("cloneArgs"), "apply", [list: j-null, ARGUMENTS]), j-bool(is-method)]))
+      ]))]|#
+  len = j-id(compiler-name("l"))
+  iter = j-id(compiler-name("i"))
+  t = j-id(compiler-name("t"))
+  [clist:
+    j-var(len.id, j-dot(ARGUMENTS, "length")),
+    j-if1(j-binop(len, j-neq, j-num(arity)),
+      j-block([clist:
+          j-var(t.id, j-new(j-id(const-id("Array")), [clist: len])),
+          j-for(true, j-assign(iter.id, j-num(0)), j-binop(iter, j-lt, len), j-unop(iter, j-incr),
+            j-block1(j-expr(j-bracket-assign(t, iter, j-bracket(ARGUMENTS, iter))))),
+          j-expr(rt-method("checkArityC", [clist: loc-expr, j-num(arity), t, j-bool(is-method)]))]))]
 end
 
 no-vars = D.make-mutable-string-dict
@@ -363,7 +422,7 @@ end
 var total-time = 0
 
 show-stack-trace = false
-fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean) -> J.JBlock block:
+fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean, is-method :: Boolean) -> J.JBlock block:
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
@@ -399,7 +458,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   main-body-cases.each(lam(c): when J.is-j-case(c): c.exp.label.get() end end)
 #  compiler.add-phase("Compile anns: " + l.format(true), nothing)
   start = time-now()
-  main-body-cases-and-dead-vars = DAG.simplify(compiler.add-phase, main-body-cases, step)
+  main-body-cases-and-dead-vars = DAG.simplify(compiler.add-phase, main-body-cases, step, compiler.dispatches!dispatches)
   finish = time-now() - start
 #  compiler.add-phase("Simplify body: " + l.format(true), nothing)
   total-time := total-time + finish
@@ -467,7 +526,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   trace-enter = rt-method("traceEnter", entryExit)
   first-entry-stmts = cases(Option) opt-arity:
     | some(arity) =>
-      stmts = cl-append(arity-check(local-compiler.get-loc(l), arity),
+      stmts = cl-append(arity-check(local-compiler.get-loc(l), arity, is-method),
         copy-formals-to-args)
       if show-stack-trace:
         cl-snoc(stmts, trace-enter)
@@ -525,7 +584,7 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
                 j-binop(j-unop(rt-field("RUNGAS"), j-decr), J.j-leq, j-num(0))),
       j-block([clist: j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
           # j-expr(j-app(j-id("console.log"), [list: j-str("Out of gas in " + fun-name)])),
-          # j-expr(j-//app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
+          # j-expr(j-app(j-id("console.log"), [list: j-str("GAS is "), rt-field("GAS")])),
           j-expr(j-assign(local-compiler.cur-ans, (rt-method("makeCont", cl-empty))))]))
 
   gas-check-or-comment = if is-flat:
@@ -873,7 +932,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
       j-list(false, cl-empty)
     end
     compiled-branch-fun =
-      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true, false)
+      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true, false, false)
     preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
@@ -892,8 +951,9 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
   end
 end
 fun cases-preamble(compiler, compiled-val, branch, cases-loc):
+  constructor-loc = j-dot(compiled-val, "$loc")
   cases(N.ACasesBranch) branch:
-    | a-cases-branch(_, pat-loc, name, args, body) =>
+    | a-cases-branch(l2, pat-loc, name, args, body) =>
       branch-given-arity = j-num(args.length())
       obj-expected-arity = j-dot(compiled-val, "$arity")
       checker =
@@ -902,18 +962,18 @@ fun cases-preamble(compiler, compiled-val, branch, cases-loc):
             j-if(j-binop(obj-expected-arity, j-geq, j-num(0)),
               j-block1(
                 j-expr(j-method(rt-field("ffi"), "throwCasesArityErrorC",
-                    [clist: compiler.get-loc(pat-loc), branch-given-arity,
-                      obj-expected-arity, compiler.get-loc(cases-loc)]))),
+                    [clist: compiler.get-loc(l2), branch-given-arity,
+                      obj-expected-arity, compiler.get-loc(cases-loc), constructor-loc]))),
               j-block1(
                 j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                    [clist: compiler.get-loc(pat-loc), j-true, compiler.get-loc(cases-loc)]))))))
+                    [clist: compiler.get-loc(l2), j-true, compiler.get-loc(cases-loc), constructor-loc]))))))
       [clist: checker]
-    | a-singleton-cases-branch(_, pat-loc, _, _) =>
+    | a-singleton-cases-branch(l2, pat-loc, _, _) =>
       checker =
         j-if1(j-binop(j-dot(compiled-val, "$arity"), j-neq, j-num(-1)),
           j-block1(
             j-expr(j-method(rt-field("ffi"), "throwCasesSingletonErrorC",
-                [clist: compiler.get-loc(pat-loc), j-false, compiler.get-loc(cases-loc)]))))
+                [clist: compiler.get-loc(l2), j-false, compiler.get-loc(cases-loc), constructor-loc]))))
       [clist: checker]
   end
 end
@@ -952,7 +1012,7 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
     c-block(j-block(cl-append(preamble, compiled-body.block.stmts)), compiled-body.new-cases)
   end
 end
-fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>):
+fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>) block:
   compiled-val = val.visit(compiler).exp
   {after-cases-cases; after-cases-label} = get-new-cases(compiler, opt-dest, opt-body, compiler.cur-ans)
   compiler-after-cases = compiler.{cur-target: after-cases-label}
@@ -971,11 +1031,13 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
       ^ cl-append(_, compiled-else.new-cases))
   dispatch-table = j-obj(for CL.map_list2(branch from branches, label from branch-labels): j-field(branch.name, label) end)
   dispatch = j-id(fresh-id(compiler-name("cases_dispatch")))
+  compiler.dispatches!{
+    dispatches: cl-cons(j-var(dispatch.id, dispatch-table), compiler.dispatches!dispatches)
+  }
   # NOTE: Ignoring typ for the moment!
   new-cases = cl-append(branch-else-cases, after-cases-cases)
   c-block(
     j-block([clist:
-        j-var(dispatch.id, dispatch-table),
         # j-expr(j-app(j-dot(j-id("console"), "log"),
         #     [list: j-str("$name is "), j-dot(compiled-val, "$name"),
         #       j-str("val is "), compiled-val,
@@ -1064,7 +1126,7 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
       j-var(temp,
         j-fun(J.next-j-fun-id(), make-fun-name(compiler, l),
           CL.map_list(lam(arg): formal-shadow-name(arg.id) end, effective-args),
-          compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat)))])
+          compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat, false)))])
 end
 
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
@@ -1269,7 +1331,7 @@ compiler-visitor = {
       j-var(temp-full,
         j-fun(J.next-j-fun-id(), make-fun-name(self, l),
           CL.map_list(lam(a): formal-shadow-name(a.id) end, args),
-          compile-fun-body(l, step, temp-full, self.{allow-tco: true}, args, some(len), body, true, false)
+          compile-fun-body(l, step, temp-full, self.{allow-tco: true}, args, some(len), body, true, false, true)
         ))
     method-expr = if len < 9:
       rt-method(string-append("makeMethod", tostring(len - 1)), [clist: j-id(temp-full), j-str(name)])
@@ -1360,7 +1422,7 @@ compiler-visitor = {
               [clist: val],
               j-block(
                 cl-snoc(
-                  arity-check(self.get-loc(loc), 1),
+                  arity-check(self.get-loc(loc), 1, false),
                   j-return(rt-method("makeBoolean", [clist: rt-method("hasBrand", [clist: j-id(val), b])])))
                 )
               ),
@@ -1488,7 +1550,7 @@ compiler-visitor = {
         | a-variant(l2, constr-loc, _, members, with-members) =>
           constr-vname = js-id-of(const-id(vname))
           compiled-constr =
-            make-variant-constructor(constr-loc, variant-base-id, variant-brand-obj-id, members,
+            make-variant-constructor(l2, variant-base-id, variant-brand-obj-id, members,
               refl-name, j-id(refl-ref-fields-mask-id), j-id(refl-fields-id), j-id(variant-base-id))
           {
             stmts: stmts ^
@@ -1497,10 +1559,10 @@ compiler-visitor = {
             constructor: j-field(vname, j-id(constr-vname)),
             predicate: predicate
           }
-        | a-singleton-variant(_, _, with-members) =>
+        | a-singleton-variant(l2, _, with-members) =>
           {
             stmts: stmts,
-            constructor: j-field(vname, rt-method("makeDataValue", [clist: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id)])),
+            constructor: j-field(vname, rt-method("makeDataValue", [clist: j-id(variant-base-id), j-id(variant-brand-obj-id), refl-name, j-id(refl-fields-id), j-num(-1), j-id(refl-ref-fields-mask-id), j-id(variant-base-id), j-false, self.get-loc(l2)])),
             predicate: predicate
           }
       end
@@ -1808,7 +1870,8 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       else: js-id-of(compiler-name(i.toname()))
       end
     end, ids)
-  fun wrap-modules(modules, body-name, body-fun):
+  cases-dispatches = dispatches-box(cl-empty)
+  fun wrap-modules(modules, body-name, body-fun) block:
     mod-input-names = CL.map_list(_.input-id, modules)
     mod-input-ids = mod-input-names.map(j-id)
     mod-input-ids-list = mod-input-ids.to-list()
@@ -1833,6 +1896,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
             j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
             j-id(m.input-id)])))
       end +
+      cases-dispatches!dispatches +
       module-binds +
       [clist:
         j-var(body-name, body-fun),
@@ -1904,10 +1968,10 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   apploc = fresh-id(compiler-name("al"))
   resumer = compiler-name("resumer")
   resumer-bind = N.a-bind(l, resumer, A.a-blank)
-  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false}
+  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false, dispatches: cases-dispatches}
   visited-body = compile-fun-body(l, step, toplevel-name,
     body-compiler, # resumer gets js-id-of'ed in compile-fun-body
-    [list: resumer-bind], none, prog, true, false)
+    [list: resumer-bind], none, prog, true, false, false)
   toplevel-fun = j-fun(J.next-j-fun-id(), make-fun-name(body-compiler, l), [clist: formal-shadow-name(resumer)], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
   module-body = j-block(
