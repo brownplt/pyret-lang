@@ -2,7 +2,11 @@ import data-source as DS
 import tables as TS
 import valueskeleton as VS
 import error as E
+import contracts as C
 
+fun contract(err, pred):
+  pred(err.reason)
+end
 
 tbl = table: name, age
   row: "Bob", 12
@@ -389,7 +393,7 @@ check "column":
 
   t.column("d") raises "no-such-column"
   t.column("d", 2) raises-satisfies E.is-arity-mismatch
-  t.column(0) raises-satisfies E.is-generic-type-mismatch
+  t.column(0) raises-satisfies contract(_, C.is-failure-at-arg)
 end
 
 check "column-n":
@@ -404,8 +408,8 @@ check "column-n":
 
   t.column-n(3) raises "column-n-too-large"
   t.column("d", 2) raises-satisfies E.is-arity-mismatch
-  t.column(-1) raises-satisfies E.is-generic-type-mismatch
-  t.column(1.2) raises-satisfies E.is-generic-type-mismatch
+  t.column(-1) raises-satisfies contract(_, C.is-failure-at-arg)
+  t.column(1.2) raises-satisfies contract(_, C.is-failure-at-arg)
 end
 
 check "column-names":
@@ -510,7 +514,7 @@ check "filter":
 
 
   t.filter({(r): true }, "foo") raises-satisfies E.is-arity-mismatch
-  t.filter("a") raises-satisfies E.is-generic-type-mismatch
+  t.filter("a") raises-satisfies contract(_, C.is-failure-at-arg)
 end
 
 check "filter-by":
