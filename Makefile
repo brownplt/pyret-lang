@@ -146,8 +146,8 @@ endif
                       --build-runnable $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
-                      --compiled-dir compiled/ \
-	                    -straight-line \
+                      --compiled-dir compiled \
+	                      -straight-line \
                       $(EXTRA_FLAGS) \
                       --require-config src/scripts/standalone-configV.json
 

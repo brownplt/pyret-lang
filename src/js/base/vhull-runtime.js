@@ -3454,13 +3454,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function pauseStack(resumer) {
-      // CONSOLE.log("Pausing stack: ", RUN_ACTIVE, new Error().stack);
-      // TODO(rachit): DO NOT COMMIT THIS. Testing for vhull-compiler.
-      //RUN_ACTIVE = false;
-      //thisRuntime.EXN_STACKHEIGHT = 0;
-      //var pause = new PausePackage();
       return resumer(new PausePackage())
-      //return makePause(pause, resumer);
     }
 
     function PausePackage() {
