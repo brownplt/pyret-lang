@@ -10,7 +10,7 @@ const LOG = 3;
 const WARN = 2;
 const ERROR = 1;
 const SILENT = 0;
-var LOG_LEVEL = INFO;
+var LOG_LEVEL = WARN;
 
 function makeLogger(level) {
   return function(...args) {

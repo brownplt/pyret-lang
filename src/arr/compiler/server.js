@@ -4,18 +4,39 @@
   nativeRequires: ['http', 'ws'],
   theModule: function(runtime, _, uri, http, ws) {
 
+    const INFO = 4;
+    const LOG = 3;
+    const WARN = 2;
+    const ERROR = 1;
+    const SILENT = 0;
+    var LOG_LEVEL = WARN;
+
+    function makeLogger(level) {
+      return function(...args) {
+        if(LOG_LEVEL >= level) {
+          info(console, ["[client] ", new Date()].concat(args));
+        }
+      }
+    }
+
+    const info = makeLogger(INFO);
+    const log = makeLogger(LOG);
+    const warn = makeLogger(WARN);
+    const error = makeLogger(ERROR);
+
+
     // Port could be a string for a file path, like /tmp/some-sock,
     // or it could be a number, like 1705
     const makeServer = function(port, onmessage) {
-      //console.log("Starting up server");
+      //info("Starting up server");
       return runtime.pauseStack(function(restarter) {
         var server = http.createServer(function(request, response) {
           response.writeHead(404);
           response.end();
         });
         server.listen(port, function() {
-          console.log((new Date()) + ' Server is listening on port ' + port);
-          console.log((new Date()) + ' The server\'s working directory is ' + process.cwd());
+          info((new Date()) + ' Server is listening on port ' + port);
+          info((new Date()) + ' The server\'s working directory is ' + process.cwd());
         });
 
         var wsServer = new ws.Server({
@@ -29,17 +50,17 @@
 
         wsServer.on('connection', function(connection) {
           
-          console.log((new Date()) + ' Connection accepted.');
+          info((new Date()) + ' Connection accepted.');
 
           function respond(jsonData) {
-            console.log("Sending: ", jsonData);
+            info("Sending: ", jsonData);
             connection.send(jsonData);
             return runtime.nothing;
           }
           const respondForPy = runtime.makeFunction(respond, "respond");
 
           connection.on('message', function(message) {
-            console.log('Received Message: ' + message);
+            info('Received Message: ' + message);
             runtime.runThunk(function() {
               return onmessage.app(message, respondForPy);
             }, function(result) {
@@ -50,20 +71,20 @@
               }
               else {
                 connection.close();
-                // console.log("Success: ", result);
+                // info("Success: ", result);
               }
             });
           });
           connection.on('close', function(reasonCode, description) {
-            // console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+            // info((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
           });
         });
         
-        console.log("Server startup successful");
+        info("Server startup successful");
         process.send({type: 'success'});
 
         process.on('SIGINT', function() {
-          console.log("Caught interrupt signal, exiting server");
+          info("Caught interrupt signal, exiting server");
           restarter.resume(runtime.nothing)
         });
       });
