@@ -37,12 +37,6 @@ fun make(arr :: RawArray) -> Array:
     method _equals(self, other, eq):
       eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))
     end,
-    method _torepr(self, shadow torepr):
-      "[array: " + self.to-list-now().map(torepr).join-str(", ") + "]"
-    end,
-    method _tostring(self, shadow tostring):
-      "[array: " + self.to-list-now().map(tostring).join-str(", ") + "]"
-    end,
     method _output(self): VS.vs-collection("array", self.to-list-now().map(VS.vs-value)) end
   })
 end

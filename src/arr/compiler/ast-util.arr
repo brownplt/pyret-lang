@@ -61,7 +61,7 @@ end
 
 fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   l = exp.l
-  if ok-last(exp):
+  if ok-last(exp) and not(A.is-s-spy-block(exp)):
     A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
       [list: A.s-srcloc(l, l), exp])
   else: exp
@@ -674,6 +674,7 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
     | a-name(_, _) => false
     | a-type-var(_, _) => false 
     | a-arrow(_, args, ret, _) => false
+    | a-arrow-argnames(_, args, ret, _) => false
     | a-method(_, args, ret, _) => false
     | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
     | a-tuple(_, fields) => fields.all(is-stateful-ann)
@@ -1025,6 +1026,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-var(id, l, false)
       | a-arrow(l, args, ret, use-parens) =>
         T.t-arrow(map(ann-to-typ, args), ann-to-typ(ret), l, false)
+      | a-arrow-argnames(l, args, ret, use-parens) =>
+        T.t-arrow(map({(arg): ann-to-typ(arg.ann)}, args), ann-to-typ(ret), l, false)
       | a-method(l, args, ret) =>
         raise("Cannot provide a raw method")
       | a-record(l, fields) =>

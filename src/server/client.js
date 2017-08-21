@@ -17,6 +17,7 @@ const optionDefinitions = [
   { name: 'no-check-mode', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" }
+  { name: 'bundle-dependencies', type: Boolean, group: "pyret-options" }
 
 ];
 

@@ -1,7 +1,14 @@
+/*
+TODO(joe): see how the lack of this interacts with CPO
+
 if(typeof window === 'undefined') {
 var require = require("requirejs");
 }
 require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
+
+*/
+// TODO: Change to myrequire
+requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
@@ -156,7 +163,9 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
-      console.error("The error is: ", err);
+
+      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
       return locList;
@@ -180,7 +189,7 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
           //process.exit(EXIT_SUCCESS);
         }
       }
-    });
+    }, "postLoadHooks[main]:render-check-results-stack");
   }
 
   function renderErrorMessageAndExit(execRt, res) {
@@ -191,8 +200,6 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
       var exnStack = res.exn.stack;
 
       res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
-      debugger;
-      
 
       execRt.runThunk(
         function() {

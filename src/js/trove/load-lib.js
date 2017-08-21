@@ -47,13 +47,22 @@
       return m;
     }
 
-    function makeModuleResult(runtimeForModule, result, realm, compileResult) {
+    function makeModuleResult(runtimeForModule, result, realm, compileResult, program) {
       return runtime.makeOpaque({
         runtime: runtimeForModule,
         result: result,
         realm: realm,
-        compileResult: compileResult
+        compileResult: compileResult,
+        program: program
       });
+    }
+
+    function getModuleResultProgram(result) {
+      return result.val.program;
+    }
+
+    function enrichStack(exn, program) {
+      return stackLib.convertExceptionToPyretStackTrace(exn, program);
     }
 
     function checkSuccess(mr, field) {
@@ -409,6 +418,8 @@
         types: types,
         internal: {
           makeRealm: makeRealm,
+          enrichStack: enrichStack,
+          getModuleResultProgram: getModuleResultProgram,
           getModuleResultAnswer: getModuleResultAnswer,
           getModuleResultChecks: getModuleResultChecks,
           getModuleResultTypes: getModuleResultTypes,

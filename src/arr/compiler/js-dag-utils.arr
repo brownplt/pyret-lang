@@ -94,7 +94,7 @@ fun-decl-vars :: D.MutableStringDict<NameSet> = D.make-mutable-string-dict()
 fun-used-vars :: D.MutableStringDict<NameSet> = D.make-mutable-string-dict()
 var from-hit = 0
 var from-miss = 0
-  
+
 fun used-vars-jblock(b :: J.JBlock, so-far :: NameSet) -> NameSet block:
   cases(J.JBlock) b block:
     | j-block1(s) => used-vars-jstmt(s, so-far)
@@ -121,11 +121,11 @@ fun declared-vars-jstmt(s :: J.JStmt, so-far :: NameSet) -> NameSet:
       so-far.set-now(name.key(), name)
       so-far
     | j-if1(cond, consq) => declared-vars-jblock(consq, so-far)
-    | j-if(cond, consq, alt) => 
+    | j-if(cond, consq, alt) =>
       shadow so-far = declared-vars-jblock(consq, so-far)
       declared-vars-jblock(alt, so-far)
     | j-return(expr) => so-far
-    | j-try-catch(body, exn, catch) => 
+    | j-try-catch(body, exn, catch) =>
       shadow so-far = declared-vars-jblock(body, so-far)
       declared-vars-jblock(catch, so-far)
     | j-throw(exp) => so-far
@@ -149,11 +149,11 @@ fun declared-vars-jstmt(s :: J.JStmt, so-far :: NameSet) -> NameSet:
 end
 fun used-vars-jstmt(s :: J.JStmt, so-far :: NameSet) -> NameSet:
   cases(J.JStmt) s block:
-    | j-var(name, rhs) => 
+    | j-var(name, rhs) =>
       shadow so-far = used-vars-jexpr(rhs, so-far)
       so-far.remove-now(name.key())
       so-far
-    | j-if1(cond, consq) => 
+    | j-if1(cond, consq) =>
       shadow so-far = used-vars-jexpr(cond, so-far)
       used-vars-jblock(consq, so-far)
     | j-if(cond, consq, alt) =>
@@ -194,7 +194,7 @@ fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
     | j-sourcenode(_, _, expr) => used-vars-jexpr(expr, so-far)
     | j-parens(exp) => used-vars-jexpr(exp, so-far)
     | j-unop(exp, op) => used-vars-jexpr(exp, so-far)
-    | j-binop(left, op, right) => 
+    | j-binop(left, op, right) =>
       shadow so-far = used-vars-jexpr(left, so-far)
       used-vars-jexpr(right, so-far)
     | j-fun(id, _, args, body) =>
@@ -250,7 +250,7 @@ fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
       shadow so-far = used-vars-jexpr(test, so-far)
       shadow so-far = used-vars-jexpr(consq, so-far)
       used-vars-jexpr(altern, so-far)
-    | j-assign(name, rhs) => 
+    | j-assign(name, rhs) =>
       shadow so-far = used-vars-jexpr(rhs, so-far)
       so-far.set-now(name.key(), name)
       so-far
@@ -262,7 +262,7 @@ fun used-vars-jexpr(e :: J.JExpr, so-far :: NameSet) -> NameSet:
       shadow so-far = used-vars-jexpr(obj, so-far)
       used-vars-jexpr(rhs, so-far)
     | j-dot(obj, field) => used-vars-jexpr(obj, so-far)
-    | j-bracket(obj, field) => 
+    | j-bracket(obj, field) =>
       shadow so-far = used-vars-jexpr(obj, so-far)
       used-vars-jexpr(field, so-far)
     | j-list(_, elts) =>
@@ -296,7 +296,7 @@ fun declared-vars-jcase(c :: J.JCase, so-far :: NameSet) -> NameSet:
 end
 fun used-vars-jcase(c :: J.JCase, so-far :: NameSet) -> NameSet:
   cases(J.JCase) c block:
-    | j-case(exp, body) => 
+    | j-case(exp, body) =>
       shadow so-far = used-vars-jexpr(exp, so-far)
       used-vars-jblock(body, so-far)
     | j-default(body) => used-vars-jblock(body, so-far)
@@ -339,25 +339,15 @@ fun stmts-of(blk :: J.JBlock):
   end
 end
 
-fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, acc :: D.MutableStringDict<J.Label>) -> D.MutableStringDict<J.Label>:
-  var looking-for = none
+fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, acc :: D.MutableStringDict<J.Label>, cases-dispatches :: ConcatList<J.JStmt>) -> D.MutableStringDict<J.Label>:
   for CL.foldr(shadow acc from acc, stmt from stmts):
     cases(J.JStmt) stmt:
-      | j-var(name, rhs) =>
-        if is-some(looking-for) and (looking-for.value == name) block:
-          looking-for := none
-          for CL.foldl(shadow acc from acc, field from rhs.fields) block:
-            acc.set-now(tostring(field.value.label.get()), field.value.label)
-            acc
-          end
-        else:
-          acc
-        end
-      | j-if1(cond, consq) => find-steps-to(stmts-of(consq), step, acc)
+      | j-var(name, rhs) => acc
+      | j-if1(cond, consq) => find-steps-to(stmts-of(consq), step, acc, cases-dispatches)
       | j-if(cond, consq, alt) =>
         acc
-          ^ find-steps-to(stmts-of(consq), step, _)
-          ^ find-steps-to(stmts-of(alt), step, _)
+          ^ find-steps-to(stmts-of(consq), step, _, cases-dispatches)
+          ^ find-steps-to(stmts-of(alt), step, _, cases-dispatches)
       | j-return(expr) => acc
       | j-try-catch(body, exn, catch) => acc # ignoring for now, because we know we don't use these
       | j-throw(exp) => acc
@@ -369,9 +359,14 @@ fun find-steps-to(stmts :: ConcatList<J.JStmt>, step :: A.Name, acc :: D.Mutable
             acc
           else if J.is-j-binop(expr.rhs) and (expr.rhs.op == J.j-or):
             # $step gets a cases dispatch
-            # ASSUMES that the dispatch table is assigned two statements before this one
-            looking-for := some(expr.rhs.left.obj.id)
+            # ASSUMES that the dispatch table is assigned before toplevel is defined.
+            # (see cases-dispatches in anf-loop-compiler.arr)
             acc.set-now(tostring(expr.rhs.right.label.get()), expr.rhs.right.label)
+            now-looking = cases-dispatches.find({(elt :: J.JStmt): elt.name == expr.rhs.left.obj.id}).value.rhs
+            for CL.foldl(shadow acc from acc, field from now-looking.fields) block:
+              acc.set-now(tostring(field.value.label.get()), field.value.label)
+              acc
+            end
             acc
           else if J.is-j-num(expr.rhs):
             acc
@@ -498,7 +493,7 @@ var step-4-total = 0
 #   ranges
 # end
 
-fun simplify(add-phase, body-cases :: ConcatList<J.JCase>, step :: A.Name) -> RegisterAllocation block:
+fun simplify(add-phase, body-cases :: ConcatList<J.JCase>, step :: A.Name, cases-dispatches :: ConcatList<J.JStmt>) -> RegisterAllocation block:
   start = time-now()
   from-hit := 0
   from-miss := 0
@@ -510,8 +505,8 @@ fun simplify(add-phase, body-cases :: ConcatList<J.JCase>, step :: A.Name) -> Re
       acc-dag.set-now(label,
         node(label,
           cases(J.JBlock) body-case.body:
-            | j-block1(s) => find-steps-to(cl-sing(s), step, ns-empty())
-            | j-block(stmts) => find-steps-to(stmts, step, ns-empty())
+            | j-block1(s) => find-steps-to(cl-sing(s), step, ns-empty(), cases-dispatches)
+            | j-block(stmts) => find-steps-to(stmts, step, ns-empty(), cases-dispatches)
           end, body-case,
           ns-empty(), ns-empty(), ns-empty(), none, none, none, none))
     end

@@ -38,6 +38,7 @@ import string-dict as D
 import lists as lists
 import either as E
 import option as O
+import valueskeleton as VS
 
 type Option = O.Option
 some = O.some
@@ -102,10 +103,10 @@ end
 
 
 data ParamRepeat:
-  | once with: method _tostring(_, ts): "may be used at most once" end
-  | many with: method _tostring(_, ts): "may be repeated" end
-  | required-once with: method _tostring(_, ts): "must be used exactly once" end
-  | required-many with: method _tostring(_, ts): "must be used at least once" end
+  | once with: method _output(_): VS.vs-value("may be used at most once") end
+  | many with: method _output(_): VS.vs-value("may be repeated") end
+  | required-once with: method _output(_): VS.vs-value("must be used exactly once") end
+  | required-many with: method _output(_): VS.vs-value("must be used at least once") end
 end
 
 data Param:

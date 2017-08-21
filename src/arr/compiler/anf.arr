@@ -166,7 +166,10 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         
       end)
     | s-num(l, n) => k(N.a-val(l, N.a-num(l, n)))
+      # num, den are exact ints, and s-frac desugars to the exact rational num/den
     | s-frac(l, num, den) => k(N.a-val(l, N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
+      # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
+    | s-rfrac(l, num, den) => k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den)))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k(N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
@@ -456,8 +459,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end)
         end)
 
-    | s-let(_, _, _) => raise("s-let should be handled by anf-block: " + torepr(e))
-    | s-var(_, _, _) => raise("s-var should be handled by anf-block: " + torepr(e))
+    | s-let(_, _, _) => raise("s-let should have been desugared already: " + torepr(e))
+    | s-var(_, _, _) => raise("s-var should have been desugared already: " + torepr(e))
+    | s-spy-block(_, _, _) => raise("s-spy-block should have been desugared already: " + torepr(e))
     | s-user-block(l, body) => raise("s-user-block should have been desugared already: " + torepr(e))
     | else => raise("Missed case in anf: " + torepr(e))
   end

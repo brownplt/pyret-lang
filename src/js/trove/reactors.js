@@ -83,7 +83,7 @@
       externalInteractionHandler = newInteract;
     }
     var makeReactor = function(init, fields) {
-      runtime.ffi.checkArity(2, arguments, "reactor");
+      runtime.ffi.checkArity(2, arguments, "reactor", false);
       runtime.checkObject(fields);
       var handlerDict = {};
       Object.keys(fields.dict).forEach(function(f) {
@@ -159,7 +159,7 @@
             // This unshift prevents duplicate first elements
             thisInteractTrace.shift();
             return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
-          });
+          }, "interact");
         }),
         "start-trace": runtime.makeMethod0(function(self) {
           return makeReactorRaw(init, handlers, true, [init]);
@@ -203,7 +203,7 @@
                   var newTrace = trace;
                 }
                 return makeReactorRaw(newVal, handlers, tracing, newTrace);
-              });
+              }, "react:" + handlerName);
             }
             else {
               runtime.ffi.throwMessageException("No " + handlerName + " handler defined");
@@ -233,7 +233,7 @@
                   }
                 });
               }
-            });
+            }, "react:stop-when");
         }),
         "is-stopped": runtime.makeMethod0(function(self) {
           if(handlers["stop-when"]) {
@@ -257,61 +257,61 @@
     }
 
     function getValue(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("get-value", [reactor], [annReactor]);
       return runtime.getField(reactor, "get-value").app();
     }
 
     function draw(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("draw", [reactor], [annReactor]);
       return runtime.getField(reactor, "draw").app();
     }
 
     function interact(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("interact", [reactor], [annReactor]);
       return runtime.getField(reactor, "interact").app();
     }
 
     function react(reactor, event) {
-      checkArity(2, arguments, "reactors");
+      checkArity(2, arguments, "reactors", false);
       c("react", [reactor, event], [annReactor, annEvent]);
       return runtime.getField(reactor, "react").app(event);
     }
 
     function getTrace(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("get-trace", [reactor], [annReactor]);
       return runtime.getField(reactor, "get-trace").app();
     }
 
     function getTraceAsTable(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("get-trace-as-table", [reactor], [annReactor]);
       return runtime.getField(reactor, "get-trace-as-table").app();
     }
 
     function startTrace(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("start-trace", [reactor], [annReactor]);
       return runtime.getField(reactor, "start-trace").app();
     }
 
     function interactTrace(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("interact-trace", [reactor], [annReactor]);
       return runtime.getField(reactor, "interact-trace").app();
     }
 
     function simulateTrace(reactor, limit) {
-      checkArity(2, arguments, "reactors");
+      checkArity(2, arguments, "reactors", false);
       c("simulate-trace", [reactor, limit], [annReactor, runtime.NumInteger]);
       return runtime.getField(reactor, "simulate-trace").app(limit);
     }
 
     function stopTrace(reactor) {
-      checkArity(1, arguments, "reactors");
+      checkArity(1, arguments, "reactors", false);
       c("stop-trace", [reactor], [annReactor]);
       return runtime.getField(reactor, "stop-trace").app();
     }

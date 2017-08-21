@@ -65,3 +65,57 @@ fun get-compile-errs(str):
   end
 end
 
+fun run-str(str): 
+  result = run-to-result(str)
+  cases(E.Either) result block:
+    | left(err) =>
+      { program: str, success: false, runtime: false, errors: err }
+    | right(ans) =>
+      if L.is-success-result(ans):
+        { program: str, success: true, runtime: true, ans: ans }
+      else:
+        { program: str, success: false, runtime: true, errors: ans }
+      end
+  end
+end
+
+fun output(act, exp):
+  if exp.success:
+    act.success
+  else:
+    (exp.runtime == act.runtime) and exp.check-errors(act.errors)
+  end
+end
+
+success = { success: true, runtime: true }
+
+fun check-contract-error(errors):
+  string-contains(L.render-error-message(errors).message, "annotation")
+end
+
+contract-error = { success: false, runtime: true, check-errors: check-contract-error }
+
+fun field-error(fields):
+  { success: false,
+    runtime: true,
+    check-errors: lam(errors):
+        msg = L.render-error-message(errors).message
+        for lists.all(f from fields):
+          string-contains(msg, "field `" + f + "`")
+        end
+      end
+  }
+end
+
+fun compile-error(check-err):
+  {
+    success: false,
+    runtime: false,
+    check-errors:
+      lam(errors):
+        for lists.any(err from errors):
+          lists.any(check-err, err.problems)
+        end
+      end
+  }
+end
