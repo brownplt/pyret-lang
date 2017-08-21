@@ -769,10 +769,10 @@ compiler-visitor = {
   end,
   method a-update(self, l, obj, fields):
     compiled-obj = obj.visit(self).exp
-    compiled-fields = CL.map_list(_.value.visit(self).exp, fields)
-    field-names = CL.map_list(j-str(_.name), fields)
-    field-locs = CL.map_list(self.get-loc(_.l), fields)
-    c-exp(j-expr(rt-method("checkRefAnns",
+    compiled-fields = CL.map_list(lam(a): a.value.visit(self).exp end, fields)
+    field-names = CL.map_list(lam(a): j-str(a.name) end, fields)
+    field-locs = CL.map_list(lam(a): self.get-loc(a.l) end, fields)
+    c-exp(rt-method("checkRefAnns",
       [clist:
         compiled-obj,
         j-list(false, field-names),
@@ -780,8 +780,7 @@ compiler-visitor = {
         j-list(false, field-locs),
         self.get-loc(l),
         self.get-loc(obj.l)
-      ]
-    )), cl-empty)
+      ]), cl-empty)
   end,
   method a-lettable(self, _, e :: N.ALettable):
     visit-e = e.visit(self)
@@ -847,7 +846,7 @@ compiler-visitor = {
     end
   end,
   method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
-    visit-args = args.map(_.visit(self))
+    visit-args = args.map(lam(a): a.visit(self) end)
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
     ]
@@ -860,7 +859,7 @@ compiler-visitor = {
     end
   end,
   method a-obj(self, l :: Loc, fields :: List<N.AField>):
-    visit-fields = fields.map(_.visit(self))
+    visit-fields = fields.map(lam(a): a.visit(self) end)
     c-exp(rt-method("makeObject",
         [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), cl-empty)
   end,
@@ -876,7 +875,7 @@ compiler-visitor = {
   end,
   method a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     visit-obj = obj.visit(self)
-    visit-fields = fields.map(_.visit(self))
+    visit-fields = fields.map(lam(a): a.visit(self) end)
     c-exp(
       rt-method("extendObj",
         [clist:
@@ -922,7 +921,7 @@ compiler-visitor = {
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
   method a-tuple(self, l, values):
-    visit-vals = values.map(_.visit(self))
+    visit-vals = values.map(lam(a): a.visit(self) end)
     c-exp(
       rt-method("makeTuple",
         [clist: j-list(false,
@@ -938,7 +937,7 @@ compiler-visitor = {
     )
   end,
   method a-array(self, l, values):
-    visit-vals = values.map(_.visit(self))
+    visit-vals = values.map(lam(a): a.visit(self) end)
     other-stmts = visit-vals.foldr(
       lam(v, acc): cl-append(v.other-stmts, acc) end,
       cl-empty
@@ -996,7 +995,7 @@ compiler-visitor = {
       js-id-of(compiler-name(string-append("brand-", base))).toname()
     end
 
-    visit-shared-fields = CL.map_list(_.visit(self), shared)
+    visit-shared-fields = CL.map_list(lam(a): a.visit(self) end, shared)
     shared-fields = visit-shared-fields.map(o-get-field)
     external-brand = j-id(js-id-of(namet))
 
@@ -1085,7 +1084,7 @@ compiler-visitor = {
       variant-brand-obj-id = js-id-of(compiler-name(string-append(
         vname, "-brands")))
       variant-brands = j-obj(cl-empty)
-      visit-with-fields = v.with-members.map(_.visit(self))
+      visit-with-fields = v.with-members.map(lam(a): a.visit(self) end)
 
       refl-base-fields =
         cases(N.AVariant) v:
@@ -1325,7 +1324,7 @@ fun compile-module(self, l, imports-in, prog,
       end
     end, ids)
   fun wrap-modules(modules, body-name, body-fun):
-    mod-input-names = CL.map_list(_.input-id, modules)
+    mod-input-names = CL.map_list(lam(a): a.input-id end, modules)
     mod-input-ids = mod-input-names.map(j-id)
     mod-input-ids-list = mod-input-ids.to-list()
     mod-val-ids = modules.map(get-id)
