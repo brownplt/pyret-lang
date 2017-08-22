@@ -1,5 +1,5 @@
 {
-  "name": "pyret-lang",
+  "name": "pyret",
   "version": "0.0.0",
   "description": "The Pyret programming language",
   "main": "build/phase0/main-wrapper.js",
