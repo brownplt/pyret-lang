@@ -441,42 +441,38 @@ fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
 end
 
 fun compile-cases-branch(compiler, compiled-val, branch, cases-loc):
-  compiled-body = branch.body.visit(compiler)
-
-  # TODO(rachit): Skipping inlining optimization here.
-  temp-branch = fresh-id(compiler-name("temp_branch"))
-  branch-args =
-    if N.is-a-cases-branch(branch) and is-link(branch.args):
-      branch.args.map(get-bind)
-    else:
-      [list: ]
-    end
-
-  ref-binds-mask = if N.is-a-cases-branch(branch):
-    j-list(false, for CL.map_list(cb from branch.args):
-      j-bool(A.is-s-cases-bind-ref(cb.field-type))
-    end)
-  else:
-    j-list(false, cl-empty)
-  end
-
-  compiled-branch-fun =
-    compile-fun-body(branch.body.l, temp-branch, compiler, branch-args, none,
-      branch.body)
   preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
-  deref-fields = j-expr(compiler.cur-ans(
-    j-method(compiled-val, "$app_fields", [clist:
-      j-id(temp-branch), ref-binds-mask])))
-  actual-app =
-    [clist:
-      j-var(temp-branch,
-        j-fun(J.next-j-fun-id(), make-fun-name(compiler, cases-loc),
-          CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args),
-          compiled-branch-fun)),
-      deref-fields,
-      j-break]
-  c-block(j-block(cl-append(preamble, actual-app)),
-    cl-empty)
+  compiled-body = branch.body.visit(compiler)
+  if N.is-a-cases-branch(branch):
+    ann-cases = compile-anns(compiler, branch.args.map(get-bind))
+    field-names = j-id(js-id-of(fresh-id(compiler-name("fn"))))
+    get-field-names = j-var(field-names.id,
+      j-dot(j-dot(compiled-val, "$constructor"), "$fieldNames"))
+    deref-fields =
+      for CL.map_list_n(i from 0, arg from branch.args):
+        mask = j-bracket(j-dot(compiled-val, "$mut_fields_mask"), j-num(i))
+        field = get-dict-field(compiled-val,
+          j-bracket(field-names, j-num(i)))
+        j-var(js-id-of(arg.bind.id),
+          rt-method("derefField",
+            [clist:
+              field,
+              mask,
+              j-bool(A.is-s-cases-bind-ref(arg.field-type))]))
+      end
+      c-block(j-block(
+        preamble
+        ^ cl-snoc(_, get-field-names)
+        ^ cl-append(_, deref-fields)),
+        ann-cases
+        ^ cl-append(_, compiled-body.block.stmts)
+        ^ cl-append(_, compiled-body.new-cases)
+        ^ cl-snoc(_, j-break))
+  else:
+    c-block(
+      j-block(cl-append(preamble, compiled-body.block.stmts)),
+      cl-snoc(compiled-body.new-cases, j-break))
+  end
 end
 fun cases-preamble(compiler, compiled-val, branch, cases-loc):
   cases(N.ACasesBranch) branch:
