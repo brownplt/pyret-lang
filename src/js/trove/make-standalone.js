@@ -64,15 +64,10 @@
       var depsStrs = depsArr.map(function(d) { return '"' + d + '"'; });
       var depsLine = "[" + depsStrs.join(",") + "]";
 
-      var programRequires = "requirejs(" + depsLine + ")"
-      fs.writeFileSync(path.join(storeDir, "program-require.js"), programRequires);
-
       if(!("out" in config)) {
         runtime.ffi.throwMessageException("make-standalone config must have an 'out' field");
       }
       var realOut = config.out;
-      config.out = path.join(storeDir, "program-deps.js");
-      config.name = "program-require";
       if(!config["use-raw-files"]) {
         throw new Error("Cannot not use raw-files! RequireJS is gone");
       }
@@ -93,7 +88,8 @@
       //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
       //fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
       Object.keys(filesToFetch).forEach(function(f) {
-        var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
+        var filename = filesToFetch[f].replace("$PYRET", thisPyretDir);
+        var contents = fs.readFileSync(filename, {encoding: 'utf8'});
         fs.writeSync(outFile, contents);
       });
       fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");
@@ -104,6 +100,7 @@
       return runtime.safeCall(function() {
         return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
       }, function(_) {
+        console.log("Generated file: ", realOut);
         fs.writeSync(outFile, "\n});\n");
         fs.writeSync(outFile, handalone);
         fs.fsyncSync(outFile);

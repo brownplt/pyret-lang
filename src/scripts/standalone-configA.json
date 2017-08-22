@@ -16,24 +16,5 @@
     "jglr/rnglr": "lib/jglr/rnglr.js",
     "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js"
   },
-  "baseUrl": "./build/phaseA",
-  "optimize": "none",
-  "paths": {
-      "jglr": "../../lib/jglr",
-      "pyret-base": "./",
-      "crypto": "empty:",
-      "sha.js": "empty:",
-      "js-sha256": "empty:",
-      "fs": "empty:",
-      "http": "empty:",
-      "lockfile": "empty:",
-      "path": "empty:",
-      "q": "empty:",
-      "requirejs": "empty:",
-      "s-expression": "empty:",
-      "seedrandom": "empty:",
-      "websocket": "empty:",
-      "source-map": "empty:",
-      "stacktrace-js": "empty:"
-    }
+  "baseUrl": "./build/phaseA"
 }

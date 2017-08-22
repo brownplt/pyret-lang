@@ -174,7 +174,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   }
 end
 
-fun make-builtin-locator(builtin-name :: String) -> CL.Locator block:
+fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> block:
   matching-arr-files = for map(p from builtin-arr-dirs):
     full-path = P.join(p, builtin-name + ".arr")
     if F.file-exists(full-path):
@@ -207,10 +207,18 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator block:
   end
   ask:
     | is-link(matching-arr-files) then:
-      make-builtin-arr-locator(P.dirname(matching-arr-files.first), builtin-name)
+      some(make-builtin-arr-locator(P.dirname(matching-arr-files.first), builtin-name))
     | is-link(matching-js-files) then:
-      make-builtin-js-locator(P.dirname(matching-js-files.first), builtin-name)
+      some(make-builtin-js-locator(P.dirname(matching-js-files.first), builtin-name))
     | otherwise:
+      none
+  end
+end
+
+fun make-builtin-locator(builtin-name):
+  cases(Option) maybe-make-builtin-locator(builtin-name):
+    | none =>
       raise("Could not find module " + builtin-name + " in any of " + (builtin-arr-dirs + builtin-js-dirs).join-str(", "))
+    | some(v) => v
   end
 end

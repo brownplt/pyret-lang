@@ -9,12 +9,12 @@
     const WARN = 2;
     const ERROR = 1;
     const SILENT = 0;
-    var LOG_LEVEL = WARN;
+    var LOG_LEVEL = INFO;
 
     function makeLogger(level) {
       return function(...args) {
         if(LOG_LEVEL >= level) {
-          info(console, ["[client] ", new Date()].concat(args));
+          console.log.apply(console, ["[server] ", new Date()].concat(args));
         }
       }
     }
@@ -28,6 +28,9 @@
     // Port could be a string for a file path, like /tmp/some-sock,
     // or it could be a number, like 1705
     const makeServer = function(port, onmessage) {
+
+      var runQueue = [];
+
       //info("Starting up server");
       return runtime.pauseStack(function(restarter) {
         var server = http.createServer(function(request, response) {
@@ -39,41 +42,83 @@
           info((new Date()) + ' The server\'s working directory is ' + process.cwd());
         });
 
+        // At this point, using port as a file socket didn't fail, so make sure
+        // to remove it when we shut down.
+        process.on('SIGINT', function() {
+          if(fs.existsSync(port)) {
+            fs.unlinkSync(port);
+          }
+        });
+        process.on('exit', function() {
+          if(fs.existsSync(port)) {
+            fs.unlinkSync(port);
+          }
+        });
+
         var wsServer = new ws.Server({
           server: server
         });
 
-        // TODO(joe): Catalog what origins come from our clients.
-        function originIsAllowed(origin) {
-          return true;
-        }
-
         wsServer.on('connection', function(connection) {
-          
-          info((new Date()) + ' Connection accepted.');
 
           function respond(jsonData) {
             info("Sending: ", jsonData);
             connection.send(jsonData);
             return runtime.nothing;
           }
+          function respondJSON(json) { return respond(JSON.stringify(json)); }
           const respondForPy = runtime.makeFunction(respond, "respond");
+
+          function tryQueue() {
+            info("Trying run queue, length is ", runQueue.length);
+            if(runQueue.length > 0) {
+              var current = runQueue.pop();
+              runtime.runThunk(function() {
+                return onmessage.app(current, respondForPy);
+              }, function(result) {
+                if(runtime.isFailureResult(result)) {
+                  error("Failed: ", result.exn.exn, result.exn.stack, result.exn.pyretStack);
+                  respondJSON({type: "echo-err", contents: "There was an internal error, please report this as a bug"});
+                  respondJSON({type: "echo-err", contents: String(result.exn.exn) });
+                  connection.close();
+                  // restarter.error(result.exn);
+                }
+                else {
+                  connection.close();
+                  // info("Success: ", result);
+                }
+                tryQueue();
+              });
+            }
+          }
+
+          
+          info((new Date()) + ' Connection accepted.');
+
 
           connection.on('message', function(message) {
             info('Received Message: ' + message);
-            runtime.runThunk(function() {
-              return onmessage.app(message, respondForPy);
-            }, function(result) {
-              if(runtime.isFailureResult(result)) {
-                console.error("Failed: ", result.exn.exn, result.exn.stack, result.exn.pyretStack);
-                connection.close();
-                restarter.error(result.exn);
-              }
-              else {
-                connection.close();
-                // info("Success: ", result);
-              }
-            });
+
+            var parsed = JSON.parse(message);
+
+            if(parsed.command === "stop") {
+              runtime.schedulePause(function(restarter) {
+                restarter.break(); 
+              });
+              tryQueue();
+            }
+
+            if(parsed.command === "shutdown") {
+              runtime.breakAll();
+              info("Exiting due to shutdown request");
+              process.exit(0);
+            }
+
+            if(parsed.command === "compile") {
+              runQueue.push(parsed.compileOptions);
+              tryQueue();
+            }
+
           });
           connection.on('close', function(reasonCode, description) {
             // info((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
@@ -81,7 +126,9 @@
         });
         
         info("Server startup successful");
-        process.send({type: 'success'});
+        if(process.send) {
+          process.send({type: 'success'});
+        }
 
         process.on('SIGINT', function() {
           info("Caught interrupt signal, exiting server");

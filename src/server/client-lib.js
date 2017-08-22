@@ -10,7 +10,7 @@ const LOG = 3;
 const WARN = 2;
 const ERROR = 1;
 const SILENT = 0;
-var LOG_LEVEL = WARN;
+var LOG_LEVEL = INFO;
 
 function makeLogger(level) {
   return function(...args) {
@@ -91,25 +91,39 @@ function start(options) {
     const compileTarget = path.join(localParleyDir, "compiled");
     options["pyret-options"]["compiled-dir"] = compileTarget;
   }
+  if(!options["pyret-options"]["base-dir"]) {
+    const baseDir = path.resolve(path.join(localParleyDir, ".."));
+    options["pyret-options"]["base-dir"] = baseDir;
+  }
 
   function shutdown() {
     try {
-      const pid = Number(fs.readFileSync(pidFile));
-      process.kill(pid, 'SIGINT');
-      fs.unlinkSync(pidFile);
-      fs.unlinkSync(portFile);
-      info("Sent kill signal to " + pid);
+      const client = new WebSocket("ws+unix://" + portFile);
+      client.on('error', function(err) {
+        error('Connection error: ' + err.toString() + ".");
+        error('You can try again, and the Pyret server may restart. If you see this error repeatedly, report it as a bug.');
+      });
+      client.on('open', function(connection) {
+        client.send(JSON.stringify({ command: 'shutdown' }));
+      });
+      
+      tryToRemoveFiles();
     }
     catch(e) {
-      info("No process to quit: " + e);
-      fs.unlinkSync(pidFile);
-      fs.unlinkSync(portFile);
+      info("Error during shutdown: " + e);
+      tryToRemoveFiles();
     }
+  }
+
+  function tryToRemoveFiles() {
+    if(fs.existsSync(pidFile)) { fs.unlinkSync(pidFile); }
+    if(fs.existsSync(portFile)) { fs.unlinkSync(portFile); }
   }
 
   if(options.client.shutdown) {
     shutdown();
-    process.exit(0);
+    return;
+    //process.exit(0);
   }
 
   function makeSocketAndConnect() {
@@ -120,12 +134,22 @@ function start(options) {
       shutdown();
     });
 
+    function sigint() {
+      log("Caught interrupt signal during compile job, stopping compile job");
+      client.send(JSON.stringify({ command: 'stop' }));
+      process.exit(0);
+    }
+
     client.on('close', function() {
       info('parley connection closed');
+      process.removeListener('SIGINT', sigint);
     });
      
     client.on('open', function(connection) {
       info('parley protocol connected');
+
+      process.on('SIGINT', sigint);
+
       client.on('message', function(message) {
         const parsed = JSON.parse(message);
         if(parsed.type === 'echo-log') {
@@ -143,13 +167,16 @@ function start(options) {
           process.stderr.write(parsed.contents);
         }
       });
-      client.send(JSON.stringify(options['pyret-options']));
+
+
+      var forMessage = { command: "compile", compileOptions: JSON.stringify(options['pyret-options']) };
+      client.send(JSON.stringify(forMessage));
     });
     return client;
   }
 
 
-  function startupServer(port) {
+  function startupServer(port, wait) {
     const child = childProcess.fork(
       serverModule,
       ["-serve", "--port", port],
@@ -159,19 +186,25 @@ function start(options) {
       } // To send messages on completion of startup
     );
 
-    return new Promise((resolve, reject) => {
-      child.on('message', function(msg) {
-        if(msg.type === 'success') {
-          child.unref();
-          child.disconnect();
-          fs.writeFileSync(pidFile, String(child.pid));
-          resolve(msg);
-        }
-        else {
-          reject(msg);
-        }
+    if(wait) {
+      return new Promise((resolve, reject) => {
+        child.on('message', function(msg) {
+          if(msg.type === 'success') {
+            child.unref();
+            child.disconnect();
+            resolve(msg);
+          }
+          else {
+            reject(msg);
+          }
+        });
       });
-    });
+    }
+    else {
+      fs.writeFileSync(pidFile, String(child.pid));
+      child.unref();
+      child.disconnect();
+    }
   }
 
   const connectURL = portFile;
@@ -182,7 +215,7 @@ function start(options) {
     if(pidStats.mtime.getTime() < compilerStats.mtime.getTime()) {
       info("A running server was found, but the chosen compiler (" + serverModule + ") is newer than the server.  Restarting...");
       shutdown();
-      startupServer(portFile)
+      startupServer(portFile, true)
         .then(() => makeSocketAndConnect())
         .catch((err) => error('Starting up the server failed: ', err));
     }
@@ -192,16 +225,16 @@ function start(options) {
     }
   // Otherwise, try starting up a server and waiting for it, then doing the work
   } else {
-    info("No pidFile found, starting up server");
-    startupServer(portFile)
-      .then(() => makeSocketAndConnect())
-      .catch((err) => console.error('Starting up the server failed: ', err));
+    if (fs.existsSync(portFile)) {
+      makeSocketAndConnect();
+    }
+    else {
+      info("No pid file or socket found, starting up server");
+      startupServer(portFile, true)
+        .then(() => makeSocketAndConnect())
+        .catch((err) => console.error('Starting up the server failed: ', err));
+    }
   }
-
-  process.on('SIGINT', function() {
-    info("Caught interrupt signal, shutting down server");
-    shutdown();
-  });
 
 }
 

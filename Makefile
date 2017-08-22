@@ -14,7 +14,7 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
-BUNDLED_DEPS     = build/bundled-node-deps.js
+BUNDLED_DEPS     = build/phaseA/bundled-node-deps.js
 # HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
 export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
 SHELL := /bin/bash
@@ -29,6 +29,7 @@ showpath:
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
+COPY_LIB         = $(wildcard lib/jglr/*.js)
 COMPILER_FILES = $(wildcard src/arr/compiler/*.js) $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
 TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
 
@@ -55,14 +56,13 @@ TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
 # below.
 S3               = s3
 
-PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS))
-PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS))
-PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS))
+PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEA)/js/%.js,$(COPY_LIB)) $(PHASEA)/bundled-node-deps.js $(PHASEA)/config.json
+PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEB)/js/%.js,$(COPY_LIB)) $(PHASEB)/bundled-node-deps.js $(PHASEB)/config.json
+PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEC)/js/%.js,$(COPY_LIB)) $(PHASEC)/bundled-node-deps.js $(PHASEC)/config.json
 
 PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
-
 
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
@@ -100,6 +100,7 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/compiled/ \
+                      --deps-file build/phaseA/bundled-node-deps.js \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
@@ -112,8 +113,9 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
+                      --deps-file build/phaseB/bundled-node-deps.js \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configB.json
+                      --require-config build/phaseB/config.json
 
 
 .PHONY : phaseC
@@ -125,14 +127,27 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
+                      --deps-file build/phaseB/bundled-node-deps.js \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configC.json
+                      --require-config build/phaseB/config.json
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
 
-$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+$(PHASEA)/bundled-node-deps.js: src/js/trove/require-node-dependencies.js
+	browserify src/js/trove/require-node-dependencies.js -o $@
+$(PHASEB)/bundled-node-deps.js: src/js/trove/require-node-dependencies.js
+	browserify src/js/trove/require-node-dependencies.js -o $@
+$(PHASEC)/bundled-node-deps.js: src/js/trove/require-node-dependencies.js
+	browserify src/js/trove/require-node-dependencies.js -o $@
+
+$(PHASEA)/config.json: src/scripts/node_modules-config.json
+	cp $< $@
+$(PHASEB)/config.json: src/scripts/node_modules-config.json
+	cp $< $@
+$(PHASEC)/config.json: src/scripts/node_modules-config.json
+	cp $< $@
+
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
@@ -196,9 +211,15 @@ $(PHASEC)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokeniz
 
 $(PHASEA)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
+$(PHASEA)/$(JS)/%.js : lib/jglr/%.js
+	cp $< $@
 $(PHASEB)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
+$(PHASEB)/$(JS)/%.js : lib/jglr/%.js
+	cp $< $@
 $(PHASEC)/$(JS)/%.js : src/$(JSBASE)/%.js
+	cp $< $@
+$(PHASEC)/$(JS)/%.js : lib/jglr/%.js
 	cp $< $@
 
 .PHONY : install

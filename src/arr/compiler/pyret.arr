@@ -49,8 +49,10 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Allow overlapping builtins defined between builtin-js-dir and builtin-arr-dir"),
     "no-display-progress",
       C.flag(C.once, "Skip printing the \"Compiling X/Y\" progress indicator"),
+    "compiled-read-only-dir",
+      C.next-val(C.String, C.many, "Additional directories to search to find precompiled versions of modules"),
     "compiled-dir",
-      C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to"),
+      C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
@@ -123,11 +125,12 @@ fun main(args :: List<String>) -> Number block:
           else:
             r.get-value("build-runnable") + ".jarr"
           end
+          compile-opts = CS.make-default-compile-options(this-pyret-dir)
           CLI.build-runnable-standalone(
               r.get-value("build-runnable"),
-              r.get-value("require-config"),
+              r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
               outfile,
-              CS.default-compile-options.{
+              compile-opts.{
                 this-pyret-dir: this-pyret-dir,
                 standalone-file: standalone-file,
                 check-mode : check-mode,
@@ -138,9 +141,10 @@ fun main(args :: List<String>) -> Number block:
                 ignore-unbound: false,
                 proper-tail-calls: tail-calls,
                 compiled-cache: compiled-dir,
+                compiled-read-only: r.get("compiled-read-only-dir").or-else(empty),
                 display-progress: display-progress,
                 inline-case-body-limit: inline-case-body-limit,
-                deps-file: r.get("deps-file").or-else(CS.default-compile-options.deps-file),
+                deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
                 html-file: html-file
               })
           success-code
