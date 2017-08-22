@@ -586,15 +586,20 @@ fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
         j-var(js-id-of(bname.id), undefined),
         j-switch(j-dot(compiled-val, "$name"), branch-else-cases)]
     | else =>
-      compiled-e :: DAG.CaseResults%(is-c-exp) = e.visit(compiler)
-      cases(BindType) b:
-        | b-let(_) =>
-          compiled-e.other-stmts ^
-            cl-append(_, cl-sing(j-var(js-id-of(bname.id), compiled-e.exp)))
-        | b-array(_, _) =>
-          compiled-e.other-stmts ^
-            cl-append(_, cl-sing(j-expr(new-ans(compiled-e.exp))))
-      end
+      compiled-e :: DAG.CaseResults =
+        e.visit(compiler.{cur-ans: new-ans})
+        if is-c-exp(compiled-e):
+          cases(BindType) b:
+            | b-let(_) =>
+              compiled-e.other-stmts ^
+                cl-append(_, cl-sing(j-var(js-id-of(bname.id), compiled-e.exp)))
+            | b-array(_, _) =>
+              compiled-e.other-stmts ^
+                cl-append(_, cl-sing(j-expr(new-ans(compiled-e.exp))))
+          end
+        else:
+          cl-append(compiled-e.block.stmts, compiled-e.new-cases)
+        end
     end
     compile-annotated-let(compiler, bname, binding, compiled-body)
 end
