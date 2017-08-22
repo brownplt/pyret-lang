@@ -184,21 +184,22 @@ fun get-file-locator(basedir, real-path):
 end
 
 fun get-builtin-locator(basedir, read-only-basedirs, modname):
-  cases(Option) BL.maybe-make-builtin-locator(modname) block:
-    | some(loc) =>
-      print("Found " + loc.uri() + " via source, creating uncached locator\n")
-      get-cached-if-available(basedir, loc)
+  all-dirs = link(basedir, read-only-basedirs)
+
+  first-available = for find(rob from all-dirs):
+    is-some(cached-available(rob, "builtin://" + modname, modname, 0))
+  end
+  cases(Option) first-available:
     | none =>
-      first-available = for find(rob from read-only-basedirs):
-        is-some(cached-available(rob, "builtin://" + modname, modname, 0))
+      cases(Option) BL.maybe-make-builtin-locator(modname) block:
+        | some(loc) =>
+          get-cached-if-available(basedir, loc)
+        | none =>
+          raise("Could not find builtin module " + modname + " in any of " + all-dirs.join-str(", "))
       end
-      cases(Option) first-available block:
-        | none => raise("Could not find builtin module " + modname + " in any of " + read-only-basedirs.join-str(", "))
-        | some(ro-basedir) =>
-          print("Found " + modname + " in " + ro-basedir + ", creating cached locator\n")
-          ca = cached-available(ro-basedir, "builtin://" + modname, modname, 0).or-else(split)
-          get-cached(ro-basedir, "builtin://" + modname, modname, ca)
-      end
+    | some(ro-basedir) =>
+      ca = cached-available(ro-basedir, "builtin://" + modname, modname, 0).or-else(split)
+      get-cached(ro-basedir, "builtin://" + modname, modname, ca)
   end
 end
 
@@ -216,12 +217,8 @@ fun get-loadable(basedir, read-only-basedirs, l) -> Option<Loadable>:
     is-some(cached-available(rob, l.locator.uri(), l.locator.name(), l.locator.get-modified-time()))
   end
   cases(Option) first-available block:
-    | none =>
-      print("Could not find " + locuri + " in " + link(basedir, read-only-basedirs).join-str(", ") + "; so it isn't in the initial locator list.\n")
-      print("The name was " + uri-to-path(locuri, l.locator.name()) + "\n")
-      none
+    | none => none
     | some(found-basedir) => 
-      print("Found " + locuri + " in " + found-basedir + ", so it is already known to the compiler.\n")
       c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), l.locator.get-modified-time())
       saved-path = P.join(found-basedir, uri-to-path(locuri, l.locator.name()))
       {static-path; module-path} = cases(CachedType) c.or-else(single-file):
@@ -274,10 +271,6 @@ fun set-loadable(basedir, locator, loadable) -> String block:
       fs.close-file()
       fm.flush()
       fm.close-file()
-
-      print("Done printing contents for " + locuri + "\n")
-      print("Static path: " + num-to-string(string-length(F.file-to-string(save-static-path))) + "\n")
-      print("Module path: " + num-to-string(string-length(F.file-to-string(save-module-path))) + "\n")
 
       save-module-path
     | err(_) => ""
@@ -439,15 +432,14 @@ fun build-program(path, options, stats) block:
   }, base-module)
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
-
   clear-and-print("Loading existing compiled modules...")
   storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
   starter-modules = storage.load-modules(wl)
 
-  total-modules = wl.length()
   cached-modules = starter-modules.count-now()
-  var num-compiled = cached-modules
-  when num-compiled == total-modules:
+  total-modules = wl.length() - cached-modules
+  var num-compiled = 0
+  when total-modules == 0:
     clear-and-print("All modules already compiled. Cleaning up and generating standalone...\n")
   end
   shadow options = options.{
@@ -483,7 +475,8 @@ fun build-program(path, options, stats) block:
       end
     end
   }
-  CL.compile-standalone(wl, starter-modules, options)
+  ans = CL.compile-standalone(wl, starter-modules, options)
+  ans
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
@@ -512,8 +505,6 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
 
       ans = make-standalone-res and html-res
       
-      print("Successfully made standalone: " + to-string(ans))
-
       when options.collect-times block:
         standalone-end = time-now() - stats.get-value-now("standalone")
         stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])
