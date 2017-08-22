@@ -269,15 +269,22 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 		-check-all
 
 .PHONY : all-pyret-test
-all-pyret-test: tests/pyret/all.jarr parse-test
+all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/all.jarr
+	$(NODE) tests/pyret/vhull-main.jarr
+
+tests/pyret/vhull-main.jarr: tests/pyret/vhull-main.arr phaseA
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+                      --build-runnable $< \
+	                      -straight-line \
+											  -check-all \
+                      --require-config src/scripts/standalone-configV.json
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \
 		--outfile tests/pyret/main2.jarr \
 		--build-runnable tests/pyret/main2.arr \
 		-check-all # NOTE(joe): check-all doesn't yet do anything
-
 
 .PHONY : pyret-test
 pyret-test: phaseA tests/pyret/main2.jarr
