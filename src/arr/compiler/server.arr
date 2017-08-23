@@ -73,7 +73,6 @@ fun serve(port, pyret-dir):
     fun err(s):
       d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
       send-message(J.j-obj(d).serialize())
-
     end
     with-logger = opts.set("log", log)
     with-error = with-logger.set("log-error", err)
@@ -90,10 +89,13 @@ fun serve(port, pyret-dir):
       | right(exn) =>
         log("Got an error result", none)
         err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), torepr, empty)
+        d = [SD.string-dict: "type", J.j-str("compile-failure")]
         err(err-str)
+        send-message(J.j-obj(d).serialize())
       | left(val) =>
-        log("Got a success result", none)
-      nothing
+        d = [SD.string-dict: "type", J.j-str("compile-success")]
+        send-message(J.j-obj(d).serialize())
+        nothing
     end
   end)
 end

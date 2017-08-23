@@ -75,6 +75,7 @@ function start(options) {
       localParleyDir = path.resolve(path.join(process.cwd(), localParley));
     }
     catch(e) {
+      error(String(e));
       error("No " + localParley + " directory found and couldn't create it, exiting");
       process.exit(1);
     }
@@ -126,6 +127,14 @@ function start(options) {
     //process.exit(0);
   }
 
+  function runProgram(path) {
+    console.log("Executing program: ", path);
+    const proc = childProcess.spawn("node", [path], {stdio: 'inherit'});
+    proc.on('close', function(code) {
+      process.exit(code);
+    });
+  }
+
   function makeSocketAndConnect() {
     const client = new WebSocket("ws+unix://" + portFile);
     client.on('error', function(err) {
@@ -165,6 +174,13 @@ function start(options) {
         }
         else if(parsed.type === 'echo-err') {
           process.stderr.write(parsed.contents);
+        }
+        else if(parsed.type === "compile-failure") {
+          // Intentional no-op
+        }
+        else if(parsed.type === "compile-success") {
+          info("Successful compile response");
+          process.nextTick(() => runProgram(options["pyret-options"]["outfile"]));
         }
       });
 
