@@ -2013,7 +2013,7 @@ define("pyret-base/js/js-numbers", function() {
 
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
   var digitRegexp = new RegExp("^[+-]?\\d+$");
-  var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
+  var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d+)?)((?:[Ee][-+]?\\d+)?)$");
 
 
   var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?)$");
