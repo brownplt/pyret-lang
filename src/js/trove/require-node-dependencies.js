@@ -26,6 +26,6 @@ define("path", [], function () { return path; });
 http = nodeRequire("http");
 define("http", [], function () {return http;});
 
-ws = nodeRequire("ws");
+ws = require("ws");
 define("ws", [], function () { return ws });
 
