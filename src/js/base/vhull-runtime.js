@@ -3028,11 +3028,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         stackFrame = $ar.args[2];
         $fun_ans = $ar.vars[0];
       }
-      if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
-        thisRuntime.EXN_STACKHEIGHT = 0;
-        skipLoop = true;
-        $ans = thisRuntime.makeCont();
-      }
       while(!skipLoop) {
         switch($step) {
         case 0:
@@ -3046,7 +3041,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           $ans = after($fun_ans);
           if(isContinuation($ans)) { break;}
           continue;
-        case 2: ++thisRuntime.GAS; return $ans;
+        case 2: return $ans;
         }
         break;
       }
@@ -3072,14 +3067,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             i = i + 1;
           }
         }
-        if (--thisRuntime.GAS <= 0 || --thisRuntime.RUNGAS <= 0) {
-          thisRuntime.EXN_STACKHEIGHT = 0;
-          return thisRuntime.makeCont();
-        }
         while(true) {
           started = true;
           if(i >= stop) {
-            ++thisRuntime.GAS;
             return thisRuntime.nothing;
           }
           var res = fun.app(i);
@@ -3088,11 +3078,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             res.stack[thisRuntime.EXN_STACKHEIGHT++] =
               thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
             return res;
-          }
-
-          if (--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
           }
           else { i = i + 1; }
         }
@@ -3167,9 +3152,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var TOS = 0;
 
       var sync = options.sync || false;
-      var initialGas = thisRuntime.INITIAL_GAS;
-      thisRuntime.GAS = initialGas;
-      thisRuntime.RUNGAS = sync ? Infinity : initialGas * 10;
 
       var threadIsCurrentlyPaused = false;
       var threadIsDead = false;
@@ -3253,13 +3235,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               });
             }
             while(theOneTrueStackHeight > 0) {
-              if(!sync && thisRuntime.RUNGAS <= 1) {
-                thisRuntime.RUNGAS = initialGas * 10;
-                TOS++;
-                // CONSOLE.log("Setting timeout to resume iter");
-                util.suspend(iter);
-                return;
-              }
               var next = theOneTrueStack[--theOneTrueStackHeight];
               // CONSOLE.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
               theOneTrueStack[theOneTrueStackHeight] = undefined;
@@ -3284,8 +3259,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               if(next.fun instanceof Function && thisRuntime.isContinuation(val)) {
                 // console.log("BOUNCING");
                 BOUNCES++;
-                thisRuntime.GAS = initialGas;
-                thisRuntime.RUNGAS = initialGas * 10;
                 for(var i = val.stack.length - 1; i >= 0; i--) {
     //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
                   theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
@@ -3323,7 +3296,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
               BOUNCES++;
-              thisRuntime.GAS = initialGas;
               for(var i = e.stack.length - 1; i >= 0; i--) {
               // CONSOLE.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
                 theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
@@ -3368,8 +3340,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         return finishSuccess(val);
       }
-      thisRuntime.GAS = initialGas;
-      thisRuntime.RUNGAS = initialGas * 10;
       iter();
     }
 
@@ -3547,7 +3517,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       });
     }
 
-    var INITIAL_GAS = theOutsideWorld.initialGas || 500;
 
     var DEBUGLOG = true;
     /**
@@ -3742,19 +3711,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (--thisRuntime.GAS <= 0) {
-        thisRuntime.EXN_STACKHEIGHT = 0;
-        cleanQuit = false;
-        $ans = thisRuntime.makeCont();
-      }
-
       while (cleanQuit && (curIdx < len)) {
-        if (--thisRuntime.RUNGAS <= 0) {
-          thisRuntime.EXN_STACKHEIGHT = 0;
-          cleanQuit = false;
-          $ans = thisRuntime.makeCont();
-          break;
-        }
         switch($step) {
         case 0:
           $step = 1;
@@ -3800,18 +3757,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var $step = 0;
       }
       var cleanQuit = true;
-      if (--thisRuntime.GAS <= 0) {
-        thisRuntime.EXN_STACKHEIGHT = 0;
-        $ans = thisRuntime.makeCont();
-        cleanQuit = false;
-      }
-
       while (cleanQuit && curIdx < len) {
-        if (--thisRuntime.RUNGAS <= 0) {
-          thisRuntime.EXN_STACKHEIGHT = 0;
-          $ans = thisRuntime.makeCont();
-          cleanQuit = false;
-        }
         switch($step) {
         case 0:
           $step = 1;
@@ -3917,10 +3863,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function foldHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentIndex += 1;
           var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
           if(isContinuation(res)) { return res; }
@@ -3954,10 +3896,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
@@ -3990,10 +3928,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var length = arr.length;
       function eachHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
@@ -4023,10 +3957,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentIndex += 1;
           var res = f.app(arr[currentIndex], currentIndex);
           if(isContinuation(res)) { return res; }
@@ -4060,10 +3990,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
@@ -4103,10 +4029,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array(length);
       function mapHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentIndex += 1;
           var toCall = currentIndex === 0 ? f1 : f;
           var res = toCall.app(arr[currentIndex]);
@@ -4141,10 +4063,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentFst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
@@ -4183,10 +4101,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newArray = new Array();
       function filterHelp() {
         while(currentIndex < (length - 1)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
           if(isContinuation(res)) { return res; }
@@ -4225,10 +4139,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var currentLst = lst;
       function foldHelp() {
         while(thisRuntime.ffi.isLink(currentLst)) {
-          if(--thisRuntime.RUNGAS <= 0) {
-            thisRuntime.EXN_STACKHEIGHT = 0;
-            return thisRuntime.makeCont();
-          }
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           currentAcc = f.app(currentAcc, fst);
@@ -5404,9 +5314,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'isActivationRecord'   : isActivationRecord,
       'isInitializedActivationRecord'   : isInitializedActivationRecord,
       'makeActivationRecord' : makeActivationRecord,
-
-      'GAS': INITIAL_GAS,
-      'INITIAL_GAS': INITIAL_GAS,
 
       'NumberErrbacks': NumberErrbacks,
 
