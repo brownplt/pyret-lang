@@ -1445,7 +1445,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                 var m = getColonField(next, "_output");
                 var s = m.full_meth(next);
                 // Early exit for user-thrown exception here
-                if(isContinuation(s)) { return s; }
                 reprMethods["valueskeleton"](next, thisRuntime.unwrap(s), pushTodo);
               }
               else if(isDataValue(next)) {
@@ -1485,7 +1484,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           case 0:
             $step = 1;
             $ans = toReprHelp();
-            if(isContinuation($ans)) { break; }
             return $ans;
           case 1:
             if (stack.length === 0) {
@@ -1504,15 +1502,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             continue;
           }
           break;
-        }
-        if(isContinuation($ans)) {
-          $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["runtime torepr"],
-            toReprFun,
-            $step,
-            [],
-            []);
-          return $ans;
         }
       }
       function reenterToReprFun(val) {
@@ -1547,7 +1536,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             }];
             $step = 1;
             $ans = toReprFun();
-            if(isContinuation($ans)) { break; }
             continue;
           case 1:
             stack = stackOfStacks.pop();
@@ -1948,7 +1936,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                   /* Two objects with the same brands and the left has an _equals method */
                   // If this call stack-returns,
                   var newAns = getColonField(curLeft, "_equals").full_meth(curLeft, curRight, equalFunPy);
-                  if(isContinuation(newAns)) { return newAns; }
                   // the continuation stacklet will get the result, and combine them manually
                   toCompare.curAns = combineEquality(toCompare.curAns, newAns);
                 }
@@ -2004,14 +1991,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           case 0:
             $step = 1;
             $ans = equalHelp();
-            if(isContinuation($ans)) {
-              $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-                stackFrameDesc,
-                equalFun,
-                $step,
-                [],
-                []);
-            }
             return $ans;
           case 1:
             toCompare.curAns = combineEquality(toCompare.curAns, $ans);
@@ -2035,15 +2014,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             toCompare = {stack: [{left: left, right: right, path: "the-value"}], curAns: thisRuntime.ffi.equal};
             $step = 1;
             $ans = equalFun();
-            if(isContinuation($ans)) {
-              $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-                stackFrameDesc,
-                reenterEqualFun,
-                $step,
-                [],
-                []);
-              return $ans;
-            }
             break;
           case 1:
             for(var i = 0; i < toCompare.stack.length; i++) {
@@ -2471,7 +2441,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       } else {
         return safeCall(function() {
           var res = ann.check(compilerLoc, val);
-          //if(thisRuntime.isContinuation(res)) { console.trace(); }
           return res;
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) { return val; }
@@ -2489,7 +2458,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else {
         return safeCall(function() {
           var res = ann.check(compilerLoc, val);
-          //if(thisRuntime.isContinuation(res)) { console.trace(); }
           return res;
         }, function(result) {
           return returnOrRaise(result, val, after);
@@ -2971,9 +2939,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function Cont(stack) {
       this.stack = stack;
     }
-    function makeCont() { return new Cont([]); }
-    function isCont(v) { return v instanceof Cont; }
-    function isContinuation(v) { return typeof v === "object" && v instanceof Cont; }
     Cont.prototype._toString = function() {
       var stack = this.stack;
       var stackStr = stack && stack.length > 0 ?
@@ -3033,13 +2998,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         case 0:
           $step = 1;
           $ans = fun();
-          if(isContinuation($ans)) { break;}
           continue;
         case 1:
           var $fun_ans = $ans;
           $step = 2;
           $ans = after($fun_ans);
-          if(isContinuation($ans)) { break;}
           continue;
         case 2: return $ans;
         }
@@ -3074,12 +3037,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           var res = fun.app(i);
 
-          if (thisRuntime.isContinuation(res)) {
-            res.stack[thisRuntime.EXN_STACKHEIGHT++] =
-              thisRuntime.makeActivationRecord("eachLoop", restart, true, [], [i, started]);
-            return res;
-          }
-          else { i = i + 1; }
+          i = i + 1;
         }
       }
       return restart();
@@ -3240,13 +3198,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               theOneTrueStack[theOneTrueStackHeight] = undefined;
               // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
               // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
-              if(!isContinuation(val)) {
-                next.ans = val;
-              }
               // CONSOLE.log("GAS = ", thisRuntime.GAS);
-
-
-
               if (next.fun instanceof Function) {
                 val = next.fun(next);
               }
@@ -3256,77 +3208,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                 CONSOLE.log(theOneTrueStack);
                 throw false;
               }
-              if(next.fun instanceof Function && thisRuntime.isContinuation(val)) {
-                // console.log("BOUNCING");
-                BOUNCES++;
-                for(var i = val.stack.length - 1; i >= 0; i--) {
-    //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
-                  theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
-                }
-                // console.log("The new stack height is ", theOneTrueStackHeight);
-                // console.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
-                //   if (f && f.from) { return f.from.toString(); }
-                //   else { return f; }
-                // }));
-
-                if(isPause(val)) {
-                  thisThread.pause();
-                  val.pause.setHandlers(thisThread.handlers);
-                  if(val.resumer) { val.resumer(val.pause); }
-                  return;
-                }
-                else if(thisRuntime.isCont(val)) {
-                  if(sync) {
-                    loop = true;
-                    // DON'T return; we synchronously loop back to the outer while loop
-                    continue;
-                  }
-                  else {
-                    TOS++;
-                    util.suspend(iter);
-                    return;
-                  }
-                }
-              }
-              // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
           } catch(e) {
             debugger;
-//            console.error("Exceptions should no longer be thrown: ", e);
-            if(thisRuntime.isCont(e)) {
-              // CONSOLE.log("BOUNCING");
-              BOUNCES++;
-              for(var i = e.stack.length - 1; i >= 0; i--) {
-              // CONSOLE.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
-                theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
-              }
-              // CONSOLE.log("The new stack height is ", theOneTrueStackHeight);
-              // CONSOLE.log("theOneTrueStack = ", theOneTrueStack.slice(0, theOneTrueStackHeight).map(function(f) {
-              //   if (f && f.from) { return f.from.toString(); }
-              //   else { return f; }
-              // }));
-
-              if(isPause(e)) {
-                thisThread.pause();
-                e.pause.setHandlers(thisThread.handlers);
-                if(e.resumer) { e.resumer(e.pause); }
-                return;
-              }
-              else if(thisRuntime.isCont(e)) {
-                if(sync) {
-                  loop = true;
-                  // DON'T return; we synchronously loop back to the outer while loop
-                  continue;
-                }
-                else {
-                  TOS++;
-                  util.suspend(iter);
-                  return;
-                }
-              }
-            }
-
-            else if(isPyretException(e)) {
+            if(isPyretException(e)) {
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
@@ -3716,10 +3601,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         case 0:
           $step = 1;
           $ans = f.app(curIdx);
-          if(isContinuation($ans)) {
-            cleanQuit = false;
-            break;
-          }
         case 1:
           arr.push($ans);
           $step = 0;
@@ -3764,10 +3645,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           $ans = f.app(curIdx);
           // no need to break
         case 1:
-          if (thisRuntime.isContinuation($ans)) {
-            cleanQuit = false;
-            break;
-          }
           if (thisRuntime.ffi.isSome($ans)) {
             arr.push(thisRuntime.getField($ans, "value"));
           }
@@ -3865,7 +3742,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         while(currentIndex < (length - 1)) {
           currentIndex += 1;
           var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
-          if(isContinuation(res)) { return res; }
           currentAcc = res;
         }
         return currentAcc;
@@ -3875,13 +3751,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentAcc = $ar.ans;
         }
         var res = foldHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-array-fold"],
-            foldFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return foldFun();
@@ -3898,7 +3767,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         while(currentIndex < (length - 1)) {
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
-          if(isContinuation(res)) { return res; }
           newArray[currentIndex] = res;
         }
         return newArray;
@@ -3908,13 +3776,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           newArray[currentIndex] = $ar.ans;
         }
         var res = mapHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-array-map"],
-            mapFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return mapFun();
@@ -3930,19 +3791,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         while(currentIndex < (length - 1)) {
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
-          if(isContinuation(res)) { return res; }
         }
         return nothing;
       }
       function eachFun($ar) {
         var res = eachHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-array-each"],
-            eachFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return eachFun();
@@ -3959,7 +3812,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         while(currentIndex < (length - 1)) {
           currentIndex += 1;
           var res = f.app(arr[currentIndex], currentIndex);
-          if(isContinuation(res)) { return res; }
           newArray[currentIndex] = res;
         }
         return newArray;
@@ -3969,13 +3821,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           newArray[currentIndex] = $ar.ans;
         }
         var res = mapHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-array-mapi"],
-            mapFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return mapFun();
@@ -3993,7 +3838,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
-          if(isContinuation(res)) { return res; }
           currentAcc.push(res);
         }
         return thisRuntime.ffi.makeList(currentAcc);
@@ -4003,13 +3847,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentAcc.push($ar.ans);
         }
         var res = foldHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-list-map"],
-            foldFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return foldFun();
@@ -4032,7 +3869,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentIndex += 1;
           var toCall = currentIndex === 0 ? f1 : f;
           var res = toCall.app(arr[currentIndex]);
-          if(isContinuation(res)) { return res; }
           newArray[currentIndex] = res;
         }
         return newArray;
@@ -4042,13 +3878,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           newArray[currentIndex] = $ar.ans;
         }
         var res = mapHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-array-map1"],
-            mapFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return mapFun();
@@ -4066,7 +3895,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentFst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
-          if(isContinuation(res)) { return res; }
           if(res) {
             currentAcc.push(currentFst);
           }
@@ -4080,13 +3908,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
         }
         var res = foldHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-list-filter"],
-            foldFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return foldFun();
@@ -4103,7 +3924,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         while(currentIndex < (length - 1)) {
           currentIndex += 1;
           var res = f.app(arr[currentIndex]);
-          if(isContinuation(res)) { return res; }
           if(!(isBoolean(res))) {
             return ffi.throwNonBooleanCondition(["raw-array-filter"], "Boolean", res);
           }
@@ -4118,13 +3938,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           if($ar.ans) { newArray.push(arr[currentIndex]); }
         }
         var res = filterHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-array-filter"],
-            filterFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return filterFun();
@@ -4142,7 +3955,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           var fst = thisRuntime.getColonField(currentLst, "first");
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           currentAcc = f.app(currentAcc, fst);
-          if(isContinuation(currentAcc)) { return currentAcc; }
         }
         return currentAcc;
       }
@@ -4151,13 +3963,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentAcc = $ar.ans;
         }
         var res = foldHelp();
-        if(isContinuation(res)) {
-          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-            ["raw-list-fold"],
-            foldFun,
-            0, // step doesn't matter here
-            [], []);
-        }
         return res;
       }
       return foldFun();
@@ -5030,7 +4835,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             else {
               checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
             }
-            //checksPlusBody += "if(thisRuntime.isContinuation(checkAns)) { return checkAns; }";
           });
           checksPlusBody += constructorBody;
         }
@@ -5332,9 +5136,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeRecordAnn': makeRecordAnn,
       'makeTupleAnn': makeTupleAnn,
 
-      'makeCont'    : makeCont,
-      'isCont'      : isCont,
-      'isContinuation'      : isContinuation,
       'makePause'   : makePause,
       'isPause'     : isPause,
 
@@ -5657,7 +5458,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'getFieldRef': 'gFR',
         'hasBrand': 'hB',
         'isActivationRecord': 'isAR',
-        'isCont': 'isC',
         'isFunction': 'isF',
         'isMethod': 'isM',
         'isPyretException': 'isPE',
@@ -5665,7 +5465,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'makeActivationRecord': 'mAR',
         'makeBoolean': 'mB',
         'makeBranderAnn': 'mBA',
-        'makeCont': 'mC',
         'makeDataValue': 'mDV',
         'makeFunction': 'mF',
         'makeGraphableRef': 'mGR',
