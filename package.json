@@ -1,15 +1,10 @@
 {
   "name": "pyret",
-  "version": "0.0.0",
+  "version": "0.8",
   "description": "The Pyret programming language",
-  "main": "build/phase0/main-wrapper.js",
-  "directories": {
-    "doc": "docs",
-    "example": "examples",
-    "test": "tests"
-  },
   "bundleDependencies": {
-    "browserify": "^14.4.0"
+    "browserify": "^14.4.0",
+    "ws": "^3.1.0"
   },
   "dependencies": {
     "ascii-table": "~0.0.9",
@@ -30,8 +25,7 @@
     "sha.js": "^2.4.8",
     "source-map": "^0.5.6",
     "stacktrace-js": "^1.3.1",
-    "websocket": "^1.0.23",
-    "ws": "^3.1.0"
+    "websocket": "^1.0.23"
   },
   "devDependencies": {},
   "bin": {
@@ -52,10 +46,10 @@
     "scripting",
     "functional"
   ],
-  "author": "Joe Gibbs Politz",
+  "author": "The Pyret Crew",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/brownplt/pyret-lang/issues"
   },
-  "homepage": "https://github.com/brownplt/pyret-lang"
+  "homepage": "https://www.pyret.org"
 }
