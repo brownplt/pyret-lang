@@ -45,6 +45,7 @@
     "scripting",
     "functional"
   ],
+  "readme": "npm-readme.md",
   "author": "The Pyret Crew",
   "license": "Apache-2.0",
   "bugs": {
