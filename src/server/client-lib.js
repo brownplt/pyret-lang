@@ -6,13 +6,10 @@ const mkdirp = require('mkdirp');
 const os = require('os');
 
 function findLocalParleyDir(base, localParley) {
-  if(path.resolve(base) === "/") { return false; }
   if(fs.existsSync(path.resolve(path.join(base, localParley)))) {
     return path.resolve(path.join(base, localParley));
   }
-  else {
-    return findLocalParleyDir(path.join(base, ".."), localParley);
-  }
+  return false;
 }
 
 /*
@@ -65,7 +62,7 @@ function start(options) {
   const error = makeLogger(ERROR);
   
   const localParley = options["_all"]["local-parley"];
-  const localParleyDir = findLocalParleyDir(process.cwd(), localParley);
+  var localParleyDir = findLocalParleyDir(process.cwd(), localParley);
 
   if(localParleyDir === false) {
     try {
