@@ -77,6 +77,7 @@ const usages = [
         alias: 'q',
         description: "Don't show the progress indicator output like \"1/4 modules compiled\""
       },
+      /*
       {
         name: 'no-check-mode',
         alias: 'k',
@@ -88,6 +89,7 @@ const usages = [
         type: Boolean,
         description: "Removes all compiled code in the [underline]{.pyret} directory. This can be necessary when Pyret updates to clear out stale compiled files."
       },
+      */
       {
         name: 'shutdown',
         alias: 's',
