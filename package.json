@@ -35,7 +35,8 @@
   },
   "scripts": {
     "install": "make phaseA-deps",
-    "test": "make test-all"
+    "test": "make test-all",
+    "prepublish": "make phaseA"
   },
   "repository": {
     "type": "git",
