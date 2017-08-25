@@ -35,6 +35,7 @@ docs/*.arr.js
 
 build/docs
 # build/phaseA
+!build/phaseA/pyret.jarr
 build/phaseB
 build/phaseC
 build/bootstrapA
