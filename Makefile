@@ -358,5 +358,4 @@ new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 
-$(RELEASE_DIR)/
-	$(call MKDIR,$(RELEASE_DIR)/phase1)
+
