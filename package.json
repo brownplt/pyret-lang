@@ -2,10 +2,6 @@
   "name": "pyret",
   "version": "0.8.0",
   "description": "The Pyret programming language",
-  "bundleDependencies": {
-    "browserify": "^14.4.0",
-    "ws": "^3.1.0"
-  },
   "dependencies": {
     "ascii-table": "~0.0.9",
     "benchmark": "2.0.0",
