@@ -3210,15 +3210,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               }
             }
           } catch(e) {
-              while(theOneTrueStackHeight > 0) {
-                var next = theOneTrueStack[--theOneTrueStackHeight];
-                theOneTrueStack[theOneTrueStackHeight] = "sentinel";
-                e.pyretStack.push(next.from);
-              }
-              return finishFailure(e);
-            } else {
-              return finishFailure(e);
+            while(theOneTrueStackHeight > 0) {
+              var next = theOneTrueStack[--theOneTrueStackHeight];
+              theOneTrueStack[theOneTrueStackHeight] = "sentinel";
+              e.pyretStack.push(next.from);
             }
+            return finishFailure(e);
           }
         }
         return finishSuccess(val);
