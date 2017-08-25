@@ -358,34 +358,5 @@ new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 
-$(RELEASE_DIR)/phase1:
+$(RELEASE_DIR)/
 	$(call MKDIR,$(RELEASE_DIR)/phase1)
-
-ifdef VERSION
-release-gzip: $(PYRET_COMP) phase1 standalone1 $(RELEASE_DIR)/phase1
-	gzip -c $(PHASE1)/pyret.js > $(RELEASE_DIR)/pyret.js
-	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
-	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
-horizon-gzip: standalone1 $(RELEASE_DIR)/phase1
-	sed "s/define('pyret-start/define('pyret/" $(PHASE1)/pyret.js > $(RELEASE_DIR)/pyret-full.js
-	gzip -c $(RELEASE_DIR)/pyret-full.js > $(RELEASE_DIR)/pyret.js
-	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
-	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
-# If you need information on using the s3 script, run `s3 --man'
-horizon-release: horizon-gzip
-	cd $(RELEASE_DIR) && \
-	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-horizon/current/{}' '{}'
-release: release-gzip
-	cd $(RELEASE_DIR) && \
-	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)/{}' '{}'
-test-release: release-gzip
-	cd $(RELEASE_DIR) && \
-	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
-else
-release-gzip:
-	$(error Cannot release from this platform)
-release:
-	$(error Cannot release from this platform)
-test-release: release-gzip
-	$(error Cannot release from this platform)
-endif
