@@ -55,7 +55,6 @@
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
-      console.log(process.cwd());
       var config = JSON.parse(configJSON);
       var storeDir = config["baseUrl"];
       var handalone = fs.readFileSync(standaloneFile, READ_OPTIONS);
@@ -100,7 +99,6 @@
       return runtime.safeCall(function() {
         return runtime.getField(body, "print-ugly-source").app(runtime.makeFunction(writeRealOut, "write-real-out"));
       }, function(_) {
-        console.log("Generated file: ", realOut);
         fs.writeSync(outFile, "\n});\n");
         fs.writeSync(outFile, handalone);
         fs.fsyncSync(outFile);

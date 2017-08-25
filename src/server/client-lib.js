@@ -5,26 +5,6 @@ const path = require('path');
 const mkdirp = require('mkdirp');
 const os = require('os');
 
-const INFO = 4;
-const LOG = 3;
-const WARN = 2;
-const ERROR = 1;
-const SILENT = 0;
-var LOG_LEVEL = INFO;
-
-function makeLogger(level) {
-  return function(...args) {
-    if(LOG_LEVEL >= level) {
-      console.log.apply(console, ["[client] ", new Date()].concat(args));
-    }
-  }
-}
-
-const info = makeLogger(INFO);
-const log = makeLogger(LOG);
-const warn = makeLogger(WARN);
-const error = makeLogger(ERROR);
-
 function findLocalParleyDir(base, localParley) {
   if(path.resolve(base) === "/") { return false; }
   if(fs.existsSync(path.resolve(path.join(base, localParley)))) {
@@ -49,22 +29,40 @@ function tmpdir() {
     }
     catch(e) {
       error("Could not find or create temporary directory " + fulldir);
+      process.exit(1);
     }
   }
   return fulldir; 
 }
 
-function getSockAndPIDFile() {
+function getSocket() {
   const dir = tmpdir();
   const portFile = path.join(dir, "comm.sock");
-  const pidFile = path.join(dir, "pid");
-  return {
-    portFile: portFile,
-    pidFile: pidFile
-  };
+  return portFile;
 }
 
 function start(options) {
+
+  const LOG = 4; // For debugging
+  const INFO = 3; // Here and below are for the user
+  const WARN = 2;
+  const ERROR = 1;
+  const SILENT = 0;
+  var LOG_LEVEL = INFO;
+  if(options.meta.quiet) { LOG_LEVEL = ERROR; }
+
+  function makeLogger(level) {
+    return function(...args) {
+      if(LOG_LEVEL >= level) {
+        console.log.apply(console, ["[client] ", new Date()].concat(args));
+      }
+    }
+  }
+
+  const info = makeLogger(INFO);
+  const log = makeLogger(LOG);
+  const warn = makeLogger(WARN);
+  const error = makeLogger(ERROR);
   
   const localParley = options["_all"]["local-parley"];
   const localParleyDir = findLocalParleyDir(process.cwd(), localParley);
@@ -82,7 +80,7 @@ function start(options) {
   }
 
   const serverModule = options.client.compiler;
-  var {portFile, pidFile} = getSockAndPIDFile();
+  var portFile = getSocket();
 
   if(options.client.port) {
     portFile = path.resolve(options.client.port); // Allow user to override location of port file
@@ -111,13 +109,12 @@ function start(options) {
       tryToRemoveFiles();
     }
     catch(e) {
-      info("Error during shutdown: " + e);
+      warn("Error during shutdown: " + e);
       tryToRemoveFiles();
     }
   }
 
   function tryToRemoveFiles() {
-    if(fs.existsSync(pidFile)) { fs.unlinkSync(pidFile); }
     if(fs.existsSync(portFile)) { fs.unlinkSync(portFile); }
   }
 
@@ -128,7 +125,7 @@ function start(options) {
   }
 
   function runProgram(path) {
-    console.log("Executing program: ", path);
+    log("Executing program: ", path);
     const proc = childProcess.spawn("node", [path], {stdio: 'inherit'});
     proc.on('close', function(code) {
       process.exit(code);
@@ -150,18 +147,19 @@ function start(options) {
     }
 
     client.on('close', function() {
-      info('parley connection closed');
+      log('parley connection closed');
       process.removeListener('SIGINT', sigint);
     });
      
     client.on('open', function(connection) {
-      info('parley protocol connected');
+      log('parley protocol connected');
 
       process.on('SIGINT', sigint);
 
       client.on('message', function(message) {
         const parsed = JSON.parse(message);
         if(parsed.type === 'echo-log') {
+          if(options.meta.quiet) { return; }
           if(parsed["clear-first"]) {
             process.stdout.write("\r");
             process.stdout.write(new Array(parsed["clear-first"] + 1).join(" "));
@@ -179,7 +177,7 @@ function start(options) {
           // Intentional no-op
         }
         else if(parsed.type === "compile-success") {
-          info("Successful compile response");
+          log("Successful compile response");
           process.nextTick(() => runProgram(options["pyret-options"]["outfile"]));
         }
       });
@@ -217,18 +215,17 @@ function start(options) {
       });
     }
     else {
-      fs.writeFileSync(pidFile, String(child.pid));
       child.unref();
       child.disconnect();
     }
   }
 
   const connectURL = portFile;
-  if (fs.existsSync(pidFile)) {
+  if (fs.existsSync(portFile)) {
     // If the compiler is newer than the server process, restart
     var compilerStats = fs.lstatSync(serverModule);
-    var pidStats = fs.lstatSync(pidFile);
-    if(pidStats.mtime.getTime() < compilerStats.mtime.getTime()) {
+    var portStats = fs.lstatSync(portFile);
+    if(portStats.mtime.getTime() < compilerStats.mtime.getTime()) {
       info("A running server was found, but the chosen compiler (" + serverModule + ") is newer than the server.  Restarting...");
       shutdown();
       startupServer(portFile, true)
@@ -236,7 +233,7 @@ function start(options) {
         .catch((err) => error('Starting up the server failed: ', err));
     }
     else {
-      info("Connecting to: ", connectURL);
+      log("Connecting to: ", connectURL);
       makeSocketAndConnect();
     }
   // Otherwise, try starting up a server and waiting for it, then doing the work
@@ -245,7 +242,7 @@ function start(options) {
       makeSocketAndConnect();
     }
     else {
-      info("No pid file or socket found, starting up server");
+      info("Starting up server...");
       startupServer(portFile, true)
         .then(() => makeSocketAndConnect())
         .catch((err) => console.error('Starting up the server failed: ', err));

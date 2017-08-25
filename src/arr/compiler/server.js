@@ -9,7 +9,7 @@
     const WARN = 2;
     const ERROR = 1;
     const SILENT = 0;
-    var LOG_LEVEL = INFO;
+    var LOG_LEVEL = ERROR;
 
     function makeLogger(level) {
       return function(...args) {
@@ -25,8 +25,7 @@
     const error = makeLogger(ERROR);
 
 
-    // Port could be a string for a file path, like /tmp/some-sock,
-    // or it could be a number, like 1705
+    // Port is a string for a file path, like /tmp/some-sock,
     const makeServer = function(port, onmessage) {
 
       var runQueue = [];

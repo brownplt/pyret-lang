@@ -275,6 +275,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
         processExit(runtime, result.exn.exn);
       }
+      if(runtime.isPyretException(result.exn) && runtime.ffi.isUserBreak(result.exn.exn)) {
+        process.exit(0);
+      }
       console.error("The run ended in error:");
       try {
         renderErrorMessageAndExit(runtime, result);

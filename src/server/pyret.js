@@ -160,6 +160,7 @@ const usages = [
 
 const optionDefinitions = [
   { name: 'help', alias: 'h', type: Boolean, group: 'meta', defaultValue: false },
+  { name: 'quiet', alias: 'q', type: Boolean, group: 'meta' },
 
   // These options affect how the client starts up and communiates with the server
   { name: 'shutdown', alias: 's', type: Boolean, group: "client", defaultValue: false },
@@ -178,7 +179,7 @@ const optionDefinitions = [
   { name: 'builtin-js-dir', type: String, multiple: true, group: "pyret-options" },
   { name: 'builtin-arr-dir', type: String, multiple: true, group: "pyret-options" },
   { name: 'allow-builtin-overrides', type: Boolean, group: "pyret-options", defaultValue: false },
-  { name: 'no-check-mode', type: Boolean, group: "pyret-options", defaultValue: false },
+  { name: 'no-check-mode', alias: 'k', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" },
   { name: 'deps-file', type: String, group: "pyret-options" }
