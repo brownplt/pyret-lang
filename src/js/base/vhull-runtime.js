@@ -3210,8 +3210,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               }
             }
           } catch(e) {
-            debugger;
-            if(isPyretException(e)) {
               while(theOneTrueStackHeight > 0) {
                 var next = theOneTrueStack[--theOneTrueStackHeight];
                 theOneTrueStack[theOneTrueStackHeight] = "sentinel";
