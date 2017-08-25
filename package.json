@@ -1,5 +1,5 @@
 {
-  "name": "pyret",
+  "name": "pyret-experimental-cli",
   "version": "0.8.3",
   "description": "The Pyret programming language",
   "dependencies": {
