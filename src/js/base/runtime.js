@@ -452,7 +452,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       else if(isMethod(fieldVal)){
         var curried = fieldVal['meth'](val);
-        return makeFunctionArity(curried, fieldVal.arity - 1, field);
+        return makeFunction(curried, field);
       }
       else {
         return fieldVal;
@@ -681,17 +681,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       /**@type {Function}*/
       this.app   = fun;
 
-      /**@type {number}*/
-      this.arity = arity || fun.length;
-
       /**@type {string}*/
       this.name = name || "<anonymous function>";
-
-      /**@type {!Object.<string, !PBase>}*/
-      this.dict = emptyDict;
-
-      /**@type {!Object.<string, Boolean>}*/
-      this.brands = noBrands;
     }
 
     /**Clones the function
@@ -738,17 +729,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       /**@type {Function}*/
       this['full_meth']   = full_meth;
 
-      /**@type {number}*/
-      this.arity = full_meth.length;
-
       /**@type {string}*/
       this.name = name || "<anonymous method>";
-
-      /**@type {!Object.<string, !PBase>}*/
-      this.dict = emptyDict;
-
-      /**@type {!Object.<string, Boolean>}*/
-      this.brands = noBrands;
 
     }
 
