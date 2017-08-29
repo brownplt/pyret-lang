@@ -86,6 +86,7 @@ j-unop = J.j-unop
 j-decr = J.j-decr
 j-incr = J.j-incr
 j-not = J.j-not
+j-typeof = J.j-typeof
 j-instanceof = J.j-instanceof
 j-ternary = J.j-ternary
 j-null = J.j-null
@@ -287,7 +288,7 @@ fun check-fun(sourcemap-loc, variable-loc, f) block:
       J.j-sourcenode(sourcemap-loc, sourcemap-loc.source,
         j-method(rt-field("ffi"), "throwNonFunApp", [clist: variable-loc, f]))
   end
-  j-if1(j-unop(j-parens(rt-method("isFunction", [clist: f])), j-not),
+  j-if1(j-binop(j-unop(j-parens(j-dot(f, "app")), j-typeof), j-neq, j-str("function")),
     j-block1(j-expr(call)))
 end
 

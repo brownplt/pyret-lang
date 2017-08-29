@@ -332,7 +332,8 @@ data JUnop:
   | j-decr with: method to-ugly-source(self): "--" end
   | j-postincr with: method to-ugly-source(self): "++" end
   | j-postdecr with: method to-ugly-source(self): "--" end
-  | j-not with: method to-ugly-source(self): "!" end
+  | j-not with: method to-ugly-source(self): "!" end,
+  | j-typeof with: method to-ugly-source(self): "typeof" end
 sharing:
   method print-ugly-source(self, printer):
     printer(self.to-ugly-source())
