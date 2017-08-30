@@ -1,6 +1,8 @@
 provide *
 provide-types *
 
+import type-logger as LOG
+
 import error as ERR
 import ast as A
 import string-dict as SD
