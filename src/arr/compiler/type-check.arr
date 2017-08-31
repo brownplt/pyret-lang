@@ -242,8 +242,8 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
 
       # print("\n\n")
       # each(lam(x) block:
-      #  print(x)
-      #  print("\n")
+      #   print(x)
+      #   print("\n")
       # end, body.tosource().pretty(72))
 
       tc-result = checking(body, t-top(l, false), true, context)
@@ -754,7 +754,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         end)
       end
 
-      map-fold-result(process, values).typing-bind(lam(result, shadow context):
+      map-fold-result(process, values, context).typing-bind(lam(result, shadow context):
         {new-values; value-types} = split(result)
         meet-branch-types(value-types, l, context).typing-bind(lam(array-type, shadow context):
           new-array = A.s-array(l, new-values)

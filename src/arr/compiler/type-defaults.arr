@@ -29,6 +29,7 @@ t-boolean                 = TS.t-boolean(A.dummy-loc)
 t-array                   = TS.t-array(_, A.dummy-loc)
 t-nothing                 = TS.t-nothing(A.dummy-loc)
 t-srcloc                  = TS.t-srcloc(A.dummy-loc)
+t-table                   = TS.t-table(A.dummy-loc)
 t-array-name              = TS.t-array-name
 
 type ModuleType           = TS.ModuleType
@@ -84,7 +85,8 @@ fun make-default-aliases():
     A.s-type-global("Roughnum").key(), t-number,
     A.s-type-global("Exactnum").key(), t-number,
     A.s-type-global("String").key(), t-string,
-    A.s-type-global("Boolean").key(), t-boolean]
+    A.s-type-global("Boolean").key(), t-boolean,
+    A.s-type-global("Table").key(), t-table]
   default-aliases
 end
 
@@ -180,6 +182,8 @@ fun make-default-types() block:
   default-typs.set-now("getMaker3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-record([string-dict: "make3", t-arrow([list: tvb, tvc, tvd], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd], tva))))
   default-typs.set-now("getMaker4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-record([string-dict: "make4", t-arrow([list: tvb, tvc, tvd, tve], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd, tve], tva))))
   default-typs.set-now("getMaker5", t-forall([list: tva, tvb, tvc, tvd, tve, tvf], t-arrow([list: t-record([string-dict: "make5", t-arrow([list: tvb, tvc, tvd, tve, tvf], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd, tve, tvf], tva))))
+
+  default-typs.set-now("makeTable", t-arrow([list: t-array(t-top), t-array(t-array(t-top))], t-table))
 
   default-typs.freeze()
 end
