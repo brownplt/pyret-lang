@@ -2,6 +2,8 @@
 " Language:    Pyret
 " Maintainer:  Dorai Sitaram, ds26gte.github.io
 " Last Change: 2015-06-12
+" Originally from
+" https://github.com/brownplt/pyret-lang/blob/master/tools/vim/indent/pyret.vim
 
 if exists("b:did_indent")
   finish

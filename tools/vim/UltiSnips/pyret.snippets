@@ -1,0 +1,52 @@
+snippet fun "fun ... end (fun)"
+fun ${1:function_name}(${2:arguments}):
+  ${VISUAL}$0
+end
+endsnippet
+
+snippet meth "method ... end (meth)"
+meth ${1:method_name}(${2:arguments}):
+  ${VISUAL}$0
+end
+endsnippet
+
+snippet lam "lam ... end (lam)"
+lam(${2:arguments}): ${VISUAL}$0 end
+endsnippet
+
+snippet (lam "(lam ... end ((lam)"
+(lam(${2:arguments}): ${VISUAL}$0 end
+endsnippet
+
+snippet ife "if ... else: ... end (ife)"
+if ${1:condition}:
+  ${VISUAL}$0
+else:
+  ${3:else_branch}
+end
+endsnippet
+
+snippet cases "cases (type) ... end (cases)"
+cases(${1:type}) ${2:v}:
+  | ${3:case1}
+end
+endsnippet
+
+snippet for "for ... end (for)"
+for ${1:iterators}:
+  ${2:body}
+end
+endsnippet
+
+snippet block "block ... end (block)"
+block:
+  ${VISUAL}$0
+end
+endsnippet
+
+snippet data "data ... end (data)"
+data ${1:Type}:
+  | ${2:Variant}
+end
+endsnippet
+
