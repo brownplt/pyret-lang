@@ -2079,7 +2079,7 @@ data CompileError:
         [ED.para-nospace:
           ED.text("Unable to infer the type of "), 
           ED.highlight(ED.text("the expression"), [list: self.loc], 0),
-          ED.text(" at"),
+          ED.text(" at "),
           ED.cmcode(self.loc),
           ED.text("Please add an annotation.")]]
     end,
