@@ -446,9 +446,23 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-op(loc, op, l, r) =>
           raise("checking for s-op not implemented")
         | s-check-test(loc, op, refinement, l, r) =>
-          collect-example(e, context).typing-bind(lam(_, shadow context):
-            typing-result(e, expect-type, context)
-          end)
+          if is-some(test-inference-data):
+            collect-example(e, context).typing-bind(lam(_, shadow context):
+              typing-result(e, expect-type, context)
+            end)
+          else:
+            synthesis(l, false, context).bind(lam(_, left-type, shadow context):
+              cases(Option<Expr>) r:
+                | some(shadow r) =>
+                  synthesis(r, false, context).bind(lam(_, right-type, shadow-context):
+                    shadow context = context.add-constraint(left-type, right-type)
+                    typing-result(e, expect-type, context)
+                  end)
+                | none =>
+                  typing-result(e, expect-type, context)
+              end
+            end)
+          end
         | s-check-expr(l, expr, ann) =>
           synthesis(expr, false, context) # XXX: this should probably use the annotation instead
         | s-paren(l, expr) =>
@@ -704,11 +718,29 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op, l, r) =>
       raise("synthesis for s-op not implemented")
     | s-check-test(loc, op, refinement, l, r) =>
-      collect-example(e, context).typing-bind(lam(_, shadow context):
-        result-type = new-existential(loc, false)
-        shadow context = context.add-variable(result-type)
-        typing-result(e, result-type, context)
-      end)
+      if is-some(test-inference-data):
+        collect-example(e, context).typing-bind(lam(_, shadow context):
+          result-type = new-existential(loc, false)
+          shadow context = context.add-variable(result-type)
+          typing-result(e, result-type, context)
+        end)
+      else:
+        synthesis(l, false, context).bind(lam(_, left-type, shadow context):
+          cases(Option<Expr>) r:
+            | some(shadow r) =>
+              synthesis(r, false, context).bind(lam(_, right-type, shadow-context):
+                shadow context = context.add-constraint(left-type, right-type)
+                result-type = new-existential(loc, false)
+                shadow context = context.add-variable(result-type)
+                typing-result(e, result-type, context)
+              end)
+            | none =>
+              result-type = new-existential(loc, false)
+              shadow context = context.add-variable(result-type)
+              typing-result(e, result-type, context)
+          end
+        end)
+      end
     | s-check-expr(l, expr, ann) =>
       synthesis(expr, false, context) # XXX: this should probably use the annotation instead
     | s-paren(l, expr) =>
@@ -1535,7 +1567,18 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
                     shadow context = context.substitute-in-binds(solution)
                     shadow new-type = solution.generalize(solution.apply(new-type))
                     shadow context = context.add-binding(b.id.key(), new-type)
-                    typing-result(new-ast, new-type, context)
+                    if A.is-s-lam(value):
+                      cases(Option<Expr>) value._check:
+                        | some(check-block) =>
+                          checking(check-block, t-top(value._check-loc.value, false), false, context).bind(lam(_, _, shadow context):
+                            typing-result(new-ast, new-type, context)
+                          end)
+                        | none =>
+                          typing-result(new-ast, new-type, context)
+                      end
+                    else:
+                      typing-result(new-ast, new-type, context)
+                    end
                   end)
                 end)
             end
