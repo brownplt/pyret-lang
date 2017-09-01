@@ -12,6 +12,8 @@ script:
 deploy:
   provider: heroku
   app: pyret-pitometer
+  on:
+    all_branches: true
   run:
   - "node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/ --config for-test.json"
   api_key:
