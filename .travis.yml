@@ -4,13 +4,16 @@ language: node_js
 node_js:
 - 6.9.3
 install:
-- make install
-before_script: make -j3
+- echo "skip"
+before_script:
+- echo "skip"
 script:
-- make all-pyret-test
+- echo "skip"
 deploy:
   provider: heroku
   app: pyret-pitometer
+  on:
+    all_branches: true
   run:
   - "node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/ --config for-test.json"
   api_key:
