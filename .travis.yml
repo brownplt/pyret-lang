@@ -2,7 +2,7 @@ git:
   submodules: false
 language: node_js
 node_js:
-- 6.9.3
+- 8.3.0
 install:
 - echo "skipping tests momentarily to test travis/pitometer"
 before_script: 
