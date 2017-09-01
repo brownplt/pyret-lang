@@ -4,10 +4,11 @@ language: node_js
 node_js:
 - 6.9.3
 install:
-- make install
-before_script: make -j3
+- echo "skipping tests momentarily to test travis/pitometer"
+before_script: 
+- echo "skipping tests momentarily to test travis/pitometer"
 script:
-- make all-pyret-test
+- echo "skipping tests momentarily to test travis/pitometer"
 deploy:
   provider: heroku
   app: pyret-pitometer
