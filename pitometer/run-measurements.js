@@ -3,7 +3,9 @@ require(["child_process", "fs", "command-line-args", "node-uuid", "./measurement
 
   const optionDefinitions = [
     { name: 'outfile', alias: 'o', type: String, defaultValue: "pitometer/results.json" },
-    { name: 'config', alias: 'c', type: String, defaultValue: "pitometer/config.json" }
+    // Whatever default is given here is what the auto-runner will use. So if
+    // you want to change it for yourself, you probably don't want to change it here
+    { name: 'config', alias: 'c', type: String, defaultValue: "pitometer/full-config.json" }
   ];
 
   const options = commandLineArgs(optionDefinitions)
