@@ -8,6 +8,13 @@ install:
 before_script: make -j3
 script:
 - make all-pyret-test
+deploy:
+  provider: heroku
+  app: pyret-pitometer
+  run:
+  - "node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/ --config for-test.json"
+  api_key:
+    secure: VN6EZ4U9DO5OCag5UL+j1UoGktdzhyaqJc6b8zsZXu5+8eZUC7g0uAqUtxL7c9Uk9B9ipE585U3RkLg39i7boxmLFYUvqQQAedGIrOWMJVF/4JUHCfQsw8ZObu31Kev+7AlATi9OC1Rxv3ys3miBVv3wM+cn2XfGcHG2Dbcu1NU=
 notifications:
   slack:
     secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
