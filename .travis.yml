@@ -1,5 +1,5 @@
 env:
-  secure: Y/ygveELTFvSnx9BotbIgNZLOSapl3B15jX88eyZBspMwzEH3+JCFXFB10dK11BYgLg4ELDusL/37nZCs0nym8gJkpQtkxwZCv/C5mShRTy3t9DamQ22HPXVH2gtZfF7Qzd5UQ55pFNRG2hwcxilX18qqTtntr3yGvvVer0L3Rk=
+  secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
 git:
   submodules: false
 language: node_js
@@ -11,7 +11,8 @@ install:
 before_script:
 - echo "skip"
 script:
-- "heroku run --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/ --config for-test.json"
+- heroku run --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
+  https://github.com/brownplt/pyret-lang/ --config for-test.json
 - echo "skip other tests"
 notifications:
   slack:
