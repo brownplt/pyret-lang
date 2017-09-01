@@ -11,7 +11,7 @@ install:
 before_script:
 - echo "skip"
 script:
-- heroku run --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
+- heroku run:detached --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
   https://github.com/brownplt/pyret-lang/ --config for-test.json
 - echo "skip other tests"
 notifications:
