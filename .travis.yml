@@ -6,14 +6,14 @@ language: node_js
 node_js:
 - 8.3.0
 install:
-- echo "skip"
+- make install
 - npm install -g heroku-cli
 before_script:
-- echo "skip"
+- make
 script:
-- heroku run:detached --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
+- heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
   https://github.com/brownplt/pyret-lang/
-- echo "skip other tests"
+- make all-pyret-test
 notifications:
   slack:
     secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
