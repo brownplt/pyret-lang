@@ -8,17 +8,6 @@ define("pyret-base/js/runtime",
    "seedrandom"],
 function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
   Error.stackTraceLimit = Infinity;
-
-  /*
-  TODO(joe): Check how this interacts with CPO
-  if(util.isBrowser()) {
-    var require = requirejs;
-  }
-  else {
-    var require = requirejs.nodeRequire("requirejs");
-  }
-  */
-
   var require = requirejs;
   var AsciiTable;
 
