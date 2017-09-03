@@ -2197,13 +2197,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (isNumber(left) && isNumber(right) && jsnums.equals(left, right, NumberErrbacks)) {
           continue;
         }
-        // redundant becase it's just === now
-        // else if (isString(left) && isString(right) && left.s === right.s) {
-        //   continue;
-        // }
-        // else if (isBoolean(left) && isBoolean(right) && left.b === right.b) {
-        //   continue;
-        // }
         else if (isFunction(left) && isFunction(right) && left === right) {
           continue;
         }
