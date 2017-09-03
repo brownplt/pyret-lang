@@ -16,6 +16,5 @@
     "jglr/rnglr": "lib/jglr/rnglr.js",
     "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js"
   },
-  "baseUrl": "./build/phaseB",
-  "optimize": "none"
+  "baseUrl": "./build/phaseB"
 }

@@ -523,6 +523,13 @@ fun make-standalone(wl, compiled, options):
           end
       end
     end)
+
+  runtime-options = J.j-obj(
+    C.concat-singleton(
+      J.j-field("bounceAllowed",
+        if options.flatness-threshold == CS.INFINITE-FLATNESS-VALUE: j-false
+        else: j-true end)))
+
   cases(List) all-compile-problems:
     | link(_, _) => left(all-compile-problems)
     | empty =>
@@ -548,7 +555,8 @@ fun make-standalone(wl, compiled, options):
           j-field("staticModules", static-modules),
           j-field("depMap", depmap),
           j-field("toLoad", to-load),
-          j-field("uris", uris)
+          j-field("uris", uris),
+          j-field("runtimeOptions", runtime-options)
         ])
 
       right({

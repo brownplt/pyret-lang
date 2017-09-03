@@ -73,9 +73,6 @@
       var realOut = config.out;
       config.out = path.join(storeDir, "program-deps.js");
       config.name = "program-require";
-      if(!config["use-raw-files"]) {
-        throw new Error("Cannot not use raw-files! RequireJS is gone");
-      }
       var outFile = fs.openSync(realOut, "w");
 
       // Write the amd loader first

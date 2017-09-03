@@ -436,7 +436,6 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
           print(key + ": \n" + stats.get-value-now(key).join-str(", \n") + "\n")
         end
       end
-      ans
   end
 end
 

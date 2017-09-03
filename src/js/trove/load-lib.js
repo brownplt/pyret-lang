@@ -189,7 +189,7 @@
       return mr.val.runtime.getField(exn, "code");
     }
     function renderCheckResults(mr) {
-      return runtime.pauseStack(function(restarter) {
+      var pauseStack = function(restarter) {
         var res = getModuleResultResult(mr);
         var execRt = mr.val.runtime;
         var checkerMod = execRt.modules["builtin://checker"];
@@ -203,46 +203,51 @@
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
-        execRt.runThunk(function() { return toCall.app(checks, getStackP); },
-          function(renderedCheckResults) {
-            var resumeWith = {
-              message: "Unknown error!",
-              'exit-code': EXIT_ERROR_UNKNOWN
-            };
+        var thunk = function() { return toCall.app(checks, getStackP); };
+        var thenFn = function(renderedCheckResults) {
+          var resumeWith = {
+            message: "Unknown error!",
+            'exit-code': EXIT_ERROR_UNKNOWN
+          };
 
-            if(execRt.isSuccessResult(renderedCheckResults)) {
-              resumeWith.message = execRt.unwrap(execRt.getField(renderedCheckResults.result, "message"));
-              var errs = execRt.getField(renderedCheckResults.result, "errored");
-              var failed = execRt.getField(renderedCheckResults.result, "failed");
-              if(errs !== 0 || failed !== 0) {
-                resumeWith["exit-code"] = EXIT_ERROR_CHECK_FAILURES;
-              } else {
-                resumeWith["exit-code"] = EXIT_SUCCESS;
-              }
+          if(execRt.isSuccessResult(renderedCheckResults)) {
+            resumeWith.message = execRt.unwrap(execRt.getField(renderedCheckResults.result, "message"));
+            var errs = execRt.getField(renderedCheckResults.result, "errored");
+            var failed = execRt.getField(renderedCheckResults.result, "failed");
+            if(errs !== 0 || failed !== 0) {
+              resumeWith["exit-code"] = EXIT_ERROR_CHECK_FAILURES;
+            } else {
+              resumeWith["exit-code"] = EXIT_SUCCESS;
             }
-            else if(execRt.isFailureResult(renderedCheckResults)) {
-              console.error(renderedCheckResults.exn);
-              resumeWith.message = "There was an exception while formatting the check results";
-              resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
-            }
+          }
+          else if(execRt.isFailureResult(renderedCheckResults)) {
+            console.error(renderedCheckResults.exn);
+            resumeWith.message = "There was an exception while formatting the check results";
+            resumeWith["exit-code"] = EXIT_ERROR_RENDERING_ERROR;
+          }
 
-            restarter.resume(runtime.makeObject({
-              message: runtime.makeString(resumeWith.message),
-              'exit-code': runtime.makeNumber(resumeWith["exit-code"])
-            }));
+          var result = runtime.makeObject({
+            message: runtime.makeString(resumeWith.message),
+            'exit-code': runtime.makeNumber(resumeWith["exit-code"])
           });
-      });
+
+          return restarter.resumeOrReturn(result);
+        };
+        return execRt.runThunk(thunk, thenFn);
+      };
+
+      return runtime.maybePauseStack(pauseFn);
     }
     function renderErrorMessage(mr) {
       var res = getModuleResultResult(mr);
       var execRt = mr.val.runtime;
-      return runtime.pauseStack(function(restarter) {
+      var pauseFn = function(restarter) {
         // TODO(joe): This works because it's a builtin and already loaded on execRt.
         // In what situations may this not work?
         var rendererrorMod = execRt.modules["builtin://render-error-display"];
         var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
         var gf = execRt.getField;
-        execRt.runThunk(function() {
+        var renderFn = function() {
           if(execRt.isPyretVal(res.exn.exn) 
              && execRt.isObject(res.exn.exn) 
              && execRt.hasField(res.exn.exn, "render-reason")) {
@@ -266,21 +271,30 @@
           } else {
             return String(res.exn + "\n" + res.exn.stack);
           }
-        }, function(v) {
+        };
+
+        var thenFn = function(v) {
+          var resultObj;
           if(execRt.isSuccessResult(v)) {
-            restarter.resume(runtime.makeObject({
+            resultObj = runtime.makeObject({
               message: v.result,
               'exit-code': runtime.makeNumber(EXIT_ERROR)
-            }));
+            });
           } else {
             console.error(v.exn);
-            restarter.resume(runtime.makeObject({
+            resultObj = runtime.makeObject({
               message: runtime.makeString("Load error: there was an exception while rendering the exception."),
               'exit-code': runtime.makeNumber(EXIT_ERROR_RENDERING_ERROR)
-            }));
+            });
           }
-        })
-      });
+
+          return restarter.resumeOrReturn(resultObj);
+        };
+
+        return execRt.runThunk(renderFn, thenFn);
+      };
+
+      return runtime.maybePauseStack(pauseFn);
     }
     function getModuleResultAnswer(mr) {
       checkSuccess(mr, "answer");
@@ -301,6 +315,10 @@
 
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
+
+      if (otherRuntime.bounceAllowed != runtime.bounceAllowed) {
+        throw new Error("bounceAllowed mismatch.");
+      }
 
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
@@ -336,33 +354,41 @@
         }
       };
 
-
-      return runtime.pauseStack(function(restarter) {
+      var pauseFunction = function(restarter) {
         var mainReached = false;
         var mainResult = "Main result unset: should not happen";
         postLoadHooks[main] = function(answer) {
           mainReached = true;
           mainResult = answer;
-        }
-        return otherRuntime.runThunk(function() {
+        };
+
+        var thunk = function() {
           otherRuntime.modules = realm;
           return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
-        }, function(result) {
+        };
+
+        var then = function(result) {
+          var retVal;
+          
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
             result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
-
-            restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing, program));
+            retVal = makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing);
           }
           else {
             var finalResult = otherRuntime.makeSuccessResult(mainResult);
             finalResult.stats = result.stats;
-            restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing, program));
+            retVal = makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing);
           }
-        });
-      });
 
+          return restarter.resumeOrReturn(retVal);
+        };
+
+        return otherRuntime.runThunk(thunk, then);
+      };
+
+      return runtime.maybePauseStack(pauseFunction);
     }
     var vals = {
       "run-program": runtime.makeFunction(runProgram, "run-program"),
