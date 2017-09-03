@@ -467,10 +467,10 @@ fun substitute-in-field-constraints(new-type :: Type, type-var :: Type, field-co
   end, [string-dict: ])
 end
 
-fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>}>):
+fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult)}>):
   example-types.fold-keys(lam(key, new-example-types):
-    {existential; info; typs} = example-types.get-value(key)
-    new-example-types.set(key, {existential; info; typs.map(lam(typ): typ.substitute(new-type, type-var) end)})
+    {existential; info; typs; check-fun} = example-types.get-value(key)
+    new-example-types.set(key, {existential; info; typs.map(lam(typ): typ.substitute(new-type, type-var) end); check-fun})
   end, [string-dict: ])
 end
 
