@@ -1,6 +1,8 @@
 provide *
 provide-types *
 
+import type-logger as LOG
+
 import ast as A
 import string-dict as SD
 import valueskeleton as VS
@@ -14,6 +16,8 @@ type Type = TS.Type
 type ModuleType = TS.ModuleType
 type DataType = TS.DataType
 type Loc = A.Loc
+
+var log-queue = [list: ]
 
 all = LISTS.all
 string-dict = SD.string-dict
@@ -163,8 +167,8 @@ sharing:
   method add-field-constraint(self, typ :: Type, field-name :: String, field-type :: Type):
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-field-constraint(typ, field-name, field-type), self.info)
   end,
-  method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult)) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-variable(existential, arg-types, ret-type, loc, checking-fun), self.info)
+  method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult), fun-name :: String) -> Context:
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-variable(existential, arg-types, ret-type, loc, checking-fun, fun-name), self.info)
   end,
   method add-example-type(self, existential :: Type, typ :: Type) -> Context:
     typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-type(existential, typ), self.info)
@@ -324,7 +328,7 @@ data ConstraintSystem:
                       constraints :: List<{Type; Type}>, # {subtype; supertype}
                       refinement-constraints :: List<{Type; Type}>, # {existential; t-data-refinement}
                       field-constraints :: StringDict<{Type; StringDict<List<Type>>}>, # type -> {type; field labels -> field types (with the location of their use)}
-                      example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult)}>, # existential type for function (from examples) -> {existential; annotation types; example types; check function}
+                      example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult); String}>, # existential type for function (from examples) -> {existential; annotation types; example types; check function; function name}
                       next-system :: ConstraintSystem)
   | no-constraints
 sharing:
@@ -381,11 +385,11 @@ sharing:
         constraint-system(variables, constraints, refinement-constraints, new-field-constraints, example-types, next-system)
     end
   end,
-  method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult)):
+  method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult), fun-name :: String):
     cases(ConstraintSystem) self:
       | no-constraints => raise("can't add constraints to an uninitialized system")
       | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
-        constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types.set(existential.key(), {existential; {arg-types: arg-types, ret-type: ret-type, loc: loc}; [list: ]; checking-fun}), next-system)
+        constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types.set(existential.key(), {existential; {arg-types: arg-types, ret-type: ret-type, loc: loc}; [list: ]; checking-fun; fun-name}), next-system)
     end
   end,
   method add-example-type(self, existential :: Type, typ :: Type):
@@ -395,8 +399,8 @@ sharing:
         cases(Option) example-types.get(existential.key()):
           | none =>
             constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system.add-example-type(existential, typ))
-          | some({_; inference-data; typs; checking-fun}) =>
-            new-example-types = example-types.set(existential.key(), {existential; inference-data; link(typ, typs); checking-fun})
+          | some({_; inference-data; typs; checking-fun; fun-name}) =>
+            new-example-types = example-types.set(existential.key(), {existential; inference-data; link(typ, typs); checking-fun; fun-name})
             constraint-system(variables, constraints, refinement-constraints, field-constraints, new-example-types, next-system)
         end
     end
@@ -407,8 +411,17 @@ sharing:
   method solve-level-helper(self, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     solve-helper-constraints(self, solution, context).bind(lam({system; shadow solution}, shadow context):
       solve-helper-refinements(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-        solve-helper-fields(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-          solve-helper-examples(system, solution, context)
+        solve-helper-fields(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context) block:
+          log-queue := [list: ]
+
+          result = solve-helper-examples(system, solution, context)
+
+          each(lam(log-payload) block:
+            LOG.log("test-inferred-type", log-payload)
+          end, log-queue)
+          log-queue := [list: ]
+
+          result
         end)
       end)
     end)
@@ -421,7 +434,7 @@ sharing:
         # introduce a half level so any constraints depending on test inference can be solved after test inference
         shadow next-system = next-system.add-level()
         {shadow variables; shadow next-system} = example-types.fold-keys(lam(key, {shadow variables; shadow next-system}):
-          {existential; _; _; _} = example-types.get-value(key)
+          {existential; _; _; _; _} = example-types.get-value(key)
           {variables.remove(existential); next-system.add-variable(existential)}
         end, {variables; next-system})
         system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system)
@@ -467,10 +480,10 @@ fun substitute-in-field-constraints(new-type :: Type, type-var :: Type, field-co
   end, [string-dict: ])
 end
 
-fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult)}>):
+fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-types :: StringDict<{Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult); String}>):
   example-types.fold-keys(lam(key, new-example-types):
-    {existential; info; typs; check-fun} = example-types.get-value(key)
-    new-example-types.set(key, {existential; info; typs.map(lam(typ): typ.substitute(new-type, type-var) end); check-fun})
+    {existential; info; typs; check-fun; fun-name} = example-types.get-value(key)
+    new-example-types.set(key, {existential; info; typs.map(lam(typ): typ.substitute(new-type, type-var) end); check-fun; fun-name})
   end, [string-dict: ])
 end
 
@@ -847,17 +860,24 @@ fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolu
     | no-constraints => fold-result({system; solution}, context)
     | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
       foldr-fold-result(lam(existential-key, shadow context, {shadow system; shadow solution}):
-        {existential; _; fun-examples; checking-fun} = example-types.get-value(existential-key)
+        {existential; _; fun-examples; checking-fun; fun-name} = example-types.get-value(existential-key)
         shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)
         partitioned = partition(lam(typ): typ.free-variables().size() == 0 end, fun-examples)
         complete-examples = partitioned.is-true
         incomplete-examples = partitioned.is-false
-        cases(List<Type>) complete-examples:
+        cases(List<Type>) complete-examples block:
           | link(first, rest) =>
             generalized = rest.foldr(generalize-type, first)
             first-structure = find-structure(first)
             common-structure = rest.foldr(find-common-structure, first-structure)
             new-type = maintain-common-structure(common-structure, generalized)
+
+            log-payload = "{"
+              + "'function-name': " + "'" + fun-name + "'" + ","
+              + "'inferred-type': " + "'" + tostring(new-type) + "'" + ","
+              + "}"
+            log-queue := link(log-payload, log-queue)
+
             fold-result({system; constraint-solution(empty-tree-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
           | empty => fold-errors([list: C.unann-failed-test-inference(existential.l)])
         end

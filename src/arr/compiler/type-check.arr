@@ -1544,7 +1544,7 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
           | s-letrec-bind(l2, b, value) =>
             expected-type = collected-types.get-value(b.id.key())
             cases(Option) context.constraints.example-types.get(expected-type.key()) block:
-              | some({_; partial-type; _; _}) =>
+              | some({_; partial-type; _; _; _}) =>
                 test-inference-data := some({name: b.id,
                                              arg-types: partial-type.arg-types,
                                              ret-type: partial-type.ret-type,
@@ -1633,13 +1633,21 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
                     collect-bindings(lam-args, context).bind(lam(arg-coll, shadow context) block:
                       cases(Option<Expr>) _check:
                         | some(check-block) =>
-                          lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, false, context).bind(lam(lam-type, temp-context):
+                          lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, false, context).bind(lam(lam-type, temp-context) block:
+
+                            log-payload = "{"
+                              + "'function-name': " + "'" + first-bind.b.id.toname() + "'" + ","
+                              + "'annotated-type': " + "'" + tostring(lam-type) + "'" + ","
+                              + "'check-block': " + "'" + check-block.tosource().pretty(72).join-str("\n") + "'" + ","
+                              + "}"
+                            LOG.log("initial-test-inference-data", log-payload)
+
                             cases(Type) lam-type block:
                               | t-arrow(temp-args, temp-ret, temp-l, _) =>
                                 if lam-type.free-variables().size() > 0:
                                   new-exists = new-existential(temp-l, true)
                                   shadow temp-context = temp-context.add-variable(new-exists)
-                                  shadow temp-context = temp-context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _))
+                                  shadow temp-context = temp-context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _), first-bind.b.id.toname())
                                   fold-result(new-exists, temp-context)
                                 else:
                                   lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
