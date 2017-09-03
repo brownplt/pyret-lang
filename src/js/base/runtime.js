@@ -11,10 +11,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
   var require = requirejs;
   var AsciiTable;
 
-  function copyArgs(args) {
-    return Array.prototype.slice.call(args);
-  }
-
   var codePointAt = codePoint.codePointAt;
   var fromCodePoint = codePoint.fromCodePoint;
 
