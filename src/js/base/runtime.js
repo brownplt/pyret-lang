@@ -1138,7 +1138,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           // ref keyword in cases and either kind of field
           // Update fields in place with deref
           return getRef(value);
-          fields[i] = getRef(fields[i]);
         } else if(fieldIsRef) {
           thisRuntime.ffi.throwMessageException("Cases on ref field needs to use ref");
         }
