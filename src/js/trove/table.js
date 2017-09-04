@@ -378,6 +378,9 @@
           runtime.checkArgsInternal("tables", "add-column",
             [colname,        eltList],
             [runtime.String, runtime.List]);
+          if(hasColumn(colname)) {
+            throw runtime.ffi.throwMessageException("column-name-exists");
+          }
           var asArray = runtime.ffi.toArray(eltList);
           if(rows.length !== asArray.length) {
             throw runtime.ffi.throwColLengthMismatch(colname, rows.length, asArray.length, eltList);
