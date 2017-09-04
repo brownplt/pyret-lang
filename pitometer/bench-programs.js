@@ -20,7 +20,8 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
       const [compileSuccess, , ] = maybeTime(true, () => echoRun(
         `env EF='--flatness-threshold -1' make ${toBuild}`, {stdio: [0, 1, 2]}));
 
-      return maybeTime(compileSuccess, () => echoRun(`node ${toBuild}`));
+      echoRun(`ulimit -s 65532`);
+      return maybeTime(compileSuccess, () => echoRun(`node --stack-size=65532 ${toBuild}`));
     }
 
     let paths = fs.readdirSync(programsPath);
