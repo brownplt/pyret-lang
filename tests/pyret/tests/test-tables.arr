@@ -322,8 +322,8 @@ check "add-column":
   end
   t2 is answer
 
+  t.add-column("c", [list:]) raises "column-name-exists"
   t.add-column("d", [list: 5, 6, 7, 8]) raises-satisfies E.is-col-length-mismatch
-  t.add-column("d", [list:]) raises "column-length-mismatch"
   t.add-column("d", [list:]) raises-satisfies E.is-col-length-mismatch
   t.add-column("d") raises-satisfies E.is-arity-mismatch
 end
