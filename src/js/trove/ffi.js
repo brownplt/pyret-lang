@@ -345,6 +345,19 @@
       raise(err("arity-mismatch")(funLoc, arity, args, isMethod));
     }
 
+    function throwRowLengthMismatch(colnames, providedVals) {
+      runtime.checkTable(colnames);
+      runtime.checkArray(providedVals);
+      raise(err("row-length-mismatch")(colnames, providedVals));
+    }
+
+    function throwColLengthMismatch(colname, expected, actual, value) {
+      runtime.checkString(colname);
+      runtime.checkNumber(actual);
+      runtime.checkNumber(expected);
+      raise(err("col-length-mismatch")(colname, expected, actual, value));
+    }
+
     function throwArityErrorC(funLoc, arity, args, isMethod) {
       var loc = runtime.makeSrcloc(funLoc);
       var argsPyret = makeList(args);
@@ -575,6 +588,8 @@
       throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
       throwArityError: throwArityError,
       throwArityErrorC: throwArityErrorC,
+      throwRowLengthMismatch: throwRowLengthMismatch,
+      throwColLengthMismatch: throwColLengthMismatch,
       throwConstructorArityErrorC: throwConstructorArityErrorC,
       throwCasesArityError: throwCasesArityError,
       throwCasesArityErrorC: throwCasesArityErrorC,

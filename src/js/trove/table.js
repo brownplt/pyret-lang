@@ -13,9 +13,88 @@
 
     var VS = get(VSlib, "values");
     var EQ = get(EQlib, "values");
+
+    var eq  = function() { return ffi.equal; };
+    var neq = function(left, right) { return ffi.notEqual.app('', left, right); };
     
     var brandTable = runtime.namedBrander("table", ["table: table brander"]);
     var annTable   = runtime.makeBranderAnn(brandTable, "Table");
+
+    var brandRow = runtime.namedBrander("row", ["table: row brander"]);
+    var annRow   = runtime.makeBranderAnn(brandRow, "Row");
+
+    var rowGetValue = runtime.makeMethod1(function(self, arg) {
+        ffi.checkArity(2, arguments, "get-value", false);
+        runtime.checkArgsInternal("tables", "get-value",
+          [arg],
+          [runtime.String]);
+        var index = self.$underlyingTable.headerIndex["column:" + arg];
+        if(typeof index === "number") {
+          return self.$rowData[index];
+        }
+        else {
+          return ffi.throwMessageException("No such column: " + arg);
+        }
+      });
+
+    var rowEquals = runtime.makeMethod2(function(self, other, rec) {
+        runtime.checkRow(self);
+        runtime.checkRow(other);
+        var headers1 = self.$underlyingTable.headerIndex;
+        var headers2 = other.$underlyingTable.headerIndex;
+        var hk1 = Object.keys(headers1);
+        var hk2 = Object.keys(headers2);
+        var rowData1 = self.$rowData;
+        var rowData2 = other.$rowData;
+        if(rowData1.length !== rowData2.length) {
+          return neq(self, other);
+        }
+        if(hk1.length !== hk2.length) {
+          return neq(self, other);
+        }
+        for(var i = 0; i < hk1.length; i += 1) {
+          if(headers1[hk1[i]] !== headers2[hk1[i]]) {
+            return neq(self, other);
+          }
+        }
+        return runtime.raw_array_fold(runtime.makeFunction(function(ans, val1, j) {
+          if (ffi.isNotEqual(ans)) { return ans; }
+          return runtime.safeCall(function() {
+            return rec.app(val1, rowData2[j]);
+          }, function(eqAns) {
+            return get(EQ, "equal-and").app(ans, eqAns);
+          }, "equals:combine-cells");
+        }), eq(), rowData1, 0);
+      });
+
+    function makeRow(underlyingTable, rowData) {
+      var rowVal = runtime.makeObject({
+        "get-value": rowGetValue,
+        "_equals": rowEquals
+      });
+      rowVal = applyBrand(brandRow, rowVal);
+      rowVal.$underlyingTable = underlyingTable;
+      rowVal.$rowData = rowData;
+      return rowVal;
+    }
+
+    function makeRowFromArray(rawArrayOfTuples) {
+      var headerIndex = [];
+      var rowData = [];
+
+      // TODO(joe): error checking here for bogus values, or elsewhere?
+      // May be good to keep this fast and do checks in Pyret-land
+      for(var i = 0; i < rawArrayOfTuples.length; i += 1) {
+        var colname = rawArrayOfTuples[i].vals[0];
+        if(headerIndex["column:" + colname] !== undefined) {
+          return runtime.ffi.throwMessageException("Duplicate column name in row: " + colname);
+        }
+        headerIndex["column:" + colname] = i;
+        rowData[i] = rawArrayOfTuples[i].vals[1];
+      }
+
+      return makeRow({ headerIndex: headerIndex }, rowData);
+    }
 
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
@@ -27,6 +106,10 @@
     
     function isTable(val) {
       return hasBrand(brandTable,  val);
+    }
+
+    function isRow(val) {
+      return hasBrand(brandRow,  val);
     }
 
     function openTable(info) {
@@ -227,16 +310,58 @@
 
       }
 
+      function makeRowFromValues(vals) {
+        if(headers.length !== vals.length) {
+          throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), vals);
+        }
+        return makeRow({ headerIndex: headerIndex }, vals);
+      }
+
       return applyBrand(brandTable, runtime.makeObject({
 
         '_header-raw-array': headers,
         '_rows-raw-array': rows,
 
-        'order-increasing': runtime.makeMethod1(function(_, colname) {
+        'increasing-by': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "increasing-by", true);
+          runtime.checkArgsInternal("tables", "increasing-by",
+            [colname],
+            [runtime.String]);
           return order(true, colname);
         }),
-        'order-decreasing': runtime.makeMethod1(function(_, colname) {
+        'decreasing-by': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "decreasing-by", true);
+          runtime.checkArgsInternal("tables", "decreasing-by",
+            [colname],
+            [runtime.String]);
           return order(false, colname);
+        }),
+        'order-by': runtime.makeMethod2(function(_, colname, increasing) {
+          ffi.checkArity(3, arguments, "order-by", true);
+          runtime.checkArgsInternal("tables", "order-by",
+            [colname,        increasing],
+            [runtime.String, runtime.Boolean]);
+          return order(increasing, colname);
+        }),
+        'order-by-columns': runtime.makeMethod1(function(_, specs) {
+          ffi.checkArity(2, arguments, "order-by-columns", true);
+          runtime.checkArgsInternal("tables", "order-by-columns",
+            [specs],
+            [runtime.List]);
+          var specsArray = ffi.toArray(specs);
+          var asArrays = [];
+          for(var i = 0; i < specsArray.length; i += 1) {
+            runtime.checkTuple(specsArray[i]);
+            asArrays.push([
+                runtime.getTuple(specsArray[i], 1),
+                runtime.getTuple(specsArray[i], 0)
+              ]);
+          }
+          return runtime.safeCall(function() {
+            return multiOrder(rows, asArrays, []);
+          }, function(destArr) {
+            return makeTable(headers, destArr);
+          }, "order-by-columns");
         }),
 
         'multi-order': runtime.makeMethod1(function(_, colComps) {
@@ -246,6 +371,120 @@
           }, function(destArr) {
             return makeTable(headers, destArr);
           }, "multi-order");
+        }),
+
+        'add-column': runtime.makeMethod2(function(_, colname, eltList) {
+          ffi.checkArity(3, arguments, "add-column", true);
+          runtime.checkArgsInternal("tables", "add-column",
+            [colname,        eltList],
+            [runtime.String, runtime.List]);
+          if(hasColumn(colname)) {
+            throw runtime.ffi.throwMessageException("column-name-exists");
+          }
+          var asArray = runtime.ffi.toArray(eltList);
+          if(rows.length !== asArray.length) {
+            throw runtime.ffi.throwColLengthMismatch(colname, rows.length, asArray.length, eltList);
+          }
+
+          var newRows = [];
+          for(var i = 0; i < rows.length; i += 1) {
+            newRows.push(rows[i].concat([asArray[i]]));
+          }
+          
+          return makeTable(headers.concat([colname]), newRows);
+        }),
+
+        'add-row': runtime.makeMethod1(function(_, row) {
+          ffi.checkArity(2, arguments, 'add-row', true);
+          runtime.checkRow(row);
+          var theseKeys = Object.keys(headerIndex);
+          var rowKeys = Object.keys(row.$underlyingTable.headerIndex);
+          if(theseKeys.length !== rowKeys.length) {
+            throw runtime.ffi.throwMessageException("add-row-length");
+          }
+          for(var i = 0; i < theseKeys.length; i += 1) {
+            if(headerIndex["column:" + headers[i]] !== 
+                row.$underlyingTable.headerIndex["column:" + headers[i]]) {
+              throw runtime.ffi.throwMessageException("row-name-mismatch: " + headers[i]);
+            }
+          }
+          // NOTE(joe): Here we do not copy all the sub-arrays with the
+          // existing data, we just copy the outer array containing them.
+          // This relies on the assumption that we never mutate the
+          // underlying arrays in tables, and avoids significant copying.
+          // Note also that add-column doesn't get to do this sharing because
+          // of the row-major organization of tables.
+          var newRows = rows.concat([row.$rowData]);
+          return makeTable(headers, newRows);
+        }),
+
+        'row-n': runtime.makeMethod1(function(_, row) {
+          ffi.checkArity(2, arguments, "row-n", true);
+          runtime.checkNumNonNegative(row);
+          runtime.checkNumInteger(row);
+          var rowFix = runtime.num_to_fixnum(row);
+          if(rowFix >= rows.length) {
+            throw runtime.ffi.throwMessageException("row-n-too-large");
+          }
+          return makeRow({ headerIndex: headerIndex }, rows[rowFix]);
+        }),
+
+        'all-rows': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "all-rows", true);
+          return runtime.ffi.makeList(
+            rows.map(function(r) {
+              return makeRow({ headerIndex: headerIndex }, r);
+            })
+          );
+        }),
+
+
+        'column': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "column", true);
+          runtime.checkArgsInternal("tables", "column",
+            [colname],
+            [runtime.String]);
+          var lookupName = "column:" + colname;
+          if(!(lookupName in headerIndex)) {
+            throw runtime.ffi.throwMessageException("no-such-column");
+          }
+          var results = rows.map(function(r) {
+            return r[headerIndex[lookupName]];
+          });
+          return runtime.ffi.makeList(results);
+        }),
+
+        'column-n': runtime.makeMethod1(function(_, n) {
+          ffi.checkArity(2, arguments, "column-n", true);
+          runtime.checkNumNonNegative(n);
+          runtime.checkNumInteger(n);
+          var lookupIndex = runtime.num_to_fixnum(n);
+          if(lookupIndex >= headers.length) {
+            throw runtime.ffi.throwMessageException("column-n-too-large");
+          }
+          var results = rows.map(function(r) {
+            return r[lookupIndex];
+          });
+          return runtime.ffi.makeList(results);
+        }),
+
+        'all-columns': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "all-columns", true);
+          var collists = new Array(headers.length);
+          for(var i = 0; i < headers.length; i += 1) {
+            collists[i] = []; 
+          }
+          for(var i = 0; i < rows.length; i += 1) {
+            for(var j = 0; j < headers.length; j += 1) {
+              collists[j].push(rows[i][j]);
+            }
+          }
+          return runtime.ffi.makeList(collists.map(runtime.ffi.makeList));
+        }),
+
+        'column-names': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "column-names", true);
+          return runtime.ffi.makeList(headers);
         }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {
@@ -302,8 +541,6 @@
 
         'drop': runtime.makeMethod1(function(_, colname) {
           var newHeaders = headers.filter(function(h) { return h !== colname; })
-          var dropFunc = function(rawRow) {
-          };
           var newRows = rows.map(function(rawRow) {
             return rawRow.filter(function(h, i) {
               return i !== headerIndex['column:' + colname];
@@ -313,7 +550,7 @@
         }),
 
 
-        'add': runtime.makeMethod1(function(_, colname, func) {
+        'build-column': runtime.makeMethod1(function(_, colname, func) {
           var wrappedFunc = function(rawRow) {
             return runtime.safeCall(function() {
               return func.app(getRowContentAsGetter(headers, rawRow));
@@ -331,6 +568,13 @@
         }),
 
         'filter-by': runtime.makeMethod2(function(_, colname, pred) {
+          ffi.checkArity(3, arguments, "filter-by", true);
+          runtime.checkArgsInternal("tables", "filter-by",
+            [colname,        pred],
+            [runtime.String, runtime.Function]);
+          if(!(("column:" + colname) in headerIndex)) {
+            throw runtime.ffi.throwMessageException("no-such-column");
+          }
           var wrappedPred = function(rawRow) {
             return pred.app(getRowContentAsRecord(rawRow)[colname]);
           }
@@ -343,8 +587,12 @@
 
 
         'filter': runtime.makeMethod1(function(_, pred) {
+          ffi.checkArity(2, arguments, "filter", true);
+          runtime.checkArgsInternal("tables", "filter",
+            [pred],
+            [runtime.Function]);
           var wrappedPred = function(rawRow) {
-            return pred.app(getRowContentAsGetter(headers, rawRow));
+            return pred.app(makeRow({ headerIndex: headerIndex }, rawRow));
           }
           return runtime.safeCall(function() {
             return runtime.raw_array_filter(runtime.makeFunction(wrappedPred, "pred"), rows);
@@ -366,11 +614,43 @@
         
         'get-column': runtime.makeMethod1(function(_, col_name) {
           ffi.checkArity(2, arguments, "get-column", true);
+          runtime.checkArgsInternal("tables", "get-column",
+            [col_name],
+            [runtime.String]);
           if(!hasColumn(col_name)) {
             ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
           }
           return runtime.ffi.makeList(getColumn(col_name));
         }),
+
+        'select-columns': runtime.makeMethod1(function(_, colnames) {
+          ffi.checkArity(2, arguments, "select-columns", true);
+          runtime.checkArgsInternal("tables", "select-columns",
+            [colnames],
+            [runtime.List]);
+
+          var colnamesList = ffi.toArray(colnames);
+          if(colnamesList.length === 0) {
+            throw ffi.throwMessageException("zero-columns");
+          }
+          for(var i = 0; i < colnamesList.length; i += 1) {
+            runtime.checkString(colnamesList[i]);
+            if(!hasColumn(colnamesList[i])) {
+              throw ffi.throwMessageException("no-such-column");
+            }
+          }
+
+          var newRows = new Array(colnamesList.length);
+          for(var i = 0; i < rows.length; i += 1) {
+            newRows[i] = [];
+            for(var j = 0; j < colnamesList.length; j += 1) {
+              var colIndex = headerIndex['column:' + colnamesList[j]];
+              newRows[i].push(rows[i][colIndex]);
+            }
+          }
+          return makeTable(colnamesList, newRows);
+        }),
+
         
         '_column-index': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
           ffi.checkArity(5, arguments, "_column-index", true);
@@ -397,20 +677,18 @@
           // same number of rows?
           // columns have same names?
           // each row has the same elements
-          var eq  = function() { return ffi.equal; };
-          var neq = function() { return ffi.notEqual.app('', self, other); };
           if (!hasBrand(brandTable, other)) {
-            return neq();
+            return neq(self, other);
           }
           var otherHeaders = get(other, "_header-raw-array");
           var otherRows = get(other, "_rows-raw-array");
           if (headers.length !== otherHeaders.length
               || rows.length !== otherRows.length) {
-            return neq();
+            return neq(self, other);
           }
           for (var i = 0; i < headers.length; ++i) {
             if (headers[i] != otherHeaders[i]) {
-              return neq();
+              return neq(self, other);
             }
           }
           return runtime.raw_array_fold(runtime.makeFunction(function(ans, selfRow, i) {
@@ -435,15 +713,37 @@
             headers.map(function(hdr){return vsString(hdr);}),
             rows.map(function(row){return row.map(
               function(elm){return vsValue(elm);});}));
+        }),
+
+        'row': runtime.makeMethodN(function(self, ...args) {
+          if(headers.length !== args.length) {
+            throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), args);
+          }
+          return makeRow({ headerIndex: headerIndex }, args);
+        }),
+
+        'new-row': runtime.makeObject({
+          make: runtime.makeFunction(function(ar) { return makeRowFromValues(ar); }),
+          make0: runtime.makeFunction(function( ) { return makeRowFromValues([]); }),
+          make1: runtime.makeFunction(function(v) { return makeRowFromValues([v]); }),
+          make2: runtime.makeFunction(function(v1, v2) { return makeRowFromValues([v1, v2]); }),
+          make3: runtime.makeFunction(function(v1, v2, v3) { return makeRowFromValues([v1, v2, v3]); }),
+          make4: runtime.makeFunction(function(v1, v2, v3, v4) { return makeRowFromValues([v1, v2, v3, v4]); }),
+          make5: runtime.makeFunction(function(v1, v2, v3, v4, v5) { return makeRowFromValues([v1, v2, v3, v4, v5]); })
         })
       }));
     }
     
     return runtime.makeJSModuleReturn({
-      TableAnn : annTable,
-      makeTable: makeTable,
-      openTable: openTable,
-      isTable: isTable },
+        TableAnn : annTable,
+        RowAnn : annRow,
+        makeTable: makeTable,
+        makeRow: makeRow,
+        makeRowFromArray: makeRowFromArray,
+        openTable: openTable,
+        isTable: isTable,
+        isRow: isRow
+      },
       {});
   }
 })

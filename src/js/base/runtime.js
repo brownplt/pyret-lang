@@ -3289,7 +3289,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               // CONSOLE.log("Frame returned, val = " + JSON.stringify(val, null, "  "));
             }
           } catch(e) {
-            debugger;
 //            console.error("Exceptions should no longer be thrown: ", e);
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
@@ -5185,6 +5184,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // but provided here because they show up in desugaring
       'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),
       'as-loader-option': makeFunction(function(type, arg1, arg2) { return thisRuntime.asLoaderOption(type, arg1, arg2); }),
+      'raw-make-row': makeFunction(function(arr) { // arr is a raw array of 2-tuples
+        thisRuntime.checkArray(arr);
+        return thisRuntime.makeRowFromArray(arr);
+      }),
 
 
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
@@ -5635,6 +5638,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_tostring': num_tostring,
       'num_to_string': num_tostring,
       'num_tostring_digits': num_tostring_digits,
+      'num_to_fixnum': num_to_fixnum,
 
       'string_contains': string_contains,
       'string_append': string_append,
@@ -5708,6 +5712,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'checkString' : checkString,
       'checkNumber' : checkNumber,
+      'checkExactnum' : checkExactnum,
+      'checkRoughnum' : checkRoughnum,
+      'checkNumInteger' : checkNumInteger,
+      'checkNumRational' : checkNumRational,
+      'checkNumPositive' : checkNumPositive,
+      'checkNumNegative' : checkNumNegative,
+      'checkNumNonPositive' : checkNumNonPositive,
+      'checkNumNonNegative' : checkNumNonNegative,
       'checkBoolean' : checkBoolean,
       'checkObject' : checkObject,
       'checkFunction' : checkFunction,

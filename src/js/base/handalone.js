@@ -56,9 +56,13 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     "builtin://table": function(table) {
       table = table.jsmod;
       runtime["makeTable"] = table.makeTable;
+      runtime["makeRow"] = table.makeRow;
+      runtime["makeRowFromArray"] = table.makeRowFromArray;
       runtime["openTable"] = table.openTable;
       runtime["checkTable"] = runtime.makeCheckType(table.isTable, "Table");
+      runtime["checkRow"] = runtime.makeCheckType(table.isRow, "Row");
       runtime["isTable"] = table.isTable;
+      runtime["isRow"] = table.isTable;
       runtime["checkWrapTable"] = function(val) {
         runtime.checkTable(val);
         return val;

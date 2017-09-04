@@ -65,3 +65,12 @@ running-min :: Reducer<Number, Number, Number> = running-reduce(num-min)
 
 running-sum :: Reducer<Number, Number, Number> = running-reduce(_ + _)
 
+raw-row = {
+  make: lam(arr): builtins.raw-make-row(arr) end,
+  make0: lam(): builtins.raw-make-row([raw-array:]) end,
+  make1: lam(t): builtins.raw-make-row([raw-array: t]) end,
+  make2: lam(t1, t2): builtins.raw-make-row([raw-array: t1, t2]) end,
+  make3: lam(t1, t2, t3): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
+  make4: lam(t1, t2, t3, t4): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
+  make5: lam(t1, t2, t3, t4, t5): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
+}
