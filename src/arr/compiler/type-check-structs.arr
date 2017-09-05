@@ -17,8 +17,6 @@ type ModuleType = TS.ModuleType
 type DataType = TS.DataType
 type Loc = A.Loc
 
-var log-queue = [list: ]
-
 all = LISTS.all
 string-dict = SD.string-dict
 
@@ -84,7 +82,8 @@ data Context:
                    module-names :: StringDict<String>, # imported name -> module name
                    binds :: StringDict<Type>, # local name -> type
                    constraints :: ConstraintSystem, # constraints should only be added with methods to ensure that they have the proper forms
-                   info :: TCInfo)
+                   info :: TCInfo,
+                   misc :: StringDict<{List<Type>; String}>) # miscellaneous info that is used for logging. Keyed by the function name
 sharing:
   method _output(self):
     VS.vs-constr("typing-context", [list: VS.vs-value(self.binds), VS.vs-value(self.constraints)])
@@ -118,63 +117,63 @@ sharing:
     end
   end,
   method set-global-types(self, global-types :: StringDict<Type>):
-    typing-context(global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info)
+    typing-context(global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, self.misc)
   end,
   method set-aliases(self, aliases :: StringDict<Type>):
-    typing-context(self.global-types, aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info)
+    typing-context(self.global-types, aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, self.misc)
   end,
   method set-data-types(self, data-types :: StringDict<DataType>):
-    typing-context(self.global-types, self.aliases, data-types, self.modules, self.module-names, self.binds, self.constraints, self.info)
+    typing-context(self.global-types, self.aliases, data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, self.misc)
   end,
   method set-modules(self, modules :: StringDict<ModuleType>):
-    typing-context(self.global-types, self.aliases, self.data-types, modules, self.module-names, self.binds, self.constraints, self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, modules, self.module-names, self.binds, self.constraints, self.info, self.misc)
   end,
   method set-module-names(self, module-names :: StringDict<String>):
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, module-names, self.binds, self.constraints, self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, module-names, self.binds, self.constraints, self.info, self.misc)
   end,
   method set-binds(self, binds :: StringDict<Type>):
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, binds, self.constraints, self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, binds, self.constraints, self.info, self.misc)
   end,
   method set-constraints(self, constraints :: ConstraintSystem):
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, constraints, self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, constraints, self.info, self.misc)
   end,
   method set-info(self, info :: TCInfo):
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, info, self.misc)
   end,
   method add-binding(self, term-key :: String, assigned-type :: Type) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.set(term-key, assigned-type), self.constraints, self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.set(term-key, assigned-type), self.constraints, self.info, self.misc)
   end,
   method remove-binding(self, term-key :: String) -> Context:
     current-type = self.binds.get-value(term-key)
     new-info = tc-info(self.info.types.set(term-key, current-type), self.info.aliases, self.info.data-types)
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.remove(term-key), self.constraints, new-info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds.remove(term-key), self.constraints, new-info, self.misc)
   end,
   method add-dict-to-bindings(self, dict :: SD.StringDict<Type>) -> Context:
     new-binds = dict.fold-keys(lam(key, bindings):
       bindings.set(key, dict.get-value(key))
     end, self.binds)
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, self.constraints, self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, new-binds, self.constraints, self.info, self.misc)
   end,
   method add-variable(self, variable :: Type) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-variable(variable), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-variable(variable), self.info, self.misc)
   end,
   method add-variable-set(self, variables :: Set<Type>) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-variable-set(variables), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-variable-set(variables), self.info, self.misc)
   end,
   method add-constraint(self, subtype :: Type, supertype :: Type) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-constraint(subtype, supertype), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-constraint(subtype, supertype), self.info, self.misc)
   end,
   method add-field-constraint(self, typ :: Type, field-name :: String, field-type :: Type):
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-field-constraint(typ, field-name, field-type), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-field-constraint(typ, field-name, field-type), self.info, self.misc)
   end,
   method add-example-variable(self, existential :: Type, arg-types :: List<Type>, ret-type :: Type, loc :: Loc, checking-fun :: (Type, Context -> TypingResult), fun-name :: String) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-variable(existential, arg-types, ret-type, loc, checking-fun, fun-name), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-variable(existential, arg-types, ret-type, loc, checking-fun, fun-name), self.info, self.misc)
   end,
   method add-example-type(self, existential :: Type, typ :: Type) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-type(existential, typ), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-example-type(existential, typ), self.info, self.misc)
   end,
   method add-level(self) -> Context:
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-level(), self.info)
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints.add-level(), self.info, self.misc)
   end,
   method solve-level(self) -> FoldResult<ConstraintSolution>:
     self.constraints.solve-level(self).bind(lam({new-system; solution}, context) block:
@@ -188,6 +187,27 @@ sharing:
       binds.set(key, solution.generalize(solution.apply(bound-type)))
     end, self.binds)
     self.set-binds(new-binds)
+  end,
+  method add-misc-example-variable(self, fun-key :: String, fun-name :: String) -> Context:
+    misc = self.misc.set(fun-key, {[list: ]; fun-name})
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, misc)
+  end,
+  method add-misc-example-type(self, fun-key :: String, typ :: Type) -> Context:
+    cases(Option) self.misc.get(fun-key):
+      | none =>
+        self
+      | some({typs; fun-name}) =>
+        misc = self.misc.set(fun-key, {link(typ, typs); fun-name})
+        typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, misc)
+    end
+  end,
+  method substitute-in-misc(self, solution :: ConstraintSolution):
+    new-misc = self.misc.fold-keys(lam(key, new-misc):
+      {types; name} = self.misc.get-value(key)
+      new-types = types.map(lam(typ): solution.apply(typ) end)
+      new-misc.set(key, {new-types; name})
+    end, [string-dict: ])
+    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, new-misc)
   end
 end
 
@@ -411,17 +431,8 @@ sharing:
   method solve-level-helper(self, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     solve-helper-constraints(self, solution, context).bind(lam({system; shadow solution}, shadow context):
       solve-helper-refinements(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-        solve-helper-fields(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context) block:
-          log-queue := [list: ]
-
-          result = solve-helper-examples(system, solution, context)
-
-          each(lam(log-payload) block:
-            LOG.log("test-inferred-type", log-payload)
-          end, log-queue)
-          log-queue := [list: ]
-
-          result
+        solve-helper-fields(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
+          solve-helper-examples(system, solution, context)
         end)
       end)
     end)
@@ -876,7 +887,7 @@ fun solve-helper-examples(system :: ConstraintSystem, solution :: ConstraintSolu
               + "'function-name': " + "'" + fun-name + "'" + ","
               + "'inferred-type': " + "'" + tostring(new-type) + "'" + ","
               + "}"
-            log-queue := link(log-payload, log-queue)
+            LOG.log("test-inferred-type", log-payload)
 
             fold-result({system; constraint-solution(empty-tree-set, solution.substitutions.set(existential-key, {new-type; existential}))}, context)
           | empty => fold-errors([list: C.unann-failed-test-inference(existential.l)])
@@ -1319,7 +1330,8 @@ fun empty-context():
                  SD.make-string-dict(),
                  SD.make-string-dict(),
                  no-constraints,
-                 empty-info())
+                 empty-info(),
+                 [string-dict: ])
 end
 
 fun empty-info():
@@ -1377,6 +1389,9 @@ data TypingResult:
     method solve-bind(self) -> TypingResult:
       self.out-context.solve-level().typing-bind(lam(solution, context):
         shadow context = context.substitute-in-binds(solution)
+
+        shadow context = context.substitute-in-misc(solution)
+
         typing-result(self.ast, solution.apply(self.typ), context)
       end)
     end
@@ -1453,4 +1468,22 @@ fun fold-typing<X>(f :: (X, Context -> TypingResult), lst :: List<X>, context ::
           end)
       end
   end
+end
+
+fun misc-test-inference(fun-examples :: List<Type>, fun-name :: String) -> Nothing:
+    shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)  
+    cases(List<Type>) fun-examples block:
+      | link(first, rest) =>
+        generalized = rest.foldr(generalize-type, first)
+        first-structure = find-structure(first)
+        common-structure = rest.foldr(find-common-structure, first-structure)
+        new-type = maintain-common-structure(common-structure, generalized)
+
+        log-payload = "{"
+          + "'function-name': " + "'" + fun-name + "'" + ","
+          + "'inferred-type': " + "'" + tostring(new-type) + "'" + ","
+          + "}"
+        LOG.log("extra-test-inferred-type", log-payload)
+      | empty => nothing
+    end
 end

@@ -105,6 +105,8 @@ var test-inference-data :: Option<{name :: Name,
                                    loc :: Loc,
                                    existential :: Type }> = none
 
+var misc-test-inference-data :: Option<Name> = none
+
 
 #######################################################
 
@@ -237,7 +239,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
                 | some(typ) => new-global-types.set(v.key(), typ)
               end
             end, new-global-types)
-            typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info)
+            typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info, context.misc)
           | else => raise("type checker received incomplete import")
         end
       end, context)
@@ -249,8 +251,14 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       # end, body.tosource().pretty(72))
 
       tc-result = checking(body, t-top(l, false), true, context)
-      cases(TypingResult) tc-result:
+      cases(TypingResult) tc-result block:
         | typing-result(new-body, _, shadow context) =>
+
+          context.misc.keys-list().each(lam(key) block:
+            {fun-examples; fun-name} = context.misc.get-value(key)
+            TCS.misc-test-inference(fun-examples, fun-name)
+          end)
+
           folded-info = gather-provides(_provide, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
@@ -296,7 +304,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
     if is-t-existential(expect-type) or is-t-top(expect-type):
       check-synthesis(e, expect-type, top-level, context)
     else:
-      cases(Expr) e:
+      cases(Expr) e block:
         | s-module(l, answer, defined-values, defined-types, provided-values, provided-types, checks) =>
           checking(answer, expect-type, false, context)
             .bind(lam(new-answer, _, shadow context):
@@ -453,6 +461,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
               typing-result(e, expect-type, context)
             end)
           else:
+            shadow context = misc-collect-example(e, context)
+
             synthesis(l, false, context).bind(lam(_, left-type, shadow context):
               cases(Option<Expr>) r:
                 | some(shadow r) =>
@@ -727,6 +737,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           typing-result(e, result-type, context)
         end)
       else:
+        shadow context = misc-collect-example(e, context)
+
         synthesis(l, false, context).bind(lam(_, left-type, shadow context):
           cases(Option<Expr>) r:
             | some(shadow r) =>
@@ -1561,10 +1573,18 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
                   raise("the right hand side should be a lambda")
                 end
               | none =>
+
+                cases(Option) context.misc.get(b.id.key()):
+                  | some(thing) =>
+                    misc-test-inference-data := some(b.id)
+                  | none =>
+                    nothing
+                end
+
                 shadow context = context.add-level()
                 free-vars = expected-type.free-variables()
                 shadow context = context.add-variable-set(free-vars)
-                checking(value, expected-type, false, context).bind(lam(new-ast, new-type, shadow context):
+                result = checking(value, expected-type, false, context).bind(lam(new-ast, new-type, shadow context):
                   context.solve-level().typing-bind(lam(solution, shadow context):
                     shadow context = context.substitute-in-binds(solution)
                     shadow new-type = solution.generalize(solution.apply(new-type))
@@ -1583,6 +1603,9 @@ fun handle-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, co
                     end
                   end)
                 end)
+
+                misc-test-inference-data := none
+                result
             end
         end
       end, bindings-to-type, context)
@@ -1633,7 +1656,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
                     collect-bindings(lam-args, context).bind(lam(arg-coll, shadow context) block:
                       cases(Option<Expr>) _check:
                         | some(check-block) =>
-                          lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, false, context).bind(lam(lam-type, temp-context) block:
+                          lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, false, context).bind(lam(lam-type, shadow context) block:
 
                             log-payload = "{"
                               + "'function-name': " + "'" + first-bind.b.id.toname() + "'" + ","
@@ -1646,13 +1669,15 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
                               | t-arrow(temp-args, temp-ret, temp-l, _) =>
                                 if lam-type.free-variables().size() > 0:
                                   new-exists = new-existential(temp-l, true)
-                                  shadow temp-context = temp-context.add-variable(new-exists)
-                                  shadow temp-context = temp-context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _), first-bind.b.id.toname())
-                                  fold-result(new-exists, temp-context)
+                                  shadow context = context.add-variable(new-exists)
+                                  shadow context = context.add-example-variable(new-exists, temp-args, temp-ret, temp-l, checking(first-bind.value, _, top-level, _), first-bind.b.id.toname())
+                                  fold-result(new-exists, context)
                                 else:
-                                  lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
+                                  shadow context = context.add-misc-example-variable(first-bind.b.id.key(), first-bind.b.id.toname())
+                                  fold-result(lam-type, context)
                                 end
                               | else =>
+                                shadow context = context.add-misc-example-variable(first-bind.b.id.key(), first-bind.b.id.toname())
                                 lam-to-type(arg-coll, lam-l, lam-params, lam-args, lam-ann, top-level, context)
                             end
                           end)
@@ -2356,6 +2381,60 @@ fun collect-example(e :: Expr%(is-s-check-test), context :: Context) -> FoldResu
             | else => fold-result(nothing, context)
           end
         | else => fold-result(nothing, context)
+      end
+  end
+end
+
+fun misc-collect-example(e :: Expr%(is-s-check-test), context :: Context) -> Context:
+  cases(Option) misc-test-inference-data:
+    | none => context
+    | some(fun-name) =>
+      cases(A.Expr) e:
+        | s-check-test(l, op, refinement, lhs, rhs) =>
+          cases(A.CheckOp) op:
+            | s-op-is(_) =>
+              cases(Option<A.Expr>) refinement:
+                | some(_) => context
+                | none =>
+                  cases(A.Expr) lhs:
+                    | s-app(_, _fun, args) =>
+                      maybe-id = cases(A.Expr) _fun:
+                        | s-id(_, id) => some(id)
+                        | s-id-var(_, id) => some(id)
+                        | s-id-letrec(_, id, _) => some(id)
+                        | else => none
+                      end
+                      cases(Option<Name>) maybe-id block:
+                        | none => context
+                        | some(id) =>
+                          if fun-name == id block:
+                            fold-arg-types = args.foldr(lam(arg, fold-result-args):
+                              fold-result-args.bind(lam(result-args, shadow context):
+                                synthesis(arg, false, context).fold-bind(lam(_, result-type, shadow context):
+                                  fold-result(link(result-type, result-args), context)
+                                end)
+                              end)
+                            end, fold-result(empty, context))
+                            fold-ret-type = fold-arg-types.bind(lam(arg-types, shadow context):
+                              synthesis(rhs.value, false, context).fold-bind(lam(_, result-type, shadow context):
+                                fold-result({arg-types; result-type}, context)
+                              end)
+                            end)
+                            cases(FoldResult) fold-ret-type:
+                              | fold-result({arg-types; result-type}, shadow context) =>
+                                context.add-misc-example-type(fun-name.key(), t-arrow(arg-types, result-type, A.dummy-loc, false))
+                              | fold-errors(_) => context
+                            end
+                          else:
+                            context
+                          end
+                      end
+                    | else => context
+                  end
+              end
+            | else => context
+          end
+        | else => context
       end
   end
 end
