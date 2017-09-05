@@ -149,7 +149,7 @@ EXTRA_FLAGS = -no-check-mode
 endif
 
 %.v.jarr: $(PHASEA)/pyret.jarr %.arr
-	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.v.jarr \
                       --build-runnable $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
