@@ -441,42 +441,38 @@ fun compile-fun-body(l :: Loc, fun-name :: A.Name, compiler,
 end
 
 fun compile-cases-branch(compiler, compiled-val, branch, cases-loc):
-  compiled-body = branch.body.visit(compiler)
-
-  # TODO(rachit): Skipping inlining optimization here.
-  temp-branch = fresh-id(compiler-name("temp_branch"))
-  branch-args =
-    if N.is-a-cases-branch(branch) and is-link(branch.args):
-      branch.args.map(get-bind)
-    else:
-      [list: ]
-    end
-
-  ref-binds-mask = if N.is-a-cases-branch(branch):
-    j-list(false, for CL.map_list(cb from branch.args):
-      j-bool(A.is-s-cases-bind-ref(cb.field-type))
-    end)
-  else:
-    j-list(false, cl-empty)
-  end
-
-  compiled-branch-fun =
-    compile-fun-body(branch.body.l, temp-branch, compiler, branch-args, none,
-      branch.body)
   preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
-  deref-fields = j-expr(compiler.cur-ans(
-    j-method(compiled-val, "$app_fields", [clist:
-      j-id(temp-branch), ref-binds-mask])))
-  actual-app =
-    [clist:
-      j-var(temp-branch,
-        j-fun(J.next-j-fun-id(), make-fun-name(compiler, cases-loc),
-          CL.map_list(lam(arg): formal-shadow-name(arg.id) end, branch-args),
-          compiled-branch-fun)),
-      deref-fields,
-      j-break]
-  c-block(j-block(cl-append(preamble, actual-app)),
-    cl-empty)
+  compiled-body = branch.body.visit(compiler)
+  if N.is-a-cases-branch(branch):
+    ann-cases = compile-anns(compiler, branch.args.map(get-bind))
+    field-names = j-id(js-id-of(fresh-id(compiler-name("fn"))))
+    get-field-names = j-var(field-names.id,
+      j-dot(j-dot(compiled-val, "$constructor"), "$fieldNames"))
+    deref-fields =
+      for CL.map_list_n(i from 0, arg from branch.args):
+        mask = j-bracket(j-dot(compiled-val, "$mut_fields_mask"), j-num(i))
+        field = get-dict-field(compiled-val,
+          j-bracket(field-names, j-num(i)))
+        j-var(js-id-of(arg.bind.id),
+          rt-method("derefField",
+            [clist:
+              field,
+              mask,
+              j-bool(A.is-s-cases-bind-ref(arg.field-type))]))
+      end
+      c-block(j-block(
+        preamble
+        ^ cl-snoc(_, get-field-names)
+        ^ cl-append(_, deref-fields)),
+        ann-cases
+        ^ cl-append(_, compiled-body.block.stmts)
+        ^ cl-append(_, compiled-body.new-cases)
+        ^ cl-snoc(_, j-break))
+  else:
+    c-block(
+      j-block(cl-append(preamble, compiled-body.block.stmts)),
+      cl-snoc(compiled-body.new-cases, j-break))
+  end
 end
 fun cases-preamble(compiler, compiled-val, branch, cases-loc):
   cases(N.ACasesBranch) branch:
@@ -550,7 +546,10 @@ fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
   new-ans = cases(BindType) b:
     | b-let(v) => lam(assign): j-assign(js-id-of(bname.id), assign) end
     | b-array(v, idx) =>
-      lam(assign): j-bracket-assign(js-id-of(bname.id), assign) end
+      lam(assign): j-bracket-assign(
+        j-id(js-id-of(bname.id)),
+        j-num(idx),
+        assign) end
   end
   binding = cases (N.ALettable) e:
     | a-if(l, p, c, a) =>
@@ -587,9 +586,20 @@ fun compile-let(compiler, b :: BindType, e :: N.ALettable, body :: N.AExpr):
         j-var(js-id-of(bname.id), undefined),
         j-switch(j-dot(compiled-val, "$name"), branch-else-cases)]
     | else =>
-      compiled-e :: DAG.CaseResults%(is-c-exp) = e.visit(compiler)
-      compiled-e.other-stmts ^
-        cl-append(_, cl-sing(j-var(js-id-of(bname.id), compiled-e.exp)))
+      compiled-e :: DAG.CaseResults =
+        e.visit(compiler.{cur-ans: new-ans})
+        if is-c-exp(compiled-e):
+          cases(BindType) b:
+            | b-let(_) =>
+              compiled-e.other-stmts ^
+                cl-append(_, cl-sing(j-var(js-id-of(bname.id), compiled-e.exp)))
+            | b-array(_, _) =>
+              compiled-e.other-stmts ^
+                cl-append(_, cl-sing(j-expr(new-ans(compiled-e.exp))))
+          end
+        else:
+          cl-append(compiled-e.block.stmts, compiled-e.new-cases)
+        end
     end
     compile-annotated-let(compiler, bname, binding, compiled-body)
 end
@@ -760,10 +770,10 @@ compiler-visitor = {
   end,
   method a-update(self, l, obj, fields):
     compiled-obj = obj.visit(self).exp
-    compiled-fields = CL.map_list(_.value.visit(self).exp, fields)
-    field-names = CL.map_list(j-str(_.name), fields)
-    field-locs = CL.map_list(self.get-loc(_.l), fields)
-    c-exp(j-expr(rt-method("checkRefAnns",
+    compiled-fields = CL.map_list(lam(a): a.value.visit(self).exp end, fields)
+    field-names = CL.map_list(lam(a): j-str(a.name) end, fields)
+    field-locs = CL.map_list(lam(a): self.get-loc(a.l) end, fields)
+    c-exp(rt-method("checkRefAnns",
       [clist:
         compiled-obj,
         j-list(false, field-names),
@@ -771,8 +781,7 @@ compiler-visitor = {
         j-list(false, field-locs),
         self.get-loc(l),
         self.get-loc(obj.l)
-      ]
-    )), cl-empty)
+      ]), cl-empty)
   end,
   method a-lettable(self, _, e :: N.ALettable):
     visit-e = e.visit(self)
@@ -838,7 +847,7 @@ compiler-visitor = {
     end
   end,
   method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
-    visit-args = args.map(_.visit(self))
+    visit-args = args.map(lam(a): a.visit(self) end)
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
     ]
@@ -851,7 +860,7 @@ compiler-visitor = {
     end
   end,
   method a-obj(self, l :: Loc, fields :: List<N.AField>):
-    visit-fields = fields.map(_.visit(self))
+    visit-fields = fields.map(lam(a): a.visit(self) end)
     c-exp(rt-method("makeObject",
         [clist: j-obj(CL.map_list(o-get-field, visit-fields))]), cl-empty)
   end,
@@ -867,7 +876,7 @@ compiler-visitor = {
   end,
   method a-extend(self, l :: Loc, obj :: N.AVal, fields :: List<N.AField>):
     visit-obj = obj.visit(self)
-    visit-fields = fields.map(_.visit(self))
+    visit-fields = fields.map(lam(a): a.visit(self) end)
     c-exp(
       rt-method("extendObj",
         [clist:
@@ -913,7 +922,7 @@ compiler-visitor = {
     c-field(j-field(name, visit-v.exp), visit-v.other-stmts)
   end,
   method a-tuple(self, l, values):
-    visit-vals = values.map(_.visit(self))
+    visit-vals = values.map(lam(a): a.visit(self) end)
     c-exp(
       rt-method("makeTuple",
         [clist: j-list(false,
@@ -929,7 +938,7 @@ compiler-visitor = {
     )
   end,
   method a-array(self, l, values):
-    visit-vals = values.map(_.visit(self))
+    visit-vals = values.map(lam(a): a.visit(self) end)
     other-stmts = visit-vals.foldr(
       lam(v, acc): cl-append(v.other-stmts, acc) end,
       cl-empty
@@ -987,7 +996,7 @@ compiler-visitor = {
       js-id-of(compiler-name(string-append("brand-", base))).toname()
     end
 
-    visit-shared-fields = CL.map_list(_.visit(self), shared)
+    visit-shared-fields = CL.map_list(lam(a): a.visit(self) end, shared)
     shared-fields = visit-shared-fields.map(o-get-field)
     external-brand = j-id(js-id-of(namet))
 
@@ -1076,7 +1085,7 @@ compiler-visitor = {
       variant-brand-obj-id = js-id-of(compiler-name(string-append(
         vname, "-brands")))
       variant-brands = j-obj(cl-empty)
-      visit-with-fields = v.with-members.map(_.visit(self))
+      visit-with-fields = v.with-members.map(lam(a): a.visit(self) end)
 
       refl-base-fields =
         cases(N.AVariant) v:
@@ -1316,7 +1325,7 @@ fun compile-module(self, l, imports-in, prog,
       end
     end, ids)
   fun wrap-modules(modules, body-name, body-fun):
-    mod-input-names = CL.map_list(_.input-id, modules)
+    mod-input-names = CL.map_list(lam(a): a.input-id end, modules)
     mod-input-ids = mod-input-names.map(j-id)
     mod-input-ids-list = mod-input-ids.to-list()
     mod-val-ids = modules.map(get-id)

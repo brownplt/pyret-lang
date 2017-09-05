@@ -2472,6 +2472,7 @@ default-compile-options = {
   collect-all: false,
   collect-times: false,
   ignore-unbound: false,
+  straight-line: false,
   proper-tail-calls: true,
   inline-case-body-limit: 5,
   compiled-cache: "compiled",
