@@ -467,6 +467,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
     }
 
+    function getMaker(obj, makerField, exprLoc, constrLoc) {
+      var maker = isObject(obj) && obj.dict[makerField];
+      if (!isFunction(maker)) {
+        if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
+          throw Error("FFI or thisRuntime.ffi., val, field is not yet defined, and lookup of field " + makeField + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(constrLoc));
+        } else {
+          throw thisRuntime.ffi.throwConstructorSyntaxNonConstructor(makeSrcloc(exprLoc), makeSrcloc(constrLoc));
+        }
+      }
+      return maker;
+    }
+
+
     function extendObj(loc, val, extension) {
       if (!isObject(val)) { thisRuntime.ffi.throwExtendNonObject(makeSrcloc(loc), val); }
       return val.extendWith(extension);
@@ -5521,6 +5534,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'extendObj'        : extendObj,
 
       'hasBrand' : hasBrand,
+      'getMaker' : getMaker,
+      // These are all the same function but have different types for arity reasons
+      'getMaker0' : getMaker,
+      'getMaker1' : getMaker,
+      'getMaker2' : getMaker,
+      'getMaker3' : getMaker,
+      'getMaker4' : getMaker,
+      'getMaker5' : getMaker,
+      'getLazyMaker' : getMaker,
 
       'isPyretTrue' : isPyretTrue,
       'isPyretFalse' : isPyretFalse,
@@ -5851,7 +5873,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'traceEnter': 'tEn',
         'traceErrExit': 'tErEx',
         'traceExit': 'tEx',
-        '_checkAnn': '_cA'
+        '_checkAnn': '_cA',
+        'getMaker': 'gM',
     };
 
     for (var longName in nameMap) {
