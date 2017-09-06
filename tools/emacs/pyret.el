@@ -1842,5 +1842,10 @@ in (nil if we're not in a string).")
 
 (add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
 
+;; Automatically enable pyret-mode on .arr files.
+(add-to-list 'auto-mode-alist '("\\.arr\\'" . pyret-mode))
+;; Pyret files are UTF-8.
+(add-to-list 'file-coding-system-alist '("\\.arr\\'" . utf-8-unix))
+
 (provide 'pyret)
 
