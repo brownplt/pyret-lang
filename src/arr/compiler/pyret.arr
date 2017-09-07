@@ -76,7 +76,9 @@ fun main(args :: List<String>) -> Number block:
     "html-file",
       C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
     "no-module-eval",
-      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)")
+      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
+    "no-user-annotations",
+      C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank.")
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -109,6 +111,7 @@ fun main(args :: List<String>) -> Number block:
             none
           end
       module-eval = not(r.has-key("no-module-eval"))
+      user-annotations = not(r.has-key("no-user-annotations"))
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -149,7 +152,8 @@ fun main(args :: List<String>) -> Number block:
                 inline-case-body-limit: inline-case-body-limit,
                 deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
                 html-file: html-file,
-                module-eval: module-eval
+                module-eval: module-eval,
+                user-annotations: user-annotations
               })
           success-code
         else if r.has-key("serve"):

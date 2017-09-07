@@ -18,7 +18,7 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     function compileAndTimeRun(program) {
       const toBuild = program.replace(/\.arr$/, ".jarr");
       const [compileSuccess, , ] = maybeTime(true, () => echoRun(
-        `make ${toBuild}`, {stdio: [0, 1, 2]}));
+        `env EF="-no-user-annotations" make ${toBuild}`, {stdio: [0, 1, 2]}));
 
       return maybeTime(compileSuccess, () => echoRun(`node ${toBuild}`));
     }
@@ -28,6 +28,7 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     paths = paths.filter((p) => p.slice(-4) === ".arr");
     paths = paths.filter((p) => include === "*" || include.some((i) => (p.indexOf(i) !== -1)));
     console.log("Running for these programs after filters: ", paths);
+    return maybeTime(compileSuccess, () => echoRun(`make phaseA`));
     const results = [];
     paths.map((p) => {
       const programPath = path.join(programsPath, p);
