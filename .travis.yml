@@ -9,7 +9,7 @@ install:
 - make install
 before_script: make -j3
 script:
-- heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
+- heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang
 - make all-pyret-test
 notifications:
   slack:
