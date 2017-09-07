@@ -378,7 +378,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     ReprMethods["_tostring"] = Object.create(DefaultReprMethods);
 
     ReprMethods["$cli"] = Object.create(DefaultReprMethods);
-    ReprMethods["$cli"]["function"] = function(val) { return "<function:" + val.name + ">"; }
+    ReprMethods["$cli"]["function"] = function(val) { return "<function:" + val.pyretName + ">"; }
     ReprMethods["$cli"]["method"] = function(val) { return "<method:" + val.name + ">"; }
 
     ReprMethods.createNewRenderer = function createNewRenderer(name, base) {
@@ -683,7 +683,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
        @param {Object} obj the item to test
        @return {boolean} true if object is a PFunction
     */
-    function isFunction(obj) {return obj instanceof PFunction; }
+    function isFunction(obj) { return typeof obj.app === "function"; }
 
     /**Makes a PFunction using the given n
 
@@ -691,10 +691,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
        @return {!PFunction} with app of fun
     */
     function makeFunction(fun, name) {
-      return new PFunction(fun, fun.length, name);
+      fun.pyretName = name;
+      fun.app = fun;
+      return fun;
+//      return new PFunction(fun, fun.length, name);
     }
     function makeFunctionArity(fun, arity, name) {
-      return new PFunction(fun, arity, name);
+      fun.pyretName = name;
+      fun.app = fun;
+      return fun;
+//      return new PFunction(fun, arity, name);
     }
 
     /*********************
