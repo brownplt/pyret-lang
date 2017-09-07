@@ -2477,6 +2477,7 @@ default-compile-options = {
   proper-tail-calls: true,
   inline-case-body-limit: 5,
   module-eval: true,
+  user-annotations: true,
   compiled-cache: "compiled",
   display-progress: true,
   log: lam(s, to-clear):

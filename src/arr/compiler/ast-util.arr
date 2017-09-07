@@ -858,6 +858,41 @@ letrec-visitor = A.default-map-visitor.{
   end
 }
 
+strip-annotations-visitor = A.default-map-visitor.{
+  method a-blank(self): A.a-blank end,
+  method a-any(self, l): A.a-blank end,
+  method a-name(self, l, id): A.a-blank end,
+  method a-type-var(self, l, id): A.a-blank end,
+  method a-arrow(self, l, args, ret, use-parens):
+    A.a-blank
+  end,
+  method a-arrow-argnames(self, l, args, ret, use-parens):
+    A.a-blank
+  end,
+  method a-method(self, l, args, ret):
+    A.a-blank
+  end,
+  method a-record(self, l, fields):
+    A.a-blank
+  end,
+  method a-tuple(self, l, fields):
+    A.a-blank
+  end,
+  method a-app(self, l, ann, args):
+    A.a-blank
+  end,
+  method a-pred(self, l, ann, exp):
+    A.a-blank
+  end,
+  method a-dot(self, l, obj, field):
+    A.a-blank
+  end,
+  method a-field(self, l, name, ann):
+    A.a-field(l, name, A.a-blank)
+  end
+}
+
+
 fun make-renamer(replacements :: SD.StringDict):
   A.default-map-visitor.{
     method s-atom(self, base, serial):
@@ -871,6 +906,8 @@ fun make-renamer(replacements :: SD.StringDict):
     end
   }
 end
+
+
 
 fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block

@@ -420,6 +420,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                           .visit(AU.inline-lams)
                           .visit(AU.set-recursive-visitor)
                           .visit(AU.set-tail-visitor)
+              when not(options.user-annotations):
+                cleaned := cleaned.visit(AU.strip-annotations-visitor)
+              end
               add-phase("Cleaned AST", cleaned)
               {final-provides; cr} = if is-empty(any-errors):
                 JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, provides, options)

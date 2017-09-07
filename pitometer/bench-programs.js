@@ -18,7 +18,7 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     function compileAndTimeRun(program) {
       const toBuild = program.replace(/\.arr$/, ".jarr");
       const [compileSuccess, , ] = maybeTime(true, () => echoRun(
-        `make ${toBuild}`, {stdio: [0, 1, 2]}));
+        `env EF="-no-user-annotations" make ${toBuild}`, {stdio: [0, 1, 2]}));
 
       return maybeTime(compileSuccess, () => echoRun(`node ${toBuild}`));
     }
