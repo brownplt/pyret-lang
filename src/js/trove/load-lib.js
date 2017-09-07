@@ -333,7 +333,23 @@
           // NOTE(joe): This is the place to add checkAll
           var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
           otherRuntime.setParam("current-checker", currentChecker);
-        }
+        },
+        "builtin://table": function(table) {
+          table = table.jsmod;
+          otherRuntime["makeTable"] = table.makeTable;
+          otherRuntime["makeRow"] = table.makeRow;
+          otherRuntime["makeRowFromArray"] = table.makeRowFromArray;
+          otherRuntime["openTable"] = table.openTable;
+          otherRuntime["checkTable"] = otherRuntime.makeCheckType(table.isTable, "Table");
+          otherRuntime["checkRow"] = otherRuntime.makeCheckType(table.isRow, "Row");
+          otherRuntime["isTable"] = table.isTable;
+          otherRuntime["isRow"] = table.isTable;
+          otherRuntime["checkWrapTable"] = function(val) {
+            otherRuntime.checkTable(val);
+            return val;
+          };
+          otherRuntime.makePrimAnn("Table", table.isTable);
+        },
       };
 
 

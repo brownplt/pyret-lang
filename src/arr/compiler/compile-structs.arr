@@ -2079,8 +2079,10 @@ data CompileError:
       [ED.error:
         [ED.para-nospace:
           ED.text("Unable to infer the type of "), 
-          ED.highlight(ED.text("this"), [list: self.loc], 0),
-          ED.text(". Please add an annotation.")]]
+          ED.highlight(ED.text("the expression"), [list: self.loc], 0),
+          ED.text(" at "),
+          ED.cmcode(self.loc),
+          ED.text("Please add an annotation.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -2476,6 +2478,7 @@ default-compile-options = {
   ignore-unbound: false,
   proper-tail-calls: true,
   inline-case-body-limit: 5,
+  module-eval: true,
   compiled-cache: "compiled",
   compiled-read-only: empty,
   display-progress: true,
@@ -2616,6 +2619,7 @@ runtime-provides = provides("builtin://global",
     "num-atan", t-number-unop,
     "num-atan2", t-number-binop,
     "num-modulo", t-number-binop,
+    "num-remainder", t-number-binop,
     "num-truncate", t-number-unop,
     "num-sqrt", t-number-unop,
     "num-sqr", t-number-unop,

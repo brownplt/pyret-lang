@@ -950,11 +950,11 @@ the number of quote characters in the match."
               (pop opens))
              ((or (pyret-has-top opens '(object))
                   (pyret-has-top opens '(reactor))
-                  (pyret-has-top opens '(objectortuple))
+                  (pyret-has-top opens '(braced-expr))
                   (pyret-has-top opens '(shared)))
                   ;;(pyret-has-top opens '(data)))
               ;;(message "Line %d, saw colon in context %s, pushing 'field" (+ 1 n) (car-safe opens))
-              (when (pyret-has-top opens '(objectortuple))
+              (when (pyret-has-top opens '(braced-expr))
                 (pop opens)
                 (push 'object opens))
               (incf (pyret-indent-fields defered-opened))
@@ -1014,7 +1014,7 @@ the number of quote characters in the match."
             (push 'wantcolonorblock opens)
             (forward-char 3))
            ((pyret-METHOD)
-            (when (pyret-has-top opens '(objectortuple))
+            (when (pyret-has-top opens '(braced-expr))
               (pop opens)
               (push 'object opens))
             (incf (pyret-indent-fun defered-opened))
@@ -1337,13 +1337,13 @@ the number of quote characters in the match."
               (incf (pyret-indent-vars defered-closed)))
             (forward-char))
            ((pyret-SEMI)
-            (when (pyret-has-top opens '(objectortuple))
+            (when (pyret-has-top opens '(braced-expr))
               (pop opens)
               (push 'tuple opens))
             (forward-char))
            ((pyret-LBRACE)
             (incf (pyret-indent-object defered-opened))
-            (push 'objectortuple opens)
+            (push 'braced-expr opens)
             (forward-char))
            ((pyret-RBRACE)
             (save-excursion
@@ -1365,7 +1365,8 @@ the number of quote characters in the match."
                 (incf (pyret-indent-fields cur-closed))))) ;; otherwise decrement the running count
             (if (or (pyret-has-top opens '(object))
                     (pyret-has-top opens '(tuple))
-                    (pyret-has-top opens '(objectortuple)))
+                    (pyret-has-top opens '(braced-expr))
+                    (pyret-has-top opens '(shorthand-lambda)))
                 (pop opens))
             (while (pyret-has-top opens '(var))
               (pop opens)
@@ -1377,6 +1378,10 @@ the number of quote characters in the match."
             (cond
              ((pyret-has-top opens '(wantopenparen))
               (pop opens))
+             ((pyret-has-top opens '(braced-expr))
+              (pop opens)
+              (push 'shorthand-lambda opens)
+              (push 'wantcolonorblock opens))
              ((or (pyret-has-top opens '(object))
                   (pyret-has-top opens '(shared))) ; method in an object or sharing section
               (push 'fun opens)
@@ -1516,6 +1521,7 @@ the number of quote characters in the match."
         ;; (message "Cur-closed    : %s" (pyret-print-indent cur-closed))
         ;; (message "Defered-closed: %s" (pyret-print-indent defered-closed))
         ;; (message "New open      : %s" (pyret-print-indent open))
+        ;; (message "Stack         : %s" (format "%s" opens))
         (incf n)
         (pyret-copy-indent! (aref pyret-nestings-at-line-end n) open)
         (aset pyret-tokens-stack n (append opens nil))
@@ -1835,6 +1841,11 @@ in (nil if we're not in a string).")
       (sp-local-pair "```" "```" :actions '(insert wrap) :unless '(pyret-point-not-at-last-tqs-opener-p)))))
 
 (add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
+
+;; Automatically enable pyret-mode on .arr files.
+(add-to-list 'auto-mode-alist '("\\.arr\\'" . pyret-mode))
+;; Pyret files are UTF-8.
+(add-to-list 'file-coding-system-alist '("\\.arr\\'" . utf-8-unix))
 
 (provide 'pyret)
 

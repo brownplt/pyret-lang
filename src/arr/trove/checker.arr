@@ -55,6 +55,7 @@ data CheckBlockResult:
   | check-block-result(
       name :: String,
       loc :: Loc,
+      keyword-check :: Boolean,
       test-results :: List<TestResult>,
       maybe-err :: Option<Any>
     )
@@ -537,8 +538,8 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           reset-results()
           result = run-task(c.run)
           cases(Either) result:
-            | left(v) => add-block-result(check-block-result(c.name, c.location, current-results, none))
-            | right(err) => add-block-result(check-block-result(c.name, c.location, current-results, some(err)))
+            | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
+            | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
           end
           current-results := results-before
         end
@@ -733,11 +734,12 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
           }
       end
     end
+    block-type = if br.keyword-check: "Check" else: "Examples" end
     ended-in-error = cases(Option) br.maybe-err:
       | none => ""
       | some(err) =>
         stack = get-stack(err)
-        "\n  Block ended in the following error (all tests may not have ran): \n\n  "
+        "\n  " + block-type + " block ended in the following error (not all tests may have run): \n\n  "
           + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
           + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
           + "\n\n"

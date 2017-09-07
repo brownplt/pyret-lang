@@ -15,6 +15,9 @@ end
 fun vert-list-values(vals):
   ED.v-sequence(vals.map(lam(val): [ED.para: ED.embed(val)] end))
 end
+fun horz-list-values(vals):
+  [ED.para: ED.h-sequence(vals.map(lam(val): ED.embed(val) end), ",") ]
+end
 
 fun ed-simple-intro(name, loc):
   if loc.is-builtin():
@@ -44,6 +47,41 @@ end
 
 fun please-report-bug():
   [ED.para: ED.text("Please report this as a bug.")]
+end
+
+fun and-if(predicate, option):
+  cases(O.Option) option:
+    | none => O.none
+    | some(v) =>
+      if predicate(v):
+        O.some(v)
+      else:
+        O.none
+      end
+  end
+end
+
+fun and-maybe(f, option):
+  cases(O.Option) option:
+    | none => O.none
+    | some(v) => f(v)
+  end
+end
+
+fun destructure-method-application(l, src-available, maybe-ast):
+  l ^ and-if(src-available, _)
+    ^ and-maybe(maybe-ast, _)
+    ^ and-maybe({(ast):
+        cases(Any) ast:
+          | s-app(_, _fun, args)  =>
+            O.some({cases(Any) _fun:
+                      | s-dot(_, t, m) => O.some(t.l)
+                      | else           => O.none
+                    end; args.map(_.l)})
+          | s-dot(_, _fun, args)  => O.some({O.some(_fun.l); args.map(_.l)})
+          | s-op(_,_,_,l-op,r-op) => O.some({O.some(r-op.l); [ED.locs: l-op.l]})
+          | else                  => O.none
+        end}, _)
 end
 
 data RuntimeError:
@@ -395,7 +433,7 @@ data RuntimeError:
           ed-simple-intro("construction expression", self.expr-loc),
           ED.cmcode(self.expr-loc),
           [ED.para:
-            ED.text("The left side was not a construction maker.")]]
+            ED.text("The left side was not a defined convenience constructor.")]]
       else:
         [ED.error:
           ed-intro("construction expression", self.expr-loc, -1, true),
@@ -403,14 +441,14 @@ data RuntimeError:
           [ED.para:
             ED.text("The "),
             ED.highlight(ED.text("left side"), [ED.locs: self.constr-loc], 0),
-            ED.text(" was not a construction maker.")]]
+            ED.text(" was not a defined convenience constructor.")]]
       end
     end,
     method render-reason(self):
       [ED.error:
         ed-simple-intro("construction expression", self.expr-loc),
         [ED.para:
-          ED.text("The left side was not a construction maker.")]]
+          ED.text("The left side was not a defined convenience constructor.")]]
     end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -1097,39 +1135,16 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.branch-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-cases-ast)
 
       destructured-definition =
         (O.some(self.constructor-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-constructor-ast)
 
       constructor-loc =
@@ -1328,39 +1343,16 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.branch-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-cases-ast)
 
       destructured-definition =
         (O.some(self.constructor-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-constructor-ast)
 
       fun pattern-prose(pattern, bindings):
@@ -1517,29 +1509,6 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       application-loc =
         maybe-stack-loc(0, false)
 
@@ -1550,14 +1519,14 @@ data RuntimeError:
 
       destructured-application =
         (application-loc ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-application-ast)
 
       destructured-definition =
         (O.some(self.fun-def-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-definition-ast)
 
       fun operator-prose(arguments, operator):
@@ -1715,6 +1684,7 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
+
   | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args, is-method) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
@@ -1773,29 +1743,6 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       application-loc =
         maybe-stack-loc(if self.fun-def-loc.is-builtin(): 0 else: 1 end, false)
 
@@ -1806,14 +1753,14 @@ data RuntimeError:
 
       destructured-application =
         (application-loc ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-application-ast)
 
       destructured-definition =
         (O.some(self.fun-def-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(locs-from-definition-ast)
 
       fun operator-prose(arguments, operator):
@@ -1971,6 +1918,121 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
+
+  | row-length-mismatch(colnames, provided-vals) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      cases(O.Option) maybe-stack-loc(0, true):
+        | some(l) =>
+          [ED.error:
+            ed-intro("row construction", l, -1, true),
+            [ED.para: ED.text("The row could not be constructed because the number of expected columns didn't match the number of provided values.")],
+            [ED.para: ED.text("Expected columns:")],
+            ED.embed(self.colnames),
+            [ED.para: ED.text("Provided values:")],
+            horz-list-values(raw-array-to-list(self.provided-vals))]
+        | none => self.render-reason()
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values.")],
+        [ED.para: ED.text("Expected columns:")],
+        ED.embed(self.colnames),
+        [ED.para: ED.text("Provided values:")],
+        vert-list-values(raw-array-to-list(self.provided-vals))]
+    end
+
+  | col-length-mismatch(colname, expected, actual, value) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      application-loc = maybe-stack-loc(0, true)
+
+      intro-prose =
+        application-loc
+          .and-then({(l):
+            if src-available(l):
+              [ED.sequence:
+                [ED.para:
+                  ED.text("This "),
+                  ED.highlight(
+                    [ED.sequence: ED.code(ED.text("add-column")),
+                                  ED.text(" operation")],
+                    [ED.locs: l], -1),
+                  ED.text(" errored:")],
+                ED.cmcode(l)]
+            else:
+              [ED.para:
+                ED.text("An "),
+                ED.code(ED.text("add-column")),
+                ED.text(" operation in "),
+                ED.loc(l),
+                ED.text(" errored.")]
+            end})
+          .or-else(
+            [ED.para:
+              ED.text("An "),
+              ED.code(ED.text("add-column")),
+              ED.text(" operation errored.")])
+
+      info-prose =
+        destructure-method-application(application-loc, src-available, maybe-ast)
+          .and-then({({maybe-table; args}):
+              tbl = maybe-table
+                  .and-then({(tl): ED.highlight(ED.text("table"), [ED.locs: tl], 0)})
+                  .or-else(ED.text("table"))
+              [ED.para:
+                ED.text("The "),
+                tbl,
+                ED.text(" had "),
+                ED.ed-rows(self.expected),
+                ED.text(", but "),
+                ED.ed-values(self.actual),
+                ED.text(" were "),
+                ED.highlight(ED.text("provided"), [ED.locs: args.get(1)], 1),
+                ED.text(":")]})
+          .or-else(
+            [ED.para:
+              ED.text("The table had "),
+              ED.ed-rows(self.expected),
+              ED.text(", but "),
+              ED.ed-values(self.actual),
+              ED.text(" were provided:")])
+
+      [ED.error:
+        intro-prose,
+        info-prose,
+        ED.embed(self.value),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("add-column")),
+          ED.text(" operation expects the number of provided values to match the number of rows in the table.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        ED.maybe-stack-loc(0, true,
+          {(l):
+            [ED.para:
+              ED.text("An "),
+              ED.code(ED.text("add-column")),
+              ED.text(" operation in "),
+              ED.loc(l),
+              ED.text(" errored.")]},
+          [ED.para:
+            ED.text("An "),
+            ED.code(ED.text("add-column")),
+            ED.text(" operation errored.")]),
+        [ED.para:
+          ED.text("The table had "),
+          ED.ed-rows(self.expected),
+          ED.text(", but "),
+          ED.ed-values(self.actual),
+          ED.text(" were provided:")],
+        ED.embed(self.value),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.text("add-column")),
+          ED.text(" operation expects the number of provided values to match the number of rows in the table.")]]
+    end
+
   | non-function-app(loc, non-fun-val) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
@@ -2221,33 +2283,10 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.operation-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(destructure-ast)
 
       table-text =
@@ -2306,33 +2345,10 @@ data RuntimeError:
         end
       end
 
-      fun and-if(predicate):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) =>
-              if predicate(v):
-                O.some(v)
-              else:
-                O.none
-              end
-          end
-        end
-      end
-
-      fun and-maybe(f):
-        lam(option):
-          cases(O.Option) option:
-            | none => O.none
-            | some(v) => f(v)
-          end
-        end
-      end
-
       destructured-pattern =
         (O.some(self.operation-loc) ^
-           and-if(src-available) ^
-           and-maybe(maybe-ast))
+           and-if(src-available, _) ^
+           and-maybe(maybe-ast, _))
           .and-then(destructure-ast)
 
       table-text =
@@ -2369,6 +2385,7 @@ data RuntimeError:
           ED.code(ED.text(self.column-name)),
           ED.text(".")]]
     end
+
   | user-break with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()

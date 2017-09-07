@@ -595,3 +595,4 @@ t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l, false) en
 t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l, false) end
 t-array   = lam(v, l): t-app(t-array-name.set-loc(l), [list: v], l, false) end
 t-option  = lam(v, l): t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option"), l, false), [list: v], l, false) end
+t-table = lam(l): t-name(builtin-uri, A.s-type-global("Table"), l, false) end

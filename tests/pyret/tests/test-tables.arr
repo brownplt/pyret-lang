@@ -1,7 +1,12 @@
 import data-source as DS
 import tables as TS
 import valueskeleton as VS
+import error as E
+import contracts as C
 
+fun contract(err, pred):
+  pred(err.reason)
+end
 
 tbl = table: name, age
   row: "Bob", 12
@@ -196,4 +201,339 @@ check "Table ordering":
   end
   order t: z ascending, y descending, x descending end is sort-t
 
+  t.order-by-columns([list: {"z"; true}, {"y"; false}, {"x"; false}])
+    is sort-t
+
+  another-t = table: x, y
+    row: 1, "c"
+    row: 2, "d"
+    row: 3, "a"
+    row: 4, "b"
+  end
+
+  by-y = table: x, y
+    row: 3, "a"
+    row: 4, "b"
+    row: 1, "c"
+    row: 2, "d"
+  end
+
+  another-t.order-by("y", true) is by-y
+  another-t.increasing-by("y") is by-y
+  another-t.order-by-columns([list: {"y"; true}]) is by-y
+
+  by-x = table: x, y
+    row: 4, "b"
+    row: 3, "a"
+    row: 2, "d"
+    row: 1, "c"
+  end
+
+  another-t.order-by("x", false) is by-x
+  another-t.decreasing-by("x") is by-x
+  another-t.order-by-columns([list: {"x"; false}]) is by-x
+
+
 end
+
+
+raw-row = TS.raw-row
+
+check "raw-row":
+  r1 = [raw-row: {"a"; 3}, {"b"; 4}]
+  r1["a"] is 3
+  r1["b"] is 4
+
+  [raw-row: {"a"; 3}, {"b"; 4}] is r1
+
+  [raw-row: {"a"; 3}, {"a"; 5}] raises "Duplicate"
+
+  r1["f"] raises "No such column"
+end
+
+
+check "generated constructors":
+  t = table: a, b
+    row: 1, 2
+  end
+
+  t.row(3, 4) is [raw-row: {"a"; 3}, {"b"; 4}]
+  t.row(~3, ~4) is-roughly [raw-row: {"a"; ~3}, {"b"; ~4}]
+
+  r1 = t.row(3, 4)
+  r1["a"] is 3
+  r1["b"] is 4
+
+  r1["f"] raises "No such column"
+
+  t.row(3, 4) is t.row(3, 4)
+
+  t.row(1, 2, 3) raises-satisfies E.is-row-length-mismatch
+  t.row(1) raises-satisfies E.is-row-length-mismatch
+
+
+  t2 = t.build-column("c", {(r): "tokyo"})
+
+  t2.row(1, 2) raises-satisfies E.is-row-length-mismatch
+  t2.row(1, 2, "hamburg") is [raw-row: {"a"; 1}, {"b"; 2}, {"c"; "hamburg"}]
+
+  r2 = t2.row(4, 5, "paris")
+  r2["a"] is 4
+  r2["b"] is 5
+  r2["c"] is "paris"
+
+  # Original should be unchanged
+  t.row(3, 4) is [raw-row: {"a"; 3}, {"b"; 4}]
+  t.row(~3, ~4) is-roughly [raw-row: {"a"; ~3}, {"b"; ~4}]
+
+  r1a = t.row(3, 4)
+  r1a["a"] is 3
+  r1a["b"] is 4
+
+end
+
+check "generated collection constructor":
+  t = table: a, b
+    row: 1, 2
+  end
+
+  [t.new-row: 3, 4] is [raw-row: {"a"; 3}, {"b"; 4}]
+  [t.new-row: ~3, ~4] is-roughly [raw-row: {"a"; ~3}, {"b"; ~4}]
+
+  r1 = [t.new-row: 3, 4]
+  r1["a"] is 3
+  r1["b"] is 4
+
+
+  [t.new-row: 1, 2, 3] raises-satisfies E.is-row-length-mismatch
+  [t.new-row: 1] raises-satisfies E.is-row-length-mismatch
+end
+
+check "add-column":
+  t = table: a, b, c
+    row: 1, 2, "hamburg" 
+    row: 4, 5, 6
+  end
+
+  t2 = t.add-column("d", [list: "red", "blue"])
+  answer = table: a, b, c, d
+    row: 1, 2, "hamburg", "red"
+    row: 4, 5, 6, "blue"
+  end
+  t2 is answer
+
+  t.add-column("c", [list:]) raises "column-name-exists"
+  t.add-column("d", [list: 5, 6, 7, 8]) raises-satisfies E.is-col-length-mismatch
+  t.add-column("d", [list:]) raises-satisfies E.is-col-length-mismatch
+  t.add-column("d") raises-satisfies E.is-arity-mismatch
+end
+
+check "add-row":
+  t = table: a, b, c
+    row: true, false, 10
+    row: false, false, 11
+  end
+
+  t2 = table: a, b, c
+    row: true, false, 10
+    row: false, false, 11
+  end
+
+  t3 = table: c, a, b
+    row: 10, true, false
+    row: 11, false, false
+  end
+
+  answer = table: a, b, c
+    row: true, false, 10
+    row: false, false, 11
+    row: true, true, 12
+  end
+
+  t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; 12}]) is answer
+  t.add-row(t.row(true, true, 12)) is answer
+  t.add-row(t2.row(true, true, 12)) is answer
+
+  t.add-row("a", t.row(true, true, 12)) raises-satisfies E.is-arity-mismatch
+  t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
+
+  t.add-row([raw-row:]) raises "row-length"
+  t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; false}, {"d"; 22}]) raises "row-length"
+
+  t.add-row(t3.row(10, false, true)) raises "row-name"
+
+end
+
+check "row-n":
+  t = table: a, b
+    row: "stockholm", 22
+    row: "beijing", 43
+  end
+
+  t.row-n(0) is t.row("stockholm", 22)
+  t.row-n(1) is t.row("beijing", 43)
+  t.row-n(0) is [t.new-row: "stockholm", 22]
+  t.row-n(1) is [t.new-row: "beijing", 43]
+
+  t.row-n(45) raises-satisfies E.is-message-exception
+  t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
+  t.row-n(4.3) raises-satisfies E.is-generic-type-mismatch
+  t.row-n("a") raises-satisfies E.is-generic-type-mismatch
+  t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
+end
+
+check "column":
+  t = table: a, b
+    row: "stockholm", 22
+    row: "beijing", 43
+    row: "jakarta", 7
+  end
+
+  t.column("a") is [list: "stockholm", "beijing", "jakarta"]
+  t.column("b") is [list: 22, 43, 7]
+
+  t.column("d") raises "no-such-column"
+  t.column("d", 2) raises-satisfies E.is-arity-mismatch
+  t.column(0) raises-satisfies contract(_, C.is-failure-at-arg)
+end
+
+check "column-n":
+  t = table: a, b
+    row: "stockholm", 22
+    row: "beijing", 43
+    row: "jakarta", 7
+  end
+
+  t.column-n(0) is [list: "stockholm", "beijing", "jakarta"]
+  t.column-n(1) is [list: 22, 43, 7]
+
+  t.column-n(3) raises "column-n-too-large"
+  t.column("d", 2) raises-satisfies E.is-arity-mismatch
+  t.column(-1) raises-satisfies contract(_, C.is-failure-at-arg)
+  t.column(1.2) raises-satisfies contract(_, C.is-failure-at-arg)
+end
+
+check "column-names":
+  t = table: a, b end
+  t.column-names() is [list: "a", "b"]
+  t.column-names(5) raises-satisfies E.is-arity-mismatch
+
+  t2 = table: a end
+  t2.column-names() is [list: "a"]
+
+  t3 = table: a end.add-column("a nother column", [list:])
+  t3.column-names() is [list: "a", "a nother column"]
+end
+
+check "all-rows":
+  t = table: a, b end
+  t.all-rows() is empty
+
+  t2 = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+  end
+  t2.all-rows() is [list:
+    t2.row(1, 2, 3),
+    t2.row(4, 5, 6)
+  ]
+
+  t3 = table: num1, num2, num3
+    row: 1, 2, 3
+  end
+  t3.add-row(t3.row(7, 8, 9)).all-rows() is [list:
+    t3.row(1, 2, 3),
+    [raw-row: {"num1"; 7}, {"num2"; 8}, {"num3"; 9}]
+  ]
+end
+
+check "all-columns":
+  t = table: a, b end
+  t.all-columns() is [list: empty, empty]
+
+  t2 = table: a, b, c
+    row: "orange", "red", true
+    row: "banana", "blue", false
+  end
+
+  t2.all-columns() is [list:
+    [list: "orange", "banana"],
+    [list: "red", "blue"],
+    [list: true, false]
+  ]
+end
+
+check "select-columns":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+    row: 7, 8, 9
+  end
+
+  t.select-columns([list: "c", "a"]) is table: c, a
+    row: 3, 1 
+    row: 6, 4 
+    row: 9, 7 
+  end
+
+  t.select-columns([list: "b"]) is table: b
+    row: 2 
+    row: 5 
+    row: 8 
+  end
+
+  t.select-columns([list:]) raises "zero-columns"
+  t.select-columns([list: "d"]) raises "no-such-column"
+  t.select-columns([list: 1]) raises-satisfies E.is-generic-type-mismatch
+  t.select-columns([list: "a"], 2) raises-satisfies E.is-arity-mismatch
+
+end
+
+check "filter":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+    row: 7, 8, 9
+  end
+
+  odds = t.filter({(r): num-modulo(r["a"], 2) == 0 })
+  odds is table: a, b, c
+    row: 4, 5, 6
+  end
+
+  # Rows in filter should be just like rows that come from the row constructor
+  var the-one-row = nothing
+  odds.filter({(r) block:
+    the-one-row := r
+    true
+  })
+  the-one-row is t.row(4, 5, 6)
+
+
+  t.filter({(r): false }) is table: a, b, c end
+  t.filter({(r): true }) is t
+
+
+  t.filter({(r): true }, "foo") raises-satisfies E.is-arity-mismatch
+  t.filter("a") raises-satisfies contract(_, C.is-failure-at-arg)
+end
+
+check "filter-by":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+    row: 7, 8, 9
+  end
+
+  odds = t.filter-by("a", {(a): num-modulo(a, 2) == 0 })
+  odds is table: a, b, c
+    row: 4, 5, 6
+  end
+
+  t.filter-by("d", {(a): a > 3}) raises "no-such-column"
+  t.filter-by("a") raises-satisfies E.is-arity-mismatch
+  t.filter-by() raises-satisfies E.is-arity-mismatch
+  t.filter-by("a", {(a): a > 3}, 4) raises-satisfies E.is-arity-mismatch
+
+end
+

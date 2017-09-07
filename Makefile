@@ -251,25 +251,11 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 		--require-config $(PYRET_TEST_CONFIG) \
 		--compiled-dir tests/compiled/
 
-.PHONY : old-test
-old-test: runtime-test evaluator-test compiler-test pyret-test regression-test type-check-test lib-test
-
-.PHONY : old-test-all
-old-test-all: test benchmark-test
-
 .PHONY : test-all
 test-all: test
 
 .PHONY : test
 test: pyret-test type-check-test
-
-.PHONY : runtime-test
-runtime-test : $(PYRET_TEST_PREREQ)
-	cd tests/runtime/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
-
-.PHONY : evaluator-test
-evaluator-test: $(PYRET_TEST_PREREQ)
-	cd tests/evaluator/ && PHASE=$(PYRET_TEST_PHASE) $(NODE) test.js require-test-runner/
 
 .PHONY : parse-test
 parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
@@ -316,26 +302,6 @@ type-check-test: phaseA tests/type-check/main.jarr
 tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
 	$(TEST_BUILD) \
 		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
-
-
-.PHONY : compiler-test
-compiler-test: $(PYRET_TEST_PREREQ)
-	$(NODE) $(PYRET_TEST_PHASE)/main-wrapper.js \
-    --module-load-dir $(PYRET_TEST_PHASE)/arr/compiler/ \
-    -check-all src/arr/compiler/compile.arr
-
-.PHONY : lib-test
-lib-test: tests/lib-test-main/lib-test-main.jarr
-	$(NODE) tests/lib-test/lib-test-main.jarr
-
-tests/lib-test-main/lib-test-main.jarr: phaseA $(TROVE_ARR_FILES) tests/lib-test/lib-test-main.arr
-	$(TEST_BUILD) \
-		--build-runnable tests/lib-test/lib-test-main.arr \
-    --outfile tests/lib-test/lib-test-main.jarr
-
-.PHONY : benchmark-test
-benchmark-test: tools/benchmark/*.js $(PYRET_TEST_PREREQ)
-	cd tools/benchmark/ && make test
 
 
 .PHONY : clean

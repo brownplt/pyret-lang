@@ -74,8 +74,10 @@ fun main(args :: List<String>) -> Number block:
     "deps-file",
       C.next-val(C.String, C.once, "Provide a path to override the default dependencies file"),
     "html-file",
-      C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)")
-    ]
+      C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
+    "no-module-eval",
+      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)")
+  ]
 
   params-parsed = C.parse-args(options, args)
 
@@ -106,6 +108,7 @@ fun main(args :: List<String>) -> Number block:
           else:
             none
           end
+      module-eval = not(r.has-key("no-module-eval"))
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -145,7 +148,8 @@ fun main(args :: List<String>) -> Number block:
                 display-progress: display-progress,
                 inline-case-body-limit: inline-case-body-limit,
                 deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
-                html-file: html-file
+                html-file: html-file,
+                module-eval: module-eval
               })
           success-code
         else if r.has-key("serve"):
