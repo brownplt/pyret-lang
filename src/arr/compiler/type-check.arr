@@ -167,7 +167,12 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     else:
       uri = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
-      context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
+
+      if (g == "_"):
+        context
+      else:
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
+      end
     end
   end, context)
   shadow context = globts.fold-keys(lam(g, shadow context):
@@ -175,19 +180,23 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       context
     else:
       uri = globts.get-value(g)
-      cases(Option<C.Provides>) compile-env.mods.get(uri):
-        | some(provs) =>
-          t = cases(Option<Type>) provs.aliases.get(g):
-            | none =>
-              cases(Option<Type>) provs.data-definitions.get(g):
-                | none => raise("Key " + g + " not found in " + torepr(provs))
-                | some(v) => v
-              end
-            | some(v) => v
-          end
-          context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
-        | none =>
-          raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
+      if (g == "_"):
+        context
+      else:
+        cases(Option<C.Provides>) compile-env.mods.get(uri):
+          | some(provs) =>
+            t = cases(Option<Type>) provs.aliases.get(g):
+              | none =>
+                cases(Option<Type>) provs.data-definitions.get(g):
+                  | none => raise("Key " + g + " not found in " + torepr(provs))
+                  | some(v) => v
+                end
+              | some(v) => v
+            end
+            context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
+          | none =>
+            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
+        end
       end
     end
   end, context)
@@ -2118,8 +2127,14 @@ fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCI
         if info.types.has-key(value-key):
           fold-result(info, context)
         else:
-          typ = context.info.types.get-value(value-key).set-inferred(false)
-          fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+          cases(Option<Type>) context.info.types.get(value-key):
+            | some(typ) =>
+              shadow typ = typ.set-inferred(false)
+              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+            | none =>
+              typ = context.global-types.get-value(value-key).set-inferred(false)
+              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+          end
         end
       end, values, context, initial-info)
       fold-values-info.bind(lam(values-info, shadow context):
