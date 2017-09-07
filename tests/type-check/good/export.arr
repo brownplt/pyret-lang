@@ -2,7 +2,8 @@ provide {
   foo: foo,
   f: f,
   foobar-fun: foobar-fun,
-  is-internal-error: E.is-internal-error
+  is-internal-error: E.is-internal-error,
+  E: E
 } end
 provide-types {
   Foo:: Foo,

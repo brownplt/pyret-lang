@@ -2118,8 +2118,14 @@ fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCI
         if info.types.has-key(value-key):
           fold-result(info, context)
         else:
-          typ = context.info.types.get-value(value-key).set-inferred(false)
-          fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+          cases(Option<Type>) context.info.types.get(value-key):
+            | some(typ) =>
+              shadow typ = typ.set-inferred(false)
+              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+            | none =>
+              typ = context.global-types.get-value(value-key).set-inferred(false)
+              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+          end
         end
       end, values, context, initial-info)
       fold-values-info.bind(lam(values-info, shadow context):
