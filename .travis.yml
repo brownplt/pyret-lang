@@ -1,3 +1,5 @@
+env:
+  secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
 git:
   submodules: false
 language: node_js
@@ -7,6 +9,7 @@ install:
 - make install
 before_script: make -j3
 script:
+- heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
 - make all-pyret-test
 notifications:
   slack:

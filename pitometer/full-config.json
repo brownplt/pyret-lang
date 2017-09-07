@@ -1,0 +1,9 @@
+{
+  "measurements": {
+    "bench-programs": {
+      "include": "*"
+    },
+    "time-phases": { },
+    "count-lines": { }
+  }
+}
