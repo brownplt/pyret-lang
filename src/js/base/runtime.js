@@ -5111,6 +5111,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     /** type {!PBase} */
     var builtins = makeObject({
+      '___debug': makeFunction(function(...args) {
+        debugger;
+        console.log(args);
+        return thisRuntime.nothing;
+      }),
       // NOTE(joe): this is initialized later, in postLoadHooks for data-source and for table,
       // but provided here because they show up in desugaring
       'open-table': makeFunction(function(spec) { return thisRuntime.openTable(spec); }),

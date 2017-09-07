@@ -2476,6 +2476,7 @@ default-compile-options = {
   ignore-unbound: false,
   proper-tail-calls: true,
   inline-case-body-limit: 5,
+  module-eval: true,
   compiled-cache: "compiled",
   display-progress: true,
   log: lam(s, to-clear):

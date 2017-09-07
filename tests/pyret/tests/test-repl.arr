@@ -259,4 +259,18 @@ check:
   repeat(ncalls, "definitions://: line 5, column 6") +
   [list: "interactions://1: line 1, column 0"]
 
+  # Make sure the repl can import built-in typed modules
+
+  tc-result = restart("import string-dict as SD", true)
+  tc-result.v satisfies L.is-success-result
+  should-succeed-constructor = next-interaction("SD.make-mutable-string-dict().set-now('a', 2)")
+  should-succeed-constructor.v satisfies L.is-success-result
+
+  tc-result2 = restart("include string-dict", true)
+  tc-result2.v satisfies L.is-success-result
+  should-succeed-string-dict = next-interaction("is-function(make-string-dict)")
+  val(should-succeed-string-dict) is some(true)
+
+  print("Done running repl-tests: " + tostring(time-now()) + "\n")
+
 end

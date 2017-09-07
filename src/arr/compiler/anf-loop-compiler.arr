@@ -2051,7 +2051,10 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       "requires", j-list(true, module-locators-as-js),
       "provides", provides-obj,
       "nativeRequires", j-list(true, [clist:]),
-      "theModule", if compiler.options.collect-all: the-module else: J.j-str(module-and-map.code) end,
+      "theModule",
+        if compiler.options.collect-all: the-module
+        else if compiler.options.module-eval == false: J.j-raw-code(module-and-map.code)
+        else: J.j-str(module-and-map.code) end,
       "theMap", J.j-str(module-and-map.map)
       ]
   end
