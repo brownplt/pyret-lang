@@ -25,7 +25,7 @@
 
     var rowGetValue = runtime.makeMethod1(function(self, arg) {
         ffi.checkArity(2, arguments, "get-value", false);
-        runtime.checkArgsInternal2("tables", "get-value",
+        runtime.checkArgsInternal1("tables", "get-value",
           arg, runtime.String);
         var index = self.$underlyingTable.headerIndex["column:" + arg];
         if(typeof index === "number") {
@@ -323,13 +323,13 @@
 
         'increasing-by': runtime.makeMethod1(function(_, colname) {
           ffi.checkArity(2, arguments, "increasing-by", true);
-          runtime.checkArgsInternal2("tables", "increasing-by",
+          runtime.checkArgsInternal1("tables", "increasing-by",
             colname, runtime.String);
           return order(true, colname);
         }),
         'decreasing-by': runtime.makeMethod1(function(_, colname) {
           ffi.checkArity(2, arguments, "decreasing-by", true);
-          runtime.checkArgsInternal2("tables", "decreasing-by",
+          runtime.checkArgsInternal1("tables", "decreasing-by",
             colname, runtime.String);
           return order(false, colname);
         }),
@@ -341,7 +341,7 @@
         }),
         'order-by-columns': runtime.makeMethod1(function(_, specs) {
           ffi.checkArity(2, arguments, "order-by-columns", true);
-          runtime.checkArgsInternal2("tables", "order-by-columns",
+          runtime.checkArgsInternal1("tables", "order-by-columns",
             specs, runtime.List);
           var specsArray = ffi.toArray(specs);
           var asArrays = [];
@@ -435,7 +435,7 @@
 
         'column': runtime.makeMethod1(function(_, colname) {
           ffi.checkArity(2, arguments, "column", true);
-          runtime.checkArgsInternal2("tables", "column",
+          runtime.checkArgsInternal1("tables", "column",
             colname, runtime.String);
           var lookupName = "column:" + colname;
           if(!(lookupName in headerIndex)) {
@@ -580,7 +580,7 @@
 
         'filter': runtime.makeMethod1(function(_, pred) {
           ffi.checkArity(2, arguments, "filter", true);
-          runtime.checkArgsInternal2("tables", "filter",
+          runtime.checkArgsInternal1("tables", "filter",
             pred, runtime.Function);
           var wrappedPred = function(rawRow) {
             return pred.app(makeRow({ headerIndex: headerIndex }, rawRow));
@@ -605,7 +605,7 @@
         
         'get-column': runtime.makeMethod1(function(_, col_name) {
           ffi.checkArity(2, arguments, "get-column", true);
-          runtime.checkArgsInternal2("tables", "get-column",
+          runtime.checkArgsInternal1("tables", "get-column",
             col_name, runtime.String);
           if(!hasColumn(col_name)) {
             ffi.throwMessageException("The table does not have a column named `"+col_name+"`.");
@@ -615,7 +615,7 @@
 
         'select-columns': runtime.makeMethod1(function(_, colnames) {
           ffi.checkArity(2, arguments, "select-columns", true);
-          runtime.checkArgsInternal2("tables", "select-columns",
+          runtime.checkArgsInternal1("tables", "select-columns",
             colnames, runtime.List);
 
           var colnamesList = ffi.toArray(colnames);

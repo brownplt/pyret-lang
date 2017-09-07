@@ -253,7 +253,7 @@
     }
 
     var c = function(name, ...argsAndAnns) {
-      runtime.checkArgsInternal2("reactors", name, ...argsAndAnns);
+      runtime.checkArgsInternalInline("reactors", name, ...argsAndAnns);
     }
 
     function getValue(reactor) {
