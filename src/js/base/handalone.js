@@ -32,6 +32,13 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
+  if(program.runtimeOptions && program.runtimeOptions.disableAnnotationChecks) {
+    runtime.checkArgsInternal1 = function() {};
+    runtime.checkArgsInternal2 = function() {};
+    runtime.checkArgsInternal3 = function() {};
+    runtime._checkAnn = function() {};
+  }
+
   var postLoadHooks = {
     "builtin://srcloc": function(srcloc) {
       runtime.srcloc = runtime.getField(runtime.getField(srcloc, "provide-plus-types"), "values");

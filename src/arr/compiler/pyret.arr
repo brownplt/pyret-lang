@@ -76,7 +76,9 @@ fun main(args :: List<String>) -> Number block:
     "no-module-eval",
       C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
     "no-user-annotations",
-      C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank.")
+      C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank."),
+    "no-runtime-annotations",
+      C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank.")
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -110,6 +112,7 @@ fun main(args :: List<String>) -> Number block:
           end
       module-eval = not(r.has-key("no-module-eval"))
       user-annotations = not(r.has-key("no-user-annotations"))
+      runtime-annotations = not(r.has-key("no-runtime-annotations"))
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -149,7 +152,8 @@ fun main(args :: List<String>) -> Number block:
                 deps-file: r.get("deps-file").or-else(CS.default-compile-options.deps-file),
                 html-file: html-file,
                 module-eval: module-eval,
-                user-annotations: user-annotations
+                user-annotations: user-annotations,
+                runtime-annotations: runtime-annotations
               })
           success-code
         else if r.has-key("serve"):
