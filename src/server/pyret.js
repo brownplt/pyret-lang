@@ -77,6 +77,10 @@ const usages = [
         alias: 'q',
         description: "Don't show the progress indicator output like \"1/4 modules compiled\""
       },
+      {
+        name: 'perilous',
+        description: "Compromises error semantics for speed. Currently, elides most annotation checks in compiled code and in libraries. Fine-grained control is intentionally not provided since the specifics of how this works may change, but in general it will do less error checking in exchange for faster execution."
+      },
       /*
       {
         name: 'no-check-mode',
@@ -184,7 +188,8 @@ const optionDefinitions = [
   { name: 'no-check-mode', alias: 'k', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" },
-  { name: 'deps-file', type: String, group: "pyret-options" }
+  { name: 'deps-file', type: String, group: "pyret-options" },
+  { name: 'perilous', type: Boolean, group: "pyret-options" }
 
 ];
 

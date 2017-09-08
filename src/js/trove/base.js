@@ -13,6 +13,7 @@
     { "import-type": "builtin", name: "sets" },
     { "import-type": "builtin", name: "contracts" },
     { "import-type": "builtin", name: "srcloc" },
+    { "import-type": "builtin", name: "string-dict" },
     { "import-type": "builtin", name: "render-error-display" },
     { "import-type": "builtin", name: "checker" },
     { "import-type": "builtin", name: "ffi" },

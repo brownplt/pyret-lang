@@ -35,7 +35,8 @@ fun compile(options):
       display-progress: options.get("display-progress").or-else(true),
       log: options.get("log").or-else(compile-opts.log),
       log-error: options.get("log-error").or-else(compile-opts.log-error),
-      deps-file: options.get("deps-file").or-else(compile-opts.deps-file)
+      deps-file: options.get("deps-file").or-else(compile-opts.deps-file),
+      user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations)
     })
 end
 
@@ -77,9 +78,16 @@ fun serve(port, pyret-dir):
     with-logger = opts.set("log", log)
     with-error = with-logger.set("log-error", err)
     with-pyret-dir = with-error.set("this-pyret-dir", pyret-dir)
-    with-compiled-read-only-dirs = with-pyret-dir.set("compiled-read-only",
-        link(P.resolve(P.join(pyret-dir, "compiled")), empty)
-      )
+    with-compiled-read-only-dirs =
+      if opts.has-key("perilous"):
+        with-pyret-dir.set("compiled-read-only",
+          link(P.resolve(P.join(pyret-dir, "lib-compiled")), empty)
+        ).set("user-annotations", false)
+      else:
+        with-pyret-dir.set("compiled-read-only",
+          link(P.resolve(P.join(pyret-dir, "compiled")), empty)
+        )
+      end
     with-require-config = with-compiled-read-only-dirs.set("require-config",
       with-compiled-read-only-dirs.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
     result = run-task(lam():

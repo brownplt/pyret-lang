@@ -32,7 +32,7 @@
   "scripts": {
     "install": "make phaseA-deps",
     "test": "make test-all",
-    "prepublish": "make phaseA"
+    "prepublish": "make phaseA libA"
   },
   "repository": {
     "type": "git",

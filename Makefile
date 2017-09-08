@@ -103,6 +103,20 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
+$(PHASEA)/base.jarr: $(PHASEA)/pyret.jarr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseA/base.jarr \
+                      --build-runnable src/arr/compiler/base.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseA/lib-compiled/ \
+                      --deps-file build/phaseA/bundled-node-compile-deps.js \
+                      -no-user-annotations \
+                      -no-check-mode $(EF) \
+                      --require-config src/scripts/standalone-configA.json
+
+.PHONY : libA
+libA : $(PHASEA)/base.jarr
+
 .PHONY : phaseB
 phaseB: $(PHASEB)/pyret.jarr
 
