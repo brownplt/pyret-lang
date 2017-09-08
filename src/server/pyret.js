@@ -79,7 +79,7 @@ const usages = [
       },
       {
         name: 'perilous',
-        description: "Compromises error semantics for speed. Currently, elides most annotation checks in compiled code and in libraries. Fine-grained control is intentionally not provided since the specifics of how this works may change, but in general it will do less error checking in exchange for faster execution."
+        description: "Compromises error semantics for speed. If the program has no errors, it will produce the same outputs and answers. Currently, this means eliding most annotation checks in compiled code and in libraries. Fine-grained control is intentionally not provided since the specifics of how this works may change, but in general it will do less error checking in exchange for faster execution, and not change the meaning of programs with no errors."
       },
       /*
       {
