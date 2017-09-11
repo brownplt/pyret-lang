@@ -843,9 +843,17 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
   # num-args = args.length()
 
+  argcount = compiled-args.length()
+
+  helper-name = if argcount <= 7:
+    "maybeMethodCall" + to-string(argcount)
+  else:
+    "maybeMethodCall"
+  end
+
   if J.is-j-id(compiled-obj):
     call = wrap-with-srcnode(l,
-      rt-method("maybeMethodCall",
+      rt-method(helper-name,
         cl-append([clist: compiled-obj,
             j-str(methname),
             compiler.get-loc(l)],
