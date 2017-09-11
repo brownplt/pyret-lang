@@ -15,6 +15,15 @@ PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 RELEASE_DIR      = build/release
 BUNDLED_DEPS     = build/bundled-node-deps.js
+# HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
+export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
+SHELL := /bin/bash
+
+
+showpath:
+	@echo my new PATH = $(PATH)
+	@echo `which browserify`
+
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
@@ -90,8 +99,6 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
-                      -allow-builtin-overrides \
-                      --builtin-js-dir build/phase0/trove \
                       --compiled-dir build/phaseA/compiled/ \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
@@ -125,7 +132,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 show-comp: build/show-compilation.jarr
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	node_modules/.bin/browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
@@ -142,7 +149,7 @@ EXTRA_FLAGS = -no-check-mode
 endif
 
 %.v.jarr: $(PHASEA)/pyret.jarr %.arr
-	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.v.jarr \
                       --build-runnable $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
@@ -341,8 +348,9 @@ test-clean:
 	$(call RMDIR, tests/compiled)
 
 # Written this way because cmd.exe complains about && in command lines
-new-bootstrap: no-diff-standalone
+new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 	cp $(PHASEC)/pyret.jarr $(PYRET_COMP0)
+	cp -r $(PHASEC)/js $(PHASE0)/
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
 

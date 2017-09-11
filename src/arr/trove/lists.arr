@@ -91,10 +91,6 @@ data List<a>:
       self
     end,
 
-    method _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String: "[list: ]" end,
-
-    method _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String: "[list: ]" end,
-
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
@@ -191,22 +187,6 @@ data List<a>:
     method reverse(self :: List<a>) -> List<a>:
       doc: "Returns a new list containing the same elements as this list, in reverse order"
       reverse-help(self, empty)
-    end,
-
-    method _tostring(self :: List<a>, shadow tostring :: (Any -> String)) -> String:
-      "[list: " +
-        for fold(combined from tostring(self.first), elt from self.rest):
-          combined + ", " + tostring(elt)
-        end
-      + "]"
-    end,
-
-    method _torepr(self :: List<a>, shadow torepr :: (Any -> String)) -> String:
-      "[list: " +
-        for fold(combined from torepr(self.first), elt from self.rest):
-          combined + ", " + torepr(elt)
-        end
-      + "]"
     end,
 
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
@@ -905,6 +885,30 @@ fun distinct(l :: List) -> List:
         | Equal => distinct(rest)
       end
   end
+end
+
+fun take-while<A>(pred :: (A -> Boolean), lst :: List<A>) -> {List<A>; List<A>}:
+  doc: "Splits a list into two pieces, at the first element that fails the given predicate"
+  var tail = empty
+  fun help(l):
+    cases(List) l:
+      | empty => empty
+      | link(first, rest) =>
+        if pred(first) block:
+          link(first, help(rest))
+        else:
+          tail := l
+          empty
+        end
+    end
+  end
+  { help(lst); tail }
+where:
+  take-while(_ > 0, [list: 5, 3, 1, 0, 1, 2, 3]) is { [list: 5, 3, 1]; [list: 0, 1, 2, 3] }
+  take-while(_ > 0, empty) is { empty; empty }
+  take-while(_ > 0, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
+  take-while(_ > 0, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
+  take-while(_ == true, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
 end
 
 fun join-str(l :: List<String>, s :: String) -> String:

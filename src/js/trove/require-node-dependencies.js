@@ -17,18 +17,18 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
-fs = require("fs");
+fs = nodeRequire("fs");
 define("fs", [], function () { return fs; });
 
-path = require("path");
+path = nodeRequire("path");
 define("path", [], function () { return path; });
 
-http = require("http");
+http = nodeRequire("http");
 define("http", [], function () {return http;});
 
-lockfile = require("lockfile");
+lockfile = nodeRequire("lockfile");
 define("lockfile", [], function () { return lockfile; });
 
-websocket = require("websocket");
+websocket = nodeRequire("websocket");
 define("websocket", [], function () { return websocket });
 

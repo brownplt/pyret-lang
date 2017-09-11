@@ -10,8 +10,8 @@ check:
 end
 
 check:
-  string-substring("abc", 1.5, 3) raises "start"
-  string-substring("abc", 1, 1.5) raises "end"
+  string-substring("abc", 1.5, 3) raises "NumInteger"
+  string-substring("abc", 1, 1.5) raises "NumInteger"
 end
 
 check:

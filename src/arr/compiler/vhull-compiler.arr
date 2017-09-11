@@ -814,9 +814,15 @@ compiler-visitor = {
     compiled-args = CL.map_list(lam(a): a.visit(self).exp end, args)
     ans = self.cur-ans
 
+    helper-name = if argcount <= 7:
+      "maybeMethodCall" + to-string(argcount)
+    else:
+      "maybeMethodCall"
+    end
+
     if J.is-j-id(compiled-obj):
       call = wrap-with-srcnode(l,
-        rt-method("maybeMethodCall",
+        rt-method(helper-name,
           cl-append([clist: compiled-obj,
             j-str(meth),
             self.get-loc(l)],

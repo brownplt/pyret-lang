@@ -21,6 +21,9 @@ data Srcloc:
         | srcloc(_, _, _, _, _, _, _) => false
       end
     end,
+    method contains(self, other):
+      false
+    end,
     method is-builtin(self): true end
   | srcloc(
         source :: String,
@@ -103,6 +106,13 @@ data Srcloc:
       else:
         self
       end
+    end,
+    method contains(self, other):
+      is-srcloc(other)
+        and (self.start-line <= other.start-line)
+        and (self.start-char <= other.start-char)
+        and (self.end-line >= other.end-line)
+        and (self.end-char >= other.end-char)
     end,
     method is-builtin(self): false end
 sharing:

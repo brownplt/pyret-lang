@@ -105,7 +105,7 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("reference update expression", self.loc),
           [ED.para: ED.text("It was given a non-object value:")],
-           ED.embed(self.obj)]
+          ED.embed(self.obj)]
       else:
         [ED.error:
           ed-intro("reference update expression", self.loc, -1, true),
@@ -121,7 +121,7 @@ data RuntimeError:
       [ED.error:
         ed-simple-intro("reference update expression", self.loc),
         [ED.para: ED.text("It was given a non-object value:")],
-         ED.embed(self.obj)]
+        ED.embed(self.obj)]
     end
   | update-frozen-ref(loc, obj, objloc, field, fieldloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -131,7 +131,14 @@ data RuntimeError:
           ED.cmcode(self.loc),
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+            ED.highlight(ED.text("field"),
+              [ED.locs:
+                let l = self.fieldloc,
+                    n = string-length(self.field):
+                    S.srcloc(l.source,
+                      l.start-line, l.start-column, l.start-char,
+                      l.start-line, l.start-column + n, l.start-char + n)
+                end], 0),
             ED.text(" is frozen in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
@@ -152,7 +159,7 @@ data RuntimeError:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
           ED.text(" is frozen in the object:")],
-          ED.embed(self.obj)]
+        ED.embed(self.obj)]
     end
   | update-non-ref(loc, obj, objloc, field, fieldloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -162,17 +169,24 @@ data RuntimeError:
           ED.cmcode(self.loc),
           [ED.para:
             ED.text("This "),
-            ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+            ED.highlight(ED.text("field"),
+              [ED.locs:
+                let l = self.fieldloc,
+                    n = string-length(self.field):
+                    S.srcloc(l.source,
+                      l.start-line, l.start-column, l.start-char,
+                      l.start-line, l.start-column + n, l.start-char + n)
+                end], 0),
             ED.text(" is not a mutable reference in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
       else:
         [ED.error:
-        ed-simple-intro("reference update expression", self.loc),
-        [ED.para:
-          ED.text("The field "),
-          ED.code(ED.text(self.field)),
-          ED.text(" is not a mutable reference in the object:")],
+          ed-simple-intro("reference update expression", self.loc),
+          [ED.para:
+            ED.text("The field "),
+            ED.code(ED.text(self.field)),
+            ED.text(" is not a mutable reference in the object:")],
           ED.embed(self.obj)]
       end
     end,
@@ -183,7 +197,7 @@ data RuntimeError:
           ED.text("The field "),
           ED.code(ED.text(self.field)),
           ED.text(" is not a mutable reference in the object:")],
-          ED.embed(self.obj)]
+        ED.embed(self.obj)]
     end
   | update-non-existent-field(loc, obj, objloc, field, fieldloc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -201,7 +215,14 @@ data RuntimeError:
           ED.cmcode(self.loc),
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("field"), [ED.locs: self.fieldloc], 0),
+            ED.highlight(ED.text("field"),
+              [ED.locs:
+                let l = self.fieldloc,
+                    n = string-length(self.field):
+                    S.srcloc(l.source,
+                      l.start-line, l.start-column, l.start-char,
+                      l.start-line, l.start-column + n, l.start-char + n)
+                end], 0),
             ED.text(" does not exist in the "),
             ED.highlight(ED.text("object:"), [ED.locs: self.objloc], 1)],
           ED.embed(self.obj)]
@@ -235,13 +256,13 @@ data RuntimeError:
                 ED.text(" matched the value of the "),
                 ED.highlight(ED.text("argument"),[ED.locs: ast-cse.val.l],1),
                 ED.text(":")],
-               ED.embed(self.val)]
+              ED.embed(self.val)]
           | none =>
             [ED.error:
               ed-intro("cases expression", self.loc, 0, true),
               ED.cmcode(self.loc),
               [ED.para: ED.text("No branch matched the value of the argument:")],
-               ED.embed(self.val)]
+              ED.embed(self.val)]
         end
       end
     end,
@@ -318,7 +339,7 @@ data RuntimeError:
           [ED.para:
             ED.text("does not have a field named "),
             ED.code(ED.text(self.field))],
-           please-report-bug()]
+          please-report-bug()]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
@@ -334,10 +355,10 @@ data RuntimeError:
                 ED.highlight(ED.text("left side"),[ED.locs: ast.obj.l], 0),
                 ED.text(" was an object that did not have a "),
                 ED.highlight([ED.sequence: ED.text("field named "),
-                                           ED.code(ED.text(self.field))],
-                             [ED.locs: ast.field-loc()], 1),
+                    ED.code(ED.text(self.field))],
+                  [ED.locs: ast.field-loc()], 1),
                 ED.text(":")],
-               ED.embed(self.obj)]
+              ED.embed(self.obj)]
           | none =>
             [ED.error:
               ed-intro("field lookup expression", self.loc, -1, true),
@@ -346,7 +367,7 @@ data RuntimeError:
                 ED.text("The left side was an object that did not have a field named "),
                 ED.code(ED.text(self.field)),
                 ED.text(":")],
-               ED.embed(self.obj)]
+              ED.embed(self.obj)]
         end
       else:
         [ED.error:
@@ -355,7 +376,7 @@ data RuntimeError:
             ED.text("The left side was an object that did not have a field named "),
             ED.code(ED.text(self.field)),
             ED.text(":")],
-           ED.embed(self.obj)]
+          ED.embed(self.obj)]
       end
     end,
     method render-reason(self):
@@ -365,7 +386,31 @@ data RuntimeError:
           ED.text("The left side was an object that did not have a field named "),
           ED.code(ED.text(self.field)),
           ED.text(":")],
-         ED.embed(self.obj)]
+        ED.embed(self.obj)]
+    end
+  | constructor-syntax-non-constructor(expr-loc, constr-loc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.expr-loc.is-builtin() or not(src-available(self.expr-loc)):
+        [ED.error:
+          ed-simple-intro("construction expression", self.expr-loc),
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("The left side was not a construction maker.")]]
+      else:
+        [ED.error:
+          ed-intro("construction expression", self.expr-loc, -1, true),
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("The "),
+            ED.highlight(ED.text("left side"), [ED.locs: self.constr-loc], 0),
+            ED.text(" was not a construction maker.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        ed-simple-intro("construction expression", self.expr-loc),
+        [ED.para:
+          ED.text("The left side was not a construction maker.")]]
     end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -570,8 +615,8 @@ data RuntimeError:
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("failed because "),
-                ED.embed(self.desiredLength),
-                ED.ed-components(" are expected to be bound to values, but the binding was given a tuple containing "),
+                ED.ed-components(self.desiredLength),
+                ED.text(" are expected to be bound to values, but the binding was given a tuple containing "),
                 ED.ed-components(self.length),
                 ED.text(":")],
               ED.embed(self.tup)]
@@ -621,7 +666,7 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("field lookup", self.loc),
           [ED.para: ED.text("It was given a non-object value:")],
-           ED.embed(self.non-obj)]
+          ED.embed(self.non-obj)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
@@ -664,7 +709,7 @@ data RuntimeError:
         [ED.error:
           ed-simple-intro("object extension expression", self.loc),
           [ED.para: ED.text("It was given a non-object value:")],
-           ED.embed(self.non-obj)]
+          ED.embed(self.non-obj)]
       else if src-available(self.loc):
         cases(O.Option) maybe-ast(self.loc):
           | some(ast) =>
@@ -708,8 +753,8 @@ data RuntimeError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Expected"), ED.code(ED.text("true")), ED.text("or"), ED.code(ED.text("false")),
-          ED.text("for the test in the"), ED.text(self.typ), ED.text("expression at"),
+          ED.text("Expected "), ED.code(ED.text("true")), ED.text(" or "), ED.code(ED.text("false")),
+          ED.text(" for the test in the "), ED.text(self.typ), ED.text(" expression at "),
           draw-and-highlight(self.loc), ED.text(" but got:")],
         ED.embed(self.value)]
     end
@@ -728,51 +773,51 @@ data RuntimeError:
     end
   | generic-type-mismatch(val, typ :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-    [ED.error:
-      cases(O.Option) maybe-stack-loc(0, false):
-        | some(loc) =>
-          if loc.is-builtin():
+      [ED.error:
+        cases(O.Option) maybe-stack-loc(0, false):
+          | some(loc) =>
+            if loc.is-builtin():
+              [ED.sequence:
+                ed-simple-intro("expression", loc),
+                [ED.para:
+                  ED.text("It was expected to produce a "),
+                  ED.embed(self.typ),
+                  ED.text(", but it produced a non-"),
+                  ED.embed(self.typ),
+                  ED.text(" value:")],
+                ED.embed(self.val)]
+            else if src-available(loc):
+              [ED.sequence:
+                ed-intro("expression", loc, 0, true),
+                ED.cmcode(loc),
+                [ED.para:
+                  ED.text("It was expected to produce a "),
+                  ED.embed(self.typ),
+                  ED.text(", but it produced a non-"),
+                  ED.embed(self.typ),
+                  ED.text(" value:")],
+                ED.embed(self.val)]
+            else:
+              [ED.sequence:
+                ed-simple-intro("expression", loc),
+                [ED.para:
+                  ED.text("It was expected to produce a "),
+                  ED.embed(self.typ),
+                  ED.text(", but it produced a non-"),
+                  ED.embed(self.typ),
+                  ED.text(" value:")],
+                ED.embed(self.val)]
+            end
+          | none =>
             [ED.sequence:
-              ed-simple-intro("expression", loc),
               [ED.para:
-                ED.text("It was expected to produce a "),
+                ED.text("Evaluating an expression failed. It was expected to evaluate to a "),
                 ED.embed(self.typ),
-                ED.text(", but it produced a non-"),
+                ED.text(". It evaluated to the non-"),
                 ED.embed(self.typ),
                 ED.text(" value:")],
               ED.embed(self.val)]
-          else if src-available(loc):
-            [ED.sequence:
-              ed-intro("expression", loc, 0, true),
-              ED.cmcode(loc),
-              [ED.para:
-                ED.text("It was expected to produce a "),
-                ED.embed(self.typ),
-                ED.text(", but it produced a non-"),
-                ED.embed(self.typ),
-                ED.text(" value:")],
-              ED.embed(self.val)]
-          else:
-            [ED.sequence:
-              ed-simple-intro("expression", loc),
-              [ED.para:
-                ED.text("It was expected to produce a "),
-                ED.embed(self.typ),
-                ED.text(", but it produced a non-"),
-                ED.embed(self.typ),
-                ED.text(" value:")],
-              ED.embed(self.val)]
-          end
-        | none =>
-          [ED.sequence:
-            [ED.para:
-              ED.text("Evaluating an expression failed. It was expected to evaluate to a "),
-              ED.embed(self.typ),
-              ED.text(". It evaluated to the non-"),
-              ED.embed(self.typ),
-              ED.text(" value:")],
-            ED.embed(self.val)]
-      end]
+        end]
     end, 
     method render-reason(self):
       [ED.error:
@@ -824,9 +869,9 @@ data RuntimeError:
                     ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
-                       ED.text("The "),
-                       ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
-                       ED.text(" was:")],
+                      ED.text("The "),
+                      ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
+                      ED.text(" was:")],
                     ED.embed(self.val1),
                     [ED.para:
                       ED.text("The "),
@@ -865,30 +910,47 @@ data RuntimeError:
                     ED.text("two Numbers, or"),
                     ED.text("two Strings")]]]
             end
-        | none =>
-          [ED.sequence:
-            [ED.para:
-              ED.text("A " + self.opdesc + " ("),
-              ED.code(ED.text(self.opname)),
-              ED.text(") expression errored.")],
-            [ED.para:
-              ED.text("The left side was:")],
-            ED.embed(self.val1),
-            [ED.para:
-              ED.text("The right side was:")],
-            ED.embed(self.val2),
-            [ED.para:
-              ED.text("The " + self.opname + " operator expects to be given:"),
-              [ED.bulleted:
-                ED.text("two Numbers, or"),
-                ED.text("two Strings")]]]
-      end]
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("A " + self.opdesc + " ("),
+                ED.code(ED.text(self.opname)),
+                ED.text(") expression errored.")],
+              [ED.para:
+                ED.text("The left side was:")],
+              ED.embed(self.val1),
+              [ED.para:
+                ED.text("The right side was:")],
+              ED.embed(self.val2),
+              [ED.para:
+                ED.text("The " + self.opname + " operator expects to be given:"),
+                [ED.bulleted:
+                  ED.text("two Numbers, or"),
+                  ED.text("two Strings")]]]
+        end]
     end,
     method render-reason(self):
       [ED.error: ED.maybe-stack-loc(0, false,
-        lam(loc):
+          lam(loc):
+            [ED.sequence:
+              ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
+              [ED.para:
+                ED.text("The left side was:")],
+              ED.embed(self.val1),
+              [ED.para:
+                ED.text("The right side was:")],
+              ED.embed(self.val2),
+              [ED.para:
+                ED.text("The " + self.opname + " operator expects to be given:"),
+                [ED.bulleted:
+                  ED.text("two Numbers, or"),
+                  ED.text("two Strings")]]]
+          end,
           [ED.sequence:
-            ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
+            [ED.para:
+              ED.text("A "),
+              ED.code(ED.text(self.opname)),
+              ED.text(" expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -899,24 +961,7 @@ data RuntimeError:
               ED.text("The " + self.opname + " operator expects to be given:"),
               [ED.bulleted:
                 ED.text("two Numbers, or"),
-                ED.text("two Strings")]]]
-        end,
-        [ED.sequence:
-          [ED.para:
-            ED.text("A "),
-            ED.code(ED.text(self.opname)),
-            ED.text(" expression errored.")],
-          [ED.para:
-            ED.text("The left side was:")],
-          ED.embed(self.val1),
-          [ED.para:
-            ED.text("The right side was:")],
-          ED.embed(self.val2),
-          [ED.para:
-            ED.text("The " + self.opname + " operator expects to be given:"),
-            [ED.bulleted:
-              ED.text("two Numbers, or"),
-              ED.text("two Strings")]]])]
+                ED.text("two Strings")]]])]
     end
   | numeric-binop-error(val1, val2, opname, opdesc, methodname) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -943,9 +988,9 @@ data RuntimeError:
                     ed-intro(self.opdesc + " (" + self.opname + ") expression", loc, -1, true),
                     ED.cmcode(loc),
                     [ED.para:
-                       ED.text("The "),
-                       ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
-                       ED.text(" was:")],
+                      ED.text("The "),
+                      ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
+                      ED.text(" was:")],
                     ED.embed(self.val1),
                     [ED.para:
                       ED.text("The "),
@@ -975,27 +1020,41 @@ data RuntimeError:
                 [ED.para:
                   ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
             end
-        | none =>
-          [ED.sequence:
-            [ED.para:
-              ED.text("A " + self.opdesc + " ("),
-              ED.code(ED.text(self.opname)),
-              ED.text(") expression errored.")],
-            [ED.para:
-              ED.text("The left side was:")],
-            ED.embed(self.val1),
-            [ED.para:
-              ED.text("The right side was:")],
-            ED.embed(self.val2),
-            [ED.para:
-              ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
-      end]
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("A " + self.opdesc + " ("),
+                ED.code(ED.text(self.opname)),
+                ED.text(") expression errored.")],
+              [ED.para:
+                ED.text("The left side was:")],
+              ED.embed(self.val1),
+              [ED.para:
+                ED.text("The right side was:")],
+              ED.embed(self.val2),
+              [ED.para:
+                ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
+        end]
     end,
     method render-reason(self):
       [ED.error: ED.maybe-stack-loc(0, false,
-        lam(loc):
+          lam(loc):
+            [ED.sequence:
+              ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
+              [ED.para:
+                ED.text("The left side was:")],
+              ED.embed(self.val1),
+              [ED.para:
+                ED.text("The right side was:")],
+              ED.embed(self.val2),
+              [ED.para:
+                ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
+          end,
           [ED.sequence:
-            ed-simple-intro(self.opdesc + " (" + self.opname + ") expression", loc),
+            [ED.para:
+              ED.text("A "),
+              ED.code(ED.text(self.opname)),
+              ED.text(" expression errored.")],
             [ED.para:
               ED.text("The left side was:")],
             ED.embed(self.val1),
@@ -1003,82 +1062,221 @@ data RuntimeError:
               ED.text("The right side was:")],
             ED.embed(self.val2),
             [ED.para:
-              ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
-        end,
-        [ED.sequence:
-          [ED.para:
-            ED.text("A "),
-            ED.code(ED.text(self.opname)),
-            ED.text(" expression errored.")],
-          [ED.para:
-            ED.text("The left side was:")],
-          ED.embed(self.val1),
-          [ED.para:
-            ED.text("The right side was:")],
-          ED.embed(self.val2),
-          [ED.para:
-            ED.text("The " + self.opname + " operator expects to be given two Numbers.")]])]
+              ED.text("The " + self.opname + " operator expects to be given two Numbers.")]])]
     end
-  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc) with:
+  | cases-singleton-mismatch(branch-loc, should-be-singleton :: Boolean, cases-loc, constructor-loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.branch-loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("A cases branch in "),
-            ED.loc(self.branch-loc),
-            if self.should-be-singleton:
-              ED.text("errored. The branch has an argument list but the corresponding variant is a singleton.")
-            else:
-              ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
-            end]]
-      else if src-available(self.branch-loc):
-        cases(O.Option) maybe-ast(self.cases-loc):
-          | some(ast) =>
-            branch = ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
-            [ED.error:
-              [ED.para:
-                ED.text("Matching the pattern of this "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
-                ED.text(" errored:")],
-              ED.cmcode(self.branch-loc),
-              if self.should-be-singleton:
-                [ED.para:
-                  ED.text("The "),
-                  ED.highlight(ED.text("branch"), [ED.locs: self.branch-loc], -1),
-                  ED.text(" has an "),
-                  ED.highlight(ED.text("argument list"), branch.args.map(_.l), 0),
-                  ED.text(" but the corresponding variant is a singleton.")]
-              else:
-                [ED.para:
-                  ED.text("The branch doesn't have an argument list in its "),
-                  ED.highlight(ED.text("pattern"), [ED.locs: branch.pat-loc], 0),
-                  ED.text(", but the corresponding variant is not a singleton.")]
-              end]
-          | none      =>
-            [ED.error:
-              [ED.para:
-                ED.text("Matching a patten of this "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], 0),
-                ED.text(" errored.")],
-              if self.should-be-singleton:
-                [ED.para:
-                  ED.text("The branch has an argument list but the corresponding variant is a singleton.")]
-              else:
-                [ED.para:
-                  ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")]
-              end]
+      fun locs-from-cases-ast(ast) block:
+        cases(Any) ast:
+          | s-cases-branch(_, pat-loc, name, args, _) =>
+            {pat-loc; args.map(_.l)}
+          | s-singleton-cases-branch(_, pat-loc, name, _) =>
+            {pat-loc; nothing}
         end
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("The cases branch at "),
-            ED.loc(self.branch-loc),
-            if self.should-be-singleton:
-              ED.text("errored. The branch has an argument list but the corresponding variant is a singleton.")
-            else:
-              ED.text("The branch doesn't have an argument list in its pattern, but the corresponding variant is not a singleton.")
-            end]]
       end
+
+      fun maybe-first(l):
+        cases(Any) l:
+          | link(first, rest) => O.some(first)
+          | empty => O.none
+        end
+      end
+
+      fun locs-from-constructor-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-variant(l, constr-loc, _, members, _) =>
+            {members.map(_.l); constr-loc}
+          | s-singleton-variant(l, name, with-members) =>
+            # We really need a `constr-loc` equivalent for `s-singleton-variant`.
+            {nothing;
+              maybe-first(with-members)
+                .and-then(_.l)
+                .and-then(l.upto)
+                .or-else(l)}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.branch-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-cases-ast)
+
+      destructured-definition =
+        (O.some(self.constructor-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-constructor-ast)
+
+      constructor-loc =
+        destructured-definition
+          .and-then({(v) block:
+            v.{1}})
+          .or-else(self.constructor-loc)
+
+      fun pattern-prose(pattern, bindings):
+        [ED.para:
+          ED.text("The "),
+          pattern,
+          ED.text(" has "),
+          bindings,
+          ED.text(".")]
+      end
+
+      fun observation-prose(pattern, bindings, variant, members):
+        if self.should-be-singleton:
+          if src-available(constructor-loc):
+            [ED.sequence:
+              [ED.para:
+                ED.text("The "),
+                pattern,
+                ED.text(" has a "),
+                bindings,
+                ED.text(", but refers to a "),
+                variant,
+                ED.text(" that is a singleton:")],
+              ED.cmcode(constructor-loc)]
+          else:
+            [ED.para:
+              ED.text("The "),
+              pattern,
+              ED.text(" has a "),
+              bindings,
+              ED.text(", but refers to a "),
+              variant,
+              ED.text(" that is a singleton.")]
+          end
+        else:
+          if src-available(constructor-loc):
+            [ED.sequence:
+              [ED.para:
+                ED.text("The "),
+                pattern,
+                ED.text(" has no binding list, but refers to a "),
+                variant,
+                ED.text(" that has a "),
+                members,
+                ED.text(":")],
+              ED.cmcode(constructor-loc)]
+          else:
+            [ED.para:
+              ED.text("The "),
+              pattern,
+              ED.text(" has no binding list, but refers to a "),
+              variant,
+              ED.text(" that has a "),
+              members,
+              ED.text(".")]
+          end
+        end
+      end
+
+      fun explanation-prose(pattern, variant):
+        [ED.para:
+          ED.text("A "),
+          pattern,
+          ED.text(" must match the "),
+          variant,
+          ED.text(" that it refers to.")]
+      end
+
+      bindings = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            if is-nothing(binds):
+              {(w): w }
+            else:
+              ED.highlight(_, binds, 3)
+            end
+          end)
+        .or-else({(v): v })
+
+      pattern = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            ED.highlight(_, [ED.locs: pat-loc],
+              if self.should-be-singleton:
+                -1
+              else:
+                1
+              end)
+          end)
+        .or-else({(v): v })
+
+      fields = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            if is-nothing(params):
+              {(w): w }
+            else:
+              ED.highlight(_, params, 4)
+            end
+          end)
+        .or-else({(v): v })
+
+      variant = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(ED.text("variant"), [ED.locs: def-loc],
+              if self.should-be-singleton:
+                5
+              else:
+                -5
+              end)
+          end)
+        .or-else(ED.text("variant"))
+
+      [ED.error:
+        destructured-pattern
+          .and-then(
+            lam(v):
+              {pat-loc; binds} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("Matching this "),
+                  pattern(ED.text("cases branch pattern")),
+                  ED.text(" errored:")],
+                ED.cmcode(pat-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("Matching a cases branch pattern errored.")]),
+        observation-prose(
+          pattern(ED.text("branch")),
+          bindings(ED.text("binding list")),
+          variant,
+          fields(ED.text("fields list"))),
+        explanation-prose(
+          pattern(ED.text("cases branch pattern")),
+          variant)]
     end,
     method render-reason(self):
       if self.branch-loc.is-builtin():
@@ -1104,93 +1302,168 @@ data RuntimeError:
             end]]
       end
     end
-  | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc) with:
+  | cases-arity-mismatch(branch-loc, num-args, actual-arity, cases-loc, constructor-loc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      if self.branch-loc.is-builtin():
-        [ED.error:
-          [ED.para:
-            ED.text("Matching a cases branch in "),
-            ED.loc(self.cases-loc),
-            ED.text(" errored because of a problem with the branch pattern in "),
-            ED.loc(self.branch-loc),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The cases pattern had "),
-            ED.ed-field-bindings(self.num-args),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The corresponding variant of the datatype had "),
-            ED.ed-fields(self.actual-arity)],
-          [ED.para:
-            ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
-      else if src-available(self.branch-loc):
-        cases(O.Option) maybe-ast(self.cases-loc):
-          | some(cases-ast) =>
-            branch = cases-ast.branches.find(lam(b): b.l.start-line == self.branch-loc.start-line end).value
-            [ED.error:
-              [ED.para:
-                ED.text("Matching the "),
-                ED.highlight(ED.text("pattern"), [ED.locs: branch.pat-loc], 0),
-                ED.text(" of this "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
-                ED.text(" errored.")],
-              ED.cmcode(branch.pat-loc),
-              [ED.para:
-                ED.text("The cases pattern had "),
-                cases(Any) branch:
-                  | s-cases-branch(_, pat-loc, name, args, _) =>
-                    args-locs = if self.num-args == 0:
-                      name-len = string-length(name)
-                      [ED.locs: S.srcloc(pat-loc.source,
-                          pat-loc.start-line, pat-loc.start-column + name-len, pat-loc.start-char + name-len,
-                          pat-loc.end-line, pat-loc.end-column, pat-loc.end-char)]
-                    else:
-                      args.map(_.l)
-                    end
-                    ED.highlight(ED.ed-field-bindings(self.num-args),args-locs, 1)
-                  | s-singleton-cases-branch(_, _, _, _) => ED.ed-field-bindings(self.num-args)
-                end,
-                ED.text(".")],
-              [ED.para:
-                ED.text("The corresponding variant is declared with "),
-                ED.ed-fields(self.actual-arity)],
-              [ED.para:
-                ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
-          | none      =>
-            [ED.error:
-              [ED.para:
-                ED.text("Matching the pattern of a "),
-                ED.highlight(ED.text("cases branch"), [ED.locs: self.branch-loc], -1),
-                ED.text(" errored.")],
-              ED.cmcode(self.pat-loc),
-              [ED.para:
-                ED.text("The cases pattern had "),
-                ED.ed-field-bindings(self.num-args),
-                ED.text(".")],
-              [ED.para:
-                ED.text("The corresponding variant is declared with "),
-                ED.ed-fields(self.actual-arity)],
-              [ED.para:
-                ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
+      were-was = if self.num-args == 1: " was" else: " were" end
+
+      fun locs-from-cases-ast(ast) block:
+        fun adjust(fun-loc, args):
+          if self.num-args == 0:
+            [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+          else:
+            args
+          end
         end
-      else:
-        [ED.error:
-          [ED.para:
-            ED.text("Matching a cases branch in "),
-            ED.loc(self.cases-loc),
-            ED.text(" errored because of a problem with the branch pattern in "),
-            ED.loc(self.branch-loc),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The cases pattern had "),
-            ED.ed-field-bindings(self.num-args),
-            ED.text(".")],
-          [ED.para:
-            ED.text("The corresponding variant of the datatype had "),
-            ED.ed-fields(self.actual-arity)],
-          [ED.para:
-            ED.text("Patterns should have exactly the same number of field bindings as the corresponding variant has fields.")]]
+        cases(Any) ast:
+          | s-cases-branch(_, pat-loc, name, args, _) =>
+            {pat-loc; args.map(_.l)}
+        end
       end
+
+      fun locs-from-constructor-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-variant(l, constr-loc, _, members, _) =>
+            {members.map(_.l); constr-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.branch-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-cases-ast)
+
+      destructured-definition =
+        (O.some(self.constructor-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-constructor-ast)
+
+      fun pattern-prose(pattern, bindings):
+        [ED.para:
+          ED.text("The "),
+          pattern,
+          ED.text(" has "),
+          bindings,
+          ED.text(".")]
+      end
+
+      fun observation-prose(pattern, bindings, variant, members):
+        if src-available(self.constructor-loc):
+          [ED.sequence:
+            [ED.para:
+              ED.text("The "),
+              pattern,
+              ED.text(" has "),
+              bindings,
+              ED.text(", but refers to a "),
+              variant,
+              ED.text(" that has "),
+              members,
+              ED.text(":")],
+            ED.cmcode(self.constructor-loc)]
+        else:
+          [ED.para:
+            ED.text("The "),
+            pattern,
+            ED.text(" refers to a "),
+            variant,
+            ED.text(" that has "),
+            members,
+            ED.text(".")]
+        end
+      end
+
+      fun explanation-prose(pattern, parameters, bindings):
+        [ED.para:
+          ED.text("A "),
+          pattern,
+          ED.text(" expects the number of "),
+          parameters,
+          ED.text(" and "),
+          bindings,
+          ED.text(" to be the same.")]
+      end
+
+      bindings = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            ED.highlight(_, binds, 3)
+          end)
+        .or-else({(v): v })
+
+      pattern = destructured-pattern
+        .and-then(
+          lam(v):
+            {pat-loc; binds} = v
+            ED.highlight(_, [ED.locs: pat-loc], -1)
+          end)
+        .or-else({(v): v })
+
+      fields = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(_, params, 4)
+          end)
+        .or-else({(v): v })
+
+      variant = destructured-definition
+        .and-then(
+          lam(v):
+            ED.highlight(ED.text("variant"), [ED.locs: self.constructor-loc], -5)
+          end)
+        .or-else(ED.text("variant"))
+
+      [ED.error:
+        destructured-pattern
+          .and-then(
+            lam(v):
+              {pat-loc; binds} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("Matching this "),
+                  pattern(ED.text("cases branch pattern")),
+                  ED.text(" errored:")],
+                ED.cmcode(pat-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("Matching a cases branch pattern errored.")]),
+        observation-prose(
+          pattern(ED.text("branch")),
+          bindings(ED.ed-bindings(self.num-args)),
+          variant,
+          fields(ED.ed-fields(self.actual-arity))),
+        explanation-prose(
+          pattern(ED.text("cases branch pattern")),
+          fields(ED.text("fields")),
+          bindings(ED.text("bindings")))]
     end,
     method render-reason(self):
       [ED.error:
@@ -1214,134 +1487,197 @@ data RuntimeError:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       fun-app-arity = self.fun-app-args.length()
       were-was = if fun-app-arity == 1: " was" else: " were" end
-      helper =
-        lam(rest):
-          [ED.error: 
-            cases(O.Option) maybe-stack-loc(0, true):
-              | some(fun-app-loc) =>
-                if fun-app-loc.is-builtin():
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("Evaluating the function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                    [ED.para:
-                      ED.ed-args(fun-app-arity),
-                      ED.text(were-was + " passed to the left side.")],
-                    rest(ED.text("left side"))]
-                else if src-available(fun-app-loc):
-                  cases(O.Option) maybe-ast(fun-app-loc):
-                    | some(ast) =>
-                      applicant = ED.highlight(ED.text("left side"), [ED.locs: ast._fun.l], 0)
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), ast.args.map(_.l),1),
-                          ED.text(were-was + " passed to the "),
-                          applicant,
-                          ED.text(".")],
-                        rest(applicant)]
-                    | none      =>
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.ed-args(fun-app-arity),
-                          ED.text(were-was + " passed to the left side.")],
-                        rest(ED.text("applicant"))]
-                  end
-                else:
-                  [ED.sequence:
-                    ed-simple-intro("function application expression", fun-app-loc), 
-                    [ED.para:
-                      ED.text("The applicant had "),
-                      ED.ed-args(fun-app-arity),
-                      ED.text(" passed to it.")],
-                      rest(ED.text("left side"))]
-                end
-            | none =>
-              [ED.sequence:
-                [ED.para:
-                  ED.text("A function application expression failed.")],
-                [ED.para:
-                  ED.text("The applicant had "),
-                  ED.ed-args(fun-app-arity),
-                  ED.text(" passed to it.")],
-                  rest(ED.text("left side"))]
-            end]
+
+      fun locs-from-application-ast(ast) block:
+        fun adjust(fun-loc, args):
+          if fun-app-arity == 0:
+            [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+          else:
+            args
           end
-        
-        if src-available(self.fun-def-loc):
-          fun is-underscore(arg):
-            cases(Any) arg:
-              | s-id(_, id) => 
-                cases(Any) id:
-                  | s-underscore(_) => true
-                  | else            => false
-                end
-              | else                => false
+        end
+        cases(Any) ast:
+          | s-app(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
+          | s-dot(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
+          # TODO: `s-for` is distinct enough that it probably requires specialized wording.
+          | s-for(l, _fun, args, _, b, _) => {l; _fun.l; adjust(_fun.l, [ED.locs: b.l] + args.map(_.l))}
+          | s-op(l,_,_,l-op,r-op)         => {l; r-op.l; [ED.locs: l-op.l]}
+          | else  => block:
+            # This _really_ should not happen.
+            {ast.l; ast.l; [ED.locs: ast.l]}
             end
-          end
-          cases(O.Option) maybe-ast(self.fun-def-loc):
-            | some(ast) =>
-              {args; fun-def-snippet-loc} = cases(Any) ast:
-                | s-op(_,_,_,l,r) =>
-                  l-underscore = is-underscore(l)
-                  r-underscore = is-underscore(r)
-                  {raw-array-to-list(
-                    if l-underscore and r-underscore:
-                      [raw-array: l.id.l, r.id.l]
-                    else if l-underscore:
-                      [raw-array: l.id.l]
-                    else if r-underscore:
-                      [raw-array: r.id.l]
-                    else:
-                      [raw-array:]
-                    end); self.fun-def-loc}
-                | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-                | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
-                | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
-                | s-update(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
-                | s-get-bang(_, obj, _) => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+        end
+      end
+
+      fun locs-from-definition-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-variant(l, constr-loc, _, members, _) =>
+            {members.map(_.l); constr-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
               end
-              helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" was a constructor accepting "),
-                    ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
-                    ED.text(":")],
-                  ED.cmcode(fun-def-snippet-loc)]
-              end)
-            | none      =>
-              helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" was a constructor defined accepting "),
-                    ED.ed-args(self.fun-def-arity),
-                    ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
-              end)
           end
-        else:
-          helper(lam(applicant):
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      application-loc =
+        maybe-stack-loc(0, false)
+
+      definition-contained =
+        application-loc
+          .and-then(_.contains(self.fun-def-loc))
+          .or-else(false)
+
+      destructured-application =
+        (application-loc ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-application-ast)
+
+      destructured-definition =
+        (O.some(self.fun-def-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-definition-ast)
+
+      fun operator-prose(arguments, operator):
+        [ED.para:
+          arguments,
+          ED.text(were-was + " passed to the "),
+          operator,
+          ED.text(".")]
+      end
+
+      fun definition-prose(operator, defined, parameters, show-definition):
+        if show-definition:
+          [ED.sequence:
             [ED.para:
               ED.text("The "),
-              applicant,
-              ED.text(" was a constructor defined in "),
-              ED.loc(self.fun-def-loc),
-              ED.text(" accepting "),
-              ED.ed-args(self.fun-def-arity),
-              ED.text(".")]
-          end)
+              operator,
+              ED.text(" evaluated to a constructor "),
+              defined,
+              ED.text(" to accept "),
+              parameters,
+              ED.text(":")],
+            ED.cmcode(self.fun-def-loc)]
+        else if src-available(self.fun-def-loc):
+          [ED.para:
+            ED.text("The "),
+            operator,
+            ED.text(" evaluated to a constructor "),
+            defined,
+            ED.text(" to accept "),
+            parameters,
+            ED.text(".")]
+        else:
+          [ED.para:
+            ED.text("The "),
+            operator,
+            ED.text(" evaluated to a constructor accepting "),
+            parameters,
+            ED.text(".")]
         end
+      end
+
+      fun explanation-prose(application-expression, parameters, arguments):
+        [ED.para:
+          ED.text("An "),
+          application-expression,
+          ED.text(" expects the number of "),
+          parameters,
+          ED.text(" and "),
+          arguments,
+          ED.text(" to be the same.")]
+      end
+
+      arguments = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(_, args, 3)
+          end)
+        .or-else({(v): v })
+
+      application-expression = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(ED.text("application expression"), [ED.locs: app-loc], -1)
+          end)
+        .or-else(ED.text("application"))
+
+      operator = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(ED.text("operator"), [ED.locs: op-loc],
+              if definition-contained:
+                -2
+              else:
+                2
+              end)
+          end)
+        .or-else(ED.text("operator"))
+
+      parameters = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(_, params, 4)
+          end)
+        .or-else({(v): v })
+
+      defined = destructured-definition
+        .and-then(
+          lam(v):
+            ED.highlight(ED.text("defined"), [ED.locs: self.fun-def-loc], -5)
+          end)
+        .or-else(ED.text("defined"))
+
+      [ED.error:
+        destructured-application
+          .and-then(
+            lam(v):
+              {app-loc; op-loc; args} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("This "),
+                  application-expression,
+                  ED.text(" errored:")],
+                ED.cmcode(app-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("An application errored.")]),
+        operator-prose(arguments(ED.ed-args(fun-app-arity)), operator),
+        definition-prose(
+          operator,
+          defined,
+          parameters(ED.ed-params(self.fun-def-arity)),
+          not(definition-contained) and src-available(self.fun-def-loc)),
+        explanation-prose(application-expression,
+          parameters(ED.text("parameters")),
+          arguments(ED.text("arguments")))]
     end,
     method render-reason(self):
       num-args = self.fun-app-args.length()
@@ -1349,12 +1685,12 @@ data RuntimeError:
       arg-str = if num-args == 1: " argument:" else: " arguments:" end
       exp-arg-str = if self.fun-def-arity == 1: " argument" else: " arguments" end
       
-      ED.maybe-stack-loc(
-        if self.fun-def-loc.is-builtin():
+      ED.maybe-stack-loc(0
+        #|if self.fun-def-loc.is-builtin():
           0
         else:
           1
-        end, false,
+        end|#, false,
         lam(caller-loc):
           if self.fun-def-loc.is-builtin():
             [ED.error:
@@ -1379,158 +1715,225 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
-  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args) with:
+  | arity-mismatch(fun-def-loc, fun-def-arity, fun-app-args, is-method) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       fun-app-arity = self.fun-app-args.length()
       were-was = if fun-app-arity == 1: " was" else: " were" end
-      helper =
-        lam(rest):
-          [ED.error: 
-            cases(O.Option) maybe-stack-loc(
-              if self.fun-def-loc.is-builtin(): 
-                0 
-              else: 
-                1 
-              end, false):
-              | some(fun-app-loc) =>
-                if fun-app-loc.is-builtin():
-                  [ED.sequence:
-                    [ED.para:
-                      ED.text("Evaluating the function application in "),
-                      ED.loc(fun-app-loc),
-                      ED.text(" errored.  expected the applicant to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
-                    [ED.para:
-                      ED.ed-args(fun-app-arity),
-                      ED.text(were-was + " passed to the left side.")],
-                    rest(ED.text("left side"))]
-                else if src-available(fun-app-loc):
-                  cases(O.Option) maybe-ast(fun-app-loc):
-                    | some(ast) =>
-                      fun-loc = cases(Any) ast:
-                        | s-app(_, _fun, _) => _fun.l
-                        | s-for(_, _fun, _, _, _, _) => _fun.l
-                        | else  => ast.l
-                      end
-                      args = cases(Any) ast:
-                        | s-app(_, _, args) => args
-                        | s-for(_, _, args, _, _, _) => args
-                        | else  => [ED.locs: ast.l]
-                      end
-                      args-locs = if fun-app-arity == 0:
-                        [ED.locs: fun-loc.at-end().upto-end(ast.l)]
-                      else:
-                        args.map(_.l)
-                      end
-                      applicant = ED.highlight(ED.text("left side"), [ED.locs: fun-loc], 0)
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.highlight(ED.ed-args(fun-app-arity), args-locs, 1),
-                          ED.text(were-was + " passed to the "),
-                          applicant,
-                          ED.text(".")],
-                        rest(applicant)]
-                    | none      =>
-                      [ED.sequence:
-                        ed-intro("function application expression", fun-app-loc, -1, true),
-                        ED.cmcode(fun-app-loc),
-                        [ED.para:
-                          ED.ed-args(fun-app-arity),
-                          ED.text(were-was + " passed to the left side.")],
-                        rest(ED.text("applicant"))]
-                  end
-                else:
-                  [ED.sequence:
-                    ed-simple-intro("function application expression", fun-app-loc), 
-                    [ED.para:
-                      ED.text("The applicant had "),
-                      ED.ed-args(fun-app-arity),
-                      ED.text(" passed to it.")],
-                      rest(ED.text("left side"))]
-                end
-            | none =>
-              [ED.sequence:
-                [ED.para:
-                  ED.text("A function application expression failed.")],
-                [ED.para:
-                  ED.text("The applicant had "),
-                  ED.ed-args(fun-app-arity),
-                  ED.text(" passed to it.")],
-                  rest(ED.text("left side"))]
-            end]
+      function-or-method = if self.is-method: "method" else: "function" end
+
+      fun locs-from-application-ast(ast) block:
+        fun adjust(fun-loc, args):
+          if fun-app-arity == 0:
+            [ED.locs: fun-loc.at-end().upto-end(ast.l)]
+          else:
+            args
           end
-        
-        if src-available(self.fun-def-loc):
-          fun is-underscore(arg):
-            cases(Any) arg:
-              | s-id(_, id) => 
-                cases(Any) id:
-                  | s-underscore(_) => true
-                  | else            => false
-                end
-              | else                => false
+        end
+        cases(Any) ast:
+          | s-app(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
+          | s-dot(l, _fun, args)          => {l; _fun.l; adjust(_fun.l, args.map(_.l))}
+          # TODO: `s-for` is distinct enough that it probably requires specialized wording.
+          | s-for(l, _fun, args, _, b, _) => {l; _fun.l; adjust(_fun.l, [ED.locs: b.l] + args.map(_.l))}
+          | s-op(l,_,_,l-op,r-op)         => {l; r-op.l; [ED.locs: l-op.l]}
+          | else  => block:
+            # This _really_ should not happen.
+            {ast.l; ast.l; [ED.locs: ast.l]}
             end
-          end
-          cases(O.Option) maybe-ast(self.fun-def-loc):
-            | some(ast) =>
-              {args; fun-def-snippet-loc} = cases(Any) ast:
-                | s-op(_,_,_,l,r) =>
-                  l-underscore = is-underscore(l)
-                  r-underscore = is-underscore(r)
-                  {raw-array-to-list(
-                    if l-underscore and r-underscore:
-                      [raw-array: l.id.l, r.id.l]
-                    else if l-underscore:
-                      [raw-array: l.id.l]
-                    else if r-underscore:
-                      [raw-array: r.id.l]
-                    else:
-                      [raw-array:]
-                    end); self.fun-def-loc}
-                | s-app(_,_,args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
-                | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-method(l, _, _, args, _, _, b, _, _) => {args.map(_.l); l.upto(b.l)}
-                | s-dot(_, obj, _)      => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
-                | s-extend(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
-                | s-update(_, obj, _)   => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
-                | s-get-bang(_, obj, _) => {raw-array-to-list([raw-array: obj.id.l]); self.fun-def-loc}
+        end
+      end
+
+      fun is-underscore(arg):
+        cases(Any) arg:
+          | s-id(_, id) => 
+            cases(Any) id:
+              | s-underscore(_) => true
+              | else            => false
+            end
+          | else                => false
+        end
+      end
+
+      fun locs-from-definition-ast(ast):
+        # TODO: something clever for definitions with zero parameters
+        cases(Any) ast:
+          | s-op(_,_,_,l,r) =>
+            {[ED.locs: l, r]
+              .filter(is-underscore)
+              .map(_.id.l);
+              self.fun-def-loc}
+          | s-app(_, _, args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
+          | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-lam(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-method(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-method-field(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
+          | s-dot(_, obj, _)      => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-extend(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-update(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-get-bang(_, obj, _) => {[ED.locs: obj.id.l]; self.fun-def-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
               end
-              helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" was a function accepting "),
-                    ED.highlight(ED.ed-args(self.fun-def-arity), args, 2),
-                    ED.text(":")],
-                  ED.cmcode(fun-def-snippet-loc)]
-              end)
-            | none      =>
-              helper(lam(applicant):
-                [ED.sequence:
-                  [ED.para:
-                    ED.text("The "),
-                    applicant,
-                    ED.text(" was a function defined accepting "),
-                    ED.ed-args(self.fun-def-arity),
-                    ED.text(":")],
-                  ED.cmcode(self.fun-def-loc)]
-              end)
           end
-        else:
-          helper(lam(applicant):
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      application-loc =
+        maybe-stack-loc(if self.fun-def-loc.is-builtin(): 0 else: 1 end, false)
+
+      definition-contained =
+        application-loc
+          .and-then(_.contains(self.fun-def-loc))
+          .or-else(false)
+
+      destructured-application =
+        (application-loc ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-application-ast)
+
+      destructured-definition =
+        (O.some(self.fun-def-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(locs-from-definition-ast)
+
+      fun operator-prose(arguments, operator):
+        [ED.para:
+          arguments,
+          ED.text(were-was + " passed to the "),
+          operator,
+          ED.text(".")]
+      end
+
+      fun definition-prose(operator, defined, parameters, show-definition):
+        if show-definition:
+          [ED.sequence:
             [ED.para:
               ED.text("The "),
-              applicant,
-              ED.text(" was a function defined in "),
-              ED.loc(self.fun-def-loc),
-              ED.text(" accepting "),
-              ED.ed-args(self.fun-def-arity),
-              ED.text(".")]
-          end)
+              operator,
+              ED.text(" evaluated to a " + function-or-method + " "),
+              defined,
+              ED.text(" to accept "),
+              parameters,
+              ED.text(":")],
+            ED.cmcode(self.fun-def-loc)]
+        else if src-available(self.fun-def-loc):
+          [ED.para:
+            ED.text("The "),
+            operator,
+            ED.text(" evaluated to a " + function-or-method + " "),
+            defined,
+            ED.text(" to accept "),
+            parameters,
+            ED.text(".")]
+        else:
+          [ED.para:
+            ED.text("The "),
+            operator,
+            ED.text(" evaluated to a " + function-or-method + " accepting "),
+            parameters,
+            ED.text(".")]
         end
+      end
+
+      fun explanation-prose(application-expression, parameters, arguments):
+        [ED.para:
+          ED.text("An "),
+          application-expression,
+          ED.text(" expects the number of "),
+          parameters,
+          ED.text(" and "),
+          arguments,
+          ED.text(" to be the same.")]
+      end
+
+      arguments = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(_, args, 3)
+          end)
+        .or-else({(v): v })
+
+      application-expression = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(ED.text("application expression"), [ED.locs: app-loc], -1)
+          end)
+        .or-else(ED.text("application"))
+
+      operator = destructured-application
+        .and-then(
+          lam(v):
+            {app-loc; op-loc; args} = v
+            ED.highlight(ED.text("operator"), [ED.locs: op-loc],
+              if definition-contained:
+                -2
+              else:
+                2
+              end)
+          end)
+        .or-else(ED.text("operator"))
+
+      parameters = destructured-definition
+        .and-then(
+          lam(v):
+            {params; def-loc} = v
+            ED.highlight(_, params, 4)
+          end)
+        .or-else({(v): v })
+
+      defined = destructured-definition
+        .and-then(
+          lam(v):
+            ED.highlight(ED.text("defined"), [ED.locs: self.fun-def-loc], -5)
+          end)
+        .or-else(ED.text("defined"))
+
+      [ED.error:
+        destructured-application
+          .and-then(
+            lam(v):
+              {app-loc; op-loc; args} = v
+              [ED.sequence:
+                [ED.para:
+                  ED.text("This "),
+                  application-expression,
+                  ED.text(" errored:")],
+                ED.cmcode(app-loc)]
+            end)
+          .or-else(
+            [ED.para:
+              ED.text("An application errored.")]),
+        operator-prose(arguments(ED.ed-args(fun-app-arity)), operator),
+        definition-prose(
+          operator,
+          defined,
+          parameters(ED.ed-params(self.fun-def-arity)),
+          not(definition-contained) and src-available(self.fun-def-loc)),
+        explanation-prose(application-expression,
+          parameters(ED.text("parameters")),
+          arguments(ED.text("arguments")))]
     end,
     method render-reason(self):
       num-args = self.fun-app-args.length()
@@ -1584,20 +1987,20 @@ data RuntimeError:
               [ED.para:
                 ED.text("The "),
                 ED.highlight(ED.text("left side"), [ED.locs: 
-                  cases(Any) ast:
-                    | s-app(_, _fun, _) => _fun.l
-                    | s-for(_, _fun, _, _, _, _) => _fun.l
-                    | else  => ast.l
-                  end], 0),
+                    cases(Any) ast:
+                      | s-app(_, _fun, _) => _fun.l
+                      | s-for(_, _fun, _, _, _, _) => _fun.l
+                      | else  => ast.l
+                    end], 0),
                 ED.text(" was not a function value:")],
-                ED.embed(self.non-fun-val)]
+              ED.embed(self.non-fun-val)]
           | none      =>
             [ED.error:
               ed-intro("function application expression", self.loc, 0, true),
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("The left side was not a function value:")],
-                ED.embed(self.non-fun-val)]
+              ED.embed(self.non-fun-val)]
         end
       else:
         [ED.error:
@@ -1621,13 +2024,13 @@ data RuntimeError:
             ED.code(ED.text(self.name)),
             ED.text(" is unbound in "),
             ED.loc(self.loc)],
-            please-report-bug()]
+          please-report-bug()]
       else if src-available(self.loc):
         [ED.error:
           [ED.para:
             ED.text("The "),
             ED.highlight(ED.text("identifier"), [ED.locs: self.loc], 0)],
-           ED.cmcode(self.loc),
+          ED.cmcode(self.loc),
           [ED.para:
             ED.text(" is unbound. Although it has been previously defined, it is being "),
             ED.highlight(ED.text("used"), [ED.locs: self.loc], 0),
@@ -1650,7 +2053,7 @@ data RuntimeError:
             ED.code(ED.text(self.name)),
             ED.text(" is unbound in "),
             ED.loc(self.loc)],
-            please-report-bug()]
+          please-report-bug()]
       else:
         [ED.error:
           [ED.para:
@@ -1781,8 +2184,8 @@ data RuntimeError:
               [ED.para: ED.embed(value1)],
               [ED.para: ED.embed(value2)],
               [ED.para: ED.text("Consider using the "),
-              ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
-
+                ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
+            
           end
           if num-is-roughnum(value1) and num-is-roughnum(value2):
             within-error("Attempted to compare two Roughnums for equality, which is not allowed:")
@@ -1798,7 +2201,174 @@ data RuntimeError:
             [ED.para: ED.embed(self.value2)]]
       end
     end
+  | column-not-found(operation-loc, column-name, column-loc, columns) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      fun destructure-ast(ast):
+        cases(Any) ast:
+          | s-table-extend(l, column-binds, extensions) =>
+            {"extend";  column-binds.table.l}
+          | s-table-update(l, column-binds, updates) =>
+            {"update";  column-binds.table.l}
+          | s-table-select(l, columns, table) =>
+            {"select";  table.l}
+          | s-table-order(l, table, ordering) =>
+            {"order"  ; table.l}
+          | s-table-filter(l, column-binds, predicate) =>
+            {"sieve"  ; column-binds.table.l}
+          | s-table-extract(l, column, table) =>
+            {"extract"; table.l}
+          | else => {""; self.operation-loc}
+        end
+      end
 
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.operation-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(destructure-ast)
+
+      table-text =
+        destructured-pattern
+          .and-then({(v): ED.highlight(_, [ED.locs: v.{1}], 0)})
+          .or-else({(v): v})
+
+      column-text =
+        if src-available(self.column-loc):
+          ED.highlight(_, [ED.locs: self.column-loc], 1)
+        else:
+          {(v):v}
+        end
+
+      [ED.error:
+        destructured-pattern
+          .and-then({(v):
+            [ED.sequence:
+              ed-intro("table " + v.{0} + " expression", self.operation-loc, -1, true),
+              ED.cmcode(self.operation-loc)]})
+          .or-else(ed-simple-intro("table operation", self.operation-loc)),
+        [ED.para:
+          ED.text("The "),
+          table-text(ED.text("table")),
+          ED.text(" did not have a column named "),
+          column-text(ED.code(ED.text(self.column-name))),
+          ED.text("; it only had columns named:")],
+         ED.bulleted-sequence(self.columns.map(ED.text).map(ED.code))]
+    end,
+    method render-reason(self):
+      [ED.error:
+        ed-simple-intro("table operation", self.operation-loc),
+        [ED.para:
+          ED.text("The table did not have a column named "),
+          ED.code(ED.text(self.column-name)),
+          ED.text("; it only had columns named:")],
+        ED.bulleted-sequence(self.columns.map(ED.text).map(ED.code))]
+    end
+  | duplicate-column(operation-loc, column-name, column-loc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      fun destructure-ast(ast):
+        cases(Any) ast:
+          | s-table-extend(l, column-binds, extensions) =>
+            {"extend";  column-binds.table.l}
+          | s-table-update(l, column-binds, updates) =>
+            {"update";  column-binds.table.l}
+          | s-table-select(l, columns, table) =>
+            {"select";  table.l}
+          | s-table-order(l, table, ordering) =>
+            {"order"  ; table.l}
+          | s-table-filter(l, column-binds, predicate) =>
+            {"sieve"  ; column-binds.table.l}
+          | s-table-extract(l, column, table) =>
+            {"extract"; table.l}
+          | else => {"operation"; self.operation-loc}
+        end
+      end
+
+      fun and-if(predicate):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) =>
+              if predicate(v):
+                O.some(v)
+              else:
+                O.none
+              end
+          end
+        end
+      end
+
+      fun and-maybe(f):
+        lam(option):
+          cases(O.Option) option:
+            | none => O.none
+            | some(v) => f(v)
+          end
+        end
+      end
+
+      destructured-pattern =
+        (O.some(self.operation-loc) ^
+           and-if(src-available) ^
+           and-maybe(maybe-ast))
+          .and-then(destructure-ast)
+
+      table-text =
+        destructured-pattern
+          .and-then({(v): ED.highlight(_, [ED.locs: v.{1}], 0)})
+          .or-else({(v): v})
+
+      column-text =
+        if src-available(self.column-loc):
+          ED.highlight(_, [ED.locs: self.column-loc], 1)
+        else:
+          {(v):v}
+        end
+
+      [ED.error:
+        destructured-pattern
+          .and-then({(v):
+            [ED.sequence:
+              ed-intro("table " + v.{0} + " expression", self.operation-loc, -1, true),
+              ED.cmcode(self.operation-loc)]})
+          .or-else(ed-simple-intro("table operation", self.operation-loc)),
+        [ED.para:
+          ED.text("The "),
+          table-text(ED.text("table")),
+          ED.text(" already has a column named "),
+          column-text(ED.code(ED.text(self.column-name))),
+          ED.text(".")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        ed-simple-intro("table operation", self.operation-loc),
+        [ED.para:
+          ED.text("The table already has a column named "),
+          ED.code(ED.text(self.column-name)),
+          ED.text(".")]]
+    end
   | user-break with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
@@ -1806,7 +2376,7 @@ data RuntimeError:
     method render-reason(self):
       [ED.error: ED.text("Program stopped by user")]
     end
-
+    
   | user-exception(value :: Any) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason()
@@ -1815,22 +2385,22 @@ data RuntimeError:
     method _output(self):
       VS.vs-value(self.value)
     end
-
+    
   | exit(code :: Number) with:
-     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-       self.render-reason()
-     end,
-     method render-reason(self):
-       [ED.error: ED.text("Exited with code "), ED.embed(self.code)]
-     end
-
-   | exit-quiet(code :: Number) with:
-     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-       self.render-reason()
-     end,
-     method render-reason(self):
-       ED.text("")
-     end
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error: ED.text("Exited with code "), ED.embed(self.code)]
+    end
+    
+  | exit-quiet(code :: Number) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      ED.text("")
+    end
 end
 
 data ParseError:
@@ -1847,15 +2417,15 @@ data ParseError:
             ED.text("), string marker ("), ED.code(ED.text("\"")),
             ED.text("), or keyword? Is there something there that shouldn’t be?")]]
       else:
-          [ED.error:
-            [ED.para: ED.text("Pyret didn't understand your program around "),
-                      ED.loc(self.loc)],
-            [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
-              ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
-              ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
-              ED.text("), comma ("), ED.code(ED.text(",")),
-              ED.text("), string marker ("), ED.code(ED.text("\"")),
-              ED.text("), or keyword? Is there something there that shouldn’t be?")]]
+        [ED.error:
+          [ED.para: ED.text("Pyret didn't understand your program around "),
+            ED.loc(self.loc)],
+          [ED.para: ED.text(" You may need to add or remove some text to fix your program. "),
+            ED.text("Look carefully before the "),ED.highlight(ED.text("highlighted text"),[ED.locs: self.loc],0),
+            ED.text(". Is there a missing colon ("), ED.code(ED.text(":")),
+            ED.text("), comma ("), ED.code(ED.text(",")),
+            ED.text("), string marker ("), ED.code(ED.text("\"")),
+            ED.text("), or keyword? Is there something there that shouldn’t be?")]]
       end
     end,
     method render-reason(self):
@@ -1877,7 +2447,10 @@ data ParseError:
           [ED.para:
             ED.text("Pyret didn't expect your program to "),
             ED.highlight(ED.text("end"),[ED.locs: self.loc],-1),
-            ED.text(" as soon as it did. You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
+            ED.text(" as soon as it did:")],
+           ED.cmcode(self.loc),
+          [ED.para:
+            ED.text("You may be missing an \"end\", or closing punctuation like \")\" or \"]\" somewhere in your program.")]]
       else:
         [ED.error: 
           [ED.para:
@@ -2000,29 +2573,27 @@ data ParseError:
           ED.text("Did you mean to use one of the comparison operators instead?")]]
     end
   | empty-block(loc) with:
-    method _tostring(self, shadow tostring):
-      "Empty block at " + self.loc.format(true)
+    method render-reason(self):
+      ED.text("Empty block at " + self.loc.format(true))
     end
   | bad-block-stmt(loc) with:
-    method _tostring(self, shadow tostring):
-      "Expected a val binding or an expression, but got something else " + self.loc.format(true)
+    method render-reason(self):
+      ED.text("Expected a val binding or an expression, but got something else " + self.loc.format(true))
     end
   | bad-check-block-stmt(loc) with:
-    method _tostring(self, shadow tostring):
-      "Expected a val binding or an expression, but got something else " + self.loc.format(true)
+    method render-reason(self):
+      ED.text("Expected a val binding or an expression, but got something else " + self.loc.format(true))
     end
   | fun-missing-colon(loc) with:
-    method _tostring(self, shadow tostring): "fun-missing-colon: " + self.loc.format(true) end
+    method render-reason(self): ED.text("fun-missing-colon: " + self.loc.format(true)) end
   | fun-missing-end(loc) with:
-    method _tostring(self, shadow tostring): "fun-missing-end: " + self.loc.format(true) end
+    method render-reason(self): ED.text("fun-missing-end: " + self.loc.format(true)) end
   | args-missing-comma(loc) with:
-    method _tostring(self, shadow tostring): "args-missing-comma: " + self.loc.format(true) end
+    method render-reason(self): ED.text("args-missing-comma: " + self.loc.format(true)) end
   | app-args-missing-comma(loc) with:
-    method _tostring(self, shadow tostring): "app-args-missing-comma: " + self.loc.format(true) end
-  | missing-end(loc)
-  | missing-comma(loc)
-sharing:
-  method render-reason(self):
-    ED.text(self._tostring(tostring))
-  end
+    method render-reason(self): ED.text("app-args-missing-comma: " + self.loc.format(true)) end
+  | missing-end(loc) with:
+    method render-reason(self): ED.text("missing-end: " + self.loc.format(true)) end
+  | missing-comma(loc) with:
+    method render-reason(self): ED.text("missing-comma: " + self.loc.format(true)) end
 end

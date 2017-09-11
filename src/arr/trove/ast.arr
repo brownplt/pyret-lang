@@ -165,7 +165,7 @@ sharing:
   method _equals(self, other, eq): eq(self.key(), other.key()) end,
   method _output(self): VS.vs-str(self.tosourcestring()) end,
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + tostring(self)) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
@@ -252,7 +252,7 @@ data Program:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -298,7 +298,7 @@ data Import:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -365,7 +365,7 @@ data Provide:
     method tosource(self): PP.mt-doc end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -385,7 +385,7 @@ data ProvideTypes:
     method tosource(self): PP.mt-doc end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -403,7 +403,7 @@ data ImportType:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -412,7 +412,7 @@ data Hint:
     method tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -427,7 +427,7 @@ data LetBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -438,7 +438,7 @@ data LetrecBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -459,7 +459,7 @@ data TypeLetBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -476,7 +476,7 @@ data DefinedValue:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(_): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 data DefinedType:
@@ -487,7 +487,7 @@ data DefinedType:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -933,9 +933,12 @@ data Expr:
   | s-num(l :: Loc, n :: Number) with:
     method label(self): "s-num" end,
     method tosource(self): PP.number(self.n) end
-  | s-frac(l :: Loc, num :: Number, den :: Number) with:
+  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
     method label(self): "s-frac" end,
     method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
+    method label(self): "s-rfrac" end,
+    method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
     method label(self): "s-bool" end,
     method tosource(self): PP.str(tostring(self.b)) end
@@ -1113,12 +1116,12 @@ data Expr:
     end
   | s-table-order(l :: Loc,
       table   :: Expr,
-      ordering :: ColumnSort) with:
+      ordering :: List<ColumnSort>) with:
     method label(self): "s-table-order" end,
     method tosource(self):
       PP.surround(INDENT, 1,
         PP.flow([list: str-order, self.table.tosource() + str-colon]),
-        self.ordering.tosource(),
+        PP.flow-map(PP.commabreak, _.tosource(), self.ordering),
         str-end)
     end
   | s-table-filter(l :: Loc,
@@ -1174,6 +1177,19 @@ data Expr:
         PP.flow-map(PP.hardline, _.tosource(), self.spec),
         str-end)
     end
+  | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<SpyField>) with:
+    method label(self): "s-spy-block" end,
+    method tosource(self):
+      cases(Option<Expr>) self.message:
+        | none =>
+          PP.surround-separate(INDENT, 1, PP.str("spy: end"),
+            PP.str("spy:"), PP.commabreak, str-end, self.contents.map(_.tosource()))
+        | some(msg) =>
+          msg-source = msg.tosource()
+          PP.surround-separate(INDENT, 1, PP.str("spy ") + msg-source + PP.str(": end"),
+            PP.str("spy ") + msg-source + str-colon, PP.commabreak, str-end, self.contents.map(_.tosource()))
+      end
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -1192,7 +1208,22 @@ data TableRow:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data SpyField:
+  | s-spy-name(l :: Loc, name :: Expr%(is-s-id)) with:
+    method label(self): "s-spy-name" end,
+    method tosource(self): self.name.tosource() end
+  | s-spy-expr(l :: Loc, name :: String, value :: Expr) with:
+    method label(self): "s-spy-expr" end,
+    method tosource(self): 
+      PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1205,7 +1236,7 @@ data ConstructModifier:
     method tosource(self): PP.str("lazy") end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1224,7 +1255,7 @@ data Bind:
         end
       end
     end,
-    method label(self): "s_bind" end
+    method label(self): "s-bind" end
   | s-tuple-bind(l :: Loc, fields :: List<Bind>, as-name :: Option<Bind>) with:
     method label(self): "s-tuple-bind" end,
     method tosource(self):
@@ -1237,7 +1268,7 @@ data Bind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1273,7 +1304,7 @@ data Member:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1299,7 +1330,7 @@ data ForBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1400,7 +1431,7 @@ data VariantMemberType:
     method tosource(self): PP.str("ref ") end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1412,7 +1443,7 @@ data VariantMember:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1452,7 +1483,7 @@ data Variant:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1472,7 +1503,7 @@ data IfBranch:
 
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1486,7 +1517,7 @@ data IfPipeBranch:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1507,7 +1538,7 @@ data CasesBind:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1529,7 +1560,7 @@ data CasesBranch:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1587,7 +1618,7 @@ data CheckOp:
     method tosource(self): str-raises-violates end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1610,6 +1641,21 @@ data Ann:
       ann = PP.separate(str-space,
         [list:
           PP.separate(PP.commabreak, self.args.map(_.tosource())),
+          str-arrow, self.ret.tosource()])
+      if self.use-parens:
+        PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
+      else:
+        ann
+      end
+    end,
+  | a-arrow-argnames(l :: Loc, args :: List<AField>, ret :: Ann, use-parens :: Boolean) with:
+    method label(self): "a-arrow-argnames" end,
+    method tosource(self):
+      ann = PP.separate(str-space,
+        [list:
+          PP.surround(INDENT, 0, PP.lparen,
+            PP.separate(PP.commabreak, self.args.map(_.tosource())),
+            PP.rparen),
           str-arrow, self.ret.tosource()])
       if self.use-parens:
         PP.surround(INDENT, 0, PP.lparen, ann, PP.rparen)
@@ -1650,7 +1696,7 @@ data Ann:
     method tosource(self): self.residual.tosource() end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1664,7 +1710,7 @@ data AField:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1980,6 +2026,10 @@ default-map-visitor = {
     s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
   end,
 
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    s-check-expr(l, expr.visit(self), ann.visit(self))
+  end,
+
   method s-paren(self, l :: Loc, expr :: Expr):
     s-paren(l, expr.visit(self))
   end,
@@ -2080,8 +2130,11 @@ default-map-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     s-num(l, n)
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(l, num, den)
+  end,
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+    s-rfrac(l, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
@@ -2234,8 +2287,8 @@ default-map-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(l, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(l, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(l, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(l, column.visit(self), table.visit(self))
@@ -2253,6 +2306,16 @@ default-map-visitor = {
   method s-table-src(self, l, src :: Expr):
     s-table-src(l, src.visit(self))
   end,
+  
+  method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
+    s-spy-block(l, self.option(message), contents.map(_.visit(self)))
+  end,
+  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
+    s-spy-name(l, name.visit(self))
+  end,
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+    s-spy-expr(l, name, value.visit(self))
+  end,
 
   method a-blank(self): a-blank end,
   method a-any(self, l): a-any(l) end,
@@ -2260,6 +2323,9 @@ default-map-visitor = {
   method a-type-var(self, l, id): a-type-var(l, id.visit(self)) end,
   method a-arrow(self, l, args, ret, use-parens):
     a-arrow(l, args.map(_.visit(self)), ret.visit(self), use-parens)
+  end,
+  method a-arrow-argnames(self, l, args, ret, use-parens):
+    a-arrow-argnames(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
   method a-method(self, l, args, ret):
     a-method(l, args.map(_.visit(self)), ret.visit(self))
@@ -2437,7 +2503,7 @@ default-iter-visitor = {
   end,
 
   method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
-    lists.app(_.visit(self), params)
+    lists.all(_.visit(self), params)
     and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
@@ -2523,6 +2589,10 @@ default-iter-visitor = {
 
   method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
     self.option(refinement) and left.visit(self) and self.option(right)
+  end,
+
+  method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
+    expr.visit(self) and ann.visit(self)
   end,
 
   method s-paren(self, l :: Loc, expr :: Expr):
@@ -2623,7 +2693,10 @@ default-iter-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     true
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+    true
+  end,
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     true
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -2760,8 +2833,8 @@ default-iter-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     columns.all(_.visit(self)) and table.visit(self)
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    table.visit(self)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    table.visit(self) and ordering.all(_.visit(self))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     column.visit(self) and table.visit(self)
@@ -2778,6 +2851,17 @@ default-iter-visitor = {
   method s-table-src(self, l, src):
     src.visit(self)
   end,
+    
+  method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
+    self.option(message) and lists.all(_.visit(self), contents)
+  end,
+  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
+    name.visit(self)
+  end,
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+    value.visit(self)
+  end,
+  
   method a-blank(self):
     true
   end,
@@ -2791,6 +2875,9 @@ default-iter-visitor = {
     true
   end,
   method a-arrow(self, l, args, ret, _):
+    lists.all(_.visit(self), args) and ret.visit(self)
+  end,
+  method a-arrow-argnames(self, l, args, ret, _):
     lists.all(_.visit(self), args) and ret.visit(self)
   end,
   method a-method(self, l, args, ret):
@@ -3146,8 +3233,11 @@ dummy-loc-visitor = {
   method s-num(self, l :: Loc, n :: Number):
     s-num(dummy-loc, n)
   end,
-  method s-frac(self, l :: Loc, num :: Number, den :: Number):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(dummy-loc, num, den)
+  end,
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+    s-rfrac(dummy-loc, num, den)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)
@@ -3300,8 +3390,8 @@ dummy-loc-visitor = {
   method s-table-select(self, l, columns :: List<Name>, table :: Expr):
     s-table-select(dummy-loc, columns.map(_.visit(self)), table.visit(self))
   end,
-  method s-table-order(self, l, table :: Expr, ordering :: ColumnSort):
-    s-table-order(dummy-loc, table.visit(self), ordering)
+  method s-table-order(self, l, table :: Expr, ordering :: List<ColumnSort>):
+    s-table-order(dummy-loc, table.visit(self), ordering.map(_.visit(self)))
   end,
   method s-table-extract(self, l, column :: Name, table :: Expr):
     s-table-extract(dummy-loc, column.visit(self), table.visit(self))
@@ -3319,12 +3409,26 @@ dummy-loc-visitor = {
   method s-table-src(self, l, src :: Expr):
     s-table-src(dummy-loc, src.visit(self))
   end,
+
+  method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
+    s-spy-block(dummy-loc, self.option(message), contents.map(_.visit(self)))
+  end,
+  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
+    s-spy-name(dummy-loc, name.visit(self))
+  end,
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+    s-spy-expr(dummy-loc, name, value.visit(self))
+  end,
+
   method a-blank(self): a-blank end,
   method a-any(self, l): a-any(l) end,
   method a-name(self, l, id): a-name(dummy-loc, id.visit(self)) end,
   method a-type-var(self, l, id): a-type-var(dummy-loc, id.visit(self)) end,
   method a-arrow(self, l, args, ret, use-parens):
     a-arrow(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
+  end,
+  method a-arrow-argnames(self, l, args, ret, use-parens):
+    a-arrow-argnames(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
   method a-method(self, l, args, ret):
     a-method(dummy-loc, args.map(_.visit(self)), ret.visit(self))

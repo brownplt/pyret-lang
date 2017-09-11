@@ -471,6 +471,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
     }
 
+    function getMaker(obj, makerField, exprLoc, constrLoc) {
+      var maker = isObject(obj) && obj.dict[makerField];
+      if (!isFunction(maker)) {
+        if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
+          throw Error("FFI or thisRuntime.ffi., val, field is not yet defined, and lookup of field " + makeField + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(constrLoc));
+        } else {
+          throw thisRuntime.ffi.throwConstructorSyntaxNonConstructor(makeSrcloc(exprLoc), makeSrcloc(constrLoc));
+        }
+      }
+      return maker;
+    }
+
+
     function extendObj(loc, val, extension) {
       if (!isObject(val)) { thisRuntime.ffi.throwExtendNonObject(makeSrcloc(loc), val); }
       return val.extendWith(extension);
@@ -767,6 +780,120 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var appN = function(obj) {
       var that = this;
       return function() { return that.full_meth(obj, ...arguments); }
+    }
+
+
+    function maybeMethodCall0(obj, fieldname, loc) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app();
+      }
+    }
+
+
+    function maybeMethodCall1(obj, fieldname, loc, arg) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg);
+      }
+    }
+
+    function maybeMethodCall2(obj, fieldname, loc, arg1, arg2) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2);
+      }
+    }
+
+    function maybeMethodCall3(obj, fieldname, loc, arg1, arg2, arg3) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3);
+      }
+    }
+
+    function maybeMethodCall4(obj, fieldname, loc, arg1, arg2, arg3, arg4) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4);
+      }
+    }
+
+    function maybeMethodCall5(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5);
+      }
+    }
+
+    function maybeMethodCall6(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5, arg6) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+    }
+
+    function maybeMethodCall7(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+      }
     }
 
     function maybeMethodCall(obj, fieldname, loc, ...args) {
@@ -5148,6 +5275,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'checkTupleBind'   : checkTupleBind,
       'extendObj'        : extendObj,
 
+      'getMaker' : getMaker,
+      // These are all the same function but have different types for arity reasons
+      'getMaker0' : getMaker,
+      'getMaker1' : getMaker,
+      'getMaker2' : getMaker,
+      'getMaker3' : getMaker,
+      'getMaker4' : getMaker,
+      'getMaker5' : getMaker,
+      'getLazyMaker' : getMaker,
+
+
       'hasBrand' : hasBrand,
 
       'isPyretTrue' : isPyretTrue,
@@ -5198,6 +5336,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeMethodN'   : makeMethodN,
       'makeMethodFromFun' : makeMethodFromFun,
       'maybeMethodCall': maybeMethodCall,
+      'maybeMethodCall0': maybeMethodCall0,
+      'maybeMethodCall1': maybeMethodCall1,
+      'maybeMethodCall2': maybeMethodCall2,
+      'maybeMethodCall3': maybeMethodCall3,
+      'maybeMethodCall4': maybeMethodCall4,
+      'maybeMethodCall5': maybeMethodCall5,
+      'maybeMethodCall6': maybeMethodCall6,
+      'maybeMethodCall7': maybeMethodCall7,
       'callIfPossible0' : callIfPossible0,
       'callIfPossible1' : callIfPossible1,
       'callIfPossible2' : callIfPossible2,

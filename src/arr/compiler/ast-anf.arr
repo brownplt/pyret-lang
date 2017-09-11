@@ -140,7 +140,7 @@ data AExpr:
         PP.group(
           PP.nest(
             INDENT,
-            PP.group(self.bind.id.tosource() + PP.brackets(PP.number(self.idx))) +
+            PP.group(self.bind.tosource() + PP.brackets(PP.number(self.idx))) +
             str-spaceequal +
             break-one +
             self.e.tosource())) +
@@ -250,7 +250,7 @@ end
 
 
 data ACasesBranch:
-  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr) with:
+  | a-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, args :: List<ACasesBind>, body :: AExpr) with:
     method label(self): "a-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
@@ -621,7 +621,7 @@ default-map-visitor = {
   method a-cases-bind(self, l, typ, bind):
     a-cases-bind(l, typ, bind.visit(self))
   end,
-  method a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ABind>, body :: AExpr):
+  method a-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<ACasesBind>, body :: AExpr):
     a-cases-branch(l, pat-loc, name, args.map(_.visit(self)), body.visit(self))
   end,
   method a-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr):
@@ -734,6 +734,12 @@ fun freevars-list-acc(anns :: List<A.Ann>, seen-so-far):
   end
 end
 
+fun freevars-fields-acc(fields :: List<A.AField>, seen-so-far):
+  for fold(acc from seen-so-far, f from fields):
+    freevars-ann-acc(f.ann, acc)
+  end
+end
+
 fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(A.Ann) ann block:
     | a-blank => seen-so-far
@@ -746,11 +752,9 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
       seen-so-far.set-now(left.key(), left)
       seen-so-far
     | a-arrow(l, args, ret, _) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
+    | a-arrow-argnames(l, args, ret, _) => freevars-fields-acc(args, freevars-ann-acc(ret, seen-so-far))
     | a-method(l, args, ret) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
-    | a-record(l, fields) =>
-      for fold(acc from seen-so-far, f from fields):
-        freevars-ann-acc(f.ann, acc)
-      end
+    | a-record(l, fields) => freevars-fields-acc(fields, seen-so-far)
     | a-tuple(l, fields) => freevars-list-acc(fields, seen-so-far)
     | a-app(l, a, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
     | a-method-app(l, a, _, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))

@@ -18,7 +18,7 @@ break-one = PP.sbreak(1)
 blank-one = PP.blank(1)
 
 fun strpos(uri, loc):
-  [list: uri, loc.start-line, loc.start-column, loc.start-char, loc.end-line, loc.end-column, loc.end-char].join-str(",")
+  [list: "", loc.start-line, loc.start-column, loc.start-char, loc.end-line, loc.end-column, loc.end-char].join-str(",")
 end
 
 
@@ -332,7 +332,8 @@ data JUnop:
   | j-decr with: method to-ugly-source(self): "--" end
   | j-postincr with: method to-ugly-source(self): "++" end
   | j-postdecr with: method to-ugly-source(self): "--" end
-  | j-not with: method to-ugly-source(self): "!" end
+  | j-not with: method to-ugly-source(self): "!" end,
+  | j-typeof with: method to-ugly-source(self): "typeof" end
 sharing:
   method print-ugly-source(self, printer):
     printer(self.to-ugly-source())
