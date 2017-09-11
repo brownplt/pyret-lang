@@ -880,7 +880,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-array(o.l, [list: A.s-bool(o.l, o.direction == A.ASCENDING), A.s-str(o.l, o.column.s)])
       end
       A.s-app(l,
-        A.s-dot(A.dummy-loc, table, "multi-order"),
+        A.s-dot(A.dummy-loc, desugar-expr(table), "multi-order"),
         [list: A.s-array(A.dummy-loc, ordering-raw-arr)])
     | s-table-filter(l, column-binds, predicate) =>
       row = mk-id(A.dummy-loc, "row")

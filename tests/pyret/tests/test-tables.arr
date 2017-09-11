@@ -102,6 +102,9 @@ end
 
 
 check "Table ordering":
+
+  order table: a, b row: 1, 2 end: a ascending end is table: a, b row: 1, 2 end
+
   fun slow-val(n):
     fun wasteTime(i):
       if i == 0: n
