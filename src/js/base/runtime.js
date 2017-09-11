@@ -749,6 +749,119 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return function() { return that.full_meth(obj, ...arguments); }
     }
 
+    function maybeMethodCall0(obj, fieldname, loc) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app();
+      }
+    }
+
+
+    function maybeMethodCall1(obj, fieldname, loc, arg) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg);
+      }
+    }
+
+    function maybeMethodCall2(obj, fieldname, loc, arg1, arg2) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2);
+      }
+    }
+
+    function maybeMethodCall3(obj, fieldname, loc, arg1, arg2, arg3) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3);
+      }
+    }
+
+    function maybeMethodCall4(obj, fieldname, loc, arg1, arg2, arg3, arg4) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4);
+      }
+    }
+
+    function maybeMethodCall5(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5);
+      }
+    }
+
+    function maybeMethodCall6(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5, arg6) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+    }
+
+    function maybeMethodCall7(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+      }
+    }
+
     function maybeMethodCall(obj, fieldname, loc, ...args) {
       var R = thisRuntime;
       var field = R.getColonFieldLoc(obj,fieldname,loc);
@@ -5587,6 +5700,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeMethodN'   : makeMethodN,
       'makeMethodFromFun' : makeMethodFromFun,
       'maybeMethodCall': maybeMethodCall,
+      'maybeMethodCall0': maybeMethodCall0,
+      'maybeMethodCall1': maybeMethodCall1,
+      'maybeMethodCall2': maybeMethodCall2,
+      'maybeMethodCall3': maybeMethodCall3,
+      'maybeMethodCall4': maybeMethodCall4,
+      'maybeMethodCall5': maybeMethodCall5,
+      'maybeMethodCall6': maybeMethodCall6,
+      'maybeMethodCall7': maybeMethodCall7,
       'callIfPossible0' : callIfPossible0,
       'callIfPossible1' : callIfPossible1,
       'callIfPossible2' : callIfPossible2,
