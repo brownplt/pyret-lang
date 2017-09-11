@@ -431,8 +431,8 @@ sharing:
   method solve-level-helper(self, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     solve-helper-constraints(self, solution, context).bind(lam({system; shadow solution}, shadow context):
       solve-helper-refinements(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-        solve-helper-fields(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-          solve-helper-examples(system, solution, context)
+        solve-helper-examples(system, solution, context).bind(lam({shadow system; shadow solution}, shadow context):
+          solve-helper-fields(system, solution, context)
         end)
       end)
     end)
@@ -498,22 +498,20 @@ fun substitute-in-example-types(new-type :: Type, type-var :: Type, example-type
   end, [string-dict: ])
 end
 
+fun add-substitution(new-type :: Type, type-var :: Type, system :: ConstraintSystem, solution :: ConstraintSolution) -> {solution :: ConstraintSolution, system :: ConstraintSystem}:
+  substitutions = solution.substitutions.set(type-var.key(), {new-type; type-var})
+  constraints = substitute-in-constraints(new-type, type-var, system.constraints)
+  refinement-constraints = substitute-in-constraints(new-type, type-var, system.refinement-constraints)
+  field-constraints = substitute-in-field-constraints(new-type, type-var, system.field-constraints)
+  example-types = substitute-in-example-types(new-type, type-var, system.example-types)
+
+  {solution: constraint-solution(empty-tree-set, substitutions), system: constraint-system(system.variables, constraints, refinement-constraints, field-constraints, example-types, system.next-system)}
+end
+
 fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintSolution, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
-  fun add-substitution(new-type :: Type, type-var :: Type, shadow system :: ConstraintSystem, shadow solution :: ConstraintSolution, shadow context :: Context):
-    substitutions = solution.substitutions.set(type-var.key(), {new-type; type-var})
-    constraints = substitute-in-constraints(new-type, type-var, system.constraints)
-    refinement-constraints = substitute-in-constraints(new-type, type-var, system.refinement-constraints)
-    field-constraints = substitute-in-field-constraints(new-type, type-var, system.field-constraints)
-    example-types = substitute-in-example-types(new-type, type-var, system.example-types)
-    solve-helper-constraints(
-      constraint-system(system.variables,
-                        constraints,
-                        refinement-constraints,
-                        field-constraints,
-                        example-types,
-                        system.next-system),
-      constraint-solution(empty-tree-set, substitutions),
-      context)
+  fun add-substitution-and-continue(new-type :: Type, type-var :: Type, shadow system :: ConstraintSystem, shadow solution :: ConstraintSolution, shadow context :: Context):
+    new-solution-and-system = add-substitution(new-type, type-var, system, solution)
+    solve-helper-constraints(new-solution-and-system.system, new-solution-and-system.solution, context)
   end
 
   cases(ConstraintSystem) system:
@@ -535,9 +533,9 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                       solve-helper-constraints(system, solution, context)
                     else:
                       if variables.member(subtype):
-                        add-substitution(supertype, subtype, system, solution, context)
+                        add-substitution-and-continue(supertype, subtype, system, solution, context)
                       else if variables.member(supertype):
-                        add-substitution(subtype, supertype, system, solution, context)
+                        add-substitution-and-continue(subtype, supertype, system, solution, context)
                       else:
                         solve-helper-constraints(
                           constraint-system(system.variables,
@@ -553,7 +551,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                   | else =>
                     if variables.member(supertype):
                       if subtype.has-variable-free(supertype):
-                        add-substitution(subtype, supertype, system, solution, context)
+                        add-substitution-and-continue(subtype, supertype, system, solution, context)
                       else:
                         fold-errors([list: C.recursive-type-constraints(supertype, subtype)])
                       end
@@ -756,7 +754,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
             end, {system; empty-tree-set})
 
             solve-helper-constraints(temp-system, constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow temp-system; temp-solution}, shadow context):
-              cases(ConstraintSolution) temp-solution:
+              cases(ConstraintSolution) temp-solution block:
                 | constraint-solution(_, temp-substitutions) =>
                   temp-keys-set = temp-substitutions.keys()
                   shadow temp-keys-set = temp-keys-set.difference(temp-variables)
@@ -769,7 +767,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
                   else:
                     # merge all constraints for each existential variable
                     # same data-refinements get merged otherwise goes to the inner data type
-                    shadow substitutions = mappings.fold-keys(lam(key, shadow substitutions):
+                    system-and-solution = mappings.fold-keys(lam(key, system-and-solution):
                       {exists; refinements} = mappings.get-value(key)
                       merged-type = refinements.rest.foldl(lam(refinement, merged):
                         cases(Type) merged:
@@ -786,9 +784,9 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
                           | else => merged
                         end
                       end, refinements.first)
-                      substitutions.set(exists.key(), {merged-type; exists})
-                    end, solution.substitutions)
-                    fold-result({constraint-system(variables, empty, empty, field-constraints, example-types, next-system); constraint-solution(empty-tree-set, substitutions)}, context)
+                      add-substitution(merged-type, exists, system-and-solution.system, system-and-solution.solution)
+                    end, {system: system, solution: solution})
+                    fold-result({system-and-solution.system; system-and-solution.solution}, context)
                   end
               end
             end)
