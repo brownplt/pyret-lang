@@ -814,6 +814,8 @@ compiler-visitor = {
     compiled-args = CL.map_list(lam(a): a.visit(self).exp end, args)
     ans = self.cur-ans
 
+    argcount = args.length()
+
     helper-name = if argcount <= 7:
       "maybeMethodCall" + to-string(argcount)
     else:
