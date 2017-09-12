@@ -973,7 +973,8 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
       brander-type = t-name(local, namet, l, false)
       t-vars = params.map(t-var(_, l, false))
       applied-brander-type = if is-empty(t-vars): brander-type else: t-app(brander-type, t-vars, l, false) end
-      map-fold-result(collect-variants, variants, context).bind(lam(initial-variant-types, shadow context):
+
+      map-fold-result(collect-variant-constructor, variants, context).bind(lam(initial-variant-types, shadow context):
         predicate-type = if is-empty(t-vars):
           t-arrow([list: brander-type], t-boolean(l), l, false)
         else:
@@ -992,45 +993,47 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
             fold-result(A.s-letrec-bind(binding.l, binding.b, new-value), context.add-binding(binding.b.id.key(), result-type))
           end)
         end, bindings, context).bind(lam(new-bindings, shadow context):
-          collect-members(fields, true, context).bind(lam(initial-shared-field-types, shadow context):
-            initial-data-type = t-data(name, t-vars, initial-variant-types, initial-shared-field-types, l)
-            shadow context = context.set-data-types(context.data-types.set(namet.key(), initial-data-type))
-            shadow context = merge-common-fields(initial-variant-types, l, context)
-            map-fold-result(lam(variant, shadow context):
-              check-variant(variant, initial-data-type.get-variant-value(variant.name), brander-type, t-vars, context)
-            end, variants, context).bind(lam(new-variant-types, shadow context):
-              variant-type-fields = new-variant-types.map(lam(var-type):
-                var-type.fields.foldr(lam({field-name; field-type}, all-fields):
-                  all-fields.set(field-name, field-type)
-                end, var-type.with-fields)
-              end)
-              variants-meet = cases(List<TypeMembers>) variant-type-fields:
-                | empty => empty
-                | link(first, rest) =>
-                  cases(List<TypeMembers>) rest:
-                    | empty => first
-                    | link(_, _) =>
-                      rest.foldr(meet-fields(_, _, l, context), first)
-                  end
-              end
-              extended-shared-field-types = variants-meet.fold-keys(lam(key, extended-shared-field-types):
-                extended-shared-field-types.set(key, variants-meet.get-value(key))
-              end, initial-shared-field-types)
-              shared-data-type = t-data(name, t-vars, new-variant-types, extended-shared-field-types, l)
-              shadow context = context.set-data-types(context.data-types.set(namet.key(), shared-data-type))
-              foldr-fold-result(lam(field, shadow context, new-shared-field-types):
-                check-shared-field(field, initial-shared-field-types, applied-brander-type, context).bind(lam(field-type, shadow context):
-                  fold-result(new-shared-field-types.set(field.name, field-type), context)
+          map-fold-result(collect-variant, variants, context).bind(lam(shadow initial-variant-types, shadow context):
+            collect-members(fields, true, context).bind(lam(initial-shared-field-types, shadow context):
+              initial-data-type = t-data(name, t-vars, initial-variant-types, initial-shared-field-types, l)
+              shadow context = context.set-data-types(context.data-types.set(namet.key(), initial-data-type))
+              shadow context = merge-common-fields(initial-variant-types, l, context)
+              map-fold-result(lam(variant, shadow context):
+                check-variant(variant, initial-data-type.get-variant-value(variant.name), brander-type, t-vars, context)
+              end, variants, context).bind(lam(new-variant-types, shadow context):
+                variant-type-fields = new-variant-types.map(lam(var-type):
+                  var-type.fields.foldr(lam({field-name; field-type}, all-fields):
+                    all-fields.set(field-name, field-type)
+                  end, var-type.with-fields)
                 end)
-              end, fields, context, SD.make-string-dict()).bind(lam(new-shared-field-types, shadow context):
-                final-shared-field-types = variants-meet.fold-keys(lam(key, final-shared-field-types):
-                  final-shared-field-types.set(key, variants-meet.get-value(key))
-                end, new-shared-field-types)
-                final-data-type = t-data(name, t-vars, new-variant-types, final-shared-field-types, l)
-                context.solve-level().bind(lam(solution, shadow context):
-                  solved-data-type = solution.apply-data-type(final-data-type)
-                  shadow context = context.set-data-types(context.data-types.set(namet.key(), solved-data-type))
-                  fold-result(link(data-type-bind, new-bindings), context)
+                variants-meet = cases(List<TypeMembers>) variant-type-fields:
+                  | empty => empty
+                  | link(first, rest) =>
+                    cases(List<TypeMembers>) rest:
+                      | empty => first
+                      | link(_, _) =>
+                        rest.foldr(meet-fields(_, _, l, context), first)
+                    end
+                end
+                extended-shared-field-types = variants-meet.fold-keys(lam(key, extended-shared-field-types):
+                  extended-shared-field-types.set(key, variants-meet.get-value(key))
+                end, initial-shared-field-types)
+                shared-data-type = t-data(name, t-vars, new-variant-types, extended-shared-field-types, l)
+                shadow context = context.set-data-types(context.data-types.set(namet.key(), shared-data-type))
+                foldr-fold-result(lam(field, shadow context, new-shared-field-types):
+                  check-shared-field(field, initial-shared-field-types, applied-brander-type, context).bind(lam(field-type, shadow context):
+                    fold-result(new-shared-field-types.set(field.name, field-type), context)
+                  end)
+                end, fields, context, SD.make-string-dict()).bind(lam(new-shared-field-types, shadow context):
+                  final-shared-field-types = variants-meet.fold-keys(lam(key, final-shared-field-types):
+                    final-shared-field-types.set(key, variants-meet.get-value(key))
+                  end, new-shared-field-types)
+                  final-data-type = t-data(name, t-vars, new-variant-types, final-shared-field-types, l)
+                  context.solve-level().bind(lam(solution, shadow context):
+                    solved-data-type = solution.apply-data-type(final-data-type)
+                    shadow context = context.set-data-types(context.data-types.set(namet.key(), solved-data-type))
+                    fold-result(link(data-type-bind, new-bindings), context)
+                  end)
                 end)
               end)
             end)
@@ -1131,7 +1134,37 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
   end
 end
 
-fun collect-variants(variant :: A.Variant, context :: Context) -> FoldResult<TypeVariant>:
+fun collect-variant-constructor(variant :: A.Variant, context :: Context) -> FoldResult<TypeVariant>:
+  cases(A.Variant) variant:
+    | s-variant(l, constr-loc, name, members, with-members) =>
+      fun process-member(member, shadow context):
+        wrap = cases(A.VariantMemberType) member.member-type:
+          | s-normal => lam(x): x.set-loc(member.l) end
+          | s-mutable => lam(x): t-ref(x.set-loc(member.l), member.l, false) end
+        end
+        to-type(member.bind.ann, context).bind(lam(maybe-type, shadow context):
+          cases(Option<Type>) maybe-type:
+            | none => fold-errors([list: C.cant-typecheck("No type annotation provided on member", l)])
+            | some(typ) =>
+              fold-result(wrap(typ), context)
+          end
+        end)
+      end
+
+      foldr-fold-result(lam(member, shadow context, type-members):
+        process-member(member, context)
+          .bind(lam(member-type, shadow context):
+            fold-result(link({member.bind.id.toname(); member-type}, type-members), context)
+          end)
+      end, members, context, empty).bind(lam(type-members, shadow context):
+        fold-result(t-variant(name, type-members, [string-dict: ], l), context)
+      end)
+    | s-singleton-variant(l, name, with-members) =>
+      fold-result(t-singleton-variant(name, [string-dict: ], l), context)
+  end
+end
+
+fun collect-variant(variant :: A.Variant, context :: Context) -> FoldResult<TypeVariant>:
   cases(A.Variant) variant:
     | s-variant(l, constr-loc, name, members, with-members) =>
       fun process-member(member, shadow context):
