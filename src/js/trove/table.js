@@ -228,6 +228,7 @@
         // colComps is an array of 2-element arrays, [true iff ascending, colName]
         // destArr is the final array in which to place the sorted rows
         // returns destArr, and mutates destArr
+        if (sourceArr.length === 0) { return destArr; }
         var colIdxs = [];
         var comps = [];
         var LESS = "less";
@@ -337,6 +338,9 @@
           ffi.checkArity(3, arguments, "order-by", true);
           runtime.checkArgsInternal2("tables", "order-by",
             colname, runtime.String, increasing, runtime.Boolean);
+          if(!hasColumn(colname)) {
+            ffi.throwMessageException("The table does not have a column named `"+colname+"`.");
+          }
           return order(increasing, colname);
         }),
         'order-by-columns': runtime.makeMethod1(function(_, specs) {
@@ -347,9 +351,13 @@
           var asArrays = [];
           for(var i = 0; i < specsArray.length; i += 1) {
             runtime.checkTuple(specsArray[i]);
+            var colname = runtime.getTuple(specsArray[i], 0);
+            if(!hasColumn(colname)) {
+              ffi.throwMessageException("The table does not have a column named `"+colname+"`.");
+            }
             asArrays.push([
                 runtime.getTuple(specsArray[i], 1),
-                runtime.getTuple(specsArray[i], 0)
+                colname
               ]);
           }
           return runtime.safeCall(function() {
@@ -361,6 +369,12 @@
 
         'multi-order': runtime.makeMethod1(function(_, colComps) {
           // colComps is an array of 2-element arrays, [true iff ascending, colName]
+          for(var i = 0; i < colComps.length; i += 1) {
+            var colname = colComps[i][1];
+            if(!hasColumn(colname)) {
+              ffi.throwMessageException("The table does not have a column named `"+colname+"`.");
+            }
+          }
           return runtime.safeCall(function() {
             return multiOrder(rows, colComps, []);
           }, function(destArr) {
