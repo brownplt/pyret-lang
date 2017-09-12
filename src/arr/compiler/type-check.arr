@@ -975,6 +975,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
       shadow context = context.add-level()
       brander-type = t-name(local, namet, l, false)
       t-vars = params.map(t-var(_, l, false))
+      applied-brander-type = if is-empty(t-vars): brander-type else: t-app(brander-type, t-vars, l, false) end
       map-fold-result(collect-variants, variants, context).bind(lam(initial-variant-types, shadow context):
         predicate-type = if is-empty(t-vars):
           t-arrow([list: brander-type], t-boolean(l), l, false)
@@ -1021,7 +1022,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
               shared-data-type = t-data(name, t-vars, new-variant-types, extended-shared-field-types, l)
               shadow context = context.set-data-types(context.data-types.set(namet.key(), shared-data-type))
               foldr-fold-result(lam(field, shadow context, new-shared-field-types):
-                check-shared-field(field, initial-shared-field-types, brander-type, context).bind(lam(field-type, shadow context):
+                check-shared-field(field, initial-shared-field-types, applied-brander-type, context).bind(lam(field-type, shadow context):
                   fold-result(new-shared-field-types.set(field.name, field-type), context)
                 end)
               end, fields, context, SD.make-string-dict()).bind(lam(new-shared-field-types, shadow context):
