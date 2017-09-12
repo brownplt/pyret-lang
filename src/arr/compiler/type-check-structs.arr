@@ -767,7 +767,8 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
                   else:
                     # merge all constraints for each existential variable
                     # same data-refinements get merged otherwise goes to the inner data type
-                    system-and-solution = mappings.fold-keys(lam(key, system-and-solution):
+
+                    new-system-and-solution = mappings.fold-keys(lam(key, system-and-solution):
                       {exists; refinements} = mappings.get-value(key)
                       merged-type = refinements.rest.foldl(lam(refinement, merged):
                         cases(Type) merged:
@@ -786,7 +787,9 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
                       end, refinements.first)
                       add-substitution(merged-type, exists, system-and-solution.system, system-and-solution.solution)
                     end, {system: system, solution: solution})
-                    fold-result({system-and-solution.system; system-and-solution.solution}, context)
+                    new-system = new-system-and-solution.system
+                    new-solution = new-system-and-solution.solution
+                    fold-result({constraint-system(variables, empty, empty, new-system.field-constraints, new-system.example-types, next-system); constraint-solution(empty-tree-set, new-solution.substitutions)}, context)
                   end
               end
             end)
@@ -806,6 +809,13 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
           {typ; field-mappings} = field-constraints.get-value(first)
           shadow system = constraint-system(system.variables, system.constraints, system.refinement-constraints, system.field-constraints.remove(first), system.example-types, system.next-system)
           instantiate-object-type(typ, context).bind(lam(shadow typ, shadow context):
+            shadow system = cases(ConstraintSystem) context.constraints:
+              | no-constraints =>
+                system
+              | constraint-system(possible-new-variables, _, _, _, _, _) =>
+                constraint-system(system.variables.union(possible-new-variables), system.constraints, system.refinement-constraints, system.field-constraints, system.example-types, system.next-system)
+            end
+
             cases(Type) typ:
               | t-record(fields, l, _) =>
                 field-set = fields.keys()
