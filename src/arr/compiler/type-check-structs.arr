@@ -754,7 +754,7 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
             end, {system; empty-tree-set})
 
             solve-helper-constraints(temp-system, constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow temp-system; temp-solution}, shadow context):
-              cases(ConstraintSolution) temp-solution block:
+              cases(ConstraintSolution) temp-solution:
                 | constraint-solution(_, temp-substitutions) =>
                   temp-keys-set = temp-substitutions.keys()
                   shadow temp-keys-set = temp-keys-set.difference(temp-variables)
