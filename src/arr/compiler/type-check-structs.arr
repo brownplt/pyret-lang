@@ -855,7 +855,7 @@ fun solve-helper-fields(system :: ConstraintSystem, solution :: ConstraintSoluti
                   foldr-fold-result(lam(field-name, shadow context, shadow system):
                     cases(Option<Type>) data-fields.get(field-name):
                       | none =>
-                        fold-errors([list: C.object-missing-field(field-name, tostring(typ), typ.l, field-mappings.get-value(field-name).l)])
+                        fold-errors([list: C.object-missing-field(field-name, tostring(typ), typ.l, field-mappings.get-value(field-name).first.l)])
                       | some(data-field-type) =>
                         shadow system = field-mappings.get-value(field-name).foldl(lam(field-type, shadow system):
                           system.add-constraint(data-field-type, field-type)
