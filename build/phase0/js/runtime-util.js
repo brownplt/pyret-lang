@@ -53,7 +53,7 @@ define("pyret-base/js/runtime-util", [], function() {
           }, function(moduleFunVal) {
             RUNTIME.modules[modname] = moduleFunVal;
             return moduleFunVal;
-          });
+          }, "memoModule:moduleFun");
       }
     };
   }
@@ -103,7 +103,7 @@ define("pyret-base/js/runtime-util", [], function() {
               return func.apply(null, [runtime, namespace].concat(deps));
             }, function(result) {
               return wrap(runtime, result);
-            });
+            }, "defineModule:moduleFun");
           });
         });
       }
