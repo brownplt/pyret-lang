@@ -20,11 +20,6 @@ export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/
 SHELL := /bin/bash
 
 
-showpath:
-	@echo my new PATH = $(PATH)
-	@echo `which browserify`
-
-
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
