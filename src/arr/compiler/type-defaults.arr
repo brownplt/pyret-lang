@@ -118,24 +118,6 @@ end
 
 fun make-default-types() block:
   default-typs = SD.make-mutable-string-dict()
-  default-typs.set-now(A.s-global("builtins").key(), t-record([string-dict:
-      "has-field", t-arrow([list: t-record([string-dict: ])], t-boolean),
-      "trace-value", t-arrow([list: t-top, t-top], t-bot),
-      "current-checker", t-arrow([list: ], t-record([string-dict: # Cheat on these types for now.
-          "run-checks", t-bot,
-          "check-is", t-bot,
-          "check-is-not", t-bot,
-          "check-is-refinement", t-bot,
-          "check-is-not-refinement", t-bot,
-          "check-satisfies", t-bot,
-          "check-satisfies-not", t-bot,
-          "check-raises-str", t-bot,
-          "check-raises-not", t-bot,
-          "check-raises-other-str", t-bot,
-          "check-raises-satisfies", t-bot,
-          "check-raises-violates" , t-bot
-      ]))
-  ]))
 
   # Need to be fixed to correct type:
   default-typs.set-now("makeSome", t-forall([list: tva], t-arrow([list: tva], t-option-app(tva))))
@@ -157,7 +139,6 @@ fun make-default-types() block:
         "close-when-stop", t-option-app(t-boolean),
         "title", t-option-app(t-string)])],
     t-reactor-app(tva))))
-  default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
   default-typs.set-now("hasField", t-arrow([list: t-record([string-dict: ]), t-string], t-boolean))
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
 

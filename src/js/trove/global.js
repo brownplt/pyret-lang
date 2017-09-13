@@ -45,7 +45,7 @@
 
       "run-task": ["arrow", [["arrow", [], "Any"]], "Any"],
       "brander": "Any",
-      "raise": "Any",
+      "raise": ["arrow", ["Any"], "tbot"],
       "nothing": "Nothing",
       "builtins": ["record", {
         "trace-value": ["forall", ["a"], ["arrow", ["Any", "tva"], "tva"]],
@@ -57,22 +57,21 @@
         "raw-list-filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], ["List", "tva"]], ["List", "tva"]]],
         "raw-list-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", ["List", "tva"]], "tvb"]],
         "current-checker": ["arrow", [], ["record", {
-          // "run-checks": "tbot",
-          // "check-is": "tbot",
-          // "check-is-not": "tbot",
-          // "check-is-refinement": "tbot",
-          // "check-is-not-refinement": "tbot",
-          // "check-satisfies": "tbot",
-          // "check-satisfies-not": "tbot",
-          // "check-raises-str": "tbot",
-          // "check-raises-not": "tbot",
-          // "check-raises-other-str": "tbot",
-          // "check-raises-satisfies": "tbot",
-          // "check-raises-violates":  "tbot"
+          "run-checks": "tbot",
+          "check-is": "tbot",
+          "check-is-not": "tbot",
+          "check-is-refinement": "tbot",
+          "check-is-not-refinement": "tbot",
+          "check-satisfies": "tbot",
+          "check-satisfies-not": "tbot",
+          "check-raises-str": "tbot",
+          "check-raises-not": "tbot",
+          "check-raises-other-str": "tbot",
+          "check-raises-satisfies": "tbot",
+          "check-raises-violates":  "tbot"
         }]]
       }],
 
-      "nothing": "Nothing",
       "torepr": ["arrow", ["Any"], "String"],
       "to-repr": ["arrow", ["Any"], "String"],
       "tostring": ["arrow", ["Any"], "String"],
