@@ -1,6 +1,7 @@
 import file("./export.arr") as T
 
-a :: T.Foo = T.foo(1)
+type Foo = T.Foo
+a :: Foo = T.foo(1)
 
 b = cases(T.Foo) a:
   | foo(x) => x

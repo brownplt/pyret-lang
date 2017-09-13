@@ -360,7 +360,18 @@
 
     },
     aliases: {
-      "Any": "tany"
+      "Any": "tany",
+      "Method": "tany",
+      "Object": "tany",
+      "Function": "tany",
+      "NumNonNegative": "Number",
+      "NumNonPositive": "Number",
+      "NumNegative": "Number",
+      "NumPositive": "Number",
+      "NumRational": "Number",
+      "NumInteger": "Number",
+      "Roughnum": "Number",
+      "Exactnum": "Number"
     },
     datatypes: {
       "Number": ["data", "Number", [], [], {

@@ -153,7 +153,7 @@ data Provides:
       from-uri :: URI,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
-      data-definitions :: StringDict<T.Type>
+      data-definitions :: StringDict<T.DataType>
     )
 end
 
