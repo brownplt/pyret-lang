@@ -128,9 +128,9 @@ fun desugar(program :: A.Program):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
+    | s-program(l, _provide, provided-types, provided-modules, imports, body) =>
       generated-binds := SD.make-mutable-string-dict()
-      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
+      {ast: A.s-program(l, _provide, provided-types, provided-modules, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
@@ -353,8 +353,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
-    | s-module(l, answer, dv, dt, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-module(l, answer, dv, dt, dm, checks) =>
+      A.s-module(l, desugar-expr(answer), dv, dt, dm, desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>

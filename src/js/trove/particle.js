@@ -279,6 +279,6 @@
       "D7": runtime.getField(pStruct_vals, "D7")
     });
 
-    return runtime.makeModuleReturn(values, {});
+    return runtime.makeModuleReturn(values, {}, {});
   }
 })

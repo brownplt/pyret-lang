@@ -3,6 +3,8 @@
 provide *
 provide-types *
 import ast as A
+import lists as L
+import option as O
 import pprint as PP
 import srcloc as SL
 import string-dict as SD
@@ -272,12 +274,12 @@ sharing:
 end
 
 data ADefinedValue:
-  | a-defined-value(name :: String, value :: AVal) with:
+  | a-defined-value(name :: String, provided-name :: Option<A.Name>, value :: AVal) with:
     method label(self): "a-defined-value" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
-  | a-defined-var(name :: String, id :: A.Name) with:
+  | a-defined-var(name :: String, provided-name :: Option<A.Name>, id :: A.Name) with:
     method label(self): "a-defined-var" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.toname())
@@ -288,8 +290,19 @@ sharing:
   end
 end
 data ADefinedType:
-  | a-defined-type(name :: String, typ :: A.Ann) with:
+  | a-defined-type(name :: String, provided-name :: Option<A.Name>, typ :: A.Ann) with:
     method label(self): "a-defined-type" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+  end
+end
+data ADefinedModule:
+  | a-defined-module(name :: String, provided-name :: Option<A.Name>, uri :: String) with:
+    method label(self): "a-defined-module" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
     end
@@ -305,9 +318,17 @@ data ALettable:
       answer :: AVal,
       defined-values :: List<ADefinedValue>,
       defined-types :: List<ADefinedType>,
-      provided-values :: AVal,
-      provided-types,
+      defined-modules :: List<ADefinedModule>,
       checks :: AVal) with:
+    method provided-values(self):
+      L.filter(O.is-some(_.provided-name), self.defined-values)
+    end,
+    method provided-types(self):
+      L.filter(O.is-some(_.provided-name), self.defined-types)
+    end,
+    method provided-modules(self):
+      L.filter(O.is-some(_.provided-name), self.defined-modules)
+    end,
     method label(self): "a-module" end,
     method tosource(self):
       PP.str("Module") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
@@ -316,9 +337,8 @@ data ALettable:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
             PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
+            PP.infix(INDENT, 1, str-colon,PP.str("DefinedModules"),
+              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-modules))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | a-id-var(l :: Loc, id :: A.Name) with:
@@ -477,9 +497,11 @@ data AVal:
   | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-safe-letrec" end,
     method tosource(self): PP.str("~" + tostring(self.id)) end
-  | a-module-dot(l :: Loc, base :: A.Name, path :: List<String>) with:
+  | a-module-dot(l :: Loc, uri :: String, path :: List<String>) with:
     method label(self): "a-module-dot" end,
-    method tosource(self): self.id.to-compiled-source() end
+    method tosource(self):
+      PP.separate(PP.str("."), link(PP.str(self.uri), self.path.map(PP.str)))
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
@@ -531,9 +553,8 @@ end
 
 fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
-    | a-module(_, answer, dv, dt, provides, types, checks) =>
-      a-module(dummy-loc, strip-loc-val(answer), dv, dt, strip-loc-val(provides),
-        types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
+    | a-module(_, answer, dv, dt, dm, checks) =>
+      a-module(dummy-loc, strip-loc-val(answer), dv, dt, dm, strip-loc-val(checks))
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
@@ -584,13 +605,12 @@ fun strip-loc-val(val :: AVal):
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
     | a-module-dot(_, base, path) => a-module-dot(dummy-loc, base, path)
->>>>>>> checkpoint: this probably fails lots of tests, but seems to correctly compile value module lookups, and check if they are there, without treating them as objects
   end
 end
 
 default-map-visitor = {
-  method a-module(self, l :: Loc, answer :: AVal, dv, dt, provides :: AVal, types :: List<A.AField>, checks :: AVal):
-    a-module(l, answer.visit(self), dv, dt, provides.visit(self), types, checks.visit(self))
+  method a-module(self, l :: Loc, answer :: AVal, dv, dt, dm, checks :: AVal):
+    a-module(l, answer.visit(self), dv, dt, dm, checks.visit(self))
   end,
   method a-program(self, l :: Loc, p, imports :: List<AImport>, body :: AExpr):
     a-program(l, p, imports.map(_.visit(self)), body.visit(self))
@@ -722,7 +742,7 @@ default-map-visitor = {
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
   end,
-  method a-module-dot(self, l :: Loc, base :: A.Name, path):
+  method a-module-dot(self, l :: Loc, base :: String, path):
     a-module-dot(l, base, path)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
@@ -757,7 +777,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
       seen-so-far
     | a-type-var(l, name) => seen-so-far
     | a-dot(l, left, right) =>
-      seen-so-far.set-now(left.key(), left)
+      #seen-so-far.set-now(left.key(), left)
       seen-so-far
     | a-arrow(l, args, ret, _) => freevars-list-acc(args, freevars-ann-acc(ret, seen-so-far))
     | a-arrow-argnames(l, args, ret, _) => freevars-fields-acc(args, freevars-ann-acc(ret, seen-so-far))
@@ -854,11 +874,17 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
 end
 fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(ALettable) e block:
-    | a-module(_, ans, dv, dt, provs, types, checks) =>
+    | a-module(l, ans, dv, dt, dm, checks) =>
+      all-names = dv.map(lam(v):
+          cases(ADefinedValue) v:
+            | a-defined-value(_, _, value) => value
+            | a-defined-var(_, _, id) => a-id(l, id) # not a-id-var to make freevars-v-acc happy
+          end
+        end) # dm?
       freevars-v-acc(ans,
-        freevars-v-acc(provs,
-          freevars-list-acc(types.map(_.ann),
-            freevars-v-acc(checks, seen-so-far))))
+        for lists.fold(acc from freevars-list-acc(dt.map(_.typ), freevars-v-acc(checks, seen-so-far)), n from all-names):
+          freevars-v-acc(n, acc)
+        end)
     | a-cases(_, typ, val, branches, _else) =>
       freevars-ann-acc(typ,
         freevars-v-acc(val,
@@ -964,9 +990,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
     | a-id(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
-    | a-module-dot(_, base, _) =>
-      seen-so-far.set-now(base.key(), base)
-      seen-so-far
+    | a-module-dot(_, base, _) => seen-so-far
     | a-id-safe-letrec(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far

@@ -3,7 +3,8 @@
   nativeRequires: ["path", "fs"],
   provides: {
     values: {
-      "make-standalone": "tany"
+      "make-standalone": "tany",
+      "make-html-file": "tany"
     },
     aliases: {},
     datatypes: {}
@@ -120,6 +121,6 @@
     return runtime.makeModuleReturn({
       "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone"),
       "make-html-file": runtime.makeFunction(makeHtmlFile, "make-html-file")
-    }, {})
+    }, {}, {})
   }
 })

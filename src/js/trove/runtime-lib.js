@@ -39,7 +39,7 @@
       checkRuntime: checkRuntime,
       brandRuntime: brandRuntime
     };
-    return runtime.makeModuleReturn(values, types, internal);
+    return runtime.makeModuleReturn(values, types, {}, internal);
   }
 })
 

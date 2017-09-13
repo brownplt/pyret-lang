@@ -747,6 +747,6 @@
         isTable: isTable,
         isRow: isRow
       },
-      {});
+      {}, {});
   }
 })

@@ -33,8 +33,10 @@
           "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath, "legacy-path-raw-locator")
         },
       'defined-types': {},
+      'defined-modules': {},
       "provide-plus-types": O({
-        types: { },
+        types: O({ }),
+        modules: O({}),
         values: O({
           "legacy-path-raw-locator": RUNTIME.makeFunction(getLegacyPath, "legacy-path-raw-locator")
         })

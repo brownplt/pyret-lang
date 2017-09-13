@@ -11,9 +11,13 @@
       "get-result-answer": "tany",
       "get-result-realm": "tany",
       "get-result-compile-result": "tany",
+      "get-result-stacktrace": "tany",
       "render-check-results": "tany",
       "render-error-message": "tany",
       "empty-realm": "tany",
+      "get-exit-code": "tany",
+      "is-exit": "tany",
+      "is-exit-quiet": "tany"
     },
     aliases: {
       "Realm": "tany" 
@@ -83,12 +87,12 @@
     function checkSuccess(mr, field) {
       if(!mr.val) {
         console.error(mr);
-        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module compilation.");
+        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module compilation.\nModule: " + mr);
       }
       if(!(mr.val.runtime.isSuccessResult(mr.val.result))) {
         console.error(mr.val.result);
         console.error(mr.val.result.exn);
-        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.");
+        runtime.ffi.throwMessageException("Tried to get " + field + " of non-successful module execution.\nModule: " + mr);
       }
     }
     function checkExn(mr) {
@@ -163,13 +167,26 @@
         return {};
       }
     }
+    function getModuleResultDefinedModules(mr) {
+      var rt = mr.val.runtime;
+      if(rt.hasField(mr.val.result.result, "defined-modules")) {
+        return mr.val.runtime.getField(mr.val.result.result, "defined-modules");
+      }
+      else {
+        return {};
+      }
+    }
     function getModuleResultValues(mr) {
       checkSuccess(mr, "values");
       return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "values").dict;
     }
     function getModuleResultTypes(mr) {
       checkSuccess(mr, "types");
-      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "types");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "types").dict;
+    }
+    function getModuleResultModules(mr) {
+      checkSuccess(mr, "modules");
+      return mr.val.runtime.getField(mr.val.runtime.getField(mr.val.result.result, "provide-plus-types"), "modules").dict;
     }
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
@@ -418,9 +435,11 @@
     return runtime.makeObject({
       'defined-values': vals,
       'defined-types': types,
+      'defined-modules': {},
       "provide-plus-types": runtime.makeObject({
         values: runtime.makeObject(vals),
-        types: types,
+        types: runtime.makeObject(types),
+        modules: runtime.makeObject({}),
         internal: {
           makeRealm: makeRealm,
           enrichStack: enrichStack,
@@ -429,11 +448,13 @@
           getModuleResultChecks: getModuleResultChecks,
           getModuleResultTypes: getModuleResultTypes,
           getModuleResultValues: getModuleResultValues,
+          getModuleResultModules: getModuleResultModules,
           getModuleResultRuntime: getModuleResultRuntime,
           getModuleResultResult: getModuleResultResult,
           getModuleResultNamespace: getModuleResultNamespace,
           getModuleResultDefinedTypes: getModuleResultDefinedTypes,
-          getModuleResultDefinedValues: getModuleResultDefinedValues
+          getModuleResultDefinedValues: getModuleResultDefinedValues,
+          getModuleResultDefinedModules: getModuleResultDefinedModules
         }
       })
     });

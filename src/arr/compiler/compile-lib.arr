@@ -222,7 +222,7 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
-dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
+dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
 fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile> block:
   temp-marked = SD.make-mutable-string-dict()
@@ -302,7 +302,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
-  env = CS.compile-env(locator.get-globals(), provide-map)
+  uri-map = for fold(acc from [SD.string-dict:], dep from provide-map.keys-list()):
+    acc.set(provide-map.get-value(dep).from-uri, dep)
+  end
+  env = CS.compile-env(locator.get-globals(), provide-map, uri-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
       #print("Module is already compiled\n")

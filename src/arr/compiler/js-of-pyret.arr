@@ -154,7 +154,7 @@ fun make-lettable-data-env(
     alias-to-type-name :: SD.MutableStringDict<String>):
   default-ret = none
   cases(AA.ALettable) lettable:
-    | a-module(_, answer, dv, dt, provides, types, checks) =>
+    | a-module(_, answer, dv, dt, dm, checks) =>
       default-ret
     | a-if(_, c, t, e) =>
       block:
@@ -296,7 +296,7 @@ fun make-lettable-flatness-env(
     sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
   default-ret = some(0)
   cases(AA.ALettable) lettable:
-    | a-module(_, answer, dv, dt, provides, types, checks) =>
+    | a-module(_, answer, dv, dt, dm, checks) =>
       default-ret
     | a-if(_, c, t, e) =>
       flatness-max(make-expr-flatness-env(t, sd), make-expr-flatness-env(e, sd))
@@ -440,8 +440,9 @@ fun get-defined-values(ast):
 
   dvs-dict = for fold(s from [SD.string-dict:], d from the-dvs):
     cases(AA.ADefinedValue) d:
-      | a-defined-value(name, val) => s.set(name, val.id.key())
-      | a-defined-var(name, id) => s.set(name, id.key())
+        # TODO(joe): use provided name? currently underscored out
+      | a-defined-value(name, _, val) => s.set(name, val.id.key())
+      | a-defined-var(name, _, id) => s.set(name, id.key())
     end
   end
 
@@ -451,7 +452,7 @@ end
 fun get-flat-provides(provides, flatness-env, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
-    | provides(uri, values, aliases, datatypes) =>
+    | provides(uri, values, aliases, datatypes, modules) =>
       new-values = for SD.fold-keys(s from [SD.string-dict:], k from values):
         maybe-flatness = flatness-env.get(dvs-dict.get-value(k))
         existing-val = values.get-value(k)
@@ -465,7 +466,7 @@ fun get-flat-provides(provides, flatness-env, ast) block:
         end
         s.set(k, new-val)
       end
-      C.provides(uri, new-values, aliases, datatypes)
+      C.provides(uri, new-values, aliases, datatypes, modules)
   end
 end
 

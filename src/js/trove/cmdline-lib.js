@@ -20,6 +20,7 @@
               return runtime.ffi.makeList(args.map(runtime.makeString));
           }, "command-line-arguments"),
       },
+      {},
       {});
   }
 })
