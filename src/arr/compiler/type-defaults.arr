@@ -151,9 +151,9 @@ module-const-equality = t-module("builtin://equality",
     "is-EqualityResult", t-arrow([list: t-top], t-boolean),
     "Equal", t-data-refinement(t-equality-result, "Equal"),
     "is-Equal", t-arrow([list: t-top], t-boolean),
-    "NotEqual", t-arrow([list: t-string], t-data-refinement(t-equality-result, "NotEqual")),
+    "NotEqual", t-arrow([list: t-string, t-top, t-top], t-data-refinement(t-equality-result, "NotEqual")),
     "is-NotEqual", t-arrow([list: t-top], t-boolean),
-    "Unknown", t-data-refinement(t-equality-result, "Unknown"),
+    "Unknown", t-arrow([list: t-string, t-top, t-top], t-data-refinement(t-equality-result, "Unknown")),
     "is-Unknown", t-arrow([list: t-top], t-boolean),
     "equal-and", t-arrow([list: t-equality-result, t-equality-result], t-equality-result),
     "equal-or", t-arrow([list: t-equality-result, t-equality-result], t-equality-result),
@@ -165,11 +165,12 @@ module-const-equality = t-module("builtin://equality",
       [list: ],
       [list:
         t-singleton-variant("Equal", [string-dict: ]),
-        t-variant("NotEqual", [list: {"reason"; t-string}], [string-dict: ]),
-        t-singleton-variant("Unknown", [string-dict: ])],
+        t-variant("NotEqual", [list: {"reason"; t-string}, {"value1"; t-top}, {"value2"; t-top}], [string-dict: ]),
+        t-variant("Unknown", [list: {"reason"; t-string}, {"value1"; t-top}, {"value2"; t-top}], [string-dict: ])],
       [string-dict: ])
     ),
   SD.make-string-dict()
+    .set("EqualityResult", t-equality-result)
 )
 
 module-const-arrays = t-module("builtin://arrays",
