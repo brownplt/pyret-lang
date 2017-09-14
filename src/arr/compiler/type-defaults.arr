@@ -175,7 +175,15 @@ module-const-equality = t-module("builtin://equality",
 
 module-const-arrays = t-module("builtin://arrays",
   t-record([string-dict:
-    "array", t-top,
+    "array", t-record([string-dict:
+      "make", t-forall([list: tva], t-arrow([list: t-array(tva)], t-big-array-app(tva))),
+      "make0", t-forall([list: tva], t-arrow([list: ], t-big-array-app(tva))),
+      "make1", t-forall([list: tva], t-arrow([list: tva], t-big-array-app(tva))),
+      "make2", t-forall([list: tva], t-arrow([list: tva, tva], t-big-array-app(tva))),
+      "make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], t-big-array-app(tva))),
+      "make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], t-big-array-app(tva))),
+      "make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], t-big-array-app(tva)))
+    ]),
     "build-array", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number], tva), t-number], t-big-array-app(tva))),
     "array-from-list", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-big-array-app(tva))),
     "is-array", t-forall([list: tva], t-arrow([list: t-top], t-boolean)),
