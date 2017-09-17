@@ -75,7 +75,7 @@ function start(options) {
       process.exit(1);
     }
   }
-
+  
   const serverModule = options.client.compiler;
   var portFile = getSocket();
 

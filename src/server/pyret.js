@@ -171,6 +171,8 @@ const optionDefinitions = [
   // These options affect how the client starts up and communiates with the server
   { name: 'shutdown', alias: 's', type: Boolean, group: "client", defaultValue: false },
   { name: 'port', alias: 't', type: String, group: "client" },
+//   { name: 'clean', type: Boolean, group: "client", defaultValue: false },
+
   { name: 'compiler', alias: 'c', type: String, defaultValue: compilerPath, group: "client" },
   { name: 'global-parley', type: String, defaultValue: "~/.parley/" },
   { name: 'local-parley', type: String, defaultValue: ".pyret" },
@@ -189,8 +191,8 @@ const optionDefinitions = [
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" },
   { name: 'deps-file', type: String, group: "pyret-options" },
-  { name: 'perilous', type: Boolean, group: "pyret-options" }
-
+  { name: 'perilous', type: Boolean, group: "pyret-options" },
+  { name: 'type-check', type: Boolean, group: "pyret-options", defaultValue: false },
 ];
 
 let options;
