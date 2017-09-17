@@ -79,7 +79,7 @@ fun serve(port, pyret-dir):
     with-error = with-logger.set("log-error", err)
     with-pyret-dir = with-error.set("this-pyret-dir", pyret-dir)
     with-compiled-read-only-dirs =
-      if opts.has-key("perilous"):
+      if opts.has-key("perilous") and opts.get-value("perilous"):
         with-pyret-dir.set("compiled-read-only",
           link(P.resolve(P.join(pyret-dir, "lib-compiled")), empty)
         ).set("user-annotations", false)
