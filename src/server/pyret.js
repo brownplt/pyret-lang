@@ -81,6 +81,11 @@ const usages = [
         name: 'perilous',
         description: "Compromises error semantics for speed. If the program has no errors, it will produce the same outputs and answers. Currently, this means eliding most annotation checks in compiled code and in libraries. Fine-grained control is intentionally not provided since the specifics of how this works may change, but in general it will do less error checking in exchange for faster execution, and not change the meaning of programs with no errors."
       },
+      {
+        name: 'type-check',
+        alias: 'y',
+        description: "Turn on the type-checker, and report errors found by the type checker as compilation errors."
+      },
       /*
       {
         name: 'no-check-mode',
@@ -191,8 +196,9 @@ const optionDefinitions = [
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" },
   { name: 'deps-file', type: String, group: "pyret-options" },
-  { name: 'perilous', type: Boolean, group: "pyret-options" },
-  { name: 'type-check', type: Boolean, group: "pyret-options", defaultValue: false },
+
+  { name: 'perilous', type: Boolean, group: "pyret-options", defaultValue: false },
+  { name: 'type-check', alias: 'y', type: Boolean, group: "pyret-options", defaultValue: false },
 ];
 
 let options;
