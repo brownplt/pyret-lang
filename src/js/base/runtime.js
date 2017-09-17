@@ -285,7 +285,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         s += " }";
         return s;
-        
+
       },
       "object": function(val, pushTodo) {
         var keys = [];
@@ -416,7 +416,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (val.$constrFor !== undefined) {
           thisRuntime.ffi.throwLookupConstructorNotObject(makeSrcloc(loc), val.$constrFor, field);
         }
-        thisRuntime.ffi.throwLookupNonObject(makeSrcloc(loc), val, field); 
+        thisRuntime.ffi.throwLookupNonObject(makeSrcloc(loc), val, field);
       }
       var fieldVal = val.dict[field];
       if(fieldVal === undefined) {
@@ -747,6 +747,119 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var appN = function(obj) {
       var that = this;
       return function() { return that.full_meth(obj, ...arguments); }
+    }
+
+    function maybeMethodCall0(obj, fieldname, loc) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app();
+      }
+    }
+
+
+    function maybeMethodCall1(obj, fieldname, loc, arg) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg);
+      }
+    }
+
+    function maybeMethodCall2(obj, fieldname, loc, arg1, arg2) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2);
+      }
+    }
+
+    function maybeMethodCall3(obj, fieldname, loc, arg1, arg2, arg3) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3);
+      }
+    }
+
+    function maybeMethodCall4(obj, fieldname, loc, arg1, arg2, arg3, arg4) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4);
+      }
+    }
+
+    function maybeMethodCall5(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5);
+      }
+    }
+
+    function maybeMethodCall6(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5, arg6) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+    }
+
+    function maybeMethodCall7(obj, fieldname, loc, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+      var R = thisRuntime;
+      var field = R.getColonFieldLoc(obj,fieldname,loc);
+      if(thisRuntime.isMethod(field)) {
+        return field.full_meth(obj, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+      }
+      else {
+        if(!(R.isFunction(field))) {
+          R.ffi.throwNonFunApp(loc,field);
+        }
+        return field.app(arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+      }
     }
 
     function maybeMethodCall(obj, fieldname, loc, ...args) {
@@ -1081,7 +1194,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         $mut_fields_mask = constructor;
         constructor = _ignored;
       }
-      
+
       function C(dict, brands) {
         this.dict = dict;
         this.brands = brands;
@@ -1154,7 +1267,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function makeArray(arr) {
       return arr;
     }
- 
+
     /************************
           Type Checking
     ************************/
@@ -1818,7 +1931,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return;
           }
         }
-// throw new Error("Internal error: tried to 
+// throw new Error("Internal error: tried to
       }
       function cachePair(obj1, obj2) {
         cache.left.push(obj1);
@@ -2531,7 +2644,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               thisRuntime.getField(result, "reason"))
           ));
         }
-        else if (!thisRuntime.ffi.isOk(result)) { 
+        else if (!thisRuntime.ffi.isOk(result)) {
           throw "Internal error: got invalid result from annotation check";
         }
       }
@@ -2817,7 +2930,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.refinement = hasRefinement;
       this.isCheap = isCheap;
     }
-    
+
     function makeTupleAnn(locs, anns) {
       return new PTupleAnn(locs, anns);
     }
@@ -2964,7 +3077,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return that.createMissingFieldsError(compilerLoc, val);
         }
       }
-      
+
       // Fast path: no refinements, so no deep stack/pause potential
       if(!that.hasRefinement) {
         for(var i = 0; i < that.fields.length; i++) {
@@ -3812,7 +3925,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     var raw_array_from_list = function(lst) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 2, $a, false); }
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("RawArrays", "raw-array-from-list", lst, thisRuntime.List);
       return thisRuntime.ffi.toArray(lst);
     };
@@ -3860,7 +3973,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cleanQuit = false;
         $ans = thisRuntime.makeCont();
       }
-      
+
       while (cleanQuit && (curIdx < len)) {
         if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3918,7 +4031,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         $ans = thisRuntime.makeCont();
         cleanQuit = false;
       }
-      
+
       while (cleanQuit && curIdx < len) {
         if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
@@ -3966,12 +4079,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-obj-destructure",
         arr, thisRuntime.RawArray, keys, thisRuntime.RawArray);
-      
+
       var obj = {}
       for(var i = 0; i < keys.length; i++) {
         obj[keys[i]] = arr[i];
       }
-      
+
       return makeObject(obj);
     };
 
@@ -4097,8 +4210,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     var raw_array_and_mapi = raw_array_bool_mapper("raw-array-and-mapi", true, false);
     var raw_array_or_mapi = raw_array_bool_mapper("raw-array-or-mapi", false, true);
-    
-    
+
+
     var raw_array_map = function(f, arr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-map",
@@ -4419,7 +4532,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(jsnums.greaterThan(max, string_length(s), NumberErrbacks)) {
         thisRuntime.ffi.throwMessageException("substring: max index " + String(max) + " is larger than the string length " + String(string_length(s)));
       }
-      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min, NumberErrbacks), 
+      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min, NumberErrbacks),
                                                 jsnums.toFixnum(max, NumberErrbacks)));
     }
     var string_replace = function(s, find, replace) {
@@ -5081,7 +5194,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         reflFields = constructor;
         constructor = _ignored;
       }
-      
+
       function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
       function constArr(arr) { return "[" + arr.map(quote).join(",") + "]"; }
 
@@ -5211,7 +5324,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),
-      'list-to-raw-array': makeFunction(function(l) { return thisRuntime.ffi.toArray(l); }, "list-to-raw-array"),
+      'list-to-raw-array': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'has-field': makeFunction(hasField, "has-field"),
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
       'raw-list-map': makeFunction(raw_list_map, "raw-list-map"),
@@ -5273,7 +5386,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return results;
       }, "toReprArray");
     }
-    
+
     function spy(loc, message, locs, names, vals) {
       var callback = undefined;
       if (thisRuntime.hasParam("onSpy")) { callback = thisRuntime.getParam("onSpy"); }
@@ -5322,7 +5435,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // NOTE(joe): this one different because the predicate is added when Table is loaded
       // (see handalone.js)
       'is-table': makeFunction(function(v) {
-        return thisRuntime.isTable(v); 
+        return thisRuntime.isTable(v);
       }, "is-tuple"),
 
       'run-task': makeFunction(execThunk, "run-task"),
@@ -5587,6 +5700,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeMethodN'   : makeMethodN,
       'makeMethodFromFun' : makeMethodFromFun,
       'maybeMethodCall': maybeMethodCall,
+      'maybeMethodCall0': maybeMethodCall0,
+      'maybeMethodCall1': maybeMethodCall1,
+      'maybeMethodCall2': maybeMethodCall2,
+      'maybeMethodCall3': maybeMethodCall3,
+      'maybeMethodCall4': maybeMethodCall4,
+      'maybeMethodCall5': maybeMethodCall5,
+      'maybeMethodCall6': maybeMethodCall6,
+      'maybeMethodCall7': maybeMethodCall7,
       'callIfPossible0' : callIfPossible0,
       'callIfPossible1' : callIfPossible1,
       'callIfPossible2' : callIfPossible2,

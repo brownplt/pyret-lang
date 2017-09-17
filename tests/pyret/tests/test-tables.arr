@@ -102,6 +102,16 @@ end
 
 
 check "Table ordering":
+
+  order table: a, b row: 1, 2 end: a ascending end is table: a, b row: 1, 2 end
+
+  order table: a, c row: 1, 2 end: b ascending end raises "does not have a column named `b`"
+
+  order table: a, c row: 1, 2 row: 3, 4 end: b ascending end raises "does not have a column named `b`"
+
+  order table: a end: b ascending end raises "does not have a column named `b`"
+
+
   fun slow-val(n):
     fun wasteTime(i):
       if i == 0: n
@@ -233,6 +243,11 @@ check "Table ordering":
   another-t.decreasing-by("x") is by-x
   another-t.order-by-columns([list: {"x"; false}]) is by-x
 
+  table: a end.order-by("b", true) raises "does not have a column named `b`"
+  another-t.order-by("b", true) raises "does not have a column named `b`"
+
+  table: a end.order-by-columns([list: {"b"; true}]) raises "does not have a column named `b`"
+  another-t.order-by-columns([list: {"b"; true}]) raises "does not have a column named `b`"
 
 end
 
