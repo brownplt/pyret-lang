@@ -51,6 +51,10 @@ t-option = lam(param :: Type):
   t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: param])
 end
 
+t-pick = lam(param-1 :: Type, param-2 :: Type):
+  t-app(t-name(module-uri("builtin://pick"), A.s-type-global("Pick")), [list: param-1, param-2])
+end
+
 t-reactor = lam(param :: Type):
   t-app(t-name(module-uri("builtin://reactors"), A.s-type-global("Reactor")), [list: param])
 end
@@ -265,6 +269,39 @@ module-const-arrays = t-module("builtin://arrays",
         ])),
   SD.make-string-dict()
     .set("Array", t-big-array)
+)
+
+module-const-pick = t-module("builtin://pick",
+  t-record([string-dict:
+    "Pick", t-arrow([list: t-top], t-boolean),
+    "is-Pick", t-arrow([list: t-top], t-boolean),
+    "pick-none", t-forall([list: tva, tvb], t-data-refinement(t-pick(tva, tvb), "pick-none")),
+    "is-pick-none", t-arrow([list: t-top], t-boolean),
+    "pick-some", t-forall([list: tva, tvb], t-arrow([list: tva, tvb], t-data-refinement(t-pick(tva, tvb), "pick-some"))),
+    "is-pick-some", t-arrow([list: t-top], t-boolean)
+  ]),
+  SD.make-string-dict()
+    .set("Pick", t-data(
+        "Pick",
+        [list: tva, tvb],
+        [list:
+          t-singleton-variant("pick-none",
+            [string-dict:
+              "_match", t-top,
+            ]
+          ),
+          t-variant("pick-some",
+            [list: {"elt"; tva}, {"rest"; tvb}],
+            [string-dict:
+              "_match", t-top,
+            ]
+          )
+        ],
+        [string-dict:
+          "_match", t-top
+      ])),
+  SD.make-string-dict()
+    .set("Pick", t-name(module-uri("builtin://pick"), A.s-type-global("Pick")))
 )
 
 set-constructor =
@@ -728,6 +765,7 @@ fun make-default-modules() block:
   default-modules.set-now("builtin://error", module-const-error)
   default-modules.set-now("builtin://either", module-const-either)
   default-modules.set-now("builtin://arrays", module-const-arrays)
+  default-modules.set-now("builtin://pick", module-const-pick)
   default-modules.set-now("builtin://sets", module-const-sets)
   default-modules.set-now("builtin://s-exp", module-const-s-exp)
   default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
