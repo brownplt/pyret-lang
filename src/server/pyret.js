@@ -4,6 +4,7 @@ const usage = require('command-line-usage');
 const commandLineArgs = require('command-line-args');
 const pyretClient = require('./client-lib');
 const path = require('path');
+const stripAnsi = require('strip-ansi');
 
 const compilerPath = path.join(__dirname, "..", "..", "build", "phaseA", "pyret.jarr");
 
@@ -203,16 +204,26 @@ const optionDefinitions = [
 
 let options;
 
+// https://stackoverflow.com/a/20585886/2718315
+function printUsage() {
+  if(process.stdout.isTTY) {
+    console.log(usage(usages));
+  }
+  else {
+    console.log(stripAnsi(usage(usages)));
+  }
+}
+
 try {
   options = commandLineArgs(optionDefinitions);
   if(options.meta.help) {
-    console.log(usage(usages));
+    printUsage();
     process.exit(0);
   }
 }
 catch(e) {
-  console.log(usage(usages));
-  process.exit(0);
+  printUsage();
+  process.exit(1);
 }
 
 // Default behavior: use ".jarr" to replace ".arr"
