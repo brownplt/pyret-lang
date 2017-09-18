@@ -91,6 +91,10 @@ fun t-set-app(typ :: Type):
   t-app(t-set, [list: typ])
 end
 
+fun t-pick-app(typ1 :: Type, typ2 :: Type):
+  t-app(t-pick, [list: typ1, typ2])
+end
+
 t-output = t-arrow([list: ], t-value-skeleton)
 t-number-binop = t-arrow([list: t-number, t-number], t-number)
 
@@ -269,34 +273,33 @@ module-const-sets = t-module("builtin://sets",
     "empty-tree-set", t-empty-set,
     "list-to-set", t-list-to-set,
     "list-to-list-set", t-list-to-set,
-    "list-to-tree-set", t-list-to-set
+    "list-to-tree-set", t-list-to-set,
+    "fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb, t-set-app(tva)], tvb)),
+    "all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean)),
+    "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean))
   ]),
-  let tv-set = t-set-app(tva),
-      tv-to-tv = t-arrow([list: tv-set], tv-set),
-      tv-arg = [list: tva]:
-    SD.make-string-dict()
-      .set("Set", t-data(
-          "Set",
-          [list: tva],
-          [list: ],
-          [string-dict:
-              "length", t-arrow(empty, t-number),
-              "pick", t-arrow(empty, t-app(t-pick, [list: tva, t-set-app(tva)])),
-              "_output", t-output,
-              "fold", t-forall([list: tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb], tvb)),
-              "member", t-arrow([list: tva], t-boolean),
-              "add", t-arrow([list: tva], tv-set),
-              "remove", t-arrow([list: tva], tv-set),
-              "to-list", t-arrow(empty, t-list-app(tva)),
-              "union", tv-to-tv,
-              "intersect", tv-to-tv,
-              "difference", tv-to-tv,
-              "size", t-arrow(empty, t-number)
-        ]))
-  end,
+  SD.make-string-dict()
+    .set("Set", t-data(
+      "Set",
+      [list: tva],
+      [list: ],
+      [string-dict:
+        "add", t-arrow([list: tva], t-set-app(tva)),
+        "remove", t-arrow([list: tva], t-set-app(tva)),
+        "size", t-arrow([list: ], t-number),
+        "member", t-arrow([list: tva], t-set-app(tva)),
+        "pick", t-arrow([list: ], t-pick-app(tva, t-set-app(tva))),
+        "union", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
+        "intersect", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
+        "difference", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
+        "symmetric-difference", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
+        "to-list", t-arrow([list: ], t-list-app(tva)),
+        "fold", t-forall([list: tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb], tvb))
+      ])),
   SD.make-string-dict()
     .set("Set", t-set)
-)
+    .set("List", t-list)
+    .set("Pick", t-pick))
 
 module-const-lists = t-module("builtin://lists",
   t-record([string-dict:
