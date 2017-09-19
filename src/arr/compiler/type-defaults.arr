@@ -66,6 +66,8 @@ t-parse-error = t-name(module-uri("builtin://error"), A.s-type-global("ParseErro
 t-either = t-name(module-uri("builtin://either"), A.s-type-global("Either"))
 t-s-exp = t-name(module-uri("builtin://s-exp-structs"), A.s-type-global("S-Exp"))
 t-pick = t-name(module-uri("builtin://pick"), A.s-type-global("Pick"))
+t-json = t-name(module-uri("builtin://json-structs"), A.s-type-global("JSON"))
+t-string-dict = t-name(module-uri("builtin://string-dict"), A.s-type-global("StringDict"))
 
 fun t-either-app(typ-1 :: Type, typ-2 :: Type):
   t-app(t-either, [list: typ-1, typ-2])
@@ -93,6 +95,10 @@ end
 
 fun t-pick-app(typ1 :: Type, typ2 :: Type):
   t-app(t-pick, [list: typ1, typ2])
+end
+
+fun t-string-dict-app(typ :: Type):
+  t-app(t-string-dict, [list: typ])
 end
 
 t-output = t-arrow([list: ], t-value-skeleton)
@@ -721,6 +727,66 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
     .set("S-Exp", t-s-exp)
 )
 
+module-const-json-structs = t-module("builtin://json-structs",
+  t-record([string-dict:
+    "link", t-forall([list: tva], t-arrow([list: tva, t-list-app(tva)], t-data-refinement(t-list-app(tva), "link"))),
+    "empty", t-forall([list: tva], t-data-refinement(t-list-app(tva), "empty")),
+    "is-empty", t-arrow([list: t-top], t-boolean),
+    "is-link", t-arrow([list: t-top], t-boolean),
+    "map", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva], tvb), t-list-app(tva)], t-list-app(tvb))),
+    "is-array", t-forall([list: tva], t-arrow([list: t-top], t-boolean)),
+    "JSON", t-arrow([list: t-top], t-boolean),
+    "is-JSON", t-arrow([list: t-top], t-boolean),
+    "j-obj", t-arrow([list: t-string-dict-app(t-json)], t-data-refinement(t-json, "j-obj")),
+    "is-j-obj", t-arrow([list: t-top], t-boolean),
+    "j-arr", t-arrow([list: t-list-app(t-json)], t-data-refinement(t-json, "j-arr")),
+    "is-j-arr", t-arrow([list: t-top], t-boolean),
+    "j-num", t-arrow([list: t-number], t-data-refinement(t-json, "j-num")),
+    "is-j-num", t-arrow([list: t-top], t-boolean),
+    "j-str", t-arrow([list: t-string], t-data-refinement(t-json, "j-str")),
+    "is-j-str", t-arrow([list: t-top], t-boolean),
+    "j-bool", t-arrow([list: t-boolean], t-data-refinement(t-json, "j-bool")),
+    "is-j-bool", t-arrow([list: t-top], t-boolean),
+    "j-null", t-arrow([list: ], t-data-refinement(t-json, "j-null")),
+    "is-j-null", t-arrow([list: t-top], t-boolean),
+    "tojson", t-arrow([list: t-top], t-json)
+  ]),
+  SD.make-string-dict()
+    .set("JSON", t-data(
+        "JSON",
+        [list: ],
+        [list:
+          t-variant("j-obj",
+            [list: {"dict"; t-string-dict-app(t-json)}],
+            [string-dict: ]
+          ),
+          t-variant("j-arr",
+            [list: {"l"; t-list-app(t-json)}],
+            [string-dict: ]
+          ),
+          t-variant("j-num",
+            [list: {"n"; t-number}],
+            [string-dict: ]
+          ),
+          t-variant("j-str",
+            [list: {"s"; t-string}],
+            [string-dict: ]
+          ),
+          t-variant("j-bool",
+            [list: {"b"; t-boolean}],
+            [string-dict: ]
+          ),
+          t-singleton-variant("j-null", [string-dict: ])
+        ],
+        [string-dict:
+          "native", t-arrow([list: ], t-top),
+          "serialize", t-arrow([list: ], t-string)
+      ])
+    ),
+  SD.make-string-dict()
+    .set("List", t-list)
+    .set("JSON", t-json))
+
 fun make-default-modules() block:
   default-modules = SD.make-mutable-string-dict()
   default-modules.set-now("builtin://equality", module-const-equality)
@@ -733,5 +799,6 @@ fun make-default-modules() block:
   default-modules.set-now("builtin://sets", module-const-sets)
   default-modules.set-now("builtin://s-exp", module-const-s-exp)
   default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
+  default-modules.set-now("builtin://json-structs", module-const-json-structs)
   default-modules.freeze()
 end
