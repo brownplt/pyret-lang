@@ -1,15 +1,12 @@
 ({
   requires: [
   ],
-  nativeRequires: [
-    //'stopify'
-  ],
+  nativeRequires: ['Stopify'],
   provides: {},
-  theModule: function (RUNTIME, NAMESPACE, uri, CLIB) {
+  theModule: function (RUNTIME, NAMESPACE, uri, Stopify) {
 
     function stopify(code) {
-      console.log(code)
-      return code
+      return Stopify.compileFunction(code)
     }
 
 

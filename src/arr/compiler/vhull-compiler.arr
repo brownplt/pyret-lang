@@ -4,6 +4,7 @@ import string-dict as D
 import srcloc as SL
 import sets as S
 import sha as sha
+import stopify as STOP
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J
 import file("gensym.arr") as G
@@ -1430,7 +1431,7 @@ fun compile-module(self, l, imports-in, prog,
       "requires", j-list(true, module-locators-as-js),
       "provides", provides-obj,
       "nativeRequires", j-list(true, [clist:]),
-      "theModule", if compiler.options.collect-all: the-module else: J.j-str(module-and-map.code) end,
+      "theModule", if compiler.options.collect-all: the-module else: STOP.stopify(J.j-raw-code(module-and-map.code)) end,
       "theMap", J.j-str(module-and-map.map)
       ]
   end

@@ -32,3 +32,5 @@ define("lockfile", [], function () { return lockfile; });
 websocket = nodeRequire("websocket");
 define("websocket", [], function () { return websocket });
 
+Stopify = require("Stopify")
+define("Stopify", [], function () { return Stopify })
