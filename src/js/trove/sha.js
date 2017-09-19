@@ -1,7 +1,14 @@
 ({
   requires: [],
   nativeRequires: ["js-sha256"],
-  provides: {},
+  provides: {
+    shorthands: { },
+    values: {
+      "sha256": ["arrow", ["String"], "String"]
+    },
+    aliases: { },
+    datatypes: { }
+  },
   theModule: function(runtime, namespace, uri, sha) {
     return runtime.makeModuleReturn({
           sha256: runtime.makeFunction(function(str) {
