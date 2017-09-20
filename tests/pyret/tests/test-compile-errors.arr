@@ -35,7 +35,7 @@ check:
     c("when _: 5 end") satisfies CS.is-underscore-as-expr
     c("if _: 5 else: 10 end") satisfies CS.is-underscore-as-expr
     c("cases(List) _: | empty => true end") satisfies CS.is-underscore-as-expr
-    c("cases(List) l: | empty => _ end") satisfies CS.is-underscore-as-expr
+    c("cases(List) 5: | empty => _ end") satisfies CS.is-underscore-as-expr
     c("check: _ end") satisfies CS.is-underscore-as-expr
     c("fun f(): _ end") satisfies CS.is-underscore-as-expr
     c("lam(): _ end") satisfies CS.is-underscore-as-expr
