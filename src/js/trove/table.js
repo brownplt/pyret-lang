@@ -69,9 +69,9 @@
     var rowOutput = runtime.makeMethod0(function(self) {
       var vsValue = get(VS, "vs-value").app;
       var keys = Object.keys(self.$underlyingTable.headerIndex);
-      return get(VS, "vs-table").app(
+      return get(VS, "vs-row").app(
         keys.map(function(hdr){console.log(hdr); return vsValue(hdr.slice(7));}),
-        [keys.map(function(hdr){return vsValue(self.$rowData[self.$underlyingTable.headerIndex[hdr]]);})]);
+        keys.map(function(hdr){return vsValue(self.$rowData[self.$underlyingTable.headerIndex[hdr]]);}));
     });
 
     function makeRow(underlyingTable, rowData) {
