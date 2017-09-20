@@ -66,9 +66,18 @@
         }), eq(), rowData1, 0);
       });
 
+    var rowOutput = runtime.makeMethod0(function(self) {
+      var vsValue = get(VS, "vs-value").app;
+      var keys = Object.keys(self.$underlyingTable.headerIndex);
+      return get(VS, "vs-table").app(
+        keys.map(function(hdr){console.log(hdr); return vsValue(hdr.slice(7));}),
+        [keys.map(function(hdr){return vsValue(self.$rowData[self.$underlyingTable.headerIndex[hdr]]);})]);
+    });
+
     function makeRow(underlyingTable, rowData) {
       var rowVal = runtime.makeObject({
         "get-value": rowGetValue,
+        "_output": rowOutput,
         "_equals": rowEquals
       });
       rowVal = applyBrand(brandRow, rowVal);

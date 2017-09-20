@@ -238,7 +238,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         var headers = thisRuntime.getField(val, "headers");
         var rowSkel = thisRuntime.getField(val, "rows");
-        headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
+        headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         var rows = [];
         for (var i = 0; i < rowSkel.length; i++) {
           var curRow = [];

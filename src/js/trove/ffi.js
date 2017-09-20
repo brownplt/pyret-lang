@@ -727,6 +727,7 @@
             } else if (runtime.unwrap(isCollection.app(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
             } else if (runtime.unwrap(isTable.app(cur)) === true) {
+              Array.prototype.push.apply(worklist, runtime.getField(cur, "headers"));
               runtime.getField(cur, "rows").forEach(function(row){
                 Array.prototype.push.apply(worklist, row); });
             } else if (runtime.unwrap(isConstr.app(cur)) === true) {
