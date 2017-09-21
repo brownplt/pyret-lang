@@ -1236,7 +1236,7 @@ define("pyret-base/js/js-numbers", function() {
     str = str.substring(1);
 
     var mantissa = Number(sign + d0 + '.' + str);
-    var expt = str.substring(1).length;
+    var expt = str.length;
 
     return [mantissa, expt];
   };
@@ -2013,7 +2013,7 @@ define("pyret-base/js/js-numbers", function() {
 
   var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
   var digitRegexp = new RegExp("^[+-]?\\d+$");
-  var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d*)?)((?:[Ee][-+]?\\d+)?)$");
+  var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d+)?)((?:[Ee][-+]?\\d+)?)$");
 
 
   var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?)$");

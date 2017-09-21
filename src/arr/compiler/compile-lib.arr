@@ -324,6 +324,10 @@ fun is-builtin-module(uri :: String) -> Boolean:
   string-index-of(uri, "builtin://") == 0
 end
 
+fun unique(lst):
+  sets.list-to-list-set(lst).to-list()
+end
+
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> {Loadable; List} block:
   G.reset()
   A.global-names.reset()
@@ -387,7 +391,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           var any-errors = scoped.errors + named-result.errors
           scoped := nothing
           if is-link(any-errors) block:
-            { module-as-string(dummy-provides(locator.uri()), env, CS.err(any-errors));
+            { module-as-string(dummy-provides(locator.uri()), env, CS.err(unique(any-errors)));
               if options.collect-all or options.collect-times:
                 phase("Result", named-result.ast, time-now(), ret).tolist()
               else:
@@ -437,7 +441,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                   if options.collect-all and options.ignore-unbound:
                     JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)
                   else:
-                    {provides; add-phase("Result", CS.err(any-errors))}
+                    {provides; add-phase("Result", CS.err(unique(any-errors)))}
                   end
                 end
                 cleaned := nothing

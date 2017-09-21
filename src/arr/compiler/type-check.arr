@@ -5,6 +5,7 @@ import type-logger as LOG
 
 import error as ERR
 import ast as A
+import srcloc as SL
 import string-dict as SD
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as TS
@@ -189,7 +190,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
               | none =>
                 cases(Option<Type>) provs.data-definitions.get(g):
                   | none => raise("Key " + g + " not found in " + torepr(provs))
-                  | some(v) => v
+                  | some(v) => t-name(TS.builtin-uri, A.s-type-global(g), SL.builtin("global"), false)
                 end
               | some(v) => v
             end

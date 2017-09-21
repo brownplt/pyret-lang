@@ -227,6 +227,24 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           s += renderValueSkeleton(items[i], values);
         }
         return s;
+      } else if (thisRuntime.ffi.isVSRow(val)) {
+        if (!AsciiTable){
+          AsciiTable = require("ascii-table");
+        }
+        var headers = thisRuntime.getField(val, "headers");
+        var rowVals = thisRuntime.getField(val, "values");
+        console.log("Before: ", headers, rowVals);
+        headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
+        rowVals = rowVals.map(function(v) { return renderValueSkeleton(v, values); });
+        console.log("After:", headers, rowVals);
+        var row = [];
+        for (var i = 0; i < headers.length; i++) {
+          row.push(headers[i]);
+          row.push(rowVals[i]);
+        }
+        var table = new AsciiTable();
+        table.addRow(row);
+        return table.toString();
       } else if (thisRuntime.ffi.isVSTable(val)) {
         // Do this for now until we decide on a string
         // representation
@@ -238,7 +256,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         var headers = thisRuntime.getField(val, "headers");
         var rowSkel = thisRuntime.getField(val, "rows");
-        headers = headers.map(function(h){ return renderValueSkeleton(h, []); });
+        headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         var rows = [];
         for (var i = 0; i < rowSkel.length; i++) {
           var curRow = [];

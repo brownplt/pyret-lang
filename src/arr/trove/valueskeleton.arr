@@ -11,5 +11,6 @@ data ValueSkeleton:
   | vs-collection(name :: String, items)
   | vs-constr(name :: String, args)
   | vs-table(headers :: RawArray, rows #| :: List<RawArray>|#)
+  | vs-row(headers :: RawArray, values :: RawArray)
   | vs-seq(items)
 end
