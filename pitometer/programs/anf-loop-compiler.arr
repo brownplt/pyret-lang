@@ -1530,7 +1530,7 @@ fun compile-provided-type(typ):
         [clist: j-str("tyapp"), compile-provided-type(base),
           j-list(true, CL.map_list(compile-provided-type, args))])
     | t-top(_, _) => j-str("tany")
-      # | t-bot(_) =>
+    | t-bot(_) => j-str("tbot")
     | t-record(fields, l, _) =>
       j-list(false,
         [clist: j-str("record"), j-obj(CL.map_list(lam(key): compile-type-member(key, fields.get-value(key)) end, fields.keys-list()))])

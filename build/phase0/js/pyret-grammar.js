@@ -44,6 +44,7 @@ R(['fs', 'jglr/jglr'], function(fs, E) {
   g.addRule("block_I0", [new Nonterm("stmt")], E.Rule.Inline)
   g.addRule("stmt", [new Nonterm("type-expr")])
   g.addRule("stmt", [new Nonterm("newtype-expr")])
+  g.addRule("stmt", [new Nonterm("spy-stmt")])
   g.addRule("stmt", [new Nonterm("let-expr")])
   g.addRule("stmt", [new Nonterm("fun-expr")])
   g.addRule("stmt", [new Nonterm("data-expr")])
@@ -54,6 +55,19 @@ R(['fs', 'jglr/jglr'], function(fs, E) {
   g.addRule("stmt", [new Nonterm("check-test")])
   g.addRule("stmt", [new Nonterm("check-expr")])
   g.addRule("stmt", [new Nonterm("contract-stmt")])
+  g.addRule("spy-stmt", [new Token("SPY"), new Nonterm("spy-stmt_I1_opt"), new Token("COLON"), new Nonterm("spy-stmt_I3_opt"), new Token("END")])
+  g.addRule("spy-stmt_I1_opt", [], E.Rule.Inline);
+  g.addRule("spy-stmt_I1_opt", [new Nonterm("spy-stmt_I1")], E.Rule.Inline);
+  g.addRule("spy-stmt_I1", [new Nonterm("binop-expr")], E.Rule.Inline)
+  g.addRule("spy-stmt_I3_opt", [], E.Rule.Inline);
+  g.addRule("spy-stmt_I3_opt", [new Nonterm("spy-stmt_I3")], E.Rule.Inline);
+  g.addRule("spy-stmt_I3", [new Nonterm("spy-contents")], E.Rule.Inline)
+  g.addRule("spy-contents", [new Nonterm("spy-field"), new Nonterm("spy-contents_I1_star")])
+  g.addRule("spy-contents_I1_star", [], E.Rule.Inline);
+  g.addRule("spy-contents_I1_star", [new Nonterm("spy-contents_I1_star"), new Nonterm("spy-contents_I1")], E.Rule.ListSnoc("spy-contents_I1_star", "spy-contents_I1", true));
+  g.addRule("spy-contents_I1", [new Token("COMMA"), new Nonterm("spy-field")], E.Rule.Inline)
+  g.addRule("spy-field", [new Nonterm("id-expr")])
+  g.addRule("spy-field", [new Token("NAME"), new Token("COLON"), new Nonterm("binop-expr")])
   g.addRule("type-expr", [new Token("TYPE"), new Token("NAME"), new Nonterm("ty-params"), new Token("EQUALS"), new Nonterm("ann")])
   g.addRule("newtype-expr", [new Token("NEWTYPE"), new Token("NAME"), new Token("AS"), new Token("NAME")])
   g.addRule("let-expr", [new Nonterm("toplevel-binding"), new Token("EQUALS"), new Nonterm("binop-expr")])
@@ -137,7 +151,9 @@ R(['fs', 'jglr/jglr'], function(fs, E) {
   g.addRule("where-clause_I0_opt", [], E.Rule.Inline);
   g.addRule("where-clause_I0_opt", [new Nonterm("where-clause_I0")], E.Rule.Inline);
   g.addRule("where-clause_I0", [new Token("WHERE"), new Nonterm("block")], E.Rule.Inline)
-  g.addRule("check-expr", [new Token("CHECK"), new Token("STRING"), new Token("COLON"), new Nonterm("block"), new Token("END")])
+  g.addRule("check-expr", [new Nonterm("check-expr_I0"), new Token("STRING"), new Token("COLON"), new Nonterm("block"), new Token("END")])
+  g.addRule("check-expr_I0", [new Token("CHECK")], E.Rule.Inline)
+  g.addRule("check-expr_I0", [new Token("EXAMPLES")], E.Rule.Inline)
   g.addRule("check-expr", [new Nonterm("check-expr_I0"), new Nonterm("block"), new Token("END")])
   g.addRule("check-expr_I0", [new Token("CHECKCOLON")], E.Rule.Inline)
   g.addRule("check-expr_I0", [new Token("EXAMPLESCOLON")], E.Rule.Inline)
@@ -527,13 +543,17 @@ R(['fs', 'jglr/jglr'], function(fs, E) {
   g.addRule("noparen-arrow-ann", [new Nonterm("noparen-arrow-ann_I0_opt"), new Token("THINARROW"), new Nonterm("ann")])
   g.addRule("noparen-arrow-ann_I0_opt", [], E.Rule.Inline);
   g.addRule("noparen-arrow-ann_I0_opt", [new Nonterm("noparen-arrow-ann_I0")], E.Rule.Inline);
-  g.addRule("noparen-arrow-ann_I0", [new Nonterm("comma-anns")], E.Rule.Inline)
+  g.addRule("noparen-arrow-ann_I0", [new Nonterm("arrow-ann-args")], E.Rule.Inline)
+  g.addRule("arrow-ann-args", [new Nonterm("comma-anns")])
+  g.addRule("arrow-ann-args", [new Nonterm("arrow-ann-args_A1_I0"), new Nonterm("comma-ann-field"), new Token("RPAREN")])
+  g.addRule("arrow-ann-args_A1_I0", [new Token("PARENSPACE")], E.Rule.Inline)
+  g.addRule("arrow-ann-args_A1_I0", [new Token("PARENNOSPACE")], E.Rule.Inline)
   g.addRule("arrow-ann", [new Nonterm("arrow-ann_I0"), new Nonterm("arrow-ann_I1_opt"), new Token("THINARROW"), new Nonterm("ann"), new Token("RPAREN")])
   g.addRule("arrow-ann_I0", [new Token("PARENSPACE")], E.Rule.Inline)
   g.addRule("arrow-ann_I0", [new Token("PARENNOSPACE")], E.Rule.Inline)
   g.addRule("arrow-ann_I1_opt", [], E.Rule.Inline);
   g.addRule("arrow-ann_I1_opt", [new Nonterm("arrow-ann_I1")], E.Rule.Inline);
-  g.addRule("arrow-ann_I1", [new Nonterm("comma-anns")], E.Rule.Inline)
+  g.addRule("arrow-ann_I1", [new Nonterm("arrow-ann-args")], E.Rule.Inline)
   g.addRule("app-ann", [new Nonterm("app-ann_I0"), new Token("LANGLE"), new Nonterm("comma-anns"), new Token("RANGLE")])
   g.addRule("app-ann_I0", [new Nonterm("name-ann")], E.Rule.Inline)
   g.addRule("app-ann_I0", [new Nonterm("dot-ann")], E.Rule.Inline)
