@@ -43,26 +43,6 @@ string-dict = SD.string-dict
 
 s-atom                    = A.s-atom
 
-t-number-binop = t-arrow([list: t-number, t-number], t-number)
-
-t-image = t-name(module-uri("builtin://image"), A.s-type-global("Image"))
-
-t-option = lam(param :: Type):
-  t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: param])
-end
-
-t-pick = lam(param-1 :: Type, param-2 :: Type):
-  t-app(t-name(module-uri("builtin://pick"), A.s-type-global("Pick")), [list: param-1, param-2])
-end
-
-t-reactor = lam(param :: Type):
-  t-app(t-name(module-uri("builtin://reactors"), A.s-type-global("Reactor")), [list: param])
-end
-
-eq-EqualityResult = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
-
-vs-ValueSkeleton = t-name(module-uri("builtin://valueskeleton"), A.s-type-global("ValueSkeleton"))
-
 tva = t-var(A.global-names.make-atom("A"))
 tvb = t-var(A.global-names.make-atom("B"))
 tvc = t-var(A.global-names.make-atom("C"))
@@ -71,6 +51,48 @@ tve = t-var(A.global-names.make-atom("E"))
 tvf = t-var(A.global-names.make-atom("F"))
 tvg = t-var(A.global-names.make-atom("G"))
 tvh = t-var(A.global-names.make-atom("H"))
+
+t-image = t-name(module-uri("builtin://image"), A.s-type-global("Image"))
+t-option = t-name(module-uri("builtin://option"), A.s-type-global("Option"))
+t-reactor = t-name(module-uri("builtin://reactors"), A.s-type-global("Reactor"))
+t-equality-result = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
+t-value-skeleton = t-name(module-uri("builtin://valueskeleton"), A.s-type-global("ValueSkeleton"))
+t-list = t-name(module-uri("builtin://lists"), A.s-type-global("List"))
+t-big-array = t-name(module-uri("builtin://arrays"), A.s-type-global("Array"))
+t-set = t-name(module-uri("builtin://sets"), A.s-type-global("Set"))
+t-runtime-error = t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError"))
+t-parse-error = t-name(module-uri("builtin://error"), A.s-type-global("ParseError"))
+t-either = t-name(module-uri("builtin://either"), A.s-type-global("Either"))
+t-s-exp = t-name(module-uri("builtin://s-exp-structs"), A.s-type-global("S-Exp"))
+t-pick = t-name(module-uri("builtin://pick"), A.s-type-global("Pick"))
+
+fun t-either-app(typ-1 :: Type, typ-2 :: Type):
+  t-app(t-either, [list: typ-1, typ-2])
+end
+
+t-option-app = lam(param :: Type):
+  t-app(t-option, [list: param])
+end
+
+t-reactor-app = lam(param :: Type):
+  t-app(t-reactor, [list: param])
+end
+
+fun t-list-app(a :: Type) -> Type:
+  t-app(t-list, [list: a])
+end
+
+fun t-big-array-app(typ :: Type):
+  t-app(t-big-array, [list: typ])
+end
+
+fun t-set-app(typ :: Type):
+  t-app(t-set, [list: typ])
+end
+
+t-output = t-arrow([list: ], t-value-skeleton)
+t-number-binop = t-arrow([list: t-number, t-number], t-number)
+
 
 fun make-default-aliases():
   default-aliases = [SD.string-dict:
@@ -116,9 +138,8 @@ fun make-default-types() block:
   ]))
 
   # Need to be fixed to correct type:
-  default-typs.set-now("isBoolean", t-arrow([list: t-top], t-boolean))
-  default-typs.set-now("makeSome", t-forall([list: tva], t-arrow([list: tva], t-option(tva))))
-  default-typs.set-now("makeNone", t-forall([list: tva], t-arrow([list: ], t-option(tva))))
+  default-typs.set-now("makeSome", t-forall([list: tva], t-arrow([list: tva], t-option-app(tva))))
+  default-typs.set-now("makeNone", t-forall([list: tva], t-arrow([list: ], t-option-app(tva))))
   default-typs.set-now("checkWrapBoolean", t-arrow([list: t-boolean], t-boolean))
   default-typs.set-now("checkTupleBind", t-arrow([list: t-top, t-number, t-srcloc], t-bot))
   default-typs.set-now("throwNonBooleanCondition", t-arrow([list: t-srcloc, t-string, t-top], t-bot))
@@ -127,30 +148,18 @@ fun make-default-types() block:
   default-typs.set-now("makeReactor", t-forall([list: tva], t-arrow([list:
       tva,
       t-record([string-dict:
-        "on-tick", t-option(t-arrow([list: tva], tva)),
-        "on-mouse", t-option(t-arrow([list: tva, t-number, t-number, t-string], tva)),
-        "on-key", t-option(t-arrow([list: tva, t-string], tva)),
-        "to-draw", t-option(t-arrow([list: tva], t-image)),
-        "stop-when", t-option(t-arrow([list: tva], t-boolean)),
-        "seconds-per-tick", t-option(t-number),
-        "close-when-stop", t-option(t-boolean),
-        "title", t-option(t-string)])],
-    t-reactor(tva))))
-  default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
+        "on-tick", t-option-app(t-arrow([list: tva], tva)),
+        "on-mouse", t-option-app(t-arrow([list: tva, t-number, t-number, t-string], tva)),
+        "on-key", t-option-app(t-arrow([list: tva, t-string], tva)),
+        "to-draw", t-option-app(t-arrow([list: tva], t-image)),
+        "stop-when", t-option-app(t-arrow([list: tva], t-boolean)),
+        "seconds-per-tick", t-option-app(t-number),
+        "close-when-stop", t-option-app(t-boolean),
+        "title", t-option-app(t-string)])],
+    t-reactor-app(tva))))
   default-typs.set-now(A.s-global("raise").key(), t-arrow([list: t-top], t-bot))
   default-typs.set-now("hasField", t-arrow([list: t-record([string-dict: ]), t-string], t-boolean))
-  default-typs.set-now(A.s-global("_times").key(), t-number-binop)
-  default-typs.set-now(A.s-global("_minus").key(), t-number-binop)
-  default-typs.set-now(A.s-global("_divide").key(), t-number-binop)
-  default-typs.set-now(A.s-global("_plus").key(), t-number-binop)
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
-  default-typs.set-now(A.s-global("string-tonumber").key(), t-arrow([list: t-string], t-number))
-  default-typs.set-now(A.s-global("string-to-number").key(), t-arrow([list: t-string], t-option(t-number)))
-
-  default-typs.set-now(A.s-global("_lessthan").key(), t-number-binop)
-  default-typs.set-now(A.s-global("_lessequal").key(), t-number-binop)
-  default-typs.set-now(A.s-global("_greaterthan").key(), t-number-binop)
-  default-typs.set-now(A.s-global("_greaterequal").key(), t-number-binop)
 
   default-typs.set-now("getMaker", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "make", t-arrow([list: t-array(tvb)], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: t-array(tvb)], tva))))
   default-typs.set-now("getLazyMaker", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "lazy-make", t-arrow([list: t-array(t-arrow([list: ], tvb))], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: t-array(t-arrow([list: ], tvb))], tva))))
@@ -171,38 +180,20 @@ fun make-default-data-exprs() block:
   default-data-exprs
 end
 
-# Begin hard-coded module types
-rec t-list = t-name(module-uri("builtin://lists"), A.s-type-global("List"))
-fun mk-list(a :: Type) -> Type:
-  t-app(t-list, [list: a])
-end
-
-t-big-array = t-name(module-uri("builtin://arrays"), A.s-type-global("Array"))
-fun mk-array(typ :: Type):
-  t-app(t-big-array, [list: typ])
-end
-
-t-set = t-name(module-uri("builtin://sets"), A.s-type-global("Set"))
-fun mk-set(typ :: Type):
-  t-app(t-set, [list: typ])
-end
-
-t-output = t-arrow([list: ], vs-ValueSkeleton)
-
 # Functions for adding hard-coded modules
 module-const-equality = t-module("builtin://equality",
   t-record([string-dict:
     "EqualityResult", t-arrow([list: t-top], t-boolean),
     "is-EqualityResult", t-arrow([list: t-top], t-boolean),
-    "Equal", t-data-refinement(eq-EqualityResult, "Equal"),
+    "Equal", t-data-refinement(t-equality-result, "Equal"),
     "is-Equal", t-arrow([list: t-top], t-boolean),
-    "NotEqual", t-arrow([list: t-string], t-data-refinement(eq-EqualityResult, "NotEqual")),
+    "NotEqual", t-arrow([list: t-string], t-data-refinement(t-equality-result, "NotEqual")),
     "is-NotEqual", t-arrow([list: t-top], t-boolean),
-    "Unknown", t-data-refinement(eq-EqualityResult, "Unknown"),
+    "Unknown", t-data-refinement(t-equality-result, "Unknown"),
     "is-Unknown", t-arrow([list: t-top], t-boolean),
-    "equal-and", t-arrow([list: eq-EqualityResult, eq-EqualityResult], eq-EqualityResult),
-    "equal-or", t-arrow([list: eq-EqualityResult, eq-EqualityResult], eq-EqualityResult),
-    "to-boolean", t-arrow([list: eq-EqualityResult], t-boolean)
+    "equal-and", t-arrow([list: t-equality-result, t-equality-result], t-equality-result),
+    "equal-or", t-arrow([list: t-equality-result, t-equality-result], t-equality-result),
+    "to-boolean", t-arrow([list: t-equality-result], t-boolean)
   ]),
   SD.make-string-dict()
     .set("EqualityResult", t-data(
@@ -220,14 +211,14 @@ module-const-equality = t-module("builtin://equality",
 module-const-arrays = t-module("builtin://arrays",
   t-record([string-dict:
     "array", t-top,
-    "build-array", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number], tva), t-number], mk-array(tva))),
-    "array-from-list", t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-array(tva))),
+    "build-array", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number], tva), t-number], t-big-array-app(tva))),
+    "array-from-list", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-big-array-app(tva))),
     "is-array", t-forall([list: tva], t-arrow([list: t-top], t-boolean)),
-    "array-of", t-forall([list: tva], t-arrow([list: tva, t-number], mk-array(tva))),
-    "array-set-now", t-forall([list: tva], t-arrow([list: mk-array(tva), t-number, tva], t-nothing)),
-    "array-get-now", t-forall([list: tva], t-arrow([list: mk-array(tva), t-number], tva)),
-    "array-length", t-forall([list: tva], t-arrow([list: mk-array(tva)], t-number)),
-    "array-to-list-now", t-forall([list: tva], t-arrow([list: mk-array(tva)], mk-list(tva)))
+    "array-of", t-forall([list: tva], t-arrow([list: tva, t-number], t-big-array-app(tva))),
+    "array-set-now", t-forall([list: tva], t-arrow([list: t-big-array-app(tva), t-number, tva], t-nothing)),
+    "array-get-now", t-forall([list: tva], t-arrow([list: t-big-array-app(tva), t-number], tva)),
+    "array-length", t-forall([list: tva], t-arrow([list: t-big-array-app(tva)], t-number)),
+    "array-to-list-now", t-forall([list: tva], t-arrow([list: t-big-array-app(tva)], t-list-app(tva)))
   ]),
   SD.make-string-dict()
     .set("Array", t-data(
@@ -237,12 +228,13 @@ module-const-arrays = t-module("builtin://arrays",
         [string-dict:
             "get-now", t-arrow([list: t-number], tva),
             "set-now", t-arrow([list: t-number, tva], t-nothing),
-            "to-list-now", t-arrow(empty, mk-list(tva)),
+            "to-list-now", t-arrow(empty, t-list-app(tva)),
             "length", t-arrow(empty, t-number),
             "_output", t-output
         ])),
   SD.make-string-dict()
     .set("Array", t-big-array)
+    .set("List", t-list)
 )
 
 module-const-pick = t-module("builtin://pick",
@@ -280,18 +272,18 @@ module-const-pick = t-module("builtin://pick",
 
 set-constructor =
   t-record([string-dict:
-      "make", t-forall([list: tva], t-arrow([list: t-array(tva)], mk-set(tva))),
-      "make0", t-forall([list: tva], t-arrow([list: ], mk-set(tva))),
-      "make1", t-forall([list: tva], t-arrow([list: tva], mk-set(tva))),
-      "make2", t-forall([list: tva], t-arrow([list: tva, tva], mk-set(tva))),
-      "make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], mk-set(tva))),
-      "make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], mk-set(tva))),
-      "make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], mk-set(tva)))
+      "make", t-forall([list: tva], t-arrow([list: t-array(tva)], t-set-app(tva))),
+      "make0", t-forall([list: tva], t-arrow([list: ], t-set-app(tva))),
+      "make1", t-forall([list: tva], t-arrow([list: tva], t-set-app(tva))),
+      "make2", t-forall([list: tva], t-arrow([list: tva, tva], t-set-app(tva))),
+      "make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], t-set-app(tva))),
+      "make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], t-set-app(tva))),
+      "make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], t-set-app(tva)))
     ])
 
-t-empty-set = t-forall([list: tva], mk-set(tva))
+t-empty-set = t-forall([list: tva], t-set-app(tva))
 
-t-list-to-set = t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-set(tva)))
+t-list-to-set = t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-set-app(tva)))
 
 module-const-sets = t-module("builtin://sets",
   t-record([string-dict:
@@ -305,7 +297,7 @@ module-const-sets = t-module("builtin://sets",
     "list-to-list-set", t-list-to-set,
     "list-to-tree-set", t-list-to-set
   ]),
-  let tv-set = mk-set(tva),
+  let tv-set = t-set-app(tva),
       tv-to-tv = t-arrow([list: tv-set], tv-set),
       tv-arg = [list: tva]:
     SD.make-string-dict()
@@ -315,13 +307,13 @@ module-const-sets = t-module("builtin://sets",
           [list: ],
           [string-dict:
               "length", t-arrow(empty, t-number),
-              "pick", t-arrow(empty, t-app(t-name(module-uri("builtin://pick"), A.s-type-global("Pick")), [list: tva, mk-set(tva)])),
+              "pick", t-arrow(empty, t-app(t-pick, [list: tva, t-set-app(tva)])),
               "_output", t-output,
               "fold", t-forall([list: tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb], tvb)),
               "member", t-arrow([list: tva], t-boolean),
               "add", t-arrow([list: tva], tv-set),
               "remove", t-arrow([list: tva], tv-set),
-              "to-list", t-arrow(empty, mk-list(tva)),
+              "to-list", t-arrow(empty, t-list-app(tva)),
               "union", tv-to-tv,
               "intersect", tv-to-tv,
               "difference", tv-to-tv,
@@ -336,61 +328,61 @@ module-const-lists = t-module("builtin://lists",
   t-record([string-dict:
     "List", t-arrow([list: t-top], t-boolean),
     "is-List", t-arrow([list: t-top], t-boolean),
-    "empty", t-forall([list: tva], t-data-refinement(mk-list(tva), "empty")),
+    "empty", t-forall([list: tva], t-data-refinement(t-list-app(tva), "empty")),
     "is-empty", t-arrow([list: t-top], t-boolean),
-    "link", t-forall([list: tva], t-arrow([list: tva, mk-list(tva)], t-data-refinement(mk-list(tva), "link"))),
+    "link", t-forall([list: tva], t-arrow([list: tva, t-list-app(tva)], t-data-refinement(t-list-app(tva), "link"))),
     "is-link", t-arrow([list: t-top], t-boolean),
-    "range", t-arrow([list: t-number, t-number], mk-list(t-number)),
-    "range-by", t-arrow([list: t-number, t-number, t-number], mk-list(t-number)),
-    "repeat", t-forall([list: tva], t-arrow([list: t-number, tva], mk-list(tva))),
-    "filter", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], mk-list(tva))),
-    "partition", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-record([string-dict: "is-true", mk-list(tva), "is-false", mk-list(tva)]))),
-    "find", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option")), [list: tva]))),
-    "split-at", t-forall([list: tva], t-arrow([list: t-number, mk-list(tva)], t-record([string-dict: "prefix", mk-list(tva), "suffix", mk-list(tva)]))),
-    "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-boolean)),
-    "all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), mk-list(tva)], t-boolean)),
-    "all2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-boolean), mk-list(tva), mk-list(tvb)], t-boolean)),
-    "map", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva], tvb), mk-list(tva)], mk-list(tvb))),
-    "map2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb], tvc), mk-list(tva), mk-list(tvb)], mk-list(tvc))),
-    "map3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc], tvd), mk-list(tva), mk-list(tvb), mk-list(tvc)], mk-list(tvd))),
-    "map4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tve), mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], mk-list(tve))),
-    "map_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva], tvb), t-number, mk-list(tva)], mk-list(tvb))),
-    "map2_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb], tvc), t-number, mk-list(tva), mk-list(tvb)], mk-list(tvc))),
-    "map3_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], tvd), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], mk-list(tvd))),
-    "map4_n", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], tve), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], mk-list(tve))),
-    "each", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-top), mk-list(tva)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-top), mk-list(tva), mk-list(tvb)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each3", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each4", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], t-top), mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each_n", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number, tva], t-top), t-number, mk-list(tva)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each2_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], t-top), t-number, mk-list(tva), mk-list(tvb)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each3_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "each4_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], t-top), t-number, mk-list(tva), mk-list(tvb), mk-list(tvc), mk-list(tvd)], t-name(module-uri("builtin://global"), A.s-type-global("Nothing")))),
-    "fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], tva), tva, mk-list(tvb)], tva)),
-    "fold2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], tva), tva, mk-list(tvb), mk-list(tvc)], tva)),
-    "fold3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd)], tva)),
-    "fold4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd, tve], tva), tva, mk-list(tvb), mk-list(tvc), mk-list(tvd), mk-list(tve)], tva)),
-    "fold_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], tva), t-number, tva, mk-list(tvb)], tva)),
-    "length", t-forall([list: tva], t-arrow([list: mk-list(tva)], t-number)),
-    "sum", t-arrow([list: mk-list(t-number)], t-number),
-    "max", t-arrow([list: mk-list(t-number)], t-number),
-    "min", t-arrow([list: mk-list(t-number)], t-number),
-    "mean", t-arrow([list: mk-list(t-number)], t-number),
-    "median", t-arrow([list: mk-list(t-number)], t-number),
-    "stdev", t-arrow([list: mk-list(t-number)], t-number),
-    "distinct", t-forall([list: tva], t-arrow([list: mk-list(tva)], mk-list(tva))),
+    "range", t-arrow([list: t-number, t-number], t-list-app(t-number)),
+    "range-by", t-arrow([list: t-number, t-number, t-number], t-list-app(t-number)),
+    "repeat", t-forall([list: tva], t-arrow([list: t-number, tva], t-list-app(tva))),
+    "filter", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-list-app(tva)], t-list-app(tva))),
+    "partition", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-list-app(tva)], t-record([string-dict: "is-true", t-list-app(tva), "is-false", t-list-app(tva)]))),
+    "find", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-list-app(tva)], t-app(t-option, [list: tva]))),
+    "split-at", t-forall([list: tva], t-arrow([list: t-number, t-list-app(tva)], t-record([string-dict: "prefix", t-list-app(tva), "suffix", t-list-app(tva)]))),
+    "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-list-app(tva)], t-boolean)),
+    "all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-list-app(tva)], t-boolean)),
+    "all2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-boolean), t-list-app(tva), t-list-app(tvb)], t-boolean)),
+    "map", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva], tvb), t-list-app(tva)], t-list-app(tvb))),
+    "map2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb], tvc), t-list-app(tva), t-list-app(tvb)], t-list-app(tvc))),
+    "map3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc], tvd), t-list-app(tva), t-list-app(tvb), t-list-app(tvc)], t-list-app(tvd))),
+    "map4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tve), t-list-app(tva), t-list-app(tvb), t-list-app(tvc), t-list-app(tvd)], t-list-app(tve))),
+    "map_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva], tvb), t-number, t-list-app(tva)], t-list-app(tvb))),
+    "map2_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb], tvc), t-number, t-list-app(tva), t-list-app(tvb)], t-list-app(tvc))),
+    "map3_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], tvd), t-number, t-list-app(tva), t-list-app(tvb), t-list-app(tvc)], t-list-app(tvd))),
+    "map4_n", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], tve), t-number, t-list-app(tva), t-list-app(tvb), t-list-app(tvc), t-list-app(tvd)], t-list-app(tve))),
+    "each", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-top), t-list-app(tva)], t-nothing)),
+    "each2", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], t-top), t-list-app(tva), t-list-app(tvb)], t-nothing)),
+    "each3", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], t-top), t-list-app(tva), t-list-app(tvb), t-list-app(tvc)], t-nothing)),
+    "each4", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], t-top), t-list-app(tva), t-list-app(tvb), t-list-app(tvc), t-list-app(tvd)], t-nothing)),
+    "each_n", t-forall([list: tva], t-arrow([list: t-arrow([list: t-number, tva], t-top), t-number, t-list-app(tva)], t-nothing)),
+    "each2_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], t-top), t-number, t-list-app(tva), t-list-app(tvb)], t-nothing)),
+    "each3_n", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc], t-top), t-number, t-list-app(tva), t-list-app(tvb), t-list-app(tvc)], t-nothing)),
+    "each4_n", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: t-number, tva, tvb, tvc, tvd], t-top), t-number, t-list-app(tva), t-list-app(tvb), t-list-app(tvc), t-list-app(tvd)], t-nothing)),
+    "fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tva, tvb], tva), tva, t-list-app(tvb)], tva)),
+    "fold2", t-forall([list: tva, tvb, tvc], t-arrow([list: t-arrow([list: tva, tvb, tvc], tva), tva, t-list-app(tvb), t-list-app(tvc)], tva)),
+    "fold3", t-forall([list: tva, tvb, tvc, tvd], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd], tva), tva, t-list-app(tvb), t-list-app(tvc), t-list-app(tvd)], tva)),
+    "fold4", t-forall([list: tva, tvb, tvc, tvd, tve], t-arrow([list: t-arrow([list: tva, tvb, tvc, tvd, tve], tva), tva, t-list-app(tvb), t-list-app(tvc), t-list-app(tvd), t-list-app(tve)], tva)),
+    "fold_n", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: t-number, tva, tvb], tva), t-number, tva, t-list-app(tvb)], tva)),
+    "length", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-number)),
+    "sum", t-arrow([list: t-list-app(t-number)], t-number),
+    "max", t-arrow([list: t-list-app(t-number)], t-number),
+    "min", t-arrow([list: t-list-app(t-number)], t-number),
+    "mean", t-arrow([list: t-list-app(t-number)], t-number),
+    "median", t-arrow([list: t-list-app(t-number)], t-number),
+    "stdev", t-arrow([list: t-list-app(t-number)], t-number),
+    "distinct", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-list-app(tva))),
     "list",
         t-record([string-dict:
-              "make", t-forall([list: tva], t-arrow([list: t-array(tva)], mk-list(tva))),
-              "make0", t-forall([list: tva], t-arrow([list: ], t-data-refinement(mk-list(tva), "empty"))),
-              "make1", t-forall([list: tva], t-arrow([list: tva], t-data-refinement(mk-list(tva), "link"))),
-              "make2", t-forall([list: tva], t-arrow([list: tva, tva], t-data-refinement(mk-list(tva), "link"))),
-              "make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], t-data-refinement(mk-list(tva), "link"))),
-              "make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], t-data-refinement(mk-list(tva), "link"))),
-              "make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], t-data-refinement(mk-list(tva), "link")))
+              "make", t-forall([list: tva], t-arrow([list: t-array(tva)], t-list-app(tva))),
+              "make0", t-forall([list: tva], t-arrow([list: ], t-data-refinement(t-list-app(tva), "empty"))),
+              "make1", t-forall([list: tva], t-arrow([list: tva], t-data-refinement(t-list-app(tva), "link"))),
+              "make2", t-forall([list: tva], t-arrow([list: tva, tva], t-data-refinement(t-list-app(tva), "link"))),
+              "make3", t-forall([list: tva], t-arrow([list: tva, tva, tva], t-data-refinement(t-list-app(tva), "link"))),
+              "make4", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva], t-data-refinement(t-list-app(tva), "link"))),
+              "make5", t-forall([list: tva], t-arrow([list: tva, tva, tva, tva, tva], t-data-refinement(t-list-app(tva), "link")))
             ])
   ]),
-  let lotv = mk-list(tva),
+  let lotv = t-list-app(tva),
       tv-arg = [list: tva]:
     SD.make-string-dict()
       .set("List", t-data(
@@ -398,7 +390,7 @@ module-const-lists = t-module("builtin://lists",
           [list: tva],
           [list:
             t-singleton-variant("empty", [string-dict: ]),
-            t-variant("link", [list: {"first"; tva}, {"rest"; mk-list(tva)}], [string-dict: ])
+            t-variant("link", [list: {"first"; tva}, {"rest"; t-list-app(tva)}], [string-dict: ])
           ],
           [string-dict:
             "join-str", t-arrow([list: t-string], t-string),
@@ -411,7 +403,7 @@ module-const-lists = t-module("builtin://lists",
             "foldr", t-forall([list: tvb], t-arrow([list: t-arrow([list: tva, tvb], tvb), tvb], tvb)),
             "member", t-arrow(tv-arg, t-boolean),
             "filter", t-arrow([list: t-arrow([list: tva], t-boolean)], lotv),
-            "map", t-forall([list: tvb], t-arrow([list: t-arrow([list: tva], tvb)], mk-list(tvb))),
+            "map", t-forall([list: tvb], t-arrow([list: t-arrow([list: tva], tvb)], t-list-app(tvb))),
             "each", t-arrow([list: t-arrow([list: tva], t-top)], t-nothing),
             "length", t-arrow(empty, t-number),
             "_output", t-output,
@@ -429,24 +421,25 @@ module-const-lists = t-module("builtin://lists",
         ]))
   end,
   SD.make-string-dict()
-    .set("List", t-name(module-uri("builtin://lists"), A.s-type-global("List"))))
+    .set("List", t-list)
+    .set("Option", t-option))
 
 t-and-then =
   t-forall(
     [list: tva],
     t-arrow(
       [list:
-        t-arrow([list: tva], t-option(tvb))
+        t-arrow([list: tva], t-option-app(tvb))
       ],
-      t-option(tvb)))
+      t-option-app(tvb)))
 
 module-const-option = t-module("builtin://option",
   t-record([string-dict:
     "Option", t-arrow([list: t-top], t-boolean),
     "is-Option", t-arrow([list: t-top], t-boolean),
-    "none", t-forall([list: tva], t-data-refinement(t-option(tva), "none")),
+    "none", t-forall([list: tva], t-data-refinement(t-option-app(tva), "none")),
     "is-none", t-arrow([list: t-top], t-boolean),
-    "some", t-forall([list: tva], t-arrow([list: tva], t-data-refinement(t-option(tva), "some"))),
+    "some", t-forall([list: tva], t-arrow([list: tva], t-data-refinement(t-option-app(tva), "some"))),
     "is-some", t-arrow([list: t-top], t-boolean)
   ]),
   SD.make-string-dict()
@@ -476,11 +469,8 @@ module-const-option = t-module("builtin://option",
           "_match", t-top
       ])),
   SD.make-string-dict()
-    .set("Option", t-name(module-uri("builtin://option"), A.s-type-global("Option")))
+    .set("Option", t-option)
 )
-
-t-runtime-error = t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError"))
-t-parse-error = t-name(module-uri("builtin://error"), A.s-type-global("ParseError"))
 
 module-const-error = t-module("builtin://error",
   t-record([string-dict:
@@ -618,10 +608,6 @@ module-const-error = t-module("builtin://error",
     .set("Error", t-name(local, A.s-name(A.dummy-loc, "Error")))
 )
 
-fun mk-either(typ-1 :: Type, typ-2 :: Type):
-  t-app(t-name(module-uri("builtin://either"), A.s-type-global("Either")), [list: typ-1, typ-2])
-end
-
 module-const-either =
   t-module("pyret-builtin://either",
     t-record([string-dict:
@@ -662,10 +648,8 @@ module-const-either =
     SD.make-string-dict()
       .set("Either", t-name(module-uri("builtin://either"), A.s-type-global("Either"))))
 
-t-s-exp = t-name(module-uri("builtin://s-exp-structs"), A.s-type-global("S-Exp"))
-
 s-exp-struct-mems = [string-dict:
-  "s-list", t-arrow([list: mk-list(t-s-exp)], t-s-exp),
+  "s-list", t-arrow([list: t-list-app(t-s-exp)], t-s-exp),
   "s-num", t-arrow([list: t-number], t-s-exp),
   "s-str", t-arrow([list: t-string], t-s-exp),
   "s-sym", t-arrow([list: t-string], t-s-exp),
@@ -693,7 +677,7 @@ module-const-s-exp-structs = t-module("builtin://s-exp-structs",
       [list:
         t-variant("s-list",
           [list:
-            {"exps"; mk-list(t-s-exp)}
+            {"exps"; t-list-app(t-s-exp)}
           ],
           [string-dict:
             "_match", t-top,

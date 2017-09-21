@@ -186,6 +186,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
   #print("\n\ntyp: " + tostring(typ))
   ask:
     | t == "any" then: T.t-top(l, false)
+    | t == "bot" then: T.t-bot(l, false)
     | t == "record" then:
       T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l, false)
     | t == "tuple" then:
