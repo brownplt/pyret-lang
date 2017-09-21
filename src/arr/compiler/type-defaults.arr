@@ -225,9 +225,9 @@ module-const-pick = t-module("builtin://pick",
   t-record([string-dict:
     "Pick", t-arrow([list: t-top], t-boolean),
     "is-Pick", t-arrow([list: t-top], t-boolean),
-    "pick-none", t-forall([list: tva, tvb], t-data-refinement(t-pick(tva, tvb), "pick-none")),
+    "pick-none", t-forall([list: tva, tvb], t-data-refinement(t-pick-app(tva, tvb), "pick-none")),
     "is-pick-none", t-arrow([list: t-top], t-boolean),
-    "pick-some", t-forall([list: tva, tvb], t-arrow([list: tva, tvb], t-data-refinement(t-pick(tva, tvb), "pick-some"))),
+    "pick-some", t-forall([list: tva, tvb], t-arrow([list: tva, tvb], t-data-refinement(t-pick-app(tva, tvb), "pick-some"))),
     "is-pick-some", t-arrow([list: t-top], t-boolean)
   ]),
   SD.make-string-dict()
