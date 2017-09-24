@@ -143,8 +143,8 @@ else
 EXTRA_FLAGS = -no-check-mode
 endif
 
-%.v.jarr: $(PHASEA)/pyret.jarr %.arr
-	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.v.jarr \
+%.v.jarr: %.arr $(PHASEA)/pyret.jarr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
                       --build-runnable $*.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
@@ -152,6 +152,7 @@ endif
 	                      -straight-line \
                       $(EXTRA_FLAGS) \
                       --require-config src/scripts/standalone-configV.json
+	sed -i '1s|^|var \$$__T = require("Stopify/built/src/rts");\n\$$__T.makeRTS({transform: "lazy", estimator: "countdown", env: "node"});\n|' $@
 
 %.jarr: $(PHASEA)/pyret.jarr %.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
