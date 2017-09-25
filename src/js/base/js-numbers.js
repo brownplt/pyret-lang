@@ -1809,6 +1809,17 @@ define("pyret-base/js/js-numbers", function() {
     return '~' + this.n.toString();
   };
 
+  Roughnum.prototype.toStringDots = function() {
+    var s = this.n.toString();
+    var aMatch = s.match("^([^eE]+)([eE].*)");
+    if (aMatch) {
+      s = "~" + aMatch[1] + "..." + aMatch[2];
+    } else {
+      s = "~" + s;
+    }
+    return s;
+  };
+
   Roughnum.prototype.equals = function(other, errbacks) {
     errbacks.throwIncomparableValues("roughnums cannot be compared for equality");
   };
@@ -2015,11 +2026,9 @@ define("pyret-base/js/js-numbers", function() {
   var digitRegexp = new RegExp("^[+-]?\\d+$");
   var flonumRegexp = new RegExp("^([-+]?)(\\d+\)((?:\\.\\d+)?)((?:[Ee][-+]?\\d+)?)$");
 
-
-  var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?)$");
+  var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?)(?:\\.\\.\\.)?((?:[Ee][-+]?\\d+)?)$");
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
-
 
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
@@ -2098,7 +2107,7 @@ define("pyret-base/js/js-numbers", function() {
 
     aMatch = x.match(roughnumDecRegexp);
     if (aMatch) {
-      return Roughnum.makeInstance(Number(aMatch[1]), errbacks);
+      return Roughnum.makeInstance(Number(aMatch[1] + aMatch[2]), errbacks);
     }
 
     return false; // if all else fails
