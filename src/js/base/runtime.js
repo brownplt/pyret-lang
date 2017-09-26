@@ -279,7 +279,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     var DefaultReprMethods = {
       "string": String,
-      "number": String,
+      "number": function(val) {
+        if (jsnums.isRoughnum(val)) {
+          return val.toStringDots();
+        } else {
+          return String(val);
+        }
+      },
       "boolean": String,
       "nothing": function(val) { return "nothing"; },
       "function": function(val) { return "<function>"; },
