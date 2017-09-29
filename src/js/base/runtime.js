@@ -4035,8 +4035,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         f = $ar.args[0];
         len = $ar.args[1];
       } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a, false); }
-        thisRuntime.checkArgsInternal2("RawArrays", "raw-array-build",
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build-opt"], 2, $a, false); }
+        thisRuntime.checkArgsInternal2("RawArrays", "raw-array-build-opt",
           f, thisRuntime.Function, len, thisRuntime.Number);
         var curIdx = 0;
         var arr = new Array();
@@ -5344,10 +5344,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'get-value': makeFunction(getValue, "get-value"),
       'list-to-raw-array': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'has-field': makeFunction(hasField, "has-field"),
+
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
       'raw-list-map': makeFunction(raw_list_map, "raw-list-map"),
       'raw-list-filter': makeFunction(raw_list_filter, "raw-list-filter"),
       'raw-list-fold': makeFunction(raw_list_fold, "raw-list-fold"),
+
       'current-checker': makeFunction(function() {
         if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a, false); }
         return getParam("current-checker");
@@ -5556,6 +5558,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-map-1': makeFunction(raw_array_map1, "raw-array-map-1"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
       'raw-array': raw_array_maker,
+
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
 
       'not': makeFunction(bool_not, "not"),
