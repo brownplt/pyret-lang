@@ -2481,6 +2481,7 @@ default-compile-options = {
   inline-case-body-limit: 5,
   module-eval: true,
   user-annotations: true,
+  runtime-annotations: true,
   compiled-cache: "compiled",
   compiled-read-only: empty,
   display-progress: true,

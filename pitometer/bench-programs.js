@@ -28,7 +28,7 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     paths = paths.filter((p) => p.slice(-4) === ".arr");
     paths = paths.filter((p) => include === "*" || include.some((i) => (p.indexOf(i) !== -1)));
     console.log("Running for these programs after filters: ", paths);
-    return maybeTime(compileSuccess, () => echoRun(`make phaseA`));
+    echoRun(`make phaseA`);
     const results = [];
     paths.map((p) => {
       const programPath = path.join(programsPath, p);
