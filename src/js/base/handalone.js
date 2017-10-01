@@ -32,7 +32,11 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
-  if(program.runtimeOptions && program.runtimeOptions.disableAnnotationChecks) {
+  function checkFlag(name) {
+    return program.runtimeOptions && program.runtimeOptions[name];
+  }
+
+  if(checkFlag("disableAnnotationChecks")) {
     runtime.checkArgsInternal1 = function() {};
     runtime.checkArgsInternal2 = function() {};
     runtime.checkArgsInternal3 = function() {};
@@ -164,11 +168,14 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     "builtin://checker": function(checker) {
       checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
       // NOTE(joe): This is the place to add checkAll
-      var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), true);
-      runtime.setParam("current-checker", currentChecker);
+      if(!checkFlag("disableCheckMode")) {
+        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), true);
+        runtime.setParam("current-checker", currentChecker);
+      }
     }
   };
   postLoadHooks[main] = function(answer) {
+    if(checkFlag("disableCheckMode")) { process.exit(EXIT_SUCCESS); }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {

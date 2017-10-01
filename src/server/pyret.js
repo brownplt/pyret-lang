@@ -87,12 +87,12 @@ const usages = [
         alias: 'y',
         description: "Turn on the type-checker, and report errors found by the type checker as compilation errors."
       },
-      /*
       {
         name: 'no-check-mode',
         alias: 'k',
         description: "Omit check blocks during compilation, and generate a standalone program that doesn't print testing information at all."
       },
+      /*
       {
         name: 'clean',
         alias: 'n',

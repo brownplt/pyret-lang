@@ -540,13 +540,20 @@ fun make-standalone(wl, compiled, options):
     end)
 
   runtime-options = J.j-obj(
-    C.concat-singleton(
+    [C.clist:
       J.j-field("disableAnnotationChecks",
         if options.runtime-annotations:
           j-false
         else:
           j-true
-        end)))
+        end),
+      J.j-field("disableCheckMode",
+        if options.check-mode:
+          j-false
+        else:
+          j-true
+        end)
+    ])
 
   cases(List) all-compile-problems:
     | link(_, _) => left(all-compile-problems)
