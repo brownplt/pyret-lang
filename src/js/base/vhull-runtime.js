@@ -1602,10 +1602,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       function toReprFun($ar) {
         var $step = 0;
         var $ans = undefined;
-        if (thisRuntime.isActivationRecord($ar)) {
-          $step = $ar.step;
-          $ans = $ar.ans;
-        }
         while(true) {
           switch($step) {
           case 0:
@@ -1644,10 +1640,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return undefined;
           }
         }
-        if (thisRuntime.isActivationRecord(val)) {
-          $step = val.step;
-          $ans = val.ans;
-        }
         while(true) {
           switch($step) {
           case 0:
@@ -1670,13 +1662,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           break;
         }
-        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-          ["runtime torepr (reentrant)"],
-          reenterToReprFun,
-          $step,
-          [],
-          []);
-        return $ans;
+        throw new Error("Got an activation record in getOld")
       }
       var toReprFunPy = makeFunction(reenterToReprFun, "toReprFun");
       return reenterToReprFun(val);
@@ -2110,10 +2096,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       function equalFun($ar) {
         var $step = 0;
         var $ans = undefined;
-        if (thisRuntime.isActivationRecord($ar)) {
-          $step = $ar.step;
-          $ans = $ar.ans;
-        }
         // Hand optimization HERE
         while(true) {
           switch($step) {
@@ -2132,10 +2114,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         // arity check
         var $step = 0;
         var $ans = undefined;
-        if (thisRuntime.isActivationRecord(left)) {
-          $step = left.step;
-          $ans = left.ans;
-        }
         while(true) {
           switch($step) {
           case 0:
@@ -3110,66 +3088,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function safeCall(fun, after, stackFrame) {
-      var $ans = undefined;
-      var $step = 0;
-      var skipLoop = false;
-      if (thisRuntime.isActivationRecord(fun)) {
-        var $ar = fun;
-        $step = $ar.step;
-        $ans = $ar.ans;
-        fun = $ar.args[0];
-        after = $ar.args[1];
-        stackFrame = $ar.args[2];
-        $fun_ans = $ar.vars[0];
-      }
-      while(!skipLoop) {
-        switch($step) {
-        case 0:
-          $step = 1;
-          $ans = fun();
-          continue;
-        case 1:
-          var $fun_ans = $ans;
-          $step = 2;
-          $ans = after($fun_ans);
-          continue;
-        case 2: return $ans;
-        }
-        break;
-      }
-      $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-        thisRuntime.makeActivationRecord(
-          "safeCall for " + stackFrame,
-          safeCall,
-          $step,
-          [ fun, after, stackFrame ],
-          [ $fun_ans ]
-        );
-      return $ans;
+      return after(fun())
     }
 
     function eachLoop(fun, start, stop) {
-      var i = start;
-      var started = false;
-      function restart(ar) {
-        if(thisRuntime.isActivationRecord(ar)) {
-          i = ar.vars[0];
-          started = ar.vars[1];
-          if (started) {
-            i = i + 1;
-          }
-        }
-        while(true) {
-          started = true;
-          if(i >= stop) {
-            return thisRuntime.nothing;
-          }
-          var res = fun.app(i);
-
-          i = i + 1;
-        }
+      for (var i = start; i < stop; i++) {
+        fun.app(i)
       }
-      return restart();
+      return thisRuntime.nothing;
     }
 
     var RUN_ACTIVE = false;
@@ -3188,170 +3114,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             "Internal: run called while already running"));
       }
       RUN_ACTIVE = true;
-      var start;
-      function startTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          start = window.performance.now();
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          start = process.hrtime();
-        }
-      }
-      function endTimer() {
-        if (typeof window !== "undefined" && window.performance) {
-          return window.performance.now() - start;
-        } else if (typeof process !== "undefined" && process.hrtime) {
-          return process.hrtime(start);
-        }
-      }
-      function getStats() {
-        return { bounces: BOUNCES, tos: TOS, time: endTimer() };
-      }
-      function finishFailure(exn) {
-        RUN_ACTIVE = false;
-        delete activeThreads[thisThread.id];
-        return makeFailureResult(exn, getStats());
-      }
-      function finishSuccess(answer) {
-        RUN_ACTIVE = false;
-        delete activeThreads[thisThread.id];
-        return new SuccessResult(answer, getStats());
-      }
-      function makeStatsObj(bounces, tos, time) {
-        var s =  { bounces, tos, time }
-        return s;
-      }
-
-      startTimer();
-      var that = this;
-      var theOneTrueStackTop = ["top-of-stack"]
-      var kickoff = makeActivationRecord(
-        "<top of stack>",
-        function(ignored) {
-          return program(thisRuntime, namespace);
-        },
-        0,
-        [],
-        []
-      );
-      var theOneTrueStack = [kickoff];
-      var theOneTrueStart = {};
-      var val = theOneTrueStart;
-      var theOneTrueStackHeight = 1;
-      var BOUNCES = 0;
-      var TOS = 0;
-
-      var sync = options.sync || false;
-
-      var threadIsCurrentlyPaused = false;
-      var threadIsDead = false;
-      currentThreadId += 1;
-      // Special case of the first thread to run in between breaks.
-      // This is the only thread notified of the break, others just die
-      // silently.
-      if(Object.keys(activeThreads).length === 0) {
-        var breakFun = function() {
-          threadIsCurrentlyPaused = true;
-          threadIsDead = true;
-          return finishFailure(new PyretFailException(thisRuntime.ffi.userBreak));
-        };
-      }
-      else {
-        var breakFun = function() {
-          threadIsCurrentlyPaused = true;
-          threadIsDead = true;
-        };
-      }
-
-      var thisThread = {
-        handlers: {
-          resume: function(restartVal) {
-            if(!threadIsCurrentlyPaused) {
-              throw new Error("Stack already running");
-            }
-            if(threadIsDead) {
-              throw new Error("Failed to resume; thread has been killed"); }
-            threadIsCurrentlyPaused = false;
-            val = restartVal;
-            TOS++;
-            RUN_ACTIVE = true;
-            util.suspend(iter);
-          },
-          break: breakFun,
-          error: function(errVal) {
-            threadIsCurrentlyPaused = true;
-            threadIsDead = true;
-            var exn;
-            if(isPyretException(errVal)) {
-              exn = errVal;
-            } else {
-              exn = new PyretFailException(errVal);
-            }
-            return finishFailure(exn);
-          }
-        },
-        pause: function() {
-          threadIsCurrentlyPaused = true;
-        },
-        id: currentThreadId
-      };
-      activeThreads[currentThreadId] = thisThread;
-
-      // iter :: () -> Undefined
-      // This function should not return anything meaningful, as state
-      // and fallthrough are carefully managed.
-      function iter() {
-        // CONSOLE.log("In run2::iter, GAS is ", thisRuntime.GAS);
-        // If the thread is dead, return has already been processed
-        if (threadIsDead) {
-          return;
-        }
-        // If the thread is paused, something is wrong; only resume() should
-        // be used to re-enter
-        if (threadIsCurrentlyPaused) { throw new Error("iter entered during stopped execution"); }
-        var loop = true;
-        while (loop) {
-          loop = false;
-          try {
-            if (manualPause !== null) {
-              var thePause = manualPause;
-              manualPause = null;
-              return pauseStack(function(restarter) {
-                thePause.setHandlers({
-                  resume: function() { restarter.resume(val); },
-                  break: restarter.break,
-                  error: restarter.error
-                });
-              });
-            }
-            while(theOneTrueStackHeight > 0) {
-              var next = theOneTrueStack[--theOneTrueStackHeight];
-              // CONSOLE.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
-              theOneTrueStack[theOneTrueStackHeight] = undefined;
-              // CONSOLE.log("theOneTrueStack = ", theOneTrueStack);
-              // CONSOLE.log("Setting ans to " + JSON.stringify(val, null, "  "));
-              // CONSOLE.log("GAS = ", thisRuntime.GAS);
-              if (next.fun instanceof Function) {
-                val = next.fun(next);
-              }
-              else if (!(next instanceof ActivationRecord)) {
-                CONSOLE.log("Our next stack frame doesn't look right!");
-                CONSOLE.log(JSON.stringify(next));
-                CONSOLE.log(theOneTrueStack);
-                throw false;
-              }
-            }
-          } catch(e) {
-            while(theOneTrueStackHeight > 0) {
-              var next = theOneTrueStack[--theOneTrueStackHeight];
-              theOneTrueStack[theOneTrueStackHeight] = "sentinel";
-              e.pyretStack.push(next.from);
-            }
-            return finishFailure(e);
-          }
-        }
-        return finishSuccess(val);
-      }
-      iter();
+      return program(thisRuntime, namespace);
     }
 
     var TRACE_DEPTH = 0;
@@ -3383,29 +3146,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     var UNINITIALIZED_ANSWER = {'uninitialized answer': true};
-    function ActivationRecord(from, fun, step, ans, args, vars) {
-      this.from = from;
-      this.fun = fun;
-      this.step = step;
-      this.ans = ans;
-      this.args = args;
-      this.vars = vars;
-    }
-    ActivationRecord.prototype.toString = function() {
-      return "{from: " + this.from + ", fun: " + this.fun + ", step: " + this.step
-        + ", ans: " + JSON.stringify(this.ans) + ", args: " + JSON.stringify(this.args)
-        + ", vars: " + JSON.stringify(this.vars) + "}";
-    }
-    function makeActivationRecord(from, fun, step, args, vars) {
-      return new ActivationRecord(from, fun, step, UNINITIALIZED_ANSWER, args, vars);
-    }
-    function isActivationRecord(obj) {
-      return obj instanceof ActivationRecord;
-    }
-    function isInitializedActivationRecord(obj) {
-      return obj instanceof ActivationRecord && !(obj.ans === UNINITIALIZED_ANSWER);
-    }
-
     // we can set verbose to true to include the <builtin> srcloc positions
     // and the "safecall for ..." internal frames
     // but by default, it's now terser
@@ -3425,13 +3165,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function breakAll() {
-      RUN_ACTIVE = false;
-      var threadsToBreak = activeThreads;
-      var keys = Object.keys(threadsToBreak);
-      activeThreads = {};
-      for(var i = 0; i < keys.length; i++) {
-        threadsToBreak[keys[i]].handlers.break();
-      }
+      throw new Error('breakAll cant be called')
     }
 
     function pauseStack(resumer) {
@@ -3492,7 +3226,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return thisRuntime.ffi.makeRight(makeOpaque(res.exn));
           }
           else {
-            return thisRuntime.ffi.makeRight(makeOpaque(makePyretFailException(thisRuntime.ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
+           return thisRuntime.ffi.makeRight(makeOpaque(makePyretFailException(thisRuntime.ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
           }
         } else {
           CONSOLE.error("Bad execThunk result: ", res);
@@ -3511,7 +3245,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function runWhileRunning(thunk) {
-      return thisRuntime.pauseStack(function(restarter) {
+      throw new Error('Cant runWhileRunning')
+      /*return thisRuntime.pauseStack(function(restarter) {
         result = thisRuntime.run(function(_, __) {
           return thunk.app();
         }, thisRuntime.namespace, {
@@ -3526,7 +3261,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         else {
           restarter.resume(wrapResult(result))
         }
-      });
+      });*/
     }
 
 
@@ -3705,23 +3440,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     var raw_array_build = function(f, len) {
-      if (thisRuntime.isActivationRecord(f)) {
-        var $ar = f;
-        $step = $ar.step;
-        $ans = $ar.ans;
-        curIdx = $ar.vars[0];
-        arr = $ar.vars[1];
-        f = $ar.args[0];
-        len = $ar.args[1];
-      } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
-        thisRuntime.checkFunction(f);
-        thisRuntime.checkNumber(len);
-        var curIdx = 0;
-        var arr = new Array();
-        var $ans;
-        var $step = 0;
-      }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkNumber(len);
+      var curIdx = 0;
+      var arr = new Array();
+      var $ans;
+      var $step = 0;
       var cleanQuit = true;
       while (cleanQuit && (curIdx < len)) {
         switch($step) {
@@ -3740,30 +3465,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return arr;
       }
       else {
-        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-          thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
-        return $ans;
+        throw new Error("cleanQuit shouldn't be false")
       }
     }
 
     var raw_array_build_opt = function(f, len) {
-      if (thisRuntime.isActivationRecord(f)) {
-        var $ar = f;
-        $step = $ar.step;
-        $ans = $ar.ans;
-        curIdx = $ar.vars[0];
-        arr = $ar.vars[1];
-        f = $ar.args[0];
-        len = $ar.args[1];
-      } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
-        thisRuntime.checkFunction(f);
-        thisRuntime.checkNumber(len);
-        var curIdx = 0;
-        var arr = new Array();
-        var $ans;
-        var $step = 0;
-      }
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
+      thisRuntime.checkFunction(f);
+      thisRuntime.checkNumber(len);
+      var curIdx = 0;
+      var arr = new Array();
+      var $ans;
+      var $step = 0;
       var cleanQuit = true;
       while (cleanQuit && curIdx < len) {
         switch($step) {
@@ -3785,9 +3498,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return arr;
       }
       else {
-        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] =
-          thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
-        return $ans;
+        throw new Error("cleanQuit shouldn't be false")
       }
     }
 
@@ -3874,9 +3585,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return currentAcc;
       }
       function foldFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          currentAcc = $ar.ans;
-        }
         var res = foldHelp();
         return res;
       }
@@ -3899,9 +3607,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return newArray;
       }
       function mapFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          newArray[currentIndex] = $ar.ans;
-        }
         var res = mapHelp();
         return res;
       }
@@ -3944,9 +3649,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return newArray;
       }
       function mapFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          newArray[currentIndex] = $ar.ans;
-        }
         var res = mapHelp();
         return res;
       }
@@ -3970,9 +3672,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.ffi.makeList(currentAcc);
       }
       function foldFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          currentAcc.push($ar.ans);
-        }
         var res = foldHelp();
         return res;
       }
@@ -4001,9 +3700,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return newArray;
       }
       function mapFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          newArray[currentIndex] = $ar.ans;
-        }
         var res = mapHelp();
         return res;
       }
@@ -4029,11 +3725,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.ffi.makeList(currentAcc);
       }
       function foldFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          if($ar.ans) {
-            currentAcc.push(currentFst);
-          }
-        }
         var res = foldHelp();
         return res;
       }
@@ -4061,9 +3752,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return newArray;
       }
       function filterFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          if($ar.ans) { newArray.push(arr[currentIndex]); }
-        }
         var res = filterHelp();
         return res;
       }
@@ -4086,9 +3774,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return currentAcc;
       }
       function foldFun($ar) {
-        if (thisRuntime.isInitializedActivationRecord($ar)) {
-          currentAcc = $ar.ans;
-        }
         var res = foldHelp();
         return res;
       }
@@ -5243,10 +4928,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'traceExit': traceExit,
       'traceErrExit': traceErrExit,
 
-      'isActivationRecord'   : isActivationRecord,
-      'isInitializedActivationRecord'   : isInitializedActivationRecord,
-      'makeActivationRecord' : makeActivationRecord,
-
       'NumberErrbacks': NumberErrbacks,
 
       'namedBrander': namedBrander,
@@ -5604,12 +5285,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'getField': 'gF',
         'getFieldRef': 'gFR',
         'hasBrand': 'hB',
-        'isActivationRecord': 'isAR',
         'isFunction': 'isF',
         'isMethod': 'isM',
         'isPyretException': 'isPE',
         'isPyretTrue': 'isPT',
-        'makeActivationRecord': 'mAR',
         'makeBoolean': 'mB',
         'makeBranderAnn': 'mBA',
         'makeDataValue': 'mDV',
