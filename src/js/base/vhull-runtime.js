@@ -1956,6 +1956,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cache.equal.push(thisRuntime.ffi.equal);
         return cache.equal.length;
       }
+      // NOTE(rachit): equals check
       function equalHelp() {
         var current, curLeft, curRight;
         while (toCompare.stack.length > 0 && !thisRuntime.ffi.isNotEqual(toCompare.curAns)) {
@@ -2113,6 +2114,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           $step = $ar.step;
           $ans = $ar.ans;
         }
+        // Hand optimization HERE
         while(true) {
           switch($step) {
           case 0:
@@ -3176,7 +3178,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     var queuedRuns = [];
 
-    function run(program, namespace, options) {
+    // program (runtime) -> (answer | continuation) (throws a pyret exception)
+    // namespace not used
+    function run(program, namespace, options, /*onDone*/) {
       // CONSOLE.log("In run2");
       if(RUN_ACTIVE) {
         return makeFailureResult(
@@ -3497,6 +3501,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       var result;
       try {
+        // thunk is from pyret and can be a pyret callback
         result = thunk.app()
         result = new SuccessResult(result, {})
       } catch (e) {
@@ -4631,6 +4636,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return loadModulesNew(thisRuntime.namespace, originalOrderRawModules, withModules);
     }
 
+// Ingnore
     function loadModule(module, runtime, namespace, withModule) {
       var modstring = String(module).substring(0, 500);
       return thisRuntime.safeCall(function() {

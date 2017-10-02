@@ -157,6 +157,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       runtime.setParam("current-checker", currentChecker);
     }
   };
+  // last thing to run
   postLoadHooks[main] = function(answer) {
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
@@ -216,8 +217,8 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
           } else {
             execRt.runThunk(
               function() {
-                var cliRender = execRt.makeFunction(function(val) { 
-                  return execRt.toReprJS(val, execRt.ReprMethods["$cli"]); 
+                var cliRender = execRt.makeFunction(function(val) {
+                  return execRt.toReprJS(val, execRt.ReprMethods["$cli"]);
                 }, "cliRender");
                 return gf(gf(rendererror, "values"), "display-to-string").app(
                   reasonResult.result,
@@ -290,6 +291,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
   return runtime.runThunk(function() {
     runtime.modules = {};
+    // staticModules contains the stopified code
     return runtime.runStandalone(staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });
