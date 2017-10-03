@@ -12,7 +12,9 @@ provide {
   list-to-tree-set: list-to-tree-set,
   fold: set-fold,
   all: set-all,
-  any: set-any
+  any: set-any,
+  map-like: set-map-like,
+  filter-like: set-filter-like
 } end
 provide-types *
 
@@ -367,6 +369,14 @@ data Set:
 
     method any(self, f) -> Boolean:
       self.elems.any(f)
+    end,
+
+    method map-like(self, f) -> Set:
+      list-to-list-set(self.to-list().map(f))
+    end,
+
+    method filter-like(self, f) -> Set:
+      list-to-list-set(self.to-list().filter(f))
     end
     
   | tree-set(elems :: AVLTree) with:
@@ -436,6 +446,14 @@ data Set:
 
     method any(self, f) -> Boolean:
       self.elems.any(f)
+    end,
+
+    method map-like(self, f) -> Set:
+      list-to-tree-set(self.to-list().map(f))
+    end,
+
+    method filter-like(self, f) -> Set:
+      list-to-tree-set(self.to-list().filter(f))
     end
     
 sharing:
@@ -587,6 +605,14 @@ fun list-to-tree(lst :: lists.List):
   for lists.fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
+end
+
+fun set-map-like<T, U>(s :: Set<T>, f :: (T -> U)) -> Set<U>:
+  s.map-like(f)
+end
+
+fun set-filter-like<T>(f :: (T -> Boolean), s :: Set<T>) -> Set<T>:
+  s.filter-like(f)
 end
 
 fun arr-to-list-set(arr :: RawArray) -> Set:
