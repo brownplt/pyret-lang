@@ -3,7 +3,7 @@ provide-types *
 
 import global as _
 
-data ComparisionResult:
+data ComparisonResult:
   | Equal
   | LessThan
   | GreaterThan
