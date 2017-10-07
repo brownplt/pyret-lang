@@ -4719,74 +4719,50 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return getExported(realm[duri]);
         });
 
-        return thisRuntime.safeCall(function() {
+        var natives = (function() {
           if (mod.nativeRequires.length === 0) {
              //CONSOLE.log("Nothing to load, skipping stack-pause");
             return mod.nativeRequires;
           } else {
-            return thisRuntime.pauseStack(function(restarter) {
-               //CONSOLE.log("About to load: ", mod.nativeRequires);
-              require(mod.nativeRequires, function(/* varargs */) {
-                var nativeInstantiated = Array.prototype.slice.call(arguments);
-                //CONSOLE.log("Loaded: ", nativeInstantiated);
-                restarter.resume(nativeInstantiated);
-              });
+            //CONSOLE.log("About to load: ", mod.nativeRequires);
+            return require(mod.nativeRequires, function(/* varargs */) {
+              var nativeInstantiated = Array.prototype.slice.call(arguments);
+              //CONSOLE.log("Loaded: ", nativeInstantiated);
+              return nativeInstantiated;
             });
+            ;
           }
-        }, function(natives) {
-          function continu() {
-            return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
+        })()
+
+        function continu() {
+          return runStandalone(
+            staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
+        }
+        if(realm[uri]) {
+          return continu();
+        }
+
+        var r = (function() {
+          var theModFunction;
+          if(typeof mod.theModule === "function") {
+            theModFunction = mod.theModule;
+            return theModFunction.apply(null,
+              [thisRuntime, thisRuntime.namespace, uri]
+              .concat(reqInstantiated)
+              .concat(natives));
+          } else {
+            throw new Error('Module was not in the form of a function')
           }
-          if(realm[uri]) {
-            return continu();
-          }
-          return thisRuntime.safeCall(function() {
-            var indirectEval = eval;
-            var theModFunction;
-            if(typeof mod.theModule === "function") {
-              theModFunction = mod.theModule;
-              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-            }
-            else if (!util.isBrowser() && typeof mod.theModule === "string") {
-              theModFunction = indirectEval("(" + mod.theModule + ")");
-              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-            }
-            else if (util.isBrowser()) {
-              return thisRuntime.pauseStack(function(resumer) {
-                var p = loader.compileInNewScriptContext(mod.theModule);
-                var instantiated = p.then(function(theModFunction) {
-                  thisRuntime.runThunk(function() {
-                    return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-                  },
-                  function(r) {
-                    if(thisRuntime.isSuccessResult(r)) {
-                      resumer.resume(r.result);
-                    }
-                    else {
-                      resumer.error(r.exn);
-                    }
-                  });
-                });
-                instantiated.fail(function(val) { return resumer.error(val); });
-                // NOTE(joe): Intentionally not returning anything; this is the
-                // body of a call to pauseStack
-              });
-            }
-          },
-          function(r) {
-             //CONSOLE.log("Result from module: ", r);
-            realm[uri] = r;
-            if(uri in postLoadHooks) {
-              return thisRuntime.safeCall(function() {
-                return postLoadHooks[uri](r);
-              }, function(_) {
-                return continu();
-              }, "runStandalone, postLoadHook for " + uri);
-            } else {
-              return continu();
-            }
-          }, "runStandalone, loading " + uri);
-        }, "runStandalone, native-dep loading " + uri);
+        })();
+
+        realm[uri] = r;
+
+        if(uri in postLoadHooks) {
+          postLoadHooks[uri](r);
+          return continu();
+        } else {
+          return continu();
+        }
       }
     }
 
