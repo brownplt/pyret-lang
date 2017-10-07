@@ -8,11 +8,7 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 
 */
 // TODO: Change to myrequire
-requirejs(
-  [ "pyret-base/js/runtime",
-    "pyret-base/js/exn-stack-parser",
-    "program"],
-  function(runtimeLib, stackLib, program) {
+requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
@@ -21,10 +17,13 @@ requirejs(
 
   var main = toLoad[toLoad.length - 1];
 
+  // The evaluation of the runtime should never suspend.
+  $__T.getRTS().delimitDepth = 2;
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
     stderr: function(s) { process.stderr.write(s); }
   });
+  $__T.getRTS().delimitDepth = 0;
 
   var EXIT_SUCCESS = 0;
   var EXIT_ERROR = 1;
@@ -271,8 +270,8 @@ requirejs(
 
   function onComplete(result) {
     if(runtime.isSuccessResult(result)) {
-      console.log("The program completed successfully");
-      console.log(result);
+      //console.log("The program completed successfully");
+      //console.log(result);
       process.exit(EXIT_SUCCESS);
     }
     else if (runtime.isFailureResult(result)) {
@@ -292,18 +291,13 @@ requirejs(
       process.exit(EXIT_ERROR_UNKNOWN);
     }
   }
-  function toRun() {
+
+  var toRun = function() {
     runtime.modules = {};
     // staticModules contains the stopified code
     return runtime.runStandalone(
       staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
   }
 
-  return $__T.runtime.run(toRun, {
-    transform: "lazy",
-    estimator: "countdown",
-    env: "node",
-    yieldInterval: "1",
-    timePerElapsed: "1"
-  }, onComplete)
+  $__T.getRTS().delimit(() => runtime.runThunk(toRun, onComplete))
 });
