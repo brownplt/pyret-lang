@@ -5,8 +5,10 @@ define("pyret-base/js/runtime",
    "pyret-base/js/runtime-util",
    "pyret-base/js/exn-stack-parser",
    "pyret-base/js/secure-loader",
+   "pyret-base/js/stopified-vhull-runtime",
    "seedrandom"],
-function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
+  function (Namespace, jsnums, codePoint, util, exnStackParser, loader, sRuntime,
+    seedrandom) {
   Error.stackTraceLimit = Infinity;
 
   /*
@@ -106,7 +108,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     // 9. return A
     return A;
   };
-
   function filter(obj, fun/*, thisArg*/) {
     'use strict';
 
@@ -139,7 +140,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     return res;
   };
-
   function reduce(obj, callback /*, initialValue*/) {
     if (obj === null) {
       throw new TypeError( 'Array.prototype.reduce ' +
@@ -196,7 +196,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     // 9. Return accumulator.
     return value;
   }
-
   function forEach(obj, callback/*, thisArg*/) {
 
     var T, k;
@@ -270,6 +269,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
   */
   function makeRuntime(theOutsideWorld) {
     var CONSOLE = theOutsideWorld.console || console;
+    /**
+     * Import the stopified runtime
+     */
+
+    var thisRuntime = {}
+
+    var {
+      /* Run functions */
+      safeCall, eachLoop, run, runThunk, execThunk,
+      /* Array functions */
+      raw_array_build, raw_array_build_opt, raw_array_fold, raw_array_map,
+      raw_array_each, raw_array_mapi, raw_array_map1, raw_array_filter,
+      /* List functions */
+      raw_list_map, raw_list_filter, raw_list_fold
+    } = sRuntime.generateDefs(thisRuntime)
+
     /**
        Extends an object with the new fields in fields
        If all the fields are new, the brands are kept,
@@ -3322,36 +3337,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       };
     }
 
-    function safeCall(fun, after, stackFrame) {
-      return after(fun())
-    }
-
-    function eachLoop(fun, start, stop) {
-      for (var i = start; i < stop; i++) {
-        fun.app(i)
-      }
-      return thisRuntime.nothing;
-    }
-
-    var RUN_ACTIVE = false;
-    var currentThreadId = 0;
-    var activeThreads = {};
-
-    var queuedRuns = [];
-
-    // program (runtime) -> (answer | continuation) (throws a pyret exception)
-    // namespace not used
-    function run(program, namespace, options, /*onDone*/) {
-      // CONSOLE.log("In run2");
-      if(RUN_ACTIVE) {
-        return makeFailureResult(
-          thisRuntime.ffi.makeMessageException(
-            "Internal: run called while already running"));
-      }
-      RUN_ACTIVE = true;
-      return program(thisRuntime, namespace);
-    }
-
     var TRACE_DEPTH = 0;
     var SHOW_TRACE = true;
     var TOTAL_VARS = 0;
@@ -3425,58 +3410,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
     };
 
-    var manualPause = null;
     function schedulePause(resumer) {
       var pause = new PausePackage();
-      manualPause = pause;
       resumer(pause);
     }
 
     function getExnValue(v) {
       if(!isOpaque(v) && !isPyretException(v.val)) {
-        thisRuntime.ffi.throwMessageException("Got non-exception value in getExnVal");
+        thisRuntime.ffi.throwMessageException(
+          "Got non-exception value in getExnVal");
       }
       return v.val.exn;
-    }
-
-    function runThunk(f, then) {
-      var fnResult, resultCtor;
-      try {
-        fnResult = f();
-        resultCtor = thisRuntime.makeSuccessResult;
-      } catch (e) {
-        fnResult = e;
-        resultCtor = thisRuntime.makeFailureResult;
-      }
-      return then(resultCtor(fnResult))
-    }
-
-    function execThunk(thunk) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-task"], 1, $a); }
-      function wrapResult(res) {
-        if(isSuccessResult(res)) {
-          return thisRuntime.ffi.makeLeft(res.result);
-        } else if (isFailureResult(res)) {
-          if(isPyretException(res.exn)) {
-            return thisRuntime.ffi.makeRight(makeOpaque(res.exn));
-          }
-          else {
-           return thisRuntime.ffi.makeRight(makeOpaque(makePyretFailException(thisRuntime.ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
-          }
-        } else {
-          CONSOLE.error("Bad execThunk result: ", res);
-          return;
-        }
-      }
-      var result;
-      try {
-        // thunk is from pyret and can be a pyret callback
-        result = thunk.app()
-        result = new SuccessResult(result, {})
-      } catch (e) {
-        result = makeFailureResult(e, {})
-      }
-      return wrapResult(result)
     }
 
     function runWhileRunning(thunk) {
@@ -3674,69 +3618,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return arr;
     }
 
-    var raw_array_build = function(f, len) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkNumber(len);
-      var curIdx = 0;
-      var arr = new Array();
-      var $ans;
-      var $step = 0;
-      var cleanQuit = true;
-      while (cleanQuit && (curIdx < len)) {
-        switch($step) {
-        case 0:
-          $step = 1;
-          $ans = f.app(curIdx);
-        case 1:
-          arr.push($ans);
-          $step = 0;
-          curIdx++;
-          continue;
-        }
-        break;
-      }
-      if(cleanQuit) {
-        return arr;
-      }
-      else {
-        throw new Error("cleanQuit shouldn't be false")
-      }
-    }
-
-    var raw_array_build_opt = function(f, len) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkNumber(len);
-      var curIdx = 0;
-      var arr = new Array();
-      var $ans;
-      var $step = 0;
-      var cleanQuit = true;
-      while (cleanQuit && curIdx < len) {
-        switch($step) {
-        case 0:
-          $step = 1;
-          $ans = f.app(curIdx);
-          // no need to break
-        case 1:
-          if (thisRuntime.ffi.isSome($ans)) {
-            arr.push(thisRuntime.getField($ans, "value"));
-          }
-          $step = 0;
-          curIdx++;
-          continue;
-        }
-        break;
-      }
-      if(cleanQuit) {
-        return arr;
-      }
-      else {
-        throw new Error("cleanQuit shouldn't be false")
-      }
-    }
-
     var raw_array_get = function(arr, ix) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a); }
       thisRuntime.checkArray(arr);
@@ -3802,220 +3683,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       make5: makeFunction(function(a, b, c, d, e) { return [a, b, c, d, e]; }, "raw-array:make5"),
     });
 
-    var raw_array_fold = function(f, init, arr, start) {
-      if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkPyretVal(init);
-      thisRuntime.checkArray(arr);
-      thisRuntime.checkNumber(start);
-      var currentIndex = -1;
-      var currentAcc = init;
-      var length = arr.length;
-      function foldHelp() {
-        while(currentIndex < (length - 1)) {
-          currentIndex += 1;
-          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
-          currentAcc = res;
-        }
-        return currentAcc;
-      }
-      function foldFun($ar) {
-        var res = foldHelp();
-        return res;
-      }
-      return foldFun();
-    };
-
-    var raw_array_map = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
-      var currentIndex = -1;
-      var length = arr.length;
-      var newArray = new Array(length);
-      function mapHelp() {
-        while(currentIndex < (length - 1)) {
-          currentIndex += 1;
-          var res = f.app(arr[currentIndex]);
-          newArray[currentIndex] = res;
-        }
-        return newArray;
-      }
-      function mapFun($ar) {
-        var res = mapHelp();
-        return res;
-      }
-      return mapFun();
-    };
-
-    var raw_array_each = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-each"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
-      var currentIndex = -1;
-      var length = arr.length;
-      function eachHelp() {
-        while(currentIndex < (length - 1)) {
-          currentIndex += 1;
-          var res = f.app(arr[currentIndex]);
-        }
-        return nothing;
-      }
-      function eachFun($ar) {
-        var res = eachHelp();
-        return res;
-      }
-      return eachFun();
-    };
-
-    var raw_array_mapi = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-mapi"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
-      var currentIndex = -1;
-      var length = arr.length;
-      var newArray = new Array(length);
-      function mapHelp() {
-        while(currentIndex < (length - 1)) {
-          currentIndex += 1;
-          var res = f.app(arr[currentIndex], currentIndex);
-          newArray[currentIndex] = res;
-        }
-        return newArray;
-      }
-      function mapFun($ar) {
-        var res = mapHelp();
-        return res;
-      }
-      return mapFun();
-    };
-
-    var raw_list_map = function(f, lst) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-map"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkList(lst);
-      var currentAcc = [];
-      var currentLst = lst;
-      var currentFst;
-      function foldHelp() {
-        while(thisRuntime.ffi.isLink(currentLst)) {
-          currentFst = thisRuntime.getColonField(currentLst, "first");
-          currentLst = thisRuntime.getColonField(currentLst, "rest");
-          var res = f.app(currentFst);
-          currentAcc.push(res);
-        }
-        return thisRuntime.ffi.makeList(currentAcc);
-      }
-      function foldFun($ar) {
-        var res = foldHelp();
-        return res;
-      }
-      return foldFun();
-    };
-
-    /**
-     * Similar to `raw_array_map`, but applies a specific function to
-     * the first item in the array
-     */
-    var raw_array_map1 = function(f1, f, arr) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-map1"], 3, $a); }
-      thisRuntime.checkFunction(f1);
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
-      var currentIndex = -1;
-      var length = arr.length;
-      var newArray = new Array(length);
-      function mapHelp() {
-        while(currentIndex < (length - 1)) {
-          currentIndex += 1;
-          var toCall = currentIndex === 0 ? f1 : f;
-          var res = toCall.app(arr[currentIndex]);
-          newArray[currentIndex] = res;
-        }
-        return newArray;
-      }
-      function mapFun($ar) {
-        var res = mapHelp();
-        return res;
-      }
-      return mapFun();
-    };
-
-    var raw_list_filter = function(f, lst) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-filter"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkList(lst);
-      var currentAcc = [];
-      var currentLst = lst;
-      var currentFst;
-      function foldHelp() {
-        while(thisRuntime.ffi.isLink(currentLst)) {
-          currentFst = thisRuntime.getColonField(currentLst, "first");
-          currentLst = thisRuntime.getColonField(currentLst, "rest");
-          var res = f.app(currentFst);
-          if(res) {
-            currentAcc.push(currentFst);
-          }
-        }
-        return thisRuntime.ffi.makeList(currentAcc);
-      }
-      function foldFun($ar) {
-        var res = foldHelp();
-        return res;
-      }
-      return foldFun();
-    };
-
-    var raw_array_filter = function(f, arr) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-filter"], 2, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkArray(arr);
-      var currentIndex = -1;
-      var length = arr.length;
-      var newArray = new Array();
-      function filterHelp() {
-        while(currentIndex < (length - 1)) {
-          currentIndex += 1;
-          var res = f.app(arr[currentIndex]);
-          if(!(isBoolean(res))) {
-            return ffi.throwNonBooleanCondition(["raw-array-filter"], "Boolean", res);
-          }
-          if(isPyretTrue(res)){
-            newArray.push(arr[currentIndex]);
-          }
-        }
-        return newArray;
-      }
-      function filterFun($ar) {
-        var res = filterHelp();
-        return res;
-      }
-      return filterFun();
-    };
-
-    var raw_list_fold = function(f, init, lst) {
-      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-fold"], 3, $a); }
-      thisRuntime.checkFunction(f);
-      thisRuntime.checkPyretVal(init);
-      thisRuntime.checkList(lst);
-      var currentAcc = init;
-      var currentLst = lst;
-      function foldHelp() {
-        while(thisRuntime.ffi.isLink(currentLst)) {
-          var fst = thisRuntime.getColonField(currentLst, "first");
-          currentLst = thisRuntime.getColonField(currentLst, "rest");
-          currentAcc = f.app(currentAcc, fst);
-        }
-        return currentAcc;
-      }
-      function foldFun($ar) {
-        var res = foldHelp();
-        return res;
-      }
-      return foldFun();
-    };
-
-
     var string_substring = function(s, min, max) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-substring"], 3, $a); }
       thisRuntime.checkString(s);
@@ -4047,7 +3714,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkString(replace);
       return thisRuntime.makeString(s.split(find).join(replace));
     }
-
     var string_equals = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-equals"], 2, $a); }
       thisRuntime.checkString(l);
@@ -4250,7 +3916,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkNumber(r);
       return thisRuntime.makeBoolean(jsnums.equals(l, r, NumberErrbacks));
     };
-
     var num_within_abs = function(delta) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a); }
       thisRuntime.checkNumber(delta);
@@ -4264,7 +3929,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return makeBoolean(jsnums.roughlyEquals(l, r, delta, NumberErrbacks));
       }, "num-within-abs(...)");
     }
-
     var num_within_rel = function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a); }
       thisRuntime.checkNumber(relTol);
@@ -4275,27 +3939,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, NumberErrbacks));
       }, "num-within-rel(...)");
     }
-
     var num_max = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a); }
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
       if (jsnums.greaterThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
-
     var num_min = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a); }
       thisRuntime.checkNumber(l);
       thisRuntime.checkNumber(r);
       if (jsnums.lessThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
-
     var num_abs = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-abs"], 1, $a); }
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.abs(n, NumberErrbacks));
     }
-
     var num_sin = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sin"], 1, $a); }
       thisRuntime.checkNumber(n);
@@ -4326,14 +3986,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkNumber(n);
       return thisRuntime.makeNumberBig(jsnums.atan(n, NumberErrbacks));
     }
-
     var num_atan2 = function(y, x) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-atan"], 2, $a); }
       thisRuntime.checkNumber(y);
       thisRuntime.checkNumber(x);
       return thisRuntime.makeNumberBig(jsnums.atan2(y, x, NumberErrbacks));
     };
-
     var num_modulo = function(n, mod) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-modulo"], 2, $a); }
       thisRuntime.checkNumber(n);
@@ -5122,7 +4780,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     //Export the runtime
     //String keys should be used to prevent renaming
-    var thisRuntime = {
+    var boundRuntime = {
       'run': run,
       'runThunk': runThunk,
       'execThunk': execThunk,
@@ -5452,6 +5110,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'makePrimAnn': makePrimAnn
     };
+    for(var k in boundRuntime) {
+      thisRuntime[k] = boundRuntime[k];
+    }
 
     makePrimAnn("Number", isNumber);
     makePrimAnn("Exactnum", jsnums.isRational);
@@ -5535,6 +5196,4 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
   }
 
   return  {'makeRuntime' : makeRuntime};
-
-
 });
