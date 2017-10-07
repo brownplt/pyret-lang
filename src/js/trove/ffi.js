@@ -15,6 +15,10 @@
   provides: {},
   nativeRequires: [],
   theModule: function(runtime, namespace, uri, L, Se, O, E, EQ, ERR, S, CON, /* CH, */ ED, VS) {
+    if (typeof $__T !== 'undefined') {
+      console.log('evaluating ffi.js, dont yield')
+      $__T.getRTS().delimitDepth = 2;
+    }
     var gf = runtime.getField;
     L = gf(L, "values");
     Se = gf(Se, "values");
@@ -547,7 +551,7 @@
 
     runtime.makePrimAnn("List", isList);
 
-    return runtime.makeJSModuleReturn({
+    var toRet = runtime.makeJSModuleReturn({
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
       throwUpdateNonRef : throwUpdateNonRef,
@@ -732,5 +736,10 @@
         return arr;
       }
     });
+    if (typeof $__T !== 'undefined') {
+      console.log('done evaluating ffi.js, start yielding')
+      $__T.getRTS().delimitDepth = 0;
+    }
+  return toRet;
   }
 })

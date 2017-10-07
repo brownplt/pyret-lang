@@ -292,7 +292,7 @@
               }
             }, "reduce-one");
           }, function(answerTuple) {
-            return runtime.getTuple(answerTuple, 1, ["tables"]); 
+            return runtime.getTuple(answerTuple, 1, ["tables"]);
           }, "reduce-rest");
         }),
 
@@ -438,12 +438,17 @@
         })
       }));
     }
-    
-    return runtime.makeJSModuleReturn({
+
+    var toRet = runtime.makeJSModuleReturn({
       TableAnn : annTable,
       makeTable: makeTable,
       openTable: openTable,
       isTable: isTable },
       {});
+    if(typeof $__T !== 'undefined') {
+      console.log('done evaluating table.js, start yielding')
+      $__T.getRTS().delimitDepth = 2;
+    }
+    return toRet;
   }
 })

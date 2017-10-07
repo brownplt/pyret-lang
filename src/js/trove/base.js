@@ -25,7 +25,11 @@
   provides: {},
   nativeRequires: [],
   theModule: function(runtime, namespace, uri /* intentionally blank */) {
-    return runtime.makeObject({
+    if(typeof $__T !== 'undefined') {
+      console.log('evaluating base.js dont yield')
+      $__T.getRTS().delimitDepth = 2;
+    }
+    var toRet = runtime.makeObject({
       "defined-values": {},
       "defined-types": {},
       "provide-plus-types": runtime.makeObject({
@@ -33,5 +37,10 @@
         "types": {}
       })
     });
+    if(typeof $__T !== 'undefined') {
+      console.log('done evaluating base.js, start yielding')
+      $__T.getRTS().delimitDepth = 0;
+    }
+    return toRet
   }
 })
