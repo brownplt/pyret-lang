@@ -5,10 +5,6 @@
   nativeRequires: ["s-expression"],
   provides: {},
   theModule: function(RUNTIME, NAMESPACE, uri, sstruct, sexp) {
-    if(typeof $__T !== 'undefined') {
-      console.log('evaluating s-exp, dont yield')
-      $__T.getRTS().delimitDepth = 2;
-    }
     var gf = RUNTIME.getField;
     var vals = gf(sstruct, "values");
     var typs = gf(sstruct, "types");
@@ -71,10 +67,6 @@
       "S-Exp": typs["S-Exp"]
     };
     var toRet = RUNTIME.makeModuleReturn(values, types);
-    if(typeof $__T !== 'undefined') {
-      console.log('done evaluating s-exp, start yield')
-      $__T.getRTS().delimitDepth = 0;
-    }
     return toRet
   }
 })

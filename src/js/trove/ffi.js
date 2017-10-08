@@ -15,10 +15,6 @@
   provides: {},
   nativeRequires: [],
   theModule: function(runtime, namespace, uri, L, Se, O, E, EQ, ERR, S, CON, /* CH, */ ED, VS) {
-    if (typeof $__T !== 'undefined') {
-      console.log('evaluating ffi.js, dont yield')
-      $__T.getRTS().delimitDepth = 2;
-    }
     var gf = runtime.getField;
     L = gf(L, "values");
     Se = gf(Se, "values");
@@ -303,7 +299,7 @@
       checkSrcloc(objloc);
       raise(err("update-non-obj")(loc, objval, objloc));
     }
-    
+
     function throwUpdateFrozenRef(loc, objval, objloc, fieldname, fieldloc) {
       runtime.checkPyretVal(objval);
       checkSrcloc(loc);
@@ -312,7 +308,7 @@
       checkSrcloc(fieldloc);
       raise(err("update-frozen-ref")(loc, objval, objloc, fieldname, fieldloc));
     }
-    
+
     function throwUpdateNonRef(loc, objval, objloc, fieldname, fieldloc) {
       runtime.checkPyretVal(objval);
       checkSrcloc(loc);
@@ -321,7 +317,7 @@
       checkSrcloc(fieldloc);
       raise(err("update-non-ref")(loc, objval, objloc, fieldname, fieldloc));
     }
-    
+
     function throwUpdateNonExistentField(loc, objval, objloc, fieldname, fieldloc) {
       runtime.checkPyretVal(objval);
       checkSrcloc(loc);
@@ -330,7 +326,7 @@
       checkSrcloc(fieldloc);
       raise(err("update-non-existent-field")(loc, objval, objloc, fieldname, fieldloc));
     }
-  
+
     function throwUninitializedId(loc, name) {
       checkSrcloc(loc);
       runtime.checkString(name);
@@ -471,7 +467,7 @@
       runtime.checkPyretVal(value);
       return contract("record-fields-fail")(value, failures);
     }
-  
+
     function makeTupleAnnsFail(value, failures) {
       return contract("tuple-anns-fail")(value, failures);
     }
@@ -736,10 +732,6 @@
         return arr;
       }
     });
-    if (typeof $__T !== 'undefined') {
-      console.log('done evaluating ffi.js, start yielding')
-      $__T.getRTS().delimitDepth = 0;
-    }
   return toRet;
   }
 })
