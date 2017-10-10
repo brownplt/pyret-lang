@@ -148,7 +148,7 @@ endif
 		--build-runnable $*.arr \
 		--builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
-		--compiled-dir compiled \
+		--compiled-dir vhull-compiled \
 		--standalone-file "src/js/base/handalone.stop.js" \
 		-straight-line \
 		$(EXTRA_FLAGS) \
