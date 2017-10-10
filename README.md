@@ -93,7 +93,7 @@ standalone compiler in the same format as `build/phase0/pyret.js`.
 4.  Phase C builds from phase B.  One major use of phase C is to check the
 bootstrapped compiler from phase B.  Before committing a new standalone in
 phase 0, build both phaseB and phaseC, and check:
-    
+
         $ diff build/phaseB/pyret.jarr build/phaseC/pyret.jarr
 
     And it should be empty, which indicates that the bootstrapped compiler is
@@ -107,3 +107,33 @@ at
     which will build the phaseB and phaseC standalones, check the diff, and
     copy to phase0 if the diff is empty.
 
+
+Pyret + Stopify
+---------------
+
+This is currently experimental.
+
+1. Clone the Stopify repo.
+2. Navigate to `Stopify/stopify` and run the following commands:
+   ```
+   Stopify/stopify $ yarn
+   Stopify/stopify $ yarn run link:global
+   ```
+   The first line builds stopify while the second line creates a global node
+   installation for the `Stopify` module.
+3. Navigate to the pyret-compiler and run `npm link Stopify`. This makes the
+   global installation of stopify to pyret.
+4. Build the pyret compiler using `make`.
+
+To build a pyret file with stopify, simply run `<filename>.v.jarr` in the
+compiler's top-level. The `%.v.jarr` rule in the Makefile uses the following
+specific options to build the file with pyret:
+```
+		--standalone-file "src/js/base/handalone.stop.js" \
+		-straight-line \
+		--require-config src/scripts/standalone-configV.json
+```
+
+The rule also replaces the first line of the file to require stopify and
+build the stopify runtime. For more information about the options, take
+a look at the stopify README.
