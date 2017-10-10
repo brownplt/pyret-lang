@@ -931,7 +931,7 @@ fun remove-refinements-and-foralls(typ :: Type) -> Type:
     | t-ref(ref-typ, l, inferred) =>
       t-ref(rraf(ref-typ), inferred)
     | t-data-refinement(data-type, variant-name, l, inferred) =>
-      data-type
+      rraf(data-type)
     | t-var(id, l, _) =>
       typ
     | t-existential(id, l, inferred) =>
