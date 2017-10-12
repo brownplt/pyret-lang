@@ -11,8 +11,7 @@ install:
 before_script:
 - make
 script:
-- heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
-  https://github.com/brownplt/pyret-lang/
+- heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/
 - make all-pyret-test
 notifications:
   slack:

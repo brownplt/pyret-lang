@@ -138,6 +138,7 @@ define("pyret-base/js/type-util", [], function() {
     var L = runtime.ffi.makeList;
     var tp = function(thing) { return toPyretType(runtime, thing); };
     if(typ === "tany") { return O({ tag: "any" }); }
+    if(typ === "tbot") { return O({ tag: "bot" }); }
     switch(typ.tag) {
       case "any":
         return O({ tag: "any"});
@@ -352,6 +353,9 @@ define("pyret-base/js/type-util", [], function() {
     if(typeof typ === "string") {
       if(typ === "tany") {
         return "tany";
+      }
+      else if(typ === "tbot") {
+        return "tbot";
       }
       else if(prims.indexOf(typ) !== -1) {
         return p(typ);

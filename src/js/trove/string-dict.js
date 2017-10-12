@@ -18,6 +18,7 @@
       "SetOfA": ["tyapp", { tag: "name",
                origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
                name: "ValueSkeleton" }, [["tid", "a"]]],
+      "tva": ["tid", "a"],
       "idB": ["tid", "b"]
     },
     values: {

@@ -17,3 +17,5 @@ import file("./regression/string-dict-equality.arr") as _
 import file("./regression/stack-safe-each-loop.arr") as _
 import file("./regression/proto-fields.arr") as _
 import file("./regression/toplevel-data.arr") as _
+import file("./regression/bogus-global-type-name.arr") as _
+import file("./regression/duplicate-check-block-report.arr") as _

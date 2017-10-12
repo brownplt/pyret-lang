@@ -50,7 +50,7 @@ check:
 
   p("-5") is s-num(-5)
   p("-4.4") is s-num(-4.4)
-  p("-3.") is s-num(-3.0)
+  p("-3.0") is s-num(-3.0)
   # Make sure bignums parse correctly
   p(num-tostring(num-expt(100, 100))) is
     s-num(num-expt(100, 100))
