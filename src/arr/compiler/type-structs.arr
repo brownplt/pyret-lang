@@ -41,13 +41,6 @@ fun interleave(lst, item):
   end
 end
 
-fun interleave-string(lst :: List<String>, sep :: String):
-  if is-empty(lst): ""
-  else if is-empty(lst.rest): lst.first
-  else: lst.first + sep + interleave-string(lst.rest, sep)
-  end
-end
-
 data ModuleType:
   | t-module(name :: String, provides :: Type, types :: StringDict<DataType>, aliases :: StringDict<Type>)
 sharing:
@@ -523,12 +516,12 @@ sharing:
           id.toname()
         | t-arrow(args, ret, _, _) =>
           "("
-            + interleave-string(args.map(h), ", ")
+            + args.map(h).join-str(", ")
             + " -> " + h(ret)
             + ")"
         | t-app(onto, args, _, _) =>
           h(onto) + "<"
-            + interleave-string(args.map(h), ", ")
+            + args.map(h).join-str(", ")
             + ">"
         | t-top(_, _) =>
           "Any"
@@ -536,15 +529,15 @@ sharing:
           "Bot"
         | t-record(fields, _, _) =>
           "{"
-            + interleave-string(fields.map-keys(lam(key): type-member-output(key, fields.get-value(key)) end), ", ")
+            + fields.map-keys(lam(key): type-member-output(key, fields.get-value(key)) end).join-str(", ")
             + "}"
         | t-tuple(elts, _, _) =>
           "{"
-            + interleave-string(elts.map(h), "; ")
+            + elts.map(h).join-str("; ")
             + "}"
         | t-forall(introduces, onto, _, _) =>
           "forall "
-            + interleave-string(introduces.map(h), ", ")
+            + introduces.map(h).join-str(", ")
             + " . " + h(onto)
         | t-ref(ref-typ, _, _) =>
           "ref " + h(ref-typ)
