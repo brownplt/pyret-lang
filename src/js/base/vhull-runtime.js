@@ -7,8 +7,7 @@ define("pyret-base/js/runtime",
    "pyret-base/js/secure-loader",
    "pyret-base/js/stopified-vhull-runtime",
    "seedrandom"],
-  function (Namespace, jsnums, codePoint, util, exnStackParser, loader, sRuntime,
-    seedrandom) {
+  function (Namespace, jsnums, codePoint, util, exnStackParser, loader, sRuntime, seedrandom) {
   Error.stackTraceLimit = Infinity;
 
   /*
@@ -3389,7 +3388,25 @@ define("pyret-base/js/runtime",
     }
 
     function pauseStack(resumer) {
-      return resumer(new PausePackage())
+      return $__T.getRTS().captureCC(function(k) {
+        util.suspend(function() {
+          var pp = new PausePackage();
+          pp.setHandlers({
+            resume: function(val) { return $__T.getRTS().resumeFromSuspension(function() { return k(val); }) },
+
+            // TODO(joe): These are wrong, but not sure how to do them.
+            break: function() { throw new PyretFailException(thisRuntime.ffi.userBreak) },
+            error: function(errVal) {
+              if(isPyretException(errVal)) {
+                exn = errVal;
+              } else {
+                exn = new PyretFailException(errVal);
+              }
+            }
+          });
+          return resumer(pp);
+        })
+      });
     }
 
     function PausePackage() {
@@ -3397,16 +3414,18 @@ define("pyret-base/js/runtime",
     }
     PausePackage.prototype = {
       setHandlers: function(handlers) {
-        throw "Cannot call setHandlers in straight-line mode"
+        this.handlers = handlers;
       },
       break: function() {
+        console.error("Trying to break; can't do that yet.");
         throw "Cannot call break in straight-line mode"
       },
       error: function(err) {
+        console.error("Trying to err; can't do that yet.", err);
         throw err;
       },
       resume: function(val) {
-        return val;
+        return this.handlers.resume(val);
       }
     };
 
@@ -4604,6 +4623,16 @@ define("pyret-base/js/runtime",
 
     /** type {!PBase} */
     var builtins = makeObject({
+      'pause-and-restart': makeFunction(function(val) {
+        var suspended = false;
+        util.suspend(function() {
+          suspended = true;
+        });
+        return thisRuntime.pauseStack(function(resumer) {
+          if(!suspended) { console.error("Failed to suspend"); }
+          else { return resumer.resume(val); }
+        });
+      }, "pause-and-restart"), 
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),
