@@ -7,6 +7,7 @@
 .DS_Store
 *.log
 *.jarr
+!build/phase0/pyret.jarr
 
 playground/*
 
