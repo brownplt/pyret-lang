@@ -8,9 +8,9 @@ const runtime_func = fs.readFileSync(runtime_path).toString()
 
 const compiled = Stopify.compileFunction(runtime_func)
 
-const toWrite = `define("pyret-base/js/stopified-vhull-runtime", ${compiled})`
+const toWrite = `define("pyret-base/js/stopified-vhull-runtime", ${compiled});`
 
 const out = path.join(
   __dirname, '/src/js/base/stopified-vhull-runtime.js')
 
-fs.writeFileSync(out)
+fs.writeFileSync(out, toWrite)

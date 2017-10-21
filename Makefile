@@ -156,7 +156,7 @@ endif
 		-straight-line \
 		$(EXTRA_FLAGS) \
 		--require-config src/scripts/standalone-configV.json
-	sed -i '' '1s|^|var \$$__T = require("Stopify/built/src/rts");$$__T.makeRTS({transform: "lazy", estimator: "reservoir", env: "node", yieldInterval: 100});|' $@
+	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazy\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100});' if $$. == 1" $@
 
 
 %.jarr: $(PHASEA)/pyret.jarr %.arr
