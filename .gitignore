@@ -70,3 +70,6 @@ compiled/
 
 .pyret-parley.*.pid
 .pyret-parley.*.lock
+
+# vhull-runtime 
+src/js/base/stopified-vhull-runtime.js

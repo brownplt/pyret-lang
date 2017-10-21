@@ -1,4 +1,4 @@
-define("pyret-base/js/stopified-vhull-runtime", function () {
+function vhull_runtime() {
   return {
     generateDefs(thisRuntime) {
 
@@ -265,4 +265,4 @@ define("pyret-base/js/stopified-vhull-runtime", function () {
       }
     }
   }
-})
+}

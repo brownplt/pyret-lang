@@ -59,6 +59,7 @@ PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
 
+
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
 
@@ -85,11 +86,13 @@ endif
 .PHONY : phaseA
 phaseA: $(PHASEA)/pyret.jarr
 
+./src/js/base/stopified-vhull-runtime.js: ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js
+	node ./build-vhull-runtime.js
+
 .PHONY : phaseA-deps
-phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) ./src/js/base/stopified-vhull-runtime.js
 
-
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS) ./src/js/base/stopified-vhull-runtime.js
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
