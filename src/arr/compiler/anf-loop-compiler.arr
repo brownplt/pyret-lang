@@ -919,15 +919,18 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
         CL.map_list2(
-          lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
+          lam(compiled-arg, arg): j-expr(j-assign(compiler-name(arg.toname()), compiled-arg)) end,
           compiled-args.to-list(),
+          compiler.args) +
+        CL.map_list(
+          lam(arg): j-expr(j-assign(arg, j-id(compiler-name(arg.toname())))) end,
           compiler.args) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
         #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
         #   end,
         #   compiled-args.to-list(),
-        #   compiler.args),
+        #   compiler.args) +
         cl-sing(j-continue)),
       new-cases)
   else:
