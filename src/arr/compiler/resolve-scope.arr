@@ -696,7 +696,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.standard-builtins).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog, C.standard-builtins).ast.visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), A.s-provide-modules-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -1042,6 +1042,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     end
   end
 
+  fun same-nb-type(nb1 :: NamespacedBinding, nb2 :: NamespacedBinding) -> Boolean:
+    ask:
+      | is-nb-value(nb1) and is-nb-value(nb2) then: true
+      | is-nb-type(nb1) and is-nb-type(nb2) then: true
+      | is-nb-module(nb1) and is-nb-module(nb2) then: true
+      | otherwise: false
+    end
+  end
+
   fun make-anon-import-for(l, s, env, shadow bindings, b) block:
     atom = names.make-atom(s)
     safe-set-now(bindings, atom.key(), wrap-binding(b(atom)), add-name-error)
@@ -1051,12 +1060,22 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment) block:
     shadow make-binding = lam(x): wrap-binding(make-binding(x)) end
     cases(A.Name) name block:
       | s-name(l, s) =>
-        when env.has-key(s) and not(is-shadowing):
-          old-loc = get-origin-loc(env.get-value(s).bind.origin)
-          name-errors := link(C.shadow-id(s, l, old-loc), name-errors)
-        end
         atom = names.make-atom(s)
         binding = make-binding(atom)
+
+        # To count as a shadow error here, a name must be in the same namespace
+        # subset (value/type/module), and be in the environment already, and
+        # shadow-checking must be off
+
+        when env.has-key(s) and
+             not(is-shadowing) and
+             same-nb-type(env.get-value(s), binding):
+
+          old-loc = get-origin-loc(env.get-value(s).bind.origin)
+          name-errors := link(C.shadow-id(s, l, old-loc), name-errors)
+
+        end
+
         safe-set-now(bindings, atom.key(), binding, add-name-error)
         { atom: atom, env: env.set(s, binding) }
       | s-underscore(l) =>

@@ -106,4 +106,18 @@ check:
 end    
 ```) is empty
   end
+
+  check "shadowing":
+    c("x = 10\nblock: x = 20\n x end") satisfies CS.is-shadow-id
+    c("import lists as X\nimport sets as X") satisfies CS.is-shadow-id
+    c("type Number = String") satisfies CS.is-shadow-id
+    c("lam(x :: Number): x = 20\nx end") satisfies CS.is-shadow-id
+    c("x = 20\nlam(x): x end") satisfies CS.is-shadow-id
+  end
+
+  check "mixed ids":
+    cok("type x = Number\nx = 10") is empty
+    cok("import lists as X\nX = 22") is empty
+    cok("import lists as X\ntype X = Number") is empty
+  end
 end

@@ -229,7 +229,6 @@ fun make-repl<a>(
       ms.set(provided-name, dep.key())
     end
     globals := CS.globals(new-vals, new-types, new-modules)
-    print("New globals following " + torepr(dep.key()) + ": " + torepr(globals) + "\n")
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)

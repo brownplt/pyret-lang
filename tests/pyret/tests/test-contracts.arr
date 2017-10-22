@@ -97,13 +97,13 @@ check "should notice unbound contracts":
     "x :: NotAType = 5",
     "x :: (Number -> Fail) = 5",
     "x :: (Number -> { x:: Fail }) = 5",
-    "x :: Numba%(is-even) = 5",
-    "x :: lisst.List = 10",
-    "y = 5\nx :: y = 5"
+    "x :: Numba%(is-even) = 5"
   ]
   for each(program from contract-errors) block:
     run-str(program) is%(output) compile-error(CS.is-unbound-type-id)
   end
+  run-str("x :: lisst.List = 10") is%(output) compile-error(CS.is-unbound-id)
+  run-str("y = 5\nx :: y = 5") is%(output) compile-error(CS.is-value-id-used-as-type)
 end
 
 check "should bind types":

@@ -1386,6 +1386,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
             data-typs.set-now(d.d.toname(), canonicalize-data-type(typed.info.data-types.get-value(d.d.key()), uri, transformer))
           end
           module-typs = SD.make-mutable-string-dict()
+          # TODO(joe): something here isn't jiving with the TC's expectations
           for each(m from modules):
             canonicalized-provs = canonicalize-provides(compile-env.modules.get-value(m.name.key()), compile-env)
             module-typs.set-now(m.name.toname(), CS.m-resolved(canonicalized-provs))
