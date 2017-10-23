@@ -2,6 +2,8 @@ function vhull_runtime() {
   return {
     generateDefs(thisRuntime) {
 
+      var require = requirejs;
+
       /* @stopify flat */
       function depToString(d) {
         if(d["import-type"] === "builtin") {
@@ -35,7 +37,7 @@ function vhull_runtime() {
           }
 
           var reqInstantiated = reqs.map(/* @stopify flat */ function(d) {
-            var name = /* @stopify flat */ depToString(d);
+            var name = depToString(d);
             var duri = depMap[uri][name];
             if(duri === undefined) {
               throw new Error(
@@ -45,7 +47,7 @@ function vhull_runtime() {
               throw new Error(
                 `Module not loaded yet: ${name} while loading uri`);
             }
-            return /* @stopify flat */ thisRuntime.getExported(realm[duri]);
+            return thisRuntime.getExported(realm[duri]);
           });
 
           var natives;
