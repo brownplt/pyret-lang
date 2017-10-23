@@ -2,6 +2,90 @@ function vhull_runtime() {
   return {
     generateDefs(thisRuntime) {
 
+      /* @stopify flat */
+      function depToString(d) {
+        if(d["import-type"] === "builtin") {
+          return d["import-type"] + "(" + d.name + ")";
+        }
+        else if(d["import-type"] === "dependency") {
+          return d["protocol"] + "(" + d["args"].join(", ") + ")";
+        }
+        else {
+          throw new Error("Unknown dependency description: ", d);
+        }
+      }
+
+      function runStandalone(staticMods, realm, depMap, toLoad, postLoadHooks) {
+        // Assume that toLoad is in dependency order, so all of their requires
+        // are already instantiated
+        if(toLoad.length == 0) {
+          return {
+            "complete": "runStandalone completed successfully" ,
+          };
+        }
+        else {
+          var uri = toLoad[0];
+          var mod = staticMods[uri];
+          var reqs = mod.requires;
+
+          console.log(uri)
+
+          if(depMap[uri] === undefined) {
+            throw new Error("Module has no entry in depmap: " + uri);
+          }
+
+          var reqInstantiated = reqs.map(/* @stopify flat */ function(d) {
+            var name = /* @stopify flat */ depToString(d);
+            var duri = depMap[uri][name];
+            if(duri === undefined) {
+              throw new Error(
+                `Module not found in depmap: ${name} while loading uri`);
+            }
+            if(realm[duri] === undefined) {
+              throw new Error(
+                `Module not loaded yet: ${name} while loading uri`);
+            }
+            return /* @stopify flat */ thisRuntime.getExported(realm[duri]);
+          });
+
+          var natives;
+
+          if (mod.nativeRequires.length === 0) {
+            natives = mod.nativeRequires;
+          }
+          else {
+            natives = require(mod.nativeRequires,
+              /* @stopify flat */ function(/* varargs */) {
+              var nativeInstantiated = Array.prototype.slice.call(arguments);
+              return nativeInstantiated;
+            });
+          }
+
+          if(!realm[uri]) {
+            var result, theModFunction;
+
+            if(typeof mod.theModule === "function") {
+              theModFunction = mod.theModule;
+              result = theModFunction.apply(null,
+                [thisRuntime, thisRuntime.namespace, uri]
+                .concat(reqInstantiated)
+                .concat(natives));
+            } else {
+              throw new Error('Module was not in the form of a function')
+            }
+
+            realm[uri] = result;
+
+            if(uri in postLoadHooks) {
+              postLoadHooks[uri](result);
+            }
+          }
+
+          return runStandalone(
+            staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
+        }
+      }
+
       // NOTE(rachit): stackFrame is not used
       function safeCall(fun, after, stackFrame) {
         return after(fun())
@@ -242,6 +326,7 @@ function vhull_runtime() {
       // Export the stopified functions here.
       return {
         /* Run functions */
+        "runStandalone": runStandalone,
         "safeCall": safeCall,
         "eachLoop": eachLoop,
         "run": run,

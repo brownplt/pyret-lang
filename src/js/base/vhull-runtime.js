@@ -276,7 +276,7 @@ define("pyret-base/js/runtime",
 
     var {
       /* Run functions */
-      safeCall, eachLoop, run, runThunk, execThunk,
+      runStandalone, safeCall, eachLoop, run, runThunk, execThunk,
       /* Array functions */
       raw_array_build, raw_array_build_opt, raw_array_fold, raw_array_map,
       raw_array_each, raw_array_mapi, raw_array_map1, raw_array_filter,
@@ -4340,18 +4340,6 @@ define("pyret-base/js/runtime",
       });
     }
 
-    function depToString(d) {
-      if(d["import-type"] === "builtin") {
-        return d["import-type"] + "(" + d.name + ")";
-      }
-      else if(d["import-type"] === "dependency") {
-        return d["protocol"] + "(" + d["args"].join(", ") + ")";
-      }
-      else {
-        throw new Error("Unknown dependency description: ", d);
-      }
-    }
-
     function getExported(m) {
       if(isJSModReturn(m)) {
         return m.jsmod;
@@ -4364,106 +4352,6 @@ define("pyret-base/js/runtime",
           'defined-values': m.dict['defined-values'],
           'defined-types': m.dict['defined-types'],
         });
-      }
-    }
-
-// EFFECT: adds modules to realm
-    function runStandalone(staticMods, realm, depMap, toLoad, postLoadHooks) {
-      // Assume that toLoad is in dependency order, so all of their requires are
-      // already instantiated
-      if(toLoad.length == 0) {
-        return {
-          "complete": "runStandalone completed successfully" ,
-        };
-      }
-      else {
-        var uri = toLoad[0];
-        var mod = staticMods[uri];
-        // CONSOLE.log(uri, mod);
-
-        var reqs = mod.requires;
-        if(depMap[uri] === undefined) {
-          throw new Error("Module has no entry in depmap: " + uri);
-        }
-        var reqInstantiated = map(reqs, function(d) {
-          var duri = depMap[uri][depToString(d)];
-          if(duri === undefined) {
-            throw new Error("Module not found in depmap: " + depToString(d) + " while loading " + uri);
-          }
-          if(realm[duri] === undefined) {
-            throw new Error("Module not loaded yet: " + depToString(d) + " while loading " + uri);
-          }
-          return getExported(realm[duri]);
-        });
-
-        return thisRuntime.safeCall(function() {
-          if (mod.nativeRequires.length === 0) {
-             //CONSOLE.log("Nothing to load, skipping stack-pause");
-            return mod.nativeRequires;
-          } else {
-            return thisRuntime.pauseStack(function(restarter) {
-               //CONSOLE.log("About to load: ", mod.nativeRequires);
-              require(mod.nativeRequires, function(/* varargs */) {
-                var nativeInstantiated = Array.prototype.slice.call(arguments);
-                //CONSOLE.log("Loaded: ", nativeInstantiated);
-                restarter.resume(nativeInstantiated);
-              });
-            });
-          }
-        }, function(natives) {
-          function continu() {
-            return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
-          }
-          if(realm[uri]) {
-            return continu();
-          }
-          return thisRuntime.safeCall(function() {
-            var indirectEval = eval;
-            var theModFunction;
-            if(typeof mod.theModule === "function") {
-              theModFunction = mod.theModule;
-              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-            }
-            else if (!util.isBrowser() && typeof mod.theModule === "string") {
-              theModFunction = indirectEval("(" + mod.theModule + ")");
-              return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-            }
-            else if (util.isBrowser()) {
-              return thisRuntime.pauseStack(function(resumer) {
-                var p = loader.compileInNewScriptContext(mod.theModule);
-                var instantiated = p.then(function(theModFunction) {
-                  thisRuntime.runThunk(function() {
-                    return theModFunction.apply(null, [thisRuntime, thisRuntime.namespace, uri].concat(reqInstantiated).concat(natives));
-                  },
-                  function(r) {
-                    if(thisRuntime.isSuccessResult(r)) {
-                      resumer.resume(r.result);
-                    }
-                    else {
-                      resumer.error(r.exn);
-                    }
-                  });
-                });
-                instantiated.fail(function(val) { return resumer.error(val); });
-                // NOTE(joe): Intentionally not returning anything; this is the
-                // body of a call to pauseStack
-              });
-            }
-          },
-          function(r) {
-             //CONSOLE.log("Result from module: ", r);
-            realm[uri] = r;
-            if(uri in postLoadHooks) {
-              return thisRuntime.safeCall(function() {
-                return postLoadHooks[uri](r);
-              }, function(_) {
-                return continu();
-              }, "runStandalone, postLoadHook for " + uri);
-            } else {
-              return continu();
-            }
-          }, "runStandalone, loading " + uri);
-        }, "runStandalone, native-dep loading " + uri);
       }
     }
 
@@ -4632,7 +4520,7 @@ define("pyret-base/js/runtime",
           if(!suspended) { console.error("Failed to suspend"); }
           else { return resumer.resume(val); }
         });
-      }, "pause-and-restart"), 
+      }, "pause-and-restart"),
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),
@@ -4693,8 +4581,8 @@ define("pyret-base/js/runtime",
       'is-object': makeFunction(isObject, "is-object"),
       'is-raw-array': makeFunction(isArray, "is-raw-array"),
       'is-tuple': makeFunction(isTuple, "is-tuple"),
-      // NOTE(joe): this one different because the predicate is added when Table is loaded
-      // (see handalone.js)
+      // NOTE(joe): this one different because the predicate is added when
+      // Table is loaded (see handalone.js)
       'is-table': makeFunction(function(v) {
         return thisRuntime.isTable(v);
       }, "is-tuple"),
@@ -4834,6 +4722,9 @@ define("pyret-base/js/runtime",
     //Export the runtime
     //String keys should be used to prevent renaming
     var boundRuntime = {
+      // NOTE(rachit): used by stopified-vhull-runtime
+      'getExported': getExported,
+
       'run': run,
       'runThunk': runThunk,
       'execThunk': execThunk,
