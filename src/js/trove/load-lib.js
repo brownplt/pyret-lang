@@ -243,18 +243,18 @@
         var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
         var gf = execRt.getField;
         execRt.runThunk(function() {
-          if(execRt.isPyretVal(res.exn.exn) 
-             && execRt.isObject(res.exn.exn) 
+          if(execRt.isPyretVal(res.exn.exn)
+             && execRt.isObject(res.exn.exn)
              && execRt.hasField(res.exn.exn, "render-reason")) {
             return execRt.safeCall(
-              function() { 
+              function() {
                 return execRt.getColonField(res.exn.exn, "render-reason").full_meth(res.exn.exn);
               }, function(reason) {
                 return execRt.safeCall(
-                  function() { 
+                  function() {
                     return gf(gf(rendererror, "values"), "display-to-string").app(
-                      reason, 
-                      execRt.namespace.get("torepr"), 
+                      reason,
+                      execRt.namespace.get("torepr"),
                       execRt.ffi.makeList(res.exn.pyretStack.map(execRt.makeSrcloc)));
                   }, function(str) {
                     return execRt.string_append(
@@ -303,15 +303,21 @@
       runtime.setParam("currentMainURL", main);
 
       if(realm["builtin://checker"]) {
-        var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
+        var checker = otherRuntime.getField(
+          otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"),
+          "values");
         // NOTE(joe): This is the place to add checkAll
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
+        var currentChecker = otherRuntime
+          .getField(checker, "make-check-context")
+          .app(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
       var postLoadHooks = {
         "builtin://srcloc": function(srcloc) {
-          otherRuntime.srcloc = otherRuntime.getField(otherRuntime.getField(srcloc, "provide-plus-types"), "values");
+          otherRuntime.srcloc =
+            otherRuntime.getField(
+              otherRuntime.getField(srcloc, "provide-plus-types"), "values");
         },
         "builtin://ffi": function(ffi) {
           ffi = ffi.jsmod;
@@ -329,9 +335,12 @@
           otherRuntime["checkEQ"] = otherRuntime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
         },
         "builtin://checker": function(checker) {
-          var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
+          var checker = otherRuntime.getField(
+            otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
+          var currentChecker = otherRuntime.
+            getField(checker, "make-check-context").
+            app(otherRuntime.makeString(main), checkAll);
           otherRuntime.setParam("current-checker", currentChecker);
         }
       };
@@ -346,7 +355,8 @@
         }
         return otherRuntime.runThunk(function() {
           otherRuntime.modules = realm;
-          return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
+          return otherRuntime.runStandalone(
+            staticModules, realm, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier

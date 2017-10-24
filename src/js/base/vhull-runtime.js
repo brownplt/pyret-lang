@@ -4401,81 +4401,96 @@ define("pyret-base/js/runtime",
         constructor = _ignored;
       }
 
+      console.log(thisRuntime.ffi.throwConstructorArityErrorC)
+
       function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
       function constArr(arr) { return "[" + map(arr, quote).join(",") + "]"; }
 
       function makeConstructor() {
         var argNames = constructor.$fieldNames;
         var hasRefinement = false;
-        var checkAnns = checkAnnsThunk();
-        forEach(checkAnns, function(a) {
-          if(!isCheapAnnotation(a)) {
-            hasRefinement = true;
-          }
-        });
-        var constructorBody =
-          "var dict = thisRuntime.create(base);\n";
-        forEach(allArgs, function(a, i) {
-          if(allMuts[i]) {
-            var checkIndex = checkArgs.indexOf(a);
-            if(checkIndex >= 0) {
-              constructorBody += "dict['" + argNames[i] + "'] = thisRuntime.makeUnsafeSetRef(checkAnns[" + checkIndex + "], " + a + ", checkLocs[" + checkIndex + "]);\n";
-            }
-            else {
-              constructorBody += "dict['" + argNames[i] + "'] = thisRuntime.makeUnsafeSetRef(thisRuntime.Any, " + a + ", " + constArr(loc) + ");\n";
-            }
-          }
-          else {
-            constructorBody += "dict['" + argNames[i] + "'] = " + a + ";\n";
-          }
-        });
-        constructorBody += "return new Construct(dict, brands)";
-
-        //var arityCheck = "thisRuntime.checkArityC(loc, " + allArgs.length + ", arguments);";
-        var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t); }";
-
-        var checksPlusBody = "";
-        if(hasRefinement) {
-          checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
-            constructorBody + "\n" +
-          "});";
-        }
-        else {
-          forEach(checkArgs, function(a, i) {
-            if(checkMuts[i]) {
-              checksPlusBody += "var checkAns = thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
-            }
-            else {
-              checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+        return thisRuntime.safeCall(function () {
+          return checkAnnsThunk();
+        }, function (checkAnns) {
+          forEach(checkAnns, function(a) {
+            if(!isCheapAnnotation(a)) {
+              hasRefinement = true;
             }
           });
-          checksPlusBody += constructorBody;
-        }
+          var constructorBody =
+            "var dict = thisRuntime.create(base);\n";
+          forEach(allArgs, function(a, i) {
+            if(allMuts[i]) {
+              var checkIndex = checkArgs.indexOf(a);
+              if(checkIndex >= 0) {
+                constructorBody += "dict['" + argNames[i] + "'] = thisRuntime.makeUnsafeSetRef(checkAnns[" + checkIndex + "], " + a + ", checkLocs[" + checkIndex + "]);\n";
+              }
+              else {
+                constructorBody += "dict['" + argNames[i] + "'] = thisRuntime.makeUnsafeSetRef(thisRuntime.Any, " + a + ", " + constArr(loc) + ");\n";
+              }
+            }
+            else {
+              constructorBody += "dict['" + argNames[i] + "'] = " + a + ";\n";
+            }
+          });
+          constructorBody += "return new Construct(dict, brands)";
 
-        var constrFun = "return function(" + allArgs.join(",") + ") {\n" +
-          "if(arguments.length !== " + allArgs.length + ") {\n" +
-          "thisRuntime.checkConstructorArityC(" + constArr(loc) + ", " + quote(reflName) + ", " + allArgs.length + ", thisRuntime.cloneArgs.apply(null, arguments));\n" +
-          "}\n" +
-          checksPlusBody + "\n" +
-          "}";
+          //var arityCheck = "thisRuntime.checkArityC(loc, " + allArgs.length + ", arguments);";
+          var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t); }";
 
-        var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands", "reflFields", "constructor", "base"];
-        var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n"
-        + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
-        + constrFun]));
-        return outerFun(thisRuntime, checkAnns, checkLocs, brands, reflFields, constructor, base);
+          var checksPlusBody = "";
+          if(hasRefinement) {
+            checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
+              constructorBody + "\n" +
+              "});";
+          }
+          else {
+            forEach(checkArgs, function(a, i) {
+              if(checkMuts[i]) {
+                checksPlusBody += "var checkAns = thisRuntime.isGraphableRef(" + checkArgs[i] + ") || thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              }
+              else {
+                checksPlusBody += "var checkAns = thisRuntime._checkAnn(checkLocs[" + i + "], checkAnns[" + i + "], " + checkArgs[i] + ");";
+              }
+            });
+            checksPlusBody += constructorBody;
+          }
+
+          var constrFun = `return function(${allArgs.join(",")}) {
+          if(arguments.length !== ${allArgs.length}) {
+            thisRuntime.checkConstructorArityC(
+              ${constArr(loc)}, ${quote(reflName)}, ${allArgs.length},
+              thisRuntime.cloneArgs.apply(null, arguments));
+          }
+          ${checksPlusBody}
+          }`
+
+          var outerArgs = ["thisRuntime", "checkAnns", "checkLocs", "brands",
+            "reflFields", "constructor", "base"];
+          var outerFun = Function.apply(null, outerArgs.concat(["\"use strict\";\n"
+            + "var Construct = thisRuntime.makeDataTypeConstructor(" + quote(reflName) + ", reflFields,"  + allArgs.length + ", " + constArr(allMuts) + ", constructor);"
+            + constrFun]));
+
+          return outerFun(
+            thisRuntime, checkAnns, checkLocs,
+            brands, reflFields, constructor, base);
+        })
       }
 
       //CONSOLE.log(String(outerFun));
 
       var funToReturn = makeFunction(function() {
-        var theFun = makeConstructor();
-        funToReturn.app = theFun;
-        //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
-        //CONSOLE.trace();
-        var res = theFun.apply(null, arguments)
-        //CONSOLE.log("got ", res);
-        return res;
+        const topArgs = arguments
+        return thisRuntime.safeCall(function () {
+          return makeConstructor()
+        }, function (theFun) {
+          funToReturn.app = theFun;
+          //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
+          //CONSOLE.trace();
+          var res = theFun.apply(null, topArgs)
+          //CONSOLE.log("got ", res);
+          return res;
+        })
       }, reflName);
       funToReturn.$constrFor = reflName;
       return funToReturn;
