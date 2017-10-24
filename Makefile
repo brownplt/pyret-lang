@@ -164,8 +164,8 @@ endif
 		-straight-line \
 		$(EXTRA_FLAGS) \
 		--require-config src/scripts/standalone-configV.json
-	#perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazy\", estimator: \"countdown\", env: \"node\", yieldInterval: 1, timePerElapsed: 1});' if $$. == 1" $@
-	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazy\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100, deepstacks: 1000});' if $$. == 1" $@
+	#perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"countdown\", env: \"node\", yieldInterval: 1, timePerElapsed: 1});' if $$. == 1" $@
+	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100, deepstacks: 1000});' if $$. == 1" $@
 
 
 %.jarr: $(PHASEA)/pyret.jarr %.arr
