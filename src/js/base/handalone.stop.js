@@ -37,7 +37,8 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
   var postLoadHooks = {
     "builtin://srcloc": function(srcloc) {
-      runtime.srcloc = runtime.getField(runtime.getField(srcloc, "provide-plus-types"), "values");
+      runtime.srcloc = runtime.getField(
+        runtime.getField(srcloc, "provide-plus-types"), "values");
     },
     "builtin://ffi": function(ffi) {
       ffi = ffi.jsmod;
@@ -76,23 +77,31 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       runtime["asLoaderOption"] = function(type) {
         switch(type) {
         case "sanitizer":
-          return runtime.getField(ds, "sanitize-col").app(arguments[1], arguments[2]);
+            return runtime
+              .getField(ds, "sanitize-col")
+              .app(arguments[1], arguments[2]);
         default:
-          runtime.ffi.throwMessageException("Internal error: Invalid loader option type: " + type);
+            runtime.ffi.throwMessageException(
+              "Internal error: Invalid loader option type: " + type);
         }
       };
       // Convenience function for JS library use
       runtime["extractLoaderOption"] = function(opt) {
         var isSanitizer = runtime.getField(ds, "is-sanitize-col");
-        if (runtime.unwrap(isSanitizer.app(opt))) {
-          return {
-            type: "sanitizer",
-            col: runtime.getField(opt, "col"),
-            sanitizer: runtime.getField(opt, "sanitizer")
-          };
-        } else {
-          runtime.ffi.throwMessageException("Internal error: Cannot coerce non-loader option");
-        }
+        return thisRuntime.safeCall(function () {
+          return isSanitizer.app(opt)
+        }, function (result) {
+          if (runtime.unwrap(result)) {
+            return {
+              type: "sanitizer",
+              col: runtime.getField(opt, "col"),
+              sanitizer: runtime.getField(opt, "sanitizer")
+            };
+          } else {
+            runtime.ffi.throwMessageException(
+              "Internal error: Cannot coerce non-loader option");
+          }
+        })
       }
       runtime["builtin_sanitizers"] = {
         option : runtime.getField(ds, "option-sanitizer"),
@@ -150,23 +159,31 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
         runtime.getField(ds, "is-CellContent").app, "CellContent");
     },
     "builtin://reactors": function(reactor) {
-      var r = runtime.getField(runtime.getField(reactor, "provide-plus-types"), "values");
+      var r = runtime.getField(
+        runtime.getField(reactor, "provide-plus-types"), "values");
       runtime.setParam("makeReactor", runtime.getField(r, "make-reactor").app);
     },
     "builtin://checker": function(checker) {
-      checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
+      checker = runtime.getField(
+        runtime.getField(checker, "provide-plus-types"), "values");
       // NOTE(joe): This is the place to add checkAll
-      var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), true);
-      runtime.setParam("current-checker", currentChecker);
+      return runtime.safeCall(function() {
+        return runtime.
+          getField(checker, "make-check-context").
+          app(runtime.makeString(main), true);
+      }, function (currentChecker) {
+        runtime.setParam("current-checker", currentChecker);
+      })
     }
   };
   // last thing to run
   postLoadHooks[main] = function(answer) {
     var checkerLib = runtime.modules["builtin://checker"];
-    var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
+    var checker = runtime.getField(
+      runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
-
-      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+      err.val.pyretStack =
+        stackLib.convertExceptionToPyretStackTrace(err.val, program);
 
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
