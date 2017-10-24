@@ -30,8 +30,6 @@ function vhull_runtime() {
           var mod = staticMods[uri];
           var reqs = mod.requires;
 
-          console.log(uri)
-
           if(depMap[uri] === undefined) {
             throw new Error("Module has no entry in depmap: " + uri);
           }

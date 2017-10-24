@@ -58,6 +58,8 @@ PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
+STOPIFIED_RUNTIME := ./src/js/base/stopified-vhull-runtime.js
+
 
 
 # NOTE: Needs TWO blank lines here, dunno why
@@ -86,8 +88,14 @@ endif
 .PHONY : phaseA
 phaseA: $(PHASEA)/pyret.jarr
 
-./src/js/base/stopified-vhull-runtime.js: ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js
+# Build stopified vhull runtime
+$(STOPIFIED_RUNTIME): ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js
 	node ./build-vhull-runtime.js
+
+# Force rebuild stopify (use when stopify compiler is update).
+# Run as `make stopify-build -B`
+.PHONY : stopify-build
+stopify-build: $(STOPIFIED_RUNTIME) $(BUNDLED_DEPS)
 
 .PHONY : phaseA-deps
 phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) ./src/js/base/stopified-vhull-runtime.js
@@ -156,6 +164,7 @@ endif
 		-straight-line \
 		$(EXTRA_FLAGS) \
 		--require-config src/scripts/standalone-configV.json
+	#perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazy\", estimator: \"countdown\", env: \"node\", yieldInterval: 1, timePerElapsed: 1});' if $$. == 1" $@
 	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazy\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100});' if $$. == 1" $@
 
 
