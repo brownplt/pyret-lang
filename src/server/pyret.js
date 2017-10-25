@@ -127,6 +127,26 @@ const usages = [
     ]
   },
   {
+    header: 'Multiple and Support Files',
+    content: [
+      `If you've used code.pyret.org for a class, you may have support code that looks like`,
+      "",
+      "import shared-gdrive('something.arr', '<long-id-here>') as S",
+      "",
+      `You may also have imports with 'my-gdrive' for your own work.`,
+      "",
+      `These types of import aren't supported in the offline compiler. You can,
+      however, get the source for these files, save them, and use 'file'
+      imports to access the contents.`,
+      "",
+      "import file('something.arr') as S",
+      "import file('my-tests.arr') as T",
+      "",
+      `The paths you use should be relative to the Pyret file that contains the
+      import statements.`
+    ]
+  },
+  {
     header: 'The Compile Server',
     content: [
 
