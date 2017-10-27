@@ -4401,8 +4401,6 @@ define("pyret-base/js/runtime",
         constructor = _ignored;
       }
 
-      console.log(thisRuntime.ffi.throwConstructorArityErrorC)
-
       function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
       function constArr(arr) { return "[" + map(arr, quote).join(",") + "]"; }
 
