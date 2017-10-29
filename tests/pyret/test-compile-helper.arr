@@ -7,10 +7,7 @@ import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 
-var i = 0
-fun string-to-locator(program :: String) block:
-  name = "compile-helper-program-" + tostring(i)
-  i := i + 1
+fun string-to-named-locator(program :: String, name :: String):
   {
     method needs-compile(self, provs): true end,
     method get-modified-time(self): 0 end,
@@ -26,6 +23,14 @@ fun string-to-locator(program :: String) block:
     method get-compiled(self): none end,
     method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
+
+end
+
+var i = 0
+fun string-to-locator(program :: String) block:
+  name = "compile-helper-program-" + tostring(i)
+  i := i + 1
+  string-to-named-locator(program, name)
 end
 
 fun dfind(ctxt, dep):
@@ -39,6 +44,12 @@ end
 
 fun run-to-result(program):
   floc = string-to-locator(program)
+  res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true})
+  res
+end
+
+fun run-to-result-named(program, name):
+  floc = string-to-named-locator(program, name)
   res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true})
   res
 end
