@@ -896,6 +896,37 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
+fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
+  var found = false
+  e.visit(J.default-map-visitor.{
+    method j-id(self, name :: A.Name):
+      when name == target:
+        found := true
+      end
+    end
+  })
+  found
+end
+
+type Asgn = {A.Name; J.JExpr}
+
+fun get-assignments(lst :: List<Asgn>, limit :: Number) -> {List<Asgn>; List<Asgn>}:
+  if limit == 0:
+    {empty; lst}
+  else:
+    cases (List) lst:
+      | empty => {empty; empty}
+      | link(arg, rest) =>
+        if for any({_; e} from rest): is-id-occurs(arg.{0}, e) end:
+          get-assignments(rest + [list: arg], limit - 1)
+        else:
+          {good; bad} = get-assignments(rest, rest.length())
+          {link(arg, good); bad}
+        end
+    end
+  end
+end
+
 fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
   ans = compiler.cur-ans
   step = compiler.cur-step
@@ -907,6 +938,13 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
      compiler.allow-tco and
      compiler.options.proper-tail-calls and
      (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
+    args-list = for map2(formal from compiler.args, actual from compiled-args.to-list()):
+      {formal; actual}
+    end
+    {no-dep-lst; dep-lst} = get-assignments(args-list, args-list.length())
+    shadow dep-lst = for map({formal; actual} from dep-lst):
+      {formal; fresh-id(compiler-name('tmp_asgn')); actual}
+    end
     c-block(
       j-block(
         [clist:
@@ -918,13 +956,15 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
             j-block([clist:
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list2(
-          lam(compiled-arg, arg): j-expr(j-assign(compiler-name(arg.toname()), compiled-arg)) end,
-          compiled-args.to-list(),
-          compiler.args) +
-        CL.map_list(
-          lam(arg): j-expr(j-assign(arg, j-id(compiler-name(arg.toname())))) end,
-          compiler.args) +
+        for CL.map_list({formal; actual} from no-dep-lst):
+          j-expr(j-assign(formal, actual))
+        end +
+        for CL.map_list({_; tmp-arg; actual} from dep-lst):
+          j-expr(j-assign(tmp-arg, actual))
+        end +
+        for CL.map_list({formal; tmp-arg; _} from dep-lst):
+          j-expr(j-assign(formal, j-id(tmp-arg)))
+        end +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
         #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
