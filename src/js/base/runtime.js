@@ -5213,7 +5213,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         constructor = _ignored;
       }
 
-      function quote(s) { if (typeof s === "string") { return "'" + s + "'"; } else { return s; } }
+      function quote(s) {
+        if (typeof s === "string") {
+          return JSON.stringify(s);
+        }
+        else if (typeof s === "number" || typeof s === "boolean") {
+          return s;
+        }
+        else {
+          console.error("Internal error: tried to quote ", s);
+          throw new Error("Internal error: cannot quote " + String(s));
+        }
+      }
       function constArr(arr) { return "[" + arr.map(quote).join(",") + "]"; }
 
       function makeConstructor() {
