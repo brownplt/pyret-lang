@@ -695,9 +695,8 @@ data JField:
   | j-field(name :: String, value :: JExpr) with:
     method label(self): "j-field" end,
     method print-ugly-source(self, printer) block:
-      printer("\"")
-      printer(self.name)
-      printer("\":")
+      printer(to-repr(self.name))
+      printer(":")
       self.value.print-ugly-source(printer)
     end,
     method tosource(self):
