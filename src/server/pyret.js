@@ -5,12 +5,13 @@ const commandLineArgs = require('command-line-args');
 const pyretClient = require('./client-lib');
 const path = require('path');
 const stripAnsi = require('strip-ansi');
+const {version} = require("./../../package.json");
 
 const compilerPath = path.join(__dirname, "..", "..", "build", "phaseA", "pyret.jarr");
 
 const usages = [
   {
-    header: 'Pyret Command-line Interface',
+    header: `Pyret Command-line Interface v${version}`,
     content:
       `The [bold]{pyret} command compiles and runs Pyret programs. It helps manage a compile server that runs in the background to speed up compilation jobs, and manages state in a project's working directory to cache compiled files.`
   },
@@ -51,6 +52,11 @@ const usages = [
         name: 'help',
         alias: 'h',
         description: 'Show this help message.'
+      },
+      {
+        name: 'version',
+        alias: 'v',
+        description: "Print version information"
       },
       /*
       {
@@ -192,6 +198,7 @@ const usages = [
 
 const optionDefinitions = [
   { name: 'help', alias: 'h', type: Boolean, group: 'meta', defaultValue: false },
+  { name: 'version', alias: 'v', type: Boolean, group: 'meta', defaultValue: false },
   { name: 'quiet', alias: 'q', type: Boolean, group: 'meta' },
 
   // These options affect how the client starts up and communiates with the server
@@ -234,10 +241,18 @@ function printUsage() {
   }
 }
 
+function printVersion() {
+  console.log(`Pyret Command-line Interface v${version}`);
+}
+
 try {
   options = commandLineArgs(optionDefinitions);
   if(options.meta.help) {
     printUsage();
+    process.exit(0);
+  }
+  else if(options.meta.version) {
+    printVersion();
     process.exit(0);
   }
 }
