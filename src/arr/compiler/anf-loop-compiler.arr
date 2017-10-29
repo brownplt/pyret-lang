@@ -897,6 +897,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
 end
 
 fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
+  doc: "Returns true iff `target` occurs in `e`"
   var found = false
   e.visit(J.default-map-visitor.{
     method j-id(self, name :: A.Name):
@@ -911,23 +912,43 @@ end
 type Asgn = {A.Name; J.JExpr}
 
 fun get-assignments(lst :: List<Asgn>, limit :: Number) -> {List<Asgn>; List<Asgn>}:
-  if limit == 0:
-    {empty; lst}
-  else:
-    cases (List) lst:
-      | empty => {empty; empty}
-      | link(arg, rest) =>
-        if for any({_; e} from rest): is-id-occurs(arg.{0}, e) end:
-          get-assignments(rest + [list: arg], limit - 1)
+  doc: ```
+       Find an order of assignment statements in `lst` that avoid new variables
+       where `limit` is the number of round-robin attempts allowed.
+
+       When the dependency graph is acyclic, this algorithm degenerates to
+       finding a topological order.
+
+       If the RHS of assignment statements have at most one one identifier,
+       it's possible that the corresponding dependency graph will have cycles,
+       but there can be at most one cycle per connected component. Thus, this
+       algorithm degenerates to finding topological order at most twice per
+       component (one for ordering non-cycle parts, then we break the cycle
+       and then another one is for the ordering the rest). It guarantees that
+       it will reach limit = 0 at most once per each component.
+
+       The output is a pair of `pre` and `post` where they are lists of
+       assignments. The order of `post` doesn't matter.
+       ```
+  cases (List) lst:
+    | empty => {empty; empty}
+    | link({formal; actual}, rest) =>
+      if limit == 0:
+        tmp-arg = fresh-id(compiler-name('tmp_asgn'))
+        {pre; post} = get-assignments(rest, rest.length())
+        {link({tmp-arg; actual}, pre); link({formal; j-id(tmp-arg)}, post)}
+      else:
+        if for any({_; e} from rest): is-id-occurs(formal, e) end:
+          get-assignments(rest + [list: {formal; actual}], limit - 1)
         else:
-          {good; bad} = get-assignments(rest, rest.length())
-          {link(arg, good); bad}
+          {pre; post} = get-assignments(rest, rest.length())
+          {link({formal; actual}, pre); post}
         end
-    end
+      end
   end
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
@@ -937,14 +958,12 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
      app-info.is-tail and
      compiler.allow-tco and
      compiler.options.proper-tail-calls and
-     (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
+     (compiled-args.length() == compiler.args.length()):
+     # if it's an arity mismatch, use non-TCO to handle the error
     args-list = for map2(formal from compiler.args, actual from compiled-args.to-list()):
       {formal; actual}
     end
-    {no-dep-lst; dep-lst} = get-assignments(args-list, args-list.length())
-    shadow dep-lst = for map({formal; actual} from dep-lst):
-      {formal; fresh-id(compiler-name('tmp_asgn')); actual}
-    end
+    {pre; post} = get-assignments(args-list, args-list.length())
     c-block(
       j-block(
         [clist:
@@ -956,15 +975,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
             j-block([clist:
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        for CL.map_list({formal; actual} from no-dep-lst):
-          j-expr(j-assign(formal, actual))
-        end +
-        for CL.map_list({_; tmp-arg; actual} from dep-lst):
-          j-expr(j-assign(tmp-arg, actual))
-        end +
-        for CL.map_list({formal; tmp-arg; _} from dep-lst):
-          j-expr(j-assign(formal, j-id(tmp-arg)))
-        end +
+        CL.map_list({({name; e}): j-expr(j-assign(name, e))}, pre + post) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
         #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
