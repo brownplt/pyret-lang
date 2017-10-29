@@ -937,7 +937,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
           if limit == 0:
             tmp-arg = fresh-id(compiler-name('tmp_asgn'))
             {pre; post} = get-assignments(rest, rest.length())
-            {link(j-assign(tmp-arg, actual), pre); link(j-assign(formal, j-id(tmp-arg)), post)}
+            {link(j-var(tmp-arg, actual), pre); link(j-assign(formal, j-id(tmp-arg)), post)}
           else:
             occurs-any = for any(next-asgn :: J.JExpr%(is-j-assign) from rest):
               is-id-occurs(formal, next-asgn.rhs)
