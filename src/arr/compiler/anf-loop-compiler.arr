@@ -100,6 +100,7 @@ j-continue = J.j-continue
 j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
+is-j-assign = J.is-j-assign
 make-label-sequence = J.make-label-sequence
 
 fun console-log(lst :: CL.ConcatList) -> J.JStmt:
@@ -896,7 +897,63 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
   end
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
+fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
+  doc: "Returns true iff `target` occurs in `e`"
+  var found = false
+  e.visit(J.default-map-visitor.{
+    method j-id(self, name :: A.Name):
+      when name == target:
+        found := true
+      end
+    end
+  })
+  found
+end
+
+fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; List<J.JExpr>}:
+  doc: ```
+       Find an order of assignment statements in `lst` that avoid new variables
+       where `limit` is the number of round-robin attempts allowed.
+
+       When the dependency graph is acyclic, this algorithm degenerates to
+       finding a topological order.
+
+       If the RHS of assignment statements have at most one identifier,
+       it's possible that the corresponding dependency graph will have cycles,
+       but there can be at most one cycle per connected component. Thus, this
+       algorithm degenerates to finding topological order at most twice per
+       component (one for ordering non-cycle parts, then we break the cycle
+       and then another one for the ordering the rest). It guarantees that
+       it will reach limit = 0 at most once per each component.
+
+       The output is a pair of `pre` and `post` which are lists of
+       assignments. The order of `post` doesn't matter.
+       ```
+  cases (List) lst:
+    | empty => {empty; empty}
+    | link(asgn, rest) =>
+      cases (J.JExpr) asgn:
+        | j-assign(formal, actual) =>
+          if limit == 0:
+            tmp-arg = fresh-id(compiler-name('tmp_asgn'))
+            {pre; post} = get-assignments(rest, rest.length())
+            {link(j-var(tmp-arg, actual), pre); link(j-assign(formal, j-id(tmp-arg)), post)}
+          else:
+            occurs-any = for any(next-asgn :: J.JExpr%(is-j-assign) from rest):
+              is-id-occurs(formal, next-asgn.rhs)
+            end
+            if occurs-any:
+              get-assignments(rest + [list: asgn], limit - 1)
+            else:
+              {pre; post} = get-assignments(rest, rest.length())
+              {link(asgn, pre); post}
+            end
+          end
+      end
+  end
+end
+
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
@@ -906,7 +963,10 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
      app-info.is-tail and
      compiler.allow-tco and
      compiler.options.proper-tail-calls and
-     (compiled-args.length() == compiler.args.length()): # if it's an arity mismatch, use non-TCO to handle the error
+     (compiled-args.length() == compiler.args.length()):
+     # if it's an arity mismatch, use non-TCO to handle the error
+    args-list = map2(j-assign, compiler.args, compiled-args.to-list())
+    {pre; post} = get-assignments(args-list, args-list.length())
     c-block(
       j-block(
         [clist:
@@ -918,16 +978,13 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
             j-block([clist:
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list2(
-          lam(compiled-arg, arg): j-expr(j-assign(arg, compiled-arg)) end,
-          compiled-args.to-list(),
-          compiler.args) +
+        CL.map_list(j-expr, pre + post) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
         #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
         #   end,
         #   compiled-args.to-list(),
-        #   compiler.args),
+        #   compiler.args) +
         cl-sing(j-continue)),
       new-cases)
   else:
