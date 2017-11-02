@@ -353,6 +353,7 @@
           mainReached = true;
           mainResult = answer;
         }
+        $__T.getRTS().delimit(function() {
         return otherRuntime.runThunk(function() {
           otherRuntime.modules = realm;
           return otherRuntime.runStandalone(
@@ -370,6 +371,7 @@
             finalResult.stats = result.stats;
             restarter.resume(makeModuleResult(otherRuntime, finalResult, makeRealm(realm), runtime.nothing, program));
           }
+        });
         });
       });
 

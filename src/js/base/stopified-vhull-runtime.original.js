@@ -54,10 +54,10 @@ function vhull_runtime() {
             natives = mod.nativeRequires;
           }
           else {
-            natives = require(mod.nativeRequires,
+            require(mod.nativeRequires,
               /* @stopify flat */ function(/* varargs */) {
               var nativeInstantiated = Array.prototype.slice.call(arguments);
-              return nativeInstantiated;
+              natives = nativeInstantiated;
             });
           }
 
@@ -117,14 +117,14 @@ function vhull_runtime() {
       function execThunk(thunk) {
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["run-task"], 1, $a); }
         function wrapResult(res) {
-          if(isSuccessResult(res)) {
+          if(thisRuntime.isSuccessResult(res)) {
             return thisRuntime.ffi.makeLeft(res.result);
-          } else if (isFailureResult(res)) {
-            if(isPyretException(res.exn)) {
-              return thisRuntime.ffi.makeRight(makeOpaque(res.exn));
+          } else if (thisRuntime.isFailureResult(res)) {
+            if(thisRuntime.isPyretException(res.exn)) {
+              return thisRuntime.ffi.makeRight(thisRuntime.makeOpaque(res.exn));
             }
             else {
-              return thisRuntime.ffi.makeRight(makeOpaque(makePyretFailException(thisRuntime.ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
+              return thisRuntime.ffi.makeRight(thisRuntime.makeOpaque(thisRuntime.makePyretFailException(thisRuntime.ffi.makeMessageException(String(res.exn + "\n" + res.exn.stack)))));
             }
           } else {
             CONSOLE.error("Bad execThunk result: ", res);
@@ -135,9 +135,9 @@ function vhull_runtime() {
         try {
           // thunk is from pyret and can be a pyret callback
           result = thunk.app()
-          result = new SuccessResult(result, {})
+          result = thisRuntime.makeSuccessResult(result, {})
         } catch (e) {
-          result = makeFailureResult(e, {})
+          result = thisRuntime.makeFailureResult(e, {})
         }
         return wrapResult(result)
       }
@@ -214,7 +214,7 @@ function vhull_runtime() {
           currentIndex += 1;
           f.app(arr[currentIndex]);
         }
-        return nothing;
+        return thisRuntime.nothing;
       };
 
       var raw_array_mapi = function(f, arr) {

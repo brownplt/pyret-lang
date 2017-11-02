@@ -1,6 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
-NODE             = node -max-old-space-size=8192
+NODE             = node -max-old-space-size=8192 --stack-size=16384
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
@@ -106,6 +106,7 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/compiled/ \
+                      -allow-shadow \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
@@ -118,8 +119,10 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
-                      -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configB.json
+                      --standalone-file "src/js/base/handalone.stop.js" \
+                      -straight-line \
+                    --require-config src/scripts/standalone-configVB.json
+	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100, deepstacks: 1000});' if $$. == 1" $@
 
 
 .PHONY : phaseC
@@ -161,6 +164,7 @@ endif
 		--builtin-arr-dir src/arr/trove/ \
 		--compiled-dir stopify-vhull-compiled \
 		--standalone-file "src/js/base/handalone.stop.js" \
+    -no-check-mode
 		-straight-line \
 		-stopify \
 		$(EXTRA_FLAGS) \

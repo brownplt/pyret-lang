@@ -4,7 +4,6 @@ import string-dict as D
 import srcloc as SL
 import sets as S
 import sha as sha
-import stopify as STOP
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J
 import file("gensym.arr") as G
@@ -1409,39 +1408,6 @@ fun compile-module(self, l, imports-in, prog,
     j-bracket(j-id(LOCS), j-num(get-loc-id(l)))
   end
 
-  fun wrap-new-module(compiler, module-body):
-    module-locators-as-js = for CL.map_list(m from module-locators):
-      cases(CS.Dependency) m:
-        | builtin(name) =>
-          j-obj([clist:
-            j-field("import-type", j-str("builtin")),
-            j-field("name", j-str(name))])
-        | dependency(protocol, args) =>
-          j-obj([clist:
-            j-field("import-type", j-str("dependency")),
-            j-field("protocol", j-str(protocol)),
-            j-field("args", j-list(true, CL.map_list(j-str, args)))])
-      end
-    end
-    provides-obj = compile-provides(provides)
-    the-module = j-fun(J.next-j-fun-id(), make-fun-name(compiler, l),
-      [clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids, module-body)
-    module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
-    [D.string-dict:
-      "requires", j-list(true, module-locators-as-js),
-      "provides", provides-obj,
-      "nativeRequires", j-list(true, [clist:]),
-      "theModule", if compiler.options.collect-all:
-        the-module
-      else if compiler.options.stopify:
-        J.j-raw-code(STOP.stopify(module-and-map.code))
-      else:
-        J.j-raw-code(module-and-map.code)
-      end,
-      "theMap", J.j-str(module-and-map.map)
-      ]
-  end
-
   toplevel-name = fresh-id(compiler-name("toplevel"))
   apploc = fresh-id(compiler-name("al"))
   body-compiler = self.{
@@ -1450,36 +1416,63 @@ fun compile-module(self, l, imports-in, prog,
     cur-apploc: apploc,
     allow-tco: false
   }
-  visited-body = compile-fun-body(l, toplevel-name,
+  var visited-body = compile-fun-body(l, toplevel-name,
     body-compiler,
     [list: ], none, prog)
   toplevel-fun = j-fun(J.next-j-fun-id(),
     make-fun-name(body-compiler, l), [clist: ], visited-body)
   define-locations = j-var(LOCS, j-list(true, locations))
-  module-body = j-block(
+  var module-body = j-block(
     #                    [clist: j-expr(j-str("use strict"))] +
     mk-abbrevs(l) ^
     cl-snoc(_, define-locations) ^
     cl-append(_, global-binds) ^
     cl-snoc(_, wrap-modules(module-specs, toplevel-name, toplevel-fun)))
-  wrap-new-module(body-compiler, module-body)
+  module-locators-as-js = for CL.map_list(m from module-locators):
+    cases(CS.Dependency) m:
+      | builtin(name) =>
+        j-obj([clist:
+          j-field("import-type", j-str("builtin")),
+          j-field("name", j-str(name))])
+      | dependency(protocol, args) =>
+        j-obj([clist:
+          j-field("import-type", j-str("dependency")),
+          j-field("protocol", j-str(protocol)),
+          j-field("args", j-list(true, CL.map_list(j-str, args)))])
+    end
+  end
+  provides-obj = compile-provides(provides)
+  var the-module = j-fun(J.next-j-fun-id(), make-fun-name(body-compiler, l),
+    [clist: RUNTIME.id, NAMESPACE.id, source-name.id] + input-ids, module-body)
+  module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
+  visited-body := nothing
+  module-body := nothing
+  the-module := nothing
+  [D.string-dict:
+    "requires", j-list(true, module-locators-as-js),
+    "provides", provides-obj,
+    "nativeRequires", j-list(true, [clist:]),
+    "theModule", module-and-map.code,
+    "theMap", J.j-str(module-and-map.map)
+    ]
 end
 
 
-fun vhull-compiler(env, add-phase, flatness-env, provides, options):
+fun vhull-compiler(env, add-phase, flatness-env, provides, options) block:
   compiler-visitor.{
     uri: provides.from-uri,
     add-phase: add-phase,
     options: options,
-    flatness-en: flatness-env,
+    flatness-env: flatness-env,
     method a-program(self, l, _, imports, body) block:
       total-time := 0
+      # This achieves nothing with our current code-gen, so it's a waste of time
+      # simplified = body.visit(remove-useless-if-visitor)
+      # add-phase("Remove useless ifs", simplified)
       freevars = N.freevars-e(body)
       add-phase("Freevars-e", freevars)
-      ans = compile-module(self, l, imports, body, freevars, provides, env,
-        flatness-env)
-      add-phase(string-append("Total simplification: ", tostring(total-time)),
-        nothing)
+      ans = compile-module(self, l, imports, body, freevars, provides, env, flatness-env)
+      add-phase(string-append("Total simplification: ", tostring(total-time)), nothing)
       ans
     end
   }
