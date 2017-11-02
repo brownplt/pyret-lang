@@ -8,7 +8,7 @@
     "pyret-base/js/pyret-parser": "build/phaseA/js/pyret-parser.js",
     "pyret-base/js/pyret-tokenizer": "build/phaseA/js/pyret-tokenizer.js",
     "pyret-base/js/runtime": "build/phaseA/js/vhull-runtime.js",
-    "pyret-base/js/stopified-vhull-runtime": "build/phaseA/js/stopified-vhull-runtime.original.js",
+    "pyret-base/js/stopified-vhull-runtime": "build/phaseA/js/stopified-vhull-runtime.js",
     "pyret-base/js/runtime-util": "build/phaseA/js/runtime-util.js",
     "pyret-base/js/type-util": "build/phaseA/js/type-util.js",
     "pyret-base/js/secure-loader": "build/phaseA/js/secure-loader.js",

@@ -67,6 +67,8 @@ tests/pyret/standalone/importer.jarr
 *.arr.js
 
 compiled/
+vhull-compiled/
+stopify-vhull-compiled/
 
 .pyret-parley.*.pid
 .pyret-parley.*.lock

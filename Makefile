@@ -154,19 +154,29 @@ else
 EXTRA_FLAGS = -no-check-mode
 endif
 
+%.vs.jarr: %.arr $(PHASEA)/pyret.jarr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $*.arr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--compiled-dir stopify-vhull-compiled \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		-straight-line \
+		-stopify \
+		$(EXTRA_FLAGS) \
+		--require-config src/scripts/standalone-configVS.json
+	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100, deepstacks: 1000});' if $$. == 1" $@
+
 %.v.jarr: %.arr $(PHASEA)/pyret.jarr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
 		--build-runnable $*.arr \
 		--builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
 		--compiled-dir vhull-compiled \
-		--standalone-file "src/js/base/handalone.stop.js" \
+		--standalone-file "src/js/base/handalone.js" \
 		-straight-line \
 		$(EXTRA_FLAGS) \
 		--require-config src/scripts/standalone-configV.json
-	#perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"countdown\", env: \"node\", yieldInterval: 1, timePerElapsed: 1});' if $$. == 1" $@
-	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100, deepstacks: 1000});' if $$. == 1" $@
-
 
 %.jarr: $(PHASEA)/pyret.jarr %.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
