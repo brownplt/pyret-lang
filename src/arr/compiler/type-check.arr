@@ -11,7 +11,6 @@ import file("ast-util.arr") as AU
 import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
 import file("compile-structs.arr") as C
-import file("type-defaults.arr") as TD
 
 type Type = TS.Type
 type TypeMembers = TS.TypeMembers
@@ -2416,7 +2415,7 @@ fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement ::
       | some(shadow right) =>
         synthesis(left, false, context).bind(lam(_, left-type, shadow context):
           synthesis(right, false, context).bind(lam(_, pred-type, shadow context):
-            shadow context = context.add-constraint(pred-type, t-arrow([list: TD.t-runtime-error], t-boolean(loc), l, false))
+            shadow context = context.add-constraint(pred-type, t-arrow([list: t-top(l, false)], t-boolean(loc), l, false))
             create-result(context)
           end)
         end)
