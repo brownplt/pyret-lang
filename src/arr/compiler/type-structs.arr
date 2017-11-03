@@ -188,7 +188,7 @@ sharing:
         new-onto = onto.substitute(new-type, type-var)
         t-forall(introduces, new-onto, l, inferred)
       | t-ref(typ, l, inferred) =>
-        t-ref(typ.substitute(new-type, type-var, l), inferred)
+        t-ref(typ.substitute(new-type, type-var), l, inferred)
       | t-data-refinement(data-type, variant-name, l, inferred) =>
         t-data-refinement(data-type.substitute(new-type, type-var),
                           variant-name,
