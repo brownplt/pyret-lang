@@ -1,4 +1,4 @@
-import is-field-not-found from error
+import is-invalid-array-index from error
 
 fun func() -> Number: 0
 where:
@@ -22,7 +22,6 @@ where:
   1 / 0 raises "zero"
   1 / 0 raises-other-than "field"
   func() does-not-raise
-  # o = {}
-  # o.x raises-satisfies is-field-not-found
-  # 1 / 0 raises-violates is-field-not-found
+  raw-array-get([raw-array: 1, 2], 4) raises-satisfies is-invalid-array-index
+  1 / 0 raises-violates is-invalid-array-index
 end

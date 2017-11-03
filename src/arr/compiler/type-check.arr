@@ -11,6 +11,7 @@ import file("ast-util.arr") as AU
 import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
 import file("compile-structs.arr") as C
+import file("type-defaults.arr") as TD
 
 type Type = TS.Type
 type TypeMembers = TS.TypeMembers
@@ -2410,6 +2411,20 @@ fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement ::
     end
   end
 
+  fun synthesis-exception(l :: Loc) -> TypingResult:
+    cases(Option<Expr>) right:
+      | some(shadow right) =>
+        synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+          synthesis(right, false, context).bind(lam(_, pred-type, shadow context):
+            shadow context = context.add-constraint(pred-type, t-arrow([list: TD.t-runtime-error], t-boolean(loc), l, false))
+            create-result(context)
+          end)
+        end)
+      | none =>
+        raise("Expected test to have a right hand side")
+    end
+  end
+
   cases(A.CheckOp) op:
     | s-op-is(l) => synthesis-refinement(l)
     | s-op-is-roughly(l) => synthesis-equivalent(l)
@@ -2425,9 +2440,9 @@ fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement ::
         create-result(context)
       end)
     | s-op-raises-satisfies(l) =>
-      raise("s-op-raises-satisfies not yet handled by type checker")
+      synthesis-exception(l)
     | s-op-raises-violates(l) =>
-      raise("s-op-raises-violates not yet handled by type checker")
+      synthesis-exception(l)
   end
 end
 
