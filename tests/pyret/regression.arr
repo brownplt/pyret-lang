@@ -21,3 +21,4 @@ import file("./regression/bogus-global-type-name.arr") as _
 import file("./regression/duplicate-check-block-report.arr") as _
 import file("./regression/escaping-module-uris.arr") as _
 import file("./regression/tail-recursion-arg-order.arr") as _
+import file("./regression/flat-refinement.arr") as _

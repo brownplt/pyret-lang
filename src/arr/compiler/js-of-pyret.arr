@@ -228,6 +228,11 @@ fun flatness-max(a :: Option<Number>, b :: Option<Number>) -> Option<Number>:
   end
 end
 
+fun is-trivial-ann(ann):
+  A.is-a-blank(ann) or A.is-a-any(ann)
+    or (A.is-a-tuple(ann) and ann.fields.all(lam(field-a): A.is-a-blank(field-a) or A.is-a-any(field-a) end))
+end
+
 # Maybe compress Option<Number> into a type like FlatnessInfo or something (maybe something without "Info" in the name)
 fun make-expr-flatness-env(
     aexpr :: AA.AExpr,
@@ -237,7 +242,17 @@ fun make-expr-flatness-env(
       make-expr-flatness-env(body, sd)
     | a-let(_, bind, val, body) =>
       val-flatness = if AA.is-a-lam(val) block:
-        lam-flatness = make-expr-flatness-env(val.body, sd)
+        has-nontrivial-arg-ann = for lists.any(elt from val.args):
+          not(is-trivial-ann(elt))
+        end
+        has-nontrivial-ann = has-nontrivial-arg-ann or not(is-trivial-ann(val.ret))
+
+        lam-flatness = if has-nontrivial-ann:
+          none
+        else:
+          make-expr-flatness-env(val.body, sd)
+        end
+
         sd.set-now(bind.id.key(), lam-flatness)
         # flatness of defining this lambda is 0, since we're not actually
         # doing anything with it
