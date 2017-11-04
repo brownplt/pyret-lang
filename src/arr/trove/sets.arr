@@ -376,14 +376,7 @@ data Set:
     end,
 
     method filter(self, f) -> Set:
-      list-set(self.fold(
-        lam(acc, x):
-          if f(x):
-            link(x, acc)
-          else:
-            acc
-          end
-        end, empty))
+      list-set(self.to-list().filter(f))
     end
     
   | tree-set(elems :: AVLTree) with:
