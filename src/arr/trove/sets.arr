@@ -13,8 +13,8 @@ provide {
   fold: set-fold,
   all: set-all,
   any: set-any,
-  map-like: set-map-like,
-  filter-like: set-filter-like
+  map: set-map,
+  filter: set-filter
 } end
 provide-types *
 
@@ -371,12 +371,19 @@ data Set:
       self.elems.any(f)
     end,
 
-    method map-like(self, f) -> Set:
-      list-to-list-set(self.to-list().map(f))
+    method map(self, f) -> Set:
+      self.fold(lam(acc, x): acc.add(f(x)) end, list-set(empty))
     end,
 
-    method filter-like(self, f) -> Set:
-      list-to-list-set(self.to-list().filter(f))
+    method filter(self, f) -> Set:
+      list-set(self.fold(
+        lam(acc, x):
+          if f(x):
+            link(x, acc)
+          else:
+            acc
+          end
+        end, empty))
     end
     
   | tree-set(elems :: AVLTree) with:
@@ -448,12 +455,20 @@ data Set:
       self.elems.any(f)
     end,
 
-    method map-like(self, f) -> Set:
-      list-to-tree-set(self.to-list().map(f))
+    method map(self, f) -> Set:
+      list-to-tree-set(self.elems.fold-preorder(
+      lam(acc, ele): link(f(ele), acc) end, empty))
     end,
 
-    method filter-like(self, f) -> Set:
-      list-to-tree-set(self.to-list().filter(f))
+    method filter(self, f) -> Set:
+      list-to-tree-set(self.elems.fold-preorder(
+        lam(acc, ele):
+          if f(ele):
+            link(ele, acc)
+          else:
+            acc
+          end
+        end, empty))
     end
     
 sharing:
@@ -607,12 +622,12 @@ fun list-to-tree(lst :: lists.List):
   end
 end
 
-fun set-map-like<T, U>(s :: Set<T>, f :: (T -> U)) -> Set<U>:
-  s.map-like(f)
+fun set-map<T, U>(s :: Set<T>, f :: (T -> U)) -> Set<U>:
+  s.map(f)
 end
 
-fun set-filter-like<T>(f :: (T -> Boolean), s :: Set<T>) -> Set<T>:
-  s.filter-like(f)
+fun set-filter<T>(f :: (T -> Boolean), s :: Set<T>) -> Set<T>:
+  s.filter(f)
 end
 
 fun arr-to-list-set(arr :: RawArray) -> Set:
