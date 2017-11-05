@@ -122,8 +122,6 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --standalone-file "src/js/base/handalone.stop.js" \
                       -straight-line \
                     --require-config src/scripts/standalone-configVB.json
-	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazy\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100});' if $$. == 1" $@
-
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
@@ -168,7 +166,6 @@ endif
 		-stopify \
 		$(EXTRA_FLAGS) \
 		--require-config src/scripts/standalone-configVS.json
-	perl -pi -e "print 'var \$$__T = require(\"Stopify/built/src/rts\");\$$__T.makeRTS({transform: \"lazyDeep\", estimator: \"reservoir\", env: \"node\", yieldInterval: 100, deepstacks: 1000});' if $$. == 1" $@
 
 %.v.jarr: %.arr $(PHASEA)/pyret.jarr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \

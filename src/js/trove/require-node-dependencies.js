@@ -35,5 +35,9 @@ define("websocket", [], function () { return websocket });
 Stopify = require("Stopify")
 define("Stopify", [], function () { return Stopify })
 
-stopify_runtime = require("Stopify/built/src/rts")
-define("stopify_runtime", [], function () { return stopify_runtime })
+$__T = require("Stopify/built/src/rts")
+
+$__T.makeRTS({transform: "lazy",
+  estimator: "reservoir",
+  env: "node",
+  yieldInterval: 100})
