@@ -37,7 +37,7 @@ define("Stopify", [], function () { return Stopify })
 
 $__T = require("Stopify/built/src/rts")
 
-$__T.makeRTS({transform: "lazy",
+$__T.makeRTS({transform: "lazyDeep",
   estimator: "reservoir",
   env: "node",
   yieldInterval: 100})
