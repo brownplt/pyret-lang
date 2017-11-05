@@ -17,19 +17,34 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
-fs = nodeRequire("fs");
+if (typeof document !== 'undefined') {
+  // TODO(rachit): Hack for stopify benchmarking harness.
+  fs = path = http = lockfile = websocket = {}
+
+  // process sham for the browser
+  process = {
+    argv: [],
+    exit(code) {
+      console.log(`exit called with ${code}`)
+    },
+    stdout: {
+      write(msg) {
+        console.log(msg)
+      }
+    }
+  }
+}
+else {
+  fs = nodeRequire("fs");
+  path = nodeRequire("path");
+  http = nodeRequire("http");
+  lockfile = nodeRequire("lockfile");
+  websocket = nodeRequire("websocket");
+}
 define("fs", [], function () { return fs; });
-
-path = nodeRequire("path");
 define("path", [], function () { return path; });
-
-http = nodeRequire("http");
 define("http", [], function () {return http;});
-
-lockfile = nodeRequire("lockfile");
 define("lockfile", [], function () { return lockfile; });
-
-websocket = nodeRequire("websocket");
 define("websocket", [], function () { return websocket });
 
 Stopify = require("Stopify")

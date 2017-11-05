@@ -5,5 +5,6 @@ fun benchmark(f, times) block:
   for each(l from range(0, times)):
     f()
   end
-  print(tostring(time-now() - start) + "\n")
+  print("BEGIN STOPIFY BENCHMARK RESULTS")
+  print(tostring(time-now() - start) + ",NA,NA,NA\n")
 end

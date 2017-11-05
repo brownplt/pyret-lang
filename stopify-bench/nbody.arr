@@ -115,9 +115,6 @@ end
 
 bodies = initial-values()
 
-print(energy(bodies))
-print("\n")
-
 fun main():
   n = 20000
   for map(c from range(0, n)):

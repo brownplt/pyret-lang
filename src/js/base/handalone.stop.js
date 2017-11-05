@@ -20,7 +20,19 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
   // The evaluation of the runtime should never suspend.
   $__T.getRTS().delimitDepth = 2;
   var runtime = runtimeLib.makeRuntime({
-    stdout: function(s) { process.stdout.write(s); },
+    stdout: function(s) {
+      // NOTE(rachit): Stopify benchmarking harness stuff.
+      if (typeof document !== 'undefined' &&
+        document.getElementById('data') !== null) {
+        data = document.getElementById('data')
+        data.value += s + "\n";
+        const evt = new Event('change')
+        data.dispatchEvent(evt)
+      }
+      else {
+        process.stdout.write(s);
+      }
+    },
     stderr: function(s) { process.stderr.write(s); }
   });
   $__T.getRTS().delimitDepth = 0;
@@ -205,6 +217,10 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
         }
         else {
           process.exit(EXIT_SUCCESS);
+          // Signal program finsih to stopify benchmark harness.
+          if (typeof window !== 'undefined') {
+            window.document.title = 'done'
+          }
         }
       }
     }, "postLoadHooks[main]:render-check-results-stack");
