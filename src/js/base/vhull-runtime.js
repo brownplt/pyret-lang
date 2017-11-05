@@ -4477,18 +4477,19 @@ define("pyret-base/js/runtime",
 
       //CONSOLE.log(String(outerFun));
 
-      var funToReturn = makeFunction(function() {
-        const topArgs = arguments
-        return thisRuntime.safeCall(function () {
-          return makeConstructor()
-        }, function (theFun) {
-          funToReturn.app = theFun;
-          //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
-          //CONSOLE.trace();
-          var res = theFun.apply(null, topArgs)
-          //CONSOLE.log("got ", res);
-          return res;
-        })
+			var funToReturn = makeFunction(function() {
+        // TODO(rachit): This may not be correct
+        var o_depth = $__T.getRTS().delimitDepth
+        $__T.getRTS().delimitDepth = 2
+        var theFun = makeConstructor();
+        $__T.getRTS().delimitDepth = o_depth
+
+        funToReturn.app = theFun;
+        //CONSOLE.log("Calling constructor ", quote(reflName), arguments);
+        //CONSOLE.trace();
+        var res = theFun.apply(null, arguments)
+        //CONSOLE.log("got ", res);
+        return res;
       }, reflName);
       funToReturn.$constrFor = reflName;
       return funToReturn;

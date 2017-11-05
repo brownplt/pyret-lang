@@ -219,6 +219,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
       res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
 
+      // NOTE(rachit): No need to save the stack at this point since we know
+      // there will be an error.
+      $__T.getRTS().delimitDepth = 2
       execRt.runThunk(
         function() {
           if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {
