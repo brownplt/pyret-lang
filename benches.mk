@@ -1,24 +1,31 @@
-DEPS := $(shell find ./stopify-bench/*.arr -type f)
-JARRS := $(DEPS:.arr=.jarr)
-VJARRS := $(DEPS:.arr=.v.jarr)
-VSJARRS := $(DEPS:.arr=.vs.jarr)
+DEPS := $(wildcard ./stopify-bench/*.arr)
+JARRS := $(DEPS:./stopify-bench/%.arr=./stopify-bench/jarr/%.jarr)
+VJARRS := $(DEPS:./stopify-bench/%.arr=./stopify-bench/vjarr/%.v.jarr)
+VSJARRS := $(DEPS:./stopify-bench/%.arr=./stopify-bench/vsjarr/%.vs.jarr)
 
 .PHONY: all
-all: $(JARRS) $(VSJARRS) $(VJARRS) ./stopify-bench/vsjarr
-	mv ./stopify-bench/*.vs.jarr ./stopify-bench/vsjarr
-	mv ./stopify-bench/*.v.jarr ./stopify-bench/vjarr
-	mv ./stopify-bench/*.jarr ./stopify-bench/jarr
+all: $(JARRS) $(VSJARRS) $(VJARRS)
 
-./stopify-bench/jarr ./stopify-bench/vjarr ./stopify-bench/vsjarr:
+./stopify-bench/jarr:
 	mkdir -p ./stopify-bench/jarr
+
+./stopify-bench/vjarr:
 	mkdir -p ./stopify-bench/vjarr
+
+./stopify-bench/vsjarr:
 	mkdir -p ./stopify-bench/vsjarr
 
-%.jarr: %.arr
-	$(MAKE) $@
+stopify-bench/jarr/%.jarr: ./stopify-bench/%.arr | ./stopify-bench/jarr
+	$(MAKE) ./stopify-bench/$*.jarr
+	mv ./stopify-bench/$*.jarr $@
 
-%.vs.jarr: %.arr
-	$(MAKE) $@
+stopify-bench/vjarr/%.v.jarr: ./stopify-bench/%.arr | ./stopify-bench/vjarr
+	$(MAKE) ./stopify-bench/$*.v.jarr
+	mv ./stopify-bench/$*.v.jarr $@
 
-%.v.jarr: %.arr
-	$(MAKE) $@
+stopify-bench/vsjarr/%.vs.jarr: ./stopify-bench/%.arr | ./stopify-bench/vsjarr
+	$(MAKE) ./stopify-bench/$*.vs.jarr
+	mv ./stopify-bench/$*.vs.jarr $@
+
+print-%:
+	@echo $* = $($*)
