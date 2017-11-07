@@ -3011,6 +3011,21 @@ define("pyret-base/js/runtime",
     }
     PPredAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var result = that.ann.check(compilerLoc, val);
+      if(thisRuntime.ffi.isOk(result)) {
+        var result = that.pred.app(val);
+        if(result) { return thisRuntime.ffi.contractOK; }
+        else {
+          return thisRuntime.ffi.contractFail(
+            makeSrcloc(compilerLoc),
+            thisRuntime.ffi.makePredicateFailure(val, that.predname));
+        }
+      }
+      else {
+        return result;
+      }
+
+      /** NOTE(joe): hack for stopify
       return safeCall(function() {
         return that.ann.check(compilerLoc, val);
       }, function(result) {
@@ -3034,6 +3049,7 @@ define("pyret-base/js/runtime",
         }
       },
                       "PPredAnn.check");
+      */
     }
 
     function makeBranderAnn(brander, name) {
