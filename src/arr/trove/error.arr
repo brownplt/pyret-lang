@@ -2154,17 +2154,17 @@ data RuntimeError:
                 [ED.para:
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
-                  ED.text(self.reason)],
+                  ED.text(self.reason), ED.text(".")],
                 please-report-bug()]
             else if src-available(loc):
               [ED.sequence:
                 ed-intro(self.method-name, loc, 0, true),
                 ED.cmcode(loc),
                 [ED.para:
-                  ED.text("It. expects that the index passed to it is an integer within the bounds of the array. "),
+                  ED.text("It expects that the index passed to it is an integer within the bounds of the array. "),
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
-                  ED.text(self.reason)]]
+                  ED.text(self.reason), ED.text(".")]]
             else:
               [ED.sequence:
                 [ED.para: 
@@ -2176,7 +2176,7 @@ data RuntimeError:
                 [ED.para:
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
-                  ED.text(self.reason)]]
+                  ED.text(self.reason), ED.text(".")]]
             end
           | none =>
             [ED.sequence:
@@ -2187,7 +2187,7 @@ data RuntimeError:
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
-                ED.text(self.reason)]]
+                ED.text(self.reason), ED.text(".")]]
         end]
     end,
     method render-reason(self):
@@ -2204,7 +2204,7 @@ data RuntimeError:
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
-                ED.text(self.reason)],
+                ED.text(self.reason), ED.text(".")],
               please-report-bug()]
           else:
             [ED.error:
@@ -2217,7 +2217,7 @@ data RuntimeError:
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
-                ED.text(self.reason)]]
+                ED.text(self.reason), ED.text(".")]]
           end
         end,
         [ED.error:
@@ -2228,7 +2228,7 @@ data RuntimeError:
           [ED.para:
             ED.embed(self.index),
             ED.text(" is an invalid array index because "),
-            ED.text(self.reason)]])
+            ED.text(self.reason), ED.text(".")]])
     end
   | equality-failure(reason :: String, value1, value2) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
