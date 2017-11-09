@@ -901,11 +901,6 @@ the number of quote characters in the match."
         ;;(message "At start of line %d, open is %s" (+ n 1) open)
         ;;(message "\topens: %s" opens)
         (while (not (eolp))
-          (when (and (pyret-has-top opens '(braced-expr))
-                     (not (pyret-LPAREN))
-                     (not (looking-at "[[:space:]]")))
-            (pop opens)
-            (push 'braced-expr-no-lambda opens))
           (cond
            ((or (> (pyret-indent-block-comment-depth cur-opened) 0)
                 (> (pyret-indent-block-comment-depth defered-opened) 0)
@@ -1352,7 +1347,7 @@ the number of quote characters in the match."
             (forward-char))
            ((pyret-LBRACE)
             (incf (pyret-indent-object defered-opened))
-            (push 'braced-expr opens)
+            (push (if (looking-at "^{(") 'braced-expr 'braced-expr-no-lambda) opens)
             (forward-char))
            ((pyret-RBRACE)
             (save-excursion
