@@ -500,7 +500,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                         fold-result(link(new-elt, exprs), context)
                       end)
                   end)
-                end, fold-result(empty, context), elts.reverse(), t-elts.reverse())
+                end, fold-result(empty, context), elts, t-elts)
                 result.typing-bind(lam(exprs, shadow context):
                   typing-result(A.s-tuple(l, exprs), expect-type, context)
                 end)
