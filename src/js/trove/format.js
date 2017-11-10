@@ -1,5 +1,11 @@
 ({
-  provides: {},
+  provides: {
+    values: {
+      "format": "tany" 
+    },
+    aliases: {},
+    datatypes: {}
+  },
   requires: [],
   nativeRequires: [],
   theModule: function(RUNTIME, NAMESPACE, uri) {
@@ -90,7 +96,7 @@
       }, "format"),
     };
 
-    return RUNTIME.makeModuleReturn(vals, {});
+      return RUNTIME.makeModuleReturn(vals, {}, {});
    
   }
 })

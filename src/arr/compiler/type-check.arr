@@ -223,7 +223,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
   end, context)
 
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
+    | s-program(l, _provide, provided-types, provided-modules, imports, body) =>
       shadow context = imports.foldl(lam(_import, shadow context):
         cases(A.Import) _import block:
           | s-import-complete(_, vals, types, file, vname, tname) =>
@@ -272,7 +272,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           folded-info = gather-provides(_provide, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
-              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, imports, new-body), info))
+              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, provided-modules, imports, new-body), info))
             | fold-errors(errs) =>
               C.err(errs)
           end
@@ -314,52 +314,63 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
     if is-t-existential(expect-type) or is-t-top(expect-type):
       check-synthesis(e, expect-type, top-level, context)
     else:
-      cases(Expr) e block:
-        | s-module(l, answer, defined-values, defined-types, provided-values, provided-types, checks) =>
+      cases(Expr) e:
+        | s-module(l, answer, defined-values, defined-types, defined-modules, checks) =>
+          # TODO: figure out defined-modules
           checking(answer, expect-type, false, context)
-            .bind(lam(new-answer, _, shadow context):
-              cases(Expr) provided-values:
-                | s-obj(_, fields) =>
-                  foldr-fold-result(lam(field, shadow context, info):
-                    cases(A.Member) field:
-                      | s-data-field(data-l, name, value) =>
-                        synthesis(value, false, context).fold-bind(lam(_, field-type, shadow context):
-                          fold-result(TCS.tc-info(info.types.set(name, field-type.set-inferred(false)),
-                                                  info.aliases,
-                                                  info.data-types),
-                                      context)
-                        end)
-                    end
-                  end, fields, context, TCS.empty-info())
-                | else => fold-errors([list: C.cant-typecheck("provided-values was not structured as an object.", l)])
-              end.typing-bind(lam(info, shadow context):
-                foldr-fold-result(lam(a-field, shadow context, shadow info):
-                  fun add-aliases(typ :: Type, shadow info :: TCInfo, shadow context :: Context) -> TCInfo:
-                    cases(Option<Type>) context.aliases.get(typ.key()):
-                      | some(alias-typ) =>
-                        shadow info = TCS.tc-info(info.types, info.aliases.set(typ.key(), alias-typ), info.data-types)
-                        add-aliases(alias-typ, info, context)
-                      | none =>
-                        info
-                    end
-                  end
-
-                  to-type(a-field.ann, context).bind(lam(maybe-type, shadow context):
-                    cases(Option<Type>) maybe-type:
-                      | some(typ) =>
-                        new-data-types = cases(Option<DataType>) context.get-data-type(typ):
-                          | some(data-type) => info.data-types.set(a-field.name, data-type)
-                          | none =>
-                            info.data-types
+              .bind(lam(new-answer, _, shadow context):
+                foldr-fold-result(lam(dv, shadow context, info):
+                    cases(Option) dv.provided-name:
+                      | none => info
+                      | some(name) =>
+                        cases(A.DefinedValue) dv:
+                          | s-defined-value(_, _, value) =>
+                            synthesis(value, false, context).fold-bind(lam(_, value-type, shadow context):
+                                fold-result(TCS.tc-info(info.types.set(name, value-type.set-inferred(false)),
+                                    info.aliases,
+                                    info.data-types),
+                                  context)
+                              end)
+                          | s-defined-var(_, _, id) =>
+                            # TODO: Decide if this is correct
+                            synthesis(id, false, context).fold-bind(lam(_, value-type, shadow context):
+                                fold-result(TCS.tc-info(info.types.set(name, value-type.set-inferred(false)),
+                                    info.aliases,
+                                    info.data-types),
+                                  context)
+                              end)
                         end
-                        shadow info = add-aliases(typ, info, context)
-                        fold-result(TCS.tc-info(info.types, info.aliases, new-data-types), context)
-                      | none =>
-                        fold-errors([list: C.cant-typecheck("provided type " + tostring(a-field.ann) + "did not resolve to a type.", l)])
                     end
-                  end)
-                end, provided-types, context, info).typing-bind(lam(shadow info, shadow context):
-                  typing-result(A.s-module(l, new-answer, defined-values, defined-types, provided-values, provided-types, checks), expect-type, context.set-info(info))
+                  end, defined-values, context, TCS.empty-info()).typing-bind(lam(info, shadow context):
+                    foldr-fold-result(lam(dt, shadow context, shadow info):
+                        fun add-aliases(typ :: Type, shadow info :: TCInfo, shadow context :: Context) -> TCInfo:
+                          cases(Option<Type>) context.aliases.get(typ.key()):
+                            | some(alias-typ) =>
+                              shadow info = TCS.tc-info(info.types, info.aliases.set(typ.key(), alias-typ), info.data-types)
+                              add-aliases(alias-typ, info, context)
+                            | none =>
+                              info
+                          end
+                        end
+                        cases(Option) dt.provided-name:
+                          | none => info
+                          | some(name) =>
+                            to-type(dt.ann, context).bind(lam(maybe-type, shadow context):
+                                cases(Option<Type>) maybe-type:
+                                  | some(typ) =>
+                                    new-data-types = cases(Option<DataType>) context.get-data-type(typ):
+                                      | some(data-type) => info.data-types.set(dt.name, data-type)
+                                      | none =>
+                                        info.data-types
+                                    end
+                                    shadow info = add-aliases(typ, info, context)
+                                    fold-result(TCS.tc-info(info.types, info.aliases, new-data-types), context)
+                                  | none =>
+                                    fold-errors([list: C.cant-typecheck("provided type " + tostring(dt.ann) + "did not resolve to a type.", l)])
+                                end
+                              end)
+                      end end, defined-types, context, info).typing-bind(lam(shadow info, shadow context):
+                  typing-result(A.s-module(l, new-answer, defined-values, defined-types, defined-modules, checks), expect-type, context.set-info(info))
                 end)
               end)
             end)
@@ -576,6 +587,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-str(l, s) =>
           check-synthesis(e, expect-type, top-level, context)
+        | s-module-dot(l, base, path) =>
+          check-synthesis(A.s-dot(l, A.s-id(l, base), path.first), expect-type, top-level, context)
         | s-dot(l, obj, field) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-get-bang(l, obj, field) =>
@@ -614,9 +627,9 @@ end
 fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingResult:
   shadow context = context.add-level()
   cases(Expr) e:
-    | s-module(l, answer, defined-values, defined-types, provided-values, provided-types, checks) =>
+    | s-module(l, answer, defined-values, defined-types, defined-modules, checks) =>
       synthesis(answer, false, context)
-        .map-expr(A.s-module(l, _, defined-values, defined-types, provided-values, provided-types, checks))
+        .map-expr(A.s-module(l, _, defined-values, defined-types, defined-modules, checks))
         .map-type(_.set-loc(l))
     | s-template(l) =>
       new-exists = new-existential(l, false)
@@ -838,6 +851,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       typing-result(e, t-boolean(l), context)
     | s-str(l, s) =>
       typing-result(e, t-string(l), context)
+    | s-module-dot(l, base, path) =>
+      _synthesis(A.s-dot(l, A.s-id(l, base), path.first), top-level, context)
     | s-dot(l, obj, field) =>
       synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
         synthesis-field(l, new-ast, new-type, field, A.s-dot, context)
@@ -2133,23 +2148,17 @@ end
 
 fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCInfo>:
   cases(A.Provide) _provide:
-    | s-provide-complete(_, values, aliases, data-definitions) =>
-      initial-info = TCS.tc-info([string-dict: ], context.info.aliases, context.info.data-types)
+    | s-provide-complete(_, values, aliases, data-definitions, modules) =>
+      # TODO: figure out modules
       fold-values-info = foldr-fold-result(lam(value, shadow context, info):
         value-key = value.v.key()
         if info.types.has-key(value-key):
           fold-result(info, context)
         else:
-          cases(Option<Type>) context.info.types.get(value-key):
-            | some(typ) =>
-              shadow typ = typ.set-inferred(false)
-              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
-            | none =>
-              typ = context.global-types.get-value(value-key).set-inferred(false)
-              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
-          end
+          typ = context.binds.get-value(value-key).set-inferred(false)
+          fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
         end
-      end, values, context, initial-info)
+      end, values, context, context.info)
       fold-values-info.bind(lam(values-info, shadow context):
         fold-aliases-info = foldr-fold-result(lam(_alias, shadow context, info):
           alias-key = _alias.in-name.key()
@@ -2299,7 +2308,7 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
           end
       end
     | a-checked(checked, residual) =>
-      fold-errors([list: C.cant-type-check("a-checked should not be appearing before type checking", A.dummy-loc)])
+      fold-errors([list: C.cant-typecheck("a-checked should not be appearing before type checking", A.dummy-loc)])
   end
 end
 

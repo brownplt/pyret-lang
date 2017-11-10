@@ -13,7 +13,7 @@ import file("../../../src/arr/compiler/locators/builtin.arr") as BL
 
 print("Running compile-lib tests: " + tostring(time-now()) + "\n")
 
-fun worklist-contains-checker(wlist :: List<CM.ToCompile>):
+fun worklist-contains-checker(wlist :: List<CL.ToCompile>):
   locs = wlist.map(_.locator)
   lam(loc :: CL.Locator): locs.member(loc) end
 end
@@ -45,7 +45,6 @@ check "Worklist generation (simple)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -114,7 +113,6 @@ check "Worklist generation (DAG)":
       method get-native-modules(self): empty end,
       method get-extra-imports(self): CM.minimal-imports end,
       method get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      method get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       method get-globals(self): CM.no-builtins.globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -177,7 +175,6 @@ check "Worklist generation (Cycle)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -239,7 +236,6 @@ check "Multiple includes":
       method get-modified-time(self): 0 end,
       method get-options(self, options): options end,
       method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method get-native-modules(self): empty end,
       method uri(self): "file://" + name end,
@@ -405,7 +401,8 @@ check "raw-provide-syntax":
     uri: "test-raw-provides",
     values: raw-array-to-list(raw.get-raw-value-provides()),
     aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-    datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+    datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+    modules: raw-array-to-list(raw.get-raw-module-provides())
   })
 
   l = SL.builtin("test-raw-provides")
@@ -445,13 +442,14 @@ check:
       "x", CM.v-just-type(T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
+    mt,
     mt)
 
-  ce = CM.compile-env(CM.globals(mt, mt),
+  ce = CM.compile-env(CM.globals(mt, mt, mt),
     [string-dict:
       "builtin(global)", CM.provides("builtin://global", mt, mt,
         [SD.string-dict:
-          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)])])
+          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)], mt)], [string-dict: "builtin://global", "builtin(global)"])
 
   canon = AU.canonicalize-provides(ps, ce)
 
@@ -459,6 +457,7 @@ check:
     [string-dict:
       "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
+    mt,
     mt,
     mt)
 

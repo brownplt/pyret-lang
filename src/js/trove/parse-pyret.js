@@ -8,7 +8,14 @@
     "pyret-base/js/pyret-tokenizer",
     "pyret-base/js/pyret-parser"
   ],
-  provides: {},
+  provides: {
+    values: {
+      "surface-parse": "tany",
+      "maybe-surface-parse": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizer, parser) {
     var srcloc = RUNTIME.getField(srclocLib, "values");
     var ast = RUNTIME.getField(astLib, "values");
@@ -130,11 +137,12 @@
           var prelude = tr(node.kids[0]);
           var body = tr(node.kids[1]);
           return RUNTIME.getField(ast, 's-program')
-            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.provideModules, prelude.imports, body);
         },
         'prelude': function(node) {
           var provide;
           var provideTypes;
+          var provideModules;
           var kids = node.kids.slice(0);
           if (kids.length > 0 && kids[0].name === "provide-stmt") {
             provide = tr(kids.shift());
@@ -146,9 +154,12 @@
           } else {
             provideTypes = RUNTIME.getField(ast, 's-provide-types-none').app(pos(node.pos));
           }
+          // No syntax support for this right now
+          provideModules = RUNTIME.getField(ast, 's-provide-modules-none').app(pos(node.pos));
           return {
             provide : provide,
             provideTypes : provideTypes,
+            provideModules : provideModules,
             imports : makeListTr(kids)
           };
         },
@@ -1341,7 +1352,9 @@
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
           return RUNTIME.getField(ast, 'a-dot')
-            .app(pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
+            .app(pos(node.pos),
+                 RUNTIME.getField(ast, 's-mref-by-name').app(name(node.kids[0])),
+                 symbol(node.kids[2]));
         },
         'ann': function(node) {
           // (ann a)
@@ -1470,6 +1483,6 @@
     return RUNTIME.makeModuleReturn({
           'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse"),
           'maybe-surface-parse': RUNTIME.makeFunction(maybeParsePyret, "maybe-surface-parse"),
-        }, {});
+        }, {}, {});
   }
 })

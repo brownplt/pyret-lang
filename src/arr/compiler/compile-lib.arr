@@ -214,32 +214,6 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
-  parsed = get-ast(p, uri)
-  vals-part =
-    cases (A.Provide) parsed._provide:
-      | s-provide-none(l) => mtd
-      | s-provide-all(l) =>
-        const-dict(A.toplevel-ids(parsed).map(_.toname()), CS.v-just-there)
-      | s-provide(l, e) =>
-        cases (A.Expr) e:
-          | s-obj(_, mlist) => const-dict(mlist.map(_.name), CS.v-just-there)
-          | else => raise("Non-object expression in provide: " + l.format(true))
-        end
-    end
-  types-part =
-    cases(A.ProvideTypes) parsed.provided-types:
-      | s-provide-types-none(l) => mtd
-      | s-provide-types-all(l) =>
-        type-ids = A.block-type-ids(parsed.block)
-        type-strs = type-ids.map(lam(i): i.name.toname() end)
-        const-dict(type-strs, CS.t-just-there)
-      | s-provide-types(l, anns) =>
-        const-dict(anns.map(_.name), CS.t-just-there)
-    end
-  CS.provides(vals-part, types-part)
-end
-
 type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
@@ -248,7 +222,7 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
-dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
+dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
 fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile> block:
   temp-marked = SD.make-mutable-string-dict()
@@ -332,7 +306,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
-  env = CS.compile-env(locator.get-globals(), provide-map)
+  uri-map = for fold(acc from [SD.string-dict:], dep from provide-map.keys-list()):
+    acc.set(provide-map.get-value(dep).from-uri, dep)
+  end
+  env = CS.compile-env(locator.get-globals(), provide-map, uri-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
       #print("Module is already compiled\n")

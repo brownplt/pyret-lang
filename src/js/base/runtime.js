@@ -2802,8 +2802,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function getDotAnn(loc, name, ann, field) {
       checkString(name);
       checkString(field);
-      if(ann.hasOwnProperty(field)) {
+      if(field in ann) {
         return ann[field];
+      } else if (ann.dict && field in ann.dict) {
+        return ann.dict[field];
       }
       raiseJSJS(thisRuntime.ffi.contractFail(makeSrcloc(loc),
                                              thisRuntime.ffi.makeDotAnnNotPresent(name, field)))
@@ -5057,12 +5059,20 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return m.jsmod;
       }
       else {
+        var modules;
+        if (thisRuntime.getField(m, "provide-plus-types").dict["modules"]) {
+          modules = thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "modules");
+        } else {
+          modules = thisRuntime.makeObject({});
+        }
         return makeObject({
           values: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "values"),
           types: thisRuntime.getField(thisRuntime.getField(m, "provide-plus-types"), "types"),
+          modules: modules,
           internal: thisRuntime.getField(m, "provide-plus-types").dict['internal'],
           'defined-values': m.dict['defined-values'],
           'defined-types': m.dict['defined-types'],
+          'defined-modules': m.dict['defined-modules'],
         });
       }
     }
@@ -5177,13 +5187,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return new JSModuleReturn(jsmod);
     }
 
-    function makeModuleReturn(values, types, internal) {
+    function makeModuleReturn(values, types, modules, internal) {
       return thisRuntime.makeObject({
         "defined-values": values,
         "defined-types": types,
+        "defined-modules": modules || {},
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
-          "types": types,
+          "types": thisRuntime.makeObject(types),
+          "modules": thisRuntime.makeObject(modules || {}), // FIXME: Should this be required?
           "internal": internal || {}
         })
       });
@@ -5325,7 +5337,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
       });
       typeFields.forEach(function(tf) {
-        newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
+        if(hasField(moduleObj, "defined-types")) {
+          newns = newns.setType(tf, getField(moduleObj, "defined-types")[tf]);
+        }
+        else {
+          newns = newns.setType(tf, getField(moduleObj, "types")[tf]);
+        }
       });
       return namespace.merge(newns);
     }
@@ -5927,9 +5944,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'globalModuleObject' : makeObject({
         "defined-values": runtimeNamespaceBindings,
         "defined-types": runtimeTypeBindings,
+        "defined-modules": {},
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
-          "types": runtimeTypeBindings
+          "types": runtimeTypeBindings,
+          "modules": makeObject({})
         })
       }),
 

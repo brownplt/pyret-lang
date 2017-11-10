@@ -1,7 +1,20 @@
 ({
   requires: [],
   nativeRequires: ["path"],
-  provides: {},
+  provides: {
+    values: {
+      "normalize": "tany",
+      "join": "tany",
+      "resolve": "tany",
+      "relative": "tany",
+      "dirname": "tany",
+      "extname": "tany",
+      "basename": "tany",
+      "path-sep": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, path) {
     var values = {
       "normalize": RUNTIME.makeFunction(function(p) {
@@ -54,7 +67,7 @@
       }),
       "path-sep": RUNTIME.makeString(path.sep)
     };
-    return RUNTIME.makeModuleReturn(values, {});
+    return RUNTIME.makeModuleReturn(values, {}, {});
   }    
 })
 

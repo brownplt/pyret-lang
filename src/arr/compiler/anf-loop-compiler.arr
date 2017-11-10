@@ -367,11 +367,25 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         cl-append(compiled-base.other-stmts, compiled-exp.other-stmts)
         )
     | a-dot(l, m, field) =>
+      uri = cases(A.ModuleReference) m:
+        | s-mref-by-name(_) => raise("Should have been resolved: " + torepr(m))
+        | s-mref-by-uri(_, uri) => uri
+      end
+      m-name = cases(A.ModuleReference) m:
+        | s-mref-by-name(n) => n.toname()
+        | s-mref-by-uri(e, _) =>
+          cases(A.Expr) e:
+            | s-id(_, n) => n.toname()
+            | s-dot(_, _, f) => f
+            | else => raise("Unknown a-dot reference: " + torepr(m))
+          end
+      end
+      mod = rt-method("getField", [clist: j-bracket(rt-field("modules"), j-str(uri)), j-str("provide-plus-types")])
       c-exp(
         rt-method("getDotAnn", [clist:
             visitor.get-loc(l),
-            j-str(m.toname()),
-            j-id(js-id-of(m)),
+            j-str(m-name),
+            j-dot(j-bracket(j-dot(mod, "dict"), j-str("types")), "dict"),
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
@@ -512,7 +526,7 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
   vars
 end
 
-fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
+fun copy-mutable-dict<a>(s :: D.MutableStringDict<a>) -> D.MutableStringDict<a>:
   s.freeze().unfreeze()
 end
 
@@ -1310,52 +1324,59 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body
 end
 
 compiler-visitor = {
-  method a-module(self, l, answer, dvs, dts, provides, types, checks):
-    types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
-      compiled = compile-ann(ann.ann, self)
-      {
-        fields: cl-snoc(acc.fields, j-field(ann.name, compiled.exp)),
-        others: cl-append(acc.others, compiled.other-stmts)
-      }
+  method a-module(self, l, answer, dvs, dts, dms, checks):
+    types-obj-fields-others = for fold(acc from cl-empty, ann from dts):
+        acc + compile-ann(ann.typ, self).other-stmts
     end
 
-    compiled-provides = provides.visit(self)
     compiled-answer = answer.visit(self)
     compiled-checks = checks.visit(self)
+    fun defined-value-rhs(dv):
+      cases(N.ADefinedValue) dv:
+        | a-defined-value(_, _, value) => value.visit(self).exp
+        | a-defined-var(_, _, id) => j-id(js-id-of(id))
+      end
+    end
+    fun defined-type-rhs(dt):
+      compile-ann(dt.typ, self).exp
+    end
+    fun defined-module-rhs(dm):
+      j-str(dm.uri)
+    end
+    fun get-defined-obj(defined-things, get-rhs):
+      j-obj(
+        for CL.map_list(dth from defined-things):
+          j-field(dth.name, get-rhs(dth))
+        end)
+    end
+    fun get-provided-obj(defined-things, get-rhs):
+      provided = defined-things.filter(lam(x): option.is-some(x.provided-name) end)
+      to-wrap = j-obj(
+        for CL.map_list(dth from provided):
+          # TODO: I think this is correct, but the name might be what
+          #       needs to go here
+          j-field(dth.provided-name.value, get-rhs(dth))
+        end)
+      rt-method("makeObject", [clist: to-wrap])
+    end
+    # Could be optimized into one pass over each defined-XXX, but this is clear
     c-exp(
       rt-method("makeObject", [clist:
           j-obj([clist:
               j-field("answer", compiled-answer.exp),
               j-field("namespace", NAMESPACE),
-              j-field("locations", j-id(const-id("L"))),
-              j-field("defined-values",
-                j-obj(
-                  for CL.map_list(dv from dvs):
-                    cases(N.ADefinedValue) dv:
-                      | a-defined-value(name, value) =>
-                        compiled-val = dv.value.visit(self).exp
-                        j-field(dv.name, compiled-val)
-                      | a-defined-var(name, id) =>
-                        j-field(dv.name, j-id(js-id-of(id)))
-                    end
-                  end)),
-              j-field("defined-types",
-                j-obj(
-                  for CL.map_list(dt from dts):
-                    compiled-ann = compile-ann(dt.typ, self).exp
-                    j-field(dt.name, compiled-ann)
-                  end)),
+              j-field("defined-values", get-defined-obj(dvs, defined-value-rhs)),
+              j-field("defined-types", get-defined-obj(dts, defined-type-rhs)),
+              j-field("defined-modules", get-defined-obj(dms, defined-module-rhs)),
               j-field("provide-plus-types",
                 rt-method("makeObject", [clist: j-obj([clist:
-                        j-field("values", compiled-provides.exp),
-                        j-field("types", j-obj(types-obj-fields.fields))
+                        j-field("values", get-provided-obj(dvs, defined-value-rhs)),
+                        j-field("types", get-provided-obj(dts, defined-type-rhs)),
+                        j-field("modules", get-provided-obj(dms, defined-module-rhs))
                     ])])),
               j-field("checks", compiled-checks.exp)])]),
-
-      types-obj-fields.others ^
-      cl-append(_, compiled-provides.other-stmts) ^
-      cl-append(_, compiled-answer.other-stmts) ^
-      cl-append(_, compiled-checks.other-stmts))
+      types-obj-fields-others
+        + compiled-answer.other-stmts + compiled-checks.other-stmts)
   end,
   method a-type-let(self, l, bind, body):
     cases(N.ATypeBind) bind:
@@ -1540,6 +1561,14 @@ compiler-visitor = {
   end,
   method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
+  end,
+  method a-module-dot(self, l :: Loc, uri :: String, path :: List<String>):
+    # TODO: This seems expensive. Maybe it should be lifted?
+    mod = rt-method("getField", [clist: j-bracket(rt-field("modules"), j-str(uri)), j-str("provide-plus-types")])
+    lookup = for fold(expr from j-bracket(j-dot(rt-method("getField", [clist: mod, j-str("values")]), "dict"), j-str(path.first)), p from path.rest):
+      j-bracket(j-dot(expr, "dict"), j-str(p))
+    end
+    c-exp(lookup, cl-empty)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
@@ -1882,7 +1911,7 @@ end
 
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-    | provides(thismod-uri, values, aliases, data-defs) =>
+    | provides(thismod-uri, values, aliases, data-defs, modules) =>
       value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
           | v-just-type(t) => j-field(v, compile-provided-type(t))
@@ -1905,10 +1934,15 @@ fun compile-provides(provides):
       alias-fields = for cl-map-sd(a from aliases):
         j-field(a, compile-provided-type(aliases.get-value(a)))
       end
+      module-fields = for CL.map_list(m from modules.keys().to-list()):
+        # FIXME (Philip): This should check for cycles somehow
+        j-field(m, compile-provides(modules.get-value(m)))
+      end
       j-obj([clist:
           j-field("values", j-obj(value-fields)),
           j-field("datatypes", j-obj(data-fields)),
-          j-field("aliases", j-obj(alias-fields))
+          j-field("aliases", j-obj(alias-fields)),
+          j-field("modules", j-obj(module-fields))
         ])
   end
 end

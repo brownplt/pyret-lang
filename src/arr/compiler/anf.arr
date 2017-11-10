@@ -4,6 +4,7 @@ provide *
 provide-types *
 
 import ast as A
+import lists as L
 import srcloc as SL
 import file("ast-anf.arr") as N
 
@@ -96,7 +97,7 @@ end
 
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
-    | s-program(l, p, _, imports, block) =>
+    | s-program(l, p, _, _, imports, block) =>
       # Note: provides have been desugared to a structure with no expressions, just
       # names and Ann information
       N.a-program(l, p, imports.map(anf-import), anf-term(block))
@@ -143,24 +144,25 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
-    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+    | s-module(l, answer, dvs, dts, dms, checks) =>
       adts = for map(dt from dts):
-        N.a-defined-type(dt.name, dt.typ)
+        N.a-defined-type(dt.name, dt.provided-name, dt.typ)
+      end
+      adms = for map(dm from dms):
+        N.a-defined-module(dm.name, dm.provided-name, dm.mod)
       end
       needs-value = dvs.filter(A.is-s-defined-value)
       anf-name-rec(needs-value.map(_.value), "defined_value", lam(advs):
-        shadow advs = for map2(name from needs-value.map(_.name), adv from advs):
-          N.a-defined-value(name, adv)
+        shadow advs = for map2(nv from needs-value, adv from advs):
+          N.a-defined-value(nv.name, nv.provided-name, adv)
         end
         avars = dvs.filter(A.is-s-defined-var).map(lam(dvar):
-          N.a-defined-var(dvar.name, dvar.id)
+          N.a-defined-var(dvar.name, dvar.provided-name, dvar.id)
         end)
 
         anf-name(answer, "answer", lam(ans):
-            anf-name(provides, "provides", lam(provs):
-                anf-name(checks, "checks", lam(chks):
-                    k(N.a-module(l, ans, advs + avars, adts, provs, types, chks))
-                  end)
+            anf-name(checks, "checks", lam(chks):
+                k(N.a-module(l, ans, advs + avars, adts, adms, chks))
               end)
           end)
         
@@ -174,6 +176,20 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k(N.a-val(l, N.a-id(l, id)))
+    | s-module-dot(l, base, path) =>
+      cases(A.ModuleReference) base:
+        | s-mref-by-name(n) =>
+          # This should maybe throw an error, but we don't want to
+          # be tied down to s-mref-by-uri (I think)
+
+          # Convert into a standard s-dot(...) and ANF
+          to-anf = for fold(acc from A.s-id(l, n), field from path):
+            A.s-dot(l, acc, field)
+          end
+          anf(to-anf, k)
+        | s-mref-by-uri(_, uri) =>
+          k(N.a-val(l, N.a-module-dot(l, uri, path)))
+      end
     | s-srcloc(l, loc) => k(N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:

@@ -49,16 +49,8 @@
       "string-dict-of": ["forall", "a", ["arrow", [["List", "String"], ["tid", "a"]], "sdOfA"]]
     },
     aliases: {
-      "StringDict": {
-        tag: "name",
-        origin: { "import-type": "$ELF" },
-        name: "StringDict"
-      },
-      "MutableStringDict": {
-        tag: "name",
-        origin: { "import-type": "$ELF" },
-        name: "MutableStringDict"
-      }
+      "StringDict": ["local", "StringDict"],
+      "MutableStringDict": ["local", "MutableStringDict"],
     },
     datatypes: {
       "StringDict": ["data", "StringDict", ["a"], [], {

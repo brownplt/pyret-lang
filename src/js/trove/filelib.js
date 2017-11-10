@@ -1,6 +1,23 @@
 ({
   requires: [],
-  provides: {},
+  provides: {
+    values: {
+      "open-input-file": "tany",
+      "open-output-file": "tany",
+      "read-file": "tany",
+      "display": "tany",
+      "flush-output-file": "tany",                  
+      "file-times": "tany",
+      "real-path": "tany",
+      "exists": "tany",
+      "close-output-file": "tany",
+      "close-input-file": "tany",
+      "create-dir": "tany",
+      "list-files": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   nativeRequires: ["fs"],
   theModule: function(RUNTIME, NAMESPACE, uri, fs) {
     function InputFile(name) {
@@ -163,7 +180,7 @@
       }, "list-files")
     };
 
-    return RUNTIME.makeModuleReturn(vals, {});
+    return RUNTIME.makeModuleReturn(vals, {}, {});
   }
 })
 

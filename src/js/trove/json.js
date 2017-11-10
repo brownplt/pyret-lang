@@ -1,5 +1,26 @@
 ({
-  provides: {},
+  provides: {
+    values: {
+      "j-obj": "tany",
+      "j-arr": "tany",
+      "j-num": "tany",
+      "j-str": "tany",
+      "j-bool": "tany",
+      "j-null" : "tany",
+      "is-j-obj": "tany",
+      "is-j-arr": "tany",
+      "is-j-num": "tany",
+      "is-j-str": "tany",
+      "is-j-bool": "tany",
+      "is-j-null": "tany",
+      "read-json": "tany",
+      "tojson": "tany",
+      "to-json": "tany"
+    },
+    aliases: {
+      JSON: "tany"
+    }
+  },
   requires: [
     { "import-type": "builtin", name: "string-dict" },
     { "import-type": "builtin", name: "json-structs" }
@@ -72,7 +93,7 @@
       "tojson": gf(vals, "tojson"),
       "to-json": gf(vals, "tojson")
     };
-    return RUNTIME.makeModuleReturn(values, {JSON: typs["JSON"]});
+    return RUNTIME.makeModuleReturn(values, {JSON: typs["JSON"]}, {});
 
   }
 })

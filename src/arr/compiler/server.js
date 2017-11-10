@@ -1,5 +1,11 @@
 {
-  provides: {},
+  provides: {
+    values: {
+      "make-server": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   requires: [],
   nativeRequires: ['http', 'websocket', 'lockfile'],
   theModule: function(runtime, _, uri, http, ws, lockFile) {

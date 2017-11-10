@@ -128,9 +128,9 @@ fun desugar(program :: A.Program):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
+    | s-program(l, _provide, provided-types, provided-modules, imports, body) =>
       generated-binds := SD.make-mutable-string-dict()
-      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
+      {ast: A.s-program(l, _provide, provided-types, provided-modules, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
@@ -353,8 +353,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
-    | s-module(l, answer, dv, dt, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-module(l, answer, dv, dt, dm, checks) =>
+      A.s-module(l, desugar-expr(answer), dv, dt, dm, desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
@@ -433,6 +433,7 @@ fun desugar-expr(expr :: A.Expr):
         blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
+    | s-module-dot(l, base, path) => A.s-module-dot(l, base, path)
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-bracket(l, obj, key) =>
       ds-curry(l, bid(l, "get-value"), [list: desugar-expr(obj), desugar-expr(key)])
@@ -534,7 +535,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
-    | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
+    | s-ref(l, ann) => A.s-ref(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>

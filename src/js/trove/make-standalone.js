@@ -1,7 +1,14 @@
 ({
   requires: [],
   nativeRequires: ["path", "fs"],
-  provides: {},
+  provides: {
+    values: {
+      "make-standalone": "tany",
+      "make-html-file": "tany"
+    },
+    aliases: {},
+    datatypes: {}
+  },
   theModule: function(runtime, namespace, uri, path, fs) {
 
     var READ_OPTIONS = {encoding: 'utf8'};
@@ -114,6 +121,6 @@
     return runtime.makeModuleReturn({
       "make-standalone": runtime.makeFunction(makeStandalone, "make-standalone"),
       "make-html-file": runtime.makeFunction(makeHtmlFile, "make-html-file")
-    }, {})
+    }, {}, {})
   }
 })

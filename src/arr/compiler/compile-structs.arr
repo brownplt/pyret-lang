@@ -5,6 +5,7 @@ provide-types *
 import ast as A
 import srcloc as SL
 import error-display as ED
+import valueskeleton as VS
 import string-dict as SD
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
@@ -63,7 +64,7 @@ data ValueBinder:
   | vb-letrec
   | vb-let
   | vb-var
-  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
+  | vb-module(dep :: Dependency, uri :: URI) # The A in import ast as A (with URI determined from compile env)
 end
 
 data ValueBind:
@@ -78,7 +79,7 @@ end
 data TypeBinder:
   | tb-type-let
   | tb-type-var
-  | tb-module(uri :: URI)
+  | tb-module(dep :: Dependency, uri :: URI)
 end
 
 data TypeBind:
@@ -89,6 +90,23 @@ data TypeBind:
       ann :: Option<A.Ann>)
 end
 
+data ModuleBinder:
+  | mb-module(dep :: Dependency, uri :: URI) with:
+    method get-uri(self):
+      self.uri
+    end
+  | mb-resolved(provides :: Provides) with:
+    method get-uri(self):
+      self.provides.from-uri
+    end
+end
+
+data ModuleBind:
+  | module-bind(
+      origin :: BindOrigin,
+      binder :: ModuleBinder,
+      atom :: A.Name)
+end
 #|
 data ScopeBinding:
   | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
@@ -116,7 +134,9 @@ data NameResolution:
       errors :: List<CompileError>,
       bindings :: SD.MutableStringDict<ValueBind>,
       type-bindings :: SD.MutableStringDict<TypeBind>,
-      datatypes :: SD.MutableStringDict<A.Expr>)
+      datatypes :: SD.MutableStringDict<A.Expr>,
+      # TODO (Philip): This field might not be needed after all
+      modules :: SD.MutableStringDict<ModuleBind>)
 end
 
 # Used to describe when additional module imports should be added to a
@@ -133,13 +153,14 @@ end
 data CompileEnvironment:
   | compile-env(
         globals :: Globals,
-        mods :: StringDict<Provides> # map from dependency key to info provided from module
+        mods :: StringDict<Provides>, # map from dependency key to info provided from module
+        uri-map :: StringDict<String> # map from URI to dependency keys
       )
 end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
+  | globals(values :: StringDict<String>, types :: StringDict<String>, modules :: StringDict<String>)
 end
 
 data ValueExport:
@@ -148,12 +169,18 @@ data ValueExport:
   | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
+data ModuleExport:
+  | m-uri(uri :: String)
+  | m-resolved(provides :: Provides)
+end
+
 data Provides:
   | provides(
       from-uri :: URI,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
-      data-definitions :: StringDict<T.DataType>
+      data-definitions :: StringDict<T.DataType>,
+      modules :: StringDict<ModuleExport>
     )
 end
 
@@ -290,7 +317,10 @@ fun provides-from-raw-provides(uri, raw):
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  provides(uri, vdict, adict, ddict)
+  mdict = for fold(mdict from SD.make-string-dict(), m from raw.modules):
+    mdict.set(m.name, m-uri(m.uri))
+  end
+  provides(uri, vdict, adict, ddict, mdict)
 end
 
 
@@ -1099,6 +1129,66 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text(", but it does not refer to a module.")]]
     end
+  | value-id-used-as-type(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a type.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a value.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a type at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a value.")]]
+    end
+  | value-id-used-as-module(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a module.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a value.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a module at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a value.")]]
+    end
+  | module-id-used-as-value(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a value.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a module.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a value at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a module.")]]
+    end
   | type-id-used-as-value(id :: A.Name, origin :: BindOrigin) with:
     method render-fancy-reason(self):
       intro =
@@ -1131,6 +1221,53 @@ data CompileError:
           ED.text(" is used as a value at "),
           draw-and-highlight(self.id.l),
           ED.text(", but it is defined as a type.")]]
+    end
+  | type-id-used-as-module(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a module.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a type.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a module at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a type.")]]
+    end
+  | module-id-used-as-type(loc :: Loc, name :: A.Name) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The "),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], 0),
+          ED.text(" is being used as a type.")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("but it is defined as a module.")],
+        [ED.para:
+          ED.text("Maybe you mean to use one of the fields of that module with "),
+          ED.text(tostring(self.name)),
+          ED.text(".<some-type>")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para-nospace:
+          ED.text("The name "),
+          ED.text(tostring(self.name)),
+          ED.text(" is used as a type at "),
+          draw-and-highlight(self.loc),
+          ED.text(", but it is defined as a module. "),
+          ED.text("Maybe you mean to use one of the fields of that module with "),
+          ED.text(tostring(self.name)),
+          ED.text(".<some-type>")]]
     end
   | unexpected-type-var(loc :: Loc, name :: A.Name) with:
     method render-fancy-reason(self):
@@ -2693,6 +2830,7 @@ runtime-provides = provides("builtin://global",
      "Method", t-top,
      "Nothing", t-top,
      "RawArray", t-top  ],
+  [string-dict:],
   [string-dict:])
 
 runtime-builtins = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
@@ -2706,12 +2844,16 @@ shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-pr
   rt.set(k, "builtin(global)")
 end
 
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides])
+runtime-modules = for fold(rm from [string-dict:], k from runtime-provides.modules.keys().to-list()):
+  rm.set(k, "builtin(global)")
+end
 
-minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides], [string-dict: runtime-provides.from-uri, "builtin(global)"])
 
-standard-globals = globals(runtime-builtins, runtime-types)
-standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
+minimal-builtins = compile-env(globals(runtime-builtins, runtime-types, runtime-modules), [string-dict: "builtin(global)", runtime-provides], [string-dict: runtime-provides.from-uri, "builtin(global)"])
+
+standard-globals = globals(runtime-builtins, runtime-types, runtime-modules)
+standard-builtins = compile-env(globals(runtime-builtins, runtime-types, runtime-modules), [string-dict: "builtin(global)", runtime-provides], [string-dict: runtime-provides.from-uri, "builtin(global)"])
 
 minimal-imports = extra-imports(empty)
 

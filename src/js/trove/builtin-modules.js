@@ -5,7 +5,15 @@
     "pyret-base/js/secure-loader",
     "pyret-base/js/type-util"
   ],
-  provides: {},
+  provides: {
+    values: {
+      "builtin-raw-locator": "tany",
+      "builtin-raw-locator-from-str": "tany"
+    },
+    aliases: {},
+    datatypes: {},
+    modules: {}
+  },
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {
     var F = RUNTIME.makeFunction;
 
@@ -130,6 +138,28 @@
               }
               return [];
             }, "get-raw-value-provides"),
+          "get-raw-module-provides":
+           F(function() {
+             var m = getData(content);
+             if (m.provides) {
+               if (Array.isArray(m.provides.modules)) {
+                 return m.provides.modules;
+               } else if (typeof m.provides.modules === "object") {
+                 var mods = m.provides.modules;
+                 return Object.keys(mods).map(function(k) {
+                   var shorthands = m.provides.shorthands || {};
+                   // TODO (Philip): Is this correct?
+                   var expanded = t.expandType(mods[k], t.expandRecord(shorthands, {}));
+
+                   return RUNTIME.makeObject({
+                     name: k,
+                     value: t.toPyret(RUNTIME, expanded)
+                   });
+                 });
+               }
+             }
+             return [];
+            }, "get-raw-module-provides"),
           "get-raw-compiled":
             F(function() {
               return content;
@@ -152,8 +182,10 @@
         "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator, "builtin-raw-locator"),
         "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString, "builtin-raw-locator-from-str")
       },
+      "defined-modules": {},
       "provide-plus-types": O({
-        types: { },
+        types: O({ }),
+        modules: O({}),
         values: O({
           "builtin-raw-locator": RUNTIME.makeFunction(getBuiltinLocator, "builtin-raw-locator"),
           "builtin-raw-locator-from-str": RUNTIME.makeFunction(builtinLocatorFromString, "builtin-raw-locator-from-str")
