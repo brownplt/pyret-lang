@@ -262,7 +262,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
 
       tc-result = checking(body, t-top(l, false), true, context)
       cases(TypingResult) tc-result block:
-        | typing-result(new-body, _, shadow context) =>
+        | typing-result(_, _, shadow context) =>
 
           context.misc.keys-list().each(lam(key) block:
             {fun-examples; fun-name} = context.misc.get-value(key)
@@ -272,7 +272,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
           folded-info = gather-provides(_provide, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
-              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, imports, new-body), info))
+              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, imports, body), info))
             | fold-errors(errs) =>
               C.err(errs)
           end
