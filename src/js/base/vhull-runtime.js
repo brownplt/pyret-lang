@@ -3801,7 +3801,8 @@ define("pyret-base/js/runtime",
       thisRuntime.checkString(s);
       thisRuntime.checkString(splitstr);
 
-      return map(thisRuntime.ffi.makeList(s.split(splitstr), thisRuntime.makeString));
+      return thisRuntime.ffi.makeList(
+        map(s.split(splitstr), thisRuntime.makeString));
     }
     var string_split = function(s, splitstr) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-split"], 2, $a); }
@@ -3840,7 +3841,8 @@ define("pyret-base/js/runtime",
     var string_explode = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-explode"], 1, $a); }
       thisRuntime.checkString(s);
-      return map(thisRuntime.ffi.makeList(s.split(""),thisRuntime.makeString));
+      return thisRuntime.ffi.makeList(
+        map(s.split(""),thisRuntime.makeString));
     }
     var string_indexOf = function(s, find) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-index-of"], 2, $a); }
