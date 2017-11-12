@@ -12,15 +12,17 @@ import file("../../src/arr/compiler/type-defaults.arr") as TD
 import file("../../src/arr/compiler/locators/builtin.arr") as BL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 
+import file("../pyret/test-compile-helper.arr") as TCH
+
 fun string-to-locator(name, str :: String):
   {
     method needs-compile(self, provs): true end,
     method get-modified-time(self): 0 end,
     method get-options(self, options): options end,
     method get-module(self): CL.pyret-string(str) end,
-    method get-extra-imports(self): CS.minimal-imports end,
+    method get-extra-imports(self): CS.standard-imports end,
     method get-native-modules(self): [list:] end,
-    method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
+    method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
     method get-globals(self): CS.standard-globals end,
     method uri(self): "tc-test://" + name end,
     method name(self): name end,
@@ -28,6 +30,13 @@ fun string-to-locator(name, str :: String):
     method get-compiled(self): none end,
     method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
   }
+end
+
+fun run-typed-file(filename) block:
+  file = FL.open-input-file(filename)
+  file-contents = FL.read-file(file)
+  FL.close-input-file(file)
+  TCH.run-to-result-typed(string-to-locator(filename, file-contents))
 end
 
 fun dfind(ctxt, dep):
@@ -62,7 +71,7 @@ check "These should all be good programs":
   for each(prog from good-progs):
     when is-arr-file(prog) block:
       filename = base + prog
-      result = compile-str(filename)
+      result = run-typed-file(filename)
       result satisfies E.is-right
       when E.is-left(result):
         "Should be okay: " is filename
@@ -71,25 +80,25 @@ check "These should all be good programs":
   end
 end
 
-check "These should all be bad programs":
-  base = "./tests/type-check/bad/"
-  bad-progs = FL.list-files(base)
-  for each(prog from bad-progs):
-    when is-arr-file(prog) block:
-      filename  = base + prog
-      result = compile-str(filename)
-      result satisfies E.is-left
-      cases(E.Either) result:
-        | right(_) =>
-          "Should be error: " is filename
-        | left(problems) =>
-          for each(problem from problems):
-            tostring(problem) satisfies is-string
-          end
-      end
-    end
-  end
-end
+# check "These should all be bad programs":
+#   base = "./tests/type-check/bad/"
+#   bad-progs = FL.list-files(base)
+#   for each(prog from bad-progs):
+#     when is-arr-file(prog) block:
+#       filename  = base + prog
+#       result = compile-str(filename)
+#       result satisfies E.is-left
+#       cases(E.Either) result:
+#         | right(_) =>
+#           "Should be error: " is filename
+#         | left(problems) =>
+#           for each(problem from problems):
+#             tostring(problem) satisfies is-string
+#           end
+#       end
+#     end
+#   end
+# end
 
 #|
 check "All builtins should have a type":

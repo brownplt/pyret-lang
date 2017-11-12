@@ -34,7 +34,7 @@ fun string-to-locator(program :: String) block:
 end
 
 fun dfind(ctxt, dep):
-  cases(CS.Dependency) dep:
+  cases(CS.Dependency) dep block:
     | builtin(modname) =>
       CLI.module-finder(ctxt, dep)
     | else =>
@@ -51,6 +51,11 @@ end
 fun run-to-result-named(program, name):
   floc = string-to-named-locator(program, name)
   res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true})
+  res
+end
+
+fun run-to-result-typed(loc):
+  res = CL.compile-and-run-locator(loc, CLI.module-finder, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true, type-check: true})
   res
 end
 
