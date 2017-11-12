@@ -6,6 +6,7 @@ import filelib as FL
 import runtime-lib as R
 import load-lib as L
 import string-dict as SD
+import render-error-display as RED
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/type-defaults.arr") as TD
@@ -48,7 +49,7 @@ end
 
 compile-file = lam(base-path, filename):
   base-module = CS.dependency("file", [list: base-path + filename])
-  base = CLI.module-finder(TCH.make-pase-path-context(base-path), base-module)
+  base = CLI.module-finder(TCH.make-base-path-context(base-path), base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   result = CL.compile-program(wlist, CS.default-compile-options.{type-check: true})
   errors = result.loadables.filter(CL.is-error-compilation)
@@ -66,14 +67,22 @@ end
 
 check "These should all be good programs":
   base = "./tests/type-check/good/"
-  # good-progs = FL.list-files(base)
-  good-progs = [list: "_plus.arr"]
+  good-progs = FL.list-files(base)
   for each(prog from good-progs):
     when is-arr-file(prog) block:
       result = run-typed-file(base, prog)
-      result satisfies E.is-right
-      when E.is-left(result):
-        "Should be okay: " is (base + prog)
+      cases(E.Either<List<CS.CompileResult>, L.ModuleResult>) result:
+        | left(errs) =>
+          err-strs = for map(e from errs):
+            for map(p from e.problems):
+              RED.display-to-string(p.render-reason(), torepr, empty)
+            end.join-str(",\n")
+          end.join-str(",\n")
+          (base + prog) + " should not have compilation errors: " is err-strs
+        | right(v) =>
+          when L.is-failure-result(v):
+            (base + prog) + " should not have runtime errors: "is L.render-error-message(v).message
+          end
       end
     end
   end
