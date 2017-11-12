@@ -1352,7 +1352,7 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
                 cases(Option<A.Expr>) maybe-else:
                   | some(_else) =>
                     if is-empty(remaining-branches):
-                      typing-error([list: C.unneccesary-else-branch(tostring(typ), l)])
+                      typing-error([list: C.unnecessary-else-branch(tostring(typ), l)])
                     else:
                       has-else(l, ann, new-val, split-result, _else, context)
                     end
@@ -1443,7 +1443,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
           end
       end
     | none =>
-      fold-errors([list: C.unneccesary-branch(branch, data-type, cases-loc)])
+      fold-errors([list: C.unnecessary-branch(branch, data-type, cases-loc)])
   end
 end
 
