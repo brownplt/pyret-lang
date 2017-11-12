@@ -36,4 +36,4 @@ fun edits2(word):
   end
 end
 
-B.benchmark(lam(): edits2("correktions") end, 1)
+B.benchmark(lam(): edits2("correktions") end, 6)

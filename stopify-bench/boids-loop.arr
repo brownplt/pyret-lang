@@ -186,7 +186,7 @@ fun ticker(w) block:
 end
 
 fun main():
-  for fold(w from world0, _ from range(0, 100)):
+  for fold(w from world0, _ from range(0, 200)):
     ticker(w)
   end
 end

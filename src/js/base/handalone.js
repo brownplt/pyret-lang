@@ -18,7 +18,19 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
   var main = toLoad[toLoad.length - 1];
 
   var runtime = runtimeLib.makeRuntime({
-    stdout: function(s) { process.stdout.write(s); },
+    stdout: function(s) {
+      // NOTE(rachit): Stopify benchmarking harness stuff.
+      if (typeof document !== 'undefined' &&
+        document.getElementById('data') !== null) {
+        data = document.getElementById('data')
+        data.value += s + "\n";
+        const evt = new Event('change')
+        data.dispatchEvent(evt)
+      }
+      else {
+        process.stdout.write(s);
+      }
+    },
     stderr: function(s) { process.stderr.write(s); }
   });
 
