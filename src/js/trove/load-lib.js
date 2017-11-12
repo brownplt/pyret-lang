@@ -2,9 +2,9 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
+  nativeRequires: ["pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, loadHooksLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
     var EXIT_ERROR_RENDERING_ERROR = 2;
@@ -309,49 +309,7 @@
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
-      var postLoadHooks = {
-        "builtin://srcloc": function(srcloc) {
-          otherRuntime.srcloc = otherRuntime.getField(otherRuntime.getField(srcloc, "provide-plus-types"), "values");
-        },
-        "builtin://ffi": function(ffi) {
-          ffi = ffi.jsmod;
-          otherRuntime.ffi = ffi;
-          otherRuntime["throwMessageException"] = ffi.throwMessageException;
-          otherRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
-          otherRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
-          otherRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
-          otherRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
-          otherRuntime["throwUnfinishedTemplate"] = ffi.throwUnfinishedTemplate;
-
-          var checkList = otherRuntime.makeCheckType(ffi.isList, "List");
-          otherRuntime["checkList"] = checkList;
-
-          otherRuntime["checkEQ"] = otherRuntime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
-        },
-        "builtin://checker": function(checker) {
-          var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
-          // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
-          otherRuntime.setParam("current-checker", currentChecker);
-        },
-        "builtin://table": function(table) {
-          table = table.jsmod;
-          otherRuntime["makeTable"] = table.makeTable;
-          otherRuntime["makeRow"] = table.makeRow;
-          otherRuntime["makeRowFromArray"] = table.makeRowFromArray;
-          otherRuntime["openTable"] = table.openTable;
-          otherRuntime["checkTable"] = otherRuntime.makeCheckType(table.isTable, "Table");
-          otherRuntime["checkRow"] = otherRuntime.makeCheckType(table.isRow, "Row");
-          otherRuntime["isTable"] = table.isTable;
-          otherRuntime["isRow"] = table.isTable;
-          otherRuntime["checkWrapTable"] = function(val) {
-            otherRuntime.checkTable(val);
-            return val;
-          };
-          otherRuntime.makePrimAnn("Table", table.isTable);
-        },
-      };
-
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, main);
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;

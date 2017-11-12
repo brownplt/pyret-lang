@@ -11,6 +11,7 @@
     "pyret-base/js/runtime-util": "build/phaseB/js/runtime-util.js",
     "pyret-base/js/type-util": "build/phaseB/js/type-util.js",
     "pyret-base/js/secure-loader": "build/phaseB/js/secure-loader.js",
+    "pyret-base/js/post-load-hooks": "build/phaseB/js/post-load-hooks.js",
 
     "jglr/jglr": "lib/jglr/jglr.js",
     "jglr/rnglr": "lib/jglr/rnglr.js",
