@@ -80,33 +80,63 @@ check "These should all be good programs":
           end.join-str(",\n")
           (base + prog) + " should not have compilation errors: " is err-strs
         | right(v) =>
-          when L.is-failure-result(v):
+          if L.is-failure-result(v):
             (base + prog) + " should not have runtime errors: "is L.render-error-message(v).message
+          else:
+            (base + prog) satisfies is-string
           end
       end
     end
   end
 end
 
-# check "These should all be bad programs":
-#   base = "./tests/type-check/bad/"
-#   bad-progs = FL.list-files(base)
-#   for each(prog from bad-progs):
-#     when is-arr-file(prog) block:
-#       filename  = base + prog
-#       result = compile-str(filename)
-#       result satisfies E.is-left
-#       cases(E.Either) result:
-#         | right(_) =>
-#           "Should be error: " is filename
-#         | left(problems) =>
-#           for each(problem from problems):
-#             tostring(problem) satisfies is-string
-#           end
-#       end
-#     end
-#   end
-# end
+fun is-type-error(p):
+  # TODO(Ben,Matthew): clean this up so that it's not quite so tedious or incomplete
+  CS.is-type-mismatch(p)
+  or CS.is-incorrect-type(p)
+  or CS.is-incorrect-type-expression(p)
+  or CS.is-bad-type-instantiation(p)
+  or CS.is-unnecessary-branch(p)
+  or CS.is-unnecessary-else-branch(p)
+  or CS.is-non-exhaustive-pattern(p)
+  or CS.is-cant-match-on(p)
+  or CS.is-tuple-too-small(p)
+  or CS.is-object-missing-field(p)
+  or CS.is-different-branch-types(p)
+  or CS.is-incorrect-number-of-bindings(p)
+  or CS.is-incorrect-number-of-args(p)
+  or CS.is-cases-singleton-mismatch(p)
+  or CS.is-given-parameters(p)
+  or CS.is-unable-to-instantiate(p)
+  or CS.is-unable-to-infer(p)
+  or CS.is-unann-failed-test-inference(p)
+  or CS.is-toplevel-unann(p)
+  or CS.is-polymorphic-return-type-unann(p)
+  or CS.is-binop-type-error(p)
+  or CS.is-cant-typecheck(p)
+  or CS.is-no-module(p)
+  or CS.is-unbound-id(p)
+end
+
+check "These should all be bad programs":
+  base = "./tests/type-check/bad/"
+  bad-progs = FL.list-files(base)
+  for each(prog from bad-progs):
+    when is-arr-file(prog) block:
+      result = run-typed-file(base, prog)
+      cases(E.Either<List<CS.CompileResult>, L.ModuleResult>) result:
+        | right(_) =>
+          (base + prog) + " should be error: " is result
+        | left(errs) =>
+          for each(e from errs):
+            for each(p from e.problems):
+              p satisfies is-type-error
+            end
+          end
+      end
+    end
+  end
+end
 
 #|
 check "All builtins should have a type":
