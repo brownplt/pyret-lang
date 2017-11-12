@@ -2457,6 +2457,33 @@ data ParseError:
         [ED.para: ED.text("Is there something there that shouldn’t be?")]
       ]
     end
+  | parse-error-colon-colon(loc) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error:
+          [ED.para: ED.text("Pyret didn't understand your program around ")],
+          ED.cmcode(self.loc),
+          [ED.para: ED.text(" If you were trying to write a type annotation (with "),
+            ED.highlight(ED.code(ED.text("::")),[ED.locs: self.loc],0),
+            ED.text("), remember that annotations only apply directly to names.  "),
+            ED.text("If you were not trying to write an annotation, perhaps use a single colon instead.")]]
+      else:
+        [ED.error:
+          [ED.para: ED.text("Pyret didn't understand your program around "),
+            ED.loc(self.loc)],
+          [ED.para: ED.text(" If you were trying to write a type annotation (with "), ED.code(ED.text("::")),
+            ED.text("), remember that annotations only apply directly to names.  "),
+            ED.text("If you were not trying to write an annotation, perhaps use a single colon instead.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Pyret didn't understand your program around ")],
+        draw-and-highlight(self.loc),
+        [ED.para: ED.text(" If you were trying to write a type annotation (with "), ED.code(ED.text("::")),
+          ED.text("), remember that annotations only apply directly to names.  "),
+          ED.text("If you were not trying to write an annotation, perhaps use a single colon instead.")]]
+    end
   | parse-error-eof(loc) with:
     method render-fancy-reason(self, src-available):
       if src-available(self.loc):

@@ -37,6 +37,13 @@ eof = [list:
   "foo +"
 ]
 
+check "coloncolon":
+  get-parse-error(
+    "lam(a :: A):\n" +
+    "  {v1; s1} :: {B; D} = f2(a)\n" +
+    "end") satisfies ERR.is-parse-error-colon-colon
+end
+
 check "eof":
   for map(program from eof):
     get-parse-error(program) satisfies ERR.is-parse-error-eof
