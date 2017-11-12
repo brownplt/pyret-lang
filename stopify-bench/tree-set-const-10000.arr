@@ -5,5 +5,5 @@ fun main():
     s.add(0)
   end
 end
-B.benchmark(lam(): main() end, 50)
+B.benchmark(lam(): main() end, 500)
 # test repeatedly adding the same element to a tree-set

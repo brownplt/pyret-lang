@@ -6,5 +6,5 @@ fun main():
   end
 end
 
-B.benchmark(lam(): main() end, 10)
+B.benchmark(lam(): main() end, 500)
 # test repeatedly adding same element to a list-set
