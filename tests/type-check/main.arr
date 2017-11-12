@@ -11,7 +11,6 @@ import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/type-defaults.arr") as TD
 import file("../../src/arr/compiler/locators/builtin.arr") as BL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
-
 import file("../pyret/test-compile-helper.arr") as TCH
 
 fun string-to-locator(name, str :: String):
@@ -32,11 +31,11 @@ fun string-to-locator(name, str :: String):
   }
 end
 
-fun run-typed-file(filename) block:
-  file = FL.open-input-file(filename)
+fun run-typed-file(base-path, filename) block:
+  file = FL.open-input-file(base-path + filename)
   file-contents = FL.read-file(file)
   FL.close-input-file(file)
-  TCH.run-to-result-typed(string-to-locator(filename, file-contents))
+  TCH.run-to-result-typed(string-to-locator(filename, file-contents), base-path)
 end
 
 fun dfind(ctxt, dep):
@@ -47,9 +46,9 @@ fun dfind(ctxt, dep):
   CL.located(l, nothing)
 end
 
-compile-str = lam(filename):
-  base-module = CS.dependency("file", [list: filename])
-  base = CLI.module-finder(CLI.default-test-context, base-module)
+compile-file = lam(base-path, filename):
+  base-module = CS.dependency("file", [list: base-path + filename])
+  base = CLI.module-finder(TCH.make-pase-path-context(base-path), base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   result = CL.compile-program(wlist, CS.default-compile-options.{type-check: true})
   errors = result.loadables.filter(CL.is-error-compilation)
@@ -67,14 +66,14 @@ end
 
 check "These should all be good programs":
   base = "./tests/type-check/good/"
-  good-progs = FL.list-files(base)
+  # good-progs = FL.list-files(base)
+  good-progs = [list: "_plus.arr"]
   for each(prog from good-progs):
     when is-arr-file(prog) block:
-      filename = base + prog
-      result = run-typed-file(filename)
+      result = run-typed-file(base, prog)
       result satisfies E.is-right
       when E.is-left(result):
-        "Should be okay: " is filename
+        "Should be okay: " is (base + prog)
       end
     end
   end
