@@ -2,9 +2,9 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
+  nativeRequires: ["pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, loadHooksLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
     var EXIT_ERROR_RENDERING_ERROR = 2;
@@ -304,139 +304,11 @@
 
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
-        // NOTE(joe): This is the place to add checkAll
         var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
-      var postLoadHooks = {
-        "builtin://srcloc": function(srcloc) {
-          otherRuntime.srcloc = otherRuntime.getField(otherRuntime.getField(srcloc, "provide-plus-types"), "values");
-        },
-        "builtin://ffi": function(ffi) {
-          ffi = ffi.jsmod;
-          otherRuntime.ffi = ffi;
-          otherRuntime["throwMessageException"] = ffi.throwMessageException;
-          otherRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
-          otherRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
-          otherRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
-          otherRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
-          otherRuntime["throwUnfinishedTemplate"] = ffi.throwUnfinishedTemplate;
-
-          var checkList = otherRuntime.makeCheckType(ffi.isList, "List");
-          otherRuntime["checkList"] = checkList;
-
-          otherRuntime["checkEQ"] = otherRuntime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
-        },
-        "builtin://data-source": function(ds) {
-          ds = otherRuntime.getField(otherRuntime.getField(ds, "provide-plus-types"), "values");
-          // Variadic convenience function for desugaring use.
-          // 'type' corresponds to a loader option in `data-source.arr`
-
-          otherRuntime["asLoaderOption"] = function(type) {
-            switch(type) {
-            case "sanitizer":
-              return otherRuntime.getField(ds, "sanitize-col").app(arguments[1], arguments[2]);
-            default:
-              otherRuntime.ffi.throwMessageException("Internal error: Invalid loader option type: " + type);
-            }
-          };
-          // Convenience function for JS library use
-          otherRuntime["extractLoaderOption"] = function(opt) {
-            var isSanitizer = otherRuntime.getField(ds, "is-sanitize-col");
-            if (otherRuntime.unwrap(isSanitizer.app(opt))) {
-              return {
-                type: "sanitizer",
-                col: otherRuntime.getField(opt, "col"),
-                sanitizer: otherRuntime.getField(opt, "sanitizer")
-              };
-            } else {
-              otherRuntime.ffi.throwMessageException("Internal error: Cannot coerce non-loader option");
-            }
-          }
-          otherRuntime["builtin_sanitizers"] = {
-            option : otherRuntime.getField(ds, "option-sanitizer"),
-            string : otherRuntime.getField(ds, "string-sanitizer"),
-            num : otherRuntime.getField(ds, "num-sanitizer"),
-            bool: otherRuntime.getField(ds, "bool-sanitizer"),
-            strict_num : otherRuntime.getField(ds, "strict-num-sanitizer"),
-            strings_only : otherRuntime.getField(ds, "strings-only"),
-            numbers_only : otherRuntime.getField(ds, "numbers-only"),
-            booleans_only : otherRuntime.getField(ds, "booleans-only"),
-            empty_only : otherRuntime.getField(ds, "empty-only")
-          };
-
-          otherRuntime["makeCStr"] = otherRuntime.getField(ds, "c-str").app;
-          otherRuntime["makeCNum"] = otherRuntime.getField(ds, "c-num").app;
-          otherRuntime["makeCBool"] = otherRuntime.getField(ds, "c-bool").app;
-          otherRuntime["makeCCustom"] = otherRuntime.getField(ds, "c-custom").app;
-          otherRuntime["makeCEmpty"] = function() { return otherRuntime.getField(ds, "c-empty"); };
-
-          otherRuntime["isCStr"] = function(v) { return otherRuntime.unwrap(otherRuntime.getField(ds, "is-c-str").app(v)); };
-          otherRuntime["isCNum"] = function(v) { return otherRuntime.unwrap(otherRuntime.getField(ds, "is-c-num").app(v)); };
-          otherRuntime["isCBool"] = function(v) { return otherRuntime.unwrap(otherRuntime.getField(ds, "is-c-bool").app(v)); };
-          otherRuntime["isCCustom"] = function(v) { return otherRuntime.unwrap(otherRuntime.getField(ds, "is-c-custom").app(v)); };
-          otherRuntime["isCEmpty"] = function(v) { return otherRuntime.unwrap(otherRuntime.getField(ds, "is-c-empty").app(v)); };
-
-          otherRuntime["unwrapCellContent"] = function(v) {
-            if (otherRuntime.isCStr(v)) {
-              return {type: "str", value: otherRuntime.getField(v, "s")};
-            } else if (otherRuntime.isCNum(v)) {
-              return {type: "num", value: otherRuntime.getField(v, "n")};
-            } else if (otherRuntime.isCBool(v)) {
-              return {type: "bool", value: otherRuntime.getField(v, "b")};
-            } else if (otherRuntime.isCCustom(v)) {
-              return {type: "custom", value: otherRuntime.getField(v, "datum")};
-            } else if (otherRuntime.isCEmpty(v)) {
-              return {type: "empty"};
-            } else {
-              otherRuntime.ffi.throwMessageException("Internal error: Cannot unwrap non-cell content");
-            }
-          };
-
-          otherRuntime["makeLoadedTable"] = function(headers, contents) {
-            // Headers can either be [name, sanitizer] arrays or
-            // {name: name, sanitizer: sanitizer} objects
-            headers = headers.map(function(h) {
-              if (h.sanitizer) {
-                return otherRuntime.makeTuple([h.name, h.sanitizer]);
-              } else {
-                return otherRuntime.makeTuple(h);
-              }
-            });
-            return otherRuntime.makeTuple([headers, contents]);
-          };
-          otherRuntime["checkCellContent"] = otherRuntime.makeCheckType(
-            otherRuntime.getField(ds, "is-CellContent").app, "CellContent");
-        },
-        "builtin://reactors": function(reactor) {
-          var r = otherRuntime.getField(otherRuntime.getField(reactor, "provide-plus-types"), "values");
-          otherRuntime.setParam("makeReactor", otherRuntime.getField(r, "make-reactor").app);
-        },
-        "builtin://checker": function(checker) {
-          var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
-          // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
-          otherRuntime.setParam("current-checker", currentChecker);
-        },
-        "builtin://table": function(table) {
-          table = table.jsmod;
-          otherRuntime["makeTable"] = table.makeTable;
-          otherRuntime["makeRow"] = table.makeRow;
-          otherRuntime["makeRowFromArray"] = table.makeRowFromArray;
-          otherRuntime["openTable"] = table.openTable;
-          otherRuntime["checkTable"] = otherRuntime.makeCheckType(table.isTable, "Table");
-          otherRuntime["checkRow"] = otherRuntime.makeCheckType(table.isRow, "Row");
-          otherRuntime["isTable"] = table.isTable;
-          otherRuntime["isRow"] = table.isTable;
-          otherRuntime["checkWrapTable"] = function(val) {
-            otherRuntime.checkTable(val);
-            return val;
-          };
-          otherRuntime.makePrimAnn("Table", table.isTable);
-        },
-      };
-
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checkAll: checkAll});
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;

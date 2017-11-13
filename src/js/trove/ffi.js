@@ -466,6 +466,9 @@
     function throwParseErrorBadCheckOper(loc) {
       raise(err("parse-error-bad-check-operator")(loc));
     }
+    function throwParseErrorColonColon(loc, nextToken) {
+      raise(err("parse-error-colon-colon")(loc));
+    }
 
     function throwModuleLoadFailureL(names) {
       raise(makeModuleLoadFailureL(names));
@@ -606,6 +609,7 @@
       throwModuleLoadFailureL: throwModuleLoadFailureL,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
+      throwParseErrorColonColon: throwParseErrorColonColon,
       throwParseErrorEOF: throwParseErrorEOF,
       throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
       throwParseErrorBadNumber: throwParseErrorBadNumber,
