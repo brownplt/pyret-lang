@@ -300,12 +300,18 @@ all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/all.jarr
 	$(NODE) tests/pyret/vhull-main.jarr
 
+vhull-test: tests/pyret/vhull-main.jarr
+	$(NODE) tests/pyret/vhull-main.jarr
+
+
 tests/pyret/vhull-main.jarr: tests/pyret/vhull-main.arr phaseA
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
                       --build-runnable $< \
-	                      -straight-line \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		-straight-line \
+		-stopify \
+		--require-config src/scripts/standalone-configVS.json \
 											  -check-all \
-                      --require-config src/scripts/standalone-configV.json
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \

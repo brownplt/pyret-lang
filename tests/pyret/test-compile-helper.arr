@@ -39,7 +39,7 @@ end
 
 fun run-to-result(program):
   floc = string-to-locator(program)
-  res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true})
+  res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true, straigh-line: true, stopify: true})
   res
 end
 
