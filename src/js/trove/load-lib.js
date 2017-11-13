@@ -304,12 +304,11 @@
 
       if(realm["builtin://checker"]) {
         var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
-        // NOTE(joe): This is the place to add checkAll
         var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
 
-      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, main);
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checkAll: checkAll});
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;

@@ -32,7 +32,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
-  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, main);
+  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: true});
   postLoadHooks[main] = function(answer) {
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");

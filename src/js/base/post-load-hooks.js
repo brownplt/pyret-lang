@@ -1,5 +1,5 @@
 define("pyret-base/js/post-load-hooks", function() {
-  function makeDefaultPostLoadHooks(runtime, main) {
+  function makeDefaultPostLoadHooks(runtime, hookOptions) {
     return {
       "builtin://srcloc": function(srcloc) {
         runtime.srcloc = runtime.getField(runtime.getField(srcloc, "provide-plus-types"), "values");
@@ -123,9 +123,9 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime.setParam("makeReactor", runtime.getField(r, "make-reactor").app);
       },
       "builtin://checker": function(checker) {
-        checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
-        // NOTE(joe): This is the place to add checkAll
-        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), true);
+        var checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
+        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(hookOptions.main),
+                                                                                 hookOptions.checkAll);
         runtime.setParam("current-checker", currentChecker);
       }
     };
