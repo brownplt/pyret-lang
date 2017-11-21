@@ -1860,7 +1860,7 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
-  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
+  | unnecessary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1895,7 +1895,7 @@ data CompileError:
           ED.text("'s variants:")],
          ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
-  | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
+  | unnecessary-else-branch(type-name :: String, loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:

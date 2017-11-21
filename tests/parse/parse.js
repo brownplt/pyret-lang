@@ -481,7 +481,8 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     it("should treat (...) as grouping or as args within {...}", function() {
       expect(parse("{(): true}")).not.toBe(false);
       expect(parse("{(a): true}")).not.toBe(false);
-      expect(parse("{(a, b): true}")).not.toBe(false);
+      expect(parse("{(a, b): true}")).not.toBe(false); // colon ==> lambda
+      expect(parse("{(a, b); true}")).toBe(false); // semicolon ==> tuple with invalid first arg
       expect(parse("{ (): true}")).toBe(false);
       expect(parse("{ (a): true}")).toBe(false);
       expect(parse("{ (a, b): true}")).toBe(false);
@@ -489,6 +490,11 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("{ (1 + 2); (3 + 4) }")).not.toBe(false);
     });
 
+    it("should treat (...) as annotation even within {...} annotation", function() {
+      expect(parse("x :: {(A -> B); C} = 1")).not.toBe(false);
+      expect(parse("x :: { (A -> B); C} = 1")).not.toBe(false);
+    });
+    
     it("should parse get-bang", function() {
       expect(parse("o!x")).not.toBe(false);
       expect(parse("y.x!x")).not.toBe(false);

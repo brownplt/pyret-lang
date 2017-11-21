@@ -552,3 +552,43 @@ check "filter-by":
 
 end
 
+check "table-from-rows":
+  table-from-rows = TS.table-from-rows
+  [table-from-rows:
+    [raw-row: {"A"; 5}, {"B"; 6}],
+    [raw-row: {"D"; 7}, {"C"; 6}]
+  ] raises "row"
+
+  [table-from-rows:
+    [raw-row: {"A"; 5}, {"B"; 6}],
+    [raw-row: {"A"; 7}, {"B"; 6}, {"C"; 7}]
+  ] raises "row"
+
+  t = [table-from-rows:
+    [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}],
+    [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]
+  ]
+
+  t.length() is 2
+  t.column("A") is [list: 5, 1]
+  t.row-n(0) is [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}]
+
+  
+  rows-list = for map(n from range(0, 1000)):
+    [raw-row: {"n"; n}, {"n^2"; n * n}]
+  end
+
+  t2 = table-from-rows.make(raw-array-from-list(rows-list))
+
+  t2.row-n(55) is [raw-row: {"n"; 55}, {"n^2"; 55 * 55}]
+  t2.length() is 1000
+
+  new-row-list = [list:
+    [raw-row: {"n"; -1}, {"n^2"; 1}] 
+  ] + t2.all-rows()
+  t4 = table-from-rows.make(raw-array-from-list(new-row-list))
+
+  nothing
+end
+
+
