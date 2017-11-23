@@ -113,6 +113,8 @@ Pyret + Stopify
 
 This is currently experimental.
 
+#### Setting up Stopify
+
 1. Clone the Stopify repo.
 2. Navigate to `Stopify/stopify` and run the following commands:
    ```
@@ -123,17 +125,25 @@ This is currently experimental.
    installation for the `Stopify` module.
 3. Navigate to the pyret-compiler and run `npm link Stopify`. This makes the
    global installation of stopify to pyret.
-4. Build the pyret compiler using `make`.
+4. Build the stack saving portion of the runtime by running `make -B
+   stopify-build`. **NOTE**: This must be run everytime the stopify's stack
+   saving techique is changed.
+5. Build the pyret compiler using `make`.
 
-To build a pyret file with stopify, simply run `<filename>.v.jarr` in the
-compiler's top-level. The `%.v.jarr` rule in the Makefile uses the following
-specific options to build the file with pyret:
+#### Building
+
+1. To build straight-line code without stopify, run `make <filename>.v.jarr` in
+the repository's top-level.
+
+2. To build a pyret file with stopify, simply run `make <filename>.vs.jarr` in
+   the repository's top-level. The `%.v.jarr` rule in the Makefile uses the
+   following specific options to build the file with pyret:
+
 ```
 		--standalone-file "src/js/base/handalone.stop.js" \
 		-straight-line \
 		--require-config src/scripts/standalone-configV.json
 ```
 
-The rule also replaces the first line of the file to require stopify and
-build the stopify runtime. For more information about the options, take
-a look at the stopify README.
+Stopify's options for pyret are configured in require-node-dependencies.js. For
+more information about the options, take a look at the stopify README.
