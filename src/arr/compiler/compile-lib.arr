@@ -419,6 +419,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
+            shadow options = options.{should-profile: options.should-profile(locator)}
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code

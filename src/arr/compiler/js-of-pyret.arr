@@ -492,18 +492,3 @@ fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, o
   compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, options))
   {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
 end
-
-fun println(s) block:
-  print(s + "\n")
-end
-
-fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
-#  each(println, program-ast.tosource().pretty(80))
-  anfed = N.anf-program(program-ast)
-  #each(println, anfed.tosource().pretty(80))
-  flatness-env = make-prog-flatness-env(anfed, bindings, env)
-  flat-provides = get-flat-provides(provides, flatness-env, anfed)
-  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
-  {flat-provides; ccp-dict(compiled)}
-end
-
