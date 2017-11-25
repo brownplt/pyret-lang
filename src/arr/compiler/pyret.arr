@@ -57,6 +57,8 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
+    "checks",
+      C.next-val(C.String, C.once, "Specify which checks to execute (all, none, or main)"),
     "check-all",
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
@@ -94,14 +96,16 @@ fun main(args :: List<String>) -> Number block:
 
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
-      check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
+      checks = 
+        if r.has-key("no-check-mode") or r.has-key("library"): "none"
+        else if r.has-key("checks"): r.get-value("checks")
+        else: "all" end
       allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-imports
         else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
       inline-case-body-limit = r.get-value("inline-case-body-limit")
-      check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
@@ -124,6 +128,14 @@ fun main(args :: List<String>) -> Number block:
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
+      when r.has-key("checks") and r.has-key("no-check-mode") and not(r.get-value("checks") == "none") block:
+        print-error("Can't use --checks " + r.get-value("checks") + " with -no-check-mode\n")
+        failure-code
+      end
+      when r.has-key("checks") and r.has-key("check-all") and not(r.get-value("checks") == "all") block:
+        print-error("Can't use --checks " + r.get-value("checks") + " with -check-all\n")
+        failure-code
+      end
       if not(is-empty(rest)) block:
         print-error("No longer supported\n")
         failure-code
@@ -142,7 +154,7 @@ fun main(args :: List<String>) -> Number block:
               compile-opts.{
                 this-pyret-dir: this-pyret-dir,
                 standalone-file: standalone-file,
-                check-mode : check-mode,
+                checks : checks,
                 type-check : type-check,
                 allow-shadowed : allow-shadowed,
                 collect-all: false,
@@ -170,7 +182,7 @@ fun main(args :: List<String>) -> Number block:
           #|
           CLI.build-require-standalone(r.get-value("build-standalone"),
               CS.default-compile-options.{
-                check-mode : check-mode,
+                checks : checks,
                 type-check : type-check,
                 allow-shadowed : allow-shadowed,
                 collect-all: false,
@@ -184,7 +196,7 @@ fun main(args :: List<String>) -> Number block:
         else if r.has-key("build"):
           result = CLI.compile(r.get-value("build"),
             CS.default-compile-options.{
-              check-mode : check-mode,
+              checks : checks,
               type-check : type-check,
               allow-shadowed : allow-shadowed,
               collect-all: false,
@@ -216,7 +228,7 @@ fun main(args :: List<String>) -> Number block:
           result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               display-progress: display-progress,
-              check-all: check-all
+              checks: checks
             }, run-args)
           _ = print(result.message + "\n")
           result.exit-code

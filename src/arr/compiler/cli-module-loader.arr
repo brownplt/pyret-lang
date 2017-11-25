@@ -128,7 +128,7 @@ fun get-cached(basedir, uri, name, cache-type):
       # F.file-times(static-path + ".js").mtime
     end,
     method get-options(self, options):
-      options.{ check-mode: false }
+      options.{ checks: "none" }
     end,
     method get-module(_):
       raise("Should never fetch source for builtin module " + static-path)
@@ -318,7 +318,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
         force-check-mode = l.{
           method get-options(self, options):
-            options.{ check-mode: true, type-check: false }
+            options.{ checks: "all", type-check: false }
           end
         }
         CL.located(force-check-mode, ctxt)

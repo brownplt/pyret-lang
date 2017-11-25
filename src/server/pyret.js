@@ -94,6 +94,11 @@ const usages = [
         description: "Turn on the type-checker, and report errors found by the type checker as compilation errors."
       },
       {
+        name: 'checks',
+        alias: 'e',
+        description: "Specify which checks to execute (all, none, or main) (default all)"
+      }
+      {
         name: 'no-check-mode',
         alias: 'k',
         description: "Omit check blocks during compilation, and generate a standalone program that doesn't print testing information at all."
@@ -220,6 +225,7 @@ const optionDefinitions = [
   { name: 'builtin-js-dir', type: String, multiple: true, group: "pyret-options" },
   { name: 'builtin-arr-dir', type: String, multiple: true, group: "pyret-options" },
   { name: 'allow-builtin-overrides', type: Boolean, group: "pyret-options", defaultValue: false },
+  { name: 'checks', alias: 'e', type: String, group: "pyret-options" },
   { name: 'no-check-mode', alias: 'k', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'compiled-dir', type: String, group: "pyret-options" },
   { name: 'standalone-file', type: String, group: "pyret-options" },

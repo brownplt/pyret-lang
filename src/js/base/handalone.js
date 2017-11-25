@@ -167,15 +167,16 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     },
     "builtin://checker": function(checker) {
       checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
-      // NOTE(joe): This is the place to add checkAll
-      if(!checkFlag("disableCheckMode")) {
-        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), true);
+      var checks = checkFlag("checks");
+      if(checks && checks !== "none") {
+        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), flag === "all");
         runtime.setParam("current-checker", currentChecker);
       }
     }
   };
   postLoadHooks[main] = function(answer) {
-    if(checkFlag("disableCheckMode")) { process.exit(EXIT_SUCCESS); }
+    var checks = checkFlag("checks");
+    if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
