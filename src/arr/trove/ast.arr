@@ -149,7 +149,7 @@ data Name:
     method tosourcestring(self): "$type$" + self.s end,
     method toname(self): self.s end,
     method key(self): "tglobal#" + self.s end
-
+    
   | s-atom(base :: String, serial :: Number) with:
     method to-compiled-source(self): PP.str(self.to-compiled()) end,
     method to-compiled(self): self.base + tostring(self.serial) end,
@@ -837,13 +837,13 @@ data Expr:
   | s-tuple(l :: Loc, fields :: List<Expr>) with:
     method label(self): "s-tuple" end,
     method tosource(self):
-      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"),
+      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | s-tuple-get(l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc) with:
     method label(self): "s-tuple-get" end,
     method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
-    end
+    end 
   | s-obj(l :: Loc, fields :: List<Member>) with:
     method label(self): "s-obj" end,
     method tosource(self):
@@ -1218,7 +1218,7 @@ data SpyField:
     method tosource(self): self.name.tosource() end
   | s-spy-expr(l :: Loc, name :: String, value :: Expr) with:
     method label(self): "s-spy-expr" end,
-    method tosource(self):
+    method tosource(self): 
       PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
     end
 sharing:
