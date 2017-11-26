@@ -89,7 +89,8 @@ fun main-real(
     import-type :: A.ImportType,
     in-file :: String,
     out-file :: String,
-    requirements :: D.StringDict<Boolean>) -> Number block:
+    requirements :: D.StringDict<Boolean>,
+    is-strip-annotation :: Boolean) -> Number block:
 
   p = SP.surface-parse(F.input-file(in-file).read-file(), in-file)
 
@@ -115,7 +116,13 @@ fun main-real(
         dummy,
         variant.name,
         empty, # TODO(Oak): not sure what this is
-        link(make-bind("self"), variant.members.map(strip-annotation)), # strip annotation for performance
+        link(
+          make-bind("self"),
+          if is-strip-annotation:
+            variant.members.map(strip-annotation)
+          else:
+            variant.members
+          end),
         A.a-blank,
         "",
         A.s-block(dummy, [list: transformer(variant)]),
@@ -289,7 +296,9 @@ fun main(args :: List<String>) -> Number block:
     "builtin-import",
       C.next-val(C.String, C.once, "The builtin module that contains AST (e.g., `ast`)"),
     "file-import",
-      C.next-val(C.String, C.once, "The file module that contains AST. (e.g., `ast-anf`)")
+      C.next-val(C.String, C.once, "The file module that contains AST. (e.g., `ast-anf`)"),
+    "strip-annotation",
+      C.flag(C.once, "Visitors should not have annotation"),
   ]
   cases(C.ParsedArguments) C.parse-args(options, args) block:
     | success(r, rest) =>
@@ -315,7 +324,8 @@ fun main(args :: List<String>) -> Number block:
             [D.string-dict:
               'default-map-visitor', r.has-key('default-map-visitor'),
               'default-iter-visitor', r.has-key('default-iter-visitor'),
-              'dummy-loc-visitor', r.has-key('dummy-loc-visitor')])
+              'dummy-loc-visitor', r.has-key('dummy-loc-visitor')],
+            r.has-key('strip-annotation'))
       end
     | arg-error(message, partial) =>
       print-error(message + "\n")

@@ -86,7 +86,7 @@ end
 fun wrap-visit-check(self, target) block:
   cur-in-check = in-check-block
   in-check-block := true
-  ret = target.and-then(_.visit(self))
+  ret = target.and-then(_.visit(self)).or-else(true)
   in-check-block := cur-in-check
   ret
 end
@@ -550,7 +550,7 @@ well-formed-visitor = AV.default-iter-visitor.{
           add-error(C.unwelcome-test-refinement(refinement.value, op))
       end
     end
-    left.visit(self) and right.and-then(_.visit(self))
+    left.visit(self) and right.and-then(_.visit(self)).or-else(true)
   end,
   method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
     old-pbl = parent-block-loc
