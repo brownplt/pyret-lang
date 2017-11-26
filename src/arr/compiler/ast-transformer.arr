@@ -5,29 +5,20 @@ Assume that all AST nodes are annotated, this file generates visitors
 import ast as A
 import parse-pyret as SP
 import file as F
+include either
+import string-dict as D
+import cmdline as C
+import system as SYS
 
-trove-dir = "src/arr/trove"
-in-name = trove-dir + "/ast.arr"
-out-name = trove-dir + "/ast-visitors.arr"
 dummy = A.dummy-loc
-
-p = SP.surface-parse(F.input-file(in-name).read-file(), in-name)
+success-code = 0
+failure-code = 1
 
 fun shared-member-has-visit(shared-members :: List<A.Member>) -> Boolean:
   for lists.any(member from shared-members):
     cases (A.Member) member:
-      | s-method-field(
-          l :: A.Loc,
-          name :: String,
-          params :: List<A.Name>,
-          args :: List<A.Bind>,
-          ann :: A.Ann,
-          doc :: String,
-          body :: A.Expr,
-          _check-loc :: Option<A.Loc>,
-          _check :: Option<A.Expr>,
-          blocky :: Boolean) =>
-        name == 'visit'
+      | s-method-field(_, name, _, _, _, _, _, _, _, _) => name == 'visit'
+      | else => raise("impossible (I think)")
     end
   end
 end
@@ -48,19 +39,6 @@ fun simplify-variant(v :: A.Variant) -> SimplifiedVariant:
     | s-singleton-variant(_, name, _) => simplified-singleton-variant(name, empty)
   end
 end
-
-var collected-variants = empty
-var collected-data-definitions = empty
-
-p.visit(A.default-iter-visitor.{
-  method s-data(self, l :: A.Loc, name :: String, params :: List<A.Name>, mixins :: List<A.Expr>, variants :: List<A.Variant>, shared-members :: List<A.Member>, _check-loc :: Option<A.Loc>, _check :: Option<A.Expr>) block:
-    when shared-member-has-visit(shared-members) block:
-      collected-variants := collected-variants + variants.map(simplify-variant)
-      collected-data-definitions := link(name, collected-data-definitions)
-    end
-    true
-  end
-})
 
 fun make-name(s :: String) -> A.Name:
   A.s-name(dummy, s)
@@ -96,26 +74,6 @@ fun strip-annotation(b :: A.Bind) -> A.Bind:
   end
 end
 
-fun visitor-maker(name :: String, transformer):
-  doc: ```
-       Assume no variant member has `self` as its name, this makes a visitor
-       ```
-  methods = for map(variant from collected-variants):
-    A.s-method-field(
-      dummy,
-      variant.name,
-      empty, # TODO(Oak): not sure what this is
-      link(make-bind("self"), variant.members.map(strip-annotation)), # strip annotation for performance
-      A.a-blank,
-      "",
-      A.s-block(dummy, [list: transformer(variant)]),
-      none,
-      none,
-      false)
-  end
-  A.s-let(dummy, make-bind(name), A.s-obj(dummy, methods), false)
-end
-
 fun bind-to-id(b :: A.Bind) -> A.Expr:
   A.s-id(dummy, b.id)
 end
@@ -127,139 +85,244 @@ data ArgType:
   | arg-option
 end
 
-fun get-arg-type(b :: A.Bind) -> ArgType:
-  cases (A.Ann) b.ann:
-    | a-blank => raise("You probably want to annotate " + tostring(b))
-    | a-name(_, name) =>
-      # assume this name is of type Name%(is-s-name)
-      cases (A.Name) name:
-        | s-name(_, s) =>
-          if collected-data-definitions.member(s):
-            arg-visitable
-          else:
-            arg-not-visitable
-          end
-        | else => raise("impossible (I think) " + tostring(name))
-      end
-    | a-app(_, ann, args) =>
-      arg-type = cases (A.Ann) ann:
-        | a-name(_, name) =>
-          # assume this name is of type Name%(is-s-name)
-          cases (A.Name) name:
-            | s-name(_, s) =>
-              ask:
-                | s == "List" then: arg-list
-                | s == "Option" then: arg-option
-                | otherwise: arg-not-visitable
-              end
-            | else => raise("impossible (I think) " + tostring(ann))
-          end
-        | else => raise("impossible (I think) " + tostring(ann))
-      end
-      cases (ArgType) arg-type:
-        | arg-not-visitable => arg-not-visitable
-        | arg-visitable => raise("impossible")
-        | else =>
-          # this is either List or Option, so args has exactly one element
-          cases (A.Ann) args.get(0):
-            | a-name(_, name) =>
-              # assume this name is of type Name%(is-s-name)
-              cases (A.Name) name:
-                | s-name(_, s) =>
-                  if collected-data-definitions.member(s):
-                    arg-type
-                  else:
-                    arg-not-visitable
-                  end
-                | else => raise("impossible (I think) " + tostring(name))
-              end
-            | else => raise("impossible (I think) " + tostring(args.get(0)))
-          end
-      end
-    | else => arg-not-visitable
-  end
-end
+fun main-real(
+    import-type :: A.ImportType,
+    in-file :: String,
+    out-file :: String,
+    requirements :: D.StringDict<Boolean>) -> Number block:
 
-fun default-map-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
-  cases (SimplifiedVariant) variant:
-    | simplified-variant(name, members) =>
-      shadow members = members.map(lam(b :: A.Bind) -> A.Expr:
-        id = bind-to-id(b)
-        cases (ArgType) get-arg-type(b):
-          | arg-not-visitable => id
-          | arg-visitable => make-visit-self(id)
-          | arg-list => make-complex-visit(id, "map")
-          | arg-option => make-complex-visit(id, "and-then")
+  p = SP.surface-parse(F.input-file(in-file).read-file(), in-file)
+
+  var collected-variants = empty
+  var collected-data-definitions = empty
+
+  p.visit(A.default-iter-visitor.{
+    method s-data(self, l :: A.Loc, name :: String, params :: List<A.Name>, mixins :: List<A.Expr>, variants :: List<A.Variant>, shared-members :: List<A.Member>, _check-loc :: Option<A.Loc>, _check :: Option<A.Expr>) block:
+      when shared-member-has-visit(shared-members) block:
+        collected-variants := collected-variants + variants.map(simplify-variant)
+        collected-data-definitions := link(name, collected-data-definitions)
+      end
+      true
+    end
+  })
+
+  fun visitor-maker(name :: String, transformer :: (SimplifiedVariant -> A.Expr)) -> A.Expr:
+    doc: ```
+         Assume no variant member has `self` as its name, this makes a visitor
+         ```
+    methods = for map(variant from collected-variants):
+      A.s-method-field(
+        dummy,
+        variant.name,
+        empty, # TODO(Oak): not sure what this is
+        link(make-bind("self"), variant.members.map(strip-annotation)), # strip annotation for performance
+        A.a-blank,
+        "",
+        A.s-block(dummy, [list: transformer(variant)]),
+        none,
+        none,
+        false)
+    end
+    A.s-let(dummy, make-bind(name), A.s-obj(dummy, methods), false)
+  end
+
+  fun get-arg-type(b :: A.Bind) -> ArgType:
+    cases (A.Ann) b.ann:
+      | a-blank => raise("You probably want to annotate " + tostring(b))
+      | a-name(_, name) =>
+        # assume this name is of type Name%(is-s-name)
+        cases (A.Name) name:
+          | s-name(_, s) =>
+            if collected-data-definitions.member(s):
+              arg-visitable
+            else:
+              arg-not-visitable
+            end
+          | else => raise("impossible (I think) " + tostring(name))
         end
-      end)
-      A.s-app(dummy, make-id(name), members)
-    | simplified-singleton-variant(name, _) => make-id(name)
-  end
-end
-
-fun default-iter-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
-  cases (SimplifiedVariant) variant:
-    | simplified-variant(name, members) =>
-      shadow members = for lists.filter-map(b from members):
-        id = bind-to-id(b)
-        cases (ArgType) get-arg-type(b):
-          | arg-not-visitable => none
-          | arg-visitable => some(make-visit-self(id))
-          | arg-list => some(make-complex-visit(id, "all"))
-          | arg-option =>
-            make-complex-visit(id, "and-then")
-              ^ make-method-call(_, "or-else", [list: A.s-bool(dummy, true)])
-              ^ some
+      | a-app(_, ann, args) =>
+        arg-type = cases (A.Ann) ann:
+          | a-name(_, name) =>
+            # assume this name is of type Name%(is-s-name)
+            cases (A.Name) name:
+              | s-name(_, s) =>
+                ask:
+                  | s == "List" then: arg-list
+                  | s == "Option" then: arg-option
+                  | otherwise: arg-not-visitable
+                end
+              | else => raise("impossible (I think) " + tostring(ann))
+            end
+          | else => raise("impossible (I think) " + tostring(ann))
         end
-      end
-      cases (List) members:
-        | empty => A.s-bool(dummy, true)
-        | link(f, r) =>
-          # left recursion
-          for fold(prev from f, e from r):
-            A.s-op(dummy, dummy, "opand", prev, e)
+        cases (ArgType) arg-type:
+          | arg-not-visitable => arg-not-visitable
+          | arg-visitable => raise("impossible")
+          | else =>
+            # this is either List or Option, so args has exactly one element
+            cases (A.Ann) args.get(0):
+              | a-name(_, name) =>
+                # assume this name is of type Name%(is-s-name)
+                cases (A.Name) name:
+                  | s-name(_, s) =>
+                    if collected-data-definitions.member(s):
+                      arg-type
+                    else:
+                      arg-not-visitable
+                    end
+                  | else => raise("impossible (I think) " + tostring(name))
+                end
+              | else => raise("impossible (I think) " + tostring(args.get(0)))
+            end
+        end
+      | else => arg-not-visitable
+    end
+  end
+
+  fun default-map-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
+    cases (SimplifiedVariant) variant:
+      | simplified-variant(name, members) =>
+        shadow members = members.map(lam(b :: A.Bind) -> A.Expr:
+          id = bind-to-id(b)
+          cases (ArgType) get-arg-type(b):
+            | arg-not-visitable => id
+            | arg-visitable => make-visit-self(id)
+            | arg-list => make-complex-visit(id, "map")
+            | arg-option => make-complex-visit(id, "and-then")
           end
-      end
-    | simplified-singleton-variant(name, _) => A.s-bool(dummy, true)
+        end)
+        A.s-app(dummy, make-id(name), members)
+      | simplified-singleton-variant(name, _) => make-id(name)
+    end
   end
-end
 
-fun dummy-loc-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
-  cases (SimplifiedVariant) variant:
-    | simplified-variant(name, members) =>
-      shadow members = members.map(lam(b :: A.Bind) -> A.Expr:
-        id = bind-to-id(b)
-        cases (ArgType) get-arg-type(b):
-          | arg-not-visitable => id
-          | arg-visitable => make-visit-self(id)
-          | arg-list => make-complex-visit(id, "map")
-          | arg-option => make-complex-visit(id, "and-then")
+  fun default-iter-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
+    cases (SimplifiedVariant) variant:
+      | simplified-variant(name, members) =>
+        shadow members = for lists.filter-map(b from members):
+          id = bind-to-id(b)
+          cases (ArgType) get-arg-type(b):
+            | arg-not-visitable => none
+            | arg-visitable => some(make-visit-self(id))
+            | arg-list => some(make-complex-visit(id, "all"))
+            | arg-option =>
+              make-complex-visit(id, "and-then")
+                ^ make-method-call(_, "or-else", [list: A.s-bool(dummy, true)])
+                ^ some
+          end
         end
-      end)
-      shadow members = cases (List) members:
-        | empty => empty
-        | link(_, rest) => link(make-id("dummy-loc"), rest)
+        cases (List) members:
+          | empty => A.s-bool(dummy, true)
+          | link(f, r) =>
+            # left recursion
+            for fold(prev from f, e from r):
+              A.s-op(dummy, dummy, "opand", prev, e)
+            end
+        end
+      | simplified-singleton-variant(name, _) => A.s-bool(dummy, true)
+    end
+  end
+
+  fun dummy-loc-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
+    cases (SimplifiedVariant) variant:
+      | simplified-variant(name, members) =>
+        shadow members = members.map(lam(b :: A.Bind) -> A.Expr:
+          id = bind-to-id(b)
+          cases (ArgType) get-arg-type(b):
+            | arg-not-visitable => id
+            | arg-visitable => make-visit-self(id)
+            | arg-list => make-complex-visit(id, "map")
+            | arg-option => make-complex-visit(id, "and-then")
+          end
+        end)
+        shadow members = cases (List) members:
+          | empty => empty
+          | link(_, rest) => link(make-id("dummy-loc"), rest)
+        end
+        A.s-app(dummy, make-id(name), members)
+      | simplified-singleton-variant(name, _) => make-id(name)
+    end
+  end
+
+  transformers = [D.string-dict:
+    'default-map-visitor', default-map-visitor-transform,
+    'default-iter-visitor', default-iter-visitor-transform,
+    'dummy-loc-visitor', dummy-loc-visitor-transform,
+  ]
+
+  body = for lists.filter-map(vname from requirements.keys().to-list().sort()):
+    if requirements.get-value(vname):
+      some(visitor-maker(vname, transformers.get-value(vname)))
+    else:
+      none
+    end
+  end
+
+  out-program =
+    A.s-program(dummy,
+      A.s-provide-all(dummy),
+      A.s-provide-types-none(dummy),
+      [list:
+        A.s-include(dummy, import-type),
+        A.s-import(dummy, A.s-const-import(dummy, "global"), A.s-underscore(dummy)),
+        A.s-import(dummy, A.s-const-import(dummy, "base"), A.s-underscore(dummy))],
+      A.s-block(dummy, body))
+
+  as-string = out-program.tosource().pretty(80).join-str("\n")
+
+  F.output-file(out-file, false).display(as-string)
+  success-code
+end
+
+fun main(args :: List<String>) -> Number block:
+  options = [D.string-dict:
+    "default-map-visitor",
+      C.flag(C.once, "Generate default-map-visitor"),
+    "default-iter-visitor",
+      C.flag(C.once, "Generate default-iter-visitor"),
+    "dummy-loc-visitor",
+      C.flag(C.once, "Generate dummy-loc-visitor"),
+    "in-file",
+      C.next-val(C.String, C.required-once, "The input file (AST definition file)"),
+    "out-file",
+      C.next-val(C.String, C.required-once, "The output file (AST visitor file)"),
+    "builtin-import",
+      C.next-val(C.String, C.once, "The builtin module that contains AST (e.g., `ast`)"),
+    "file-import",
+      C.next-val(C.String, C.once, "The file module that contains AST. (e.g., `ast-anf`)")
+  ]
+  cases(C.ParsedArguments) C.parse-args(options, args) block:
+    | success(r, rest) =>
+      import-type = ask block:
+        | r.has-key("builtin-import") and r.has-key("file-import") then:
+          print-error("choose either builtin or special\n")
+          left(failure-code)
+        | r.has-key("builtin-import") then:
+          right(A.s-const-import(dummy, r.get-value("builtin-import")))
+        | r.has-key("file-import") then:
+          right(A.s-special-import(dummy, "file", [list: r.get-value("file-import")]))
+        | otherwise:
+          print-error("need either builtin or special\n")
+          left(failure-code)
       end
-      A.s-app(dummy, make-id(name), members)
-    | simplified-singleton-variant(name, _) => make-id(name)
+      cases (Either) import-type block:
+        | left(code) => code
+        | right(shadow import-type) =>
+          main-real(
+            import-type,
+            r.get-value('in-file'),
+            r.get-value('out-file'),
+            [D.string-dict:
+              'default-map-visitor', r.has-key('default-map-visitor'),
+              'default-iter-visitor', r.has-key('default-iter-visitor'),
+              'dummy-loc-visitor', r.has-key('dummy-loc-visitor')])
+      end
+    | arg-error(message, partial) =>
+      print-error(message + "\n")
+      print-error(C.usage-info(options).join-str("\n") + '\n')
+      failure-code
   end
 end
 
-body = [list:
-  visitor-maker("default-map-visitor", default-map-visitor-transform),
-  visitor-maker("default-iter-visitor", default-iter-visitor-transform),
-  visitor-maker("dummy-loc-visitor", dummy-loc-visitor-transform)]
-
-out-program =
-  A.s-program(dummy,
-    A.s-provide-all(dummy),
-    A.s-provide-types-none(dummy),
-    [list:
-      A.s-include(dummy, A.s-const-import(dummy, "ast")),
-      A.s-import(dummy, A.s-const-import(dummy, "global"), A.s-underscore(dummy)),
-      A.s-import(dummy, A.s-const-import(dummy, "base"), A.s-underscore(dummy))],
-    A.s-block(dummy, body))
-
-as-string = out-program.tosource().pretty(80).join-str("\n")
-
-F.output-file(out-name, false).display(as-string)
+exit-code = main(C.args)
+SYS.exit-quiet(exit-code)

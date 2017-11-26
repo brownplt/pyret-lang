@@ -3,6 +3,453 @@ provide *
 include ast
 import global as _
 import base as _
+default-iter-visitor =
+  {
+    method s-underscore(self, l): true end,
+    method s-name(self, l, s): true end,
+    method s-global(self, s): true end,
+    method s-type-global(self, s): true end,
+    method s-atom(self, base, serial): true end,
+    method s-program(self, l, _provide, provided-types, imports, block):
+      _provide.visit(self)
+      and
+      provided-types.visit(self) and imports.all(_.visit(self))
+        and
+        block.visit(self)
+    end,
+    method s-include(self, l, mod): mod.visit(self) end,
+    method s-import(self, l, file, name):
+      file.visit(self) and name.visit(self)
+    end,
+    method s-import-types(self, l, file, name, types):
+      file.visit(self) and name.visit(self) and types.visit(self)
+    end,
+    method s-import-fields(self, l, fields, file):
+      fields.all(_.visit(self)) and file.visit(self)
+    end,
+    method s-import-complete(
+        self,
+        l,
+        values,
+        types,
+        import-type,
+        vals-name,
+        types-name
+      ):
+      values.all(_.visit(self))
+      and
+      types.all(_.visit(self)) and import-type.visit(self)
+        and
+        vals-name.visit(self) and types-name.visit(self)
+    end,
+    method s-provide(self, l, block): block.visit(self) end,
+    method s-provide-complete(self, l, values, aliases, data-definitions):
+      true
+    end,
+    method s-provide-all(self, l): true end,
+    method s-provide-none(self, l): true end,
+    method s-provide-types(self, l, ann): ann.all(_.visit(self)) end,
+    method s-provide-types-all(self, l): true end,
+    method s-provide-types-none(self, l): true end,
+    method s-const-import(self, l, mod): true end,
+    method s-special-import(self, l, kind, args): true end,
+    method h-use-loc(self, l): true end,
+    method s-let-bind(self, l, b, value):
+      b.visit(self) and value.visit(self)
+    end,
+    method s-var-bind(self, l, b, value):
+      b.visit(self) and value.visit(self)
+    end,
+    method s-letrec-bind(self, l, b, value):
+      b.visit(self) and value.visit(self)
+    end,
+    method s-type-bind(self, l, name, params, ann):
+      name.visit(self) and params.all(_.visit(self)) and ann.visit(self)
+    end,
+    method s-newtype-bind(self, l, name, namet):
+      name.visit(self) and namet.visit(self)
+    end,
+    method s-defined-value(self, name, value): value.visit(self) end,
+    method s-defined-var(self, name, id): id.visit(self) end,
+    method s-defined-type(self, name, typ): typ.visit(self) end,
+    method s-module(
+        self,
+        l,
+        answer,
+        defined-values,
+        defined-types,
+        provided-values,
+        provided-types,
+        checks
+      ):
+      answer.visit(self)
+      and
+      defined-values.all(_.visit(self)) and defined-types.all(_.visit(self))
+        and
+        provided-values.visit(self) and provided-types.all(_.visit(self))
+        and
+        checks.visit(self)
+    end,
+    method s-template(self, l): true end,
+    method s-type-let-expr(self, l, binds, body, blocky):
+      binds.all(_.visit(self)) and body.visit(self)
+    end,
+    method s-let-expr(self, l, binds, body, blocky):
+      binds.all(_.visit(self)) and body.visit(self)
+    end,
+    method s-letrec(self, l, binds, body, blocky):
+      binds.all(_.visit(self)) and body.visit(self)
+    end,
+    method s-hint-exp(self, l, hints, exp):
+      hints.all(_.visit(self)) and exp.visit(self)
+    end,
+    method s-instantiate(self, l, expr, params):
+      expr.visit(self) and params.all(_.visit(self))
+    end,
+    method s-block(self, l, stmts): stmts.all(_.visit(self)) end,
+    method s-user-block(self, l, body): body.visit(self) end,
+    method s-fun(
+        self,
+        l,
+        name,
+        params,
+        args,
+        ann,
+        doc,
+        body,
+        _check-loc,
+        _check,
+        blocky
+      ):
+      params.all(_.visit(self))
+      and
+      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
+        and
+        _check.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-type(self, l, name, params, ann):
+      name.visit(self) and params.all(_.visit(self)) and ann.visit(self)
+    end,
+    method s-newtype(self, l, name, namet):
+      name.visit(self) and namet.visit(self)
+    end,
+    method s-var(self, l, name, value):
+      name.visit(self) and value.visit(self)
+    end,
+    method s-rec(self, l, name, value):
+      name.visit(self) and value.visit(self)
+    end,
+    method s-let(self, l, name, value, keyword-val):
+      name.visit(self) and value.visit(self)
+    end,
+    method s-ref(self, l, ann): ann.and-then(_.visit(self)).or-else(true) end,
+    method s-contract(self, l, name, ann):
+      name.visit(self) and ann.visit(self)
+    end,
+    method s-when(self, l, test, block, blocky):
+      test.visit(self) and block.visit(self)
+    end,
+    method s-assign(self, l, id, value):
+      id.visit(self) and value.visit(self)
+    end,
+    method s-if-pipe(self, l, branches, blocky): branches.all(_.visit(self)) end,
+    method s-if-pipe-else(self, l, branches, _else, blocky):
+      branches.all(_.visit(self)) and _else.visit(self)
+    end,
+    method s-if(self, l, branches, blocky): branches.all(_.visit(self)) end,
+    method s-if-else(self, l, branches, _else, blocky):
+      branches.all(_.visit(self)) and _else.visit(self)
+    end,
+    method s-cases(self, l, typ, val, branches, blocky):
+      typ.visit(self) and val.visit(self) and branches.all(_.visit(self))
+    end,
+    method s-cases-else(self, l, typ, val, branches, _else, blocky):
+      typ.visit(self)
+      and
+      val.visit(self) and branches.all(_.visit(self)) and _else.visit(self)
+    end,
+    method s-op(self, l, op-l, op, left, right):
+      left.visit(self) and right.visit(self)
+    end,
+    method s-check-test(self, l, op, refinement, left, right):
+      op.visit(self)
+      and
+      refinement.and-then(_.visit(self)).or-else(true) and left.visit(self)
+        and
+        right.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-check-expr(self, l, expr, ann):
+      expr.visit(self) and ann.visit(self)
+    end,
+    method s-paren(self, l, expr): expr.visit(self) end,
+    method s-lam(
+        self,
+        l,
+        name,
+        params,
+        args,
+        ann,
+        doc,
+        body,
+        _check-loc,
+        _check,
+        blocky
+      ):
+      params.all(_.visit(self))
+      and
+      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
+        and
+        _check.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-method(
+        self,
+        l,
+        name,
+        params,
+        args,
+        ann,
+        doc,
+        body,
+        _check-loc,
+        _check,
+        blocky
+      ):
+      params.all(_.visit(self))
+      and
+      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
+        and
+        _check.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-extend(self, l, supe, fields):
+      supe.visit(self) and fields.all(_.visit(self))
+    end,
+    method s-update(self, l, supe, fields):
+      supe.visit(self) and fields.all(_.visit(self))
+    end,
+    method s-tuple(self, l, fields): fields.all(_.visit(self)) end,
+    method s-tuple-get(self, l, tup, index, index-loc): tup.visit(self) end,
+    method s-obj(self, l, fields): fields.all(_.visit(self)) end,
+    method s-array(self, l, values): values.all(_.visit(self)) end,
+    method s-construct(self, l, modifier, constructor, values):
+      modifier.visit(self)
+      and
+      constructor.visit(self) and values.all(_.visit(self))
+    end,
+    method s-app(self, l, _fun, args):
+      _fun.visit(self) and args.all(_.visit(self))
+    end,
+    method s-app-enriched(self, l, _fun, args, app-info):
+      _fun.visit(self) and args.all(_.visit(self))
+    end,
+    method s-prim-app(self, l, _fun, args): args.all(_.visit(self)) end,
+    method s-prim-val(self, l, name): true end,
+    method s-id(self, l, id): id.visit(self) end,
+    method s-id-var(self, l, id): id.visit(self) end,
+    method s-id-letrec(self, l, id, safe): id.visit(self) end,
+    method s-undefined(self, l): true end,
+    method s-srcloc(self, l, loc): true end,
+    method s-num(self, l, n): true end,
+    method s-frac(self, l, num, den): true end,
+    method s-rfrac(self, l, num, den): true end,
+    method s-bool(self, l, b): true end,
+    method s-str(self, l, s): true end,
+    method s-dot(self, l, obj, field): obj.visit(self) end,
+    method s-get-bang(self, l, obj, field): obj.visit(self) end,
+    method s-bracket(self, l, obj, key): obj.visit(self) and key.visit(self) end,
+    method s-data(
+        self,
+        l,
+        name,
+        params,
+        mixins,
+        variants,
+        shared-members,
+        _check-loc,
+        _check
+      ):
+      params.all(_.visit(self))
+      and
+      mixins.all(_.visit(self)) and variants.all(_.visit(self))
+        and
+        shared-members.all(_.visit(self))
+        and
+        _check.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-data-expr(
+        self,
+        l,
+        name,
+        namet,
+        params,
+        mixins,
+        variants,
+        shared-members,
+        _check-loc,
+        _check
+      ):
+      namet.visit(self)
+      and
+      params.all(_.visit(self)) and mixins.all(_.visit(self))
+        and
+        variants.all(_.visit(self)) and shared-members.all(_.visit(self))
+        and
+        _check.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-for(self, l, iterator, bindings, ann, body, blocky):
+      iterator.visit(self)
+      and
+      bindings.all(_.visit(self)) and ann.visit(self) and body.visit(self)
+    end,
+    method s-check(self, l, name, body, keyword-check): body.visit(self) end,
+    method s-reactor(self, l, fields): fields.all(_.visit(self)) end,
+    method s-table-extend(self, l, column-binds, extensions):
+      column-binds.visit(self) and extensions.all(_.visit(self))
+    end,
+    method s-table-update(self, l, column-binds, updates):
+      column-binds.visit(self) and updates.all(_.visit(self))
+    end,
+    method s-table-select(self, l, columns, table):
+      columns.all(_.visit(self)) and table.visit(self)
+    end,
+    method s-table-order(self, l, table, ordering):
+      table.visit(self) and ordering.all(_.visit(self))
+    end,
+    method s-table-filter(self, l, column-binds, predicate):
+      column-binds.visit(self) and predicate.visit(self)
+    end,
+    method s-table-extract(self, l, column, table):
+      column.visit(self) and table.visit(self)
+    end,
+    method s-table(self, l, headers, rows):
+      headers.all(_.visit(self)) and rows.all(_.visit(self))
+    end,
+    method s-load-table(self, l, headers, spec):
+      headers.all(_.visit(self)) and spec.all(_.visit(self))
+    end,
+    method s-spy-block(self, l, message, contents):
+      message.and-then(_.visit(self)).or-else(true)
+      and
+      contents.all(_.visit(self))
+    end,
+    method s-table-row(self, l, elems): elems.all(_.visit(self)) end,
+    method s-spy-name(self, l, name): true end,
+    method s-spy-expr(self, l, name, value): value.visit(self) end,
+    method s-construct-normal(self): true end,
+    method s-construct-lazy(self): true end,
+    method s-bind(self, l, shadows, id, ann):
+      id.visit(self) and ann.visit(self)
+    end,
+    method s-tuple-bind(self, l, fields, as-name):
+      fields.all(_.visit(self))
+      and
+      as-name.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-data-field(self, l, name, value): value.visit(self) end,
+    method s-mutable-field(self, l, name, ann, value):
+      ann.visit(self) and value.visit(self)
+    end,
+    method s-method-field(
+        self,
+        l,
+        name,
+        params,
+        args,
+        ann,
+        doc,
+        body,
+        _check-loc,
+        _check,
+        blocky
+      ):
+      params.all(_.visit(self))
+      and
+      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
+        and
+        _check.and-then(_.visit(self)).or-else(true)
+    end,
+    method s-field-name(self, l, name, ann): ann.visit(self) end,
+    method s-for-bind(self, l, bind, value):
+      bind.visit(self) and value.visit(self)
+    end,
+    method s-column-binds(self, l, binds, table):
+      binds.all(_.visit(self)) and table.visit(self)
+    end,
+    method ASCENDING(self): true end,
+    method DESCENDING(self): true end,
+    method s-column-sort(self, l, column, direction):
+      column.visit(self) and direction.visit(self)
+    end,
+    method s-table-extend-field(self, l, name, value, ann):
+      value.visit(self) and ann.visit(self)
+    end,
+    method s-table-extend-reducer(self, l, name, reducer, col, ann):
+      reducer.visit(self) and col.visit(self) and ann.visit(self)
+    end,
+    method s-sanitize(self, l, name, sanitizer):
+      name.visit(self) and sanitizer.visit(self)
+    end,
+    method s-table-src(self, l, src): src.visit(self) end,
+    method s-normal(self): true end,
+    method s-mutable(self): true end,
+    method s-variant-member(self, l, member-type, bind):
+      member-type.visit(self) and bind.visit(self)
+    end,
+    method s-variant(self, l, constr-loc, name, members, with-members):
+      members.all(_.visit(self)) and with-members.all(_.visit(self))
+    end,
+    method s-singleton-variant(self, l, name, with-members):
+      with-members.all(_.visit(self))
+    end,
+    method s-if-branch(self, l, test, body):
+      test.visit(self) and body.visit(self)
+    end,
+    method s-if-pipe-branch(self, l, test, body):
+      test.visit(self) and body.visit(self)
+    end,
+    method s-cases-bind(self, l, field-type, bind): bind.visit(self) end,
+    method s-cases-branch(self, l, pat-loc, name, args, body):
+      args.all(_.visit(self)) and body.visit(self)
+    end,
+    method s-singleton-cases-branch(self, l, pat-loc, name, body):
+      body.visit(self)
+    end,
+    method s-op-is(self, l): true end,
+    method s-op-is-roughly(self, l): true end,
+    method s-op-is-op(self, l, op): true end,
+    method s-op-is-not(self, l): true end,
+    method s-op-is-not-op(self, l, op): true end,
+    method s-op-satisfies(self, l): true end,
+    method s-op-satisfies-not(self, l): true end,
+    method s-op-raises(self, l): true end,
+    method s-op-raises-other(self, l): true end,
+    method s-op-raises-not(self, l): true end,
+    method s-op-raises-satisfies(self, l): true end,
+    method s-op-raises-violates(self, l): true end,
+    method a-blank(self): true end,
+    method a-any(self, l): true end,
+    method a-name(self, l, id): id.visit(self) end,
+    method a-type-var(self, l, id): id.visit(self) end,
+    method a-arrow(self, l, args, ret, use-parens):
+      args.all(_.visit(self)) and ret.visit(self)
+    end,
+    method a-arrow-argnames(self, l, args, ret, use-parens):
+      args.all(_.visit(self)) and ret.visit(self)
+    end,
+    method a-method(self, l, args, ret):
+      args.all(_.visit(self)) and ret.visit(self)
+    end,
+    method a-record(self, l, fields): fields.all(_.visit(self)) end,
+    method a-tuple(self, l, fields): fields.all(_.visit(self)) end,
+    method a-app(self, l, ann, args):
+      ann.visit(self) and args.all(_.visit(self))
+    end,
+    method a-pred(self, l, ann, exp): ann.visit(self) and exp.visit(self) end,
+    method a-dot(self, l, obj, field): obj.visit(self) end,
+    method a-checked(self, checked, residual):
+      checked.visit(self) and residual.visit(self)
+    end,
+    method a-field(self, l, name, ann): ann.visit(self) end
+  }
 default-map-visitor =
   {
     method s-underscore(self, l): s-underscore(l) end,
@@ -539,453 +986,6 @@ default-map-visitor =
       a-checked(checked.visit(self), residual.visit(self))
     end,
     method a-field(self, l, name, ann): a-field(l, name, ann.visit(self)) end
-  }
-default-iter-visitor =
-  {
-    method s-underscore(self, l): true end,
-    method s-name(self, l, s): true end,
-    method s-global(self, s): true end,
-    method s-type-global(self, s): true end,
-    method s-atom(self, base, serial): true end,
-    method s-program(self, l, _provide, provided-types, imports, block):
-      _provide.visit(self)
-      and
-      provided-types.visit(self) and imports.all(_.visit(self))
-        and
-        block.visit(self)
-    end,
-    method s-include(self, l, mod): mod.visit(self) end,
-    method s-import(self, l, file, name):
-      file.visit(self) and name.visit(self)
-    end,
-    method s-import-types(self, l, file, name, types):
-      file.visit(self) and name.visit(self) and types.visit(self)
-    end,
-    method s-import-fields(self, l, fields, file):
-      fields.all(_.visit(self)) and file.visit(self)
-    end,
-    method s-import-complete(
-        self,
-        l,
-        values,
-        types,
-        import-type,
-        vals-name,
-        types-name
-      ):
-      values.all(_.visit(self))
-      and
-      types.all(_.visit(self)) and import-type.visit(self)
-        and
-        vals-name.visit(self) and types-name.visit(self)
-    end,
-    method s-provide(self, l, block): block.visit(self) end,
-    method s-provide-complete(self, l, values, aliases, data-definitions):
-      true
-    end,
-    method s-provide-all(self, l): true end,
-    method s-provide-none(self, l): true end,
-    method s-provide-types(self, l, ann): ann.all(_.visit(self)) end,
-    method s-provide-types-all(self, l): true end,
-    method s-provide-types-none(self, l): true end,
-    method s-const-import(self, l, mod): true end,
-    method s-special-import(self, l, kind, args): true end,
-    method h-use-loc(self, l): true end,
-    method s-let-bind(self, l, b, value):
-      b.visit(self) and value.visit(self)
-    end,
-    method s-var-bind(self, l, b, value):
-      b.visit(self) and value.visit(self)
-    end,
-    method s-letrec-bind(self, l, b, value):
-      b.visit(self) and value.visit(self)
-    end,
-    method s-type-bind(self, l, name, params, ann):
-      name.visit(self) and params.all(_.visit(self)) and ann.visit(self)
-    end,
-    method s-newtype-bind(self, l, name, namet):
-      name.visit(self) and namet.visit(self)
-    end,
-    method s-defined-value(self, name, value): value.visit(self) end,
-    method s-defined-var(self, name, id): id.visit(self) end,
-    method s-defined-type(self, name, typ): typ.visit(self) end,
-    method s-module(
-        self,
-        l,
-        answer,
-        defined-values,
-        defined-types,
-        provided-values,
-        provided-types,
-        checks
-      ):
-      answer.visit(self)
-      and
-      defined-values.all(_.visit(self)) and defined-types.all(_.visit(self))
-        and
-        provided-values.visit(self) and provided-types.all(_.visit(self))
-        and
-        checks.visit(self)
-    end,
-    method s-template(self, l): true end,
-    method s-type-let-expr(self, l, binds, body, blocky):
-      binds.all(_.visit(self)) and body.visit(self)
-    end,
-    method s-let-expr(self, l, binds, body, blocky):
-      binds.all(_.visit(self)) and body.visit(self)
-    end,
-    method s-letrec(self, l, binds, body, blocky):
-      binds.all(_.visit(self)) and body.visit(self)
-    end,
-    method s-hint-exp(self, l, hints, exp):
-      hints.all(_.visit(self)) and exp.visit(self)
-    end,
-    method s-instantiate(self, l, expr, params):
-      expr.visit(self) and params.all(_.visit(self))
-    end,
-    method s-block(self, l, stmts): stmts.all(_.visit(self)) end,
-    method s-user-block(self, l, body): body.visit(self) end,
-    method s-fun(
-        self,
-        l,
-        name,
-        params,
-        args,
-        ann,
-        doc,
-        body,
-        _check-loc,
-        _check,
-        blocky
-      ):
-      params.all(_.visit(self))
-      and
-      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
-        and
-        _check.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-type(self, l, name, params, ann):
-      name.visit(self) and params.all(_.visit(self)) and ann.visit(self)
-    end,
-    method s-newtype(self, l, name, namet):
-      name.visit(self) and namet.visit(self)
-    end,
-    method s-var(self, l, name, value):
-      name.visit(self) and value.visit(self)
-    end,
-    method s-rec(self, l, name, value):
-      name.visit(self) and value.visit(self)
-    end,
-    method s-let(self, l, name, value, keyword-val):
-      name.visit(self) and value.visit(self)
-    end,
-    method s-ref(self, l, ann): ann.and-then(_.visit(self)).or-else(true) end,
-    method s-contract(self, l, name, ann):
-      name.visit(self) and ann.visit(self)
-    end,
-    method s-when(self, l, test, block, blocky):
-      test.visit(self) and block.visit(self)
-    end,
-    method s-assign(self, l, id, value):
-      id.visit(self) and value.visit(self)
-    end,
-    method s-if-pipe(self, l, branches, blocky): branches.all(_.visit(self)) end,
-    method s-if-pipe-else(self, l, branches, _else, blocky):
-      branches.all(_.visit(self)) and _else.visit(self)
-    end,
-    method s-if(self, l, branches, blocky): branches.all(_.visit(self)) end,
-    method s-if-else(self, l, branches, _else, blocky):
-      branches.all(_.visit(self)) and _else.visit(self)
-    end,
-    method s-cases(self, l, typ, val, branches, blocky):
-      typ.visit(self) and val.visit(self) and branches.all(_.visit(self))
-    end,
-    method s-cases-else(self, l, typ, val, branches, _else, blocky):
-      typ.visit(self)
-      and
-      val.visit(self) and branches.all(_.visit(self)) and _else.visit(self)
-    end,
-    method s-op(self, l, op-l, op, left, right):
-      left.visit(self) and right.visit(self)
-    end,
-    method s-check-test(self, l, op, refinement, left, right):
-      op.visit(self)
-      and
-      refinement.and-then(_.visit(self)).or-else(true) and left.visit(self)
-        and
-        right.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-check-expr(self, l, expr, ann):
-      expr.visit(self) and ann.visit(self)
-    end,
-    method s-paren(self, l, expr): expr.visit(self) end,
-    method s-lam(
-        self,
-        l,
-        name,
-        params,
-        args,
-        ann,
-        doc,
-        body,
-        _check-loc,
-        _check,
-        blocky
-      ):
-      params.all(_.visit(self))
-      and
-      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
-        and
-        _check.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-method(
-        self,
-        l,
-        name,
-        params,
-        args,
-        ann,
-        doc,
-        body,
-        _check-loc,
-        _check,
-        blocky
-      ):
-      params.all(_.visit(self))
-      and
-      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
-        and
-        _check.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-extend(self, l, supe, fields):
-      supe.visit(self) and fields.all(_.visit(self))
-    end,
-    method s-update(self, l, supe, fields):
-      supe.visit(self) and fields.all(_.visit(self))
-    end,
-    method s-tuple(self, l, fields): fields.all(_.visit(self)) end,
-    method s-tuple-get(self, l, tup, index, index-loc): tup.visit(self) end,
-    method s-obj(self, l, fields): fields.all(_.visit(self)) end,
-    method s-array(self, l, values): values.all(_.visit(self)) end,
-    method s-construct(self, l, modifier, constructor, values):
-      modifier.visit(self)
-      and
-      constructor.visit(self) and values.all(_.visit(self))
-    end,
-    method s-app(self, l, _fun, args):
-      _fun.visit(self) and args.all(_.visit(self))
-    end,
-    method s-app-enriched(self, l, _fun, args, app-info):
-      _fun.visit(self) and args.all(_.visit(self))
-    end,
-    method s-prim-app(self, l, _fun, args): args.all(_.visit(self)) end,
-    method s-prim-val(self, l, name): true end,
-    method s-id(self, l, id): id.visit(self) end,
-    method s-id-var(self, l, id): id.visit(self) end,
-    method s-id-letrec(self, l, id, safe): id.visit(self) end,
-    method s-undefined(self, l): true end,
-    method s-srcloc(self, l, loc): true end,
-    method s-num(self, l, n): true end,
-    method s-frac(self, l, num, den): true end,
-    method s-rfrac(self, l, num, den): true end,
-    method s-bool(self, l, b): true end,
-    method s-str(self, l, s): true end,
-    method s-dot(self, l, obj, field): obj.visit(self) end,
-    method s-get-bang(self, l, obj, field): obj.visit(self) end,
-    method s-bracket(self, l, obj, key): obj.visit(self) and key.visit(self) end,
-    method s-data(
-        self,
-        l,
-        name,
-        params,
-        mixins,
-        variants,
-        shared-members,
-        _check-loc,
-        _check
-      ):
-      params.all(_.visit(self))
-      and
-      mixins.all(_.visit(self)) and variants.all(_.visit(self))
-        and
-        shared-members.all(_.visit(self))
-        and
-        _check.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-data-expr(
-        self,
-        l,
-        name,
-        namet,
-        params,
-        mixins,
-        variants,
-        shared-members,
-        _check-loc,
-        _check
-      ):
-      namet.visit(self)
-      and
-      params.all(_.visit(self)) and mixins.all(_.visit(self))
-        and
-        variants.all(_.visit(self)) and shared-members.all(_.visit(self))
-        and
-        _check.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-for(self, l, iterator, bindings, ann, body, blocky):
-      iterator.visit(self)
-      and
-      bindings.all(_.visit(self)) and ann.visit(self) and body.visit(self)
-    end,
-    method s-check(self, l, name, body, keyword-check): body.visit(self) end,
-    method s-reactor(self, l, fields): fields.all(_.visit(self)) end,
-    method s-table-extend(self, l, column-binds, extensions):
-      column-binds.visit(self) and extensions.all(_.visit(self))
-    end,
-    method s-table-update(self, l, column-binds, updates):
-      column-binds.visit(self) and updates.all(_.visit(self))
-    end,
-    method s-table-select(self, l, columns, table):
-      columns.all(_.visit(self)) and table.visit(self)
-    end,
-    method s-table-order(self, l, table, ordering):
-      table.visit(self) and ordering.all(_.visit(self))
-    end,
-    method s-table-filter(self, l, column-binds, predicate):
-      column-binds.visit(self) and predicate.visit(self)
-    end,
-    method s-table-extract(self, l, column, table):
-      column.visit(self) and table.visit(self)
-    end,
-    method s-table(self, l, headers, rows):
-      headers.all(_.visit(self)) and rows.all(_.visit(self))
-    end,
-    method s-load-table(self, l, headers, spec):
-      headers.all(_.visit(self)) and spec.all(_.visit(self))
-    end,
-    method s-spy-block(self, l, message, contents):
-      message.and-then(_.visit(self)).or-else(true)
-      and
-      contents.all(_.visit(self))
-    end,
-    method s-table-row(self, l, elems): elems.all(_.visit(self)) end,
-    method s-spy-name(self, l, name): true end,
-    method s-spy-expr(self, l, name, value): value.visit(self) end,
-    method s-construct-normal(self): true end,
-    method s-construct-lazy(self): true end,
-    method s-bind(self, l, shadows, id, ann):
-      id.visit(self) and ann.visit(self)
-    end,
-    method s-tuple-bind(self, l, fields, as-name):
-      fields.all(_.visit(self))
-      and
-      as-name.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-data-field(self, l, name, value): value.visit(self) end,
-    method s-mutable-field(self, l, name, ann, value):
-      ann.visit(self) and value.visit(self)
-    end,
-    method s-method-field(
-        self,
-        l,
-        name,
-        params,
-        args,
-        ann,
-        doc,
-        body,
-        _check-loc,
-        _check,
-        blocky
-      ):
-      params.all(_.visit(self))
-      and
-      args.all(_.visit(self)) and ann.visit(self) and body.visit(self)
-        and
-        _check.and-then(_.visit(self)).or-else(true)
-    end,
-    method s-field-name(self, l, name, ann): ann.visit(self) end,
-    method s-for-bind(self, l, bind, value):
-      bind.visit(self) and value.visit(self)
-    end,
-    method s-column-binds(self, l, binds, table):
-      binds.all(_.visit(self)) and table.visit(self)
-    end,
-    method ASCENDING(self): true end,
-    method DESCENDING(self): true end,
-    method s-column-sort(self, l, column, direction):
-      column.visit(self) and direction.visit(self)
-    end,
-    method s-table-extend-field(self, l, name, value, ann):
-      value.visit(self) and ann.visit(self)
-    end,
-    method s-table-extend-reducer(self, l, name, reducer, col, ann):
-      reducer.visit(self) and col.visit(self) and ann.visit(self)
-    end,
-    method s-sanitize(self, l, name, sanitizer):
-      name.visit(self) and sanitizer.visit(self)
-    end,
-    method s-table-src(self, l, src): src.visit(self) end,
-    method s-normal(self): true end,
-    method s-mutable(self): true end,
-    method s-variant-member(self, l, member-type, bind):
-      member-type.visit(self) and bind.visit(self)
-    end,
-    method s-variant(self, l, constr-loc, name, members, with-members):
-      members.all(_.visit(self)) and with-members.all(_.visit(self))
-    end,
-    method s-singleton-variant(self, l, name, with-members):
-      with-members.all(_.visit(self))
-    end,
-    method s-if-branch(self, l, test, body):
-      test.visit(self) and body.visit(self)
-    end,
-    method s-if-pipe-branch(self, l, test, body):
-      test.visit(self) and body.visit(self)
-    end,
-    method s-cases-bind(self, l, field-type, bind): bind.visit(self) end,
-    method s-cases-branch(self, l, pat-loc, name, args, body):
-      args.all(_.visit(self)) and body.visit(self)
-    end,
-    method s-singleton-cases-branch(self, l, pat-loc, name, body):
-      body.visit(self)
-    end,
-    method s-op-is(self, l): true end,
-    method s-op-is-roughly(self, l): true end,
-    method s-op-is-op(self, l, op): true end,
-    method s-op-is-not(self, l): true end,
-    method s-op-is-not-op(self, l, op): true end,
-    method s-op-satisfies(self, l): true end,
-    method s-op-satisfies-not(self, l): true end,
-    method s-op-raises(self, l): true end,
-    method s-op-raises-other(self, l): true end,
-    method s-op-raises-not(self, l): true end,
-    method s-op-raises-satisfies(self, l): true end,
-    method s-op-raises-violates(self, l): true end,
-    method a-blank(self): true end,
-    method a-any(self, l): true end,
-    method a-name(self, l, id): id.visit(self) end,
-    method a-type-var(self, l, id): id.visit(self) end,
-    method a-arrow(self, l, args, ret, use-parens):
-      args.all(_.visit(self)) and ret.visit(self)
-    end,
-    method a-arrow-argnames(self, l, args, ret, use-parens):
-      args.all(_.visit(self)) and ret.visit(self)
-    end,
-    method a-method(self, l, args, ret):
-      args.all(_.visit(self)) and ret.visit(self)
-    end,
-    method a-record(self, l, fields): fields.all(_.visit(self)) end,
-    method a-tuple(self, l, fields): fields.all(_.visit(self)) end,
-    method a-app(self, l, ann, args):
-      ann.visit(self) and args.all(_.visit(self))
-    end,
-    method a-pred(self, l, ann, exp): ann.visit(self) and exp.visit(self) end,
-    method a-dot(self, l, obj, field): obj.visit(self) end,
-    method a-checked(self, checked, residual):
-      checked.visit(self) and residual.visit(self)
-    end,
-    method a-field(self, l, name, ann): ann.visit(self) end
   }
 dummy-loc-visitor =
   {

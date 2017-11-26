@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import srcloc as SL
 import lists as L
 import file("gensym.arr") as G
@@ -25,7 +26,7 @@ fun ast-srcloc(l):
   A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
 end
 
-check-stmts-visitor = A.default-map-visitor.{
+check-stmts-visitor = AV.default-map-visitor.{
   method s-check-test(self, l, op, refinement, left, right):
     term = A.s-check-test(l, op, refinement, left, right)
     fun check-op(fieldname):
@@ -148,7 +149,7 @@ fun make-lam(l, args, body):
   A.s-lam(l, "", [list: ], args.map(lam(sym): A.s-bind(l, false, sym, A.a-blank) end), A.a-blank, "", body, none, none, true)
 end
 
-no-checks-visitor = A.default-map-visitor.{
+no-checks-visitor = AV.default-map-visitor.{
   method s-block(self, l, stmts):
     new-stmts = for L.foldr(acc from empty, stmt from stmts):
       new-stmt = stmt.visit(self)
@@ -177,7 +178,7 @@ no-checks-visitor = A.default-map-visitor.{
   end
 }
 
-check-visitor = A.default-map-visitor.{
+check-visitor = AV.default-map-visitor.{
   method s-block(self, l, stmts):
     checks-to-perform = get-checks(stmts)
     ds-stmts = stmts.map(_.visit(self))

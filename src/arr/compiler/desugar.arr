@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import parse-pyret as PP
 import string-dict as SD
 import srcloc as S
@@ -302,7 +303,7 @@ where:
         id("y")
       ]
     )
-  ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
+  ds-ed3.visit(AV.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
 
   ds-ed4 = ds-curry(
       d,
@@ -943,12 +944,12 @@ fun desugar-expr(expr :: A.Expr):
   end
 where:
   d = A.dummy-loc
-  unglobal = A.default-map-visitor.{
+  unglobal = AV.default-map-visitor.{
     method s-global(self, s): A.s-name(d, s) end,
     method s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
-  ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
+  p = lam(str): PP.surface-parse(str, "test").block.visit(AV.dummy-loc-visitor) end
+  ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(AV.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
