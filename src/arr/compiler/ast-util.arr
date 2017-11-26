@@ -231,7 +231,7 @@ fun default-env-map-visitor<a, c>(
       end
       with-args = with-params.{env: args-env}
       new-body = body.visit(with-args)
-      new-check = with-args.option(_check)
+      new-check = _check.and-then(_.visit(with-args))
       A.s-lam(l, name, params, new-args, ann.visit(with-args), doc, new-body, _check-loc, new-check, blocky)
     end,
     method s-cases-else(self, l, typ, val, branches, _else, blocky):
@@ -254,7 +254,7 @@ fun default-env-map-visitor<a, c>(
       with-params = self.{type-env: new-type-env}
       A.s-data-expr(l, name, namet.visit(with-params), params,
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
-        shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
+        shared-members.map(_.visit(with-params)), _check-loc, _check.and-then(_.visit(with-params)))
     end,
     method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
@@ -266,7 +266,7 @@ fun default-env-map-visitor<a, c>(
         bind-handlers.s-bind(arg, acc)
       end
       new-body = body.visit(with-params.{env: args-env})
-      new-check = with-params.{env: args-env}.option(_check)
+      new-check = _check.and-then(_.visit(with-params.{env: args-env}))
       A.s-method(l, params, new-args, ann.visit(with-params.{env: args-env}), doc, new-body, _check-loc, new-check)
     end
   }
@@ -350,7 +350,7 @@ fun default-env-iter-visitor<a, c>(
       visit-args and
         ann.visit(with-args) and
         body.visit(with-args) and
-        with-args.option(_check)
+        _check.and-then(_.visit(with-args)).or-else(true)
     end,
     method s-cases-else(self, l, typ, val, branches, _else):
       typ.visit(self)
@@ -376,7 +376,7 @@ fun default-env-iter-visitor<a, c>(
       and lists.all(_.visit(with-params), mixins)
       and lists.all(_.visit(with-params), variants)
       and lists.all(_.visit(with-params), shared-members)
-      and with-params.option(_check)
+      and _check.and-then(_.visit(with-params)).or-else(true)
     end,
     method s-method(self, l, params, args, ann, doc, body, _check-loc, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
@@ -389,7 +389,7 @@ fun default-env-iter-visitor<a, c>(
       lists.all(_.visit(with-params), args) and
         ann.visit(with-params.{env: args-env}) and
         body.visit(with-params.{env: args-env}) and
-        with-params.{env: args-env}.option(_check)
+        _check.and-then(_.visit(with-params.{env: args-env})).or-else(true)
     end
   }
 end
@@ -634,7 +634,7 @@ set-recursive-visitor = AV.default-map-visitor.{
       doc,
       body.visit(self.activate-fun()),
       _check-loc,
-      self.clear-scope().option(_check),
+      _check.and-then(_.visit(self.clear-scope())),
       blocky)
   end,
   method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
@@ -647,7 +647,7 @@ set-recursive-visitor = AV.default-map-visitor.{
       doc,
       body.visit(self.collect-method-self(args.first)),
       _check-loc,
-      self.option(_check),
+      _check.and-then(_.visit(self)),
       blocky
       )
   end,
@@ -762,7 +762,7 @@ set-tail-visitor = AV.default-map-visitor.{
       doc,
       body.visit(self.{is-tail: not(is-stateful-ann(ann))}),
       _check-loc,
-      self.{is-tail: false}.option(_check),
+      _check.and-then(_.visit(self.{is-tail: false})),
       blocky)
   end,
 
@@ -776,7 +776,7 @@ set-tail-visitor = AV.default-map-visitor.{
       doc,
       body.visit(self.{is-tail: not(is-stateful-ann(ann))}),
       _check-loc,
-      self.{is-tail: false}.option(_check),
+      _check.and-then(_.visit(self.{is-tail: false})),
       blocky)
   end,
 

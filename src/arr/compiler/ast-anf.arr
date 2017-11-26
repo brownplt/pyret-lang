@@ -541,7 +541,7 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
-    | a-ref(_, ann) => a-ref(dummy-loc, AV.dummy-loc-visitor.option(ann))
+    | a-ref(_, ann) => a-ref(dummy-loc, ann.and-then(_.visit(AV.dummy-loc-visitor)))
     | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
     | a-tuple-get(_, tup, index) => a-tuple-get(dummy-loc, strip-loc-val(tup), index)
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
@@ -991,4 +991,3 @@ fun freevars-prog(p :: AProg) -> FrozenNameDict<A.Name>:
       body-vars.freeze()
   end
 end
-
