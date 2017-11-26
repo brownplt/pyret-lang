@@ -32,6 +32,7 @@ fun compile(options):
       compiled-cache: options.get("compiled-dir").or-else("./compiled"),
       compiled-read-only: options.get("compiled-read-only").or-else(empty),
       standalone-file: options.get("standalone-file").or-else(compile-opts.standalone-file),
+      checks: options.get-value("checks"),
       display-progress: options.get("display-progress").or-else(true),
       log: options.get("log").or-else(compile-opts.log),
       log-error: options.get("log-error").or-else(compile-opts.log-error),

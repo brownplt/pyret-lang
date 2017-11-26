@@ -169,7 +169,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
       var checks = checkFlag("checks");
       if(checks && checks !== "none") {
-        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), flag === "all");
+        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), checks === "all");
         runtime.setParam("current-checker", currentChecker);
       }
     }
