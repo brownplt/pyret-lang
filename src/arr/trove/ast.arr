@@ -149,7 +149,7 @@ data Name:
     method tosourcestring(self): "$type$" + self.s end,
     method toname(self): self.s end,
     method key(self): "tglobal#" + self.s end
-    
+
   | s-atom(base :: String, serial :: Number) with:
     method to-compiled-source(self): PP.str(self.to-compiled()) end,
     method to-compiled(self): self.base + tostring(self.serial) end,
@@ -837,13 +837,13 @@ data Expr:
   | s-tuple(l :: Loc, fields :: List<Expr>) with:
     method label(self): "s-tuple" end,
     method tosource(self):
-      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"), 
+      PP.surround-separate(INDENT, 1, PP.str("Empty tuple shoudn't happen"),
         PP.lbrace, PP.semibreak, PP.rbrace, self.fields.map(_.tosource()))
     end
   | s-tuple-get(l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc) with:
     method label(self): "s-tuple-get" end,
     method tosource(self): self.tup.tosource() + PP.str(".") + PP.lbrace + PP.number(self.index) + PP.rbrace
-    end 
+    end
   | s-obj(l :: Loc, fields :: List<Member>) with:
     method label(self): "s-obj" end,
     method tosource(self):
@@ -1040,7 +1040,7 @@ data Expr:
       bindings :: List<ForBind>,
       ann :: Ann,
       body :: Expr,
-      blocky
+      blocky :: Boolean
     ) with:
     method label(self): "s-for" end,
     method tosource(self):
@@ -1218,7 +1218,7 @@ data SpyField:
     method tosource(self): self.name.tosource() end
   | s-spy-expr(l :: Loc, name :: String, value :: Expr) with:
     method label(self): "s-spy-expr" end,
-    method tosource(self): 
+    method tosource(self):
       PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
     end
 sharing:
@@ -1783,7 +1783,7 @@ fun toplevel-ids(program :: Program) -> List<Name>:
     | else => raise("Non-program given to toplevel-ids")
   end
 end
-    
+
 default-map-visitor = {
   method option(self, opt):
     cases(Option) opt:
@@ -2306,7 +2306,7 @@ default-map-visitor = {
   method s-table-src(self, l, src :: Expr):
     s-table-src(l, src.visit(self))
   end,
-  
+
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     s-spy-block(l, self.option(message), contents.map(_.visit(self)))
   end,
@@ -2851,7 +2851,7 @@ default-iter-visitor = {
   method s-table-src(self, l, src):
     src.visit(self)
   end,
-    
+
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     self.option(message) and lists.all(_.visit(self), contents)
   end,
@@ -2861,7 +2861,7 @@ default-iter-visitor = {
   method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
     value.visit(self)
   end,
-  
+
   method a-blank(self):
     true
   end,
@@ -3117,7 +3117,7 @@ dummy-loc-visitor = {
   end,
 
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
-    s-cases-bind(dummy-loc, l, typ, bind.visit(self))
+    s-cases-bind(dummy-loc, typ, bind.visit(self))
   end,
   method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
     s-cases-branch(dummy-loc, dummy-loc, name, args.map(_.visit(self)), body.visit(self))
