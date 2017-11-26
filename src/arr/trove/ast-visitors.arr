@@ -991,9 +991,9 @@ dummy-loc-visitor =
   {
     method s-underscore(self, l): s-underscore(dummy-loc) end,
     method s-name(self, l, s): s-name(dummy-loc, s) end,
-    method s-global(self, s): s-global(dummy-loc) end,
-    method s-type-global(self, s): s-type-global(dummy-loc) end,
-    method s-atom(self, base, serial): s-atom(dummy-loc, serial) end,
+    method s-global(self, s): s-global(s) end,
+    method s-type-global(self, s): s-type-global(s) end,
+    method s-atom(self, base, serial): s-atom(base, serial) end,
     method s-program(self, l, _provide, provided-types, imports, block):
       s-program(dummy-loc,
         _provide.visit(self),
@@ -1067,13 +1067,13 @@ dummy-loc-visitor =
       s-newtype-bind(dummy-loc, name.visit(self), namet.visit(self))
     end,
     method s-defined-value(self, name, value):
-      s-defined-value(dummy-loc, value.visit(self))
+      s-defined-value(name, value.visit(self))
     end,
     method s-defined-var(self, name, id):
-      s-defined-var(dummy-loc, id.visit(self))
+      s-defined-var(name, id.visit(self))
     end,
     method s-defined-type(self, name, typ):
-      s-defined-type(dummy-loc, typ.visit(self))
+      s-defined-type(name, typ.visit(self))
     end,
     method s-module(
         self,
@@ -1571,7 +1571,7 @@ dummy-loc-visitor =
       a-dot(dummy-loc, obj.visit(self), field)
     end,
     method a-checked(self, checked, residual):
-      a-checked(dummy-loc, residual.visit(self))
+      a-checked(checked.visit(self), residual.visit(self))
     end,
     method a-field(self, l, name, ann):
       a-field(dummy-loc, name, ann.visit(self))

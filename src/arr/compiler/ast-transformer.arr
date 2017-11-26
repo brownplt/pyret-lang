@@ -3,6 +3,7 @@ Assume that all AST nodes are annotated, this file generates visitors
 |#
 
 import ast as A
+import ast-visitors as AV
 import parse-pyret as SP
 import file as F
 include either
@@ -34,7 +35,7 @@ fun simplify-variant(v :: A.Variant) -> SimplifiedVariant:
        function extracts the core information and convert it to a simplified
        variant
        ```
-  cases (A.Variant) v.visit(A.dummy-loc-visitor):
+  cases (A.Variant) v.visit(AV.dummy-loc-visitor):
     | s-variant(_, _, name, members, _) => simplified-variant(name, members.map(_.bind))
     | s-singleton-variant(_, name, _) => simplified-singleton-variant(name, empty)
   end
@@ -67,6 +68,17 @@ fun make-complex-visit(id :: A.Expr, meth :: String) -> A.Expr:
     [list: make-visit-self(A.s-id(dummy, A.s-underscore(dummy)))])
 end
 
+fun is-loc(ann :: A.Ann) -> Boolean block:
+  cases (A.Ann) ann:
+    | a-name(_, name) =>
+      cases (A.Name) name:
+        | s-name(_, id) => id == "Loc"
+        | else => false
+      end
+    | else => false
+  end
+end
+
 fun strip-annotation(b :: A.Bind) -> A.Bind:
   cases (A.Bind) b:
     | s-bind(l :: A.Loc, shadows :: Boolean, id :: A.Name, ann :: A.Ann) =>
@@ -97,7 +109,7 @@ fun main-real(
   var collected-variants = empty
   var collected-data-definitions = empty
 
-  p.visit(A.default-iter-visitor.{
+  p.visit(AV.default-iter-visitor.{
     method s-data(self, l :: A.Loc, name :: String, params :: List<A.Name>, mixins :: List<A.Expr>, variants :: List<A.Variant>, shared-members :: List<A.Member>, _check-loc :: Option<A.Loc>, _check :: Option<A.Expr>) block:
       when shared-member-has-visit(shared-members) block:
         collected-variants := collected-variants + variants.map(simplify-variant)
@@ -189,7 +201,7 @@ fun main-real(
   fun default-map-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
     cases (SimplifiedVariant) variant:
       | simplified-variant(name, members) =>
-        shadow members = members.map(lam(b :: A.Bind) -> A.Expr:
+        member-args = members.map(lam(b :: A.Bind) -> A.Expr:
           id = bind-to-id(b)
           cases (ArgType) get-arg-type(b):
             | arg-not-visitable => id
@@ -198,7 +210,7 @@ fun main-real(
             | arg-option => make-complex-visit(id, "and-then")
           end
         end)
-        A.s-app(dummy, make-id(name), members)
+        A.s-app(dummy, make-id(name), member-args)
       | simplified-singleton-variant(name, _) => make-id(name)
     end
   end
@@ -206,7 +218,7 @@ fun main-real(
   fun default-iter-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
     cases (SimplifiedVariant) variant:
       | simplified-variant(name, members) =>
-        shadow members = for lists.filter-map(b from members):
+        member-args = for lists.filter-map(b from members):
           id = bind-to-id(b)
           cases (ArgType) get-arg-type(b):
             | arg-not-visitable => none
@@ -218,7 +230,7 @@ fun main-real(
                 ^ some
           end
         end
-        cases (List) members:
+        cases (List) member-args:
           | empty => A.s-bool(dummy, true)
           | link(f, r) =>
             # left recursion
@@ -233,7 +245,7 @@ fun main-real(
   fun dummy-loc-visitor-transform(variant :: SimplifiedVariant) -> A.Expr:
     cases (SimplifiedVariant) variant:
       | simplified-variant(name, members) =>
-        shadow members = members.map(lam(b :: A.Bind) -> A.Expr:
+        member-args = members.map(lam(b :: A.Bind) -> A.Expr:
           id = bind-to-id(b)
           cases (ArgType) get-arg-type(b):
             | arg-not-visitable => id
@@ -242,11 +254,21 @@ fun main-real(
             | arg-option => make-complex-visit(id, "and-then")
           end
         end)
-        shadow members = cases (List) members:
+        shadow member-args = cases (List) member-args:
           | empty => empty
-          | link(_, rest) => link(make-id("dummy-loc"), rest)
+          | link(first, rest) =>
+            cases (List) members:
+              | empty => raise("impossible")
+              | link(first-member, _) =>
+                # assume first-member is a `s-bind`
+                if is-loc(first-member.ann):
+                  link(make-id("dummy-loc"), rest)
+                else:
+                  member-args
+                end
+            end
         end
-        A.s-app(dummy, make-id(name), members)
+        A.s-app(dummy, make-id(name), member-args)
       | simplified-singleton-variant(name, _) => make-id(name)
     end
   end
