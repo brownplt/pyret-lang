@@ -2472,6 +2472,7 @@ default-compile-options = {
   this-pyret-dir: ".",
   check-mode : true,
   check-all : true,
+  checks: "all",
   type-check : false,
   allow-shadowed : false,
   collect-all: false,
