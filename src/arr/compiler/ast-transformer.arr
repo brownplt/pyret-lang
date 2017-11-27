@@ -102,9 +102,14 @@ fun main-real(
     in-file :: String,
     out-file :: String,
     requirements :: D.StringDict<Boolean>,
-    is-strip-annotation :: Boolean) -> Number block:
+    is-strip-annotation :: Boolean,
+    appendix :: Option<String>) -> Number block:
 
   p = SP.surface-parse(F.input-file(in-file).read-file(), in-file)
+  shadow appendix = cases (Option) appendix:
+    | none => empty
+    | some(path) => SP.surface-parse(F.input-file(path).read-file(), path).block.stmts
+  end
 
   var collected-variants = empty
   var collected-data-definitions = empty
@@ -279,7 +284,7 @@ fun main-real(
     else:
       none
     end
-  end
+  end + appendix
 
   out-program =
     A.s-program(dummy,
@@ -309,6 +314,8 @@ fun main(args :: List<String>) -> Number block:
       C.next-val(C.String, C.required-once, "The input file (AST definition file)"),
     "out-file",
       C.next-val(C.String, C.required-once, "The output file (AST visitor file)"),
+    "appendix-file",
+      C.next-val(C.String, C.once, "The appendix file which will be concatenated to the output file"),
     "builtin-import",
       C.next-val(C.String, C.once, "The builtin module that contains AST (e.g., `ast`)"),
     "file-import",
@@ -341,7 +348,12 @@ fun main(args :: List<String>) -> Number block:
               'default-map-visitor', r.has-key('default-map-visitor'),
               'default-iter-visitor', r.has-key('default-iter-visitor'),
               'dummy-loc-visitor', r.has-key('dummy-loc-visitor')],
-            r.has-key('strip-annotation'))
+            r.has-key('strip-annotation'),
+            if r.has-key('appendix-file'):
+              some(r.get-value('appendix-file'))
+            else:
+              none
+            end)
       end
     | arg-error(message, partial) =>
       print-error(message + "\n")
