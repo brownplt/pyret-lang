@@ -332,7 +332,7 @@ default-iter-visitor =
       contents.all(_.visit(self))
     end,
     method s-table-row(self, l, elems): elems.all(_.visit(self)) end,
-    method s-spy-name(self, l, name): true end,
+    method s-spy-name(self, l, name): name.visit(self) end,
     method s-spy-expr(self, l, name, value): value.visit(self) end,
     method s-construct-normal(self): true end,
     method s-construct-lazy(self): true end,
@@ -842,7 +842,7 @@ default-map-visitor =
     method s-table-row(self, l, elems):
       s-table-row(l, elems.map(_.visit(self)))
     end,
-    method s-spy-name(self, l, name): s-spy-name(l, name) end,
+    method s-spy-name(self, l, name): s-spy-name(l, name.visit(self)) end,
     method s-spy-expr(self, l, name, value):
       s-spy-expr(l, name, value.visit(self))
     end,
@@ -1419,7 +1419,9 @@ dummy-loc-visitor =
     method s-table-row(self, l, elems):
       s-table-row(dummy-loc, elems.map(_.visit(self)))
     end,
-    method s-spy-name(self, l, name): s-spy-name(dummy-loc, name) end,
+    method s-spy-name(self, l, name):
+      s-spy-name(dummy-loc, name.visit(self))
+    end,
     method s-spy-expr(self, l, name, value):
       s-spy-expr(dummy-loc, name, value.visit(self))
     end,
