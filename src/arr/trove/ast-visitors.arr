@@ -1206,7 +1206,7 @@ dummy-loc-visitor =
         blocky)
     end,
     method s-op(self, l, op-l, op, left, right):
-      s-op(dummy-loc, op-l, op, left.visit(self), right.visit(self))
+      s-op(dummy-loc, dummy-loc, op, left.visit(self), right.visit(self))
     end,
     method s-check-test(self, l, op, refinement, left, right):
       s-check-test(dummy-loc,
@@ -1277,7 +1277,7 @@ dummy-loc-visitor =
       s-tuple(dummy-loc, fields.map(_.visit(self)))
     end,
     method s-tuple-get(self, l, tup, index, index-loc):
-      s-tuple-get(dummy-loc, tup.visit(self), index, index-loc)
+      s-tuple-get(dummy-loc, tup.visit(self), index, dummy-loc)
     end,
     method s-obj(self, l, fields):
       s-obj(dummy-loc, fields.map(_.visit(self)))
@@ -1310,7 +1310,7 @@ dummy-loc-visitor =
       s-id-letrec(dummy-loc, id.visit(self), safe)
     end,
     method s-undefined(self, l): s-undefined(dummy-loc) end,
-    method s-srcloc(self, l, loc): s-srcloc(dummy-loc, loc) end,
+    method s-srcloc(self, l, loc): s-srcloc(dummy-loc, dummy-loc) end,
     method s-num(self, l, n): s-num(dummy-loc, n) end,
     method s-frac(self, l, num, den): s-frac(dummy-loc, num, den) end,
     method s-rfrac(self, l, num, den): s-rfrac(dummy-loc, num, den) end,
@@ -1500,7 +1500,7 @@ dummy-loc-visitor =
     end,
     method s-variant(self, l, constr-loc, name, members, with-members):
       s-variant(dummy-loc,
-        constr-loc,
+        dummy-loc,
         name,
         members.map(_.visit(self)),
         with-members.map(_.visit(self)))
@@ -1519,13 +1519,13 @@ dummy-loc-visitor =
     end,
     method s-cases-branch(self, l, pat-loc, name, args, body):
       s-cases-branch(dummy-loc,
-        pat-loc,
+        dummy-loc,
         name,
         args.map(_.visit(self)),
         body.visit(self))
     end,
     method s-singleton-cases-branch(self, l, pat-loc, name, body):
-      s-singleton-cases-branch(dummy-loc, pat-loc, name, body.visit(self))
+      s-singleton-cases-branch(dummy-loc, dummy-loc, name, body.visit(self))
     end,
     method s-op-is(self, l): s-op-is(dummy-loc) end,
     method s-op-is-roughly(self, l): s-op-is-roughly(dummy-loc) end,

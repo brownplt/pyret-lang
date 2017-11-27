@@ -254,19 +254,13 @@ fun main-real(
             | arg-option => make-complex-visit(id, "and-then")
           end
         end)
-        shadow member-args = cases (List) member-args:
-          | empty => empty
-          | link(first, rest) =>
-            cases (List) members:
-              | empty => raise("impossible")
-              | link(first-member, _) =>
-                # assume first-member is a `s-bind`
-                if is-loc(first-member.ann):
-                  link(make-id("dummy-loc"), rest)
-                else:
-                  member-args
-                end
-            end
+        shadow member-args = for map2(bind from members, arg from member-args):
+          # assume bind is a `s-bind`
+          if is-loc(bind.ann):
+            make-id("dummy-loc")
+          else:
+            arg
+          end
         end
         A.s-app(dummy, make-id(name), member-args)
       | simplified-singleton-variant(name, _) => make-id(name)
