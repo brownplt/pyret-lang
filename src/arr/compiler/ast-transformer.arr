@@ -137,6 +137,33 @@ fun bind-to-id(b :: A.Bind) -> A.Expr:
   A.s-id(dummy, b.id)
 end
 
+data Tag:
+  | t-str
+  | t-num
+  | t-bool
+  | t-loc
+  | t-list
+  | t-option
+  | t-not-recognize
+end
+
+fun get-recognizable-tag(name :: A.Name) -> Tag:
+  cases (A.Name) name:
+    | s-name(_, s) =>
+      ask:
+        | s == 'String' then: t-str
+        | s == 'Number' then: t-num
+        | s == 'NumInteger' then: t-num
+        | s == 'Boolean' then: t-bool
+        | s == 'Loc' then: t-loc
+        | s == 'List' then: t-list
+        | s == 'Option' then: t-option
+        | otherwise: t-not-recognize
+      end
+    | else => raise("impossible (I think) " + tostring(name))
+  end
+end
+
 fun get-arg-type(
   ann-top :: A.Ann,
   collected-data-definitions :: D.StringDict<Boolean>,
@@ -164,14 +191,10 @@ fun get-arg-type(
       arg-type = cases (A.Ann) ann:
         | a-name(_, name) =>
           # assume this name is of type Name%(is-s-name)
-          cases (A.Name) name:
-            | s-name(_, s) =>
-              ask:
-                | s == "List" then: arg-list
-                | s == "Option" then: arg-option
-                | otherwise: arg-not-visitable
-              end
-            | else => raise("impossible (I think) " + tostring(ann))
+          cases (Tag) get-recognizable-tag(name):
+            | t-list => arg-list
+            | t-option => arg-option
+            | else => arg-not-visitable
           end
         | else => raise("impossible (I think) " + tostring(ann))
       end

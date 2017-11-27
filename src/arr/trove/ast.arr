@@ -197,7 +197,7 @@ data AppInfo:
 sharing:
   only-serializable: true,
   method visit(self, visitor):
-    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
@@ -323,7 +323,7 @@ data ProvidedValue:
 sharing:
   only-serializable: true,
   method visit(self, visitor):
-    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
@@ -338,7 +338,7 @@ data ProvidedAlias:
 sharing:
   only-serializable: true,
   method visit(self, visitor):
-    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
@@ -353,7 +353,7 @@ data ProvidedDatatype:
 sharing:
   only-serializable: true,
   method visit(self, visitor):
-    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
 end
 
@@ -1578,6 +1578,11 @@ data CasesBindType:
   | s-cases-bind-normal with:
     method label(self): "s-cases-bind-normal" end,
     method tosource(self): PP.str("") end
+sharing:
+  only-serializable: true,
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
 
 data CasesBind:
