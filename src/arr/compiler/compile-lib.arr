@@ -369,7 +369,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
-      checker = if options.check-mode and not(is-builtin-module(locator.uri())):
+      checker = if not(options.checks == "none") and not(is-builtin-module(locator.uri())):
         CH.desugar-check
       else:
         CH.desugar-no-checks
@@ -380,7 +380,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           wf := nothing
           var checked = checker(wf-ast)
           wf-ast := nothing
-          add-phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
+          add-phase(if not(options.checks == "none"): "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
           add-phase("Added imports", imported)
@@ -541,14 +541,9 @@ fun make-standalone(wl, compiled, options):
 
   runtime-options = J.j-obj(
     [C.clist:
+      J.j-field("checks", j-str(options.checks)),
       J.j-field("disableAnnotationChecks",
         if options.runtime-annotations:
-          j-false
-        else:
-          j-true
-        end),
-      J.j-field("disableCheckMode",
-        if options.check-mode:
           j-false
         else:
           j-true

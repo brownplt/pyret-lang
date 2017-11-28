@@ -57,6 +57,8 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
+    "checks",
+      C.next-val(C.String, C.once, "Specify which checks to execute (all, none, or main)"),
     "check-all",
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
@@ -94,14 +96,16 @@ fun main(args :: List<String>) -> Number block:
 
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
-      check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
+      checks = 
+        if r.has-key("no-check-mode") or r.has-key("library"): "none"
+        else if r.has-key("checks"): r.get-value("checks")
+        else: "all" end
       allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-imports
         else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
       inline-case-body-limit = r.get-value("inline-case-body-limit")
-      check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
@@ -124,107 +128,117 @@ fun main(args :: List<String>) -> Number block:
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
-      if not(is-empty(rest)) block:
-        print-error("No longer supported\n")
+      if r.has-key("checks") and r.has-key("no-check-mode") and not(r.get-value("checks") == "none") block:
+        print-error("Can't use --checks " + r.get-value("checks") + " with -no-check-mode\n")
         failure-code
       else:
-        if r.has-key("build-runnable") block:
-          outfile = if r.has-key("outfile"):
-            r.get-value("outfile")
-          else:
-            r.get-value("build-runnable") + ".jarr"
-          end
-          compile-opts = CS.make-default-compile-options(this-pyret-dir)
-          CLI.build-runnable-standalone(
-              r.get-value("build-runnable"),
-              r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
-              outfile,
-              compile-opts.{
-                this-pyret-dir: this-pyret-dir,
-                standalone-file: standalone-file,
-                check-mode : check-mode,
-                type-check : type-check,
-                allow-shadowed : allow-shadowed,
-                collect-all: false,
-                collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
-                ignore-unbound: false,
-                proper-tail-calls: tail-calls,
-                compiled-cache: compiled-dir,
-                compiled-read-only: r.get("compiled-read-only-dir").or-else(empty),
-                display-progress: display-progress,
-                inline-case-body-limit: inline-case-body-limit,
-                deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
-                html-file: html-file,
-                module-eval: module-eval,
-                user-annotations: user-annotations,
-                runtime-annotations: runtime-annotations
-              })
-          success-code
-        else if r.has-key("serve"):
-          port = r.get-value("port")
-          S.serve(port, this-pyret-dir)
-          success-code
-        else if r.has-key("build-standalone"):
-          print-error("Use build-runnable instead of build-standalone\n")
+        if r.has-key("checks") and r.has-key("check-all") and not(r.get-value("checks") == "all") block:
+          print-error("Can't use --checks " + r.get-value("checks") + " with -check-all\n")
           failure-code
-          #|
-          CLI.build-require-standalone(r.get-value("build-standalone"),
-              CS.default-compile-options.{
-                check-mode : check-mode,
-                type-check : type-check,
-                allow-shadowed : allow-shadowed,
-                collect-all: false,
-                collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
-                ignore-unbound: false,
-                proper-tail-calls: tail-calls,
-                compiled-cache: compiled-dir,
-                display-progress: display-progress
-              })
-           |#
-        else if r.has-key("build"):
-          result = CLI.compile(r.get-value("build"),
-            CS.default-compile-options.{
-              check-mode : check-mode,
-              type-check : type-check,
-              allow-shadowed : allow-shadowed,
-              collect-all: false,
-              ignore-unbound: false,
-              proper-tail-calls: tail-calls,
-              compile-module: false,
-              display-progress: display-progress
-            })
-          failures = filter(CS.is-err, result.loadables)
-          if is-link(failures) block:
-            for each(f from failures) block:
-              for lists.each(e from f.errors) block:
-                print-error(tostring(e))
-                print-error("\n")
-              end
-              print-error("There were compilation errors\n")
-            end
+        else:
+          if not(is-empty(rest)) block:
+            print-error("No longer supported\n")
             failure-code
           else:
-            success-code
-          end
-        else if r.has-key("run"):
-          run-args =
-            if is-empty(rest):
-              empty
+            if r.has-key("build-runnable") block:
+              outfile = if r.has-key("outfile"):
+                r.get-value("outfile")
+              else:
+                r.get-value("build-runnable") + ".jarr"
+              end
+              compile-opts = CS.make-default-compile-options(this-pyret-dir)
+              CLI.build-runnable-standalone(
+                  r.get-value("build-runnable"),
+                  r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
+                  outfile,
+                  compile-opts.{
+                    this-pyret-dir: this-pyret-dir,
+                    standalone-file: standalone-file,
+                    checks : checks,
+                    type-check : type-check,
+                    allow-shadowed : allow-shadowed,
+                    collect-all: false,
+                    collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
+                    ignore-unbound: false,
+                    proper-tail-calls: tail-calls,
+                    compiled-cache: compiled-dir,
+                    compiled-read-only: r.get("compiled-read-only-dir").or-else(empty),
+                    display-progress: display-progress,
+                    inline-case-body-limit: inline-case-body-limit,
+                    deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
+                    html-file: html-file,
+                    module-eval: module-eval,
+                    user-annotations: user-annotations,
+                    runtime-annotations: runtime-annotations
+                  })
+              success-code
+            else if r.has-key("serve"):
+              port = r.get-value("port")
+              S.serve(port, this-pyret-dir)
+              success-code
+            else if r.has-key("build-standalone"):
+              print-error("Use build-runnable instead of build-standalone\n")
+              failure-code
+              #|
+              CLI.build-require-standalone(r.get-value("build-standalone"),
+                  CS.default-compile-options.{
+                    checks : checks,
+                    type-check : type-check,
+                    allow-shadowed : allow-shadowed,
+                    collect-all: false,
+                    collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
+                    ignore-unbound: false,
+                    proper-tail-calls: tail-calls,
+                    compiled-cache: compiled-dir,
+                    display-progress: display-progress
+                  })
+               |#
+            else if r.has-key("build"):
+              result = CLI.compile(r.get-value("build"),
+                CS.default-compile-options.{
+                  checks : checks,
+                  type-check : type-check,
+                  allow-shadowed : allow-shadowed,
+                  collect-all: false,
+                  ignore-unbound: false,
+                  proper-tail-calls: tail-calls,
+                  compile-module: false,
+                  display-progress: display-progress
+                })
+              failures = filter(CS.is-err, result.loadables)
+              if is-link(failures) block:
+                for each(f from failures) block:
+                  for lists.each(e from f.errors) block:
+                    print-error(tostring(e))
+                    print-error("\n")
+                  end
+                  print-error("There were compilation errors\n")
+                end
+                failure-code
+              else:
+                success-code
+              end
+            else if r.has-key("run"):
+              run-args =
+                if is-empty(rest):
+                  empty
+                else:
+                  rest.rest
+                end
+              result = CLI.run(r.get-value("run"), CS.default-compile-options.{
+                  standalone-file: standalone-file,
+                  display-progress: display-progress,
+                  checks: checks
+                }, run-args)
+              _ = print(result.message + "\n")
+              result.exit-code
             else:
-              rest.rest
+              block:
+                print-error(C.usage-info(options).join-str("\n"))
+                print-error("Unknown command line options\n")
+                failure-code
+              end
             end
-          result = CLI.run(r.get-value("run"), CS.default-compile-options.{
-              standalone-file: standalone-file,
-              display-progress: display-progress,
-              check-all: check-all
-            }, run-args)
-          _ = print(result.message + "\n")
-          result.exit-code
-        else:
-          block:
-            print-error(C.usage-info(options).join-str("\n"))
-            print-error("Unknown command line options\n")
-            failure-code
           end
         end
       end

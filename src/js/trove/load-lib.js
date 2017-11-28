@@ -158,7 +158,9 @@
     }
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
-      return mr.val.runtime.getField(mr.val.result.result, "checks");
+      var checks = mr.val.runtime.getField(mr.val.result.result, "checks");
+      if(mr.val.runtime.ffi.isList(checks)) { return checks; }
+      else { return mr.val.runtime.ffi.makeList([]); }
     }
     function getModuleResultExn(mr) {
       checkExn(mr);
@@ -289,7 +291,7 @@
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
     function runProgram(otherRuntimeObj, realmObj, programString, options, commandLineArguments) {
-      var checkAll = runtime.getField(options, "check-all");
+      var checks = runtime.getField(options, "checks");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       otherRuntime.setParam("command-line-arguments", runtime.ffi.toArray(commandLineArguments));
       var realm = Object.create(runtime.getField(realmObj, "realm").val);
@@ -303,10 +305,12 @@
       runtime.setParam("currentMainURL", main);
 
       if(realm["builtin://checker"]) {
-        var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
         // NOTE(joe): This is the place to add checkAll
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
-        otherRuntime.setParam("current-checker", currentChecker);
+        if (checks !== "none") {
+          var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
+          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks === "all");
+          otherRuntime.setParam("current-checker", currentChecker);
+        }
       }
 
       var postLoadHooks = {
@@ -329,10 +333,12 @@
           otherRuntime["checkEQ"] = otherRuntime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
         },
         "builtin://checker": function(checker) {
-          var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
           // NOTE(joe): This is the place to add checkAll
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
-          otherRuntime.setParam("current-checker", currentChecker);
+          if (checks !== "none") {
+            var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
+            var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks === "all");
+            otherRuntime.setParam("current-checker", currentChecker);
+          }
         },
         "builtin://table": function(table) {
           table = table.jsmod;
