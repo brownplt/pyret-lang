@@ -158,7 +158,9 @@
     }
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
-      return mr.val.runtime.getField(mr.val.result.result, "checks");
+      var checks = mr.val.runtime.getField(mr.val.result.result, "checks");
+      if(mr.val.runtime.ffi.isList(checks)) { return checks; }
+      else { return mr.val.runtime.ffi.makeList([]); }
     }
     function getModuleResultExn(mr) {
       checkExn(mr);
