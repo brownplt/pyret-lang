@@ -20,3 +20,17 @@ end
 examples:
   oops(4, 5) is working(4, 5)
 end
+
+fun oops2(a, b):
+  foo = lam(): a end
+  if a == 1: b() else: oops2(1, foo) end
+end
+
+fun working2(a, b):
+  foo = lam(): a end
+  if a == 1: b() else: working2(1, foo) + 0 end
+end
+
+examples:
+  oops2(4, 5) is working2(4, 5)
+end
