@@ -523,27 +523,27 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   var in-lam = false
   var arg-used-in-lambda = false
   arg-names = args.map(_.id)
-  dummy-anf-expr = N.a-num(A.dummy-loc, 0)
+  dummy-anf-lettable = N.a-obj(A.dummy-loc, empty)
   body.visit(N.default-map-visitor.{
-    method a-lam(self, shadow l, name, shadow args, ret, shadow body) block:
+    method a-lam(self, _, _, _, _, shadow body) block:
       saved-in-lam = in-lam
       in-lam := true
       body.visit(self)
       in-lam := saved-in-lam
-      dummy-anf-expr
+      dummy-anf-lettable
     end,
-    method a-method(self, shadow l, name, shadow args, ret, shadow body) block:
+    method a-method(self, _, _, _, _, shadow body) block:
       saved-in-lam = in-lam
       in-lam := true
       body.visit(self)
       in-lam := saved-in-lam
-      dummy-anf-expr
+      dummy-anf-lettable
     end,
     method a-id(self, shadow l, id) block:
       when in-lam and not(arg-used-in-lambda) and arg-names.member(id):
         arg-used-in-lambda := true
       end
-      dummy-anf-expr
+      N.a-id(l, id)
     end
   })
   shadow compiler = if arg-used-in-lambda:
