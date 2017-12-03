@@ -45,3 +45,30 @@ end
 examples:
   oops2(4, 5) is working2(4, 5)
 end
+
+# Ben worries that cases statement that can't be inlined (which will make a
+# lambda) could potentially cause an error.
+
+data Test:
+  | variant(field)
+end
+
+fun test(a, b):
+  v = cases (Test) b:
+    | variant(x) =>
+      shadow z = x + 0
+      shadow z = z + 0
+      shadow z = z + 0
+      shadow z = z + 0
+      shadow z = z + 0
+      shadow z = z + 0
+      a - 1
+  end
+  if a == 1:
+    b.field
+  else:
+    test(1, variant(v))
+  end
+where:
+  test(10, variant(20)) is 9
+end
