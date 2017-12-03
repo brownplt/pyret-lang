@@ -520,6 +520,37 @@ var total-time = 0
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean, is-method :: Boolean) -> J.JBlock block:
+  var in-lam = false
+  var arg-used-in-lambda = false
+  arg-names = args.map(_.id)
+  dummy-anf-lettable = N.a-obj(A.dummy-loc, empty)
+  body.visit(N.default-map-visitor.{
+    method a-lam(self, _, _, _, _, shadow body) block:
+      saved-in-lam = in-lam
+      in-lam := true
+      body.visit(self)
+      in-lam := saved-in-lam
+      dummy-anf-lettable
+    end,
+    method a-method(self, _, _, _, _, shadow body) block:
+      saved-in-lam = in-lam
+      in-lam := true
+      body.visit(self)
+      in-lam := saved-in-lam
+      dummy-anf-lettable
+    end,
+    method a-id(self, shadow l, id) block:
+      when in-lam and not(arg-used-in-lambda) and arg-names.member(id):
+        arg-used-in-lambda := true
+      end
+      N.a-id(l, id)
+    end
+  })
+  shadow compiler = if arg-used-in-lambda:
+    compiler.{allow-tco: false}
+  else:
+    compiler
+  end
   make-label = make-label-sequence(0)
   ret-label = make-label()
   ans = fresh-id(compiler-name("ans"))
@@ -899,12 +930,14 @@ end
 
 fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
   doc: "Returns true iff `target` occurs in `e`"
+  dummy-js-expr = j-num(0)
   var found = false
   e.visit(J.default-map-visitor.{
-    method j-id(self, name :: A.Name):
+    method j-id(self, name) block:
       when name == target:
         found := true
       end
+      dummy-js-expr
     end
   })
   found
