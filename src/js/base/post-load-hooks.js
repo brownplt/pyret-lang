@@ -75,10 +75,21 @@ define("pyret-base/js/post-load-hooks", function() {
           empty_only : runtime.getField(ds, "empty-only")
         };
 
-        runtime["makeCStr"] = runtime.getField(ds, "c-str").app;
-        runtime["makeCNum"] = runtime.getField(ds, "c-num").app;
-        runtime["makeCBool"] = runtime.getField(ds, "c-bool").app;
-        runtime["makeCCustom"] = runtime.getField(ds, "c-custom").app;
+        function reCache(src, constructorName, target, cachedName) {
+          return function() {
+            try {
+              var constr = runtime.getField(src, constructorName);
+              return constr.app.apply(constr, arguments);
+            } finally {
+              // after jitting, this will be faster than the call above
+              target[cachedName] = runtime.getField(src, constructorName).app;
+            }
+          };
+        }
+        runtime["makeCStr"] = reCache(ds, "c-str", runtime, "makeCStr");
+        runtime["makeCNum"] = reCache(ds, "c-num", runtime, "makeCNum");
+        runtime["makeCBool"] = reCache(ds, "c-bool", runtime, "makeCBool");
+        runtime["makeCCustom"] = reCache(ds, "c-custom", runtime, "makeCCustom");
         runtime["makeCEmpty"] = function() { return runtime.getField(ds, "c-empty"); };
 
         runtime["isCStr"] = function(v) { return runtime.unwrap(runtime.getField(ds, "is-c-str").app(v)); };
