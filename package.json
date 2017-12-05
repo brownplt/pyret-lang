@@ -1,6 +1,6 @@
 {
   "name": "pyret-experimental-cli",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "The Pyret programming language",
   "dependencies": {
     "ascii-table": "~0.0.9",
