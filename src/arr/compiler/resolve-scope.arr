@@ -524,7 +524,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
   v-params = params.map(_.visit(visitor))
   v-ann = ann.visit(visitor)
   v-body = body.visit(visitor)
-  v-check = _.visit(visitor).option(_check)
+  v-check = visitor.option(_check)
   placeholder = A.s-str(l, "placeholder")
   {new-binds; new-body} = for fold(acc from {empty; v-body}, a from args):
     {new-binds; new-body} = acc
