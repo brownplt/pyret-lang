@@ -26,11 +26,25 @@ data SimplifiedVariant:
       members :: List<A.Bind>%(is-empty))
 end
 
-data ArgType:
-  | arg-not-visitable
-  | arg-visitable
-  | arg-list
-  | arg-option
+data Tag:
+  | t-str
+  | t-num
+  | t-bool
+  | t-loc
+  | t-list(t :: Tag)
+  | t-option(t :: Tag)
+  | t-not-recognized
+end
+
+data VisitableArgType:
+  | arg-not-visitable with:
+    method is-visitable(self): false end
+  | arg-visitable with:
+    method is-visitable(self): true end
+  | arg-list(t :: VisitableArgType) with:
+    method is-visitable(self): self.t.is-visitable() end
+  | arg-option(t :: VisitableArgType) with:
+    method is-visitable(self): self.t.is-visitable() end
 end
 
 fun read(in-file :: String) -> A.Program:
@@ -41,16 +55,6 @@ fun shared-member-has-visit(shared-members :: List<A.Member>) -> Boolean:
   for lists.any(member from shared-members):
     cases (A.Member) member:
       | s-method-field(_, name, _, _, _, _, _, _, _, _) => name == 'visit'
-      | else => false
-    end
-  end
-end
-
-fun is-only-serializable(shared-members :: List<A.Member>) -> Boolean:
-  for lists.any(member from shared-members):
-    cases (A.Member) member:
-      | s-data-field(l, name, value) =>
-        (name == 'only-serializable') and A.is-s-bool(value) and value.b
       | else => false
     end
   end
@@ -72,20 +76,21 @@ fun simplify-variant(type-name :: String) -> (A.Variant -> SimplifiedVariant):
   end
 end
 
-fun collect-ast(p :: A.Program) -> {List<SimplifiedVariant>; D.StringDict<Boolean>} block:
+fun collect-ast(p :: A.Program) -> {List<SimplifiedVariant>; List<String>} block:
   var collected-variants = empty
-  var collected-data-definitions = [D.mutable-string-dict: ]
+  var collected-data-definitions = empty
 
   p.visit(AV.default-iter-visitor.{
     method s-data(self, l :: A.Loc, name :: String, params :: List<A.Name>, mixins :: List<A.Expr>, variants :: List<A.Variant>, shared-members :: List<A.Member>, _check-loc :: Option<A.Loc>, _check :: Option<A.Expr>) block:
       when shared-member-has-visit(shared-members) block:
+        # appending the other way around is more efficient, but would mess up the order
         collected-variants := collected-variants + variants.map(simplify-variant(name))
-        collected-data-definitions.set-now(name, is-only-serializable(shared-members))
+        collected-data-definitions := link(name, collected-data-definitions)
       end
       true
     end
   })
-  {collected-variants; collected-data-definitions.freeze()}
+  {collected-variants; collected-data-definitions}
 end
 
 fun make-name(s :: String) -> A.Name:
@@ -110,9 +115,10 @@ end
 
 fun make-complex-visit(id :: A.Expr, meth :: String) -> A.Expr:
   make-method-call(
-    id,
+    make-id('self'),
     meth,
-    [list: make-visit-self(A.s-id(dummy, A.s-underscore(dummy)))])
+    [list: id]
+  )
 end
 
 fun is-loc(ann :: A.Ann) -> Boolean block:
@@ -137,84 +143,65 @@ fun bind-to-id(b :: A.Bind) -> A.Expr:
   A.s-id(dummy, b.id)
 end
 
-data Tag:
-  | t-str
-  | t-num
-  | t-bool
-  | t-loc
-  | t-list
-  | t-option
-  | t-not-recognize
-end
-
-fun get-recognizable-tag(name :: A.Name) -> Tag:
-  cases (A.Name) name:
-    | s-name(_, s) =>
-      ask:
-        | s == 'String' then: t-str
-        | s == 'Number' then: t-num
-        | s == 'NumInteger' then: t-num
-        | s == 'Boolean' then: t-bool
-        | s == 'Loc' then: t-loc
-        | s == 'List' then: t-list
-        | s == 'Option' then: t-option
-        | otherwise: t-not-recognize
+fun get-tag(ann :: A.Ann) -> Tag:
+  cases (A.Ann) ann:
+    | a-blank => t-not-recognized
+    | a-name(_, name) =>
+      cases (A.Name) name:
+        | s-name(_, s) =>
+          ask:
+            | s == 'String' then: t-str
+            | s == 'Number' then: t-num
+            | s == 'NumInteger' then: t-num
+            | s == 'Boolean' then: t-bool
+            | s == 'Loc' then: t-loc
+            | s == 'List' then: t-list(t-not-recognized)
+            | s == 'Option' then: t-option(t-not-recognized)
+            | otherwise: t-not-recognized
+          end
+        | else => raise("impossible (I think) " + tostring(name))
       end
-    | else => raise("impossible (I think) " + tostring(name))
+    | a-app(_, shadow ann, args) =>
+      cases (Tag) get-tag(ann):
+        | t-list(_) => t-list(get-tag(args.get(0)))
+        | t-option(_) => t-option(get-tag(args.get(0)))
+        | else => t-not-recognized
+      end
+    | a-pred(_, shadow ann, _) => get-tag(ann)
   end
 end
 
 fun get-arg-type(
-  ann-top :: A.Ann,
-  collected-data-definitions :: D.StringDict<Boolean>,
-  include-only-serializable :: Boolean
-) -> ArgType:
-  fun name-arg-type(name :: A.Name) -> ArgType:
+  ann :: A.Ann,
+  collected-data-definitions :: List<String>
+) -> VisitableArgType:
+  shadow get-arg-type = get-arg-type(_, collected-data-definitions)
+
+  fun name-arg-type(name :: A.Name) -> VisitableArgType:
     cases (A.Name) name:
       | s-name(_, s) =>
-        cases (Option) collected-data-definitions.get(s):
-          | none => arg-not-visitable
-          | some(v) =>
-            if include-only-serializable or not(v):
-              arg-visitable
-            else:
-              arg-not-visitable
-            end
+        if collected-data-definitions.member(s):
+          arg-visitable
+        else:
+          arg-not-visitable
         end
       | else => raise("impossible (I think) " + tostring(name))
     end
   end
-  cases (A.Ann) ann-top:
+  cases (A.Ann) ann:
     | a-blank => raise("You probably want to annotate")
     | a-name(_, name) => name-arg-type(name)
-    | a-app(_, ann, args) =>
-      arg-type = cases (A.Ann) ann:
-        | a-name(_, name) =>
-          # assume this name is of type Name%(is-s-name)
-          cases (Tag) get-recognizable-tag(name):
-            | t-list => arg-list
-            | t-option => arg-option
-            | else => arg-not-visitable
-          end
-        | else => raise("impossible (I think) " + tostring(ann))
+    | a-app(_, shadow ann, args) =>
+      opt = cases (Tag) get-tag(ann):
+        | t-list(_) => some(arg-list)
+        | t-option(_) => some(arg-option)
+        | else => none
       end
-      cases (ArgType) arg-type:
-        | arg-not-visitable => arg-not-visitable
-        | arg-visitable => raise("impossible")
-        | else =>
-          # this is either List or Option, so args has exactly one element
-          cases (A.Ann) args.get(0):
-            | a-name(_, name) =>
-              cases (ArgType) name-arg-type(name):
-                | arg-not-visitable => arg-not-visitable
-                | arg-visitable => arg-type
-                | else => raise("impossible")
-              end
-            | else => raise("impossible (I think) " + tostring(args.get(0)))
-          end
+      cases (Option) opt:
+        | none => arg-not-visitable
+        | some(v) => v(get-arg-type(args.get(0)))
       end
-    | a-pred(_, ann, _) =>
-      get-arg-type(ann, collected-data-definitions, include-only-serializable)
+    | a-pred(_, shadow ann, _) => get-arg-type(ann)
     | else => arg-not-visitable
   end
 end
@@ -223,7 +210,8 @@ fun visitor-maker(
   collected-variants :: List<SimplifiedVariant>,
   name :: String,
   transformer :: (SimplifiedVariant -> A.Expr),
-  is-strip-annotation :: Boolean
+  is-strip-annotation :: Boolean,
+  preamble :: String
 ) -> A.Expr:
   doc: ```
        Assume no variant member has `self` as its name, this makes a visitor
@@ -232,7 +220,7 @@ fun visitor-maker(
     A.s-method-field(
       dummy,
       variant.name,
-      empty, # TODO(Oak): not sure what this is
+      empty,
       link(
         make-bind("self"),
         if is-strip-annotation:
@@ -247,5 +235,6 @@ fun visitor-maker(
       none,
       false)
   end
-  A.s-let(dummy, make-bind(name), A.s-obj(dummy, methods), false)
+  method-preamble = SP.surface-parse(preamble, '').block.stmts.get(0).fields
+  A.s-let(dummy, make-bind(name), A.s-obj(dummy, method-preamble + methods), false)
 end

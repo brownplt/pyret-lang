@@ -86,7 +86,7 @@ end
 fun wrap-visit-check(self, target) block:
   cur-in-check = in-check-block
   in-check-block := true
-  ret = target.and-then(_.visit(self)).or-else(true)
+  ret = self.option(target)
   in-check-block := cur-in-check
   ret
 end
@@ -550,7 +550,7 @@ well-formed-visitor = AV.default-iter-visitor.{
           add-error(C.unwelcome-test-refinement(refinement.value, op))
       end
     end
-    left.visit(self) and right.and-then(_.visit(self)).or-else(true)
+    left.visit(self) and self.option(right)
   end,
   method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
     old-pbl = parent-block-loc
@@ -1005,9 +1005,6 @@ top-level-visitor = AV.default-iter-visitor.{
   end,
   method s-include(_, l, import-type):
     well-formed-visitor.s-include(l, import-type)
-  end,
-  method s-import-types(_, l, import-type, name, types):
-    well-formed-visitor.s-import-types(l, import-type, name, types)
   end,
   method s-import-fields(_, l, fields, import-type):
     well-formed-visitor.s-import-fields(l, fields, import-type)

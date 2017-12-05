@@ -524,7 +524,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
   v-params = params.map(_.visit(visitor))
   v-ann = ann.visit(visitor)
   v-body = body.visit(visitor)
-  v-check = _check.and-then(_.visit(visitor))
+  v-check = _.visit(visitor).option(_check)
   placeholder = A.s-str(l, "placeholder")
   {new-binds; new-body} = for fold(acc from {empty; v-body}, a from args):
     {new-binds; new-body} = acc
@@ -1131,7 +1131,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       with-params = self.{type-env: env}
       result = A.s-data-expr(l, name, namet, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
-        shared-members.map(_.visit(with-params)), _check-loc, _check.and-then(_.visit(with-params)))
+        shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
       datatypes.set-now(namet.key(), result)
       result
     end,
@@ -1157,7 +1157,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       with-params-and-args = with-params.{env: env}
       new-body = body.visit(with-params-and-args)
       saved-name-errors = name-errors
-      new-check = _check.and-then(_.visit(with-params)) # Maybe should be self?  Are any type params visible here?
+      new-check = with-params.option(_check) # Maybe should be self?  Are any type params visible here?
       # Restore the errors to what they were. (_check has already been desugared,
       # so the programmer will see those errors, not the ones from here.)
       name-errors := saved-name-errors
@@ -1183,7 +1183,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       new-body = body.visit(with-params.{env: env})
-      new-check = _check.and-then(_.visit(with-params))
+      new-check = with-params.option(_check)
       A.s-method(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
     end,
     method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
@@ -1206,8 +1206,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       new-body = body.visit(with-params.{env: env})
-      new-check = _check.and-then(_.visit(with-params))
-      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)    end,
+      new-check = with-params.option(_check)
+      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
+    end,
     method s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>

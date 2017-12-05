@@ -1,4 +1,14 @@
-#lang pyret
+#|
+This source file is programmatically read to generate AST visitors. Make sure
+to maintain the following:
+
+1. All AST nodes are annotated with type annotation
+2. All "built-in" annotations are either String, Boolean, Number, and Loc
+3. All atomic annotations are datatype defined in this file which contains
+   method visit
+4. Complex annotations are either List<...> or Option<...> where ... is either
+   a built-in annotation or atomic annotation
+|#
 
 provide *
 provide-types *
@@ -164,7 +174,6 @@ sharing:
   method _greaterequal(self, other): self.key() >= other.key() end,
   method _equals(self, other, eq): eq(self.key(), other.key()) end,
   method _output(self): VS.vs-str(self.tosourcestring()) end,
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -195,7 +204,6 @@ global-names = MakeName(0)
 data AppInfo:
   | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
 sharing:
-  only-serializable: true,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -257,7 +265,6 @@ data Program:
           ))
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -273,11 +280,6 @@ data Import:
     method label(self): "s-import" end,
     method tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
-    end
-  | s-import-types(l :: Loc, file :: ImportType, name :: Name, types :: Name) with:
-    method label(self): "s-import-types" end,
-    method tosource(self):
-      PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource(), PP.comma, self.types.tosource()])
     end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
     method label(self): "s-import-fields" end,
@@ -304,7 +306,6 @@ data Import:
           self.types-name.tosource()])
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -321,7 +322,6 @@ data ProvidedValue:
       PP.infix(INDENT, 1, str-coloncolon, PP.str(self.v.toname()), self.ann.tosource())
     end
 sharing:
-  only-serializable: true,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -336,7 +336,6 @@ data ProvidedAlias:
       PP.infix(INDENT, 1, str-as, PP.str(self.in-name.toname()), PP.str(self.out-name.toname()))
     end
 sharing:
-  only-serializable: true,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -351,7 +350,6 @@ data ProvidedDatatype:
       PP.str(self.d.toname())
     end
 sharing:
-  only-serializable: true,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -387,7 +385,6 @@ data Provide:
     method label(self): "s-provide-none" end,
     method tosource(self): PP.mt-doc end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -408,7 +405,6 @@ data ProvideTypes:
     method label(self): "s-provide-types-none" end,
     method tosource(self): PP.mt-doc end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -427,7 +423,6 @@ data ImportType:
             PP.separate(PP.commabreak, self.args.map(PP.str)))))
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -437,7 +432,6 @@ data Hint:
   | h-use-loc(l :: Loc) with:
     method tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -453,7 +447,6 @@ data LetBind:
       PP.group(PP.nest(INDENT, PP.str("var ") + self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -465,7 +458,6 @@ data LetrecBind:
       PP.group(PP.nest(INDENT, self.b.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -487,7 +479,6 @@ data TypeLetBind:
           + break-one + self.namet.tosource()))
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -505,7 +496,6 @@ data DefinedValue:
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id.toname()))
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -517,7 +507,6 @@ data DefinedType:
       PP.infix(INDENT, 1, str-coloncolon, PP.str(self.name), self.typ.tosource())
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1223,7 +1212,6 @@ data Expr:
       end
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
@@ -1240,7 +1228,6 @@ data TableRow:
           PP.flow-map(PP.commabreak, _.tosource(), self.elems)])
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1256,7 +1243,6 @@ data SpyField:
       PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1270,7 +1256,6 @@ data ConstructModifier:
     method label(self): "s-construct-lazy" end,
     method tosource(self): PP.str("lazy") end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1303,7 +1288,6 @@ data Bind:
       end
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1325,7 +1309,7 @@ data Member:
   | s-method-field(
       l :: Loc,
       name :: String,
-      params :: List<Name>,
+      params :: List<Name>, # Type parameters
       args :: List<Bind>, # Value parameters
       ann :: Ann, # return type
       doc :: String,
@@ -1340,7 +1324,6 @@ data Member:
         PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1355,7 +1338,6 @@ data FieldName:
       end
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
@@ -1368,7 +1350,6 @@ data ForBind:
       PP.group(self.bind.tosource() + break-one + str-from + break-one + self.value.tosource())
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1377,7 +1358,6 @@ end
 data ColumnBinds:
   | s-column-binds(l :: Loc, binds :: List<Bind>, table :: Expr)
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
@@ -1393,7 +1373,6 @@ data ColumnSortOrder:
       PP.str("descending")
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
   end
@@ -1409,7 +1388,6 @@ data ColumnSort:
       PP.flow([list: self.column.tosource(), self.direction.tosource()])
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
   end
@@ -1442,7 +1420,6 @@ data TableExtendField:
       PP.nest(INDENT, name-part + maybe-ann + str-colonspace + self.reducer.tosource() + PP.str(" ") + str-of + col-part)
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
   end
@@ -1461,7 +1438,6 @@ data LoadTableSpec:
       PP.flow([list: str-src, self.src.tosource()])
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + torepr(self)) end)
   end
@@ -1475,7 +1451,6 @@ data VariantMemberType:
     method label(self): "s-mutable" end,
     method tosource(self): PP.str("ref ") end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1488,7 +1463,6 @@ data VariantMember:
       self.member-type.tosource() + self.bind.tosource()
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1529,7 +1503,6 @@ data Variant:
       end
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1550,7 +1523,6 @@ data IfBranch:
     end
 
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1565,7 +1537,6 @@ data IfPipeBranch:
         + PP.nest(INDENT, break-one + self.body.tosource())
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1579,7 +1550,6 @@ data CasesBindType:
     method label(self): "s-cases-bind-normal" end,
     method tosource(self): PP.str("") end
 sharing:
-  only-serializable: true,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -1592,7 +1562,6 @@ data CasesBind:
       self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1615,7 +1584,6 @@ data CasesBranch:
         PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1674,7 +1642,6 @@ data CheckOp:
     method label(self): "s-op-raises-violates" end,
     method tosource(self): str-raises-violates end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1753,7 +1720,6 @@ data Ann:
     method label(self): "a-checked" end,
     method tosource(self): self.residual.tosource() end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
@@ -1768,7 +1734,6 @@ data AField:
       end
     end
 sharing:
-  only-serializable: false,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
