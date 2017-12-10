@@ -425,7 +425,7 @@ data ImportType:
     method tosource(self):
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(PP.str)))))
+            PP.separate(PP.commabreak, self.args.map(torepr).map(PP.str)))))
     end
 sharing:
   method visit(self, visitor):
