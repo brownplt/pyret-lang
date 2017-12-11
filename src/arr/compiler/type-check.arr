@@ -1291,7 +1291,7 @@ end
 fun synthesis-cases-has-else(l :: Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: {List<A.CasesBranch>; List<Type>}, _else :: A.Expr, context :: Context) -> TypingResult:
   synthesis(_else, false, context).bind(
     lam(new-else, else-type, shadow context):
-      new-cases = A.s-cases-else(l, ann, new-val, split-result.{0}, new-else)
+      new-cases = A.s-cases-else(l, ann, new-val, split-result.{0}, new-else, false)
       meet-branch-types(link(else-type, split-result.{1}), l, context).typing-bind(lam(branches-type, shadow context):
         typing-result(new-cases, branches-type.set-loc(l), context)
       end)
