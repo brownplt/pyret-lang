@@ -14,6 +14,9 @@ fun no-cases-exn(l, val):
 end
 
 desugar-visitor = A.default-map-visitor.{
+  method s-template(self, l):
+    A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
+  end,
   method s-cases-else(self, l, typ, val, branches, els, blocky):
     name = A.global-names.make-atom("cases")
     typ-compiled = typ.visit(self)
