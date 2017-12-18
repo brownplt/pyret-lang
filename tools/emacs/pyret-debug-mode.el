@@ -73,7 +73,10 @@
   "Fetch line number at point."
   (save-excursion
     (beginning-of-line)
-    (gethash (point) pyret-debug-line-starts)))
+    (or (gethash (point) pyret-debug-line-starts)
+        (progn (previous-line)
+               (beginning-of-line)
+               (gethash (point) pyret-debug-line-starts)))))
 
 (defun pyret-debug-update-nestings ()
   "Update the debug buffer with the nestings at the current point."
