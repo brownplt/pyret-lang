@@ -558,6 +558,14 @@
 
     var isEmpty = gf(L, "is-empty").app;
     var isLink = gf(L, "is-link").app;
+    function listLength(lst) {
+      var len = 0;
+      while (isLink(lst)) {
+        len++;
+        lst = gf(lst, "rest");
+      }
+      return len;
+    }
 
     function isList(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }
 
@@ -682,6 +690,7 @@
       isList: isList,
       isLink: isLink,
       isEmpty : isEmpty,
+      listLength: listLength,
 
       isErrorDisplay: isErrorDisplay,
       checkErrorDisplay: checkErrorDisplay,
