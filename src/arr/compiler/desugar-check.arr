@@ -110,10 +110,6 @@ fun get-checks(stmts):
               | some(v) => v
             end
             link(check-info(l, check-name, body.visit(check-stmts-visitor), keyword-check), add-check(rest))
-          | s-template(l) =>
-            link(check-info(l, "Incomplete test",
-                A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)]), false),
-              add-check(rest))
           | else => add-check(rest)
         end
     end
