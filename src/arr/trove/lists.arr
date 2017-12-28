@@ -108,6 +108,9 @@ data List<a>:
       doc: ```Returns a string containing the tostring() forms of the elements of this list,
             joined by the provided separator string```
       ""
+    end,
+    method join-str-last(self :: List<a>, sep :: String, last-sep :: String) -> String:
+      ""
     end
   | link(first :: a, rest :: List<a>) with:
 
@@ -224,6 +227,19 @@ data List<a>:
             joined by the provided separator string```
       if is-link(self.rest):
          tostring(self.first) + str + self.rest.join-str(str)
+      else:
+         tostring(self.first)
+      end
+    end,
+    method join-str-last(self :: List<a>, sep :: String, last-sep :: String) -> String:
+      doc: ```Returns a string containing the tostring() forms of the elements of this list,
+            joined by the provided separator string, and the provided last-separator before the last string```
+      if is-link(self.rest):
+        if is-empty(self.rest.rest):
+          tostring(self.first) + last-sep + tostring(self.rest.first)
+        else:
+          tostring(self.first) + sep + self.rest.join-str-last(sep, last-sep)
+        end
       else:
          tostring(self.first)
       end
@@ -913,6 +929,10 @@ end
 
 fun join-str(l :: List<String>, s :: String) -> String:
   l.join-str(s)
+end
+
+fun join-str-last(l :: List<String>, sep :: String, last-sep :: String) -> String:
+  l.join-str-last(sep, last-sep)
 end
 
 list = {

@@ -329,17 +329,15 @@ fun draw-and-highlight(l):
 end
 
 data CompileError:
-  | wf-err(msg :: String, loc :: A.Loc) with:
+  | wf-err(msg :: List<ED.ErrorDisplay>, loc :: A.Loc) with:
     method render-fancy-reason(self):
       self.render-reason()
     end,
     method render-reason(self):
       [ED.error:
-        [ED.para:
-          ED.text("Well-formedness:"),
-          ED.text(self.msg),
-          ED.text("at")],
-        draw-and-highlight(self.loc)]
+        ED.paragraph([list: ED.highlight(ED.text("Well-formedness:"), [list: self.loc], 0), ED.text(" ")]
+            + self.msg),
+        ED.cmcode(self.loc)]
     end
   | wf-empty-block(loc :: A.Loc) with:
     method render-fancy-reason(self):
