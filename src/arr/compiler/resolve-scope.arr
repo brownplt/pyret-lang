@@ -778,9 +778,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun type-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
-    for SD.each-key(name from initial.globals.types):
+    for SD.each-key(name from initial.globals.types) block:
       mod-info = initial.mods.get-value(initial.globals.types.get-value(name))
-      acc.set-now(name, C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none))
+      b = C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)
+      type-bindings.set-now(names.s-type-global(name).key(), b)
+      acc.set-now(name, b)
     end
     acc.freeze()
   end

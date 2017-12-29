@@ -26,6 +26,15 @@ check "lam-id": ff("f = lam(y): y end") is some(0) end
 check "dot": ff("f = lam(o): o.x end") is some(0) end
 check "bang": ff("f = lam(o): o!x end") is some(0) end
 check "tuple-get": ff("f = lam(o): o.{3} end") is some(0) end
+
+# NOTE(joe): this is none because we don't know what annotations might be
+# checked
+check "extend": ff("f = lam(o): o!{x:3} end") is none end
+
+# NOTE(joe): this may need to change if object extension starts checking
+# annotations in order to preserve brands
+check "update": ff("f = lam(o): o.{x:3} end") is some(0) end
+
 check "lam": ff("f = lam(o): lam(p): o + p end end") is some(0) end
 
 check "letrec": ff("f = lam(n): letrec o = 10, p = 11: {o; p} end end") is some(0) end
@@ -136,7 +145,19 @@ end
 ```) is some(1)
 end
 
-check "constructor annotated":
+check "constructor locally annotated":
+  ff(```
+type T = {}
+data D:
+  | c(x :: T)
+end
+fun f(o):
+  c(o)
+end
+```) is some(1)
+end
+
+check "constructor annotated from globals":
   ff(```
 data D:
   | c(x :: Number)
@@ -147,7 +168,36 @@ end
 ```) is some(1)
 end
 
-#| TODO(joe): this is the next thing to do
+check "constructor aliased from globals":
+  ff(```
+type N = Number
+data D:
+  | c(x :: N)
+end
+fun f(o):
+  c(o)
+end
+```) is some(1)
+end
+
+check "constructor local flat refined":
+  ff(```
+fun is-foo(x): num-equal(num-modulo(x, 2), 1) end
+type T = {}
+data D:
+  | c(x :: T%(is-foo))
+end
+fun f(o):
+  c(o)
+end
+```) is none
+
+# TODO(joe): make this pass with some(1)! This should work with some limited
+# fixpointing/mutual work between the annotation step and the value step, to
+# convince the annotation step that is-foo is flat
+
+end
+
 check "constructor refined":
   ff(```
 fun is-foo(x): x == "foo" end
@@ -159,5 +209,19 @@ fun f(o):
 end
 ```) is none
 end
-|#
+
+check "constructor refined with alias":
+  ff(```
+fun is-foo(x): x == "foo" end
+type N = Number%(is-foo)
+data D:
+  | c(x :: N)
+end
+fun f(o):
+  c(o)
+end
+```) is none
+end
+
+
 

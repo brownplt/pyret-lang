@@ -8,15 +8,80 @@ import file("ast-anf.arr") as AA
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 
+fun flatness-max(a :: Option<Number>, b :: Option<Number>) -> Option<Number>:
+  # read the docs, maybe there's a quicker way to write this
+  cases (Option) a:
+    | some(a-val) =>
+      cases (Option) b:
+        | some(b-val) =>
+          some(num-max(a-val, b-val))
+        | none => none
+      end
+    | none => none
+  end
+end
+
+
+fun ann-flatness(
+  ann :: A.Ann,
+  val-env :: SD.MutableStringDict<Option<Number>>,
+  ann-env :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
+
+  cases(A.Ann) ann:
+    | a-blank => some(0)
+    | a-any(l) => some(0)
+    | a-name(l, id) =>
+      ann-env.get-now(id.key()).or-else(none)
+    | a-type-var(l, id) => some(0)
+    | a-arrow(l, _, _, _) =>
+      #NOTE(joe): This is a flat check because it's not higher-order; we don't check args and ret
+      some(0)
+    | a-arrow-argnames(l, _, _, _) =>
+      #NOTE(joe): This is a flat check because it's not higher-order; we don't check args and ret
+      some(0)
+    | a-method(l, _, _) => some(0)
+    | a-record(l, fields) =>
+      for fold(flatness from some(0), f from fields):
+        flatness-max(flatness, ann-flatness(f.ann, val-env, ann-env))
+      end
+    | a-tuple(l, fields) =>
+      for fold(flatness from some(0), f from fields):
+        flatness-max(flatness, ann-flatness(f, val-env, ann-env))
+      end
+    | a-app(l, base, _) =>
+      # NOTE(joe): the args are ignored because we don't dynamically check
+      # the Number in List<Number>
+      ann-flatness(base, val-env, ann-env)
+    | a-pred(l, base, exp) =>
+      val-flatness = val-env.get-now(exp.id.key()).or-else(none)
+      flatness-max(
+        ann-flatness(base, val-env, ann-env),
+        val-flatness
+      )
+    | a-dot(l, obj, field) => none # TODO(joe): module-ids should make this doable...
+    | a-checked(checked, residual) => none
+  end
+
+end
+
+
 fun make-expr-data-env(
     aexpr :: AA.AExpr,
     sd :: SD.MutableStringDict<Option<Number>>,
+    ad :: SD.MutableStringDict<Option<Number>>,
     type-name-to-variants :: SD.MutableStringDict<List<AA.AVariant>>,
     alias-to-type-name :: SD.MutableStringDict<String>):
-  cases(AA.AExpr) aexpr:
+  cases(AA.AExpr) aexpr block:
     | a-type-let(_, bind, body) =>
-      make-expr-data-env(body, sd, type-name-to-variants,
-        alias-to-type-name)
+      cases(AA.ATypeBind) bind:
+        | a-newtype-bind(l, name-of-type, name-of-brand-value) =>
+          # We know that the annotation for a newtype bind is just a flat
+          # brand check, so make it some(0)
+          ad.set-now(name-of-type.key(), some(0))
+        | a-type-bind(l, name-of-alias, underlying-ann) =>
+          ad.set-now(name-of-alias.key(), ann-flatness(underlying-ann, sd, ad))
+      end
+      make-expr-data-env(body, sd, ad, type-name-to-variants, alias-to-type-name)
     | a-let(_, bind, val, body) => block:
         if AA.is-a-data-expr(val) block:
           type-name-to-variants.set-now(bind.id.key(), val.variants)
@@ -35,40 +100,50 @@ fun make-expr-data-env(
         else if AA.is-a-dot(val) and AA.is-a-id-safe-letrec(val.obj):
           # Check for: xyz = Type.is-variant or xyz = Type.flat-constructor
           type-name-opt = alias-to-type-name.get-now(val.obj.id.key())
-          when is-some(type-name-opt):
+          when is-some(type-name-opt) block:
             type-name = type-name-opt.value
             variants = type-name-to-variants.get-value-now(type-name)
-            is-is-function = string-index-of(val.field, "is-") == 0
-            when is-is-function or any(lam(v): (v.name == val.field) and AA.is-a-variant(v) end, variants):
+
+            is-is-function = any(lam(v): ("is-" + v.name) == val.field end, variants)
+            when is-is-function:
               sd.set-now(bind.id.key(), some(0))
             end
+
+            the-variant = find(lam(v): (v.name == val.field) and AA.is-a-variant(v) end, variants)
+            when is-some(the-variant):
+              variant-flatness = for fold(flatness from some(0), m from the-variant.value.members):
+                flatness-max(flatness, ann-flatness(m.bind.ann, sd, ad))
+              end
+              sd.set-now(bind.id.key(), variant-flatness)
+            end
+
           end
         else:
-          none
+          nothing
         end
-        make-lettable-data-env(val, sd, type-name-to-variants,
+        make-lettable-data-env(val, sd, ad, type-name-to-variants,
           alias-to-type-name)
-        make-expr-data-env(body, sd, type-name-to-variants,
+        make-expr-data-env(body, sd, ad, type-name-to-variants,
           alias-to-type-name)
       end
     | a-arr-let(_, bind, idx, e, body) => block:
-        make-lettable-data-env(e, sd, type-name-to-variants,
+        make-lettable-data-env(e, sd, ad, type-name-to-variants,
           alias-to-type-name)
-        make-expr-data-env(body, sd, type-name-to-variants,
+        make-expr-data-env(body, sd, ad, type-name-to-variants,
           alias-to-type-name)
       end
     | a-var(_, bind, val, body) =>
-      make-expr-data-env(body, sd, type-name-to-variants,
+      make-expr-data-env(body, sd, ad, type-name-to-variants,
         alias-to-type-name)
     | a-seq(_, lettable, expr) =>
       block:
-        make-lettable-data-env(lettable, sd, type-name-to-variants,
+        make-lettable-data-env(lettable, sd, ad, type-name-to-variants,
           alias-to-type-name)
-        make-expr-data-env(expr, sd, type-name-to-variants,
+        make-expr-data-env(expr, sd, ad, type-name-to-variants,
           alias-to-type-name)
       end
     | a-lettable(_, l) =>
-      make-lettable-data-env(l, sd, type-name-to-variants,
+      make-lettable-data-env(l, sd, ad, type-name-to-variants,
         alias-to-type-name)
   end
 end
@@ -76,6 +151,7 @@ end
 fun make-lettable-data-env(
     lettable :: AA.ALettable,
     sd :: SD.MutableStringDict<Option<Number>>,
+    ad :: SD.MutableStringDict<Option<Number>>,
     type-name-to-variants :: SD.MutableStringDict<List<AA.AVariant>>,
     alias-to-type-name :: SD.MutableStringDict<String>):
   default-ret = none
@@ -84,9 +160,9 @@ fun make-lettable-data-env(
       default-ret
     | a-if(_, c, t, e) =>
       block:
-        make-expr-data-env(t, sd, type-name-to-variants,
+        make-expr-data-env(t, sd, ad, type-name-to-variants,
           alias-to-type-name)
-        make-expr-data-env(e, sd, type-name-to-variants,
+        make-expr-data-env(e, sd, ad, type-name-to-variants,
           alias-to-type-name)
       end
     | a-assign(_, id, value) =>
@@ -130,29 +206,16 @@ fun make-lettable-data-env(
     | a-data-expr(l, name, namet, vars, shared) => default-ret
     | a-cases(_, typ, val, branches, els) => block:
         visit-branch = lam(case-branch):
-          make-expr-data-env(case-branch.body, sd, type-name-to-variants,
+          make-expr-data-env(case-branch.body, sd, ad, type-name-to-variants,
             alias-to-type-name)
         end
         each(visit-branch, branches)
-        make-expr-data-env(els, sd, type-name-to-variants,
+        make-expr-data-env(els, sd, ad, type-name-to-variants,
           alias-to-type-name)
       end
   end
 end
 
-
-fun flatness-max(a :: Option<Number>, b :: Option<Number>) -> Option<Number>:
-  # read the docs, maybe there's a quicker way to write this
-  cases (Option) a:
-    | some(a-val) =>
-      cases (Option) b:
-        | some(b-val) =>
-          some(num-max(a-val, b-val))
-        | none => none
-      end
-    | none => none
-  end
-end
 
 fun is-trivial-ann(ann):
   A.is-a-blank(ann) or A.is-a-any(ann)
@@ -162,21 +225,23 @@ end
 # Maybe compress Option<Number> into a type like FlatnessInfo or something (maybe something without "Info" in the name)
 fun make-expr-flatness-env(
     aexpr :: AA.AExpr,
-    sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
-  cases(AA.AExpr) aexpr:
+    sd :: SD.MutableStringDict<Option<Number>>,
+    ad :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
+  cases(AA.AExpr) aexpr block:
     | a-type-let(_, bind, body) =>
-      make-expr-flatness-env(body, sd)
+      make-expr-flatness-env(body, sd, ad)
     | a-let(_, bind, val, body) =>
+
       val-flatness = if AA.is-a-lam(val) block:
         has-nontrivial-arg-ann = for lists.any(elt from val.args):
           not(is-trivial-ann(elt.ann))
         end
         has-nontrivial-ann = has-nontrivial-arg-ann or not(is-trivial-ann(val.ret))
 
-        lam-flatness = if has-nontrivial-ann:
+        lam-flatness = if has-nontrivial-ann block:
           none
         else:
-          make-expr-flatness-env(val.body, sd)
+          make-expr-flatness-env(val.body, sd, ad)
         end
 
         sd.set-now(bind.id.key(), lam-flatness)
@@ -197,26 +262,30 @@ fun make-expr-flatness-env(
           some(0)
         end
       else:
-        make-lettable-flatness-env(val, sd)
+        make-lettable-flatness-env(val, sd, ad)
       end
 
       # Compute the flatness of the body
-      body-flatness = make-expr-flatness-env(body, sd)
+      body-flatness = make-expr-flatness-env(body, sd, ad)
 
-      flatness-max(val-flatness, body-flatness)
+      ann-f = ann-flatness(bind.ann, sd, ad)
+
+      flatness-max(flatness-max(val-flatness, body-flatness), ann-f)
     | a-arr-let(_, bind, idx, e, body) =>
       # Could maybe try to add some string like "bind.name + idx" to the
       # sd to let us keep track of the flatness if e is an a-lam, but for
       # now we don't since I'm not sure it'd work right.
-      flatness-max(make-lettable-flatness-env(e, sd), make-expr-flatness-env(body, sd))
+      flatness-max(ann-flatness(bind.ann, sd, ad),
+        flatness-max(make-lettable-flatness-env(e, sd, ad), make-expr-flatness-env(body, sd, ad)))
     | a-var(_, bind, val, body) =>
       # Do same thing with a-var as with a-let for now
-      make-expr-flatness-env(body, sd)
+      flatness-max(ann-flatness(bind.ann, sd, ad), make-expr-flatness-env(body, sd, ad))
     | a-seq(_, lettable, expr) =>
-      a-flatness = make-lettable-flatness-env(lettable, sd)
-      b-flatness = make-expr-flatness-env(expr, sd)
+      a-flatness = make-lettable-flatness-env(lettable, sd, ad)
+      b-flatness = make-expr-flatness-env(expr, sd, ad)
       flatness-max(a-flatness, b-flatness)
-    | a-lettable(_, l) => make-lettable-flatness-env(l, sd)
+    | a-lettable(_, l) =>
+      make-lettable-flatness-env(l, sd, ad)
   end
 end
 
@@ -234,19 +303,21 @@ end
 
 fun make-lettable-flatness-env(
     lettable :: AA.ALettable,
-    sd :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
+    sd :: SD.MutableStringDict<Option<Number>>,
+    ad :: SD.MutableStringDict<Option<Number>>) -> Option<Number>:
   default-ret = some(0)
   cases(AA.ALettable) lettable:
     | a-module(_, answer, dv, dt, provides, types, checks) =>
       default-ret
     | a-if(_, c, t, e) =>
-      flatness-max(make-expr-flatness-env(t, sd), make-expr-flatness-env(e, sd))
+      flatness-max(make-expr-flatness-env(t, sd, ad), make-expr-flatness-env(e, sd, ad))
 
     # NOTE -- a-assign might not be flat b/c it checks annotations
     | a-assign(_, id, value) =>
       block:
         when AA.is-a-id(value) and sd.has-key-now(value.id.key()):
-          sd.set-now(id.key(), sd.get-value-now(value.id.key()))
+          sd.set-now(id.key(),
+            flatness-max(sd.get-now(id.key()).or-else(some(0)), sd.get-value-now(value.id.key())))
         end
         default-ret
       end
@@ -263,6 +334,9 @@ fun make-lettable-flatness-env(
       # For now method calls are infinite flatness
       none
     | a-prim-app(_, f, args) => get-flatness-for-call(f, sd)
+
+    | a-update(_, supe, fields) => none
+
       # TODO: Treat prim-app as flat
       # Not worrying about these cases yet, though if they all deal with values, should be trivial
     | a-ref(_, ann) => default-ret
@@ -270,41 +344,33 @@ fun make-lettable-flatness-env(
     | a-tuple-get(_, tup, index) => default-ret
     | a-obj(_, fields) => default-ret
 
-    # NOTE -- update might not be flat b/c it checks annotations
-    | a-update(_, supe, fields) => default-ret
     | a-extend(_, supe, fields) => default-ret
     | a-dot(_, obj, field) => default-ret
     | a-colon(_, obj, field) => default-ret
-    | a-get-bang(_, obj, field) =>
-      default-ret
+    | a-get-bang(_, obj, field) => default-ret
     | a-lam(_, name, args, ret, body) => default-ret
-    | a-method(_, name, args, ret, body) =>
-      default-ret
-    | a-id-var(_, id) =>
-      default-ret
-    | a-id-letrec(_, id, safe) =>
-      default-ret
-    | a-id-safe-letrec(_, id) =>
-      default-ret
-    | a-val(_, v) =>
-      default-ret
-    | a-data-expr(l, name, namet, vars, shared) =>
-      default-ret
+    | a-method(_, name, args, ret, body) => default-ret
+    | a-id-var(_, id) => default-ret
+    | a-id-letrec(_, id, safe) => default-ret
+    | a-id-safe-letrec(_, id) => default-ret
+    | a-val(_, v) => default-ret
+    | a-data-expr(l, name, namet, vars, shared) => default-ret
     # NOTE -- cases might not be flat b/c it checks annotations
     | a-cases(_, typ, val, branches, els) =>
       # Flatness is the max of the flatness all the cases branches
       combine = lam(case-branch, max-flat):
-        branch-flatness = make-expr-flatness-env(case-branch.body, sd)
+        branch-flatness = make-expr-flatness-env(case-branch.body, sd, ad)
         flatness-max(max-flat, branch-flatness)
       end
       max-flat = branches.foldl(combine, some(0))
 
-      else-flat = make-expr-flatness-env(els, sd)
-      flatness-max(max-flat, else-flat)
+      else-flat = make-expr-flatness-env(els, sd, ad)
+      typ-flat = ann-flatness(typ, sd, ad)
+      flatness-max(typ-flat, flatness-max(max-flat, else-flat))
   end
 end
 
-fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, env :: C.CompileEnvironment) -> SD.StringDict<Number> block:
+fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, type-bindings :: SD.MutableStringDict<C.TypeBind>, env :: C.CompileEnvironment) -> SD.StringDict<Number> block:
 
   sd = SD.make-mutable-string-dict()
   for SD.each-key-now(k from bindings):
@@ -314,8 +380,8 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
         | none =>
           when A.is-s-global(vb.atom) block:
             name = vb.atom.toname()
-            uri = env.globals.values.get-value(name)
-            provides-opt = env.mods.get(uri)
+            dep = env.globals.values.get-value(name)
+            provides-opt = env.mods.get(dep)
             cases (Option) provides-opt:
               | none => nothing
               | some(provides) =>
@@ -344,13 +410,52 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
     end
   end
 
+
+  ad = SD.make-mutable-string-dict() # TODO(joe): initialize this from env
+  fun init-type-provides(provides, tb) block:
+    name = tb.atom.toname()
+    when provides.data-definitions.has-key(name):
+      ad.set-now(tb.atom.key(), some(0))
+    end
+    when provides.aliases.has-key(name):
+      ad.set-now(tb.atom.key(), none)
+    end
+  end
+  print("The bindings: " + to-repr(type-bindings) + "\n")
+  for SD.each-key-now(k from type-bindings):
+    tb = type-bindings.get-value-now(k)
+    when C.is-bo-module(tb.origin):
+      cases(Option) tb.origin.mod block:
+        | none =>
+          when A.is-s-type-global(tb.atom) block:
+            name = tb.atom.toname()
+            dep = env.globals.types.get-value(name)
+            provides-opt = env.mods.get(dep)
+            cases (Option) provides-opt:
+              | none => nothing
+              | some(provides) =>
+                init-type-provides(provides, tb)
+            end
+          end
+        | some(import-type) =>
+          dep = AU.import-to-dep(import-type).key()
+          cases(Option) env.mods.get(dep):
+            | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + to-repr(import-type))
+            | some(provides) =>
+              init-type-provides(provides, tb)
+          end
+      end
+    end
+  end
+
+  print("The type/ann environment: " + to-repr(ad) + "\n")
+
   flatness-env = cases(AA.AProg) anfed:
     | a-program(_, prov, imports, body) => block:
-        make-expr-data-env(body, sd,
-          SD.make-mutable-string-dict(), SD.make-mutable-string-dict())
-        make-expr-flatness-env(body, sd)
-        #print("flatness env: " + tostring(sd) + "\n\n")
-        sd
+      make-expr-data-env(body, sd, ad,
+        SD.make-mutable-string-dict(), SD.make-mutable-string-dict())
+      make-expr-flatness-env(body, sd, ad)
+      sd
       end
   end
   #print("flatness env: " + tostring(flatness-env) + "\n")
