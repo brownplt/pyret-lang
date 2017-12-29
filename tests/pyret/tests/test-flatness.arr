@@ -44,7 +44,8 @@ check "divide": ff("f = lam(o): o / 1 end") is none end
 
 check "if-const": ff("f = lam(x, y, z): if x: y else: z end end") is some(0) end
 
-check "if-nested": ff(```
+check "if-nested":
+  ff(```
 
 f = lam(x, y, z):
   if if x: y else: z end:
@@ -53,6 +54,110 @@ f = lam(x, y, z):
     x
   end
 end
-                      ```) is some(0) end
+                      ```) is some(0)
+end
 
+check "builtins":
+  # NOTE(joe): these should be defined in globals.js; just trying a handful to
+  # ensure the pattern used there works and does not regress
+  ff("f = lam(x): num-to-string(x) end") is some(1)
+  ff("f = lam(x): string-split(x, \" \") end") is some(1)
+  ff("f = lam(x): num-sqrt(x) end") is some(1)
+  ff("f = lam(x): num-sin(num-cos(num-tan(x))) end") is some(1)
+  ff("f = lam(x): within(x) end") is some(1)
+end
+
+check "nonflat builtins":
+  ff("f = lam(x): print(x) end") is none
+  ff("f = lam(x): print-error(x) end") is none
+  ff("f = lam(x): display(x) end") is none
+  ff("f = lam(x): display-error(x) end") is none
+  ff("f = lam(x): to-string(x) end") is none
+  ff("f = lam(x): tostring(x) end") is none
+  ff("f = lam(x): to-repr(x) end") is none
+  ff("f = lam(x): torepr(x) end") is none
+end
+
+check "call-a-flat":
+  ff(```
+g = lam(x): x end
+f = lam(y): g(y) end
+```) is some(1)
+end
+
+check "call-a-flat-2":
+  ff(```
+g = lam(x): x end
+f = lam(y): g(g(y)) end
+```) is some(1)
+end
+
+check "bind-nested-call":
+  ff(```
+g = lam(x): x end
+f = lam(y): let x = g(g(y)): num-modulo(x, 2) end end
+```) is some(1)
+end
+
+check "two-deep":
+  ff(```
+h = lam(x): x end
+g = lam(x): h(x) end
+f = lam(y): g(y) end
+```) is some(2)
+end
+
+check "imported constructor":
+  ff(```
+include either
+fun f(x):
+  right(x)
+end
+```) is some(1)
+end
+
+check "direct constructor":
+  ff(```
+include either
+data D:
+  | f(x)
+end
+```) is some(0)
+end
+
+check "constructor":
+  ff(```
+data D:
+  | c(x)
+end
+fun f(o):
+  c(o)
+end
+```) is some(1)
+end
+
+check "constructor annotated":
+  ff(```
+data D:
+  | c(x :: Number)
+end
+fun f(o):
+  c(o)
+end
+```) is some(1)
+end
+
+#| TODO(joe): this is the next thing to do
+check "constructor refined":
+  ff(```
+fun is-foo(x): x == "foo" end
+data D:
+  | c(x :: Number%(is-foo))
+end
+fun f(o):
+  c(o)
+end
+```) is none
+end
+|#
 

@@ -252,7 +252,7 @@ fun make-lettable-flatness-env(
       end
     | a-app(_, f, args, _) =>
       # Look up flatness in the dictionary
-      if AA.is-a-id(f):
+      if AA.is-a-id(f) or AA.is-a-id-safe-letrec(f):
         get-flatness-for-call(f.id.key(), sd)
       else:
         # This should never happen in a "correct" program, but it's not our job
