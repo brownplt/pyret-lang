@@ -116,7 +116,10 @@ define("pyret-base/js/type-util", [], function() {
       if(value.bind === "fun") {
         typ = value.typ;
         wrapper = function(t) {
-          var flatness = value.flatness === parseInt(value.flatness) ? value.flatness : false;
+          // Flatness had better be (a) an integer and (b) a non-negative number,
+          // otherwise treat it as an infinitely-deep function
+          var flatnessInt = parseInt(value.flatness);
+          var flatness = flatnessInt === flatness && flatnessInt >= 0;
           return runtime.makeObject({ bind: "fun", name: value.name || "", flatness: flatness, typ: t});
         };
       }
