@@ -169,7 +169,7 @@ fun make-expr-flatness-env(
     | a-let(_, bind, val, body) =>
       val-flatness = if AA.is-a-lam(val) block:
         has-nontrivial-arg-ann = for lists.any(elt from val.args):
-          not(is-trivial-ann(elt))
+          not(is-trivial-ann(elt.ann))
         end
         has-nontrivial-ann = has-nontrivial-arg-ann or not(is-trivial-ann(val.ret))
 

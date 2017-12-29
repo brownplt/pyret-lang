@@ -116,7 +116,7 @@ define("pyret-base/js/type-util", [], function() {
       if(value.bind === "fun") {
         typ = value.typ;
         wrapper = function(t) {
-          var flatness = value.flatness == parseInt(value.flatness) ? value.flatness : false;
+          var flatness = value.flatness === parseInt(value.flatness) ? value.flatness : false;
           return runtime.makeObject({ bind: "fun", name: value.name || "", flatness: flatness, typ: t});
         };
       }
@@ -264,7 +264,15 @@ define("pyret-base/js/type-util", [], function() {
   }
 
   function expandType(typ, shorthands) {
-    if(typ.bind) {
+    if(typ.bind == 'fun') {
+      return {
+        bind: typ.bind,
+        flatness: typ.flatness,
+        name: typ.name,
+        typ: expandType(typ.typ, shorthands)
+      };
+    }
+    else if (typ.bind === 'var') {
       return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
     }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
