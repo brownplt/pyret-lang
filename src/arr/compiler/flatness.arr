@@ -421,7 +421,6 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
       ad.set-now(tb.atom.key(), none)
     end
   end
-  print("The bindings: " + to-repr(type-bindings) + "\n")
   for SD.each-key-now(k from type-bindings):
     tb = type-bindings.get-value-now(k)
     when C.is-bo-module(tb.origin):
@@ -448,7 +447,6 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
     end
   end
 
-  print("The type/ann environment: " + to-repr(ad) + "\n")
 
   flatness-env = cases(AA.AProg) anfed:
     | a-program(_, prov, imports, body) => block:

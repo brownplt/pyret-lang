@@ -1051,7 +1051,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               | tb-module(dot-uri) =>
                 T.t-name(module-uri(dot-uri), A.s-name(l, field), l, false)
               | else =>
-                raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope.")
+                T.t-top(l, false)
+                # raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope. " + to-repr(A.a-dot(l, obj, field)) + "\n" + to-repr(b) + "\n")
             end
         end
       | a-checked(checked, residual) =>
