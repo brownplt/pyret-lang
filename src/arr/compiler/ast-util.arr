@@ -1051,8 +1051,25 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               | tb-module(dot-uri) =>
                 T.t-name(module-uri(dot-uri), A.s-name(l, field), l, false)
               | else =>
+
+                # NOTE(joe): This case comes up in the way we expose modules
+                # across repl entries. If one entry does `import string-dict as
+                # SD` others will see it as a type-let bound type (tb-type-let
+                # in compile-structs). If those entries use
+                # `SD.MutableStringDict` as an annotation on a provided value,
+                # then it will look like an a-dot is happening to a type-let
+                # bound type. The fundamental issue is that type-env-from-env
+                # in resolve-names can't distinguish between modules and
+                # aliases coming from globals, so these necessarily get
+                # conflated. Ideally, we'd have more information in Globals to
+                # tell us this, and that would let all of the appropriate setup
+                # happen in resolve scope to make this case truly never happen.
+                # Instead, this is necessary.
+
                 T.t-top(l, false)
+
                 # raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope. " + to-repr(A.a-dot(l, obj, field)) + "\n" + to-repr(b) + "\n")
+
             end
         end
       | a-checked(checked, residual) =>
