@@ -1051,9 +1051,9 @@ data CompileError:
           [ED.error:
             [ED.para:
               ED.text("The name "),
-              ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], 0)),
+              ED.code(ED.highlight(ED.text(self.ann.tosource().pretty(1000).join-str("")), [ED.locs: self.ann.l], 0)),
               ED.text(" is used to indicate a type, but a definition of a type named "),
-              ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], 0)),
+              ED.code(ED.highlight(ED.text(self.ann.tosource().pretty(1000).join-str("")), [ED.locs: self.ann.l], 0)),
               ED.text(" could not be found.")]]
       end
     end,
@@ -1065,7 +1065,7 @@ data CompileError:
             ED.text(self.ann.tosource().pretty(1000).first), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
-          ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
+          ann-name = self.ann.tosource().pretty(1000).join-str("")
           [ED.error:
             [ED.para:
               ED.text("The name "),
