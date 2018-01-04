@@ -447,10 +447,10 @@ module-const-lists = t-module("builtin://lists",
 
 t-and-then =
   t-forall(
-    [list: tva],
+    [list: tva, tvb],
     t-arrow(
       [list:
-        t-arrow([list: tva], t-option-app(tvb))
+        t-arrow([list: tva], tvb)
       ],
       t-option-app(tvb)))
 
