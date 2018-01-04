@@ -314,12 +314,8 @@ fun is-flat-enough(flatness):
   end
 end
 
-fun is-function-flat(flatness-env :: D.MutableStringDict<Option<Number>>, fun-name :: String) -> Boolean:
-  flatness-opt-opt = flatness-env.get-now(fun-name)
-  flatness-opt = cases (Option) flatness-opt-opt:
-    | some(f-opt) => f-opt
-    | none => none
-  end
+fun is-function-flat(flatness-env :: FL.FEnv, fun-name :: String) -> Boolean:
+  flatness-opt = flatness-env.get-now(fun-name).or-else(none)
   is-flat-enough(flatness-opt)
 end
 
@@ -1304,7 +1300,7 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 end
 
 fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: String) -> Boolean:
-    is-some(flatness-env.get-now(name))
+    flatness-env.has-key-now(name)
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,

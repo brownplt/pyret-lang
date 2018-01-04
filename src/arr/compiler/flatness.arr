@@ -18,7 +18,7 @@ import file("compile-structs.arr") as C
 # This notion is naturally extended to named annotations, which are similar to
 # functions in that they delay computation until later
 type Flatness = Option<Number>
-type FEnv = SD.MutableStringDict<Option<Number>>
+type FEnv = SD.MutableStringDict<Flatness>
 
 fun flatness-max(a :: Flatness, b :: Flatness) -> Flatness:
   # read the docs, maybe there's a quicker way to write this
