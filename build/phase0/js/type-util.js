@@ -268,7 +268,7 @@ define("pyret-base/js/type-util", [], function() {
       return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
     }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
-    var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
+    var prims = ["Number", "String", "Boolean", "Nothing", "Any", "Table"];
     function mkName(origin, name) {
       return { tag: "name", origin: origin, name: name };
     }
