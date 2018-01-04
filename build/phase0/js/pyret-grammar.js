@@ -548,9 +548,11 @@ R(['fs', 'jglr/jglr'], function(fs, E) {
   g.addRule("arrow-ann-args", [new Nonterm("arrow-ann-args_A1_I0"), new Nonterm("comma-ann-field"), new Token("RPAREN")])
   g.addRule("arrow-ann-args_A1_I0", [new Token("PARENSPACE")], E.Rule.Inline)
   g.addRule("arrow-ann-args_A1_I0", [new Token("PARENNOSPACE")], E.Rule.Inline)
+  g.addRule("arrow-ann-args_A1_I0", [new Token("PARENAFTERBRACE")], E.Rule.Inline)
   g.addRule("arrow-ann", [new Nonterm("arrow-ann_I0"), new Nonterm("arrow-ann_I1_opt"), new Token("THINARROW"), new Nonterm("ann"), new Token("RPAREN")])
   g.addRule("arrow-ann_I0", [new Token("PARENSPACE")], E.Rule.Inline)
   g.addRule("arrow-ann_I0", [new Token("PARENNOSPACE")], E.Rule.Inline)
+  g.addRule("arrow-ann_I0", [new Token("PARENAFTERBRACE")], E.Rule.Inline)
   g.addRule("arrow-ann_I1_opt", [], E.Rule.Inline);
   g.addRule("arrow-ann_I1_opt", [new Nonterm("arrow-ann_I1")], E.Rule.Inline);
   g.addRule("arrow-ann_I1", [new Nonterm("arrow-ann-args")], E.Rule.Inline)
