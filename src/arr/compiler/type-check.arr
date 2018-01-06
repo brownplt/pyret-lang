@@ -1734,7 +1734,8 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
           cases(A.Name) binding.id:
             | s-atom(base, _) =>
               if base == "$underscore":
-                t-top(binding.l, false)
+                # t-top(binding.l, false)
+                new-existential(binding.l, true)
               else:
                 new-existential(binding.l, true)
               end
@@ -1757,8 +1758,12 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     end
     shadow context = context.add-variable(ret-type)
     fold-arg-types = map-fold-result(lam(arg, shadow context):
+      arg-is-underscore = cases(A.Name) arg.id:
+        | s-atom(base, _) => base == "$underscore"
+        | else => false
+      end
       arg-type = coll.get-value(arg.id.key())
-      if top-level and is-t-existential(arg-type):
+      if top-level and is-t-existential(arg-type) and not(arg-is-underscore):
         fold-errors([list: C.toplevel-unann(arg)])
       else:
         shadow context = context.add-variable(arg-type)
