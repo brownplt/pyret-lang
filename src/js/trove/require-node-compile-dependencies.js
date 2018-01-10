@@ -29,3 +29,8 @@ define("http", [], function () {return http;});
 ws = nodeRequire("ws");
 define("ws", [], function () { return ws });
 
+deasync = nodeRequire("deasync");
+define("deasync", [], function () { return deasync });
+
+request = nodeRequire("request");
+define("request", [], function () { return request });

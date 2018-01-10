@@ -22,6 +22,7 @@ import file("locators/file.arr") as FL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
+import file("locators/shared-gdrive.arr") as SGD
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -339,6 +340,14 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)
+      else if protocol == "shared-gdrive":
+        clp = ctxt.current-load-path
+        filename = dep.arguments.get(0)
+        program-id = dep.arguments.get(1)
+        _ = print("Loading: shared-gdrive(" + filename + ", " + program-id + ")\n")
+
+        # TODO: change caching context...
+        CL.located(SGD.shared-gdrive-file-locator(filename, program-id, CS.standard-globals), ctxt)
       else:
         raise("Unknown import type: " + protocol)
       end
