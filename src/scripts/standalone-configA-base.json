@@ -13,6 +13,8 @@
       "requirejs": "empty:",
       "s-expression": "empty:",
       "seedrandom": "empty:",
-      "websocket": "empty:"
+      "websocket": "empty:",
+      "deasync": "empty",
+      "request": "empty"
     }
 }

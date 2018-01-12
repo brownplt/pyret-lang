@@ -42,13 +42,21 @@
       return execReq();
     }
 
+    function getProgramInfo(programId) {
+      return syncReq(CPO_SHARED_FILE_BASE_URL + encodeURIComponent(programId), 'GET', true);
+    }
+
+    function getProgramSource(gdriveFileID) {
+      return syncReq(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID), 'GET', false);
+    }
+
     var vals = {
       "get-shared-program": RUNTIME.makeFunction(function(filename, programId) {
           RUNTIME.ffi.checkArity(2, arguments, "get-shared-program", false);
           RUNTIME.checkString(filename);
           RUNTIME.checkString(programId);
 
-          programInfo = syncReq(CPO_SHARED_FILE_BASE_URL + encodeURIComponent(programId), 'GET', true);
+          programInfo = getProgramInfo(programId);
 
           if (programInfo['title'] != filename) {
             throw Error("Expected file with id " + programId + " to have name " + filename + ", but its name was " + programInfo['title'])
@@ -58,7 +66,8 @@
           selfLinkSegments = programInfo['selfLink'].split('/');
           gdriveFileID = selfLinkSegments.pop() || selfLinkSegments.pop();
 
-          programSource = syncReq(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID), 'GET', false);
+          programSource = getProgramSource(gdriveFileID);
+          //syncReq(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID), 'GET', false);
 
           //console.log(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID));
           //console.log(programInfo);
