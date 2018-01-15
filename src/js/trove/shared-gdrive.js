@@ -28,14 +28,12 @@
           /*console.error(err);
           console.error(body);
           console.error(res);*/
-
-          if (err) {
-            cb(err, null)
-          } else if (res.statusCode != 200) {
-            cb(new Error('Error: ' + body.toString()), null);
-          }
         
-          cb(null, body);
+          cb(null, {
+            'err': err,
+            'res': res,
+            'body': body
+          });
         });
       });
 
@@ -43,11 +41,29 @@
     }
 
     function getProgramInfo(programId) {
-      return syncReq(CPO_SHARED_FILE_BASE_URL + encodeURIComponent(programId), 'GET', true);
+      resp = syncReq(CPO_SHARED_FILE_BASE_URL + encodeURIComponent(programId), 'GET', true);
+
+      if (resp.err) {
+        // Todo: find a more appropriate exception type.
+        throw RUNTIME.ffi.throwMessageException('Network Error: Please check your internet connection.');
+      } else if (resp.res.statusCode != 200) {
+        throw RUNTIME.ffi.throwMessageException('Error: no such module "' + programId + '".');
+      }
+
+      return resp.body;
     }
 
     function getProgramSource(gdriveFileID) {
-      return syncReq(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID), 'GET', false);
+      resp = syncReq(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID), 'GET', false);
+
+      if (resp.err) {
+        // Todo: find a more appropriate exception type.
+        throw RUNTIME.ffi.throwMessageException('Network Error: Please check your internet connection.');
+      } else if (resp.res.statusCode != 200) {
+        throw RUNTIME.ffi.throwMessageException('Error: failed to download module from Google Drive.');
+      }
+
+      return resp.body;
     }
 
     var vals = {
@@ -59,7 +75,7 @@
           programInfo = getProgramInfo(programId);
 
           if (programInfo['title'] != filename) {
-            throw Error("Expected file with id " + programId + " to have name " + filename + ", but its name was " + programInfo['title'])
+            throw RUNTIME.ffi.throwMessageException("Error: Expected file with id " + programId + " to have name " + filename + ", but its name was " + programInfo['title'])
           }
 
           // Extract Google Drive file ID and download without the use of the Google Drive API
@@ -67,12 +83,7 @@
           gdriveFileID = selfLinkSegments.pop() || selfLinkSegments.pop();
 
           programSource = getProgramSource(gdriveFileID);
-          //syncReq(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID), 'GET', false);
-
-          //console.log(GDRIVE_DOWNLOAD_BASE_URL + encodeURIComponent(gdriveFileID));
-          //console.log(programInfo);
-          //console.log(programSource);
-
+          
           return RUNTIME.makeObject({
             src: programSource,
             modifiedDate: Number(new Date(programInfo['modifiedDate']))

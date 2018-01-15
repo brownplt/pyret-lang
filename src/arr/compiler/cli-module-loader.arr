@@ -344,7 +344,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         clp = ctxt.current-load-path
         filename = dep.arguments.get(0)
         program-id = dep.arguments.get(1)
-        _ = print("Loading: shared-gdrive(" + filename + ", " + program-id + ")\n")
+        _ = print("\nLoading: shared-gdrive(" + filename + ", " + program-id + ")\n")
 
         # TODO: change caching context...
         CL.located(SGD.shared-gdrive-file-locator(filename, program-id, CS.standard-globals), ctxt)
