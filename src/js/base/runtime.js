@@ -2282,7 +2282,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalAlways(v1, v2) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a, false); }
-      if(typeof v1 === "number" || typeof v1 === "string" || typeof v1 === "boolean") {
+      if (typeof v1 === 'number'  && typeof v2 === 'number' ||
+          typeof v1 === 'string'  && typeof v2 === 'string' ||
+          typeof v1 === 'boolean' && typeof v2 === 'boolean') {
         return v1 === v2;
       }
       return safeCall(function() {
