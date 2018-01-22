@@ -1733,12 +1733,7 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
         | none =>
           cases(A.Name) binding.id:
             | s-atom(base, _) =>
-              if base == "$underscore":
-                # t-top(binding.l, false)
-                new-existential(binding.l, true)
-              else:
-                new-existential(binding.l, true)
-              end
+              new-existential(binding.l, true)
             | else =>
               new-existential(binding.l, true)
           end
