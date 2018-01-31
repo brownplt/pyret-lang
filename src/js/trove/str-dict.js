@@ -16,8 +16,8 @@
                     origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
                     name: "ValueSkeleton" },
       "SetOfA": ["tyapp", { tag: "name",
-               origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
-               name: "ValueSkeleton" }, [["tid", "a"]]]
+               origin: { "import-type": "uri", uri: "builtin://sets" },
+               name: "Set" }, [["tid", "a"]]]
     },
     values: {
       "make-string-dict": ["forall", ["a"], ["arrow", [], "sdOfA"]],
@@ -1538,4 +1538,3 @@
       return runtime.makeModuleReturn(vals, types, internal);
     }
   })
-

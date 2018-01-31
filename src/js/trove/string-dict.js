@@ -16,8 +16,8 @@
                     origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
                     name: "ValueSkeleton" },
       "SetOfA": ["tyapp", { tag: "name",
-               origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
-               name: "ValueSkeleton" }, [["tid", "a"]]],
+               origin: { "import-type": "uri", uri: "builtin://sets" },
+               name: "Set" }, [["tid", "a"]]],
       "tva": ["tid", "a"],
       "idB": ["tid", "b"]
     },
