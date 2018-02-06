@@ -12,4 +12,5 @@ end
 
 f(s.get("b"))
 
-x :: Set<String> = [S.string-dict: "a", 1].keys()
+sd :: S.StringDict<Number> = [S.string-dict: "a", 1]
+x :: Set<String> = sd.keys()
