@@ -59,7 +59,7 @@ PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
 STOPIFIED_RUNTIME := ./src/js/base/stopified-vhull-runtime.js
-
+STOPIFY_SRC := ./node_modules/Stopify/dist/stopify.bundle.js
 
 
 # NOTE: Needs TWO blank lines here, dunno why
@@ -89,7 +89,7 @@ endif
 phaseA: $(PHASEA)/pyret.jarr
 
 # Build stopified vhull runtime
-$(STOPIFIED_RUNTIME): ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js
+$(STOPIFIED_RUNTIME): ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js $(STOPIFY_SRC)
 	node ./build-vhull-runtime.js
 
 # Force rebuild stopify (use when stopify compiler is update).
@@ -138,7 +138,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
 
-$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
+$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js $(STOPIFY_SRC)
 	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
@@ -155,7 +155,7 @@ else
 EXTRA_FLAGS = -no-check-mode
 endif
 
-%.vs.jarr: %.arr $(PHASEA)/pyret.jarr
+%.vs.jarr: stopify-build %.arr $(PHASEA)/pyret.jarr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
 		--build-runnable $*.arr \
 		--builtin-js-dir src/js/trove/ \
