@@ -301,13 +301,33 @@ all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/all.jarr
 	$(NODE) tests/pyret/vhull-main.jarr
 
-vhull-test: tests/pyret/vhull-main1.jarr tests/pyret/vhull-main2.jarr tests/pyret/vhull-main3.jarr
-	$(NODE) tests/pyret/vhull-main1.jarr
-	$(NODE) tests/pyret/vhull-main2.jarr
-	$(NODE) tests/pyret/vhull-main3.jarr
+vhull-test: tests/pyret/vhull-main1.vs.jarr tests/pyret/vhull-main2.vs.jarr tests/pyret/vhull-main3.vs.jarr
+	$(NODE) tests/pyret/vhull-main1.vs.jarr
+	$(NODE) tests/pyret/vhull-main2.vs.jarr
+	$(NODE) tests/pyret/vhull-main3.vs.jarr
 
 
-tests/pyret/vhull-main%.jarr: tests/pyret/vhull-main%.arr phaseA
+tests/pyret/vhull-main1.vs.jarr: tests/pyret/vhull-main1.arr phaseA
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $< \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
+		--require-config src/scripts/standalone-configVS.json \
+		-check-all \
+		-straight-line \
+		-stopify
+
+tests/pyret/vhull-main2.vs.jarr: tests/pyret/vhull-main2.arr phaseA
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $< \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
+		--require-config src/scripts/standalone-configVS.json \
+		-check-all \
+		-straight-line \
+		-stopify
+
+tests/pyret/vhull-main3.vs.jarr: tests/pyret/vhull-main3.arr phaseA
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
 		--build-runnable $< \
 		--standalone-file "src/js/base/handalone.stop.js" \
