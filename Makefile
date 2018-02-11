@@ -1,6 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
-NODE             = node -max-old-space-size=8192 --stack-size=16384
+NODE             = node -max-old-space-size=8192 --stack-size=16384 --expose-gc
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
@@ -302,9 +302,9 @@ all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/vhull-main.jarr
 
 vhull-test: tests/pyret/vhull-main1.vs.jarr tests/pyret/vhull-main2.vs.jarr tests/pyret/vhull-main3.vs.jarr
-	$(NODE) tests/pyret/vhull-main1.vs.jarr
-	$(NODE) tests/pyret/vhull-main2.vs.jarr
-	$(NODE) tests/pyret/vhull-main3.vs.jarr
+	-$(NODE) tests/pyret/vhull-main1.vs.jarr
+	-$(NODE) tests/pyret/vhull-main2.vs.jarr
+	-$(NODE) tests/pyret/vhull-main3.vs.jarr
 
 
 tests/pyret/vhull-main1.vs.jarr: tests/pyret/vhull-main1.arr phaseA
