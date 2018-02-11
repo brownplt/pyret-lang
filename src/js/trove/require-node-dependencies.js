@@ -32,12 +32,21 @@ define("lockfile", [], function () { return lockfile; });
 websocket = nodeRequire("websocket");
 define("websocket", [], function () { return websocket });
 
-Stopify = require("Stopify")
-define("Stopify", [], function () { return Stopify })
+stopify = require("stopify/dist/src/stopify/compileFunction")
+define("stopify", [], function () { return stopify })
 
-$__T = require("Stopify/built/src/rts")
+const defaultOpts = {
+  filename: "",
+  estimator: 'velocity',
+  yieldInterval: 100,
+  resampleInterval: 100,
+  timePerElapsed: 1,
+  stop: undefined,
+  variance: false,
+  env: 'node'
+}
 
-$__T.makeRTS({transform: "lazy",
-  estimator: "reservoir",
-  env: "node",
-  yieldInterval: 100})
+$__T = require("stopify-continuations/dist/src/runtime/runtime")
+$__R = $__T.newRTS('lazy')
+$S = require("stopify/dist/src/runtime/node").init($__R);
+

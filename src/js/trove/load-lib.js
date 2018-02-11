@@ -353,7 +353,7 @@
           mainReached = true;
           mainResult = answer;
         }
-        $__T.getRTS().delimit(function() {
+        $__R.delimit(function() {
         return otherRuntime.runThunk(function() {
           otherRuntime.modules = realm;
           return otherRuntime.runStandalone(

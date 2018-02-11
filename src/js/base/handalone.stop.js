@@ -18,12 +18,12 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
   var main = toLoad[toLoad.length - 1];
 
   // The evaluation of the runtime should never suspend.
-  $__T.getRTS().delimitDepth = 2;
+  $__R.delimitDepth = 2;
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
     stderr: function(s) { process.stderr.write(s); }
   });
-  $__T.getRTS().delimitDepth = 0;
+  $__R.delimitDepth = 0;
 
   var EXIT_SUCCESS = 0;
   var EXIT_ERROR = 1;
@@ -221,7 +221,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
       // NOTE(rachit): No need to save the stack at this point since we know
       // there will be an error.
-      $__T.getRTS().delimitDepth = 2
+      $__R.delimitDepth = 2
       execRt.runThunk(
         function() {
           if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {
@@ -319,5 +319,5 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
   }
 
-  $__T.getRTS().delimit(() => runtime.runThunk(toRun, onComplete))
+  $__R.delimit(() => runtime.runThunk(toRun, onComplete))
 });

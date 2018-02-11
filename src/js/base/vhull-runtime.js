@@ -3404,14 +3404,17 @@ define("pyret-base/js/runtime",
     }
 
     function pauseStack(resumer) {
-      return $__T.getRTS().captureCC(function(k) {
+      return $__R.captureCC(function(k) {
         util.suspend(function() {
           var pp = new PausePackage();
           pp.setHandlers({
-            resume: function(val) { return $__T.getRTS().resumeFromSuspension(function() { return k(val); }) },
-
+            resume: function(val) {
+              return $__R.resumeFromSuspension(function() { return k(val); })
+            },
             // TODO(joe): These are wrong, but not sure how to do them.
-            break: function() { throw new PyretFailException(thisRuntime.ffi.userBreak) },
+            break: function() {
+              throw new PyretFailException(thisRuntime.ffi.userBreak)
+            },
             error: function(errVal) {
               if(isPyretException(errVal)) {
                 exn = errVal;
@@ -4495,10 +4498,10 @@ define("pyret-base/js/runtime",
 
 			var funToReturn = makeFunction(function() {
         // TODO(rachit): This may not be correct
-        var o_depth = $__T.getRTS().delimitDepth
-        $__T.getRTS().delimitDepth = 2
+        var o_depth = $__R.delimitDepth
+        $__R.delimitDepth = 2
         var theFun = makeConstructor();
-        $__T.getRTS().delimitDepth = o_depth
+        $__R.delimitDepth = o_depth
 
         funToReturn.app = theFun;
         //CONSOLE.log("Calling constructor ", quote(reflName), arguments);

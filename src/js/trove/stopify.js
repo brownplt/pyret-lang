@@ -1,7 +1,9 @@
 ({
   requires: [
   ],
-  nativeRequires: ['Stopify'],
+  nativeRequires: [
+    'stopify'
+  ],
   provides: {},
   theModule: function (RUNTIME, NAMESPACE, uri, Stopify) {
 

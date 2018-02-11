@@ -59,7 +59,7 @@ PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
 STOPIFIED_RUNTIME := ./src/js/base/stopified-vhull-runtime.js
-STOPIFY_SRC := ./node_modules/Stopify/dist/stopify.bundle.js
+STOPIFY_SRC := ./node_modules/stopify/dist/stopify.bundle.js
 
 
 # NOTE: Needs TWO blank lines here, dunno why

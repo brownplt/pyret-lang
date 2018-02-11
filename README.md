@@ -116,19 +116,18 @@ This is currently experimental.
 #### Setting up Stopify
 
 1. Clone the Stopify repo.
-2. Navigate to `Stopify/stopify` and run the following commands:
+2. In the project root, run:
    ```
-   Stopify/stopify $ yarn
-   Stopify/stopify $ yarn run link:global
+   Stopify & yarn install
+   Stopify $ cd stopify && yarn run build && cd ../
+   Stopify $ cd stopify-continuations && yarn run build && cd ../
+   Stopify $ yarn run link:all
    ```
-   The first line builds stopify while the second line creates a global node
-   installation for the `Stopify` module.
-3. Navigate to the pyret-compiler and run `npm link Stopify`. This makes the
-   global installation of stopify to pyret.
-4. Build the stack saving portion of the runtime by running `make -B
-   stopify-build`. **NOTE**: This must be run everytime the stopify's stack
-   saving techique is changed.
-5. Build the pyret compiler using `make`.
+   The first two lines build stopify while the third line makes the `stopify`
+   and `stopify-continuations` modules available globally.
+3. Navigate to the pyret-compiler and run `npm link stopify && npm link
+   stopify-continuations`.
+4. Build the pyret compiler using `make`.
 
 #### Building
 
