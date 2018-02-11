@@ -13,7 +13,7 @@ before_script:
 script:
 - heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo
   https://github.com/brownplt/pyret-lang/
-- make all-pyret-test
+- make vhull-test
 notifications:
   slack:
     secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=

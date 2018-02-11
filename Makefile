@@ -60,6 +60,7 @@ PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
 STOPIFIED_RUNTIME := ./src/js/base/stopified-vhull-runtime.js
 STOPIFY_SRC := ./node_modules/stopify/dist/stopify.bundle.js
+STOPIFY_COMPILED_DIR := ./stopify-vhull-compiled
 
 
 # NOTE: Needs TWO blank lines here, dunno why
@@ -160,7 +161,7 @@ endif
 		--build-runnable $*.arr \
 		--builtin-js-dir src/js/trove/ \
 		--builtin-arr-dir src/arr/trove/ \
-		--compiled-dir stopify-vhull-compiled \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
 		--standalone-file "src/js/base/handalone.stop.js" \
 		-straight-line \
 		-stopify \
@@ -300,18 +301,21 @@ all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/all.jarr
 	$(NODE) tests/pyret/vhull-main.jarr
 
-vhull-test: tests/pyret/vhull-main.jarr
-	$(NODE) tests/pyret/vhull-main.jarr
+vhull-test: tests/pyret/vhull-main1.jarr tests/pyret/vhull-main2.jarr tests/pyret/vhull-main3.jarr
+	$(NODE) tests/pyret/vhull-main1.jarr
+	$(NODE) tests/pyret/vhull-main2.jarr
+	$(NODE) tests/pyret/vhull-main3.jarr
 
 
-tests/pyret/vhull-main.jarr: tests/pyret/vhull-main.arr phaseA
+tests/pyret/vhull-main%.jarr: tests/pyret/vhull-main%.arr phaseA
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
-                      --build-runnable $< \
+		--build-runnable $< \
 		--standalone-file "src/js/base/handalone.stop.js" \
-		-straight-line \
-		-stopify \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
 		--require-config src/scripts/standalone-configVS.json \
-											  -check-all \
+		-check-all \
+		-straight-line \
+		-stopify
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \
