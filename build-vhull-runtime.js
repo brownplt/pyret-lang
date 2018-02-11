@@ -1,4 +1,4 @@
-const stopify = require('stopify');
+const stopify = require('stopify/dist/src/stopify/compileFunction');
 const fs = require('fs');
 const path = require('path');
 
