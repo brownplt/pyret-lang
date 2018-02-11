@@ -374,7 +374,7 @@ fun build-program(path, options, stats) block:
           + ": " + locator.name())
     end,
     method on-compile(_, locator, loadable, trace) block:
-      locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
+      # locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
       when options.collect-times:
