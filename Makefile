@@ -1,6 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
-NODE             = node -max-old-space-size=8192 --stack-size=16384 --expose-gc
+NODE             = node -max-old-space-size=8192 --stack-size=16384
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
