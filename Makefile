@@ -90,7 +90,7 @@ endif
 phaseA: $(PHASEA)/pyret.jarr
 
 # Build stopified vhull runtime
-$(STOPIFIED_RUNTIME): ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js $(STOPIFY_SRC)
+$(STOPIFIED_RUNTIME): ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js
 	node ./build-vhull-runtime.js
 
 # Force rebuild stopify (use when stopify compiler is update).
@@ -139,7 +139,7 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
 
-$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js $(STOPIFY_SRC)
+$(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
 	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
