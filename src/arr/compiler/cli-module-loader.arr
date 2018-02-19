@@ -91,7 +91,6 @@ fun get-cached-if-available(basedir, loc) block:
   else:
     uri = loc.uri()
     static-path = saved-path + "-static"
-    raw = B.builtin-raw-locator(static-path)
     {
       method needs-compile(_, _): false end,
       method get-modified-time(self):
@@ -107,10 +106,12 @@ fun get-cached-if-available(basedir, loc) block:
         CS.standard-imports
       end,
       method get-dependencies(_):
+        raw = B.builtin-raw-locator(static-path)
         deps = raw.get-raw-dependencies()
         raw-array-to-list(deps).map(CS.make-dep)
       end,
       method get-native-modules(_):
+        raw = B.builtin-raw-locator(static-path)
         natives = raw.get-raw-native-modules()
         raw-array-to-list(natives).map(CS.requirejs)
       end,
@@ -123,6 +124,7 @@ fun get-cached-if-available(basedir, loc) block:
 
       method set-compiled(_, _, _): nothing end,
       method get-compiled(self):
+        raw = B.builtin-raw-locator(static-path)
         provs = CS.provides-from-raw-provides(self.uri(), {
             uri: self.uri(),
             values: raw-array-to-list(raw.get-raw-value-provides()),
