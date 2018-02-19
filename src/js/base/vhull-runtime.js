@@ -3014,7 +3014,7 @@ define("pyret-base/js/runtime",
       var result = that.ann.check(compilerLoc, val);
       if(thisRuntime.ffi.isOk(result)) {
         var result = that.pred.app(val);
-        if(result) { return thisRuntime.ffi.contractOK; }
+        if(result) { return thisRuntime.ffi.contractOk; }
         else {
           return thisRuntime.ffi.contractFail(
             makeSrcloc(compilerLoc),
