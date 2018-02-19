@@ -319,5 +319,5 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
   }
 
-  $__R.delimit(() => runtime.runThunk(toRun, onComplete))
+  runtime.runThunk(toRun, onComplete)
 });

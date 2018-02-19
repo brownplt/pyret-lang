@@ -4759,7 +4759,9 @@ define("pyret-base/js/runtime",
       'getExported': getExported,
 
       'run': run,
-      'runThunk': runThunk,
+      'runThunk': function(thunk, cont) {
+        $__R.delimit(() => runThunk(thunk, cont));
+      },
       'execThunk': execThunk,
       'safeCall': safeCall,
       'safeThen': safeThen,
