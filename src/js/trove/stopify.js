@@ -8,7 +8,21 @@
   theModule: function (RUNTIME, NAMESPACE, uri, Stopify) {
 
     function stopify(code) {
-      return Stopify.compileFunction(code)
+
+      const defaultOpts = {
+            getters: false,
+            compileFunction: true,
+            debug: false,
+            captureMethod: 'lazyDeep',
+            newMethod: 'wrapper',
+            es: 'sane',
+            hofs: 'builtin',
+            jsArgs: 'simple',
+            requireRuntime: false,
+            noWebpack: true
+      };
+
+      return Stopify.compileFunction(code, defaultOpts);
     }
 
 

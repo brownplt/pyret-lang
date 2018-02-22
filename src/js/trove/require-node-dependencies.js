@@ -46,10 +46,11 @@ const defaultOpts = {
   timePerElapsed: 1,
   stop: undefined,
   variance: false,
-  env: "node"
+  env: "node",
+  stackSize: 1000
 }
 
 $__T = require("stopify-continuations/dist/src/runtime/runtime")
-$__R = $__T.newRTS("lazy")
+$__R = $__T.newRTS("lazyDeep")
 $S = require("stopify/dist/src/runtime/node").init($__R, defaultOpts);
 
