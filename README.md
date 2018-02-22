@@ -42,7 +42,11 @@ Developing with Stopify
    ```
    The first two lines build stopify while the third line makes the `stopify`
    and `stopify-continuations` modules available globally.
-3. Navigate to the pyret-compiler and run `yarn link stopify stopify-continuations`.
+3. Navigate to pyret-lang and run
+   ```
+   rm -rf node_modules/{stopify,stopify-continuations}
+   yarn link stopify stopify-continuations
+   ```
 4. Build the runtime using `make -B stopify-build`. **NOTE**: This command
    needs to be re-run everytime the local copy of stopify is changed.
 5. Build the pyret compiler using `make`.
