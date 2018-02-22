@@ -3399,8 +3399,18 @@ define("pyret-base/js/runtime",
       return "  " + stackStr.join("\n  ");
     }
 
-    function breakAll() {
-      throw new Error('breakAll cant be called')
+    function breakAll(afterBreak) {
+      console.log("Runtime object: ", $__R);
+      $S.onYield = function() {
+        $__R.resumeFromSuspension(function() { throw thisRuntime.ffi.userBreak; });
+        afterBreak();
+        return false;
+      };
+      /*
+      return $__R.captureCC(function(k) {
+        return $__R.resumeFromSuspension(function() { return k(thisRuntime.makeFailureResult(thisRuntime.ffi.userBreak)); })
+      });
+      */
     }
 
     function pauseStack(resumer) {
@@ -3413,7 +3423,7 @@ define("pyret-base/js/runtime",
             },
             // TODO(joe): These are wrong, but not sure how to do them.
             break: function() {
-              throw new PyretFailException(thisRuntime.ffi.userBreak)
+              return $__R.resumeFromSuspension(function() { return k(null, thisRuntime.ffi.userBreak); })
             },
             error: function(errVal) {
               if(isPyretException(errVal)) {
@@ -3421,6 +3431,7 @@ define("pyret-base/js/runtime",
               } else {
                 exn = new PyretFailException(errVal);
               }
+              return $__R.resumeFromSuspension(function() { return k(null, thisRuntime.makeFailureResult(exn)); })
             }
           });
           return resumer(pp);
@@ -3436,12 +3447,10 @@ define("pyret-base/js/runtime",
         this.handlers = handlers;
       },
       break: function() {
-        console.error("Trying to break; can't do that yet.");
-        throw "Cannot call break in straight-line mode"
+        return this.handlers.break();
       },
       error: function(err) {
-        console.error("Trying to err; can't do that yet.", err);
-        throw err;
+        return this.handlers.error(err);
       },
       resume: function(val) {
         return this.handlers.resume(val);
