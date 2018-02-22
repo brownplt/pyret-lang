@@ -12,12 +12,17 @@ uses [Stopify](https://github.com/plasma-umass/stopify) for stack manangement.
 This branch also contains the straight line compiler that can be used to
 generate Pyret code without stack management instrumentation.
 
+**NOTE**: Unlink master, this branch expects you to use
+[yarn](https://yarnpkg.com/en/).  Rachit has had traumatic experiences with
+`npm link` and refused to support it.
+
 Basic Setup
 -----------
 
 Simply run the following commands to setup the compiler:
 ```
-npm install
+yarn install
+make -B stopify-build
 make
 ```
 
@@ -32,19 +37,21 @@ Developing with Stopify
 2. In the project root, run:
    ```
    Stopify $ yarn install && yarn run build
-   Stopify $ yarn run link:all
+   Stopify $ cd stopify-continuations && yarn link && cd -
+   Stopify $ cd stopify && yarn link && cd -
    ```
    The first two lines build stopify while the third line makes the `stopify`
    and `stopify-continuations` modules available globally.
-3. Navigate to the pyret-compiler and run `npm link stopify && npm link
-   stopify-continuations`.
-4. Build the pyret compiler using `make`.
+3. Navigate to the pyret-compiler and run `yarn link stopify stopify-continuations`.
+4. Build the runtime using `make -B stopify-build`. **NOTE**: This command
+   needs to be re-run everytime the local copy of stopify is changed.
+5. Build the pyret compiler using `make`.
 
-**Troubleshooting**: `npm link` is known to have issues with linking up
-modules properly. If the above steps don't work, the problem is mostly likely,
-with the linking. In order to get Stopify working with Pyret, you need to
-get the following commands to succeed in a node instance in the pyret-lang
-repository:
+**Troubleshooting**: If you're still using `npm`, then `npm link` is known to
+have issues with linking up modules properly. If the above steps don't work,
+the problem is mostly likely, with the linking. In order to get Stopify working
+with Pyret, you need to get the following commands to succeed in a node
+instance in the pyret-lang repository:
 ```
 > require('stopify-continuations')
 > require('stopify/dist/src/stopify/compileFunction')
