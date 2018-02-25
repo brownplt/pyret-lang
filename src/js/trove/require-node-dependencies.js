@@ -42,7 +42,7 @@ const defaultOpts = {
   filename: "",
   estimator: "reservoir",
   yieldInterval: 100,
-  resampleInterval: 100,
+  resampleInterval: undefined,
   timePerElapsed: 1,
   stop: undefined,
   variance: false,
