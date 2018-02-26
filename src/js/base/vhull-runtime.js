@@ -3399,18 +3399,16 @@ define("pyret-base/js/runtime",
       return "  " + stackStr.join("\n  ");
     }
 
-    function breakAll(afterBreak) {
-      console.log("Runtime object: ", $__R);
-      $S.onYield = function() {
-        $__R.resumeFromSuspension(function() { throw thisRuntime.ffi.userBreak; });
-        afterBreak();
+    function breakAll() {
+      $S.onYield = function(k) {
+        $S.onYield = function() {
+          return true;
+        };
+        util.suspend(function() {
+          console.log("Resuming: ", thisRuntime.ffi.userBreak);
+          return $__R.resumeFromSuspension(function() { return k(null, new PyretFailException(thisRuntime.ffi.userBreak)); }); });
         return false;
       };
-      /*
-      return $__R.captureCC(function(k) {
-        return $__R.resumeFromSuspension(function() { return k(thisRuntime.makeFailureResult(thisRuntime.ffi.userBreak)); })
-      });
-      */
     }
 
     function pauseStack(resumer) {
