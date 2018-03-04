@@ -2,7 +2,7 @@
 
 set -x
 
-BRANCH=deep-stacks-dev
+BRANCH=new-deep-stacks
 
 # Remove any previous stopify versions
 rm -rf node_modules/{stopify,stopify-continuations}
