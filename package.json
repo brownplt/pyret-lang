@@ -38,7 +38,7 @@
     "pyret": "src/server/pyret.js"
   },
   "scripts": {
-    "install": "make phaseA-deps",
+    "install": "./get-stopify.sh && make phaseA-deps",
     "test": "make test-all"
   },
   "repository": {
