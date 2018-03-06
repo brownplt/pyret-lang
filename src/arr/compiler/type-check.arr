@@ -986,7 +986,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   end, var-type.with-fields)
                 end)
                 variants-meet = cases(List<TypeMembers>) variant-type-fields:
-                  | empty => empty
+                  | empty => [string-dict: ]
                   | link(first, rest) =>
                     cases(List<TypeMembers>) rest:
                       | empty => first
