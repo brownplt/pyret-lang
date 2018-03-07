@@ -449,9 +449,7 @@ t-and-then =
   t-forall(
     [list: tva, tvb],
     t-arrow(
-      [list:
-        t-arrow([list: tva], t-option-app(tvb))
-      ],
+      [list: t-arrow([list: tva], tvb)],
       t-option-app(tvb)))
 
 module-const-option = t-module("builtin://option",
