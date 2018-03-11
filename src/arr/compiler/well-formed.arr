@@ -794,17 +794,23 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-reactor(self, l, fields):
     method-fields = for filter(f from fields): A.is-s-method-field(f) end
+    fun has-field(name):
+      is-some(for find(f from fields): f.name == name end)
+    end
     if not(is-empty(method-fields)) block:
       wf-error([list: ED.text("A reactor cannot contain method fields ")], method-fields.first.l)
       true
     else:
-      has-init = is-some(for find(f from fields): f.name == "init" end)
-      when not(has-init):
+      when not(has-field("init")):
         wf-error([list: ED.text("A reactor must have a field named "), ED.code(ED.text("init")),
             ED.text(" for the initial value ")], l)
       end
       fields-dict = SD.make-mutable-string-dict()
       ok-fields = C.reactor-fields
+      when has-field("on-key") and has-field("on-raw-key"):
+        wf-error([list: ED.text("A reactor can only specify one of on-key and on-raw-key")])
+      end
+
       for each(f from fields) block:
         when not(ok-fields.has-key(f.name)):
           wf-error([list: ED.text("Valid options for reactors are "),

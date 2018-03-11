@@ -2794,6 +2794,7 @@ reactor-optional-fields = [SD.string-dict:
   "on-tick",          {(l): A.a-name(l, A.s-type-global("Function"))},
   "to-draw",          {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-key",           {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-raw-key",       {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-mouse",         {(l): A.a-name(l, A.s-type-global("Function"))},
   "stop-when",        {(l): A.a-name(l, A.s-type-global("Function"))},
   "seconds-per-tick", {(l): A.a-name(l, A.s-type-global("NumPositive"))},
