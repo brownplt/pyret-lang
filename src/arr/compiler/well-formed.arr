@@ -4,6 +4,7 @@ provide {
 provide-types *
 
 import ast as A
+import ast-visitors as AV
 import srcloc as SL
 import file("compile-structs.arr") as C
 import format as F
@@ -362,7 +363,7 @@ end
 
 var parent-block-loc = nothing
 
-well-formed-visitor = A.default-iter-visitor.{
+well-formed-visitor = AV.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
   end,
@@ -898,7 +899,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end
 }
 
-top-level-visitor = A.default-iter-visitor.{
+top-level-visitor = AV.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)

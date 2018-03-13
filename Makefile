@@ -1,6 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 CLOSURE          = java -jar deps/closure-compiler/compiler.jar
-NODE             = node -max-old-space-size=8192
+NODE             = node -max-old-space-size=8192 --stack-size=16384
 SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
@@ -17,11 +17,6 @@ RELEASE_DIR      = build/release
 # HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
 export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
 SHELL := /bin/bash
-
-
-showpath:
-	@echo my new PATH = $(PATH)
-	@echo `which browserify`
 
 
 # CUSTOMIZE THESE IF NECESSARY
@@ -63,6 +58,11 @@ PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
+STOPIFIED_RUNTIME := ./src/js/base/stopified-vhull-runtime.js
+STOPIFY_SRC := ./node_modules/stopify/dist/stopify.bundle.js
+STOPIFY_COMPILED_DIR := ./stopify-vhull-compiled
+
+
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
 
@@ -89,17 +89,26 @@ endif
 .PHONY : phaseA
 phaseA: $(PHASEA)/pyret.jarr
 
+# Build stopified vhull runtime
+$(STOPIFIED_RUNTIME): ./src/js/base/stopified-vhull-runtime.original.js ./build-vhull-runtime.js
+	node ./build-vhull-runtime.js
+
+# Force rebuild stopify (use when stopify compiler is update).
+# Run as `make stopify-build -B`
+.PHONY : stopify-build
+stopify-build: $(STOPIFIED_RUNTIME) $(BUNDLED_DEPS)
+
 .PHONY : phaseA-deps
-phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) ./src/js/base/stopified-vhull-runtime.js
 
-
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS) ./src/js/base/stopified-vhull-runtime.js
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/compiled/ \
                       --deps-file build/phaseA/bundled-node-compile-deps.js \
+                      -allow-shadow \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
@@ -126,10 +135,9 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
-                      --deps-file build/phaseB/bundled-node-compile-deps.js \
-                      -no-check-mode $(EF) \
-                      --require-config build/phaseB/config.json
-
+                      --standalone-file "src/js/base/handalone.stop.js" \
+                      -straight-line \
+                    --require-config src/scripts/standalone-configVB.json
 
 .PHONY : phaseC
 phaseC: $(PHASEC)/pyret.jarr
@@ -177,6 +185,30 @@ EXTRA_FLAGS=$(EF)
 else
 EXTRA_FLAGS = -no-check-mode
 endif
+
+%.vs.jarr: stopify-build %.arr $(PHASEA)/pyret.jarr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $*.arr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		-straight-line \
+		-stopify \
+		$(EXTRA_FLAGS) \
+		--require-config src/scripts/standalone-configVS.json
+
+%.v.jarr: %.arr $(PHASEA)/pyret.jarr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $*.arr \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--compiled-dir vhull-compiled \
+		--standalone-file "src/js/base/handalone.js" \
+		-straight-line \
+		$(EXTRA_FLAGS) \
+		--require-config src/scripts/standalone-configV.json
+
 %.jarr: $(PHASEA)/pyret.jarr %.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $*.jarr \
                       --build-runnable $*.arr \
@@ -287,15 +319,51 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 		-check-all
 
 .PHONY : all-pyret-test
-all-pyret-test: tests/pyret/all.jarr parse-test
+all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/all.jarr
+	$(NODE) tests/pyret/vhull-main.jarr
+
+vhull-test: tests/pyret/vhull-main1.vs.jarr tests/pyret/vhull-main2.vs.jarr tests/pyret/vhull-main3.vs.jarr
+	-$(NODE) tests/pyret/vhull-main1.vs.jarr
+	-$(NODE) tests/pyret/vhull-main2.vs.jarr
+	-$(NODE) tests/pyret/vhull-main3.vs.jarr
+
+
+tests/pyret/vhull-main1.vs.jarr: tests/pyret/vhull-main1.arr phaseA
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $< \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
+		--require-config src/scripts/standalone-configVS.json \
+		-check-all \
+		-straight-line \
+		-stopify
+
+tests/pyret/vhull-main2.vs.jarr: tests/pyret/vhull-main2.arr phaseA
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $< \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
+		--require-config src/scripts/standalone-configVS.json \
+		-check-all \
+		-straight-line \
+		-stopify
+
+tests/pyret/vhull-main3.vs.jarr: tests/pyret/vhull-main3.arr phaseA
+	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
+		--build-runnable $< \
+		--standalone-file "src/js/base/handalone.stop.js" \
+		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
+		--require-config src/scripts/standalone-configVS.json \
+		-check-all \
+		-straight-line \
+		-stopify
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \
 		--outfile tests/pyret/main2.jarr \
 		--build-runnable tests/pyret/main2.arr \
 		-check-all # NOTE(joe): check-all doesn't yet do anything
-
 
 .PHONY : pyret-test
 pyret-test: phaseA tests/pyret/main2.jarr

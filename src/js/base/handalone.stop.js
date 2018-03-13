@@ -17,10 +17,13 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
   var main = toLoad[toLoad.length - 1];
 
+  // The evaluation of the runtime should never suspend.
+  $__R.delimitDepth = 2;
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
     stderr: function(s) { process.stderr.write(s); }
   });
+  $__R.delimitDepth = 0;
 
   var EXIT_SUCCESS = 0;
   var EXIT_ERROR = 1;
@@ -32,20 +35,10 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
-  function checkFlag(name) {
-    return program.runtimeOptions && program.runtimeOptions[name];
-  }
-
-  if(checkFlag("disableAnnotationChecks")) {
-    runtime.checkArgsInternal1 = function() {};
-    runtime.checkArgsInternal2 = function() {};
-    runtime.checkArgsInternal3 = function() {};
-    runtime._checkAnn = function() {};
-  }
-
   var postLoadHooks = {
     "builtin://srcloc": function(srcloc) {
-      runtime.srcloc = runtime.getField(runtime.getField(srcloc, "provide-plus-types"), "values");
+      runtime.srcloc = runtime.getField(
+        runtime.getField(srcloc, "provide-plus-types"), "values");
     },
     "builtin://ffi": function(ffi) {
       ffi = ffi.jsmod;
@@ -67,13 +60,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     "builtin://table": function(table) {
       table = table.jsmod;
       runtime["makeTable"] = table.makeTable;
-      runtime["makeRow"] = table.makeRow;
-      runtime["makeRowFromArray"] = table.makeRowFromArray;
       runtime["openTable"] = table.openTable;
       runtime["checkTable"] = runtime.makeCheckType(table.isTable, "Table");
-      runtime["checkRow"] = runtime.makeCheckType(table.isRow, "Row");
       runtime["isTable"] = table.isTable;
-      runtime["isRow"] = table.isTable;
       runtime["checkWrapTable"] = function(val) {
         runtime.checkTable(val);
         return val;
@@ -88,23 +77,31 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       runtime["asLoaderOption"] = function(type) {
         switch(type) {
         case "sanitizer":
-          return runtime.getField(ds, "sanitize-col").app(arguments[1], arguments[2]);
+            return runtime
+              .getField(ds, "sanitize-col")
+              .app(arguments[1], arguments[2]);
         default:
-          runtime.ffi.throwMessageException("Internal error: Invalid loader option type: " + type);
+            runtime.ffi.throwMessageException(
+              "Internal error: Invalid loader option type: " + type);
         }
       };
       // Convenience function for JS library use
       runtime["extractLoaderOption"] = function(opt) {
         var isSanitizer = runtime.getField(ds, "is-sanitize-col");
-        if (runtime.unwrap(isSanitizer.app(opt))) {
-          return {
-            type: "sanitizer",
-            col: runtime.getField(opt, "col"),
-            sanitizer: runtime.getField(opt, "sanitizer")
-          };
-        } else {
-          runtime.ffi.throwMessageException("Internal error: Cannot coerce non-loader option");
-        }
+        return thisRuntime.safeCall(function () {
+          return isSanitizer.app(opt)
+        }, function (result) {
+          if (runtime.unwrap(result)) {
+            return {
+              type: "sanitizer",
+              col: runtime.getField(opt, "col"),
+              sanitizer: runtime.getField(opt, "sanitizer")
+            };
+          } else {
+            runtime.ffi.throwMessageException(
+              "Internal error: Cannot coerce non-loader option");
+          }
+        })
       }
       runtime["builtin_sanitizers"] = {
         option : runtime.getField(ds, "option-sanitizer"),
@@ -162,27 +159,31 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
         runtime.getField(ds, "is-CellContent").app, "CellContent");
     },
     "builtin://reactors": function(reactor) {
-      var r = runtime.getField(runtime.getField(reactor, "provide-plus-types"), "values");
+      var r = runtime.getField(
+        runtime.getField(reactor, "provide-plus-types"), "values");
       runtime.setParam("makeReactor", runtime.getField(r, "make-reactor").app);
     },
     "builtin://checker": function(checker) {
-      checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
-      var checks = checkFlag("checks");
-      if(checks && checks !== "none") {
-        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(main), checks === "all");
+      checker = runtime.getField(
+        runtime.getField(checker, "provide-plus-types"), "values");
+      // NOTE(joe): This is the place to add checkAll
+      return runtime.safeCall(function() {
+        return runtime.
+          getField(checker, "make-check-context").
+          app(runtime.makeString(main), true);
+      }, function (currentChecker) {
         runtime.setParam("current-checker", currentChecker);
-      }
+      })
     }
   };
   // last thing to run
   postLoadHooks[main] = function(answer) {
-    var checks = checkFlag("checks");
-    if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
     var checkerLib = runtime.modules["builtin://checker"];
-    var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
+    var checker = runtime.getField(
+      runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
-
-      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+      err.val.pyretStack =
+        stackLib.convertExceptionToPyretStackTrace(err.val, program);
 
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
@@ -218,6 +219,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
 
       res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
 
+      // NOTE(rachit): No need to save the stack at this point since we know
+      // there will be an error.
+      $__R.delimitDepth = 2
       execRt.runThunk(
         function() {
           if (execRt.isObject(res.exn.exn) && execRt.hasField(res.exn.exn, "render-reason")) {
@@ -295,9 +299,6 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {
         processExit(runtime, result.exn.exn);
       }
-      if(runtime.isPyretException(result.exn) && runtime.ffi.isUserBreak(result.exn.exn)) {
-        process.exit(0);
-      }
       console.error("The run ended in error:");
       try {
         renderErrorMessageAndExit(runtime, result);
@@ -311,9 +312,12 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     }
   }
 
-  return runtime.runThunk(function() {
+  var toRun = function() {
     runtime.modules = {};
     // staticModules contains the stopified code
-    return runtime.runStandalone(staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
-  }, onComplete);
+    return runtime.runStandalone(
+      staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
+  }
+
+  runtime.runThunk(toRun, onComplete)
 });

@@ -7,9 +7,11 @@ import file as F
 import string-dict as SD
 import pprint as PP
 import sets as S
+import stopify as STOP
 
 import file("anf.arr") as N
 import file("anf-loop-compiler.arr") as AL
+import file("vhull-compiler.arr") as VH
 import file("ast-anf.arr") as AA
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
@@ -469,19 +471,36 @@ fun get-flat-provides(provides, flatness-env, ast) block:
   end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, options)
-  -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  anfed = add-phase("ANFed", N.anf-program(program-ast))
-  flatness-env = add-phase("Build flatness env", make-prog-flatness-env(anfed, bindings, env))
-  flat-provides = add-phase("Get flat-provides", get-flat-provides(provides, flatness-env, anfed))
-  compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, options))
-  {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
-end
-
 fun println(s) block:
   print(s + "\n")
 end
 
+fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
+  var anfed = add-phase("ANFed", N.anf-program(program-ast))
+  flatness-env = add-phase("Build flatness env", make-prog-flatness-env(anfed, bindings, env))
+  flat-provides = add-phase("Get flat-provides", get-flat-provides(provides, flatness-env, anfed))
+  if options.straight-line block:
+    compiled = anfed.visit(VH.vhull-compiler(
+      env, add-phase, flatness-env, flat-provides, options))
+
+    # NOTE(joe): manual cleaning of root set
+    anfed := nothing
+
+    final-code = if options.stopify:
+      STOP.stopify(compiled.get-value("theModule"))
+    else:
+      compiled.get-value("theModule")
+    end
+    final-module = compiled.set("theModule", J.j-raw-code(final-code))
+    {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(final-module)))}
+  else:
+    compiled = anfed.visit(AL.splitting-compiler(
+      env, add-phase, flatness-env, flat-provides, options))
+    {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
+  end
+end
+
+# NOTE(rachit): This function is no longer used.
 fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
 #  each(println, program-ast.tosource().pretty(80))
   anfed = N.anf-program(program-ast)

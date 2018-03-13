@@ -26,7 +26,7 @@
   provides: {},
   nativeRequires: [],
   theModule: function(runtime, namespace, uri /* intentionally blank */) {
-    return runtime.makeObject({
+    var toRet = runtime.makeObject({
       "defined-values": {},
       "defined-types": {},
       "provide-plus-types": runtime.makeObject({
@@ -34,5 +34,6 @@
         "types": {}
       })
     });
+    return toRet
   }
 })

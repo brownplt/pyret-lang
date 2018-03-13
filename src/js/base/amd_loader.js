@@ -1,4 +1,4 @@
-var define, requirejs;
+var define, requirejs,$__T;
 
 // NOTE(joe): this is defined for use in dependency bundles.  Even though it
 // isn't used in this file, it's an important definition

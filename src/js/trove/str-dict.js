@@ -1253,8 +1253,8 @@
         var dict = Object.create(null);
         runtime.checkTuple(a);
         runtime.checkTuple(b);
-        aval = a.vals[0];
-        bval = b.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         if (aval == bval) {
@@ -1271,9 +1271,9 @@
         runtime.checkTuple(a);
         runtime.checkTuple(b);
         runtime.checkTuple(c);
-        aval = a.vals[0];
-        bval = b.vals[0];
-        cval = c.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
+        var cval = c.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         runtime.checkString(cval);
@@ -1298,10 +1298,10 @@
         runtime.checkTuple(b);
         runtime.checkTuple(c);
         runtime.checkTuple(d);
-        aval = a.vals[0];
-        bval = b.vals[0];
-        cval = c.vals[0];
-        dval = d.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
+        var cval = c.vals[0];
+        var dval = d.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         runtime.checkString(cval);
@@ -1332,24 +1332,24 @@
         runtime.checkTuple(c);
         runtime.checkTuple(d);
         runtime.checkTuple(e);
-        aval = a.vals[0];
-        bval = b.vals[0];
-        cval = c.vals[0];
-        dval = d.vals[0];
-        eval = e.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
+        var cval = c.vals[0];
+        var dval = d.vals[0];
+        var e_val = e.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         runtime.checkString(cval);
         runtime.checkString(dval);
-        runtime.checkString(eval);
-        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == eval || bval == eval || cval == eval || dval == eval) {
-          if (aval == bval || aval == cval || aval == dval || aval == eval) {
+        runtime.checkString(e_val);
+        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == e_val || bval == e_val || cval == e_val || dval == e_val) {
+          if (aval == bval || aval == cval || aval == dval || aval == e_val) {
             runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + aval);
           }
-          else if (bval == cval || bval == dval || bval == eval) { 
+          else if (bval == cval || bval == dval || bval == e_val) { 
             runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + bval);
           }
-          else if (cval == dval || cval == eval) {
+          else if (cval == dval || cval == e_val) {
             runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + cval);
           }
           else {
@@ -1360,7 +1360,7 @@
         dict[bval] = b.vals[1];
         dict[cval] = c.vals[1];
         dict[dval] = d.vals[1];
-        dict[eval] = e.vals[1];
+        dict[e_val] = e.vals[1];
         return makeMutableStringDict(dict); 
 
       }
@@ -1386,8 +1386,8 @@
         var map = emptyMap();
         runtime.checkTuple(a);
         runtime.checkTuple(b);
-        aval = a.vals[0];
-        bval = b.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         if (aval == bval) {
@@ -1404,9 +1404,9 @@
         runtime.checkTuple(a);
         runtime.checkTuple(b);
         runtime.checkTuple(c);
-        aval = a.vals[0];
-        bval = b.vals[0];
-        cval = c.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
+        var cval = c.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         runtime.checkString(cval);
@@ -1432,10 +1432,10 @@
         runtime.checkTuple(b);
         runtime.checkTuple(c);
         runtime.checkTuple(d);
-        aval = a.vals[0];
-        bval = b.vals[0];
-        cval = c.vals[0];
-        dval = d.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
+        var cval = c.vals[0];
+        var dval = d.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         runtime.checkString(cval);
@@ -1467,25 +1467,25 @@
         runtime.checkTuple(c);
         runtime.checkTuple(d);
         runtime.checkTuple(e);
-        aval = a.vals[0];
-        bval = b.vals[0];
-        cval = c.vals[0];
-        dval = d.vals[0];
-        eval = e.vals[0];
+        var aval = a.vals[0];
+        var bval = b.vals[0];
+        var cval = c.vals[0];
+        var dval = d.vals[0];
+        var e_val = e.vals[0];
         runtime.checkString(aval);
         runtime.checkString(bval);
         runtime.checkString(cval);
         runtime.checkString(dval);
-        runtime.checkString(eval);
-        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == eval || bval == eval || cval == eval || dval == eval) {
+        runtime.checkString(e_val);
+        if (aval == bval || aval == cval || bval == cval || aval == dval || bval == dval || cval == dval || aval == e_val || bval == e_val || cval == e_val || dval == e_val) {
           //TODO: figure out which key is duplciated
-          if (aval == bval || aval == cval || aval == dval || aval == eval) {
+          if (aval == bval || aval == cval || aval == dval || aval == e_val) {
              runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + aval);
           }
-          else if (bval == cval || bval == dval || bval == eval) {
+          else if (bval == cval || bval == dval || bval == e_val) {
              runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + bval);
           }
-          else if (cval == dval || cval == eval) {
+          else if (cval == dval || cval == e_val) {
              runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + cval);
           }
           else {
@@ -1496,7 +1496,7 @@
         map = map.set(bval, b.vals[1]);
         map = map.set(cval, c.vals[1]);
         map = map.set(dval, d.vals[1]);
-        map = map.set(eval, e.vals[1]);
+        map = map.set(e_val, e.vals[1]);
         return makeImmutableStringDict(map);
       }
 

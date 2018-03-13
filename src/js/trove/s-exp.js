@@ -1,4 +1,4 @@
-({ 
+({
   requires: [
     { "import-type": "builtin", "name": "s-exp-structs" }
   ],
@@ -66,6 +66,7 @@
     var types = {
       "S-Exp": typs["S-Exp"]
     };
-    return RUNTIME.makeModuleReturn(values, types);
+    var toRet = RUNTIME.makeModuleReturn(values, types);
+    return toRet
   }
 })

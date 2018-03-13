@@ -16,11 +16,12 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
 
 
     function compileAndTimeRun(program) {
-      const toBuild = program.replace(/\.arr$/, ".jarr");
+      const toBuild = program.replace(/\.arr$/, ".v.jarr");
       const [compileSuccess, , ] = maybeTime(true, () => echoRun(
-        `env EF="-no-user-annotations" make ${toBuild}`, {stdio: [0, 1, 2]}));
+        `make ${toBuild}`, {stdio: [0, 1, 2]}));
 
-      return maybeTime(compileSuccess, () => echoRun(`node ${toBuild}`));
+      maybeTime(compileSuccess, echoRun(`ulimit -s 16384`));
+      return maybeTime(compileSuccess, () => echoRun(`node --stack-size=16384 ${toBuild}`));
     }
 
     let paths = fs.readdirSync(programsPath);
@@ -29,6 +30,7 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     paths = paths.filter((p) => include === "*" || include.some((i) => (p.indexOf(i) !== -1)));
     console.log("Running for these programs after filters: ", paths);
     echoRun(`make phaseA`);
+    echoRun(`rm -rf compiled/`);
     const results = [];
     paths.map((p) => {
       const programPath = path.join(programsPath, p);

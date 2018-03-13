@@ -299,7 +299,7 @@
       checkSrcloc(objloc);
       raise(err("update-non-obj")(loc, objval, objloc));
     }
-    
+
     function throwUpdateFrozenRef(loc, objval, objloc, fieldname, fieldloc) {
       runtime.checkPyretVal(objval);
       checkSrcloc(loc);
@@ -308,7 +308,7 @@
       checkSrcloc(fieldloc);
       raise(err("update-frozen-ref")(loc, objval, objloc, fieldname, fieldloc));
     }
-    
+
     function throwUpdateNonRef(loc, objval, objloc, fieldname, fieldloc) {
       runtime.checkPyretVal(objval);
       checkSrcloc(loc);
@@ -317,7 +317,7 @@
       checkSrcloc(fieldloc);
       raise(err("update-non-ref")(loc, objval, objloc, fieldname, fieldloc));
     }
-    
+
     function throwUpdateNonExistentField(loc, objval, objloc, fieldname, fieldloc) {
       runtime.checkPyretVal(objval);
       checkSrcloc(loc);
@@ -326,7 +326,7 @@
       checkSrcloc(fieldloc);
       raise(err("update-non-existent-field")(loc, objval, objloc, fieldname, fieldloc));
     }
-  
+
     function throwUninitializedId(loc, name) {
       checkSrcloc(loc);
       runtime.checkString(name);
@@ -480,7 +480,7 @@
       runtime.checkPyretVal(value);
       return contract("record-fields-fail")(value, failures);
     }
-  
+
     function makeTupleAnnsFail(value, failures) {
       return contract("tuple-anns-fail")(value, failures);
     }
@@ -560,7 +560,7 @@
 
     runtime.makePrimAnn("List", isList);
 
-    return runtime.makeJSModuleReturn({
+    var toRet = runtime.makeJSModuleReturn({
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
       throwUpdateNonRef : throwUpdateNonRef,
@@ -753,5 +753,6 @@
         return arr;
       }
     });
+  return toRet;
   }
 })

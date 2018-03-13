@@ -107,11 +107,11 @@
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
     }
-    
+
     function hasBrand(brand, val) {
       return get(brand, "test").app(val);
     }
-    
+
     function isTable(val) {
       return hasBrand(brandTable,  val);
     }
@@ -176,13 +176,13 @@
 
     function makeTable(headers, rows) {
       ffi.checkArity(2, arguments, "makeTable", false);
-      
+
       var headerIndex = {};
-      
+
       for (var i = 0; i < headers.length; i++) {
         headerIndex["column:" + headers[i]] = i;
       }
-      
+
       function getColumn(column_name) {
         /* TODO: Raise error if table lacks column */
         var column_index;
@@ -191,11 +191,11 @@
         });
         return rows.map(function(row){return row[column_index];});
       }
-      
+
       function hasColumn(column_name) {
         return headerIndex.hasOwnProperty("column:" + column_name);
       }
-      
+
       function getRowAsRecord(row_index) {
         /* TODO: Raise error if no row at index */
         var obj = {};
@@ -547,7 +547,7 @@
               }
             }, "reduce-one");
           }, function(answerTuple) {
-            return runtime.getTuple(answerTuple, 1, ["tables"]); 
+            return runtime.getTuple(answerTuple, 1, ["tables"]);
           }, "reduce-rest");
         }),
 
@@ -620,12 +620,12 @@
           runtime.checkArrayIndex("get-row", rows, row_index);
           return getRowContentAsGetter(headers, rows[row_index]);
         }),
-        
+
         'length': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "length", true);
           return runtime.makeNumber(rows.length);
         }),
-        
+
         'get-column': runtime.makeMethod1(function(_, col_name) {
           ffi.checkArity(2, arguments, "get-column", true);
           runtime.checkArgsInternal1("tables", "get-column",
@@ -673,7 +673,7 @@
           }
           return col_index;
         }),
-        
+
         '_no-column': runtime.makeMethod3(function(_, operation_loc, table_loc, col_name, col_loc) {
           ffi.checkArity(5, arguments, "_no-column", true);
           var col_index = headerIndex['column:'+col_name];
@@ -681,7 +681,7 @@
             ffi.throwDuplicateColumn(operation_loc, col_name, col_loc);
           return col_index;
         }),
-        
+
         '_equals': runtime.makeMethod2(function(self, other, equals) {
           ffi.checkArity(3, arguments, "_equals", true);
           // is the other a table
@@ -716,7 +716,7 @@
             }), ans, selfRow, 0);
           }), eq(), rows, 0);
         }),
-        
+
         '_output': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "_output", true);
           var vsValue = get(VS, "vs-value").app;
@@ -757,5 +757,6 @@
         isRow: isRow
       },
       {});
+    return toRet;
   }
 })

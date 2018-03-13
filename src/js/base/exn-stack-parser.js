@@ -27,6 +27,7 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
   }
 
   function parseStack(stacktrace) {
+    if(!stacktrace) { return []; }
     var lines = stacktrace.split("\n");
     return lines.filter(isSourcePyretFrame).map(parseFrame);
   }
@@ -45,7 +46,12 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
         line: Number(frame.startLine),
         column: Number(frame.startCol) },
         sourceMap.SourceMapConsumer.LEAST_UPPER_BOUND);
-      var posForPyret = original.name.split(",");
+      if(original.name) {
+        var posForPyret = original.name.split(",");
+      }
+      else {
+        posForPyret = [uri];
+      }
       // NOTE(joe): this loop intentionally starts at one.  The split array
       // will be a length-7 array where the first is the URI of the module
       // the source location, and the remaining 6 are numbers for the line,
