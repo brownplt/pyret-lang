@@ -31,7 +31,9 @@ fun make-jsfile-locator(path):
     method get-extra-imports(self):
       CM.standard-imports
     end,
-    method get-dependencies(_):
+    method get-dependencies(_) block:
+      print(path)
+      print("\n")
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,

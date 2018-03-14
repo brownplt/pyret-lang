@@ -20,14 +20,16 @@
           }
           try {
             loader.safeEval("define(" + moduleString + ")", {define: setAns});
+            //console.log("first return: ", moduleContent);
             return moduleContent;
           }
           catch(e) {
-            console.error("Content was: ", content);
+            //console.error("Content was: ", content);
             throw e;
           }
         }
         else {
+          //console.log("future
           return moduleContent;
         }
       }
@@ -36,6 +38,9 @@
           "get-raw-dependencies":
             F(function() {
               var m = getData(content);
+              if(m === undefined) {
+                console.log("Content was: ", content);
+              }
               if(m.requires) {
                 return m.requires.map(function(m) {
                   // NOTE(joe): This allows us to use builtin imports

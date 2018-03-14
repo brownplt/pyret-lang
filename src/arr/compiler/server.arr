@@ -37,7 +37,8 @@ fun compile(options):
       log: options.get("log").or-else(compile-opts.log),
       log-error: options.get("log-error").or-else(compile-opts.log-error),
       deps-file: options.get("deps-file").or-else(compile-opts.deps-file),
-      user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations)
+      user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations),
+      straight-line: options.get("straight-line").or-else(compile-opts.straight-line)
     })
 end
 
@@ -83,7 +84,9 @@ fun serve(port, pyret-dir):
       if opts.has-key("perilous") and opts.get-value("perilous"):
         with-pyret-dir.set("compiled-read-only",
           link(P.resolve(P.join(pyret-dir, "lib-compiled")), empty)
-        ).set("user-annotations", false)
+        )
+        .set("user-annotations", false)
+        .set("straightline", true)
       else:
         with-pyret-dir.set("compiled-read-only",
           link(P.resolve(P.join(pyret-dir, "compiled")), empty)

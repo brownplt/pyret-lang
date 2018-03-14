@@ -859,7 +859,7 @@ letrec-visitor = AV.default-map-visitor.{
   end
 }
 
-strip-annotations-visitor = A.default-map-visitor.{
+strip-annotations-visitor = AV.default-map-visitor.{
   method a-blank(self): A.a-blank end,
   method a-any(self, l): A.a-blank end,
   method a-name(self, l, id): A.a-blank end,

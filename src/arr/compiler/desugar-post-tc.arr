@@ -14,7 +14,7 @@ fun no-cases-exn(l, val):
   A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val])
 end
 
-desugar-visitor = A.default-map-visitor.{
+desugar-visitor = AV.default-map-visitor.{
   method s-template(self, l):
     A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
   end,

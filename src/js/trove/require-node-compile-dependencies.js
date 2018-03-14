@@ -29,3 +29,22 @@ define("http", [], function () {return http;});
 ws = nodeRequire("ws");
 define("ws", [], function () { return ws });
 
+
+stopify = require("stopify/dist/src/stopify/compileFunction")
+define("stopify", [], function () { return stopify })
+
+const defaultOpts = {
+  filename: "",
+  estimator: "reservoir",
+  yieldInterval: 100,
+  resampleInterval: 100,
+  timePerElapsed: 1,
+  stop: undefined,
+  variance: false,
+  env: "node"
+}
+
+$__T = require("stopify-continuations/dist/src/runtime/runtime")
+$__R = $__T.newRTS("lazy")
+$S = require("stopify/dist/src/runtime/node").init($__R, defaultOpts);
+

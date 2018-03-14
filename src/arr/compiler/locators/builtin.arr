@@ -61,7 +61,9 @@ fun make-builtin-js-locator(basedir, builtin-name):
     method get-extra-imports(self):
       CM.standard-imports
     end,
-    method get-dependencies(_):
+    method get-dependencies(_) block:
+      print(builtin-name)
+      print("\n")
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(make-dep)
     end,

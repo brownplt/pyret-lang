@@ -120,7 +120,6 @@ fun get-cached(basedir, uri, name, cache-type):
     | split => {saved-path + "-static"; saved-path + "-module"}
     | single-file => {saved-path; saved-path}
   end
-  raw = B.builtin-raw-locator(static-path)
   {
     method needs-compile(_, _): false end,
     method get-modified-time(self):
@@ -136,11 +135,17 @@ fun get-cached(basedir, uri, name, cache-type):
     method get-extra-imports(self):
       CS.standard-imports
     end,
-    method get-dependencies(_):
+    method get-dependencies(_) block:
+      print(uri)
+      print("\n")
+      raw = B.builtin-raw-locator(static-path)
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(CS.make-dep)
     end,
-    method get-native-modules(_):
+    method get-native-modules(_) block:
+      print(uri + " " + static-path)
+      print("\n")
+      raw = B.builtin-raw-locator(static-path)
       natives = raw.get-raw-native-modules()
       raw-array-to-list(natives).map(CS.requirejs)
     end,
@@ -153,6 +158,7 @@ fun get-cached(basedir, uri, name, cache-type):
 
     method set-compiled(_, _, _): nothing end,
     method get-compiled(self):
+      raw = B.builtin-raw-locator(static-path)
       provs = CS.provides-from-raw-provides(self.uri(), {
           uri: self.uri(),
           values: raw-array-to-list(raw.get-raw-value-provides()),
@@ -193,13 +199,17 @@ fun get-cached-if-available(basedir, loc) block:
       method get-extra-imports(self):
         CS.standard-imports
       end,
-      method get-dependencies(_):
+      method get-dependencies(_) block:
         raw = B.builtin-raw-locator(static-path)
+        print(static-path)
+        print("\n")
         deps = raw.get-raw-dependencies()
         raw-array-to-list(deps).map(CS.make-dep)
       end,
-      method get-native-modules(_):
+      method get-native-modules(_) block:
         raw = B.builtin-raw-locator(static-path)
+        print("In get-cached-if: " + static-path)
+        print("\n")
         natives = raw.get-raw-native-modules()
         raw-array-to-list(natives).map(CS.requirejs)
       end,
@@ -313,9 +323,13 @@ fun set-loadable(basedir, locator, loadable) -> String block:
       # because it only happens for hand-written JS files, which are smaller.
       # But this is a point to revisit.
 
-      if JSP.is-ccp-dict(ccp):
+      if JSP.is-ccp-dict(ccp) block:
+        print("Saving static file for " + save-static-path)
+        print("\n")
         ccp.print-js-static(fs.display)
       else:
+        print("Saving as module file for " + save-static-path)
+        print("\n")
         ccp.print-js-runnable(fs.display)
       end
 
