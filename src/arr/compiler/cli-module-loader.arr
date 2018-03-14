@@ -177,66 +177,10 @@ end
 
 fun get-cached-if-available(basedir, loc) block:
   saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
-  #print("Looking for builtin module " + loc.uri() + " at: " + saved-path + "\n")
-  if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()) block:
-    #print("It wasn't there\n")
-    loc
-  else:
-    uri = loc.uri()
-    static-path = saved-path + "-static"
-    {
-      method needs-compile(_, _): false end,
-      method get-modified-time(self):
-        F.file-times(static-path + ".js").mtime
-      end,
-      method get-options(self, options):
-        options.{ check-mode: false }
-      end,
-      method get-module(_):
-        raise("Should never fetch source for builtin module " + static-path)
-      end,
-      method get-extra-imports(self):
-        CS.standard-imports
-      end,
-      method get-dependencies(_) block:
-        raw = B.builtin-raw-locator(static-path)
-        print(static-path)
-        print("\n")
-        deps = raw.get-raw-dependencies()
-        raw-array-to-list(deps).map(CS.make-dep)
-      end,
-      method get-native-modules(_) block:
-        raw = B.builtin-raw-locator(static-path)
-        print("In get-cached-if: " + static-path)
-        print("\n")
-        natives = raw.get-raw-native-modules()
-        raw-array-to-list(natives).map(CS.requirejs)
-      end,
-      method get-globals(_):
-        CS.standard-globals
-      end,
-
-      method uri(_): uri end,
-      method name(_): loc.name() end,
-
-      method set-compiled(_, _, _): nothing end,
-      method get-compiled(self):
-        raw = B.builtin-raw-locator(static-path)
-        provs = CS.provides-from-raw-provides(self.uri(), {
-            uri: self.uri(),
-            values: raw-array-to-list(raw.get-raw-value-provides()),
-            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-          })
-        some(CL.module-as-string(provs, CS.minimal-builtins,
-            CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
-      end,
-
-      method _equals(self, other, req-eq):
-        req-eq(self.uri(), other.uri())
-      end
-    }
+  cached-type = cached-available(basedir, loc.uri(), loc.name(), loc.get-modified-time())
+  cases(Option) cached-type:
+    | none => loc
+    | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct)
   end
 end
 
