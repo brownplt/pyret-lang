@@ -986,7 +986,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   end, var-type.with-fields)
                 end)
                 variants-meet = cases(List<TypeMembers>) variant-type-fields:
-                  | empty => empty
+                  | empty => [string-dict: ]
                   | link(first, rest) =>
                     cases(List<TypeMembers>) rest:
                       | empty => first
@@ -2060,7 +2060,7 @@ fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context
   new-exists = new-existential(loc, false)
   shadow context = context.add-level().add-variable(new-exists)
   shadow context = branch-types.foldr(lam(branch-type, shadow context):
-    context.add-constraint(new-exists, branch-type)
+    context.add-constraint(branch-type, new-exists)
   end, context)
   context.solve-level().bind(lam(solution, shadow context):
     meet-type = solution.generalize(solution.apply(new-exists))

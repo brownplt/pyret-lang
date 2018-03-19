@@ -1,1 +1,7 @@
-num-opt :: Option<Number> = some(1).and-then(lam(x :: Number): x + 1 end)
+fun to-nothing(x :: Number) -> Nothing:
+  nothing
+end
+
+fun test(x :: Option<Number>) -> Option<Nothing>:
+  x.and-then(to-nothing)
+end

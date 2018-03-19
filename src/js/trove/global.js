@@ -256,7 +256,7 @@
 
       // String functions
 
-      "gensym":{'bind': 'fun', 'flatness': 0, 'name': 'gensym', 'typ': ['arrow', [], 'String']},
+      "gensym":{'bind': 'fun', 'flatness': 0, 'name': 'gensym', 'typ': ['arrow', ['String'], 'String']},
       "string-repeat":{'bind': 'fun',
                        'flatness': 0,
                        'name': 'string-repeat',

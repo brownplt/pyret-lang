@@ -624,12 +624,6 @@
           }, "table-filter");
         }),
 
-        'get-row': runtime.makeMethod1(function(_, row_index) {
-          ffi.checkArity(2, arguments, "get-row", true);
-          runtime.checkArrayIndex("get-row", rows, row_index);
-          return getRowContentAsGetter(headers, rows[row_index]);
-        }),
-        
         'length': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "length", true);
           return runtime.makeNumber(rows.length);
