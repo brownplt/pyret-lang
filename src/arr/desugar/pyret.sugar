@@ -1,0 +1,5 @@
+
+sugar s-op:
+  |  (s-when test body blocky)
+  => (s-if-else [(s-if-branch test body)] body blocky)
+end
