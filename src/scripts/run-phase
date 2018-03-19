@@ -1,40 +1,37 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 set -o nounset
 #set -x
 
+ORIG_FILE=`readlink -f $1`
+pushd "$(dirname "$0")/../.." > /dev/null
+FILE=`realpath --relative-to="." "$ORIG_FILE"`
+
 NODE="node -max-old-space-size=8192"
-
 SYMLINK_NAME=`basename "$0"`
-SELF_NAME=`basename $(readlink -f $0)`
-
-if [ "$SYMLINK_NAME" = "$SELF_NAME" ]
-then
-    echo "This script cannot be run directly. Use either phase0, phaseA, phaseB, or phaseC."
-    exit 1
-fi
-
 PHASE="$SYMLINK_NAME"
 PYRET_JARR="build/$PHASE/pyret.jarr"
-FILE=$1
 
 if [ 1 -gt "$#" ]
 then
     echo "Expecting 1 argument; received $#"
     echo "Usage: $PHASE file.arr [args]"
+    popd > /dev/null
     exit 1
 fi
 
 if [ ! -e $PYRET_JARR ]
 then
     echo "missing pyret.jarr file. run: make $PHASE"
+    popd > /dev/null
     exit 1
 fi
 
 if [ ! -e $FILE ]
 then
     echo "Error: No such file: $FILE"
+    popd > /dev/null
     exit 1
 fi
 
@@ -46,3 +43,5 @@ then
 else
     $NODE $PYRET_JARR -no-display-progress --run $FILE
 fi
+
+popd > /dev/null
