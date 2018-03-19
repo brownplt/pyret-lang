@@ -307,7 +307,7 @@ fun write-ast-visitors() block:
       end
 
       degeneric-str = "fun " + DEGENERIC + ```(g):
-        cases (GenericAST) g:
+        cases (Term) g:
           | g-op(maybe-loc, op, args) => ...
           | g-str(s) => s
           | g-num(n) => n

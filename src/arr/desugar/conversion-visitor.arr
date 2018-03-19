@@ -2,7 +2,7 @@
 provide *
 
 include ast
-include file(ds-structs.arr)
+include file("ds-structs.arr")
 import global as _
 import base as _
 shadow ast-to-term-visitor =
