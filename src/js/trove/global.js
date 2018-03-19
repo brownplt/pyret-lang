@@ -56,6 +56,7 @@
         "raw-list-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], ["List", "tva"]], ["List", "tvb"]]],
         "raw-list-filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], ["List", "tva"]], ["List", "tva"]]],
         "raw-list-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", ["List", "tva"]], "tvb"]],
+        "spy": ["arrow", ["Any", "String", ["RawArray", "Any"], ["RawArray", "String"], ["RawArray", "Any"]], "Nothing"],
         "current-checker": ["arrow", [], ["record", {
           "run-checks": "tbot",
           "check-is": "tbot",
