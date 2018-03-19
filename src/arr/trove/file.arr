@@ -6,13 +6,15 @@ provide {
   file-exists: file-exists,
   file-times: file-times,
   file-to-string: file-to-string,
-  real-path: F.real-path
+  real-path: real-path
 } end
 provide-types *
 
 import global as _
 import base as _
 import filelib as F
+
+real-path = F.real-path
 
 data File:
   | in-fd(inner-file :: Any) with:
