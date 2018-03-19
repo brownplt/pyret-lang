@@ -23,7 +23,7 @@ import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
-import file("../desugar/ds-main.arr") as DNew
+#import file("../desugar/ds-main.arr") as DNew
 
 data CompilationPhase:
   | start(time :: Number)
@@ -400,9 +400,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end }
           else:
             add-phase("Resolved names", named-result)
-            var new-desugared = DNew.desugar(named-result.ast)
-            add-phase("New desugaring phase", new-desugared)
-            print(new-desugared) # TODO: this is for development
+            new-desugared = named-result.ast
+            #var new-desugared = DNew.desugar(named-result.ast)
+            #add-phase("New desugaring phase", new-desugared)
+            #print(new-desugared) # TODO: this is for development
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             var desugared = D.desugar(new-desugared)

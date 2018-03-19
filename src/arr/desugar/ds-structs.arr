@@ -17,10 +17,10 @@ type Variable = {
 }
 
 data GenericPrimitive:
-  | g-str(s :: String)
-  | g-num(n :: Number)
-  | g-bool(b :: Boolean)
-  | g-loc(l :: A.Loc)
+  | e-str(s :: String)
+  | e-num(n :: Number)
+  | e-bool(b :: Boolean)
+  | e-loc(l :: A.Loc)
 end
 
 data Term:
@@ -45,16 +45,16 @@ data VarKind:
 end
 
 data Pattern:
-  | p-pvar(name :: String, typ :: Option<String>)
-  | p-value(val :: GenericPrimitive)
-  | p-core(op :: String, args :: List<Pattern>)
-  | p-surf(op :: String, args :: List<Pattern>)
-  | p-aux(op :: String, args :: List<Pattern>)
-  | p-var(name :: String)
-  | p-list(l :: SeqPattern)
-  | p-option(opt :: Option<Pattern>)
-  | p-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
-  | p-fresh(fresh :: Set<String>, body :: Pattern)
+  | pat-pvar(name :: String, typ :: Option<String>)
+  | pat-value(val :: GenericPrimitive)
+  | pat-core(op :: String, args :: List<Pattern>)
+  | pat-surf(op :: String, args :: List<Pattern>)
+  | pat-aux(op :: String, args :: List<Pattern>)
+  | pat-var(name :: String)
+  | pat-list(l :: SeqPattern)
+  | pat-option(opt :: Option<Pattern>)
+  | pat-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
+  | pat-fresh(fresh :: Set<String>, body :: Pattern)
 end
 
 data SeqPattern:

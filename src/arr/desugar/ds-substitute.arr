@@ -17,28 +17,28 @@ include file("ds-resolve-ellipses.arr")
 
 fun subs(env :: Env, p :: Pattern) -> Term:
   cases (Pattern) p:
-    | p-pvar(name, _) => 
+    | pat-pvar(name, _) =>
       cases (Option) get-pvar(env, name):
         | none => fail("Pattern variable '" + name + "' not found.")
         | some(e) => e
       end
-    | p-value(val) => g-value(val)
-    | p-core(name, args) => g-core(name, none, map(subs(env, _), args))
-    | p-aux(name, args)  => g-aux(name, none, map(subs(env, _), args))
-    | p-surf(name, args) => g-surf(name, none, map(subs(env, _), args))
-    | p-var(name) => 
+    | pat-value(val) => g-value(val)
+    | pat-core(name, args) => g-core(name, none, map(subs(env, _), args))
+    | pat-aux(name, args)  => g-aux(name, none, map(subs(env, _), args))
+    | pat-surf(name, args) => g-surf(name, none, map(subs(env, _), args))
+    | pat-var(name) =>
       cases (Option) get-fresh(env, name):
         | none => g-var(naked-var(name)) # TODO?
         | some(v) => g-var(v)
       end
-    | p-option(opt) =>
+    | pat-option(opt) =>
       cases (Option) opt:
         | none => g-option(none)
         | some(shadow p) => g-option(some(subs(env, p)))
       end
-    | p-tag(lhs, rhs, body) => g-tag(lhs, rhs, subs(env, body))
-    | p-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body)
-    | p-list(seq) => g-list(subs-list(env, seq))
+    | pat-tag(lhs, rhs, body) => g-tag(lhs, rhs, subs(env, body))
+    | pat-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body)
+    | pat-list(seq) => g-list(subs-list(env, seq))
   end
 end
 

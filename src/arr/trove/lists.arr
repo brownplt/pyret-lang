@@ -2,18 +2,10 @@
 provide *
 provide-types *
 import global as _
-import option as O
-import either as E
+include option
+include either
 import equality as equality
 import valueskeleton as VS
-none = O.none
-is-none = O.is-none
-some = O.some
-is-some = O.is-some
-type Option = O.Option
-left = E.left
-right = E.right
-type Either = E.Either
 
 data List<a>:
   | empty with:
@@ -37,7 +29,7 @@ data List<a>:
       empty
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       none
     end,
@@ -143,7 +135,7 @@ data List<a>:
       partition(f, self)
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       find(f, self)
     end,
@@ -499,7 +491,7 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
-fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
+fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
   if is-empty(lst):
@@ -746,7 +738,7 @@ fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
   cases(List) lst:
     | empty => base
     | link(elt, r) =>
-      cases(E.Either) f(base, elt):
+      cases(Either) f(base, elt):
         | left(v) => fold-while(f, v, r)
         | right(v) => v
       end

@@ -17,7 +17,7 @@ fun find-ds-rule(rules :: List<DsRule>, op :: String) -> Option<DsRule>:
 end
 
 fun generate-pvars(n :: Number) -> List<Pattern>:
-  range(0, n).map(lam(i): p-pvar("_" + tostring(i), none) end)
+  range(0, n).map(lam(i): pat-pvar("_" + tostring(i), none) end)
 end
 
 fun chain-option<A, B>(
@@ -74,9 +74,9 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
       cases (Option) opt-rule:
         | none =>
           pvars = generate-pvars(args.length())
-          p-lhs = p-surf(op, pvars)
-          p-rhs = p-core(op, pvars)
-          g-tag(p-lhs, p-rhs, g-core(op, loc, args))
+          pat-lhs = pat-surf(op, pvars)
+          pat-rhs = pat-core(op, pvars)
+          g-tag(pat-lhs, pat-rhs, g-core(op, loc, args))
         | some(rule) =>
           opt = for find-option(kase from rule.kases):
             cases (Either) match-pattern(g-surf(op, loc, args), kase.lhs):
@@ -86,8 +86,8 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
           end
           cases (Option) opt:
             | none => fail("No cases matched for sugar '" + op + "'.")
-            | some({kase; env; p-lhs}) => 
-              g-tag(p-lhs, kase.rhs,
+            | some({kase; env; pat-lhs}) =>
+              g-tag(pat-lhs, kase.rhs,
                 desugar(rules, substitute-pattern(env, kase.rhs)))
           end
       end

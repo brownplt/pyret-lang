@@ -2,6 +2,8 @@
 provide *
 
 include ast
+include lists
+include option
 import global as _
 import base as _
 shadow default-iter-visitor =

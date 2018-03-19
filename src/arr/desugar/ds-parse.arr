@@ -351,15 +351,15 @@ fun parser-pattern(pvars :: Option<Set<String>>)
           pvar from parser-pvar-name,
           _ from parser-ignore(t-symbol(":")),
           typ from parser-name):
-        p-pvar(pvar, some(typ))
+        pat-pvar(pvar, some(typ))
       end,
       for parser-1(pvar from parser-pvar-name):
-        p-pvar(pvar, none)
+        pat-pvar(pvar, none)
       end
     ])
 
   parser-var = for parser-1(name from parser-name):
-    p-var(name)
+    pat-var(name)
   end
 
   fun parser-patt():
@@ -367,20 +367,20 @@ fun parser-pattern(pvars :: Option<Set<String>>)
     rec-list = lam(toks): parser-list-body()(toks) end
 
     parser-choices([list:
-        parser-const(t-name("none"), p-option(none)),
-        parser-const(t-name("true"), p-value(g-bool(true))),
-        parser-const(t-name("false"), p-value(g-bool(false))),
+        parser-const(t-name("none"), pat-option(none)),
+        parser-const(t-name("true"), pat-value(g-bool(true))),
+        parser-const(t-name("false"), pat-value(g-bool(false))),
         # Number
         parser-pred(lam(tok):
             cases (Token) tok:
-              | t-num(n) => some(p-value(g-num(n)))
+              | t-num(n) => some(pat-value(g-num(n)))
               | else => none
             end
           end),
         # String
         parser-pred(lam(tok): # string
             cases (Token) tok:
-              | t-str(s) => some(p-value(g-str(s)))
+              | t-str(s) => some(pat-value(g-str(s)))
               | else => none
             end
           end),
@@ -394,7 +394,7 @@ fun parser-pattern(pvars :: Option<Set<String>>)
             _ from parser-ignore(t-name("some")),
             arg from rec-pattern,
             _ from parser-ignore(t-symbol("}"))):
-          p-option(some(arg))
+          pat-option(some(arg))
         end,
         # Fresh
         for parser-5(
@@ -403,7 +403,7 @@ fun parser-pattern(pvars :: Option<Set<String>>)
             names from parser-name-list,
             body from rec-pattern,
             _ from parser-ignore(t-symbol(")"))):
-          p-fresh(list-to-set(names), body)
+          pat-fresh(list-to-set(names), body)
         end,
         # Aux
         for parser-4(
@@ -411,7 +411,7 @@ fun parser-pattern(pvars :: Option<Set<String>>)
             name from parser-name,
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol("}"))):
-          p-aux(name, args)
+          pat-aux(name, args)
         end,
         # Surface
         for parser-4(
@@ -419,14 +419,14 @@ fun parser-pattern(pvars :: Option<Set<String>>)
             name from parser-name,
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol(")"))):
-          p-surf(name, args)
+          pat-surf(name, args)
         end,
         # List
         for parser-3(
             _ from parser-ignore(t-symbol("[")),
             body from rec-list,
             _ from parser-ignore(t-symbol("]"))):
-          p-list(body)
+          pat-list(body)
         end
       ])
   end
@@ -466,19 +466,19 @@ fun parse-pattern(pvars :: Option<Set<String>>, input :: String) -> Pattern:
   run-parser(parser-pattern(pvars), input)
 where:
   parse-pattern(none, "3")
-    is p-value(g-num(3))
+    is pat-value(g-num(3))
   parse-pattern(none, "(foo 1 2)")
-    is p-surf("foo", [list: p-value(g-num(1)), p-value(g-num(2))])
+    is pat-surf("foo", [list: pat-value(g-num(1)), pat-value(g-num(2))])
   parse-pattern(none, "[[a b] ...]")
-    is p-list(seq-ellipsis(p-list(seq-cons(p-pvar("a", none), seq-cons(p-pvar("b", none), seq-empty))), "l1"))
+    is pat-list(seq-ellipsis(pat-list(seq-cons(pat-pvar("a", none), seq-cons(pat-pvar("b", none), seq-empty))), "l1"))
   parse-pattern(none, "[a b ...]")
-    is p-list(seq-cons(p-pvar("a", none), seq-ellipsis(p-pvar("b", none), "l1")))
+    is pat-list(seq-cons(pat-pvar("a", none), seq-ellipsis(pat-pvar("b", none), "l1")))
   parse-pattern(some([set: "a"]), "{c-abc {some a} b}")
-    is p-aux("c-abc", [list: p-option(some(p-pvar("a", none))), p-var("b")])
+    is pat-aux("c-abc", [list: pat-option(some(pat-pvar("a", none))), pat-var("b")])
 
   parse-pattern(none, "[[a ...] [b ...]]") 
-    is p-list(seq-cons(p-list(seq-ellipsis(p-pvar("a", none), "l1")), 
-      seq-cons(p-list(seq-ellipsis(p-pvar("b", none), "l2")), seq-empty)))
+    is pat-list(seq-cons(pat-list(seq-ellipsis(pat-pvar("a", none), "l1")), 
+      seq-cons(pat-list(seq-ellipsis(pat-pvar("b", none), "l2")), seq-empty)))
 end
 
 parse-lhs = parse-pattern(none, _)
@@ -491,20 +491,20 @@ fun parse-ast(input :: String) -> Term:
   pattern = parse-pattern(some([set:]), input)
   fun pattern-to-ast(shadow pattern :: Pattern) -> Term:
     cases (Pattern) pattern:
-      | p-value(v) => g-value(v)
-      | p-pvar(_, _) => panic("parse-ast: unexpected pvar")
-      | p-var(v) => g-var(naked-var(v))
-      | p-core(name, args) => g-core(name, none, args.map(pattern-to-ast))
-      | p-aux(name,  args) => g-aux(name,  none, args.map(pattern-to-ast))
-      | p-surf(name, args) => g-surf(name, none, args.map(pattern-to-ast))
-      | p-list(seq) => g-list(list-to-ast(seq))
-      | p-option(opt) => 
+      | pat-value(v) => g-value(v)
+      | pat-pvar(_, _) => panic("parse-ast: unexpected pvar")
+      | pat-var(v) => g-var(naked-var(v))
+      | pat-core(name, args) => g-core(name, none, args.map(pattern-to-ast))
+      | pat-aux(name,  args) => g-aux(name,  none, args.map(pattern-to-ast))
+      | pat-surf(name, args) => g-surf(name, none, args.map(pattern-to-ast))
+      | pat-list(seq) => g-list(list-to-ast(seq))
+      | pat-option(opt) => 
         cases (Option) opt:
           | none => none
           | some(p) => some(pattern-to-ast(p))
         end ^ g-option
-      | p-tag(lhs, rhs, body) => g-tag(lhs, rhs, pattern-to-ast(body))
-      | p-fresh(_, _) => panic("parse-ast: unexpected fresh")
+      | pat-tag(lhs, rhs, body) => g-tag(lhs, rhs, pattern-to-ast(body))
+      | pat-fresh(_, _) => panic("parse-ast: unexpected fresh")
     end
   end
   fun list-to-ast(seq :: SeqPattern) -> List<Term>:
@@ -521,20 +521,20 @@ end
 
 fun gather-pvars(p :: Pattern) -> Set<String>:
   cases (Pattern) p:
-    | p-pvar(name, _) => [set: name]
-    | p-value(_) => [set: ]
-    | p-var(_) => [set: ]
-    | p-core(_, args) => gather-pvars-list(args)
-    | p-surf(_, args) => gather-pvars-list(args)
-    | p-aux(_,  args) => gather-pvars-list(args)
-    | p-list(seq) => gather-pvars-seq(seq)
-    | p-option(opt) =>
+    | pat-pvar(name, _) => [set: name]
+    | pat-value(_) => [set: ]
+    | pat-var(_) => [set: ]
+    | pat-core(_, args) => gather-pvars-list(args)
+    | pat-surf(_, args) => gather-pvars-list(args)
+    | pat-aux(_,  args) => gather-pvars-list(args)
+    | pat-list(seq) => gather-pvars-seq(seq)
+    | pat-option(opt) =>
       cases (Option) opt:
         | none => [set: ]
         | some(shadow p) => gather-pvars(p)
       end
-    | p-tag(_, _, body) => gather-pvars(body)
-    | p-fresh(_, body) => gather-pvars(body)
+    | pat-tag(_, _, body) => gather-pvars(body)
+    | pat-fresh(_, body) => gather-pvars(body)
   end
 end
 
@@ -591,8 +591,8 @@ where:
     ```) is [list:
     ds-rule("or", [list:
         ds-rule-case(
-          p-surf("or", [list: p-pvar("a", some("Expr")), p-pvar("b", none)]), 
-          p-surf("let", [list: 
-              p-surf("bind", [list: p-var("x"), p-pvar("a", none)]),
-              p-surf("if", [list: p-var("x"), p-var("x"), p-pvar("b", none)])]))])]
+          pat-surf("or", [list: pat-pvar("a", some("Expr")), pat-pvar("b", none)]), 
+          pat-surf("let", [list: 
+              pat-surf("bind", [list: pat-var("x"), pat-pvar("a", none)]),
+              pat-surf("if", [list: pat-var("x"), pat-var("x"), pat-pvar("b", none)])]))])]
 end
