@@ -11,7 +11,7 @@ install:
 before_script:
 - make
 script:
-- if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/
+- if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/; fi
 - make all-pyret-test
 notifications:
   slack:
