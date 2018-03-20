@@ -39,7 +39,7 @@ shift 1
 
 if [ "$#" -gt 0 ]
 then
-    $NODE $PYRET_JARR -no-display-progress --run $FILE - "$@"
+    $NODE $PYRET_JARR -no-display-progress --run $FILE "$@"
 else
     $NODE $PYRET_JARR -no-display-progress --run $FILE
 fi
