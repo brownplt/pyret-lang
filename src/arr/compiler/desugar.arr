@@ -357,6 +357,8 @@ fun desugar-expr(expr :: A.Expr):
       A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
+    | s-hint-exp(l, hints, exp) =>
+      A.s-hint-exp(l, hints, desugar-expr(exp))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
