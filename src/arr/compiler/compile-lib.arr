@@ -24,6 +24,7 @@ import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
 #import file("../desugar/ds-main.arr") as DNew
+import file("../desugar/stepify.arr") as ST
 
 data CompilationPhase:
   | start(time :: Number)
@@ -424,10 +425,26 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
-            cases(CS.CompileResult) type-checked block:
+            var stepified =
+              if options.trace block:
+                # TODO: Clean this up
+                cases (CS.CompileResult) type-checked block:
+                  | ok(prog) =>
+                    print("Pre-stepified program:\n") # TODO
+                    print(ST.pretty-ast(prog.block))
+                    print("\n")
+                  | err(_) => nothing
+                end
+                stepified = ST.stepify(type-checked)
+                add-phase("Stepified", stepified)
+                stepified
+              else:
+                type-checked
+              end
+            cases(CS.CompileResult) stepified block:
               | ok(_) =>
-                var tc-ast = type-checked.code
-                type-checked := nothing
+                var tc-ast = stepified.code
+                stepified := nothing
                 var dp-ast = DP.desugar-post-tc(tc-ast, env)
                 tc-ast := nothing
                 var cleaned = dp-ast
@@ -451,9 +468,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                 mod-result = module-as-string(canonical-provides, env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>
-                { module-as-string(dummy-provides(locator.uri()), env, type-checked);
+                { module-as-string(dummy-provides(locator.uri()), env, stepified);
                   if options.collect-all or options.collect-times:
-                    phase("Result", type-checked, time-now(), ret).tolist()
+                    phase("Result", stepified, time-now(), ret).tolist()
                   else: empty
                   end }
             end

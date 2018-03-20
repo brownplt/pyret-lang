@@ -78,6 +78,8 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
     "auto-generate",
       C.flag(C.once, "When true, create all auto-generated files"),
+    "trace",
+      C.flag(C.once, "Show evaluation steps as the program runs"),
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -103,6 +105,7 @@ fun main(args :: List<String>) -> Number block:
       inline-case-body-limit = r.get-value("inline-case-body-limit")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
+      trace = r.has-key("trace")
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
@@ -123,7 +126,8 @@ fun main(args :: List<String>) -> Number block:
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
       if not(is-empty(rest)) block:
-        print-error("No longer supported\n")
+        print-error("No longer supported:\n")
+        print-error(rest)
         failure-code
       else:
         if r.has-key("auto-generate") block:
@@ -144,6 +148,7 @@ fun main(args :: List<String>) -> Number block:
                 standalone-file: standalone-file,
                 check-mode : check-mode,
                 type-check : type-check,
+                trace : trace,
                 allow-shadowed : allow-shadowed,
                 collect-all: false,
                 collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
@@ -183,6 +188,7 @@ fun main(args :: List<String>) -> Number block:
             CS.default-compile-options.{
               check-mode : check-mode,
               type-check : type-check,
+              trace : trace,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,
@@ -213,7 +219,8 @@ fun main(args :: List<String>) -> Number block:
           result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               display-progress: display-progress,
-              check-all: check-all
+              check-all: check-all,
+              trace: trace
             }, run-args)
           _ = print(result.message + "\n")
           result.exit-code
