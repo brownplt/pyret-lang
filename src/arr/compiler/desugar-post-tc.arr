@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import file("desugar.arr") as D
 import file("compile-structs.arr") as C
 
@@ -13,7 +14,7 @@ fun no-cases-exn(l, val):
   A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val])
 end
 
-desugar-visitor = A.default-map-visitor.{
+desugar-visitor = AV.default-map-visitor.{
   method s-cases-else(self, l, typ, val, branches, els, blocky):
     name = A.global-names.make-atom("cases")
     typ-compiled = typ.visit(self)

@@ -219,7 +219,7 @@ fun main(args :: List<String>) -> Number block:
     | arg-error(message, partial) =>
       block:
         print-error(message + "\n")
-        print-error(C.usage-info(options).join-str("\n"))
+        print-error(C.usage-info(options).join-str("\n") + '\n')
         failure-code
       end
   end

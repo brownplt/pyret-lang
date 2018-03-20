@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import pprint as PP
 import srcloc as SL
 import string-dict as SD
@@ -522,7 +523,7 @@ end
 
 fun strip-loc-bind(bind :: ABind):
   cases(ABind) bind:
-    | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann.visit(A.dummy-loc-visitor))
+    | a-bind(_, id, ann) => a-bind(dummy-loc, id, ann.visit(AV.dummy-loc-visitor))
   end
 end
 
@@ -530,7 +531,7 @@ fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
     | a-module(_, answer, dv, dt, provides, types, checks) =>
       a-module(dummy-loc, strip-loc-val(answer), dv, dt, strip-loc-val(provides),
-        types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
+        types.map(_.visit(AV.dummy-loc-visitor)), strip-loc-val(checks))
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
@@ -540,7 +541,7 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
     | a-prim-app(_, f, args) =>
       a-prim-app(dummy-loc, f, args.map(strip-loc-val))
-    | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
+    | a-ref(_, ann) => a-ref(dummy-loc, AV.dummy-loc-visitor.option(ann))
     | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
     | a-tuple-get(_, tup, index) => a-tuple-get(dummy-loc, strip-loc-val(tup), index)
     | a-obj(_, fields) => a-obj(dummy-loc, fields.map(strip-loc-field))
@@ -990,4 +991,3 @@ fun freevars-prog(p :: AProg) -> FrozenNameDict<A.Name>:
       body-vars.freeze()
   end
 end
-

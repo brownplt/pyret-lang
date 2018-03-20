@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import srcloc as S
 import parse-pyret as PP
 import string-dict as SD
@@ -435,7 +436,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   bk = lam(e): A.s-block(d, [list: e]) end
   bs = lam(str):
-    dsb(p(str).stmts).visit(A.dummy-loc-visitor)
+    dsb(p(str).stmts).visit(AV.dummy-loc-visitor)
   end
   n = none
   thunk = lam(e): A.s-lam(d, "", [list: ], [list: ], A.a-blank, "", bk(e), n, n, false) end
@@ -445,10 +446,10 @@ where:
     A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
       A.s-let-bind(d, b("y"), A.s-num(d, 10))],
     id("y"), false)
-  dsb(p("x = 15 y = 10 y").stmts).visit(A.dummy-loc-visitor)
+  dsb(p("x = 15 y = 10 y").stmts).visit(AV.dummy-loc-visitor)
     is compare1
 
-  dsb(p("x = 55 var y = 10 y").stmts).visit(A.dummy-loc-visitor)
+  dsb(p("x = 55 var y = 10 y").stmts).visit(AV.dummy-loc-visitor)
     is A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55)),
       A.s-var-bind(d, b("y"), A.s-num(d, 10))], id("y"), false)
 
@@ -483,7 +484,7 @@ where:
 
   dsb([list: prog2]) is prog2
   for each2(p1 from dsb(prog2.stmts).stmts, p2 from prog2.stmts):
-    p1.visit(A.dummy-loc-visitor) is p2
+    p1.visit(AV.dummy-loc-visitor) is p2
   end
 
   prog3 = bs("print(x) x := 3 print(x)")
@@ -534,11 +535,11 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
       | empty => {new-binds; new-body}
       | link(_, _) => {new-binds; A.s-let-expr(a.l, lbs.rest, new-body, false)}
     end
-  end  
+  end
   rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, _check-loc, v-check, blocky)
 end
 
-desugar-scope-visitor = A.default-map-visitor.{
+desugar-scope-visitor = AV.default-map-visitor.{
   method s-block(self, l, stmts):
     desugar-scope-block(stmts.map(_.visit(self)), let-binds(empty, empty))
   end,
@@ -675,7 +676,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.standard-builtins).ast.visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog, C.standard-builtins).ast.visit(AV.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -851,8 +852,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     { column-binds: A.s-column-binds(column-binds.l, env-and-binds.cbs, column-binds.table.visit(visitor)),
                env: env-and-binds.env }
   end
-      
-  names-visitor = A.default-map-visitor.{
+
+  names-visitor = AV.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
     method s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
@@ -945,7 +946,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(self.{env: imp-e, type-env: imp-te})
       var vals = nothing
       var typs = nothing
-      visit-body.visit(A.default-iter-visitor.{
+      visit-body.visit(AV.default-iter-visitor.{
         method s-module(_, _, _, dv, dt, pv, pt, _) block:
           vals := dv
           typs := dt
@@ -1206,7 +1207,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       new-body = body.visit(with-params.{env: env})
       new-check = with-params.option(_check)
-      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)    end,
+      A.s-method-field(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
+    end,
     method s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>
@@ -1346,7 +1348,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
       true
     end
   end
-  ast.visit(A.default-iter-visitor.{
+  ast.visit(AV.default-iter-visitor.{
       method s-id(self, loc, id) block:
         when handle-id(id, loc):
           add-error(C.unbound-id(A.s-id(loc, id)))
