@@ -14,8 +14,7 @@ end
 
 sugar no-branch-exn:
   | (no-branch-exn typ)
- => (s-prim-app "throwNoBranchesMatched" [(s-id (s-global "nothing"))
-                                          (s-str typ)])
+ => (s-prim-app "throwNoBranchesMatched" [(s-id (s-global "nothing")) (s-str typ)])
   # need to change (s-id (s-global "nothing")) to (s-srcloc LOC)
 end
 
@@ -46,4 +45,28 @@ end
 
 sugar s-paren:
   | (s-paren body) => body
+end
+
+sugar check-bool:
+  | (check-bool e) => (s-prim-app "checkWrapBoolean" [e])
+end
+
+sugar s-op:
+  | (s-op op-loc "op+" left right) => (s-app (s-id (s-global "_plus")) [left right])
+  | (s-op op-loc "op-" left right) => (s-app (s-id (s-global "_minus")) [left right])
+  | (s-op op-loc "op*" left right) => (s-app (s-id (s-global "_times")) [left right])
+  | (s-op op-loc "op/" left right) => (s-app (s-id (s-global "_divide")) [left right])
+  | (s-op op-loc "op<" left right) => (s-app (s-id (s-global "_lessthan")) [left right])
+  | (s-op op-loc "op>" left right) => (s-app (s-id (s-global "_greaterthan")) [left right])
+  | (s-op op-loc "op>=" left right) => (s-app (s-id (s-global "_greaterequal")) [left right])
+  | (s-op op-loc "op<=" left right) => (s-app (s-id (s-global "_lessequal")) [left right])
+  | (s-op op-loc "op==" left right) => (s-app (s-id (s-global "equal-always")) [left right])
+  | (s-op op-loc "op=~" left right) => (s-app (s-id (s-global "equal-now")) [left right])
+  | (s-op op-loc "op<=>" left right) => (s-app (s-id (s-global "identical")) [left right])
+  | (s-op op-loc "op<>" left right) => (s-prim-app "not" [(s-op op-loc "op==" left right)])
+  | (s-op op-loc "opor" left right)
+ => (s-if-else [(s-if-branch left (s-bool true))] (check-bool right) false)
+  | (s-op op-loc "opand" left right)
+ => (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
+  | (s-op op-loc "op^" left right) => (s-app right [left])
 end
