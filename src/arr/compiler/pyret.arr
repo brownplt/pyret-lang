@@ -93,9 +93,6 @@ fun main(args :: List<String>) -> Number block:
 
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
-      when r.has-key("auto-generate") block:
-        AG.write-ast-visitors()
-      end
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
