@@ -70,20 +70,6 @@ fun check-no-column(op-l, tbl, tbl-l, col, col-l):
       A.s-srcloc(A.dummy-loc, col-l)])
 end
 
-
-fun no-branches-exn(l, typ):
-  A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
-end
-fun bool-exn(l, typ, val):
-  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val])
-end
-fun bool-op-exn(l, position, typ, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
-end
-fun template-exn(l):
-  A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
-end
-
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
 end
@@ -357,17 +343,10 @@ fun desugar-expr(expr :: A.Expr):
       A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
-    | s-hint-exp(l, hints, exp) =>
-      A.s-hint-exp(l, hints, desugar-expr(exp))
-    | s-block(l, stmts) =>
-      A.s-block(l, stmts.map(desugar-expr))
-    | s-user-block(l, body) =>
-      desugar-expr(body)
-    | s-template(l) => template-exn(l)
-    | s-app(l, f, args) =>
-      ds-curry(l, f, args.map(desugar-expr))
-    | s-prim-app(l, f, args) =>
-      A.s-prim-app(l, f, args.map(desugar-expr))
+    | s-hint-exp(l, hints, exp) => A.s-hint-exp(l, hints, desugar-expr(exp))
+    | s-block(l, stmts) => A.s-block(l, stmts.map(desugar-expr))
+    | s-app(l, f, args) => ds-curry(l, f, args.map(desugar-expr))
+    | s-prim-app(l, f, args) => A.s-prim-app(l, f, args.map(desugar-expr))
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
@@ -406,13 +385,7 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
-    | s-if(l, branches, blocky) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]), blocky)
     | s-if-else(l, branches, _else, blocky) =>
-      desugar-if(l, branches, _else, blocky)
-    | s-if-pipe(l, branches, blocky) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "ask")]), blocky)
-    | s-if-pipe-else(l, branches, _else, blocky) =>
       desugar-if(l, branches, _else, blocky)
     | s-cases(l, typ, val, branches, blocky) =>
       A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch), blocky)
@@ -589,7 +562,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-prim-app(l, "makeTable",
         [list: A.s-array(l, column-names),
                A.s-array(l, rows)])
-    | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
     | s-var(_, _, _)              => raise("s-var should have already been desugared")

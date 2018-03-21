@@ -7,7 +7,6 @@ import file("desugar.arr") as D
 import file("compile-structs.arr") as C
 
 mk-id = D.mk-id
-no-branches-exn = D.no-branches-exn
 
 fun no-cases-exn(l, val):
   A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val])

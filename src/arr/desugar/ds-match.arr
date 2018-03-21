@@ -404,11 +404,11 @@ check:
         [string-dict: ],
         [string-dict: "l1", [list:
             environment(
-              [string-dict: "a", g-value(g-num(1)), "b", g-value(g-num(2))],
+              [string-dict: "a", g-value(e-num(1)), "b", g-value(e-num(2))],
               [string-dict: ],
               [string-dict: ]),
             environment(
-              [string-dict: "a", g-value(g-num(3)), "b", g-value(g-num(4))],
+              [string-dict: "a", g-value(e-num(3)), "b", g-value(e-num(4))],
               [string-dict: ],
               [string-dict: ])]]);
       pat-surf("hello", [list:
@@ -461,5 +461,5 @@ check:
   match-pattern(
     parse-ast("(Foo [1 2] [3 4])"), 
     resolve-ellipses(parse-pattern(none, "(Foo [a ...] [a ...])")))
-    is right(m-error-pvar("a", g-value(g-num(3)), g-value(g-num(1))))
+    is right(m-error-pvar("a", g-value(e-num(3)), g-value(e-num(1))))
 end

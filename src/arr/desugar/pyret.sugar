@@ -11,3 +11,39 @@ sugar s-when:
  # via pattern matching because of inside-out which makes s-block becomes core
  # which is not matchable
 end
+
+sugar no-branch-exn:
+  | (no-branch-exn typ)
+ => (s-prim-app "throwNoBranchesMatched" [(s-id (s-global "nothing"))
+                                          (s-str typ)])
+  # need to change (s-id (s-global "nothing")) to (s-srcloc LOC)
+end
+
+sugar s-if:
+  | (s-if branches blocky)
+ => (s-if-else branches (s-block [(no-branch-exn "if")]) blocky)
+  # why do we need s-block wrapped around?
+end
+
+sugar s-if-pipe:
+  | (s-if-pipe branches blocky)
+ => (s-if-else branches (s-block [(no-branch-exn "ask")]) blocky)
+  # why do we need s-block wrapped around?
+end
+
+sugar s-if-pipe-else:
+  | (s-if-pipe-else branches _else blocky) => (s-if-else branches _else blocky)
+end
+
+sugar s-template:
+  | (s-template) => (s-prim-app "throwUnfinishedTemplate" [(s-id (s-global "nothing"))])
+  # need to change (s-id (s-global "nothing")) to (s-srcloc LOC)
+end
+
+sugar s-user-block:
+  | (s-user-block body) => body
+end
+
+sugar s-paren:
+  | (s-paren body) => body
+end
