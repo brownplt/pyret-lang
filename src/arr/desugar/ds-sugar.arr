@@ -140,7 +140,7 @@ fun resugar(e :: Term) -> Option<Term>:
     | g-tag(lhs, rhs, body) =>
       for chain-option(shadow body from resugar(body)):
         cases (Either) match-pattern(body, rhs):
-          | left({env; _}) => resugar(substitute-pattern(env, lhs))
+          | left({env; _}) => resugar(substitute-pattern(env, lhs, none))
           | right(_) => none
         end
       end
