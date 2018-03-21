@@ -2469,6 +2469,7 @@ default-compile-options = {
   check-mode : true,
   check-all : true,
   type-check : false,
+  trace: false,
   allow-shadowed : false,
   collect-all: false,
   collect-times: false,

@@ -8,6 +8,6 @@ sugar s-when:
  # will do it for now
 
  # 2. this is kinda unpleasant. We cannot inspect that body is s-block or not
- # via pattern matching because of inside/out which makes s-block becomes core
+ # via pattern matching because of inside-out which makes s-block becomes core
  # which is not matchable
 end
