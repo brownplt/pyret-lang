@@ -69,4 +69,6 @@ sugar s-op:
   | (s-op op-loc "opand" left right)
  => (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
   | (s-op op-loc "op^" left right) => (s-app right [left])
+
+  # all of these need to support currying (e.g., `_ + _`)
 end

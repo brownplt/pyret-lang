@@ -70,7 +70,7 @@ check:
         set-pvar(empty-env(), "a", parse-ast("(Foo)")),
         set-pvar(empty-env(), "a", parse-ast("5"))
       ]),
-    parse-pattern(none, "(Bar [a ...])"))
+    parse-pattern(none, "(Bar [a ...])"), none)
     is parse-ast("(Bar [(Foo) 5])")
   
   subs(set-ellipsis(empty-env(),
@@ -79,7 +79,7 @@ check:
         set-pvar(empty-env(), "a", parse-ast("(Foo)")),
         set-pvar(empty-env(), "a", parse-ast("5"))
       ]),
-    resolve-ellipses(parse-pattern(none, "(Bar [a ...] [a ...])")))
+    resolve-ellipses(parse-pattern(none, "(Bar [a ...] [a ...])")), none)
     is parse-ast("(Bar [(Foo) 5] [(Foo) 5])")
   
 end

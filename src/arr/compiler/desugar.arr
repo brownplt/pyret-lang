@@ -10,6 +10,7 @@ import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("resolve-scope.arr") as R
+import file("../desugar/ds-main.arr") as DNew
 
 names = A.global-names
 
@@ -136,19 +137,6 @@ end
 fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
 
 fun mk-id-var(loc, base): mk-id-var-ann(loc, base, A.a-blank) end
-
-fun get-arith-op(str):
-  if str == "op+": some("_plus")
-  else if str == "op-": some("_minus")
-  else if str == "op*": some("_times")
-  else if str == "op/": some("_divide")
-  else if str == "op<": some("_lessthan")
-  else if str == "op>": some("_greaterthan")
-  else if str == "op>=": some("_greaterequal")
-  else if str == "op<=": some("_lessequal")
-  else: none
-  end
-end
 
 fun desugar-if(l, branches, _else :: A.Expr, blocky):
   for fold(acc from desugar-expr(_else), branch from branches.reverse()):
@@ -835,7 +823,7 @@ where:
     method s-atom(self, base, serial): A.s-name(d, base) end
   }
   p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
-  ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-expr(DNew.desugar(prog)).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)

@@ -11,6 +11,7 @@ import sets as S
 import sha as SHA
 import srcloc as Loc
 import string-dict as SD
+import ast-visitors as AV
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as C
 import file("gensym.arr") as G

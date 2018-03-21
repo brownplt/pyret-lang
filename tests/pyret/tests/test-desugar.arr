@@ -160,3 +160,10 @@ check "s-op carret":
     ^ (_ - 5)
     ^ some is some(3)
 end
+
+check "double desugar":
+  a1 = [list: 1]
+  a2 = [list: 2]
+
+  a1 satisfies _ <> a2
+end
