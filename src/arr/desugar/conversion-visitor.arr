@@ -824,10 +824,10 @@ shadow ast-to-term-visitor =
   }
 fun term-to-ast(g):
   cases(DS.Term) g:
-    | g-surf( maybe-loc,  op,  args) =>
-      term-to-ast-compound(maybe-loc, op, args)
-    | g-core( maybe-loc,  op,  args) =>
-      term-to-ast-compound(maybe-loc, op, args)
+    | g-surf( op,  maybe-loc,  args) =>
+      term-to-ast-compound(op, maybe-loc, args)
+    | g-core( op,  maybe-loc,  args) =>
+      term-to-ast-compound(op, maybe-loc, args)
     | g-aux( _,  _,  _) => raise("unexpected g-aux: " + tostring(g))
     | g-value( val) =>
       cases(DS.GenericPrimitive) val:
@@ -852,7 +852,7 @@ fun term-to-ast(g):
     | g-tag( _,  _,  body) => term-to-ast(body)
   end
 end
-fun term-to-ast-compound(maybe-loc, op, args):
+fun term-to-ast-compound(op, maybe-loc, args):
   ask:
     | op == "s-underscore" then: s-underscore(maybe-loc.value)
     | op == "s-name" then: s-name(maybe-loc.value, term-to-ast(args.get(0)))

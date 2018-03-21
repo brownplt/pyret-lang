@@ -4,6 +4,7 @@ provide {
 
 include string-dict
 include either
+import ast as A
 
 include file("ds-structs.arr")
 include file("ds-parse.arr")
@@ -15,7 +16,7 @@ include file("ds-resolve-ellipses.arr")
 #  Substitution
 #
 
-fun subs(env :: Env, p :: Pattern) -> Term:
+fun subs(env :: Env, p :: Pattern, top-loc :: Option<A.Loc>) -> Term:
   cases (Pattern) p:
     | pat-pvar(name, _) =>
       cases (Option) get-pvar(env, name):
@@ -23,9 +24,9 @@ fun subs(env :: Env, p :: Pattern) -> Term:
         | some(e) => e
       end
     | pat-value(val) => g-value(val)
-    | pat-core(name, args) => g-core(name, none, map(subs(env, _), args))
-    | pat-aux(name, args)  => g-aux(name, none, map(subs(env, _), args))
-    | pat-surf(name, args) => g-surf(name, none, map(subs(env, _), args))
+    | pat-core(name, args) => g-core(name, top-loc, map(subs(env, _, top-loc), args))
+    | pat-aux(name, args)  => g-aux(name, top-loc, map(subs(env, _, top-loc), args))
+    | pat-surf(name, args) => g-surf(name, top-loc, map(subs(env, _, top-loc), args))
     | pat-var(name) =>
       cases (Option) get-fresh(env, name):
         | none => g-var(naked-var(name)) # TODO?
@@ -34,28 +35,28 @@ fun subs(env :: Env, p :: Pattern) -> Term:
     | pat-option(opt) =>
       cases (Option) opt:
         | none => g-option(none)
-        | some(shadow p) => g-option(some(subs(env, p)))
+        | some(shadow p) => g-option(some(subs(env, p, top-loc)))
       end
-    | pat-tag(lhs, rhs, body) => g-tag(lhs, rhs, subs(env, body))
-    | pat-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body)
-    | pat-list(seq) => g-list(subs-list(env, seq))
+    | pat-tag(lhs, rhs, body) => g-tag(lhs, rhs, subs(env, body, top-loc))
+    | pat-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body, top-loc)
+    | pat-list(seq) => g-list(subs-list(env, seq, top-loc))
   end
 end
 
-fun subs-list(env :: Env, ps :: SeqPattern) -> List<Term>:
+fun subs-list(env :: Env, ps :: SeqPattern, top-loc :: Option<A.Loc>) -> List<Term>:
   cases (SeqPattern) ps:
     | seq-empty => empty
-    | seq-cons(f, r) => link(subs(env, f), subs-list(env, r))
+    | seq-cons(f, r) => link(subs(env, f, top-loc), subs-list(env, r, top-loc))
     | seq-ellipsis(p, l) => 
       cases (Option) get-ellipsis(env, l):
         | none => fail("Ellipsis label '" + l + "' not found.")
-        | some(envs) => for map(shadow env from envs): subs(env, p) end
+        | some(envs) => for map(shadow env from envs): subs(env, p, top-loc) end
       end
     | seq-ellipsis-list(shadow ps, l) => 
       cases (Option) get-ellipsis(env, l):
         | none => fail("Ellipsis label '" + l + "' not found.")
         | some(envs) => 
-          for map2(shadow env from envs, p from ps): subs(env, p) end
+          for map2(shadow env from envs, p from ps): subs(env, p, top-loc) end
       end
   end
 end

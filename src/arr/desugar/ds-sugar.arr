@@ -60,7 +60,7 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
   fun desugars(es :: List<Term>) -> List<Term>:
     es.map(desugar(rules, _))
   end
-  cases (Term) e:
+  cases (Term) e block:
     | g-value(val) => g-value(val)
     | g-core(op, loc, args) => g-core(op, loc, desugars(args))
     | g-aux(op,  loc, args) => g-aux(op,  loc, desugars(args))
@@ -88,7 +88,7 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
             | none => fail("No cases matched for sugar '" + op + "'.")
             | some({kase; env; pat-lhs}) =>
               g-tag(pat-lhs, kase.rhs,
-                desugar(rules, substitute-pattern(env, kase.rhs)))
+                desugar(rules, substitute-pattern(env, kase.rhs, loc)))
           end
       end
   end

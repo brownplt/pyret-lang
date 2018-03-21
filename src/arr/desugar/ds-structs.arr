@@ -2,14 +2,14 @@ provide *
 provide-types *
 
 include string-dict
-import ast as A
+import ast as AST
 import global as _
 import base as _
 
 type Variable = {
   name :: String,
   serial :: Number,
-  loc :: A.Loc,
+  loc :: AST.Loc,
   sign :: Option<VarSign>,
   kind :: Option<VarKind>,
   shadows :: Boolean,
@@ -20,14 +20,14 @@ data GenericPrimitive:
   | e-str(s :: String)
   | e-num(n :: Number)
   | e-bool(b :: Boolean)
-  | e-loc(l :: A.Loc)
+  | e-loc(l :: AST.Loc)
 end
 
 data Term:
   | g-value(val :: GenericPrimitive)
-  | g-core(op :: String, loc :: Option<A.Loc>, args :: List<Term>)
-  | g-surf(op :: String, loc :: Option<A.Loc>, args :: List<Term>)
-  | g-aux(op :: String, loc :: Option<A.Loc>, args :: List<Term>)
+  | g-core(op :: String, loc :: Option<AST.Loc>, args :: List<Term>)
+  | g-surf(op :: String, loc :: Option<AST.Loc>, args :: List<Term>)
+  | g-aux(op :: String, loc :: Option<AST.Loc>, args :: List<Term>)
   | g-var(v :: Variable)
   | g-list(lst :: List<Term>)
   | g-option(opt :: Option<Term>)
@@ -86,7 +86,7 @@ fun naked-var(name :: String) -> Variable:
   {
     name: name,
     serial: 0,
-    loc: A.dummy-loc,
+    loc: AST.dummy-loc,
     sign: none,
     kind: none,
     shadows: false,

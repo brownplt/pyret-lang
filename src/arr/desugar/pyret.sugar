@@ -1,5 +1,13 @@
 
-sugar s-op:
-  |  (s-when test body blocky)
-  => (s-if-else [(s-if-branch test body)] body blocky)
+sugar s-when:
+  | (s-when test body blocky)
+ => (s-if-else [(s-if-branch test (s-block [body (s-id (s-global "nothing"))]))]
+               (s-id (s-global "nothing"))
+               blocky)
+ # 1. need to rewrite (s-id (s-global "nothing")) to use proper var, but this
+ # will do it for now
+
+ # 2. this is kinda unpleasant. We cannot inspect that body is s-block or not
+ # via pattern matching because of inside/out which makes s-block becomes core
+ # which is not matchable
 end

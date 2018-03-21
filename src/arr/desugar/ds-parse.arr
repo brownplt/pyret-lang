@@ -39,6 +39,7 @@ fun tokenize(input :: String) -> List<Token> block:
   var token :: String = ""
   var tokens :: List<Token> = [list:]
   var in-string :: Boolean = false
+  var in-comment :: Boolean = false
 
   fun token-break():
     when token <> "" block:
@@ -64,28 +65,37 @@ fun tokenize(input :: String) -> List<Token> block:
   end
 
   for each(char from string-explode(input)) block:
-    if in-string block:
-      token := token + char
-      when char == '"' block:
-        token-break()
-        in-string := false
-      end
-    else:
-      if WHITESPACE.member(char) block:
-        token-break()
-      else if SPECIAL-TOKENS.member(char):
+    ask block:
+      | in-comment then:
+        when char == "\n":
+          in-comment := false
+        end
+      | in-string then:
+        when char == "\n":
+          parse-error("Unterminated string.")
+        end
+        token := token + char
+        when char == '"' block:
+          token-break()
+          in-string := false
+        end
+      | WHITESPACE.member(char) then: token-break()
+      | SPECIAL-TOKENS.member(char) then:
         token-break()
         token := char
         token-break()
-      else if char == '"':
+      | char == "#" then:
+        token-break()
+        in-comment := true
+        nothing
+      | char == '"' then:
         token-break()
         token := char
         in-string := true
         nothing
-      else:
+      | otherwise:
         token := token + char
         nothing
-      end
     end
     nothing
   end
@@ -106,10 +116,10 @@ where:
     t-symbol(":"), t-name("Var"), t-name("fields"), t-symbol(":"), t-name("StructFields"),
     t-symbol("..."), t-symbol(")"), t-symbol("@"), t-name("rest"), t-symbol(":"),
     t-name("SurfStmts"), t-symbol("]")]
-  shadow input = '{Lambda l 55/6(CONCAT "for-body \n<" (\nFORMAT l false) ">")}'
+  shadow input = '{Lambda l 55/6(CONCAT "for-body \\n<" (\nFORMAT l false) ">")}'
   tokenize(input)
     is [list: t-symbol("{"), t-name("Lambda"), t-name("l"), t-num(55/6),
-    t-symbol("("), t-name("CONCAT"), t-str("for-body \n<"), t-symbol("("),
+    t-symbol("("), t-name("CONCAT"), t-str("for-body \\n<"), t-symbol("("),
     t-name("FORMAT"), t-name("l"), t-name("false"), t-symbol(")"), t-str(">"),
     t-symbol(")"), t-symbol("}")]
 end
@@ -368,19 +378,19 @@ fun parser-pattern(pvars :: Option<Set<String>>)
 
     parser-choices([list:
         parser-const(t-name("none"), pat-option(none)),
-        parser-const(t-name("true"), pat-value(g-bool(true))),
-        parser-const(t-name("false"), pat-value(g-bool(false))),
+        parser-const(t-name("true"), pat-value(e-bool(true))),
+        parser-const(t-name("false"), pat-value(e-bool(false))),
         # Number
         parser-pred(lam(tok):
             cases (Token) tok:
-              | t-num(n) => some(pat-value(g-num(n)))
+              | t-num(n) => some(pat-value(e-num(n)))
               | else => none
             end
           end),
         # String
         parser-pred(lam(tok): # string
             cases (Token) tok:
-              | t-str(s) => some(pat-value(g-str(s)))
+              | t-str(s) => some(pat-value(e-str(s)))
               | else => none
             end
           end),
@@ -466,9 +476,9 @@ fun parse-pattern(pvars :: Option<Set<String>>, input :: String) -> Pattern:
   run-parser(parser-pattern(pvars), input)
 where:
   parse-pattern(none, "3")
-    is pat-value(g-num(3))
+    is pat-value(e-num(3))
   parse-pattern(none, "(foo 1 2)")
-    is pat-surf("foo", [list: pat-value(g-num(1)), pat-value(g-num(2))])
+    is pat-surf("foo", [list: pat-value(e-num(1)), pat-value(e-num(2))])
   parse-pattern(none, "[[a b] ...]")
     is pat-list(seq-ellipsis(pat-list(seq-cons(pat-pvar("a", none), seq-cons(pat-pvar("b", none), seq-empty))), "l1"))
   parse-pattern(none, "[a b ...]")
@@ -585,9 +595,11 @@ where:
         ds-rule-case(parse-lhs("(and)"), parse-lhs("(and)"))])]
   parse-ds-rules(
     ```
-    sugar or: 
+    # ignore me
+    sugar or: # ignore this
     | (or a:Expr b) => (let (bind x a) (if x x b))
     end
+    # ignore
     ```) is [list:
     ds-rule("or", [list:
         ds-rule-case(

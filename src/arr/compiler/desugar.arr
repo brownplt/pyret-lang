@@ -406,17 +406,6 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
-    | s-when(l, test, body, blocky) =>
-      ds-test = desugar-expr(test)
-      g-nothing = gid(l, "nothing")
-      ds-body = desugar-expr(body)
-      A.s-if-else(l,
-        [list:
-          A.s-if-branch(l, ds-test, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
-            else: A.s-block(l, [list: ds-body, g-nothing])
-            end)],
-        A.s-block(l, [list: g-nothing]),
-        blocky)
     | s-if(l, branches, blocky) =>
       desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]), blocky)
     | s-if-else(l, branches, _else, blocky) =>

@@ -4,8 +4,9 @@ provide {
 } end
 
 import ast as AST
+import ast-visitors as AV
 import file as F
-#import file("term-visitor.arr")
+import file("conversion-visitor.arr") as CONV
 import file("ds-structs.arr") as S
 import file("ds-sugar.arr") as DS
 import file("ds-parse.arr") as P
@@ -17,9 +18,10 @@ desugaring-rules = block:
   ds-rules
 end
 
-fun desugar(e :: AST.Program) -> AST.Program:
-  # FILL
-  e
+fun desugar(e :: AST.Program) -> AST.Program block:
+  e.visit(CONV.ast-to-term-visitor)
+    ^ DS.desugar(desugaring-rules, _)
+    ^ CONV.term-to-ast
 end
 
 fun resugar(e :: AST.Program) -> Option<AST.Program>:

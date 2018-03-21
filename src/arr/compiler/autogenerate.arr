@@ -313,8 +313,8 @@ fun write-ast-visitors() block:
 
       degeneric-str = ```fun term-to-ast(g):
         cases (DS.Term) g:
-          | g-surf(maybe-loc, op, args) => term-to-ast-compound(maybe-loc, op, args)
-          | g-core(maybe-loc, op, args) => term-to-ast-compound(maybe-loc, op, args)
+          | g-surf(op, maybe-loc, args) => term-to-ast-compound(op, maybe-loc, args)
+          | g-core(op, maybe-loc, args) => term-to-ast-compound(op, maybe-loc, args)
           | g-aux(_, _, _) => raise("unexpected g-aux: " + tostring(g))
           | g-value(val) =>
             cases (DS.GenericPrimitive) val:
@@ -339,7 +339,7 @@ fun write-ast-visitors() block:
         end
       end
 
-      fun term-to-ast-compound(maybe-loc, op, args):
+      fun term-to-ast-compound(op, maybe-loc, args):
         ...
       end
       ```
