@@ -18,7 +18,13 @@ desugaring-rules = block:
   ds-rules
 end
 
-fun desugar(e :: AST.Program) -> AST.Program block:
+fun desugar-expr(e :: AST.Expr) -> AST.Expr:
+  e.visit(CONV.ast-to-term-visitor)
+    ^ DS.desugar(desugaring-rules, _)
+    ^ CONV.term-to-ast
+end
+
+fun desugar(e :: AST.Program) -> AST.Program:
   e.visit(CONV.ast-to-term-visitor)
     ^ DS.desugar(desugaring-rules, _)
     ^ CONV.term-to-ast

@@ -823,7 +823,7 @@ where:
     method s-atom(self, base, serial): A.s-name(d, base) end
   }
   p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
-  ds = lam(prog): desugar-expr(DNew.desugar(prog)).visit(unglobal).visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-expr(DNew.desugar-expr(prog)).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)
