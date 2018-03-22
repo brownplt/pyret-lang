@@ -298,7 +298,7 @@ fun match-rec(
               match-core-or-sugar(pat-aux, ename, pname, eargs, pargs)
             | else => match-error()
           end
-        | pat-meta(_, _) => panic('Encountered a pat-meta while matching: ' + tostring(p))
+        | pat-meta(_, _) => left({env; p})
         | pat-surf(pname, pargs) =>
           cases (Term) e:
             | g-surf(ename, loc, eargs) => 
