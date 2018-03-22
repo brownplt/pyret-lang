@@ -402,10 +402,8 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end }
           else:
             add-phase("Resolved names", named-result)
-
-            new-desugared = named-result.ast
-            #var new-desugared = DNew.desugar(named-result.ast)
-            #add-phase("New desugaring phase", new-desugared)
+            var new-desugared = DNew.desugar(named-result.ast)
+            add-phase("New desugaring phase", new-desugared)
             #print(new-desugared) # TODO: this is for development
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
