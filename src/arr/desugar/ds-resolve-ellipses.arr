@@ -32,6 +32,7 @@ fun resolve-ellipses(p :: Pattern) -> Pattern block:
       | pat-core(_, args) => args.each(collect(_, ellipses))
       | pat-aux(_, args) => args.each(collect(_, ellipses))
       | pat-surf(_, args) => args.each(collect(_, ellipses))
+      | pat-meta(_, args) => args.each(collect(_, ellipses))
       | pat-var(_) => nothing
       | pat-option(opt) =>
         cases (Option) opt:
@@ -65,6 +66,7 @@ fun resolve-ellipses(p :: Pattern) -> Pattern block:
       | pat-core(name, args) => pat-core(name, args.map(resolve))
       | pat-aux(name,  args) => pat-aux(name,  args.map(resolve))
       | pat-surf(name, args) => pat-surf(name, args.map(resolve))
+      | pat-meta(name, args) => pat-meta(name, args.map(resolve))
       | pat-var(_) => p
       | pat-option(opt) =>
         cases (Option) opt:

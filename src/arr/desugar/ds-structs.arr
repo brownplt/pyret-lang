@@ -50,6 +50,7 @@ data Pattern:
   | pat-core(op :: String, args :: List<Pattern>)
   | pat-surf(op :: String, args :: List<Pattern>)
   | pat-aux(op :: String, args :: List<Pattern>)
+  | pat-meta(op :: String, args :: List<Pattern>)
   | pat-var(name :: String)
   | pat-list(l :: SeqPattern)
   | pat-option(opt :: Option<Pattern>)

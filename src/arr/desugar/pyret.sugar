@@ -14,8 +14,7 @@ end
 
 sugar no-branch-exn:
   | (no-branch-exn typ)
- => (s-prim-app "throwNoBranchesMatched" [(s-id (s-global "nothing")) (s-str typ)])
-  # need to change (s-id (s-global "nothing")) to (s-srcloc LOC)
+ => (s-prim-app "throwNoBranchesMatched" [(s-srcloc (meta get-loc)) (s-str typ)])
 end
 
 sugar s-if:
@@ -35,8 +34,7 @@ sugar s-if-pipe-else:
 end
 
 sugar s-template:
-  | (s-template) => (s-prim-app "throwUnfinishedTemplate" [(s-id (s-global "nothing"))])
-  # need to change (s-id (s-global "nothing")) to (s-srcloc LOC)
+  | (s-template) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc (meta get-loc))])
 end
 
 sugar s-user-block:

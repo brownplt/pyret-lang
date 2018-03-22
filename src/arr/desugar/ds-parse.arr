@@ -415,6 +415,15 @@ fun parser-pattern(pvars :: Option<Set<String>>)
             _ from parser-ignore(t-symbol(")"))):
           pat-fresh(list-to-set(names), body)
         end,
+        # Meta
+        for parser-5(
+            _ from parser-ignore(t-symbol("(")),
+            _ from parser-ignore(t-name("meta")),
+            name from parser-name,
+            args from parser-seq(rec-pattern),
+            _ from parser-ignore(t-symbol(")"))):
+          pat-meta(name, args)
+        end,
         # Aux
         for parser-4(
             _ from parser-ignore(t-symbol("{")),
@@ -507,6 +516,7 @@ fun parse-ast(input :: String) -> Term:
       | pat-core(name, args) => g-core(name, none, args.map(pattern-to-ast))
       | pat-aux(name,  args) => g-aux(name,  none, args.map(pattern-to-ast))
       | pat-surf(name, args) => g-surf(name, none, args.map(pattern-to-ast))
+      | pat-meta(name, args) => panic("parse-ast: unexpected meta")
       | pat-list(seq) => g-list(list-to-ast(seq))
       | pat-option(opt) => 
         cases (Option) opt:
@@ -537,6 +547,7 @@ fun gather-pvars(p :: Pattern) -> Set<String>:
     | pat-core(_, args) => gather-pvars-list(args)
     | pat-surf(_, args) => gather-pvars-list(args)
     | pat-aux(_,  args) => gather-pvars-list(args)
+    | pat-meta(_, args) => panic("gather-pvars should be called on LHS which has no meta")
     | pat-list(seq) => gather-pvars-seq(seq)
     | pat-option(opt) =>
       cases (Option) opt:

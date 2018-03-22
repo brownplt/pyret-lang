@@ -298,6 +298,7 @@ fun match-rec(
               match-core-or-sugar(pat-aux, ename, pname, eargs, pargs)
             | else => match-error()
           end
+        | pat-meta(_, _) => panic('Encountered a pat-meta while matching: ' + tostring(p))
         | pat-surf(pname, pargs) =>
           cases (Term) e:
             | g-surf(ename, loc, eargs) => 
@@ -330,7 +331,7 @@ fun match-rec(
             | else => match-error()
           end
         | pat-tag(lhs, rhs, body) =>
-          panic("Encountered a pat-tag while matching, but it should only be used internally.")
+          panic("Encountered a pat-tag while matching, but it should only be used internally: " + tostring(p))
         | pat-fresh(fresh-vars, body) =>
           for chain-either({shadow env; shadow p} from match-rec(fresh.union(fresh-vars), env, e, body)):
             left({env; pat-fresh(fresh-vars, p)})

@@ -11,6 +11,19 @@ include file("ds-parse.arr")
 include file("ds-environment.arr")
 include file("ds-resolve-ellipses.arr")
 
+data Metafunction:
+  | metafunction(
+      arity :: Number,
+      f :: (List<Pattern>, Env, Option<A.Loc> -> Term))
+end
+
+metafunctions = [string-dict:
+  "get-loc", metafunction(0, lam(_, _, top-loc):
+    cases (Option) top-loc:
+      | none => panic("trying to get-loc with no srcloc")
+      | some(loc) => g-value(e-loc(loc))
+    end
+  end)]
 
 ################################################################################
 #  Substitution
@@ -27,6 +40,17 @@ fun subs(env :: Env, p :: Pattern, top-loc :: Option<A.Loc>) -> Term:
     | pat-core(name, args) => g-core(name, top-loc, map(subs(env, _, top-loc), args))
     | pat-aux(name, args)  => g-aux(name, top-loc, map(subs(env, _, top-loc), args))
     | pat-surf(name, args) => g-surf(name, top-loc, map(subs(env, _, top-loc), args))
+    | pat-meta(name, args) =>
+      cases (Option) metafunctions.get(name):
+        | none => fail("Metafunction '" + name + "' not found")
+        | some(metaf) =>
+          if args.length() == metaf.arity:
+            metaf.f(args, env, top-loc)
+          else:
+            fail("Arity mismatch when calling metafunction '" + name + "'. " +
+                 "Expect " + tostring(metaf.arity) + " arguments. Got " + tostring(args.length()))
+          end
+      end
     | pat-var(name) =>
       cases (Option) get-fresh(env, name):
         | none => g-var(naked-var(name)) # TODO?
