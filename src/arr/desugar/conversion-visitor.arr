@@ -2,10 +2,8 @@
 provide *
 
 include ast
-import file("ds-structs.arr") as DS
-import
-e-str, e-num, e-bool, e-loc, g-value, g-core, g-surf, g-aux, g-var, g-list,
-g-option, g-tag, type-var, value-var from file("ds-structs.arr")
+include string-dict
+include file("ds-structs.arr")
 import global as _
 import base as _
 fun g-str(s): g-value(e-str(s)) end
@@ -822,15 +820,836 @@ shadow ast-to-term-visitor =
       g-surf("a-field", some(l), [list: g-str(name), ann.visit(self)])
     end
   }
+rec lookup-dict =
+  [string-dict: 
+    "s-underscore",
+    lam(maybe-loc, args): s-underscore(maybe-loc.value) end,
+    "s-name",
+    lam(maybe-loc, args): s-name(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-global",
+    lam(maybe-loc, args): s-global(term-to-ast(args.get(0))) end,
+    "s-type-global",
+    lam(maybe-loc, args): s-type-global(term-to-ast(args.get(0))) end,
+    "s-atom",
+    lam(maybe-loc, args):
+      s-atom(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "app-info-c",
+    lam(maybe-loc, args):
+      app-info-c(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-program",
+    lam(maybe-loc, args):
+      s-program(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-include",
+    lam(maybe-loc, args):
+      s-include(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-import",
+    lam(maybe-loc, args):
+      s-import(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-import-types",
+    lam(maybe-loc, args):
+      s-import-types(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-import-fields",
+    lam(maybe-loc, args):
+      s-import-fields(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-import-complete",
+    lam(maybe-loc, args):
+      s-import-complete(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)))
+    end,
+    "p-value",
+    lam(maybe-loc, args):
+      p-value(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "p-alias",
+    lam(maybe-loc, args):
+      p-alias(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "p-data",
+    lam(maybe-loc, args):
+      p-data(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-provide",
+    lam(maybe-loc, args):
+      s-provide(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-provide-complete",
+    lam(maybe-loc, args):
+      s-provide-complete(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-provide-all",
+    lam(maybe-loc, args): s-provide-all(maybe-loc.value) end,
+    "s-provide-none",
+    lam(maybe-loc, args): s-provide-none(maybe-loc.value) end,
+    "s-provide-types",
+    lam(maybe-loc, args):
+      s-provide-types(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-provide-types-all",
+    lam(maybe-loc, args): s-provide-types-all(maybe-loc.value) end,
+    "s-provide-types-none",
+    lam(maybe-loc, args): s-provide-types-none(maybe-loc.value) end,
+    "s-const-import",
+    lam(maybe-loc, args):
+      s-const-import(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-special-import",
+    lam(maybe-loc, args):
+      s-special-import(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "h-use-loc",
+    lam(maybe-loc, args): h-use-loc(maybe-loc.value) end,
+    "s-let-bind",
+    lam(maybe-loc, args):
+      s-let-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-var-bind",
+    lam(maybe-loc, args):
+      s-var-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-letrec-bind",
+    lam(maybe-loc, args):
+      s-letrec-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-type-bind",
+    lam(maybe-loc, args):
+      s-type-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-newtype-bind",
+    lam(maybe-loc, args):
+      s-newtype-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-defined-value",
+    lam(maybe-loc, args):
+      s-defined-value(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-defined-var",
+    lam(maybe-loc, args):
+      s-defined-var(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-defined-type",
+    lam(maybe-loc, args):
+      s-defined-type(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-module",
+    lam(maybe-loc, args):
+      s-module(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)))
+    end,
+    "s-template",
+    lam(maybe-loc, args): s-template(maybe-loc.value) end,
+    "s-type-let-expr",
+    lam(maybe-loc, args):
+      s-type-let-expr(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-let-expr",
+    lam(maybe-loc, args):
+      s-let-expr(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-letrec",
+    lam(maybe-loc, args):
+      s-letrec(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-hint-exp",
+    lam(maybe-loc, args):
+      s-hint-exp(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-instantiate",
+    lam(maybe-loc, args):
+      s-instantiate(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-block",
+    lam(maybe-loc, args): s-block(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-user-block",
+    lam(maybe-loc, args):
+      s-user-block(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-fun",
+    lam(maybe-loc, args):
+      s-fun(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)),
+        term-to-ast(args.get(6)),
+        term-to-ast(args.get(7)),
+        term-to-ast(args.get(8)))
+    end,
+    "s-type",
+    lam(maybe-loc, args):
+      s-type(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-newtype",
+    lam(maybe-loc, args):
+      s-newtype(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-var",
+    lam(maybe-loc, args):
+      s-var(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-rec",
+    lam(maybe-loc, args):
+      s-rec(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-let",
+    lam(maybe-loc, args):
+      s-let(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-ref",
+    lam(maybe-loc, args): s-ref(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-contract",
+    lam(maybe-loc, args):
+      s-contract(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-when",
+    lam(maybe-loc, args):
+      s-when(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-assign",
+    lam(maybe-loc, args):
+      s-assign(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-if-pipe",
+    lam(maybe-loc, args):
+      s-if-pipe(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-if-pipe-else",
+    lam(maybe-loc, args):
+      s-if-pipe-else(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-if",
+    lam(maybe-loc, args):
+      s-if(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-if-else",
+    lam(maybe-loc, args):
+      s-if-else(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-cases",
+    lam(maybe-loc, args):
+      s-cases(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-cases-else",
+    lam(maybe-loc, args):
+      s-cases-else(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)))
+    end,
+    "s-op",
+    lam(maybe-loc, args):
+      s-op(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-check-test",
+    lam(maybe-loc, args):
+      s-check-test(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-check-expr",
+    lam(maybe-loc, args):
+      s-check-expr(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-paren",
+    lam(maybe-loc, args): s-paren(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-lam",
+    lam(maybe-loc, args):
+      s-lam(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)),
+        term-to-ast(args.get(6)),
+        term-to-ast(args.get(7)),
+        term-to-ast(args.get(8)))
+    end,
+    "s-method",
+    lam(maybe-loc, args):
+      s-method(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)),
+        term-to-ast(args.get(6)),
+        term-to-ast(args.get(7)),
+        term-to-ast(args.get(8)))
+    end,
+    "s-extend",
+    lam(maybe-loc, args):
+      s-extend(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-update",
+    lam(maybe-loc, args):
+      s-update(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-tuple",
+    lam(maybe-loc, args): s-tuple(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-tuple-get",
+    lam(maybe-loc, args):
+      s-tuple-get(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-obj",
+    lam(maybe-loc, args): s-obj(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-array",
+    lam(maybe-loc, args): s-array(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-construct",
+    lam(maybe-loc, args):
+      s-construct(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-app",
+    lam(maybe-loc, args):
+      s-app(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-app-enriched",
+    lam(maybe-loc, args):
+      s-app-enriched(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-prim-app",
+    lam(maybe-loc, args):
+      s-prim-app(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-prim-val",
+    lam(maybe-loc, args):
+      s-prim-val(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-id",
+    lam(maybe-loc, args): s-id(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-id-var",
+    lam(maybe-loc, args):
+      s-id-var(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-id-letrec",
+    lam(maybe-loc, args):
+      s-id-letrec(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-undefined",
+    lam(maybe-loc, args): s-undefined(maybe-loc.value) end,
+    "s-srcloc",
+    lam(maybe-loc, args):
+      s-srcloc(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-num",
+    lam(maybe-loc, args): s-num(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-frac",
+    lam(maybe-loc, args):
+      s-frac(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-rfrac",
+    lam(maybe-loc, args):
+      s-rfrac(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-bool",
+    lam(maybe-loc, args): s-bool(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-str",
+    lam(maybe-loc, args): s-str(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "s-dot",
+    lam(maybe-loc, args):
+      s-dot(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "s-get-bang",
+    lam(maybe-loc, args):
+      s-get-bang(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-bracket",
+    lam(maybe-loc, args):
+      s-bracket(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-data",
+    lam(maybe-loc, args):
+      s-data(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)),
+        term-to-ast(args.get(6)))
+    end,
+    "s-data-expr",
+    lam(maybe-loc, args):
+      s-data-expr(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)),
+        term-to-ast(args.get(6)),
+        term-to-ast(args.get(7)))
+    end,
+    "s-for",
+    lam(maybe-loc, args):
+      s-for(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)))
+    end,
+    "s-check",
+    lam(maybe-loc, args):
+      s-check(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-reactor",
+    lam(maybe-loc, args):
+      s-reactor(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-table-extend",
+    lam(maybe-loc, args):
+      s-table-extend(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-update",
+    lam(maybe-loc, args):
+      s-table-update(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-select",
+    lam(maybe-loc, args):
+      s-table-select(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-order",
+    lam(maybe-loc, args):
+      s-table-order(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-filter",
+    lam(maybe-loc, args):
+      s-table-filter(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-extract",
+    lam(maybe-loc, args):
+      s-table-extract(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table",
+    lam(maybe-loc, args):
+      s-table(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-load-table",
+    lam(maybe-loc, args):
+      s-load-table(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-spy-block",
+    lam(maybe-loc, args):
+      s-spy-block(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-row",
+    lam(maybe-loc, args):
+      s-table-row(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-spy-name",
+    lam(maybe-loc, args):
+      s-spy-name(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-spy-expr",
+    lam(maybe-loc, args):
+      s-spy-expr(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-construct-normal",
+    lam(maybe-loc, args): s-construct-normal end,
+    "s-construct-lazy",
+    lam(maybe-loc, args): s-construct-lazy end,
+    "s-bind",
+    lam(maybe-loc, args):
+      s-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-tuple-bind",
+    lam(maybe-loc, args):
+      s-tuple-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-data-field",
+    lam(maybe-loc, args):
+      s-data-field(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-mutable-field",
+    lam(maybe-loc, args):
+      s-mutable-field(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-method-field",
+    lam(maybe-loc, args):
+      s-method-field(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)),
+        term-to-ast(args.get(4)),
+        term-to-ast(args.get(5)),
+        term-to-ast(args.get(6)),
+        term-to-ast(args.get(7)),
+        term-to-ast(args.get(8)))
+    end,
+    "s-field-name",
+    lam(maybe-loc, args):
+      s-field-name(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-for-bind",
+    lam(maybe-loc, args):
+      s-for-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-column-binds",
+    lam(maybe-loc, args):
+      s-column-binds(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "ASCENDING",
+    lam(maybe-loc, args): ASCENDING end,
+    "DESCENDING",
+    lam(maybe-loc, args): DESCENDING end,
+    "s-column-sort",
+    lam(maybe-loc, args):
+      s-column-sort(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-extend-field",
+    lam(maybe-loc, args):
+      s-table-extend-field(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-table-extend-reducer",
+    lam(maybe-loc, args):
+      s-table-extend-reducer(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-sanitize",
+    lam(maybe-loc, args):
+      s-sanitize(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-table-src",
+    lam(maybe-loc, args):
+      s-table-src(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-normal",
+    lam(maybe-loc, args): s-normal end,
+    "s-mutable",
+    lam(maybe-loc, args): s-mutable end,
+    "s-variant-member",
+    lam(maybe-loc, args):
+      s-variant-member(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-variant",
+    lam(maybe-loc, args):
+      s-variant(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-singleton-variant",
+    lam(maybe-loc, args):
+      s-singleton-variant(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-if-branch",
+    lam(maybe-loc, args):
+      s-if-branch(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-if-pipe-branch",
+    lam(maybe-loc, args):
+      s-if-pipe-branch(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-cases-bind-ref",
+    lam(maybe-loc, args): s-cases-bind-ref end,
+    "s-cases-bind-normal",
+    lam(maybe-loc, args): s-cases-bind-normal end,
+    "s-cases-bind",
+    lam(maybe-loc, args):
+      s-cases-bind(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "s-cases-branch",
+    lam(maybe-loc, args):
+      s-cases-branch(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)),
+        term-to-ast(args.get(3)))
+    end,
+    "s-singleton-cases-branch",
+    lam(maybe-loc, args):
+      s-singleton-cases-branch(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "s-op-is",
+    lam(maybe-loc, args): s-op-is(maybe-loc.value) end,
+    "s-op-is-roughly",
+    lam(maybe-loc, args): s-op-is-roughly(maybe-loc.value) end,
+    "s-op-is-op",
+    lam(maybe-loc, args):
+      s-op-is-op(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-op-is-not",
+    lam(maybe-loc, args): s-op-is-not(maybe-loc.value) end,
+    "s-op-is-not-op",
+    lam(maybe-loc, args):
+      s-op-is-not-op(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "s-op-satisfies",
+    lam(maybe-loc, args): s-op-satisfies(maybe-loc.value) end,
+    "s-op-satisfies-not",
+    lam(maybe-loc, args): s-op-satisfies-not(maybe-loc.value) end,
+    "s-op-raises",
+    lam(maybe-loc, args): s-op-raises(maybe-loc.value) end,
+    "s-op-raises-other",
+    lam(maybe-loc, args): s-op-raises-other(maybe-loc.value) end,
+    "s-op-raises-not",
+    lam(maybe-loc, args): s-op-raises-not(maybe-loc.value) end,
+    "s-op-raises-satisfies",
+    lam(maybe-loc, args): s-op-raises-satisfies(maybe-loc.value) end,
+    "s-op-raises-violates",
+    lam(maybe-loc, args): s-op-raises-violates(maybe-loc.value) end,
+    "a-blank",
+    lam(maybe-loc, args): a-blank end,
+    "a-any",
+    lam(maybe-loc, args): a-any(maybe-loc.value) end,
+    "a-name",
+    lam(maybe-loc, args): a-name(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "a-type-var",
+    lam(maybe-loc, args):
+      a-type-var(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "a-arrow",
+    lam(maybe-loc, args):
+      a-arrow(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "a-arrow-argnames",
+    lam(maybe-loc, args):
+      a-arrow-argnames(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
+    end,
+    "a-method",
+    lam(maybe-loc, args):
+      a-method(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "a-record",
+    lam(maybe-loc, args):
+      a-record(maybe-loc.value, term-to-ast(args.get(0)))
+    end,
+    "a-tuple",
+    lam(maybe-loc, args): a-tuple(maybe-loc.value, term-to-ast(args.get(0))) end,
+    "a-app",
+    lam(maybe-loc, args):
+      a-app(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "a-pred",
+    lam(maybe-loc, args):
+      a-pred(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end,
+    "a-dot",
+    lam(maybe-loc, args):
+      a-dot(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "a-checked",
+    lam(maybe-loc, args):
+      a-checked(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
+    end,
+    "a-field",
+    lam(maybe-loc, args):
+      a-field(maybe-loc.value,
+        term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)))
+    end
+  ]
 fun term-to-ast(g):
-  cases(DS.Term) g:
+  cases(Term) g:
     | g-surf( op,  maybe-loc,  args) =>
-      term-to-ast-compound(op, maybe-loc, args)
+      lookup-dict.get-value(op)(maybe-loc, args)
     | g-core( op,  maybe-loc,  args) =>
-      term-to-ast-compound(op, maybe-loc, args)
+      lookup-dict.get-value(op)(maybe-loc, args)
     | g-aux( _,  _,  _) => raise("unexpected g-aux: " + tostring(g))
     | g-value( val) =>
-      cases(DS.GenericPrimitive) val:
+      cases(GenericPrimitive) val:
         | e-str( s) => s
         | e-num( n) => n
         | e-bool( b) => b
@@ -850,661 +1669,5 @@ fun term-to-ast(g):
     | g-list( lst) => lst.map(term-to-ast)
     | g-option( opt) => opt.and-then(term-to-ast)
     | g-tag( _,  _,  body) => term-to-ast(body)
-  end
-end
-fun term-to-ast-compound(op, maybe-loc, args):
-  ask:
-    | op == "s-underscore" then: s-underscore(maybe-loc.value)
-    | op == "s-name" then: s-name(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-global" then: s-global(term-to-ast(args.get(0)))
-    | op == "s-type-global" then: s-type-global(term-to-ast(args.get(0)))
-    | op == "s-atom"
-        then:
-      s-atom(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "app-info-c"
-        then:
-      app-info-c(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-program"
-        then:
-      s-program(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-include"
-        then:
-      s-include(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-import"
-        then:
-      s-import(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-import-types"
-        then:
-      s-import-types(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-import-fields"
-        then:
-      s-import-fields(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-import-complete"
-        then:
-      s-import-complete(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    | op == "p-value"
-        then:
-      p-value(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "p-alias"
-        then:
-      p-alias(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "p-data"
-        then:
-      p-data(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-provide"
-        then:
-      s-provide(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-provide-complete"
-        then:
-      s-provide-complete(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-provide-all" then: s-provide-all(maybe-loc.value)
-    | op == "s-provide-none" then: s-provide-none(maybe-loc.value)
-    | op == "s-provide-types"
-        then:
-      s-provide-types(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-provide-types-all" then: s-provide-types-all(maybe-loc.value)
-    | op == "s-provide-types-none" then: s-provide-types-none(maybe-loc.value)
-    | op == "s-const-import"
-        then:
-      s-const-import(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-special-import"
-        then:
-      s-special-import(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "h-use-loc" then: h-use-loc(maybe-loc.value)
-    | op == "s-let-bind"
-        then:
-      s-let-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-var-bind"
-        then:
-      s-var-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-letrec-bind"
-        then:
-      s-letrec-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-type-bind"
-        then:
-      s-type-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-newtype-bind"
-        then:
-      s-newtype-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-defined-value"
-        then:
-      s-defined-value(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-defined-var"
-        then:
-      s-defined-var(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-defined-type"
-        then:
-      s-defined-type(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-module"
-        then:
-      s-module(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)))
-    | op == "s-template" then: s-template(maybe-loc.value)
-    | op == "s-type-let-expr"
-        then:
-      s-type-let-expr(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-let-expr"
-        then:
-      s-let-expr(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-letrec"
-        then:
-      s-letrec(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-hint-exp"
-        then:
-      s-hint-exp(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-instantiate"
-        then:
-      s-instantiate(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-block" then: s-block(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-user-block"
-        then:
-      s-user-block(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-fun"
-        then:
-      s-fun(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)))
-    | op == "s-type"
-        then:
-      s-type(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-newtype"
-        then:
-      s-newtype(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-var"
-        then:
-      s-var(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-rec"
-        then:
-      s-rec(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-let"
-        then:
-      s-let(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-ref" then: s-ref(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-contract"
-        then:
-      s-contract(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-when"
-        then:
-      s-when(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-assign"
-        then:
-      s-assign(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-if-pipe"
-        then:
-      s-if-pipe(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-if-pipe-else"
-        then:
-      s-if-pipe-else(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-if"
-        then:
-      s-if(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-if-else"
-        then:
-      s-if-else(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-cases"
-        then:
-      s-cases(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-cases-else"
-        then:
-      s-cases-else(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    | op == "s-op"
-        then:
-      s-op(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-check-test"
-        then:
-      s-check-test(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-check-expr"
-        then:
-      s-check-expr(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-paren" then: s-paren(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-lam"
-        then:
-      s-lam(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)))
-    | op == "s-method"
-        then:
-      s-method(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)))
-    | op == "s-extend"
-        then:
-      s-extend(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-update"
-        then:
-      s-update(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-tuple" then: s-tuple(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-tuple-get"
-        then:
-      s-tuple-get(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-obj" then: s-obj(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-array" then: s-array(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-construct"
-        then:
-      s-construct(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-app"
-        then:
-      s-app(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-app-enriched"
-        then:
-      s-app-enriched(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-prim-app"
-        then:
-      s-prim-app(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-prim-val"
-        then:
-      s-prim-val(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-id" then: s-id(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-id-var" then: s-id-var(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-id-letrec"
-        then:
-      s-id-letrec(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-undefined" then: s-undefined(maybe-loc.value)
-    | op == "s-srcloc" then: s-srcloc(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-num" then: s-num(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-frac"
-        then:
-      s-frac(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-rfrac"
-        then:
-      s-rfrac(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-bool" then: s-bool(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-str" then: s-str(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-dot"
-        then:
-      s-dot(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "s-get-bang"
-        then:
-      s-get-bang(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-bracket"
-        then:
-      s-bracket(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-data"
-        then:
-      s-data(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)))
-    | op == "s-data-expr"
-        then:
-      s-data-expr(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)))
-    | op == "s-for"
-        then:
-      s-for(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    | op == "s-check"
-        then:
-      s-check(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-reactor"
-        then:
-      s-reactor(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-table-extend"
-        then:
-      s-table-extend(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-update"
-        then:
-      s-table-update(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-select"
-        then:
-      s-table-select(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-order"
-        then:
-      s-table-order(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-filter"
-        then:
-      s-table-filter(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-extract"
-        then:
-      s-table-extract(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table"
-        then:
-      s-table(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-load-table"
-        then:
-      s-load-table(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-spy-block"
-        then:
-      s-spy-block(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-row"
-        then:
-      s-table-row(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-spy-name"
-        then:
-      s-spy-name(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-spy-expr"
-        then:
-      s-spy-expr(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-construct-normal" then: s-construct-normal
-    | op == "s-construct-lazy" then: s-construct-lazy
-    | op == "s-bind"
-        then:
-      s-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-tuple-bind"
-        then:
-      s-tuple-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-data-field"
-        then:
-      s-data-field(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-mutable-field"
-        then:
-      s-mutable-field(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-method-field"
-        then:
-      s-method-field(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)))
-    | op == "s-field-name"
-        then:
-      s-field-name(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-for-bind"
-        then:
-      s-for-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-column-binds"
-        then:
-      s-column-binds(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "ASCENDING" then: ASCENDING
-    | op == "DESCENDING" then: DESCENDING
-    | op == "s-column-sort"
-        then:
-      s-column-sort(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-extend-field"
-        then:
-      s-table-extend-field(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-table-extend-reducer"
-        then:
-      s-table-extend-reducer(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-sanitize"
-        then:
-      s-sanitize(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-table-src"
-        then:
-      s-table-src(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-normal" then: s-normal
-    | op == "s-mutable" then: s-mutable
-    | op == "s-variant-member"
-        then:
-      s-variant-member(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-variant"
-        then:
-      s-variant(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-singleton-variant"
-        then:
-      s-singleton-variant(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-if-branch"
-        then:
-      s-if-branch(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-if-pipe-branch"
-        then:
-      s-if-pipe-branch(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-cases-bind-ref" then: s-cases-bind-ref
-    | op == "s-cases-bind-normal" then: s-cases-bind-normal
-    | op == "s-cases-bind"
-        then:
-      s-cases-bind(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "s-cases-branch"
-        then:
-      s-cases-branch(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    | op == "s-singleton-cases-branch"
-        then:
-      s-singleton-cases-branch(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "s-op-is" then: s-op-is(maybe-loc.value)
-    | op == "s-op-is-roughly" then: s-op-is-roughly(maybe-loc.value)
-    | op == "s-op-is-op"
-        then:
-      s-op-is-op(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-op-is-not" then: s-op-is-not(maybe-loc.value)
-    | op == "s-op-is-not-op"
-        then:
-      s-op-is-not-op(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "s-op-satisfies" then: s-op-satisfies(maybe-loc.value)
-    | op == "s-op-satisfies-not" then: s-op-satisfies-not(maybe-loc.value)
-    | op == "s-op-raises" then: s-op-raises(maybe-loc.value)
-    | op == "s-op-raises-other" then: s-op-raises-other(maybe-loc.value)
-    | op == "s-op-raises-not" then: s-op-raises-not(maybe-loc.value)
-    | op == "s-op-raises-satisfies" then: s-op-raises-satisfies(maybe-loc.value)
-    | op == "s-op-raises-violates" then: s-op-raises-violates(maybe-loc.value)
-    | op == "a-blank" then: a-blank
-    | op == "a-any" then: a-any(maybe-loc.value)
-    | op == "a-name" then: a-name(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "a-type-var"
-        then:
-      a-type-var(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "a-arrow"
-        then:
-      a-arrow(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "a-arrow-argnames"
-        then:
-      a-arrow-argnames(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    | op == "a-method"
-        then:
-      a-method(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "a-record" then: a-record(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "a-tuple" then: a-tuple(maybe-loc.value, term-to-ast(args.get(0)))
-    | op == "a-app"
-        then:
-      a-app(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "a-pred"
-        then:
-      a-pred(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
-    | op == "a-dot"
-        then:
-      a-dot(maybe-loc.value, term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "a-checked"
-        then:
-      a-checked(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    | op == "a-field"
-        then:
-      a-field(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
   end
 end

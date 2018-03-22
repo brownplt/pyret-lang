@@ -234,7 +234,7 @@ fun generate-ast-visitor(
     }
   ]
 
-  body = for map(vname from requirements.sort()):
+  body = for map(vname from requirements):
     obj = transformers.get-value(vname)
     AT.visitor-maker(
       collected-variants,
@@ -271,13 +271,13 @@ fun write-ast-visitors() block:
     true,
     lam(_, body): body end)
 
+
   generate-ast-visitor(
     [list:
       A.s-include(dummy, A.s-const-import(dummy, 'ast')),
-      A.s-import(dummy, A.s-special-import(dummy, 'file', [list: 'ds-structs.arr']), AT.make-name("DS")),
-      A.s-import-fields(dummy, [list:
-        'e-str', 'e-num', 'e-bool', 'e-loc', 'g-value', 'g-core', 'g-surf', 'g-aux',
-        'g-var', 'g-list', 'g-option', 'g-tag', 'type-var', 'value-var'].map(AT.make-name), A.s-special-import(dummy, 'file', [list: 'ds-structs.arr']))],
+      A.s-include(dummy, A.s-const-import(dummy, 'string-dict')),
+      A.s-include(dummy, A.s-special-import(dummy, 'file', [list: 'ds-structs.arr'])),
+    ],
     'src/arr/trove/ast.arr',
     'src/arr/desugar/conversion-visitor.arr',
     [list: 'ast-to-term-visitor'],
@@ -290,8 +290,12 @@ fun write-ast-visitors() block:
         end
       end
 
-      if-pipes = for map(variant from collected-variants):
-        cases (AT.SimplifiedVariant) variant:
+      # use string-dict so that we can simply lookup without searching
+      # (searching strategy's performance is really bad!)
+      var string-dict-args = empty
+
+      for each(variant from collected-variants) block:
+        bodylam = cases (AT.SimplifiedVariant) variant:
           | simplified-variant(_, name, members) =>
             arg-list = cases (List) members:
               | empty => empty
@@ -305,19 +309,32 @@ fun write-ast-visitors() block:
             A.s-app(dummy, AT.make-id(name),arg-list)
           | simplified-singleton-variant(_, name, _) => AT.make-id(name)
         end
-          ^ A.s-if-pipe-branch(
-              dummy,
-              A.s-op(dummy, dummy, 'op==', AT.make-id('op'), A.s-str(dummy, variant.name)),
-              _)
+
+        string-dict-args := link(A.s-str(dummy, variant.name), string-dict-args)
+        string-dict-args := link(
+          A.s-lam(
+            dummy, "", empty, [list: "maybe-loc", "args"].map(AT.make-bind),
+            A.a-blank, "", bodylam, none, none, false),
+          string-dict-args)
       end
 
-      degeneric-str = ```fun term-to-ast(g):
-        cases (DS.Term) g:
-          | g-surf(op, maybe-loc, args) => term-to-ast-compound(op, maybe-loc, args)
-          | g-core(op, maybe-loc, args) => term-to-ast-compound(op, maybe-loc, args)
+      lookup-dict = A.s-construct(
+        dummy,
+        A.s-construct-normal,
+        AT.make-id("string-dict"),
+        string-dict-args.reverse())
+
+      degeneric-str = ```
+
+      rec lookup-dict = ...
+
+      fun term-to-ast(g):
+        cases (Term) g:
+          | g-surf(op, maybe-loc, args) => lookup-dict.get-value(op)(maybe-loc, args)
+          | g-core(op, maybe-loc, args) => lookup-dict.get-value(op)(maybe-loc, args)
           | g-aux(_, _, _) => raise("unexpected g-aux: " + tostring(g))
           | g-value(val) =>
-            cases (DS.GenericPrimitive) val:
+            cases (GenericPrimitive) val:
               | e-str(s) => s
               | e-num(n) => n
               | e-bool(b) => b
@@ -338,10 +355,6 @@ fun write-ast-visitors() block:
           | g-tag(_, _, body) => term-to-ast(body)
         end
       end
-
-      fun term-to-ast-compound(op, maybe-loc, args):
-        ...
-      end
       ```
 
       helpers-str = ```
@@ -353,7 +366,7 @@ fun write-ast-visitors() block:
 
       degeneric = SP.surface-parse(degeneric-str, '').visit(AV.default-map-visitor.{
         method s-template(self, _):
-          A.s-if-pipe(dummy, if-pipes, false)
+          lookup-dict
         end
       })
 
