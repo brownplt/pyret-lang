@@ -73,6 +73,8 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
       opt-rule = find-ds-rule(rules, op)
       cases (Option) opt-rule:
         | none =>
+          # TODO: this should eventually throw an error. Right now
+          # allow it to work so that we can add sugars incrementally
           pvars = generate-pvars(args.length())
           pat-lhs = pat-surf(op, pvars)
           pat-rhs = pat-core(op, pvars)
@@ -85,7 +87,11 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
             end
           end
           cases (Option) opt:
-            | none => fail("No cases matched for sugar '" + op + "'.")
+            | none =>
+              pvars = generate-pvars(args.length())
+              pat-lhs = pat-surf(op, pvars)
+              pat-rhs = pat-core(op, pvars)
+              g-tag(pat-lhs, pat-rhs, g-core(op, loc, args))
             | some({kase; env; pat-lhs}) =>
               g-tag(pat-lhs, kase.rhs,
                 desugar(rules, substitute-pattern(env, kase.rhs, loc)))

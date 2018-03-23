@@ -1,7 +1,7 @@
 
 sugar s-when:
-  | (s-when test body blocky)
- => (s-if-else [(s-if-branch test (s-block [body (s-id (s-global "nothing"))]))]
+  | (s-when test body blocky) =>
+    (s-if-else [(s-if-branch test (s-block [body (s-id (s-global "nothing"))]))]
                (s-id (s-global "nothing"))
                blocky)
  # 1. need to rewrite (s-id (s-global "nothing")) to use proper var, but this
@@ -13,19 +13,19 @@ sugar s-when:
 end
 
 sugar no-branch-exn:
-  | (no-branch-exn typ)
- => (s-prim-app "throwNoBranchesMatched" [(s-srcloc (meta get-loc)) (s-str typ)])
+  | (no-branch-exn typ) =>
+    (s-prim-app "throwNoBranchesMatched" [(s-srcloc (meta get-loc)) (s-str typ)])
 end
 
 sugar s-if:
-  | (s-if branches blocky)
- => (s-if-else branches (s-block [(no-branch-exn "if")]) blocky)
+  | (s-if branches blocky) =>
+    (s-if-else branches (s-block [(no-branch-exn "if")]) blocky)
   # why do we need s-block wrapped around?
 end
 
 sugar s-if-pipe:
-  | (s-if-pipe branches blocky)
- => (s-if-else branches (s-block [(no-branch-exn "ask")]) blocky)
+  | (s-if-pipe branches blocky) =>
+    (s-if-else branches (s-block [(no-branch-exn "ask")]) blocky)
   # why do we need s-block wrapped around?
 end
 
@@ -49,6 +49,45 @@ sugar check-bool:
   | (check-bool e) => (s-prim-app "checkWrapBoolean" [e])
 end
 
+sugar s-underscore:
+  | (s-underscore) => {underscore}
+end
+
+sugar map-underscore-to-fresh:
+  | (map-underscore-to-fresh vs) => (reverse (map-underscore-to-fresh-acc vs []))
+end
+
+sugar map-underscore-to-fresh-acc:
+  | (map-underscore-to-fresh-acc [] lst) => lst
+  | (map-underscore-to-fresh-acc [{underscore} rest ...] [e ...]) =>
+    (map-underscore-to-fresh-acc [rest ...] [(fresh [name] name) e ...])
+  | (map-underscore-to-fresh-acc [non-underscore rest ...] [e ...]) =>
+    (map-underscore-to-fresh-acc [rest ...] [non-underscore e ...])
+end
+
+sugar reverse:
+  | (reverse lst) => (reverse-acc lst [])
+end
+
+sugar reverse-acc:
+  | (reverse-acc [] acc) => acc
+  | (reverse-acc [e rest ...] [acc-e ...]) => (reverse-acc [rest ...] [e acc-e ...])
+end
+
+
+sugar s-import:
+  | (s-import file {underscore}) => (s-import file (fresh [name] name))
+end
+
+sugar s-import-type:
+  # Note: I believe this AST node won't manifest
+end
+
+sugar s-import-fields:
+  | (s-import-fields fields file) => «s-import-fields (map-underscore-to-fresh fields) file»
+end
+
+
 sugar s-op:
   | (s-op op-loc "op+" left right) => (s-app (s-id (s-global "_plus")) [left right])
   | (s-op op-loc "op-" left right) => (s-app (s-id (s-global "_minus")) [left right])
@@ -62,10 +101,10 @@ sugar s-op:
   | (s-op op-loc "op=~" left right) => (s-app (s-id (s-global "equal-now")) [left right])
   | (s-op op-loc "op<=>" left right) => (s-app (s-id (s-global "identical")) [left right])
   | (s-op op-loc "op<>" left right) => (s-prim-app "not" [(s-op op-loc "op==" left right)])
-  | (s-op op-loc "opor" left right)
- => (s-if-else [(s-if-branch left (s-bool true))] (check-bool right) false)
-  | (s-op op-loc "opand" left right)
- => (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
+  | (s-op op-loc "opor" left right) =>
+    (s-if-else [(s-if-branch left (s-bool true))] (check-bool right) false)
+  | (s-op op-loc "opand" left right) =>
+    (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
   | (s-op op-loc "op^" left right) => (s-app right [left])
 
   # all of these need to support currying (e.g., `_ + _`)

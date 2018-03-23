@@ -26,7 +26,7 @@ end
 #
 
 WHITESPACE = [list: " ", "\t", "\n"]
-SPECIAL-TOKENS = [list: ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@"]
+SPECIAL-TOKENS = [list: ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@", "«", "»"]
 
 data Token:
   | t-str(tok :: String)
@@ -431,6 +431,14 @@ fun parser-pattern(pvars :: Option<Set<String>>)
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol("}"))):
           pat-aux(name, args)
+        end,
+        # Core
+        for parser-4(
+            _ from parser-ignore(t-symbol("«")),
+            name from parser-name,
+            args from parser-seq(rec-pattern),
+            _ from parser-ignore(t-symbol("»"))):
+          pat-core(name, args)
         end,
         # Surface
         for parser-4(
