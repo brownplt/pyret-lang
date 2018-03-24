@@ -12,6 +12,8 @@ sugar s-when:
  # which is not matchable
 end
 
+################################################################################
+
 sugar no-branch-exn:
   | (no-branch-exn typ) =>
     (s-prim-app "throwNoBranchesMatched" [(s-srcloc (meta get-loc)) (s-str typ)])
@@ -32,6 +34,14 @@ end
 sugar s-if-pipe-else:
   | (s-if-pipe-else branches _else blocky) => (s-if-else branches _else blocky)
 end
+
+sugar s-if-else:
+  | (s-if-else [] _else blocky) => _else
+  | (s-if-else [branch rest ...] _else blocky) =>
+    <s-if-else [branch] (s-if-else [rest ...] _else blocky) blocky>
+end
+
+################################################################################
 
 sugar s-template:
   | (s-template) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc (meta get-loc))])
@@ -144,4 +154,16 @@ sugar s-op:
   | (s-op op-loc "op^" left right) => (s-app right [left])
 
   # all of these need to support currying (e.g., `_ + _`)
+end
+
+sugar s-bracket:
+  | (s-bracket obj key) =>
+    (s-app (s-dot (s-id (s-global "builtins")) "get-value")
+           [(s-srcloc (meta get-loc) (meta get-loc-of obj) obj key)])
+  # need to support currying
+end
+
+sugar s-method-field:
+  | (s-method-field name params args ann doc body _check-loc _check blocky) =>
+    (s-data-field name (s-method name params args ann doc body _check-loc _check blocky))
 end

@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import parse-pyret as PP
 import string-dict as SD
 import srcloc as S
@@ -58,6 +59,19 @@ fun check-no-column(op-l, tbl, tbl-l, col, col-l):
       A.s-srcloc(A.dummy-loc, col-l)])
 end
 
+fun desugar-expr-all(e :: A.Expr) -> A.Expr:
+  e.visit(AV.default-map-visitor.{
+    # num, den are exact ints, and s-frac desugars to the exact rational num/den
+    method s-frac(self, l, num, den):
+      A.s-num(l, num / den) # NOTE: Possibly must preserve further?
+    end,
+    # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
+    method s-rfrac(self, l, num, den):
+      A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
+    end
+  })
+end
+
 fun desugar(program :: A.Program):
   doc: ```
         Desugar non-scope and non-check based constructs.
@@ -77,8 +91,10 @@ fun desugar(program :: A.Program):
   cases(A.Program) program block:
     | s-program(l, _provide, provided-types, imports, body) =>
       generated-binds := SD.make-mutable-string-dict()
-      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
-    | else => raise("Attempt to desugar non-program: " + torepr(program))
+      {
+        ast: A.s-program(l, _provide, provided-types, imports, desugar-expr-all(desugar-expr(body))),
+        new-binds: generated-binds
+      }
   end
 end
 
@@ -97,14 +113,6 @@ end
 fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
 
 fun mk-id-var(loc, base): mk-id-var-ann(loc, base, A.a-blank) end
-
-fun desugar-if(l, branches, _else :: A.Expr, blocky):
-  for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    A.s-if-else(l,
-      [list: A.s-if-branch(branch.l, desugar-expr(branch.test), desugar-expr(branch.body))],
-      acc, blocky)
-  end
-end
 
 fun desugar-cases-bind(cb):
   cases(A.CasesBind) cb:
@@ -130,12 +138,9 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
-    | else =>
-      raise("NYI(desugar-member): " + torepr(f))
+    | else => raise("NYI(desugar-member): " + torepr(f))
   end
 end
 
@@ -302,13 +307,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-type(l, name, params, ann) => A.s-type(l, name, params, ann)
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body, blocky) =>
-      fun desugar-type-bind(tb):
-        cases(A.TypeLetBind) tb:
-          | s-type-bind(l2, name, params, ann) => A.s-type-bind(l2, name, params, ann)
-          | s-newtype-bind(l2, name, nameb) => tb
-        end
-      end
-      A.s-type-let-expr(l, binds.map(desugar-type-bind), desugar-expr(body), blocky)
+      A.s-type-let-expr(l, binds, desugar-expr(body), blocky)
     | s-let-expr(l, binds, body, blocky) =>
       new-binds = desugar-let-binds(binds)
       A.s-let-expr(l, new-binds, desugar-expr(body), blocky)
@@ -334,7 +333,14 @@ fun desugar-expr(expr :: A.Expr):
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
     | s-if-else(l, branches, _else, blocky) =>
-      desugar-if(l, branches, _else, blocky)
+      A.s-if-else(
+        l,
+        branches.map(
+          lam(branch):
+            A.s-if-branch(branch.l, desugar-expr(branch.test), desugar-expr(branch.body))
+          end),
+        desugar-expr(_else),
+        blocky)
     | s-cases(l, typ, val, branches, blocky) =>
       A.s-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
@@ -346,8 +352,6 @@ fun desugar-expr(expr :: A.Expr):
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
-    | s-bracket(l, obj, key) =>
-      ds-curry(l, bid(l, "get-value"), [list: A.s-srcloc(l, l), A.s-srcloc(l, obj.l), desugar-expr(obj), desugar-expr(key)])
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
@@ -361,10 +365,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
     | s-num(_, _) => expr
-      # num, den are exact ints, and s-frac desugars to the exact rational num/den
-    | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
-      # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
-    | s-rfrac(l, num, den) => A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
+    | s-frac(_, _, _) => expr
+    | s-rfrac(_, _, _) => expr
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))

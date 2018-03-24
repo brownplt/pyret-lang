@@ -663,11 +663,11 @@
         },
         'obj-field': function(node) {
           if (node.kids.length === 4) {
-            // (obj-field MUTABLE key COLON value)
+            // (obj-field REF key COLON value)
             return RUNTIME.getField(ast, 's-mutable-field')
               .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a-blank'), tr(node.kids[3]));
           } else if (node.kids.length === 6) {
-            // (obj-field MUTABLE key COLONCOLON ann COLON value)
+            // (obj-field REF key COLONCOLON ann COLON value)
             return RUNTIME.getField(ast, 's-mutable-field')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
           } else if (node.kids.length === 3) {
