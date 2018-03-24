@@ -1,6 +1,7 @@
 provide {
     desugar: desugar,
-    resugar: resugar
+    resugar: resugar,
+    desugar-expr: desugar-expr
 } end
 
 import ast as AST

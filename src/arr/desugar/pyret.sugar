@@ -156,7 +156,7 @@ end
 sugar s-bracket:
   | (s-bracket obj key) =>
     (s-app (s-dot (s-id (s-global "builtins")) "get-value")
-           [(s-srcloc (meta get-loc) (meta get-loc-of obj) obj key)])
+           [(s-srcloc (meta get-loc)) (s-srcloc (meta get-loc-of obj)) obj key])
   # need to support currying
 end
 
