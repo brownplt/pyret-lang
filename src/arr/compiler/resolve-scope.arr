@@ -66,8 +66,6 @@ is-s-import-complete = A.is-s-import-complete
 
 fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
   cases(A.Import) imp:
-    | s-import(l, shadow imp, name) => A.s-import-complete(l, empty, empty, imp, name, name)
-    | s-import-fields(l, fields, shadow imp) => A.s-import-complete(l, fields, empty, imp, A.s-underscore(l), A.s-underscore(l))
     | s-include(l, shadow imp) =>
       imp-name = A.s-underscore(l)
       info-key = U.import-to-dep(imp).key()
@@ -887,11 +885,22 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             info-key = U.import-to-dep(file).key()
             mod-info = initial-env.mods.get-value(info-key)
             atom-env =
-              make-atom-for(name-vals, false, imp-e, bindings,
-                C.value-bind(C.bo-local(name-vals.l), C.vb-module(mod-info.from-uri), _, A.a-any(l2), none))
+              if A.is-s-underscore(name-vals):
+                make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
+                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(mod-info.from-uri), _, A.a-any(l2), none))
+              else:
+                make-atom-for(name-vals, false, imp-e, bindings,
+                  C.value-bind(C.bo-local(name-vals.l), C.vb-module(mod-info.from-uri), _, A.a-any(l2), none))
+              end
+
             atom-env-t =
-              make-atom-for(name-types, false, imp-te, type-bindings,
-                C.type-bind(C.bo-local(name-types.l), C.tb-module(mod-info.from-uri), _, none))
+              if A.is-s-underscore(name-types):
+                make-anon-import-for(name-types.l, "$import", imp-te, type-bindings,
+                  C.type-bind(C.bo-local(name-types.l), C.tb-module(mod-info.from-uri), _, none))
+              else:
+                make-atom-for(name-types, false, imp-te, type-bindings,
+                  C.type-bind(C.bo-local(name-types.l), C.tb-module(mod-info.from-uri), _, none))
+              end
             {e; vn} = for fold(nv-v from {atom-env.env; empty}, v from vnames):
               {e; vn} = nv-v
               maybe-value-export = mod-info.values.get(v.toname())

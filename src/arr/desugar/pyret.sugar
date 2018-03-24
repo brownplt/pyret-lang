@@ -57,18 +57,15 @@ end
 
 ################################################################################
 
+sugar s-import:
+  | (s-import file name) => (s-import-complete [] [] file name name)
+end
+sugar s-import-fields:
+  | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
+end
+
 # sugar s-underscore:
 #   | (s-underscore) => {underscore}
-# end
-#
-# ################################################################################
-#
-# sugar s-import:
-#   | (s-import file name) => (s-import-complete [] [] file name name)
-# end
-#
-# sugar s-import-fields:
-#   | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
 # end
 #
 # sugar transform-underscore:
