@@ -86,7 +86,7 @@ fun serve(port, pyret-dir):
           link(P.resolve(P.join(pyret-dir, "lib-compiled")), empty)
         )
         .set("user-annotations", false)
-        .set("straightline", true)
+        .set("straight-line", true)
       else:
         with-pyret-dir.set("compiled-read-only",
           link(P.resolve(P.join(pyret-dir, "compiled")), empty)

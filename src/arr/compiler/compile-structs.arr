@@ -2504,7 +2504,8 @@ default-compile-options = {
   method before-compile(_, _): nothing end,
   html-file: none,
   deps-file: "build/bundled-node-deps.js",
-  standalone-file: "src/js/base/handalone.js"
+  standalone-file: "src/js/base/handalone.js",
+  stopify: false
 }
 
 fun make-default-compile-options(this-pyret-dir):
