@@ -66,13 +66,7 @@ is-s-import-complete = A.is-s-import-complete
 
 fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
   cases(A.Import) imp:
-    | s-import(l, shadow imp, name) =>
-      A.s-import-complete(l, empty, empty, imp, name, name)
-    | s-import-fields(l, fields, shadow imp) =>
-      imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-      A.s-import-complete(l, fields, empty, imp, A.s-underscore(l), A.s-underscore(l))
     | s-include(l, shadow imp) =>
-      imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
       imp-name = A.s-underscore(l)
       info-key = U.import-to-dep(imp).key()
       mod-info = env.mods.get(info-key)
@@ -84,6 +78,7 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
           A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
       end
     | s-import-complete(_, _, _, _, _, _) => imp
+    | else => raise("import should have been desugared already")
   end
 end
 
@@ -1263,7 +1258,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method a-arrow-argnames(self, l, args, ret, parens):
       A.a-arrow-argnames(l, args.map(_.visit(self)), ret.visit(self), parens)
     end,
-    method a-method(self, l, args, ret): A.a-method(l, args.map(_.visit(self)), ret.visit(self)) end,
     method a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
     method a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
     method a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,

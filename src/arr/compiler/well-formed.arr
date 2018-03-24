@@ -1010,9 +1010,6 @@ top-level-visitor = A.default-iter-visitor.{
   method s-include(_, l, import-type):
     well-formed-visitor.s-include(l, import-type)
   end,
-  method s-import-types(_, l, import-type, name, types):
-    well-formed-visitor.s-import-types(l, import-type, name, types)
-  end,
   method s-import-fields(_, l, fields, import-type):
     well-formed-visitor.s-import-fields(l, fields, import-type)
   end,
@@ -1221,9 +1218,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method a-arrow-argnames(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow-argnames(l, args, ret, use-parens)
-  end,
-  method a-method(_, l, args, ret):
-    well-formed-visitor.a-method(l, args, ret)
   end,
   method a-record(_, l, fields):
     well-formed-visitor.a-record(l, fields)

@@ -70,7 +70,6 @@ constructors = [D.string-dict:
   # Not handled (because they are outside the main program body)
   # "s-program", A.s-program,
   # "s-import", A.s-import,
-  # "s-import-types", A.s-import-types,
   # "s-import-fields", A.s-import-fields,
   # "s-provide", A.s-provide,
   # "s-provide-all", A.s-provide-all,
@@ -201,7 +200,6 @@ constructors = [D.string-dict:
   "a-name", A.a-name,
   "a-type-var", A.a-type-var,
   "a-arrow", A.a-arrow,
-  "a-method", A.a-method,
   "a-record", A.a-record,
   "a-app", A.a-app,
   "a-pred", A.a-pred,

@@ -15,7 +15,6 @@ import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL
 import file("desugar.arr") as D
-import file("desugar-check.arr") as CH
 import file("js-ast.arr") as J
 
 cl-empty = CL.concat-empty
@@ -506,4 +505,3 @@ fun make-compiled-pyret(program-ast, env, bindings, provides, options) -> { C.Pr
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
   {flat-provides; ccp-dict(compiled)}
 end
-

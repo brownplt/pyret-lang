@@ -6,7 +6,6 @@ import parse-pyret as P
 import string-dict as SD
 import pprint as PP
 import file("../../src/arr/compiler/desugar.arr") as D
-import file("../../src/arr/compiler/desugar-check.arr") as DC
 import ast as A
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
@@ -16,7 +15,6 @@ import file("../../src/arr/compiler/ast-util.arr") as U
 import file("../../src/arr/compiler/ast-anf.arr") as AN
 import file("../../src/arr/compiler/anf.arr") as N
 import file("../../src/arr/compiler/js-of-pyret.arr") as JS
-import file("../../src/arr/compiler/desugar-check.arr") as CH
 import file as F
 import file("../../src/arr/compiler/js-ast.arr") as J
 

@@ -192,7 +192,6 @@ end
 fun get-import-type(i):
   cases(A.Import) i:
     | s-import(_, f, _) => f
-    | s-import-types(_, f, _, _) => f
     | s-include(_, f) => f
     | s-import-complete(_, _, _, f, _, _) => f
     | s-import-fields(_, _, f) => f

@@ -14,7 +14,7 @@ include file("ds-resolve-ellipses.arr")
 data Metafunction:
   | metafunction(
       arity :: Number,
-      f :: (List<Pattern>, Env, Option<A.Loc> -> Term))
+      f :: (List<Term>, Env, Option<A.Loc> -> Term))
 end
 
 metafunctions = [string-dict:
@@ -22,6 +22,17 @@ metafunctions = [string-dict:
     cases (Option) top-loc:
       | none => panic("trying to get-loc with no srcloc")
       | some(loc) => g-value(e-loc(loc))
+    end
+  end),
+  "get-loc-of", metafunction(1, lam(args, env, _):
+    cases (Term) args.get(0):
+      | g-core(_, l, _) =>
+        cases (Option) l:
+          | none => panic("trying to get-loc-of with no srcloc")
+          | some(loc) => g-value(e-loc(loc))
+        end
+      # TODO: might want to support g-var
+      | else => fail("get-loc-of should be used on an already desugared value. Got " + tostring(args.get(0)))
     end
   end)]
 
@@ -41,14 +52,16 @@ fun subs(env :: Env, p :: Pattern, top-loc :: Option<A.Loc>) -> Term:
     | pat-aux(name, args)  => g-aux(name, top-loc, map(subs(env, _, top-loc), args))
     | pat-surf(name, args) => g-surf(name, top-loc, map(subs(env, _, top-loc), args))
     | pat-meta(name, args) =>
+      term-args = map(subs(env, _, top-loc), args)
       cases (Option) metafunctions.get(name):
         | none => fail("Metafunction '" + name + "' not found")
         | some(metaf) =>
-          if args.length() == metaf.arity:
-            metaf.f(args, env, top-loc)
+          if term-args.length() == metaf.arity:
+            metaf.f(term-args, env, top-loc)
           else:
             fail("Arity mismatch when calling metafunction '" + name + "'. " +
-                 "Expect " + tostring(metaf.arity) + " arguments. Got " + tostring(args.length()))
+                 "Expect " + tostring(metaf.arity) + " arguments. Got " +
+                 tostring(term-args.length()))
           end
       end
     | pat-var(name) =>

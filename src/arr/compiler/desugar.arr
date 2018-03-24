@@ -29,10 +29,6 @@ fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
 fun bid(l, name): A.s-dot(l, A.s-id(l, g("builtins")), name) end
 
-fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
-  cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
-end
-
 fun check-table<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapTable", [list: e]))
 end
@@ -52,15 +48,6 @@ fun get-table-column(op-l, l, e, column):
       A.s-srcloc(A.dummy-loc, column.l)])
 end
 
-fun check-has-column(tbl, tbl-l, col, col-l):
-  A.s-app(tbl-l,
-    A.s-dot(A.dummy-loc, tbl, "_column-index"),
-    [list:
-      A.s-srcloc(A.dummy-loc, tbl-l),
-      A.s-str(A.dummy-loc, tbl-l),
-      A.s-srcloc(A.dummy-loc, col-l)])
-end
-
 fun check-no-column(op-l, tbl, tbl-l, col, col-l):
   A.s-app(tbl-l,
     A.s-dot(A.dummy-loc, tbl, "_no-column"),
@@ -69,33 +56,6 @@ fun check-no-column(op-l, tbl, tbl-l, col, col-l):
       A.s-srcloc(A.dummy-loc, tbl-l),
       A.s-str(A.dummy-loc, col),
       A.s-srcloc(A.dummy-loc, col-l)])
-end
-
-fun desugar-afield(f :: A.AField) -> A.AField:
-  A.a-field(f.l, f.name, desugar-ann(f.ann))
-end
-fun desugar-ann(a :: A.Ann) -> A.Ann:
-  cases(A.Ann) a:
-    | a-blank => a
-    | a-any(_) => a
-    | a-name(_, _) => a
-    | a-type-var(_, _) => a
-    | a-dot(_, _, _) => a
-    | a-arrow(l, args, ret, use-parens) =>
-      A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
-    | a-arrow-argnames(l, args, ret, use-parens) =>
-      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
-    | a-method(l, args, ret) =>
-      A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
-    | a-app(l, base, args) =>
-      A.a-app(l, desugar-ann(base), args.map(desugar-ann))
-    | a-record(l, fields) =>
-      A.a-record(l, fields.map(desugar-afield))
-    | a-tuple(l, fields) =>
-      A.a-tuple(l, fields.map(desugar-ann))
-    | a-pred(l, ann, exp) =>
-      A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
-  end
 end
 
 fun desugar(program :: A.Program):
@@ -300,7 +260,7 @@ end
 fun desugar-bind(b :: A.Bind):
   cases(A.Bind) b:
     | s-bind(l, shadows, name, ann) =>
-      A.s-bind(l, shadows, name, desugar-ann(ann))
+      A.s-bind(l, shadows, name, ann)
     | else => raise("Non-bind given to desugar-bind: " + torepr(b))
   end
 end
@@ -328,23 +288,23 @@ end
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
     | s-module(l, answer, dv, dt, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types, desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
-      A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
+      A.s-instantiate(l, desugar-expr(inner-expr), params)
     | s-hint-exp(l, hints, exp) => A.s-hint-exp(l, hints, desugar-expr(exp))
     | s-block(l, stmts) => A.s-block(l, stmts.map(desugar-expr))
     | s-app(l, f, args) => ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args) => A.s-prim-app(l, f, args.map(desugar-expr))
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
+      A.s-lam(l, name, params, args.map(desugar-bind), ann, doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-method(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
-    | s-type(l, name, params, ann) => A.s-type(l, name, params, desugar-ann(ann))
+      A.s-method(l, name, params, args.map(desugar-bind), ann, doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
+    | s-type(l, name, params, ann) => A.s-type(l, name, params, ann)
     | s-newtype(l, name, namet) => expr
     | s-type-let-expr(l, binds, body, blocky) =>
       fun desugar-type-bind(tb):
         cases(A.TypeLetBind) tb:
-          | s-type-bind(l2, name, params, ann) => A.s-type-bind(l2, name, params, desugar-ann(ann))
+          | s-type-bind(l2, name, params, ann) => A.s-type-bind(l2, name, params, ann)
           | s-newtype-bind(l2, name, nameb) => tb
         end
       end
@@ -376,10 +336,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-if-else(l, branches, _else, blocky) =>
       desugar-if(l, branches, _else, blocky)
     | s-cases(l, typ, val, branches, blocky) =>
-      A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch), blocky)
+      A.s-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
-      A.s-cases-else(l, desugar-ann(typ), desugar-expr(val),
+      A.s-cases-else(l, typ, desugar-expr(val),
         branches.map(desugar-case-branch),
         desugar-expr(_else),
         blocky)
@@ -394,7 +354,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-for(l, iter, bindings, ann, body, blocky) =>
       values = bindings.map(_.value).map(desugar-expr)
       name = "for-body<" + l.format(false) + ">"
-      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, none, blocky)
+      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), ann, "", desugar-expr(body), none, none, blocky)
       A.s-app(l, desugar-expr(iter), link(the-function, values))
     | s-id(l, x) => expr
     | s-id-var(l, x) => expr
@@ -410,33 +370,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
-    | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
-    | s-construct(l, modifier, constructor, elts) =>
-      cases(A.ConstructModifier) modifier:
-        | s-construct-normal =>
-          len = elts.length()
-          desugared-elts = elts.map(desugar-expr)
-          if len <= 5:
-            A.s-app(constructor.l,
-              A.s-prim-app(constructor.l, "getMaker" + tostring(len),
-                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make" + tostring(len)),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
-              desugared-elts)
-          else:
-            A.s-app(constructor.l,
-              A.s-prim-app(constructor.l, "getMaker",
-                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make"),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
-              [list: A.s-array(l, desugared-elts)])
-          end
-        | s-construct-lazy =>
-          A.s-app(constructor.l,
-            A.s-prim-app(constructor.l, "getLazyMaker",
-              [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "lazy-make"),
-                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
-            [list: A.s-array(l,
-                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
-      end
+    | s-ref(l, ann) => A.s-ann(l, ann)
     | s-reactor(l, fields) =>
       fields-by-name = SD.make-mutable-string-dict()
       init-and-non-init = for lists.partition(f from fields) block:
@@ -463,7 +397,7 @@ fun desugar-expr(expr :: A.Expr):
         A.s-str(header.l, header.name)
       end
       anns = for map(header from headers):
-        desugar-ann(header.ann)
+        header.ann
       end
       shadow rows = for map(row from rows):
         elems = for map_n(n from 0, elem from row.elems):

@@ -32,11 +32,11 @@ fun desugar-expr(e :: AST.Expr) -> AST.Expr:
 end
 
 fun desugar(e :: AST.Program) -> AST.Program block:
-  #e ^ my-print("before desugar")
+  e ^ my-print("before desugar")
   e.visit(CONV.ast-to-term-visitor)
     ^ DS.desugar(desugaring-rules, _)
     ^ CONV.term-to-ast
-    #^ my-print("after desugar")
+    ^ my-print("after desugar")
 end
 
 fun resugar(e :: AST.Program) -> Option<AST.Program>:

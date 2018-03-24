@@ -26,7 +26,10 @@ end
 #
 
 WHITESPACE = [list: " ", "\t", "\n"]
-SPECIAL-TOKENS = [list: ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@", "«", "»"]
+SPECIAL-TOKENS = [list:
+  ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@",  "=>",
+  "<", ">", "..."
+]
 
 data Token:
   | t-str(tok :: String)
@@ -35,7 +38,7 @@ data Token:
   | t-name(tok :: String)
 end
 
-fun tokenize(input :: String) -> List<Token> block:
+fun tokenize(input-str :: String) -> List<Token> block:
   var token :: String = ""
   var tokens :: List<Token> = [list:]
   var in-string :: Boolean = false
@@ -50,12 +53,7 @@ fun tokenize(input :: String) -> List<Token> block:
           t-symbol(token)
         else:
           cases (Option) string-to-number(token):
-            | none      =>
-              if token == "...":
-                t-symbol(token)
-              else:
-                t-name(token)
-              end
+            | none      => t-name(token)
             | some(num) => t-num(num)
           end
         end
@@ -64,13 +62,62 @@ fun tokenize(input :: String) -> List<Token> block:
     end
   end
 
-  for each(char from string-explode(input)) block:
+  var input = string-explode(input-str)
+
+  # TODO: probably clean this up. Using external state is horrendously hideous
+  var exact-result = ""
+
+  fun take-safe(lst, len):
+    if len == 0:
+      empty
+    else:
+      cases (List) lst:
+        | empty => empty
+        | link(f, r) => link(f, take-safe(r, len - 1))
+      end
+    end
+  end
+
+  fun consumes-eof():
+    input == empty
+  end
+
+  fun consumes-exact(s :: String):
+    len = string-length(s)
+
+    if take-safe(input, len).join-str("") == s block:
+      exact-result := s
+      input := input.drop(len)
+      true
+    else:
+      false
+    end
+  end
+
+  fun consumes-any(lst :: List<String>):
+    lists.any(consumes-exact, lst)
+  end
+
+  fun consumes-one():
+    cases (List) input block:
+      | empty => raise("consumes-one from empty list")
+      | link(f, r) =>
+        input := r
+        f
+    end
+  end
+
+  fun loop():
     ask block:
+      | consumes-eof() then: nothing
       | in-comment then:
+        char = consumes-one()
         when char == "\n":
           in-comment := false
         end
+        loop()
       | in-string then:
+        char = consumes-one()
         when char == "\n":
           parse-error("Unterminated string.")
         end
@@ -79,26 +126,31 @@ fun tokenize(input :: String) -> List<Token> block:
           token-break()
           in-string := false
         end
-      | WHITESPACE.member(char) then: token-break()
-      | SPECIAL-TOKENS.member(char) then:
+        loop()
+      | consumes-any(WHITESPACE) then:
         token-break()
-        token := char
+        loop()
+      | consumes-any(SPECIAL-TOKENS) then:
         token-break()
-      | char == "#" then:
+        token := exact-result
+        token-break()
+        loop()
+      | consumes-exact("#") then:
         token-break()
         in-comment := true
-        nothing
-      | char == '"' then:
+        loop()
+      | consumes-exact('"') then:
         token-break()
-        token := char
+        token := '"'
         in-string := true
-        nothing
+        loop()
       | otherwise:
-        token := token + char
-        nothing
+        token := token + consumes-one()
+        loop()
     end
-    nothing
   end
+
+  loop()
 
   when in-string:
     parse-error("Unterminated string.")
@@ -434,10 +486,10 @@ fun parser-pattern(pvars :: Option<Set<String>>)
         end,
         # Core
         for parser-4(
-            _ from parser-ignore(t-symbol("«")),
+            _ from parser-ignore(t-symbol("<")),
             name from parser-name,
             args from parser-seq(rec-pattern),
-            _ from parser-ignore(t-symbol("»"))):
+            _ from parser-ignore(t-symbol(">"))):
           pat-core(name, args)
         end,
         # Surface
@@ -585,7 +637,7 @@ end
 parser-ds-rule-case =
   for parser-chain(_ from parser-ignore(t-symbol("|"))):
     for parser-chain(lhs from parser-pattern(none)):
-      for parser-chain(_ from parser-ignore(t-name("=>"))):
+      for parser-chain(_ from parser-ignore(t-symbol("=>"))):
         pvars = gather-pvars(lhs)
         for parser-1(rhs from parser-pattern(some(pvars))):
           ds-rule-case(lhs, rhs)

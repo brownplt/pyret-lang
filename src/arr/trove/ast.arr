@@ -268,11 +268,6 @@ data Import:
     method tosource(self):
       PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource()])
     end
-  | s-import-types(l :: Loc, file :: ImportType, name :: Name, types :: Name) with:
-    method label(self): "s-import-types" end,
-    method tosource(self):
-      PP.flow([list: str-import, self.file.tosource(), str-as, self.name.tosource(), PP.comma, self.types.tosource()])
-    end
   | s-import-fields(l :: Loc, fields :: List<Name>, file :: ImportType) with:
     method label(self): "s-import-fields" end,
     method tosource(self):
@@ -1680,9 +1675,6 @@ data Ann:
         ann
       end
     end,
-  | a-method(l :: Loc, args :: List<Ann>, ret :: Ann) with:
-    method label(self): "a-method" end,
-    method tosource(self): PP.str("NYI: A-method") end,
   | a-record(l :: Loc, fields :: List<AField>) with:
     method label(self): "a-record" end,
     method tosource(self):
@@ -1867,9 +1859,6 @@ default-map-visitor = {
   end,
   method s-special-import(self, l, kind, args):
     s-special-import(l, kind, args)
-  end,
-  method s-import-types(self, l, import-type, name, types):
-    s-import-types(l, import-type, name.visit(self), types.visit(self))
   end,
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
@@ -2344,9 +2333,6 @@ default-map-visitor = {
   method a-arrow-argnames(self, l, args, ret, use-parens):
     a-arrow-argnames(l, args.map(_.visit(self)), ret.visit(self), use-parens)
   end,
-  method a-method(self, l, args, ret):
-    a-method(l, args.map(_.visit(self)), ret.visit(self))
-  end,
   method a-record(self, l, fields):
     a-record(l, fields.map(_.visit(self)))
   end,
@@ -2431,9 +2417,6 @@ default-iter-visitor = {
   end,
   method s-special-import(self, l, kind, args):
     true
-  end,
-  method s-import-types(self, l, import-type, name, types):
-    name.visit(self) and types.visit(self)
   end,
   method s-import-fields(self, l, fields, import-type):
     all(_.visit(self), fields)
@@ -2897,9 +2880,6 @@ default-iter-visitor = {
   method a-arrow-argnames(self, l, args, ret, _):
     all(_.visit(self), args) and ret.visit(self)
   end,
-  method a-method(self, l, args, ret):
-    all(_.visit(self), args) and ret.visit(self)
-  end,
   method a-record(self, l, fields):
     all(_.visit(self), fields)
   end,
@@ -2983,9 +2963,6 @@ dummy-loc-visitor = {
   end,
   method s-include(self, l, import-type):
     s-include(dummy-loc, import-type.visit(self))
-  end,
-  method s-import-types(self, l, import-type, name, types):
-    s-import-types(dummy-loc, import-type.visit(self), name.visit(self), types.visit(self))
   end,
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
@@ -3446,9 +3423,6 @@ dummy-loc-visitor = {
   end,
   method a-arrow-argnames(self, l, args, ret, use-parens):
     a-arrow-argnames(dummy-loc, args.map(_.visit(self)), ret.visit(self), use-parens)
-  end,
-  method a-method(self, l, args, ret):
-    a-method(dummy-loc, args.map(_.visit(self)), ret.visit(self))
   end,
   method a-record(self, l, fields):
     a-record(dummy-loc, fields.map(_.visit(self)))

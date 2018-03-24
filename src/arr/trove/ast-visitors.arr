@@ -36,9 +36,6 @@ shadow default-map-visitor =
     method s-import(self, l, file, name):
       s-import(l, file.visit(self), name.visit(self))
     end,
-    method s-import-types(self, l, file, name, types):
-      s-import-types(l, file.visit(self), name.visit(self), types.visit(self))
-    end,
     method s-import-fields(self, l, fields, file):
       s-import-fields(l, self.list(fields), file.visit(self))
     end,
@@ -531,9 +528,6 @@ shadow default-map-visitor =
     method a-arrow-argnames(self, l, args, ret, use-parens):
       a-arrow-argnames(l, self.list(args), ret.visit(self), use-parens)
     end,
-    method a-method(self, l, args, ret):
-      a-method(l, self.list(args), ret.visit(self))
-    end,
     method a-record(self, l, fields): a-record(l, self.list(fields)) end,
     method a-tuple(self, l, fields): a-tuple(l, self.list(fields)) end,
     method a-app(self, l, ann, args):
@@ -573,9 +567,6 @@ shadow default-iter-visitor =
     method s-include(self, l, mod): mod.visit(self) end,
     method s-import(self, l, file, name):
       file.visit(self) and name.visit(self)
-    end,
-    method s-import-types(self, l, file, name, types):
-      file.visit(self) and name.visit(self) and types.visit(self)
     end,
     method s-import-fields(self, l, fields, file):
       self.list(fields) and file.visit(self)
@@ -983,7 +974,6 @@ shadow default-iter-visitor =
     method a-arrow-argnames(self, l, args, ret, use-parens):
       self.list(args) and ret.visit(self)
     end,
-    method a-method(self, l, args, ret): self.list(args) and ret.visit(self) end,
     method a-record(self, l, fields): self.list(fields) end,
     method a-tuple(self, l, fields): self.list(fields) end,
     method a-app(self, l, ann, args): ann.visit(self) and self.list(args) end,
@@ -1023,12 +1013,6 @@ shadow dummy-loc-visitor =
     method s-include(self, l, mod): s-include(dummy-loc, mod.visit(self)) end,
     method s-import(self, l, file, name):
       s-import(dummy-loc, file.visit(self), name.visit(self))
-    end,
-    method s-import-types(self, l, file, name, types):
-      s-import-types(dummy-loc,
-        file.visit(self),
-        name.visit(self),
-        types.visit(self))
     end,
     method s-import-fields(self, l, fields, file):
       s-import-fields(dummy-loc, self.list(fields), file.visit(self))
@@ -1554,9 +1538,6 @@ shadow dummy-loc-visitor =
     end,
     method a-arrow-argnames(self, l, args, ret, use-parens):
       a-arrow-argnames(dummy-loc, self.list(args), ret.visit(self), use-parens)
-    end,
-    method a-method(self, l, args, ret):
-      a-method(dummy-loc, self.list(args), ret.visit(self))
     end,
     method a-record(self, l, fields): a-record(dummy-loc, self.list(fields)) end,
     method a-tuple(self, l, fields): a-tuple(dummy-loc, self.list(fields)) end,

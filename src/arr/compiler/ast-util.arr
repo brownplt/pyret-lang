@@ -675,7 +675,6 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
     | a-type-var(_, _) => false 
     | a-arrow(_, args, ret, _) => false
     | a-arrow-argnames(_, args, ret, _) => false
-    | a-method(_, args, ret, _) => false
     | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
     | a-tuple(_, fields) => fields.all(is-stateful-ann)
     | a-app(_, inner, args) => is-stateful-ann(inner)
@@ -1028,8 +1027,6 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-arrow(map(ann-to-typ, args), ann-to-typ(ret), l, false)
       | a-arrow-argnames(l, args, ret, use-parens) =>
         T.t-arrow(map({(arg): ann-to-typ(arg.ann)}, args), ann-to-typ(ret), l, false)
-      | a-method(l, args, ret) =>
-        raise("Cannot provide a raw method")
       | a-record(l, fields) =>
         T.t-record(fields.foldl(lam(f, members):
           members.set(f.name, ann-to-typ(f.ann))

@@ -45,48 +45,82 @@ sugar s-paren:
   | (s-paren body) => body
 end
 
-sugar check-bool:
-  | (check-bool e) => (s-prim-app "checkWrapBoolean" [e])
-end
+################################################################################
 
 sugar s-underscore:
   | (s-underscore) => {underscore}
 end
 
-sugar map-underscore-to-fresh:
-  | (map-underscore-to-fresh vs) => (reverse (map-underscore-to-fresh-acc vs []))
-end
-
-sugar map-underscore-to-fresh-acc:
-  | (map-underscore-to-fresh-acc [] lst) => lst
-  | (map-underscore-to-fresh-acc [{underscore} rest ...] [e ...]) =>
-    (map-underscore-to-fresh-acc [rest ...] [(fresh [name] name) e ...])
-  | (map-underscore-to-fresh-acc [non-underscore rest ...] [e ...]) =>
-    (map-underscore-to-fresh-acc [rest ...] [non-underscore e ...])
-end
-
-sugar reverse:
-  | (reverse lst) => (reverse-acc lst [])
-end
-
-sugar reverse-acc:
-  | (reverse-acc [] acc) => acc
-  | (reverse-acc [e rest ...] [acc-e ...]) => (reverse-acc [rest ...] [e acc-e ...])
-end
-
+################################################################################
 
 sugar s-import:
-  | (s-import file {underscore}) => (s-import file (fresh [name] name))
-end
-
-sugar s-import-type:
-  # Note: I believe this AST node won't manifest
+  | (s-import file name) => (s-import-complete [] [] file name name)
 end
 
 sugar s-import-fields:
-  | (s-import-fields fields file) => «s-import-fields (map-underscore-to-fresh fields) file»
+  | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
 end
 
+sugar transform-underscore:
+  | (transform-underscore {underscore}) => (fresh [name] name)
+  | (transform-underscore non-underscore) => non-underscore
+end
+
+sugar s-import-complete:
+  | (s-import-complete [val ...] [type ...] import-type vals-name types-name) =>
+    <s-import-complete [(transform-underscore val) ...]
+                       [(transform-underscore type) ...]
+                       import-type
+                       (transform-underscore vals-name)
+                       (transform-underscore types-name)>
+end
+
+################################################################################
+
+sugar s-construct-normal:
+  | (s-construct-normal) => {s-construct-normal}
+end
+
+sugar s-construct-lazy:
+  | (s-construct-lazy) => {s-construct-lazy}
+end
+
+sugar s-construct-help:
+  | (s-construct-help constructor js-name id-name elts) =>
+    (s-app (s-prim-app js-name [constructor (s-str id-name)
+                                (s-srcloc (meta get-loc))
+                                (s-srcloc (meta get-loc-of constructor))])
+           elts)
+end
+
+sugar s-construct:
+  | (s-construct {s-construct-normal} constructor []) =>
+    (s-construct-help constructor "getMaker0" "make0" [])
+  | (s-construct {s-construct-normal} constructor [e1]) =>
+    (s-construct-help constructor "getMaker1" "make1" [e1])
+  | (s-construct {s-construct-normal} constructor [e1 e2]) =>
+    (s-construct-help constructor "getMaker2" "make2" [e1 e2])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3]) =>
+    (s-construct-help constructor "getMaker3" "make3" [e1 e2 e3])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4]) =>
+    (s-construct-help constructor "getMaker4" "make4" [e1 e2 e3 e4])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4 e5]) =>
+    (s-construct-help constructor "getMaker5" "make5" [e1 e2 e3 e4 e5])
+  | (s-construct {s-construct-normal} constructor elts) =>
+    (s-construct-help constructor "getMaker" "make" [(s-array elts)])
+  | (s-construct {s-construct-lazy} constructor [elt ...]) =>
+    (s-construct-help constructor "getLazyMaker" "lazy-make"
+      [(s-array [(s-lam "" [] [] (a-blank) "" elt none none false) ...])])
+  # used srcloc are completely wrong due to the lack of the syntax to put srcloc
+  # in the constructing node
+end
+
+
+################################################################################
+
+sugar check-bool:
+  | (check-bool e) => (s-prim-app "checkWrapBoolean" [e])
+end
 
 sugar s-op:
   | (s-op op-loc "op+" left right) => (s-app (s-id (s-global "_plus")) [left right])

@@ -49,11 +49,6 @@ shadow ast-to-term-visitor =
     method s-import(self, l, file, name):
       g-surf("s-import", some(l), [list: file.visit(self), name.visit(self)])
     end,
-    method s-import-types(self, l, file, name, types):
-      g-surf("s-import-types",
-        some(l),
-        [list: file.visit(self), name.visit(self), types.visit(self)])
-    end,
     method s-import-fields(self, l, fields, file):
       g-surf("s-import-fields",
         some(l),
@@ -791,11 +786,6 @@ shadow ast-to-term-visitor =
         some(l),
         [list: g-list(self.list(args)), ret.visit(self), g-bool(use-parens)])
     end,
-    method a-method(self, l, args, ret):
-      g-surf("a-method",
-        some(l),
-        [list: g-list(self.list(args)), ret.visit(self)])
-    end,
     method a-record(self, l, fields):
       g-surf("a-record", some(l), [list: g-list(self.list(fields))])
     end,
@@ -855,13 +845,6 @@ rec lookup-dict =
       s-import(maybe-loc.value,
         term-to-ast(args.get(0)),
         term-to-ast(args.get(1)))
-    end,
-    "s-import-types",
-    lam(maybe-loc, args):
-      s-import-types(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
     end,
     "s-import-fields",
     lam(maybe-loc, args):
@@ -1603,12 +1586,6 @@ rec lookup-dict =
         term-to-ast(args.get(0)),
         term-to-ast(args.get(1)),
         term-to-ast(args.get(2)))
-    end,
-    "a-method",
-    lam(maybe-loc, args):
-      a-method(maybe-loc.value,
-        term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)))
     end,
     "a-record",
     lam(maybe-loc, args):
