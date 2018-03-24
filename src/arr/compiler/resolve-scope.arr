@@ -66,6 +66,8 @@ is-s-import-complete = A.is-s-import-complete
 
 fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
   cases(A.Import) imp:
+    | s-import(l, shadow imp, name) => A.s-import-complete(l, empty, empty, imp, name, name)
+    | s-import-fields(l, fields, shadow imp) => A.s-import-complete(l, fields, empty, imp, A.s-underscore(l), A.s-underscore(l))
     | s-include(l, shadow imp) =>
       imp-name = A.s-underscore(l)
       info-key = U.import-to-dep(imp).key()
@@ -1230,6 +1232,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           end
         | s-atom(_, _) => A.s-id(l, id)
         | s-underscore(_) => A.s-id(l, id)
+        | s-global(_) => A.s-id(l, id) # to allow new desugaring to go through
         | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
       end
     end,

@@ -179,7 +179,6 @@ constructors = [D.string-dict:
   "s-newtype", A.s-newtype,
   "s-newtype-bind", A.s-newtype-bind,
   "s-rec", A.s-rec,
-  "s-ref", A.s-ref,
   "s-contract", A.s-contract,
   "s-prim-val", A.s-prim-val,
   "s-id-letrec", A.s-id-letrec,

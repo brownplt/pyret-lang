@@ -478,7 +478,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var maker = isObject(obj) && obj.dict[makerField];
       if (!isFunction(maker)) {
         if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
-          throw Error("FFI or thisRuntime.ffi., val, field is not yet defined, and lookup of field " + makeField + " on " + toReprJS(val, ReprMethods._torepr) + " failed at location " + JSON.stringify(constrLoc));
+          throw Error("FFI or thisRuntime.ffi., val, field is not yet defined, and lookup of field " + makerField + " on " + toReprJS(obj, ReprMethods._torepr) + " failed at location " + JSON.stringify(constrLoc));
         } else {
           throw thisRuntime.ffi.throwConstructorSyntaxNonConstructor(makeSrcloc(exprLoc), makeSrcloc(constrLoc));
         }
@@ -1271,8 +1271,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
     }
 
-    function getValue(obj, key) {
+    function getValue(exprLoc, constrLoc, obj, key) {
       // TODO(joe): faster impl for builtins?
+
+      var maker = isObject(obj) && obj.dict["get-value"];
+      if (!isFunction(maker)) {
+        if (thisRuntime.ffi === undefined || thisRuntime.ffi.throwFieldNotFound === undefined) {
+          throw Error("FFI or thisRuntime.ffi., val, field is not yet defined, and lookup of field get-value on " + toReprJS(obj, ReprMethods._torepr) + " failed at location " + JSON.stringify(constrLoc));
+        } else {
+          throw thisRuntime.ffi.throwBracketSyntaxNonConstructor(makeSrcloc(exprLoc), makeSrcloc(constrLoc));
+        }
+      }
+
       return thisRuntime.getField(obj, "get-value").app(key);
     }
 

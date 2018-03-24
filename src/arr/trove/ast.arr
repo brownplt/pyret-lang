@@ -628,15 +628,6 @@ data Expr:
           if self.keyword-val: str-val else: PP.mt-doc end
             + self.name.tosource() + str-spaceequal + break-one + self.value.tosource()))
     end
-  | s-ref(l :: Loc, ann :: Option<Ann>) with:
-    method label(self): "s-ref" end,
-    method tosource(self):
-      cases(Option) self.ann:
-        | none => PP.str("bare-ref")
-        | some(ann) =>
-          PP.group(PP.str("ref ") + ann.tosource())
-      end
-    end
   | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
     method label(self): "s-contract" end,
     method tosource(self):
@@ -1968,10 +1959,6 @@ default-map-visitor = {
     s-let(l, name.visit(self), value.visit(self), keyword-val)
   end,
 
-  method s-ref(self, l :: Loc, ann :: Option<Ann>):
-    s-ref(l, self.option(ann))
-  end,
-
   method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):
     s-when(l, test.visit(self), block.visit(self), blocky)
   end,
@@ -2527,10 +2514,6 @@ default-iter-visitor = {
     name.visit(self) and value.visit(self)
   end,
 
-  method s-ref(self, l :: Loc, ann :: Option<Ann>):
-    self.option(ann)
-  end,
-
   method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):
     test.visit(self) and block.visit(self)
   end,
@@ -3070,10 +3053,6 @@ dummy-loc-visitor = {
 
   method s-let(self, l :: Loc, name :: Bind, value :: Expr, keyword-val :: Boolean):
     s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val)
-  end,
-
-  method s-ref(self, l :: Loc, ann :: Option<Ann>):
-    s-ref(self, dummy-loc, self.option(ann))
   end,
 
   method s-when(self, l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean):

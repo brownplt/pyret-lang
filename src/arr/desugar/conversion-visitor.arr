@@ -253,9 +253,6 @@ shadow ast-to-term-visitor =
         some(l),
         [list: name.visit(self), value.visit(self), g-bool(keyword-val)])
     end,
-    method s-ref(self, l, ann):
-      g-surf("s-ref", some(l), [list: g-option(self.option(ann))])
-    end,
     method s-contract(self, l, name, ann):
       g-surf("s-contract", some(l), [list: name.visit(self), ann.visit(self)])
     end,
@@ -1050,8 +1047,6 @@ rec lookup-dict =
         term-to-ast(args.get(1)),
         term-to-ast(args.get(2)))
     end,
-    "s-ref",
-    lam(maybe-loc, args): s-ref(maybe-loc.value, term-to-ast(args.get(0))) end,
     "s-contract",
     lam(maybe-loc, args):
       s-contract(maybe-loc.value,

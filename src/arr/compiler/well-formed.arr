@@ -1064,9 +1064,6 @@ top-level-visitor = A.default-iter-visitor.{
   method s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)
   end,
-  method s-ref(_, l :: Loc, ann :: A.Ann):
-    well-formed-visitor.s-ref(l, ann)
-  end,
   method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
   end,

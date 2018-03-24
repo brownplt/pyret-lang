@@ -161,6 +161,11 @@
       runtime.checkString(field);
       raise(err("field-not-found")(loc, object, runtime.makeString(field)));
     }
+    function throwBracketSyntaxNonConstructor(exprLoc, constrLoc) {
+      checkSrcloc(exprLoc);
+      checkSrcloc(constrLoc);
+      raise(err("bracket-syntax-non-constructor")(exprLoc, constrLoc));
+    }
     function throwConstructorSyntaxNonConstructor(exprLoc, constrLoc) {
       checkSrcloc(exprLoc);
       checkSrcloc(constrLoc);
@@ -582,6 +587,7 @@
       throwSpinnakerError: throwSpinnakerError,
       throwFieldNotFound: throwFieldNotFound,
       throwConstructorSyntaxNonConstructor: throwConstructorSyntaxNonConstructor,
+      throwBracketSyntaxNonConstructor: throwBracketSyntaxNonConstructor,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
       throwLookupNonTuple: throwLookupNonTuple,

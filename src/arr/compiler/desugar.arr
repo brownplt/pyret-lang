@@ -347,7 +347,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-bracket(l, obj, key) =>
-      ds-curry(l, bid(l, "get-value"), [list: desugar-expr(obj), desugar-expr(key)])
+      ds-curry(l, bid(l, "get-value"), [list: A.s-srcloc(l, l), A.s-srcloc(l, obj.l), desugar-expr(obj), desugar-expr(key)])
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
@@ -370,7 +370,6 @@ fun desugar-expr(expr :: A.Expr):
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
-    | s-ref(l, ann) => A.s-ann(l, ann)
     | s-reactor(l, fields) =>
       fields-by-name = SD.make-mutable-string-dict()
       init-and-non-init = for lists.partition(f from fields) block:
@@ -748,6 +747,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+    | s-array(l, vs) => A.s-array(l, vs.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

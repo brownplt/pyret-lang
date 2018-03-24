@@ -47,33 +47,35 @@ end
 
 ################################################################################
 
-sugar s-underscore:
-  | (s-underscore) => {underscore}
-end
-
-################################################################################
-
-sugar s-import:
-  | (s-import file name) => (s-import-complete [] [] file name name)
-end
-
-sugar s-import-fields:
-  | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
-end
-
-sugar transform-underscore:
-  | (transform-underscore {underscore}) => (fresh [name] name)
-  | (transform-underscore non-underscore) => non-underscore
-end
-
-sugar s-import-complete:
-  | (s-import-complete [val ...] [type ...] import-type vals-name types-name) =>
-    <s-import-complete [(transform-underscore val) ...]
-                       [(transform-underscore type) ...]
-                       import-type
-                       (transform-underscore vals-name)
-                       (transform-underscore types-name)>
-end
+# sugar s-underscore:
+#   | (s-underscore) => {underscore}
+# end
+#
+# ################################################################################
+#
+# sugar s-import:
+#   | (s-import file name) => (s-import-complete [] [] file name name)
+# end
+#
+# sugar s-import-fields:
+#   | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
+# end
+#
+# sugar transform-underscore:
+#   | (transform-underscore {underscore}) => (fresh [name] name)
+#   | (transform-underscore non-underscore) => non-underscore
+# end
+#
+# sugar s-import-complete:
+#   | (s-import-complete vals types import-type vals-name types-name) =>
+#     <s-import-complete vals
+#                        types
+#                        import-type
+#                        (transform-underscore vals-name)
+#                        (transform-underscore types-name)>
+#   # TODO: need another phase before desugaring that goes through vals and types
+#   # and mark {underscore} as invalid
+# end
 
 ################################################################################
 

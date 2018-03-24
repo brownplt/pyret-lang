@@ -450,6 +450,30 @@ data RuntimeError:
         [ED.para:
           ED.text("The left side was not a defined convenience constructor.")]]
     end
+  | bracket-syntax-non-constructor(expr-loc, constr-loc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.expr-loc.is-builtin() or not(src-available(self.expr-loc)):
+        [ED.error:
+          ed-simple-intro("bracket expression", self.expr-loc),
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("The left side was not accessible.")]]
+      else:
+        [ED.error:
+          ed-intro("bracket expression", self.expr-loc, -1, true),
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("The "),
+            ED.highlight(ED.text("left side"), [ED.locs: self.constr-loc], 0),
+            ED.text(" was not accessible.")]]
+      end
+    end,
+    method render-reason(self) block:
+      [ED.error:
+        ed-simple-intro("bracket expression", self.expr-loc),
+        [ED.para:
+          ED.text("The left side was not accessible.")]]
+    end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin() or not(src-available(self.loc)):

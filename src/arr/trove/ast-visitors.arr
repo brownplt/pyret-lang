@@ -180,7 +180,6 @@ shadow default-map-visitor =
     method s-let(self, l, name, value, keyword-val):
       s-let(l, name.visit(self), value.visit(self), keyword-val)
     end,
-    method s-ref(self, l, ann): s-ref(l, self.option(ann)) end,
     method s-contract(self, l, name, ann):
       s-contract(l, name.visit(self), ann.visit(self))
     end,
@@ -691,7 +690,6 @@ shadow default-iter-visitor =
     method s-let(self, l, name, value, keyword-val):
       name.visit(self) and value.visit(self)
     end,
-    method s-ref(self, l, ann): self.option(ann) end,
     method s-contract(self, l, name, ann):
       name.visit(self) and ann.visit(self)
     end,
@@ -1170,7 +1168,6 @@ shadow dummy-loc-visitor =
     method s-let(self, l, name, value, keyword-val):
       s-let(dummy-loc, name.visit(self), value.visit(self), keyword-val)
     end,
-    method s-ref(self, l, ann): s-ref(dummy-loc, self.option(ann)) end,
     method s-contract(self, l, name, ann):
       s-contract(dummy-loc, name.visit(self), ann.visit(self))
     end,

@@ -425,8 +425,6 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-rec not implemented")
         | s-let(l, name, value, keyword-val) =>
           raise("s-let should have already been desugared")
-        | s-ref(l, ann) =>
-          raise("checking for s-ref not implemented")
         | s-contract(l, name, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
@@ -687,8 +685,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-rec not implemented")
     | s-let(l, name, value, keyword-val) =>
       raise("s-let should have already been desugared")
-    | s-ref(l, ann) =>
-      raise("synthesis for s-ref not implemented")
     | s-contract(l, name, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>

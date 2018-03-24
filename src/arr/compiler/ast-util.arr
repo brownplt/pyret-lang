@@ -800,8 +800,6 @@ set-tail-visitor = A.default-map-visitor.{
     A.s-dot(l, obj.visit(self.{is-tail: false}), field)
   end,
 
-  # skip s-ref because it has no s-app-enriched -- what is s-ref anyway
-
   method s-get-bang(self, l, obj, field):
     A.s-get-bang(l, obj.visit(self.{is-tail: false}), field)
   end,
