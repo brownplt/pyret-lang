@@ -296,7 +296,7 @@ fun write-ast-visitors() block:
       var string-dict-args = empty
 
       for each(variant from collected-variants) block:
-        bodylam = cases (AT.SimplifiedVariant) variant block:
+        bodylam = cases (AT.SimplifiedVariant) variant:
           | simplified-variant(_, name, members) =>
             arg-list = cases (List) members:
               | empty => empty
