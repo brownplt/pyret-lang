@@ -136,15 +136,11 @@ fun get-cached(basedir, uri, name, cache-type):
       CS.standard-imports
     end,
     method get-dependencies(_) block:
-      print(uri)
-      print("\n")
       raw = B.builtin-raw-locator(static-path)
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(CS.make-dep)
     end,
     method get-native-modules(_) block:
-      print(uri + " " + static-path)
-      print("\n")
       raw = B.builtin-raw-locator(static-path)
       natives = raw.get-raw-native-modules()
       raw-array-to-list(natives).map(CS.requirejs)
@@ -268,12 +264,8 @@ fun set-loadable(basedir, locator, loadable) -> String block:
       # But this is a point to revisit.
 
       if JSP.is-ccp-dict(ccp) block:
-        print("Saving static file for " + save-static-path)
-        print("\n")
         ccp.print-js-static(fs.display)
       else:
-        print("Saving as module file for " + save-static-path)
-        print("\n")
         ccp.print-js-runnable(fs.display)
       end
 
