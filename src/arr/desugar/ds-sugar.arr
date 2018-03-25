@@ -62,13 +62,13 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
   end
   cases (Term) e block:
     | g-value(val) => g-value(val)
-    | g-core(op, loc, args) => g-core(op, loc, desugars(args))
-    | g-aux(op,  loc, args) => g-aux(op,  loc, desugars(args))
+    | g-core(op, args) => g-core(op, desugars(args))
+    | g-aux(op, args) => g-aux(op, desugars(args))
     | g-var(v) => g-var(v)
     | g-list(lst) => g-list(desugars(lst))
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
-    | g-surf(op, loc, args) =>
+    | g-surf(op, args) =>
       shadow args = desugars(args)
       opt-rule = find-ds-rule(rules, op)
       cases (Option) opt-rule:
@@ -78,10 +78,10 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
           pvars = generate-pvars(args.length())
           pat-lhs = pat-surf(op, pvars)
           pat-rhs = pat-core(op, pvars)
-          g-tag(pat-lhs, pat-rhs, g-core(op, loc, args))
+          g-tag(pat-lhs, pat-rhs, g-core(op, args))
         | some(rule) =>
           opt = for find-option(kase from rule.kases):
-            cases (Either) match-pattern(g-surf(op, loc, args), kase.lhs):
+            cases (Either) match-pattern(g-surf(op, args), kase.lhs):
               | left({env; p}) => some({kase; env; p})
               | right(_) => none
             end
@@ -91,10 +91,10 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
               pvars = generate-pvars(args.length())
               pat-lhs = pat-surf(op, pvars)
               pat-rhs = pat-core(op, pvars)
-              g-tag(pat-lhs, pat-rhs, g-core(op, loc, args))
+              g-tag(pat-lhs, pat-rhs, g-core(op, args))
             | some({kase; env; pat-lhs}) =>
               g-tag(pat-lhs, kase.rhs,
-                desugar(rules, substitute-pattern(env, kase.rhs, loc)))
+                desugar(rules, substitute-pattern(env, kase.rhs)))
           end
       end
   end
@@ -116,9 +116,9 @@ end
 fun strip-tags(e :: Term) -> Term:
   cases (Term) e:
     | g-value(val) => g-value(val)
-    | g-core(op, loc, args) => g-core(op, loc, args.map(strip-tags))
-    | g-aux(op, loc, args) => g-aux(op, loc, args.map(strip-tags))
-    | g-surf(op, loc, args) => g-surf(op, loc, args.map(strip-tags))
+    | g-core(op, args) => g-core(op, args.map(strip-tags))
+    | g-aux(op, args) => g-aux(op, args.map(strip-tags))
+    | g-surf(op, args) => g-surf(op, args.map(strip-tags))
     | g-list(seq) => g-list(seq.map(strip-tags))
     | g-option(opt) => g-option(opt.and-then(strip-tags))
     | g-var(v) => g-var(v)
@@ -129,12 +129,12 @@ end
 fun resugar(e :: Term) -> Option<Term>:
   cases (Term) e:
     | g-value(val) => g-value(val) ^ some
-    | g-core(op, loc, args) =>
-      map-option(resugar, args).and-then(g-core(op, loc, _))
-    | g-surf(op, loc, args) =>
-      map-option(resugar, args).and-then(g-surf(op, loc, _))
-    | g-aux(op,  loc, args) => 
-      map-option(resugar, args).and-then(g-aux(op, loc, _))
+    | g-core(op, args) =>
+      map-option(resugar, args).and-then(g-core(op, _))
+    | g-surf(op, args) =>
+      map-option(resugar, args).and-then(g-surf(op, _))
+    | g-aux(op, args) =>
+      map-option(resugar, args).and-then(g-aux(op, _))
     | g-var(v) => g-var(v) ^ some
     | g-list(lst) => map-option(resugar, lst).and-then(g-list)
     | g-option(opt) => 
@@ -146,7 +146,7 @@ fun resugar(e :: Term) -> Option<Term>:
     | g-tag(lhs, rhs, body) =>
       for chain-option(shadow body from resugar(body)):
         cases (Either) match-pattern(body, rhs):
-          | left({env; _}) => resugar(substitute-pattern(env, lhs, none))
+          | left({env; _}) => resugar(substitute-pattern(env, lhs))
           | right(_) => none
         end
       end

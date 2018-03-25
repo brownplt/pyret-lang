@@ -288,20 +288,20 @@ fun match-rec(
           end
         | pat-core(pname, pargs) =>
           cases (Term) e:
-            | g-core(ename, loc, eargs) =>
+            | g-core(ename, eargs) =>
               match-core-or-sugar(pat-core, ename, pname, eargs, pargs)
             | else => match-error()
           end
         | pat-aux(pname, pargs) =>
           cases (Term) e:
-            | g-aux(ename, loc, eargs) =>
+            | g-aux(ename, eargs) =>
               match-core-or-sugar(pat-aux, ename, pname, eargs, pargs)
             | else => match-error()
           end
         | pat-meta(_, _) => left({env; p})
         | pat-surf(pname, pargs) =>
           cases (Term) e:
-            | g-surf(ename, loc, eargs) => 
+            | g-surf(ename, eargs) => 
               match-core-or-sugar(pat-surf, ename, pname, eargs, pargs)
             | else => match-error()
           end

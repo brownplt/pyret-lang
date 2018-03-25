@@ -15,20 +15,15 @@ end
 ################################################################################
 
 sugar no-branch-exn:
-  | (no-branch-exn typ) =>
-    (s-prim-app "throwNoBranchesMatched" [(s-srcloc (meta get-loc)) (s-str typ)])
+  | (no-branch-exn@l typ) => (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
 end
 
 sugar s-if:
-  | (s-if branches blocky) =>
-    (s-if-else branches (s-block [(no-branch-exn "if")]) blocky)
-  # why do we need s-block wrapped around?
+  | (s-if branches blocky) => (s-if-else branches (no-branch-exn "if") blocky)
 end
 
 sugar s-if-pipe:
-  | (s-if-pipe branches blocky) =>
-    (s-if-else branches (s-block [(no-branch-exn "ask")]) blocky)
-  # why do we need s-block wrapped around?
+  | (s-if-pipe branches blocky) => (s-if-else branches (no-branch-exn "ask") blocky)
 end
 
 sugar s-if-pipe-else:
@@ -44,7 +39,7 @@ end
 ################################################################################
 
 sugar s-template:
-  | (s-template) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc (meta get-loc))])
+  | (s-template@l) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc l)])
 end
 
 sugar s-user-block:
@@ -95,9 +90,10 @@ sugar s-construct-lazy:
 end
 
 sugar s-construct-help:
-  | (s-construct-help constructor js-name id-name elts) =>
-    (s-app (s-prim-app js-name [constructor (s-str id-name)
-                                (s-srcloc (meta get-loc))
+  | (s-construct-help@l constructor js-name id-name elts) =>
+    (s-app@(meta get-loc-of constructor)
+           (s-prim-app@(meta get-loc-of constructor)
+                       js-name [constructor (s-str id-name) (s-srcloc l)
                                 (s-srcloc (meta get-loc-of constructor))])
            elts)
 end
@@ -120,8 +116,6 @@ sugar s-construct:
   | (s-construct {s-construct-lazy} constructor [elt ...]) =>
     (s-construct-help constructor "getLazyMaker" "lazy-make"
       [(s-array [(s-lam "" [] [] (a-blank) "" elt none none false) ...])])
-  # used srcloc are completely wrong due to the lack of the syntax to put srcloc
-  # in the constructing node
 end
 
 

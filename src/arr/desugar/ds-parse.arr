@@ -27,7 +27,7 @@ end
 
 WHITESPACE = [list: " ", "\t", "\n"]
 SPECIAL-TOKENS = [list:
-  ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@",  "=>",
+  ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@", "=>",
   "<", ">", "..."
 ]
 
@@ -424,10 +424,35 @@ fun parser-pattern(pvars :: Option<Set<String>>)
     pat-var(name)
   end
 
-  fun parser-patt():
-    rec-pattern = lam(toks): parser-patt()(toks) end
-    rec-list = lam(toks): parser-list-body()(toks) end
+  fun get-ploc(maybe-loc :: Option<String>) -> Pattern:
+    cases (Option) maybe-loc:
+      | none =>
+        cases (Option) pvars:
+          # LHS
+          | none => pat-pvar(gen-symbol("gs-pvar"), none)
+          # RHS
+          | some(_) => pat-pvar("@toploc", none)
+        end
+      | some(loc-pat) => loc-pat
+    end
+  end
 
+  fun rec-pattern(toks): parser-patt()(toks) end
+  fun rec-list(toks): parser-list-body()(toks) end
+
+  fun parser-patt():
+    parser-name-and-opt-loc = parser-choices([list:
+        for parser-3(
+            name from parser-name,
+            _ from parser-ignore(t-symbol("@")),
+            loc from rec-pattern):
+          {name; some(loc)}
+        end,
+        for parser-1(name from parser-name):
+          {name; none}
+        end
+      ])
+      
     parser-choices([list:
         parser-const(t-name("none"), pat-option(none)),
         parser-const(t-name("true"), pat-value(e-bool(true))),
@@ -479,26 +504,26 @@ fun parser-pattern(pvars :: Option<Set<String>>)
         # Aux
         for parser-4(
             _ from parser-ignore(t-symbol("{")),
-            name from parser-name,
+            {name; maybe-loc} from parser-name-and-opt-loc,
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol("}"))):
-          pat-aux(name, args)
+          pat-aux(name, link(get-ploc(maybe-loc), args))
         end,
         # Core
         for parser-4(
             _ from parser-ignore(t-symbol("<")),
-            name from parser-name,
+            {name; maybe-loc} from parser-name-and-opt-loc,
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol(">"))):
-          pat-core(name, args)
+          pat-core(name, link(get-ploc(maybe-loc), args))
         end,
         # Surface
         for parser-4(
             _ from parser-ignore(t-symbol("(")),
-            name from parser-name,
+            {name; maybe-loc} from parser-name-and-opt-loc,
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol(")"))):
-          pat-surf(name, args)
+          pat-surf(name, link(get-ploc(maybe-loc), args))
         end,
         # List
         for parser-3(
@@ -511,9 +536,6 @@ fun parser-pattern(pvars :: Option<Set<String>>)
   end
 
   fun parser-list-body():
-    rec-pattern = lam(toks): parser-patt()(toks) end
-    rec-list = lam(toks): parser-list-body()(toks) end
-
     parser-choices([list:
         # Ellipsis
         for parser-2(
@@ -523,7 +545,7 @@ fun parser-pattern(pvars :: Option<Set<String>>)
                 parser-right(rec-list)
               ])):
           cases (Either) either-ellipsis-or-cons:
-            | left(_) => seq-ellipsis(patt, next-label())
+            | left(_) => seq-ellipsis(patt, gen-symbol("gs-label"))
             | right(body) => seq-cons(patt, body)
           end
         end,
@@ -533,9 +555,9 @@ fun parser-pattern(pvars :: Option<Set<String>>)
       ])
   end
 
-  fun next-label() -> String block:
+  fun gen-symbol(s :: String) -> String block:
     label-counter := label-counter + 1
-    "l" + tostring(label-counter)
+    s + tostring(label-counter)
   end
   
   parser-patt()
@@ -637,9 +659,19 @@ end
 parser-ds-rule-case =
   for parser-chain(_ from parser-ignore(t-symbol("|"))):
     for parser-chain(lhs from parser-pattern(none)):
+      toploc-name = cases (Pattern) lhs:
+        | pat-surf(_, args) =>
+          cases (Pattern) args.get(0):
+            | pat-pvar(loc-name, _) => loc-name
+            | else => panic("First argument of LHS surface is not pat-pvar: " + lhs)
+          end
+        | else => fail("LHS should be surface pattern")
+      end
       for parser-chain(_ from parser-ignore(t-symbol("=>"))):
         pvars = gather-pvars(lhs)
         for parser-1(rhs from parser-pattern(some(pvars))):
+          shadow lhs = rename-pat-pvar(lhs, toploc-name, "@toploc")
+          shadow rhs = rename-pat-pvar(rhs, toploc-name, "@toploc")
           ds-rule-case(lhs, rhs)
         end
       end

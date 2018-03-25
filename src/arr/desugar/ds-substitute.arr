@@ -14,25 +14,17 @@ include file("ds-resolve-ellipses.arr")
 data Metafunction:
   | metafunction(
       arity :: Number,
-      f :: (List<Term>, Env, Option<A.Loc> -> Term))
+      f :: (List<Term>, Env -> Term))
 end
 
 metafunctions = [string-dict:
-  "get-loc", metafunction(0, lam(_, _, top-loc):
-    cases (Option) top-loc:
-      | none => panic("trying to get-loc with no srcloc")
-      | some(loc) => g-value(e-loc(loc))
-    end
-  end),
-  "get-loc-of", metafunction(1, lam(args, env, _):
+  "get-loc-of", metafunction(1, lam(args, env):
     cases (Term) args.get(0):
-      | g-core(_, l, _) =>
-        cases (Option) l:
-          | none => panic("trying to get-loc-of with no srcloc")
-          | some(loc) => g-value(e-loc(loc))
-        end
+      | g-core(_, shadow args) => args.get(0)
       # TODO: might want to support g-var
-      | else => fail("get-loc-of should be used on an already desugared value. Got " + tostring(args.get(0)))
+      | else =>
+        fail("get-loc-of should be used on an already desugared value. Got " +
+             tostring(args.get(0)))
     end
   end)]
 
@@ -40,7 +32,7 @@ metafunctions = [string-dict:
 #  Substitution
 #
 
-fun subs(env :: Env, p :: Pattern, top-loc :: Option<A.Loc>) -> Term:
+fun subs(env :: Env, p :: Pattern) -> Term:
   cases (Pattern) p:
     | pat-pvar(name, _) =>
       cases (Option) get-pvar(env, name):
@@ -48,16 +40,16 @@ fun subs(env :: Env, p :: Pattern, top-loc :: Option<A.Loc>) -> Term:
         | some(e) => e
       end
     | pat-value(val) => g-value(val)
-    | pat-core(name, args) => g-core(name, top-loc, map(subs(env, _, top-loc), args))
-    | pat-aux(name, args)  => g-aux(name, top-loc, map(subs(env, _, top-loc), args))
-    | pat-surf(name, args) => g-surf(name, top-loc, map(subs(env, _, top-loc), args))
+    | pat-core(name, args) => g-core(name, map(subs(env, _), args))
+    | pat-aux(name, args)  => g-aux(name, map(subs(env, _), args))
+    | pat-surf(name, args) => g-surf(name, map(subs(env, _), args))
     | pat-meta(name, args) =>
-      term-args = map(subs(env, _, top-loc), args)
+      term-args = map(subs(env, _), args)
       cases (Option) metafunctions.get(name):
         | none => fail("Metafunction '" + name + "' not found")
         | some(metaf) =>
           if term-args.length() == metaf.arity:
-            metaf.f(term-args, env, top-loc)
+            metaf.f(term-args, env)
           else:
             fail("Arity mismatch when calling metafunction '" + name + "'. " +
                  "Expect " + tostring(metaf.arity) + " arguments. Got " +
@@ -72,28 +64,28 @@ fun subs(env :: Env, p :: Pattern, top-loc :: Option<A.Loc>) -> Term:
     | pat-option(opt) =>
       cases (Option) opt:
         | none => g-option(none)
-        | some(shadow p) => g-option(some(subs(env, p, top-loc)))
+        | some(shadow p) => g-option(some(subs(env, p)))
       end
-    | pat-tag(lhs, rhs, body) => g-tag(lhs, rhs, subs(env, body, top-loc))
-    | pat-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body, top-loc)
-    | pat-list(seq) => g-list(subs-list(env, seq, top-loc))
+    | pat-tag(lhs, rhs, body) => g-tag(lhs, rhs, subs(env, body))
+    | pat-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body)
+    | pat-list(seq) => g-list(subs-list(env, seq))
   end
 end
 
-fun subs-list(env :: Env, ps :: SeqPattern, top-loc :: Option<A.Loc>) -> List<Term>:
+fun subs-list(env :: Env, ps :: SeqPattern) -> List<Term>:
   cases (SeqPattern) ps:
     | seq-empty => empty
-    | seq-cons(f, r) => link(subs(env, f, top-loc), subs-list(env, r, top-loc))
+    | seq-cons(f, r) => link(subs(env, f), subs-list(env, r))
     | seq-ellipsis(p, l) => 
       cases (Option) get-ellipsis(env, l):
         | none => fail("Ellipsis label '" + l + "' not found.")
-        | some(envs) => for map(shadow env from envs): subs(env, p, top-loc) end
+        | some(envs) => for map(shadow env from envs): subs(env, p) end
       end
     | seq-ellipsis-list(shadow ps, l) => 
       cases (Option) get-ellipsis(env, l):
         | none => fail("Ellipsis label '" + l + "' not found.")
         | some(envs) => 
-          for map2(shadow env from envs, p from ps): subs(env, p, top-loc) end
+          for map2(shadow env from envs, p from ps): subs(env, p) end
       end
   end
 end
@@ -107,7 +99,7 @@ check:
         set-pvar(empty-env(), "a", parse-ast("(Foo)")),
         set-pvar(empty-env(), "a", parse-ast("5"))
       ]),
-    parse-pattern(none, "(Bar [a ...])"), none)
+    parse-pattern(none, "(Bar [a ...])"))
     is parse-ast("(Bar [(Foo) 5])")
   
   subs(set-ellipsis(empty-env(),

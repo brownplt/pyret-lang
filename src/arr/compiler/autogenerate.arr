@@ -9,6 +9,7 @@ include either
 import string-dict as D
 
 dummy = A.dummy-loc
+g-loc-dummy = AT.make-node-1("g-loc", AT.make-id("dummy-loc"))
 
 fun generate-ast-visitor(
     imports :: List<A.Import>,
@@ -147,19 +148,19 @@ fun generate-ast-visitor(
             end
           end
         end
-        {opt-loc; shadow args} = cases (List) members:
-          | empty => {AT.make-name("none"); args}
+        shadow args = cases (List) members:
+          | empty => [list: g-loc-dummy]
           | link(first, rest) =>
             cases (AT.Tag) AT.get-tag(first.ann):
-              | t-loc =>
-                {AT.make-node-1("some", AT.bind-to-id(first)); args.drop(1)}
-              | else =>
-                {AT.make-name("none"); args}
+              | t-loc => args
+              | else => link(g-loc-dummy, args)
             end
         end
-        A.s-app(dummy, AT.make-id("g-surf"), [list: A.s-str(dummy, name), opt-loc, AT.make-list(args)])
+        A.s-app(dummy, AT.make-id("g-surf"),
+          [list: A.s-str(dummy, name), AT.make-list(args)])
       | simplified-singleton-variant(_, name, _) =>
-        A.s-app(dummy, AT.make-id("g-surf"), [list: A.s-str(dummy, name), AT.make-name("none"), AT.make-list(empty)])
+        A.s-app(dummy, AT.make-id("g-surf"),
+          [list: A.s-str(dummy, name), AT.make-list([list: g-loc-dummy])])
     end
   end
 
@@ -295,25 +296,25 @@ fun write-ast-visitors() block:
       var string-dict-args = empty
 
       for each(variant from collected-variants) block:
-        bodylam = cases (AT.SimplifiedVariant) variant:
+        bodylam = cases (AT.SimplifiedVariant) variant block:
           | simplified-variant(_, name, members) =>
             arg-list = cases (List) members:
               | empty => empty
               | link(first, rest) =>
                 cases (AT.Tag) AT.get-tag(first.ann):
-                  | t-loc =>
-                    link(A.s-dot(dummy, AT.make-id('maybe-loc'), 'value'), get-arg-list(rest))
-                  | else => get-arg-list(members)
+                  | t-loc => get-arg-list(members)
+                  # add dummy member (to match dummy srcloc)
+                  | else => get-arg-list(link(first, members)).rest
                 end
             end
-            A.s-app(dummy, AT.make-id(name),arg-list)
+            A.s-app(dummy, AT.make-id(name), arg-list)
           | simplified-singleton-variant(_, name, _) => AT.make-id(name)
         end
 
         string-dict-args := link(A.s-str(dummy, variant.name), string-dict-args)
         string-dict-args := link(
           A.s-lam(
-            dummy, "", empty, [list: "maybe-loc", "args"].map(AT.make-bind),
+            dummy, "", empty, [list: AT.make-bind("args")],
             A.a-blank, "", bodylam, none, none, false),
           string-dict-args)
       end
@@ -330,9 +331,9 @@ fun write-ast-visitors() block:
 
       fun term-to-ast(g):
         cases (Term) g:
-          | g-surf(op, maybe-loc, args) => lookup-dict.get-value(op)(maybe-loc, args)
-          | g-core(op, maybe-loc, args) => lookup-dict.get-value(op)(maybe-loc, args)
-          | g-aux(_, _, _) => raise("unexpected g-aux: " + tostring(g))
+          | g-surf(op, args) => lookup-dict.get-value(op)(args)
+          | g-core(op, args) => lookup-dict.get-value(op)(args)
+          | g-aux(_, _) => raise("unexpected g-aux: " + tostring(g))
           | g-value(val) =>
             cases (GenericPrimitive) val:
               | e-str(s) => s

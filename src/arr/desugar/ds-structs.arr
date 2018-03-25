@@ -25,9 +25,9 @@ end
 
 data Term:
   | g-value(val :: GenericPrimitive)
-  | g-core(op :: String, loc :: Option<AST.Loc>, args :: List<Term>)
-  | g-surf(op :: String, loc :: Option<AST.Loc>, args :: List<Term>)
-  | g-aux(op :: String, loc :: Option<AST.Loc>, args :: List<Term>)
+  | g-core(op :: String, args :: List<Term>)
+  | g-surf(op :: String, args :: List<Term>)
+  | g-aux(op :: String, args :: List<Term>)
   | g-var(v :: Variable)
   | g-list(lst :: List<Term>)
   | g-option(opt :: Option<Term>)
@@ -101,4 +101,31 @@ end
 
 fun fail(message :: String):
   raise({"Error when desugaring"; message})
+end
+
+fun rename-pat-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
+  fun loop(shadow p :: Pattern):
+    cases (Pattern) p:
+      | pat-pvar(s, t) => if s == before: pat-pvar(after, t) else: p end
+      | pat-value(_) => p
+      | pat-core(op, args) => pat-core(op, args.map(loop))
+      | pat-surf(op, args) => pat-surf(op, args.map(loop))
+      | pat-aux(op, args) => pat-aux(op, args.map(loop))
+      | pat-meta(op, args) => pat-meta(op, args.map(loop))
+      | pat-var(_) => p
+      | pat-list(l) => pat-list(loop-list(l))
+      | pat-option(opt) => pat-option(opt.and-then(loop))
+      | pat-tag(lhs, rhs, body) => pat-tag(loop(lhs), loop(rhs), loop(body))
+      | pat-fresh(fresh, body) => pat-fresh(fresh, loop(body))
+    end
+  end
+  fun loop-list(ps :: SeqPattern):
+    cases (SeqPattern) ps:
+      | seq-empty => seq-empty
+      | seq-cons(shadow p, shadow ps) => seq-cons(loop(p), loop-list(ps))
+      | seq-ellipsis(shadow p, l) => seq-ellipsis(loop(p), l)
+      | seq-ellipsis-list(lst, l) => seq-ellipsis-list(lst.map(loop), l)
+    end
+  end
+  loop(p)
 end
