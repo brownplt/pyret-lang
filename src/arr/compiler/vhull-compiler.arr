@@ -804,9 +804,14 @@ compiler-visitor = {
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>, app-info):
     compiled-f = f.visit(self).exp
     compiled-args = CL.map_list(lam(a): a.visit(self).exp end, args)
+    f-id = j-id(fresh-id(compiler-name("fun")))
     # NOTE(rachit): Always assigning to cur-ans here.
-    c-exp(
-      self.cur-ans(app(l, compiled-f, compiled-args)),
+    c-block(
+      j-block([clist:
+        j-var(f-id.id, compiled-f),
+        check-fun(l, self.get-loc(l), f-id),
+        j-expr(self.cur-ans(app(l, f-id, compiled-args))),
+      ]),
       cl-empty)
   end,
   method a-method-app(self, l, obj, meth, args):
