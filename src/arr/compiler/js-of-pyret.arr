@@ -486,12 +486,12 @@ fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, provides, o
     # NOTE(joe): manual cleaning of root set
     anfed := nothing
 
-    final-code = if options.stopify:
-      STOP.stopify(compiled.get-value("theModule"))
+    final-module = if options.stopify:
+      stopped = STOP.stopify(compiled.get-value("theModule"))
+      compiled.set("theModule", J.j-raw-code(stopped))
     else:
-      compiled.get-value("theModule")
+      compiled
     end
-    final-module = compiled.set("theModule", J.j-raw-code(final-code))
     {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(final-module)))}
   else:
     compiled = anfed.visit(AL.splitting-compiler(

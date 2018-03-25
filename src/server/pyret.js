@@ -232,6 +232,8 @@ const optionDefinitions = [
   { name: 'deps-file', type: String, group: "pyret-options" },
 
   { name: 'perilous', type: Boolean, group: "pyret-options", defaultValue: false },
+  { name: 'straight-line', type: Boolean, group: "pyret-options", defaultValue: false },
+  { name: 'stopify', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'type-check', alias: 'y', type: Boolean, group: "pyret-options", defaultValue: false },
 ];
 

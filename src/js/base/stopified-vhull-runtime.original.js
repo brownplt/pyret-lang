@@ -71,7 +71,7 @@ function vhull_runtime() {
                 .concat(reqInstantiated)
                 .concat(natives));
             } else {
-              throw new Error('Module was not in the form of a function')
+              throw new Error('Module was not in the form of a function: ' + uri)
             }
 
             realm[uri] = result;

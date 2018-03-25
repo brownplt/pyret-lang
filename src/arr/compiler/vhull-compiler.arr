@@ -1448,13 +1448,17 @@ fun compile-module(self, l, imports-in, prog,
   visited-body := nothing
   module-body := nothing
   the-module := nothing
-  [D.string-dict:
+  ans = [D.string-dict:
     "requires", j-list(true, module-locators-as-js),
     "provides", provides-obj,
     "nativeRequires", j-list(true, [clist:]),
-    "theModule", module-and-map.code,
+    "theModule", 
+        if self.options.collect-all: the-module
+        else if self.options.module-eval == false: J.j-raw-code(module-and-map.code)
+        else: J.j-str(module-and-map.code) end,
     "theMap", J.j-str(module-and-map.map)
     ]
+  ans
 end
 
 

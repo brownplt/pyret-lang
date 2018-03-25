@@ -38,7 +38,8 @@ fun compile(options):
       log-error: options.get("log-error").or-else(compile-opts.log-error),
       deps-file: options.get("deps-file").or-else(compile-opts.deps-file),
       user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations),
-      straight-line: options.get("straight-line").or-else(compile-opts.straight-line)
+      straight-line: options.get("straight-line").or-else(compile-opts.straight-line),
+      stopify: options.get("stopify").or-else(compile-opts.stopify)
     })
 end
 
@@ -87,6 +88,7 @@ fun serve(port, pyret-dir):
         )
         .set("user-annotations", false)
         .set("straight-line", true)
+        .set("compiled-dir", P.resolve(P.join(opts.get-value("compiled-dir"), "perilous")))
       else:
         with-pyret-dir.set("compiled-read-only",
           link(P.resolve(P.join(pyret-dir, "compiled")), empty)
@@ -94,8 +96,24 @@ fun serve(port, pyret-dir):
       end
     with-require-config = with-compiled-read-only-dirs.set("require-config",
       with-compiled-read-only-dirs.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
+    do-stopify = opts.get("stopify").or-else(false)
+    with-stopify = if do-stopify:
+      with-require-config
+        .set("stopify", true)
+        .set("straight-line", true)
+        .set("standalone-file", "src/js/base/handalone.stop.js")
+        .set("require-config", "src/scripts/standalone-configVS.json")
+        .set("no-module-eval", true)
+        .set("compiled-read-only", empty)
+        .set("compiled-dir", P.resolve(P.join(opts.get-value("compiled-dir"), "stopify")))
+    else:
+      with-require-config
+    end
+
+    with-straight-line = with-stopify.set("straight-line", opts.get("straight-line").or-else("false"))
+    
     result = run-task(lam():
-      compile(with-require-config)
+      compile(with-straight-line)
     end)
     cases(E.Either) result block:
       | right(exn) =>
