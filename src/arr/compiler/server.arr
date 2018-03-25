@@ -39,7 +39,8 @@ fun compile(options):
       deps-file: options.get("deps-file").or-else(compile-opts.deps-file),
       user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations),
       straight-line: options.get("straight-line").or-else(compile-opts.straight-line),
-      stopify: options.get("stopify").or-else(compile-opts.stopify)
+      stopify: options.get("stopify").or-else(compile-opts.stopify),
+      module-eval: options.get("module-eval").or-else(compile-opts.module-eval)
     })
 end
 
@@ -110,10 +111,11 @@ fun serve(port, pyret-dir):
       with-require-config
     end
 
-    with-straight-line = with-stopify.set("straight-line", opts.get("straight-line").or-else("false"))
+    with-straight-line = with-stopify.set("straight-line", opts.get("straight-line").or-else(false))
+    with-module-eval = with-straight-line.set("module-eval", not(opts.get-value("no-module-eval")))
     
     result = run-task(lam():
-      compile(with-straight-line)
+      compile(with-module-eval)
     end)
     cases(E.Either) result block:
       | right(exn) =>

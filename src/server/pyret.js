@@ -235,6 +235,8 @@ const optionDefinitions = [
   { name: 'straight-line', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'stopify', type: Boolean, group: "pyret-options", defaultValue: false },
   { name: 'type-check', alias: 'y', type: Boolean, group: "pyret-options", defaultValue: false },
+
+  { name: 'no-module-eval', type: Boolean, group: "pyret-options", defaultValue: false },
 ];
 
 let options;
