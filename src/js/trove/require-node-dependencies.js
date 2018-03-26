@@ -20,6 +20,9 @@ define("js-sha256", [], function () { return jssha256; });
 fs = nodeRequire("fs");
 define("fs", [], function () { return fs; });
 
+repl = nodeRequire("repl");
+define("repl", [], function () { return repl; });
+
 path = nodeRequire("path");
 define("path", [], function () { return path; });
 
