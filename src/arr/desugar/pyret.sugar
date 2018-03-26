@@ -81,6 +81,16 @@ sugar s-import-complete:
   # and mark {s-underscore} as invalid
 end
 
+sugar s-lam:
+  | (s-lam name [param ...] args ann doc body _check-loc _check blocky) =>
+    <s-lam name [(transform-underscore param) ...] args ann doc body _check-lob _check blocky>
+end
+
+sugar s-bind:
+  | (s-bind shadows {s-underscore} ann) => (s-bind shadows (fresh [x] x) ann)
+  | (s-bind shadows non-underscore ann) => <s-bind shadows non-underscore ann>
+end
+
 ################################################################################
 
 sugar s-construct-normal:

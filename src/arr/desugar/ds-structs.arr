@@ -65,9 +65,7 @@ data SeqPattern:
   | seq-ellipsis-list(patts :: List<Pattern>, label :: String)
 end
 
-data DsRule:
-  | ds-rule(op :: String, kases :: List<DsRuleCase>)
-end
+type DsRules = StringDict<List<DsRuleCase>>
 
 data DsRuleCase:
   | ds-rule-case(lhs :: Pattern, rhs :: Pattern)

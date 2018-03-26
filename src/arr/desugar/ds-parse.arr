@@ -5,6 +5,7 @@ provide {
 } end
 
 include either
+include string-dict
 
 include file("ds-structs.arr")
 
@@ -685,17 +686,20 @@ parser-ds-rule =
       _ from parser-ignore(t-symbol(":")),
       kases from parser-seq(parser-ds-rule-case),
       _ from parser-ignore(t-name("end"))):
-    ds-rule(op, kases)
+    {op; kases}
   end
 
 parser-ds-rules = parser-seq(parser-ds-rule)
 
-fun parse-ds-rules(input :: String) -> List<DsRule>:
-  run-parser(parser-ds-rules, input)
+fun parse-ds-rules(input :: String) -> DsRules:
+  for fold(acc from [string-dict: ],
+           {op; kases} from run-parser(parser-ds-rules, input)):
+    acc.set(op, kases)
+  end
 where:
   parse-ds-rules("sugar and: | (and) => (and) end")
-    is [list: ds-rule("and", [list:
-        ds-rule-case(parse-lhs("(and)"), parse-lhs("(and)"))])]
+    is [string-dict: "and", [list:
+        ds-rule-case(parse-lhs("(and)"), parse-lhs("(and)"))]]
   parse-ds-rules(
     ```
     # ignore me
@@ -703,11 +707,11 @@ where:
     | (or a:Expr b) => (let (bind x a) (if x x b))
     end
     # ignore
-    ```) is [list:
-    ds-rule("or", [list:
+    ```) is [string-dict:
+    "or", [list:
         ds-rule-case(
           pat-surf("or", [list: pat-pvar("a", some("Expr")), pat-pvar("b", none)]), 
           pat-surf("let", [list: 
               pat-surf("bind", [list: pat-var("x"), pat-pvar("a", none)]),
-              pat-surf("if", [list: pat-var("x"), pat-var("x"), pat-pvar("b", none)])]))])]
+              pat-surf("if", [list: pat-var("x"), pat-var("x"), pat-pvar("b", none)])]))]]
 end

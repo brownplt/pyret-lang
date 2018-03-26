@@ -10,12 +10,6 @@ include file("ds-environment.arr")
 include file("ds-substitute.arr")
 include file("ds-match.arr")
 
-fun find-ds-rule(rules :: List<DsRule>, op :: String) -> Option<DsRule>:
-  for find(rule from rules):
-    rule.op == op
-  end
-end
-
 fun generate-pvars(n :: Number) -> List<Pattern>:
   range(0, n).map(lam(i): pat-pvar("_" + tostring(i), none) end)
 end
@@ -56,7 +50,7 @@ fun map-option<A, B>(f :: (A -> Option<B>), lst :: List<A>) -> Option<List<B>>:
   end
 end
   
-fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
+fun desugar(rules :: DsRules, e :: Term) -> Term:
   fun desugars(es :: List<Term>) -> List<Term>:
     es.map(desugar(rules, _))
   end
@@ -70,8 +64,7 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
     | g-surf(op, args) =>
       shadow args = desugars(args)
-      opt-rule = find-ds-rule(rules, op)
-      cases (Option) opt-rule:
+      cases (Option) rules.get(op):
         | none =>
           # TODO: this should eventually throw an error. Right now
           # allow it to work so that we can add sugars incrementally
@@ -79,19 +72,15 @@ fun desugar(rules :: List<DsRule>, e :: Term) -> Term:
           pat-lhs = pat-surf(op, pvars)
           pat-rhs = pat-core(op, pvars)
           g-tag(pat-lhs, pat-rhs, g-core(op, args))
-        | some(rule) =>
-          opt = for find-option(kase from rule.kases):
+        | some(kases) =>
+          opt = for find-option(kase from kases):
             cases (Either) match-pattern(g-surf(op, args), kase.lhs):
               | left({env; p}) => some({kase; env; p})
               | right(_) => none
             end
           end
           cases (Option) opt:
-            | none =>
-              pvars = generate-pvars(args.length())
-              pat-lhs = pat-surf(op, pvars)
-              pat-rhs = pat-core(op, pvars)
-              g-tag(pat-lhs, pat-rhs, g-core(op, args))
+            | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
             | some({kase; env; pat-lhs}) =>
               g-tag(pat-lhs, kase.rhs,
                 desugar(rules, substitute-pattern(env, kase.rhs)))
