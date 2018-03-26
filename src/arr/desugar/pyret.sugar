@@ -59,25 +59,27 @@ sugar s-import-fields:
   | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
 end
 
-# sugar s-underscore:
-#   | (s-underscore) => {underscore}
-# end
-#
-# sugar transform-underscore:
-#   | (transform-underscore {underscore}) => (fresh [name] name)
-#   | (transform-underscore non-underscore) => non-underscore
-# end
-#
-# sugar s-import-complete:
-#   | (s-import-complete vals types import-type vals-name types-name) =>
-#     <s-import-complete vals
-#                        types
-#                        import-type
-#                        (transform-underscore vals-name)
-#                        (transform-underscore types-name)>
-#   # TODO: need another phase before desugaring that goes through vals and types
-#   # and mark {underscore} as invalid
-# end
+################################################################################
+
+sugar s-underscore:
+  | (s-underscore) => {s-underscore}
+end
+
+sugar transform-underscore:
+  | (transform-underscore {s-underscore}) => (fresh [name] name)
+  | (transform-underscore non-underscore) => non-underscore
+end
+
+sugar s-import-complete:
+  | (s-import-complete vals types import-type vals-name types-name) =>
+    <s-import-complete vals
+                       types
+                       import-type
+                       (transform-underscore vals-name)
+                       (transform-underscore types-name)>
+  # TODO: need another phase before desugaring that goes through vals and types
+  # and mark {s-underscore} as invalid
+end
 
 ################################################################################
 
@@ -126,35 +128,66 @@ sugar check-bool:
 end
 
 sugar s-op:
-  | (s-op op-loc "op+" left right) => (s-app (s-id (s-global "_plus")) [left right])
-  | (s-op op-loc "op-" left right) => (s-app (s-id (s-global "_minus")) [left right])
-  | (s-op op-loc "op*" left right) => (s-app (s-id (s-global "_times")) [left right])
-  | (s-op op-loc "op/" left right) => (s-app (s-id (s-global "_divide")) [left right])
-  | (s-op op-loc "op<" left right) => (s-app (s-id (s-global "_lessthan")) [left right])
-  | (s-op op-loc "op>" left right) => (s-app (s-id (s-global "_greaterthan")) [left right])
-  | (s-op op-loc "op>=" left right) => (s-app (s-id (s-global "_greaterequal")) [left right])
-  | (s-op op-loc "op<=" left right) => (s-app (s-id (s-global "_lessequal")) [left right])
-  | (s-op op-loc "op==" left right) => (s-app (s-id (s-global "equal-always")) [left right])
-  | (s-op op-loc "op=~" left right) => (s-app (s-id (s-global "equal-now")) [left right])
-  | (s-op op-loc "op<=>" left right) => (s-app (s-id (s-global "identical")) [left right])
-  | (s-op op-loc "op<>" left right) => (s-prim-app "not" [(s-op op-loc "op==" left right)])
   | (s-op op-loc "opor" left right) =>
     (s-if-else [(s-if-branch left (s-bool true))] (check-bool right) false)
   | (s-op op-loc "opand" left right) =>
     (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
   | (s-op op-loc "op^" left right) => (s-app right [left])
-
-  # all of these need to support currying (e.g., `_ + _`)
+  | (s-op op-loc op left right) => (curry-binop [left right] op)
 end
 
 sugar s-bracket:
-  | (s-bracket obj key) =>
+  | (s-bracket@l obj key) =>
     (s-app (s-dot (s-id (s-global "builtins")) "get-value")
-           [(s-srcloc (meta get-loc)) (s-srcloc (meta get-loc-of obj)) obj key])
+           [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
   # need to support currying
 end
 
 sugar s-method-field:
   | (s-method-field name params args ann doc body _check-loc _check blocky) =>
     (s-data-field name (s-method name params args ann doc body _check-loc _check blocky))
+end
+
+sugar s-id:
+  | (s-id {s-underscore}) => {s-id-underscore}
+  | (s-id id) => <s-id id>
+end
+
+sugar curry-acc:
+  | (curry-acc [] params args) => {pair (reverse params) (reverse args)}
+  | (curry-acc [{s-id-underscore} rest ...] [param ...] [arg ...]) =>
+    (fresh [x] (curry-acc [rest ...] [x param ...] [x arg ...]))
+  | (curry-acc [e rest ...] [param ...] [arg ...]) =>
+    (curry-acc [rest ...] [param ...] [e arg ...])
+end
+
+sugar reverse:
+  | (reverse [] acc) => acc
+  | (reverse [x xs ...] [acc ...]) => (reverse [xs ...] [x acc ...])
+end
+
+sugar curry-args:
+  | (curry-args lst) => (curry-acc lst [] [])
+end
+
+sugar curry-binop:
+  | (curry-binop args op) => (curry-binop-help (curry-args args) op)
+end
+
+sugar curry-binop-help:
+  | (curry-binop-help {pair [] args} "op+") => (s-app (s-id (s-global "_plus")) args)
+  | (curry-binop-help {pair [] args} "op-") => (s-app (s-id (s-global "_minus")) args)
+  | (curry-binop-help {pair [] args} "op*") => (s-app (s-id (s-global "_times")) args)
+  | (curry-binop-help {pair [] args} "op/") => (s-app (s-id (s-global "_divide")) args)
+  | (curry-binop-help {pair [] args} "op<") => (s-app (s-id (s-global "_lessthan")) args)
+  | (curry-binop-help {pair [] args} "op>") => (s-app (s-id (s-global "_greaterthan")) args)
+  | (curry-binop-help {pair [] args} "op>=") => (s-app (s-id (s-global "_greaterequal")) args)
+  | (curry-binop-help {pair [] args} "op<=") => (s-app (s-id (s-global "_lessequal")) args)
+  | (curry-binop-help {pair [] args} "op==") => (s-app (s-id (s-global "equal-always")) args)
+  | (curry-binop-help {pair [] args} "op=~") => (s-app (s-id (s-global "equal-now")) args)
+  | (curry-binop-help {pair [] args} "op<=>") => (s-app (s-id (s-global "identical")) args)
+  | (curry-binop-help {pair [] args} "op<>") =>
+    (s-prim-app "not" [(curry-binop-help {pair [] args} "op==")])
+  | (curry-binop-help {pair params args} op) =>
+    (s-lam "" [] params (a-blank) "" (curry-binop-help {pair [] args} op) none none false)
 end
