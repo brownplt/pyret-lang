@@ -7,7 +7,7 @@
       var runInteractions = runtime.getField(pyretRepl, "run-interaction");
       function runUsingPyretRepl(src, context, filename, callback) {
         return runtime.runThunk(function() {
-            return runInteractions.app(src); 
+            return runInteractions.app(src);
           },
           function(result) {
             if(runtime.isSuccessResult(result)) {
@@ -27,6 +27,9 @@
           replServer.on('exit', () => {
             console.log('Received "exit" event from repl!');
             restarter.resume("repl done");
+          });
+          replServer.on('reset', () => {
+            restartInteractions.app("");
           });
         });
     }
