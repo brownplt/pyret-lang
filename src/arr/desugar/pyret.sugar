@@ -15,7 +15,7 @@ end
 ################################################################################
 
 sugar no-branch-exn:
-  | (no-branch-exn@l typ) => (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
+  | (no-branch-exn @l typ) => (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
 end
 
 sugar s-if:
@@ -39,7 +39,7 @@ end
 ################################################################################
 
 sugar s-template:
-  | (s-template@l) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc l)])
+  | (s-template @l) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc l)])
 end
 
 sugar s-user-block:
@@ -83,7 +83,7 @@ end
 
 sugar s-lam:
   | (s-lam name [param ...] args ann doc body _check-loc _check blocky) =>
-    <s-lam name [(transform-underscore param) ...] args ann doc body _check-lob _check blocky>
+    <s-lam name [(transform-underscore param) ...] args ann doc body _check-loc _check blocky>
 end
 
 sugar s-bind:
@@ -102,9 +102,9 @@ sugar s-construct-lazy:
 end
 
 sugar s-construct-help:
-  | (s-construct-help@l constructor js-name id-name elts) =>
-    (s-app@(meta get-loc-of constructor)
-           (s-prim-app@(meta get-loc-of constructor)
+  | (s-construct-help @l constructor js-name id-name elts) =>
+    (s-app @(meta get-loc-of constructor)
+           (s-prim-app @(meta get-loc-of constructor)
                        js-name [constructor (s-str id-name) (s-srcloc l)
                                 (s-srcloc (meta get-loc-of constructor))])
            elts)
@@ -147,7 +147,7 @@ sugar s-op:
 end
 
 sugar s-bracket:
-  | (s-bracket@l obj key) =>
+  | (s-bracket @l obj key) =>
     (s-app (s-dot (s-id (s-global "builtins")) "get-value")
            [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
   # need to support currying
@@ -164,7 +164,8 @@ sugar s-id:
 end
 
 sugar curry-acc:
-  | (curry-acc [] params args) => {pair (reverse params) (reverse args)}
+  | (curry-acc [] [param ...] args) =>
+    {pair (reverse [(s-bind false param (a-blank)) ...]) (reverse args)}
   | (curry-acc [{s-id-underscore} rest ...] [param ...] [arg ...]) =>
     (fresh [x] (curry-acc [rest ...] [x param ...] [x arg ...]))
   | (curry-acc [e rest ...] [param ...] [arg ...]) =>
@@ -172,8 +173,12 @@ sugar curry-acc:
 end
 
 sugar reverse:
-  | (reverse [] acc) => acc
-  | (reverse [x xs ...] [acc ...]) => (reverse [xs ...] [x acc ...])
+  | (reverse args) => (reverse-acc args [])
+end
+
+sugar reverse-acc:
+  | (reverse-acc [] acc) => acc
+  | (reverse-acc [x xs ...] [acc ...]) => (reverse-acc [xs ...] [x acc ...])
 end
 
 sugar curry-args:

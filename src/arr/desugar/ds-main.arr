@@ -24,7 +24,7 @@ desugaring-rules = block:
   ds-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   ds-rules
-end
+end ^ my-print("rules")
 
 fun desugar-expr(e :: AST.Expr) -> AST.Expr:
   e.visit(CONV.ast-to-term-visitor)

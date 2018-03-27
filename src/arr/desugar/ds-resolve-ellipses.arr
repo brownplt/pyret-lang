@@ -2,7 +2,6 @@ provide *
 
 include string-dict
 include file("ds-structs.arr")
-include file("ds-parse.arr")
 import  file("union-find.arr") as UF
 
 
@@ -19,13 +18,13 @@ fun resolve-ellipses(p :: Pattern) -> Pattern block:
       | pat-pvar(v, _) =>
         cases (Option) pvar-map.get-now(v) block:
           | none => pvar-map.set-now(v, ellipses)
-          | some(ellipses2) => 
-            if ellipses.length() == ellipses2.length():
-              for each2(a from ellipses, b from ellipses2):
-                UF.union(equiv, a, b)
-              end
-            else:
-              fail("Pattern variable " + v + " used underneath differing numbers of ellipses")
+          | some(ellipses2) =>
+            len1 = ellipses.length()
+            len2 = ellipses2.length()
+            shadow ellipses = ellipses.drop(len1 - num-min(len1, len2))
+            shadow ellipses2 = ellipses2.drop(len2 - num-min(len1, len2))
+            for each2(a from ellipses, b from ellipses2):
+              UF.union(equiv, a, b)
             end
         end
       | pat-value(_) => nothing
@@ -94,24 +93,9 @@ fun resolve-ellipses(p :: Pattern) -> Pattern block:
   resolve(p)
 end
 
-check:
-  resolve-ellipses(parse-pattern(none, "a")) 
-    is parse-pattern(none, "a")
-  resolve-ellipses(parse-pattern(none, "[a ...]")) 
-    is parse-pattern(none, "[a ...]")
-  resolve-ellipses(parse-pattern(none, "[[a ...] ...]")) 
-    is parse-pattern(none, "[[a ...] ...]")
-  resolve-ellipses(parse-pattern(none, "[[a ...] [a ...]]")) 
-    is pat-list(seq-cons(
-      parse-pattern(none, "[a ...]"),
-      seq-cons(parse-pattern(none, "[a ...]"), seq-empty)))
-  resolve-ellipses(parse-pattern(none, "[[a ...] [b ...]]"))
-    is parse-pattern(none, "[[a ...] [b ...]]")
-  resolve-ellipses(parse-pattern(none, "[[a ...] [[a ...] ...]]"))
-    raises "ellipses"
-  resolve-ellipses(parse-pattern(none, "(Bar [(Foo a b) ...] [a ...] [b ...])"))
-    is pat-surf("Bar", [list:
-      parse-pattern(none, "[(Foo a b) ...]"),
-      parse-pattern(none, "[a ...]"),
-      parse-pattern(none, "[b ...]")])
+fun resolve-ellipses-rule(p1 :: Pattern, p2 :: Pattern) -> {Pattern; Pattern} block:
+  cases (Pattern) resolve-ellipses(pat-core("dummy", [list: p1, p2])):
+    | pat-core(_, ps) => {ps.get(0); ps.get(1)}
+    | else => panic("expect pat-core")
+  end
 end

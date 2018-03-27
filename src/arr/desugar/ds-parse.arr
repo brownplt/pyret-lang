@@ -8,6 +8,7 @@ include either
 include string-dict
 
 include file("ds-structs.arr")
+include file("ds-resolve-ellipses.arr")
 
 # Important! The parser must not backtrack too much, or else
 # it will take exponential time, and the ellipsis counter will skip numbers.
@@ -385,10 +386,10 @@ parser-name-list =
     names
   end
 
-fun parser-pattern(pvars :: Option<Set<String>>) 
+fun parser-pattern(pvars :: Option<Set<String>>, starting-counter :: Number)
   -> (List<Token> -> Option<{Pattern; List<Token>}>):
 
-  var label-counter = 0
+  var label-counter = starting-counter
 
   fun is-pvar(name :: String) -> Boolean:
     cases (Option) pvars:
@@ -565,7 +566,7 @@ fun parser-pattern(pvars :: Option<Set<String>>)
 end
 
 fun parse-pattern(pvars :: Option<Set<String>>, input :: String) -> Pattern:
-  run-parser(parser-pattern(pvars), input)
+  run-parser(parser-pattern(pvars, 0), input)
 where:
   parse-pattern(none, "3")
     is pat-value(e-num(3))
@@ -659,7 +660,7 @@ end
 
 parser-ds-rule-case =
   for parser-chain(_ from parser-ignore(t-symbol("|"))):
-    for parser-chain(lhs from parser-pattern(none)):
+    for parser-chain(lhs from parser-pattern(none, 0)):
       toploc-name = cases (Pattern) lhs:
         | pat-surf(_, args) =>
           cases (Pattern) args.get(0):
@@ -670,9 +671,10 @@ parser-ds-rule-case =
       end
       for parser-chain(_ from parser-ignore(t-symbol("=>"))):
         pvars = gather-pvars(lhs)
-        for parser-1(rhs from parser-pattern(some(pvars))):
+        for parser-1(rhs from parser-pattern(some(pvars), 1000)):
           shadow lhs = rename-pat-pvar(lhs, toploc-name, "@toploc")
           shadow rhs = rename-pat-pvar(rhs, toploc-name, "@toploc")
+          {shadow lhs; shadow rhs} = resolve-ellipses-rule(lhs, rhs)
           ds-rule-case(lhs, rhs)
         end
       end

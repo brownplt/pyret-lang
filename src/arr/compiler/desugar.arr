@@ -174,17 +174,6 @@ where:
 #  ds-ed satisfies
 end
 
-fun ds-curry-binop(s, e1, e2, rebuild):
-  params-and-args = ds-curry-args(s, [list: e1, e2])
-  params = params-and-args.left
-  cases(List) params:
-    | empty => rebuild(e1, e2)
-    | link(f, r) =>
-      curry-args = params-and-args.right
-      A.s-lam(s, "", [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none, none, false)
-  end
-end
-
 fun ds-curry(l, f, args):
   fun fallthrough():
     params-and-args = ds-curry-args(l, args)

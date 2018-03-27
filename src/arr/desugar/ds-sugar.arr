@@ -63,6 +63,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
     | g-surf(op, args) =>
+      print("expanding " + op + "\n")
       shadow args = desugars(args)
       cases (Option) rules.get(op):
         | none =>
@@ -73,17 +74,22 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
           pat-rhs = pat-core(op, pvars)
           g-tag(pat-lhs, pat-rhs, g-core(op, args))
         | some(kases) =>
-          opt = for find-option(kase from kases):
+          opt = for find-option(kase from kases) block:
+            print("Trying rule: " + tostring(kase) + "\n")
             cases (Either) match-pattern(g-surf(op, args), kase.lhs):
               | left({env; p}) => some({kase; env; p})
               | right(_) => none
             end
           end
-          cases (Option) opt:
+          cases (Option) opt block:
             | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
             | some({kase; env; pat-lhs}) =>
-              g-tag(pat-lhs, kase.rhs,
-                desugar(rules, substitute-pattern(env, kase.rhs)))
+              print("Env: " + tostring(env) + "\n")
+              step = substitute-pattern(env, kase.rhs)
+              print("> ")
+              print(step)
+              print("\n")
+              g-tag(pat-lhs, kase.rhs, desugar(rules, step))
           end
       end
   end

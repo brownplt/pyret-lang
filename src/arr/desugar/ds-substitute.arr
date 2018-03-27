@@ -33,8 +33,9 @@ metafunctions = [string-dict:
 #
 
 fun subs(env :: Env, p :: Pattern) -> Term:
-  cases (Pattern) p:
+  cases (Pattern) p block:
     | pat-pvar(name, _) =>
+      print("Env local: " + tostring(env) + ", name: " + name + "\n")
       cases (Option) get-pvar(env, name):
         | none => fail("Pattern variable '" + name + "' not found.")
         | some(e) => e
