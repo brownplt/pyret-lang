@@ -820,6 +820,37 @@ data RuntimeError:
           draw-and-highlight(self.loc), ED.text(" but got:")],
         ED.embed(self.value)]
     end
+  | non-boolean-when(loc-when, loc-cond, cond-val) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.loc-when.is-builtin() or self.loc-cond.is-builtin():
+        [ED.error:
+          [ED.para:
+            ED.text("The when statement in "),
+            ED.loc(self.loc-when),
+            ED.text(" failed because the conditional evaluated to a non-boolean: ")],
+          ED.embed(self.loc-cond),
+          please-report-bug()]
+      else if src-available(self.loc-when):
+        [ED:error
+          [ED.sequence:
+            ed-intro("when expression", self.loc-when, 0, true),
+            ED.cmcode(self.loc-when),
+            [ED.para:
+              ED.text("The "),
+              ED.highlight(ED.text("conditional"), [list: self.loc-cond], 1),
+              ED.text("did not evaluate to a boolean value:")],
+            ED.embed(self.cond-val)]]
+      else:
+        [ED.error:
+          ed-simple-intro("when expression", self.when-loc),
+          [ED.para:
+            ED.text(" failed because conditional did not evaluate to a boolean value:")],
+          ED.embed(self.cond-val)]
+      end
+    end,
+    method render-reason(self):
+      [ED.error: ED.text("TODO")]
+    end
   | non-boolean-op(loc, position, typ, value) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       self.render-reason() # TODO!!

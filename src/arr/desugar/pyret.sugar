@@ -1,15 +1,32 @@
+sugar g-id:
+  | (g-id x) => (s-id (s-global x))
+end
+
+sugar mk-s-bind:
+  | (mk-s-bind name) => (s-bind false name (a-blank))
+end
+
+sugar not:
+  | (not x) => (s-prim-app "not" [x])
+end
+
+sugar boolean?:
+  | (boolean? x) => (s-prim-app "isBoolean" [x])
+end
 
 sugar s-when:
-  | (s-when test body blocky) =>
-    (s-if-else [(s-if-branch test (s-block [body (s-id (s-global "nothing"))]))]
-               (s-id (s-global "nothing"))
-               blocky)
- # 1. need to rewrite (s-id (s-global "nothing")) to use proper var, but this
- # will do it for now
-
- # 2. this is kinda unpleasant. We cannot inspect that body is s-block or not
- # via pattern matching because of inside-out which makes s-block becomes core
- # which is not matchable
+  | (s-when @l test body blocky) =>
+    (fresh [cond]
+      (s-let-expr
+        [(s-let-bind (mk-s-bind cond) test)]
+        (s-if-else [(s-if-branch (not (boolean? cond))
+                                 (s-prim-app "throwNonBooleanWhen"
+                                             [(s-srcloc l)
+                                              (s-srcloc (meta get-loc-of test))
+                                              cond]))
+                    (s-if-branch cond (s-block [body (g-id "nothing")]))]
+                   (g-id "nothing")
+                   blocky)))
 end
 
 ################################################################################

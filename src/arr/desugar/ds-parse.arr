@@ -13,6 +13,14 @@ include file("ds-resolve-ellipses.arr")
 # Important! The parser must not backtrack too much, or else
 # it will take exponential time, and the ellipsis counter will skip numbers.
 
+fun mk-gen-symbol() -> (String -> String):
+  var label-counter = 0
+  fun gen-symbol(s :: String) -> String block:
+    label-counter := label-counter + 1
+    s + tostring(label-counter)
+  end
+  gen-symbol
+end
 
 ################################################################################
 #  Errors
@@ -386,10 +394,8 @@ parser-name-list =
     names
   end
 
-fun parser-pattern(pvars :: Option<Set<String>>, starting-counter :: Number)
+fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String))
   -> (List<Token> -> Option<{Pattern; List<Token>}>):
-
-  var label-counter = starting-counter
 
   fun is-pvar(name :: String) -> Boolean:
     cases (Option) pvars:
@@ -556,17 +562,12 @@ fun parser-pattern(pvars :: Option<Set<String>>, starting-counter :: Number)
         end
       ])
   end
-
-  fun gen-symbol(s :: String) -> String block:
-    label-counter := label-counter + 1
-    s + tostring(label-counter)
-  end
   
   parser-patt()
 end
 
 fun parse-pattern(pvars :: Option<Set<String>>, input :: String) -> Pattern:
-  run-parser(parser-pattern(pvars, 0), input)
+  run-parser(parser-pattern(pvars, 0), mk-gen-symbol())
 where:
   parse-pattern(none, "3")
     is pat-value(e-num(3))
@@ -660,7 +661,8 @@ end
 
 parser-ds-rule-case =
   for parser-chain(_ from parser-ignore(t-symbol("|"))):
-    for parser-chain(lhs from parser-pattern(none, 0)):
+    gen-symbol = mk-gen-symbol()
+    for parser-chain(lhs from parser-pattern(none, gen-symbol)):
       toploc-name = cases (Pattern) lhs:
         | pat-surf(_, args) =>
           cases (Pattern) args.get(0):
@@ -671,7 +673,7 @@ parser-ds-rule-case =
       end
       for parser-chain(_ from parser-ignore(t-symbol("=>"))):
         pvars = gather-pvars(lhs)
-        for parser-1(rhs from parser-pattern(some(pvars), 1000)):
+        for parser-1(rhs from parser-pattern(some(pvars), gen-symbol)):
           shadow lhs = rename-pat-pvar(lhs, toploc-name, "@toploc")
           shadow rhs = rename-pat-pvar(rhs, toploc-name, "@toploc")
           {shadow lhs; shadow rhs} = resolve-ellipses-rule(lhs, rhs)

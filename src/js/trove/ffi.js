@@ -423,6 +423,14 @@
       runtime.checkString(type);
       raise(err("no-branches-matched")(runtime.makeSrcloc(locArray), type));
     }
+    function throwNonBooleanWhen(whenLoc, condLoc, condVal) {
+      checkSrcloc(whenLoc);
+      checkSrcloc(condLoc);
+      runtime.checkPyretVal(condVal);
+      raise(err("non-boolean-when")(runtime.makeSrcloc(whenLoc),
+                                    runtime.makeSrcloc(condLoc),
+                                    condVal));
+    }
     function throwNoCasesMatched(locArray, val) {
       runtime.checkPyretVal(val);
       raise(err("no-cases-matched")(runtime.makeSrcloc(locArray), val));
