@@ -250,7 +250,11 @@ end
 
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
-fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile> block:
+fun compile-worklist<a>(dfind, locator, context):
+  compile-worklist-known-modules(dfind, locator, context, SD.make-mutable-string-dict())
+end
+
+fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a, current-modules :: SD.MutableStringDict<Provides>) -> List<ToCompile> block:
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
   fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
@@ -270,8 +274,10 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
           found
         end
         # visit all dependents
-        for map(f from found-mods):
-          visit(f.locator, f.context, link(f.locator, curr-path))
+        for each(f from found-mods):
+          when not(current-modules.has-key-now(f.locator.uri())):
+            visit(f.locator, f.context, link(f.locator, curr-path))
+          end
         end
         # add current locator to head of topo sort
         topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)

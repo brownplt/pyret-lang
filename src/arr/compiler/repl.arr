@@ -238,7 +238,7 @@ fun make-repl<a>(
   end
 
   fun run-interaction(repl-locator :: CL.Locator) block:
-    worklist = CL.compile-worklist(finder, repl-locator, compile-context)
+    worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules) block:
       m = compiled.modules.get-value-now(k)
