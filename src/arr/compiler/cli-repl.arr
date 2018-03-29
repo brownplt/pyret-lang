@@ -26,7 +26,10 @@ all-cmdline-params = CL.command-line-arguments()
 file-name = all-cmdline-params.first
 other-args = all-cmdline-params.rest
 
-input-file = F.file-to-string(other-args.first)
+input-file =  cases(List) other-args:
+                | empty => ""
+                | link(first, rest) => F.file-to-string(first)
+              end
 
 CR.start({
   restart-interactions: restart-interactions,
