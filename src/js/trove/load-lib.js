@@ -34,7 +34,7 @@
 
     function emptyRealm() {
       return applyBrand(brandRealm, runtime.makeObject({
-        "realm": runtime.makeOpaque({})
+        "realm": runtime.makeOpaque({ instantiated: {}, static: {}})
       }));
     }
 
@@ -305,8 +305,8 @@
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
 
-      if(realm["builtin://checker"]) {
-        var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
+      if(realm.instantiated["builtin://checker"]) {
+        var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
         var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
         otherRuntime.setParam("current-checker", currentChecker);
       }
