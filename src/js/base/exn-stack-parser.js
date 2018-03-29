@@ -31,13 +31,16 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
     return lines.filter(isSourcePyretFrame).map(parseFrame);
   }
 
-  function convertExceptionToPyretStackTrace(e, program) {
+  function convertExceptionToPyretStackTrace(e, realm) {
     var parsedStack = parseStack(e.stack);
-    var staticModules = program.staticModules;
+    var uriMap = {};
+    for(var k in realm.static) {
+      uriMap[realm.static[k].uriHashed] = k;
+    }
 
     var pyretStack = parsedStack.map(function(frame) {
-      var uri = program.uris[frame.hashedURI];
-      var moduleSourceMap = staticModules[uri].theMap;
+      var uri = uriMap[frame.hashedURI];
+      var moduleSourceMap = realm.static[uri].mod.theMap;
       var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
       consumer.computeColumnSpans();
       var original = consumer.originalPositionFor({

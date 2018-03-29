@@ -166,6 +166,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   return runtime.runThunk(function() {
     runtime.modules = {};
-    return runtime.runStandalone(staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
+    var realm = { instantiated: runtime.modules, static: {}}
+    return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });
