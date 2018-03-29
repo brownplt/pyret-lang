@@ -5,26 +5,19 @@ provide {
 } end
 
 import ast as AST
-import ast-visitors as AV
 import file as F
 import file("conversion-visitor.arr") as CONV
-import file("ds-structs.arr") as S
 import file("ds-sugar.arr") as DS
 import file("ds-parse.arr") as P
+include file("debugging.arr")
 
-fun my-print(s):
-  lam(v) block:
-    print(s + ": " + tostring(v) + "\n")
-    v
-  end
-end
-
+nothing ^ push-time("reading")
 desugaring-rules = block:
   file = F.input-file("src/arr/desugar/pyret.sugar")
   ds-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   ds-rules
-end ^ my-print("rules")
+end ^ pop-time
 
 fun desugar-expr(e :: AST.Expr) -> AST.Expr:
   e.visit(CONV.ast-to-term-visitor)
@@ -33,11 +26,17 @@ fun desugar-expr(e :: AST.Expr) -> AST.Expr:
 end
 
 fun desugar(e :: AST.Program) -> AST.Program block:
-  #e ^ my-print("before desugar")
+  nothing ^ push-time("to term")
   e.visit(CONV.ast-to-term-visitor)
+    ^ pop-time
+    ^ push-time("desugar")
+    ^ push-time("subdesugar")
     ^ DS.desugar(desugaring-rules, _)
+    ^ pop-time
+    ^ pop-time
+    ^ push-time("to ast")
     ^ CONV.term-to-ast
-    #^ my-print("after desugar")
+    ^ pop-time
 end
 
 fun resugar(e :: AST.Program) -> Option<AST.Program>:

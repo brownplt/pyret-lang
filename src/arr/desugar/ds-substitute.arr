@@ -9,7 +9,6 @@ import ast as A
 include file("ds-structs.arr")
 include file("ds-parse.arr")
 include file("ds-environment.arr")
-include file("ds-resolve-ellipses.arr")
 
 data Metafunction:
   | metafunction(
@@ -34,7 +33,7 @@ metafunctions = [string-dict:
 
 fun subs(env :: Env, p :: Pattern) -> Term:
   cases (Pattern) p block:
-    | pat-pvar(name, _) =>
+    | pat-pvar(name, _, _) =>
       cases (Option) get-pvar(env, name):
         | none => fail("Pattern variable '" + name + "' not found.")
         | some(e) => e
@@ -108,7 +107,7 @@ check:
         set-pvar(empty-env(), "a", parse-ast("(Foo)")),
         set-pvar(empty-env(), "a", parse-ast("5"))
       ]),
-    resolve-ellipses(parse-pattern(none, "(Bar [a ...] [a ...])")), none)
+    parse-pattern(none, "(Bar [a ...] [a ...])"), none)
     is parse-ast("(Bar [(Foo) 5] [(Foo) 5])")
   
 end

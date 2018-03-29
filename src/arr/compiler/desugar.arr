@@ -174,75 +174,6 @@ where:
 #  ds-ed satisfies
 end
 
-fun ds-curry(l, f, args):
-  fun fallthrough():
-    params-and-args = ds-curry-args(l, args)
-    params = params-and-args.left
-    if is-underscore(f):
-      f-id = mk-id(l, "f_")
-      A.s-lam(l, "", empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none, none, false)
-    else:
-      ds-f = desugar-expr(f)
-      if is-empty(params): A.s-app(l, ds-f, args)
-      else: A.s-lam(l, "", [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, none, false)
-      end
-    end
-  end
-  cases(A.Expr) f:
-    | s-dot(l2, obj, m) =>
-      if is-underscore(obj):
-        curried-obj = mk-id(l, "recv_")
-        params-and-args = ds-curry-args(l, args)
-        params = params-and-args.left
-        A.s-lam(l, "", [list: ], link(curried-obj.id-b, params), A.a-blank, "",
-            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none, none, false)
-      else:
-        fallthrough()
-      end
-    | else => fallthrough()
-  end
-where:
-  d = A.dummy-loc
-  n = A.s-global
-  id = lam(s): A.s-id(d, A.s-global(s)) end
-  under = A.s-id(d, A.s-underscore(d))
-  ds-ed = ds-curry(
-      d,
-      id("f"),
-      [list:  under, id("x") ]
-    )
-  ds-ed satisfies A.is-s-lam
-  ds-ed.args.length() is 1
-
-  ds-ed2 = ds-curry(
-      d,
-      id("f"),
-      [list:  under, under ]
-    )
-  ds-ed2 satisfies A.is-s-lam
-  ds-ed2.args.length() is 2
-
-  ds-ed3 = ds-curry(
-      d,
-      id("f"),
-      [list:
-        id("x"),
-        id("y")
-      ]
-    )
-  ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
-
-  ds-ed4 = ds-curry(
-      d,
-      A.s-dot(d, under, "f"),
-      [list:
-        id("x")
-      ])
-  ds-ed4 satisfies A.is-s-lam
-  ds-ed4.args.length() is 1
-
-end
-
 fun desugar-opt<T>(f :: (T -> T), opt :: Option<T>):
   cases(Option) opt:
     | none => none
@@ -287,7 +218,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-instantiate(l, desugar-expr(inner-expr), params)
     | s-hint-exp(l, hints, exp) => A.s-hint-exp(l, hints, desugar-expr(exp))
     | s-block(l, stmts) => A.s-block(l, stmts.map(desugar-expr))
-    | s-app(l, f, args) => ds-curry(l, f, args.map(desugar-expr))
+    | s-app(l, f, args) => A.s-app(l, desugar-expr(f), args.map(desugar-expr))
     | s-prim-app(l, f, args) => A.s-prim-app(l, f, args.map(desugar-expr))
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       A.s-lam(l, name, params, args.map(desugar-bind), ann, doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)

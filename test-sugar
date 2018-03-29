@@ -1,0 +1,3 @@
+#!/bin/bash
+
+touch $1 && (time ./src/scripts/phaseA $1) | python3 -c 'import sys, re; print(re.sub("srcloc\(.*?\)", "", sys.stdin.read()))'

@@ -3,8 +3,6 @@ provide-types *
 
 include string-dict
 import ast as AST
-import global as _
-import base as _
 
 type Variable = {
   name :: String,
@@ -45,7 +43,7 @@ data VarKind:
 end
 
 data Pattern:
-  | pat-pvar(name :: String, typ :: Option<String>)
+  | pat-pvar(name :: String, labels :: Set<String>, typ :: Option<String>)
   | pat-value(val :: GenericPrimitive)
   | pat-core(op :: String, args :: List<Pattern>)
   | pat-surf(op :: String, args :: List<Pattern>)
@@ -104,7 +102,7 @@ end
 fun rename-pat-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
   fun loop(shadow p :: Pattern):
     cases (Pattern) p:
-      | pat-pvar(s, t) => if s == before: pat-pvar(after, t) else: p end
+      | pat-pvar(s, labels, t) => if s == before: pat-pvar(after, labels, t) else: p end
       | pat-value(_) => p
       | pat-core(op, args) => pat-core(op, args.map(loop))
       | pat-surf(op, args) => pat-surf(op, args.map(loop))

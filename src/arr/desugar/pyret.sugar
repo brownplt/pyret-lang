@@ -14,25 +14,31 @@ sugar boolean?:
   | (boolean? x) => (s-prim-app "isBoolean" [x])
 end
 
+################################################################################
+# DONE: s-when
+################################################################################
+
 sugar s-when:
   | (s-when @l test body blocky) =>
     (fresh [cond]
       (s-let-expr
         [(s-let-bind (mk-s-bind cond) test)]
-        (s-if-else [(s-if-branch (not (boolean? cond))
+        (s-if-else [(s-if-branch (not (boolean? (s-id cond)))
                                  (s-prim-app "throwNonBooleanWhen"
                                              [(s-srcloc l)
                                               (s-srcloc (meta get-loc-of test))
-                                              cond]))
-                    (s-if-branch cond (s-block [body (g-id "nothing")]))]
+                                              (s-id cond)]))
+                    (s-if-branch (s-id cond) (s-block [body (g-id "nothing")]))]
                    (g-id "nothing")
-                   blocky)))
+                   blocky)
+        false))
 end
 
 ################################################################################
 
 sugar no-branch-exn:
-  | (no-branch-exn @l typ) => (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
+  | (no-branch-exn @l typ) =>
+    (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
 end
 
 sugar s-if:
@@ -40,17 +46,18 @@ sugar s-if:
 end
 
 sugar s-if-pipe:
-  | (s-if-pipe branches blocky) => (s-if-else branches (no-branch-exn "ask") blocky)
+  | (s-if-pipe branches blocky) =>
+    (s-if-else branches (no-branch-exn "ask") blocky)
 end
 
 sugar s-if-pipe-else:
-  | (s-if-pipe-else branches _else blocky) => (s-if-else branches _else blocky)
+  | (s-if-pipe-else branches else blocky) => (s-if-else branches else blocky)
 end
 
 sugar s-if-else:
-  | (s-if-else [] _else blocky) => _else
-  | (s-if-else [branch rest ...] _else blocky) =>
-    <s-if-else [branch] (s-if-else [rest ...] _else blocky) blocky>
+  | (s-if-else [] else blocky) => else
+  | (s-if-else [branch rest_{x} ...x] else blocky) =>
+    <s-if-else [branch] (s-if-else [rest_{x} ...x] else blocky) blocky>
 end
 
 ################################################################################
@@ -73,7 +80,8 @@ sugar s-import:
   | (s-import file name) => (s-import-complete [] [] file name name)
 end
 sugar s-import-fields:
-  | (s-import-fields fields file) => (s-import-complete fields [] file (s-underscore) (s-underscore))
+  | (s-import-fields fields file) =>
+    (s-import-complete fields [] file (s-underscore) (s-underscore))
 end
 
 ################################################################################
@@ -87,6 +95,8 @@ sugar transform-underscore:
   | (transform-underscore non-underscore) => non-underscore
 end
 
+################################################################################
+
 sugar s-import-complete:
   | (s-import-complete vals types import-type vals-name types-name) =>
     <s-import-complete vals
@@ -99,8 +109,8 @@ sugar s-import-complete:
 end
 
 sugar s-lam:
-  | (s-lam name [param ...] args ann doc body _check-loc _check blocky) =>
-    <s-lam name [(transform-underscore param) ...] args ann doc body _check-loc _check blocky>
+  | (s-lam name [param_{x} ...x] args ann doc body check-loc check blocky) =>
+    <s-lam name [(transform-underscore param_{x}) ...x] args ann doc body check-loc check blocky>
 end
 
 sugar s-bind:
@@ -142,9 +152,9 @@ sugar s-construct:
     (s-construct-help constructor "getMaker5" "make5" [e1 e2 e3 e4 e5])
   | (s-construct {s-construct-normal} constructor elts) =>
     (s-construct-help constructor "getMaker" "make" [(s-array elts)])
-  | (s-construct {s-construct-lazy} constructor [elt ...]) =>
+  | (s-construct {s-construct-lazy} constructor [elt_{x} ...x]) =>
     (s-construct-help constructor "getLazyMaker" "lazy-make"
-      [(s-array [(s-lam "" [] [] (a-blank) "" elt none none false) ...])])
+      [(s-array [(s-lam "" [] [] (a-blank) "" elt_{x} none none false) ...x])])
 end
 
 
@@ -171,8 +181,9 @@ sugar s-bracket:
 end
 
 sugar s-method-field:
-  | (s-method-field name params args ann doc body _check-loc _check blocky) =>
-    (s-data-field name (s-method name params args ann doc body _check-loc _check blocky))
+  | (s-method-field name params args ann doc body check-loc check blocky) =>
+    (s-data-field name (s-method name params args ann doc body
+                                 check-loc check blocky))
 end
 
 sugar s-id:
@@ -181,12 +192,12 @@ sugar s-id:
 end
 
 sugar curry-acc:
-  | (curry-acc [] [param ...] args) =>
-    {pair (reverse [(s-bind false param (a-blank)) ...]) (reverse args)}
-  | (curry-acc [{s-id-underscore} rest ...] [param ...] [arg ...]) =>
-    (fresh [x] (curry-acc [rest ...] [x param ...] [x arg ...]))
-  | (curry-acc [e rest ...] [param ...] [arg ...]) =>
-    (curry-acc [rest ...] [param ...] [e arg ...])
+  | (curry-acc [] [param_{x} ...x] args) =>
+    {pair (reverse [(mk-s-bind param_{x}) ...x]) (reverse args)}
+  | (curry-acc [{s-id-underscore} rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
+    (fresh [f] (curry-acc [rest_{x} ...x] [f param_{y} ...y] [(s-id f) arg_{z} ...z]))
+  | (curry-acc [e rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
+    (curry-acc [rest_{x} ...x] [param_{y} ...y] [e arg_{z} ...z])
 end
 
 sugar reverse:
@@ -195,7 +206,8 @@ end
 
 sugar reverse-acc:
   | (reverse-acc [] acc) => acc
-  | (reverse-acc [x xs ...] [acc ...]) => (reverse-acc [xs ...] [x acc ...])
+  | (reverse-acc [e rest_{x} ...x] [acc_{y} ...y]) =>
+    (reverse-acc [rest_{x} ...x] [e acc_{y} ...y])
 end
 
 sugar curry-args:
@@ -222,4 +234,14 @@ sugar curry-binop-help:
     (s-prim-app "not" [(curry-binop-help {pair [] args} "op==")])
   | (curry-binop-help {pair params args} op) =>
     (s-lam "" [] params (a-blank) "" (curry-binop-help {pair [] args} op) none none false)
+end
+
+sugar curry-help:
+  | (curry-help {pair [] [f args_{x} ...x]}) => <s-app f [args_{x} ...x]>
+  | (curry-help {pair params args}) =>
+    (s-lam "" [] params (a-blank) "" (curry-help {pair [] args}) none none false)
+end
+
+sugar s-app:
+  | (s-app f [args_{x} ...x]) => (curry-help (curry-args [f args_{x} ...x]))
 end

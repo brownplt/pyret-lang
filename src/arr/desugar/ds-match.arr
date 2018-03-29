@@ -14,7 +14,6 @@ include either
 include file("ds-structs.arr")
 include file("ds-parse.arr")
 include file("ds-environment.arr")
-include file("ds-resolve-ellipses.arr")
 
 
 ################################################################################
@@ -268,7 +267,7 @@ fun match-rec(
           else:
             match-error()
           end
-        | pat-pvar(pvar, _) =>
+        | pat-pvar(pvar, _, _) =>
           for chain-either(shadow env from bind-pvar(env, pvar, e)):
             left({env; p})
           end
@@ -413,11 +412,11 @@ check:
               [string-dict: ],
               [string-dict: ])]]);
       pat-surf("hello", [list:
-          pat-option(some(pat-pvar("j", none))),
+          pat-option(some(pat-pvar("j", [set: ], none))),
           pat-list(seq-ellipsis-list(
               [list:
-                pat-list(seq-cons(pat-pvar("a", none), seq-cons(pat-pvar("b", none), seq-empty))),
-                pat-list(seq-cons(pat-pvar("a", none), seq-cons(pat-pvar("b", none), seq-empty)))],
+                pat-list(seq-cons(pat-pvar("a", [set: ], none), seq-cons(pat-pvar("b", [set: ], none), seq-empty))),
+                pat-list(seq-cons(pat-pvar("a", [set: ], none), seq-cons(pat-pvar("b", [set: ], none), seq-empty)))],
               "l1"))
         ])
     })
@@ -461,6 +460,6 @@ check:
   
   match-pattern(
     parse-ast("(Foo [1 2] [3 4])"), 
-    resolve-ellipses(parse-pattern(none, "(Foo [a ...] [a ...])")))
+    parse-pattern(none, "(Foo [a_{i} ...i] [a_{i} ...i])"))
     is right(m-error-pvar("a", g-value(e-num(3)), g-value(e-num(1))))
 end

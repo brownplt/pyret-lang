@@ -831,13 +831,13 @@ data RuntimeError:
           ED.embed(self.loc-cond),
           please-report-bug()]
       else if src-available(self.loc-when):
-        [ED:error
+        [ED.error:
           [ED.sequence:
             ed-intro("when expression", self.loc-when, 0, true),
             ED.cmcode(self.loc-when),
             [ED.para:
               ED.text("The "),
-              ED.highlight(ED.text("conditional"), [list: self.loc-cond], 1),
+              ED.highlight(ED.text("conditional"), [ED.locs: self.loc-cond], 1),
               ED.text("did not evaluate to a boolean value:")],
             ED.embed(self.cond-val)]]
       else:
