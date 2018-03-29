@@ -205,13 +205,14 @@ const optionDefinitions = [
   { name: 'help', alias: 'h', type: Boolean, group: 'meta', defaultValue: false },
   { name: 'version', alias: 'v', type: Boolean, group: 'meta', defaultValue: false },
   { name: 'quiet', alias: 'q', type: Boolean, group: 'meta' },
+  { name: 'norun', alias: 'c', type: Boolean, group: "meta", defaultValue: false },
 
   // These options affect how the client starts up and communiates with the server
   { name: 'shutdown', alias: 's', type: Boolean, group: "client", defaultValue: false },
   { name: 'port', alias: 't', type: String, group: "client" },
 //   { name: 'clean', type: Boolean, group: "client", defaultValue: false },
 
-  { name: 'compiler', alias: 'c', type: String, defaultValue: compilerPath, group: "client" },
+  { name: 'compiler', type: String, defaultValue: compilerPath, group: "client" },
   { name: 'global-parley', type: String, defaultValue: "~/.parley/" },
   { name: 'local-parley', type: String, defaultValue: ".pyret" },
 

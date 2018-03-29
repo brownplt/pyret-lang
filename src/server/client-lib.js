@@ -175,7 +175,9 @@ function start(options) {
         }
         else if(parsed.type === "compile-success") {
           log("Successful compile response");
-          process.nextTick(() => runProgram(options["pyret-options"]["outfile"]));
+          if(!options.meta.norun) {
+            process.nextTick(() => runProgram(options["pyret-options"]["outfile"]));
+          }
         }
       });
 
