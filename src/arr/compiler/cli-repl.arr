@@ -1,6 +1,8 @@
 import runtime-lib as RT
 import load-lib as L
 import string-dict as SD
+import file as F
+import cmdline-lib as CL
 
 import js-file("./cli-repl") as CR
 
@@ -20,8 +22,14 @@ fun run-interaction(src):
   repl.run-interaction(i)
 end
 
+all-cmdline-params = CL.command-line-arguments()
+file-name = all-cmdline-params.first
+other-args = all-cmdline-params.rest
+
+input-file = F.file-to-string(other-args.first)
 
 CR.start({
   restart-interactions: restart-interactions,
-  run-interaction: run-interaction
+  run-interaction: run-interaction,
+  definitions: input-file
 })
