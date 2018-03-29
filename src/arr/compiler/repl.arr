@@ -28,23 +28,6 @@ fun add-global-type-binding(env :: CS.CompileEnvironment, name :: String):
     env.mods)
 end
 
-fun get-special-imports(program):
-  cases(A.Program) program:
-    | s-program(l, _, _, imports, _) =>
-      special-imps = for filter(i from imports):
-        A.is-s-special-import(i.file)
-      end
-      special-imps.map(_.file)
-  end
-end
-
-fun get-imp-dependency(imp):
-  cases(A.Import) imp:
-    | s-include(_, mod) => mod
-    | else => imp.file
-  end
-end
-
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
   import-names = for fold(names from empty, imp from imports):
