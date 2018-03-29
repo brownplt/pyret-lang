@@ -61,8 +61,8 @@
       return result.val.program;
     }
 
-    function enrichStack(exn, program) {
-      return stackLib.convertExceptionToPyretStackTrace(exn, program);
+    function enrichStack(exn, realm) {
+      return stackLib.convertExceptionToPyretStackTrace(exn, realm);
     }
 
     function checkSuccess(mr, field) {
@@ -292,7 +292,10 @@
       var checkAll = runtime.getField(options, "check-all");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       otherRuntime.setParam("command-line-arguments", runtime.ffi.toArray(commandLineArguments));
-      var realm = Object.create(runtime.getField(realmObj, "realm").val);
+      var realm = {
+        instantiated: Object.create(runtime.getField(realmObj, "realm").val.instantiated),
+        static: Object.create(runtime.getField(realmObj, "realm").val.static)
+      };
       var program = loader.safeEval("return " + programString, {});
       var staticModules = program.staticModules;
       var depMap = program.depMap;
@@ -318,13 +321,13 @@
           mainResult = answer;
         }
         return otherRuntime.runThunk(function() {
-          otherRuntime.modules = realm;
+          otherRuntime.modules = realm.instantiated;
           return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
-            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
+            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, realm);
 
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing, program));
           }
