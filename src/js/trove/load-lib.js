@@ -100,6 +100,9 @@
     function getRealm(mr) {
       return mr.val.realm;
     }
+    function getModuleResultRealm(mr) {
+      return runtime.getField(getRealm(mr), "realm").val;
+    }
     function getResultCompileResult(mr) {
       return mr.val.compileResult;
     }
@@ -375,6 +378,7 @@
           getModuleResultTypes: getModuleResultTypes,
           getModuleResultValues: getModuleResultValues,
           getModuleResultRuntime: getModuleResultRuntime,
+          getModuleResultRealm: getModuleResultRealm,
           getModuleResultResult: getModuleResultResult,
           getModuleResultNamespace: getModuleResultNamespace,
           getModuleResultDefinedTypes: getModuleResultDefinedTypes,
