@@ -7,7 +7,7 @@
       var runInteractions = runtime.getField(pyretRepl, "run-interaction");
       function runUsingPyretRepl(src, context, filename, callback) {
         return runtime.runThunk(function() {
-            return runInteractions.app(src); 
+            return runInteractions.app(src);
           },
           function(result) {
             if(runtime.isSuccessResult(result)) {
@@ -20,7 +20,9 @@
       }
       var restartInteractions = runtime.getField(pyretRepl, "restart-interactions");
       return runtime.safeCall(function() {
-          return restartInteractions.app("");
+          // need to convert definitions to JS string?
+          var definitions = runtime.getField(pyretRepl, "definitions");
+          return restartInteractions.app(definitions);
         },
         function(ans) {
           var replServer = nativeRepl.start({eval: runUsingPyretRepl});
