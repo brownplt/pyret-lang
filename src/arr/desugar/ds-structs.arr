@@ -22,7 +22,7 @@ data GenericPrimitive:
 end
 
 data Term:
-  | g-value(val :: GenericPrimitive)
+  | g-prim(val :: GenericPrimitive)
   | g-core(op :: String, args :: List<Term>)
   | g-surf(op :: String, args :: List<Term>)
   | g-aux(op :: String, args :: List<Term>)
@@ -43,18 +43,18 @@ data VarKind:
 end
 
 data Pattern:
-  | pat-pvar(name :: String, labels :: Set<String>, typ :: Option<String>)
-  | pat-value(val :: GenericPrimitive)
-  | pat-core(op :: String, args :: List<Pattern>)
-  | pat-surf(op :: String, args :: List<Pattern>)
-  | pat-aux(op :: String, args :: List<Pattern>)
-  | pat-meta(op :: String, args :: List<Pattern>)
-  | pat-biject(op :: String, p :: Pattern)
-  | pat-var(name :: String)
-  | pat-list(l :: SeqPattern)
-  | pat-option(opt :: Option<Pattern>)
-  | pat-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
-  | pat-fresh(fresh :: Set<String>, body :: Pattern)
+  | p-pvar(name :: String, labels :: Set<String>, typ :: Option<String>)
+  | p-prim(val :: GenericPrimitive)
+  | p-core(op :: String, args :: List<Pattern>)
+  | p-surf(op :: String, args :: List<Pattern>)
+  | p-aux(op :: String, args :: List<Pattern>)
+  | p-meta(op :: String, args :: List<Pattern>)
+  | p-biject(op :: String, p :: Pattern)
+  | p-var(name :: String)
+  | p-list(l :: SeqPattern)
+  | p-option(opt :: Option<Pattern>)
+  | p-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
+  | p-fresh(fresh :: Set<String>, body :: Pattern)
 end
 
 data SeqPattern:
@@ -100,21 +100,21 @@ fun fail(message :: String):
   raise({"Error when desugaring"; message})
 end
 
-fun rename-pat-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
+fun rename-p-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
   fun loop(shadow p :: Pattern):
     cases (Pattern) p:
-      | pat-pvar(s, labels, t) => if s == before: pat-pvar(after, labels, t) else: p end
-      | pat-value(_) => p
-      | pat-core(op, args) => pat-core(op, args.map(loop))
-      | pat-surf(op, args) => pat-surf(op, args.map(loop))
-      | pat-aux(op, args) => pat-aux(op, args.map(loop))
-      | pat-meta(op, args) => pat-meta(op, args.map(loop))
-      | pat-biject(op, shadow p) => pat-biject(op, loop(p))
-      | pat-var(_) => p
-      | pat-list(l) => pat-list(loop-list(l))
-      | pat-option(opt) => pat-option(opt.and-then(loop))
-      | pat-tag(lhs, rhs, body) => pat-tag(loop(lhs), loop(rhs), loop(body))
-      | pat-fresh(fresh, body) => pat-fresh(fresh, loop(body))
+      | p-pvar(s, labels, t) => if s == before: p-pvar(after, labels, t) else: p end
+      | p-prim(_) => p
+      | p-core(op, args) => p-core(op, args.map(loop))
+      | p-surf(op, args) => p-surf(op, args.map(loop))
+      | p-aux(op, args) => p-aux(op, args.map(loop))
+      | p-meta(op, args) => p-meta(op, args.map(loop))
+      | p-biject(op, shadow p) => p-biject(op, loop(p))
+      | p-var(_) => p
+      | p-list(l) => p-list(loop-list(l))
+      | p-option(opt) => p-option(opt.and-then(loop))
+      | p-tag(lhs, rhs, body) => p-tag(loop(lhs), loop(rhs), loop(body))
+      | p-fresh(fresh, body) => p-fresh(fresh, loop(body))
     end
   end
   fun loop-list(ps :: SeqPattern):
@@ -126,4 +126,19 @@ fun rename-pat-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
     end
   end
   loop(p)
+end
+
+term-dummy-loc = g-prim(e-loc(AST.dummy-loc))
+
+fun strip-tags(e :: Term) -> Term:
+  cases (Term) e:
+    | g-prim(val) => g-prim(val)
+    | g-core(op, args) => g-core(op, args.map(strip-tags))
+    | g-aux(op, args) => g-aux(op, args.map(strip-tags))
+    | g-surf(op, args) => g-surf(op, args.map(strip-tags))
+    | g-list(seq) => g-list(seq.map(strip-tags))
+    | g-option(opt) => g-option(opt.and-then(strip-tags))
+    | g-var(v) => g-var(v)
+    | g-tag(_, _, body) => strip-tags(body)
+  end
 end

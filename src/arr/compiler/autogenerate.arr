@@ -334,7 +334,7 @@ fun write-ast-visitors() block:
           | g-surf(op, args) => lookup-dict.get-value(op)(args)
           | g-core(op, args) => lookup-dict.get-value(op)(args)
           | g-aux(_, _) => raise("unexpected g-aux: " + tostring(g))
-          | g-value(val) =>
+          | g-prim(val) =>
             cases (GenericPrimitive) val:
               | e-str(s) => s
               | e-num(n) => n
@@ -359,10 +359,10 @@ fun write-ast-visitors() block:
       ```
 
       helpers-str = ```
-        fun g-str(s): g-value(e-str(s)) end
-        fun g-num(s): g-value(e-num(s)) end
-        fun g-bool(s): g-value(e-bool(s)) end
-        fun g-loc(s): g-value(e-loc(s)) end
+        fun g-str(s): g-prim(e-str(s)) end
+        fun g-num(s): g-prim(e-num(s)) end
+        fun g-bool(s): g-prim(e-bool(s)) end
+        fun g-loc(s): g-prim(e-loc(s)) end
         ```
 
       degeneric = SP.surface-parse(degeneric-str, '').visit(AV.default-map-visitor.{

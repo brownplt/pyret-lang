@@ -213,7 +213,7 @@ fun match-rec(
     cases (SeqPattern) plist:
       | seq-empty => 
         cases (List) elist:
-          | empty => left({env; pat-list(seq-empty)})
+          | empty => left({env; p-list(seq-empty)})
           | link(_, _) => match-error()
         end
       | seq-cons(pfirst, prest) =>
@@ -225,7 +225,7 @@ fun match-rec(
               for chain-either(
                   {shadow env; patt2 :: Pattern} from match-list(env, erest, prest)):
                 cases (Pattern) patt2:
-                  | pat-list(seq) => left({env; pat-list(seq-cons(patt1, seq))})
+                  | p-list(seq) => left({env; p-list(seq-cons(patt1, seq))})
                   | else => panic("Match: seq-cons case")
                 end
               end
@@ -240,7 +240,7 @@ fun match-rec(
         for chain-either(result-list from res):
           shadow result-list = result-list.reverse()
           env-list = project-left(result-list)
-          pattern-list = pat-list(seq-ellipsis-list(project-right(result-list), label))
+          pattern-list = p-list(seq-ellipsis-list(project-right(result-list), label))
           for chain-either(shadow env from bind-ellipsis(env, label, env-list)):
             left({env; pattern-list})
           end
@@ -253,14 +253,14 @@ fun match-rec(
   cases (Term) e:
     | g-tag(lhs, rhs, body) =>
       cases (Either) match-rec(fresh, env, body, p):
-        | left({shadow env; shadow p}) => left({env; pat-tag(lhs, rhs, p)})
+        | left({shadow env; shadow p}) => left({env; p-tag(lhs, rhs, p)})
         | right(err) => right(err)
       end
     | else =>
       cases (Pattern) p:
-        | pat-value(val) =>
+        | p-prim(val) =>
           is-ok = cases (Term) e:
-            | g-value(val2) => val == val2
+            | g-prim(val2) => val == val2
             | else => false
           end
           if is-ok:
@@ -268,56 +268,56 @@ fun match-rec(
           else:
             match-error()
           end
-        | pat-pvar(pvar, _, _) =>
+        | p-pvar(pvar, _, _) =>
           for chain-either(shadow env from bind-pvar(env, pvar, e)):
             left({env; p})
           end
-        | pat-var(v) =>
+        | p-var(v) =>
           cases (Term) e:
             | g-var(v2) =>
               if fresh.member(v):
                 for chain-either(shadow env from bind-fresh(env, v, v2)):
-                  left({env; pat-var(v2.name)})
+                  left({env; p-var(v2.name)})
                 end
               else if v == v2.name:
-                left({env; pat-var(v2.name)})
+                left({env; p-var(v2.name)})
               else:
                 match-error()
               end
             | else => match-error()
           end
-        | pat-core(pname, pargs) =>
+        | p-core(pname, pargs) =>
           cases (Term) e:
             | g-core(ename, eargs) =>
-              match-core-or-sugar(pat-core, ename, pname, eargs, pargs)
+              match-core-or-sugar(p-core, ename, pname, eargs, pargs)
             | else => match-error()
           end
-        | pat-aux(pname, pargs) =>
+        | p-aux(pname, pargs) =>
           cases (Term) e:
             | g-aux(ename, eargs) =>
-              match-core-or-sugar(pat-aux, ename, pname, eargs, pargs)
+              match-core-or-sugar(p-aux, ename, pname, eargs, pargs)
             | else => match-error()
           end
-        | pat-meta(_, _) => left({env; p})
-        | pat-biject(name, shadow p) =>
+        | p-meta(_, _) => left({env; p})
+        | p-biject(name, shadow p) =>
           cases (Option) bijections.get(name):
             | none => fail("Bijection '" + name + "' not found")
             | some({_; f}) => match-rec(fresh, env, f(e), p)
           end
-        # doesn't matter what the returned pattern is since matching pat-biject only happens in
+        # doesn't matter what the returned pattern is since matching p-biject only happens in
         # resugaring which will ignore it
-        | pat-surf(pname, pargs) =>
+        | p-surf(pname, pargs) =>
           cases (Term) e:
             | g-surf(ename, eargs) => 
-              match-core-or-sugar(pat-surf, ename, pname, eargs, pargs)
+              match-core-or-sugar(p-surf, ename, pname, eargs, pargs)
             | else => match-error()
           end
-        | pat-list(plist) =>
+        | p-list(plist) =>
           cases (Term) e:
             | g-list(elist) => match-list(env, elist, plist)
             | else => match-error()
           end
-        | pat-option(popt) =>
+        | p-option(popt) =>
           cases (Term) e:
             | g-option(eopt) =>
               cases (Option) popt:
@@ -331,17 +331,17 @@ fun match-rec(
                     | none => match-error()
                     | some(ex) =>
                       for chain-either({shadow env; shadow p} from match-rec(fresh, env, ex, px)):
-                        left({env; pat-option(some(p))})
+                        left({env; p-option(some(p))})
                       end
                   end
               end
             | else => match-error()
           end
-        | pat-tag(lhs, rhs, body) =>
-          panic("Encountered a pat-tag while matching, but it should only be used internally: " + tostring(p))
-        | pat-fresh(fresh-vars, body) =>
+        | p-tag(lhs, rhs, body) =>
+          panic("Encountered a p-tag while matching, but it should only be used internally: " + tostring(p))
+        | p-fresh(fresh-vars, body) =>
           for chain-either({shadow env; shadow p} from match-rec(fresh.union(fresh-vars), env, e, body)):
-            left({env; pat-fresh(fresh-vars, p)})
+            left({env; p-fresh(fresh-vars, p)})
           end
       end
   end
@@ -412,19 +412,19 @@ check:
         [string-dict: ],
         [string-dict: "l1", [list:
             environment(
-              [string-dict: "a", g-value(e-num(1)), "b", g-value(e-num(2))],
+              [string-dict: "a", g-prim(e-num(1)), "b", g-prim(e-num(2))],
               [string-dict: ],
               [string-dict: ]),
             environment(
-              [string-dict: "a", g-value(e-num(3)), "b", g-value(e-num(4))],
+              [string-dict: "a", g-prim(e-num(3)), "b", g-prim(e-num(4))],
               [string-dict: ],
               [string-dict: ])]]);
-      pat-surf("hello", [list:
-          pat-option(some(pat-pvar("j", [set: ], none))),
-          pat-list(seq-ellipsis-list(
+      p-surf("hello", [list:
+          p-option(some(p-pvar("j", [set: ], none))),
+          p-list(seq-ellipsis-list(
               [list:
-                pat-list(seq-cons(pat-pvar("a", [set: ], none), seq-cons(pat-pvar("b", [set: ], none), seq-empty))),
-                pat-list(seq-cons(pat-pvar("a", [set: ], none), seq-cons(pat-pvar("b", [set: ], none), seq-empty)))],
+                p-list(seq-cons(p-pvar("a", [set: ], none), seq-cons(p-pvar("b", [set: ], none), seq-empty))),
+                p-list(seq-cons(p-pvar("a", [set: ], none), seq-cons(p-pvar("b", [set: ], none), seq-empty)))],
               "l1"))
         ])
     })
@@ -449,25 +449,25 @@ check:
               [string-dict: "a", parse-ast("q")],
               [string-dict: ],
               [string-dict: ])]]);
-      pat-list(seq-ellipsis-list(
+      p-list(seq-ellipsis-list(
           [list:
             parse-pattern(none, "a"),
-            pat-tag(parse-pattern(none, "1"), parse-pattern(none, "2"),
-              pat-tag(parse-pattern(none, "x"), parse-pattern(none, "y"),
+            p-tag(parse-pattern(none, "1"), parse-pattern(none, "2"),
+              p-tag(parse-pattern(none, "x"), parse-pattern(none, "y"),
                 parse-pattern(none, "a")))
           ], "l1"))})
   
   match-pattern(
     parse-ast("{some foobar}"),
-    pat-fresh([set: "a"], parse-pattern(some([set:]), "{some a}")))
+    p-fresh([set: "a"], parse-pattern(some([set:]), "{some a}")))
     is left({environment(
         [string-dict: ],
         [string-dict: "a", naked-var("foobar")],
         [string-dict: ]);
-      pat-fresh([set: "a"], parse-pattern(some([set:]), "{some foobar}"))})
+      p-fresh([set: "a"], parse-pattern(some([set:]), "{some foobar}"))})
   
   match-pattern(
     parse-ast("(Foo [1 2] [3 4])"), 
     parse-pattern(none, "(Foo [a_{i} ...i] [a_{i} ...i])"))
-    is right(m-error-pvar("a", g-value(e-num(3)), g-value(e-num(1))))
+    is right(m-error-pvar("a", g-prim(e-num(3)), g-prim(e-num(1))))
 end

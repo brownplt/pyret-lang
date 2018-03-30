@@ -41,7 +41,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     es.map(desugar(rules, _))
   end
   cases (Term) e block:
-    | g-value(val) => g-value(val)
+    | g-prim(val) => g-prim(val)
     | g-core(op, args) => g-core(op, desugars(args))
     | g-aux(op, args) => g-aux(op, desugars(args))
     | g-var(v) => g-var(v)
@@ -65,22 +65,9 @@ check:
   
 end
 
-fun strip-tags(e :: Term) -> Term:
-  cases (Term) e:
-    | g-value(val) => g-value(val)
-    | g-core(op, args) => g-core(op, args.map(strip-tags))
-    | g-aux(op, args) => g-aux(op, args.map(strip-tags))
-    | g-surf(op, args) => g-surf(op, args.map(strip-tags))
-    | g-list(seq) => g-list(seq.map(strip-tags))
-    | g-option(opt) => g-option(opt.and-then(strip-tags))
-    | g-var(v) => g-var(v)
-    | g-tag(_, _, body) => strip-tags(body)
-  end
-end
-
 fun resugar(e :: Term) -> Option<Term>:
   cases (Term) e:
-    | g-value(val) => g-value(val) ^ some
+    | g-prim(val) => g-prim(val) ^ some
     | g-core(op, args) =>
       map-option(resugar, args).and-then(g-core(op, _))
     | g-surf(op, args) =>
