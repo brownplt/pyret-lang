@@ -11,13 +11,13 @@ import file("ds-sugar.arr") as DS
 import file("ds-parse.arr") as P
 include file("debugging.arr")
 
-nothing ^ push-time("reading")
+# nothing ^ push-time("reading")
 desugaring-rules = block:
   file = F.input-file("src/arr/desugar/pyret.sugar")
   ds-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   ds-rules
-end ^ pop-time
+end # ^ pop-time
 
 fun desugar-expr(e :: AST.Expr) -> AST.Expr:
   e.visit(CONV.ast-to-term-visitor)
@@ -26,17 +26,17 @@ fun desugar-expr(e :: AST.Expr) -> AST.Expr:
 end
 
 fun desugar(e :: AST.Program) -> AST.Program block:
-  nothing ^ push-time("to term")
+  #nothing ^ push-time("to term")
   e.visit(CONV.ast-to-term-visitor)
-    ^ pop-time
-    ^ push-time("desugar")
-    ^ push-time("subdesugar")
+    #^ pop-time
+    #^ push-time("desugar")
+    #^ push-time("subdesugar")
     ^ DS.desugar(desugaring-rules, _)
-    ^ pop-time
-    ^ pop-time
-    ^ push-time("to ast")
+    #^ pop-time
+    #^ pop-time
+    #^ push-time("to ast")
     ^ CONV.term-to-ast
-    ^ pop-time
+    #^ pop-time
 end
 
 fun resugar(e :: AST.Program) -> Option<AST.Program>:

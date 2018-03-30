@@ -9,6 +9,7 @@ import ast as A
 include file("ds-structs.arr")
 include file("ds-parse.arr")
 include file("ds-environment.arr")
+include file("ds-biject.arr")
 
 data Metafunction:
   | metafunction(
@@ -42,6 +43,12 @@ fun subs(env :: Env, p :: Pattern) -> Term:
     | pat-core(name, args) => g-core(name, map(subs(env, _), args))
     | pat-aux(name, args)  => g-aux(name, map(subs(env, _), args))
     | pat-surf(name, args) => g-surf(name, map(subs(env, _), args))
+    | pat-biject(name, shadow p) =>
+      term = subs(env, p)
+      cases (Option) bijections.get(name):
+        | none => fail("Bijection '" + name + "' not found")
+        | some({f; _}) => f(term)
+      end
     | pat-meta(name, args) =>
       term-args = map(subs(env, _), args)
       cases (Option) metafunctions.get(name):

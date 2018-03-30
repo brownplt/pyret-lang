@@ -6,6 +6,11 @@ sugar mk-s-bind:
   | (mk-s-bind name) => (s-bind false name (a-blank))
 end
 
+sugar mk-s-lam:
+  | (mk-s-lam params body) =>
+    (s-lam "" [] params (a-blank) "" body none none false)
+end
+
 sugar not:
   | (not x) => (s-prim-app "not" [x])
 end
@@ -154,7 +159,7 @@ sugar s-construct:
     (s-construct-help constructor "getMaker" "make" [(s-array elts)])
   | (s-construct {s-construct-lazy} constructor [elt_{x} ...x]) =>
     (s-construct-help constructor "getLazyMaker" "lazy-make"
-      [(s-array [(s-lam "" [] [] (a-blank) "" elt_{x} none none false) ...x])])
+      [(s-array [(mk-s-lam [] elt_{x}) ...x])])
 end
 
 
@@ -193,21 +198,11 @@ end
 
 sugar curry-acc:
   | (curry-acc [] [param_{x} ...x] args) =>
-    {pair (reverse [(mk-s-bind param_{x}) ...x]) (reverse args)}
+    {pair (biject reverse [(mk-s-bind param_{x}) ...x]) (biject reverse args)}
   | (curry-acc [{s-id-underscore} rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
     (fresh [f] (curry-acc [rest_{x} ...x] [f param_{y} ...y] [(s-id f) arg_{z} ...z]))
   | (curry-acc [e rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
     (curry-acc [rest_{x} ...x] [param_{y} ...y] [e arg_{z} ...z])
-end
-
-sugar reverse:
-  | (reverse args) => (reverse-acc args [])
-end
-
-sugar reverse-acc:
-  | (reverse-acc [] acc) => acc
-  | (reverse-acc [e rest_{x} ...x] [acc_{y} ...y]) =>
-    (reverse-acc [rest_{x} ...x] [e acc_{y} ...y])
 end
 
 sugar curry-args:
@@ -233,15 +228,38 @@ sugar curry-binop-help:
   | (curry-binop-help {pair [] args} "op<>") =>
     (s-prim-app "not" [(curry-binop-help {pair [] args} "op==")])
   | (curry-binop-help {pair params args} op) =>
-    (s-lam "" [] params (a-blank) "" (curry-binop-help {pair [] args} op) none none false)
+    (mk-s-lam params (curry-binop-help {pair [] args} op))
 end
 
 sugar curry-help:
   | (curry-help {pair [] [f args_{x} ...x]}) => <s-app f [args_{x} ...x]>
-  | (curry-help {pair params args}) =>
-    (s-lam "" [] params (a-blank) "" (curry-help {pair [] args}) none none false)
+  | (curry-help {pair params args}) => (mk-s-lam params (curry-help {pair [] args}))
 end
 
 sugar s-app:
   | (s-app f [args_{x} ...x]) => (curry-help (curry-args [f args_{x} ...x]))
+end
+
+sugar s-dot:
+  | (s-dot {s-id-underscore} field) =>
+    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-dot (s-id x) field>))
+  | (s-dot x field) => <s-dot x field>
+end
+
+sugar s-get-bang:
+  | (s-get-bang {s-id-underscore} field) =>
+    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-get-bang (s-id x) field>))
+  | (s-get-bang x field) => <s-get-bang x field>
+end
+
+sugar s-update:
+  | (s-update {s-id-underscore} fields) =>
+    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-update (s-id x) fields>))
+  | (s-update x field) => <s-update x field>
+end
+
+sugar s-extend:
+  | (s-extend {s-id-underscore} fields) =>
+    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-extend (s-id x) fields>))
+  | (s-extend x field) => <s-extend x field>
 end

@@ -65,7 +65,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
     | g-surf(op, args) =>
       shadow args = desugars(args)
-      nothing ^ push-time("subdesugar: " + op)
+      #nothing ^ push-time("subdesugar: " + op)
       cases (Option) rules.get(op) block:
         | none =>
           # TODO: this should eventually throw an error. Right now
@@ -73,19 +73,19 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
           pvars = generate-pvars(args.length())
           pat-lhs = pat-surf(op, pvars)
           pat-rhs = pat-core(op, pvars)
-          g-tag(pat-lhs, pat-rhs, g-core(op, args)) ^ pop-time
+          g-tag(pat-lhs, pat-rhs, g-core(op, args)) #^ pop-time
         | some(kases) =>
-          nothing ^ push-time("matching: " + op)
+          #nothing ^ push-time("matching: " + op)
           opt = for find-option(kase from kases) block:
             cases (Either) match-pattern(g-surf(op, args), kase.lhs):
               | left({env; p}) => some({kase; env; p})
               | right(_) => none
             end
-          end ^ pop-time ^ push-time("substitution: " + op)
+          end #^ pop-time ^ push-time("substitution: " + op)
           cases (Option) opt block:
             | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
             | some({kase; env; pat-lhs}) =>
-              step = substitute-pattern(env, kase.rhs) ^ pop-time ^ pop-time
+              step = substitute-pattern(env, kase.rhs) #^ pop-time ^ pop-time
               # print("Expand " + op + " resulting in\n")
               # print(step)
               # print("\n\n")

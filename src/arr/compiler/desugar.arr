@@ -15,15 +15,6 @@ import file("../desugar/ds-main.arr") as DNew
 
 names = A.global-names
 
-data DesugarEnv:
-  | d-env(ids :: Set<String>, vars :: Set<String>, letrecs :: Set<String>)
-end
-
-data Pair:
-  | pair(left, right)
-end
-
-mt-d-env = d-env([tree-set: ], [tree-set: ], [tree-set: ])
 var generated-binds = SD.make-mutable-string-dict()
 
 fun g(id): A.s-global(id) end
@@ -59,8 +50,8 @@ fun check-no-column(op-l, tbl, tbl-l, col, col-l):
       A.s-srcloc(A.dummy-loc, col-l)])
 end
 
-fun desugar-expr-all(e :: A.Expr) -> A.Expr:
-  e.visit(AV.default-map-visitor.{
+fun desugar-expr(e-top :: A.Expr) -> A.Expr:
+  e-top.visit(AV.default-map-visitor.{
     # num, den are exact ints, and s-frac desugars to the exact rational num/den
     method s-frac(self, l, num, den):
       A.s-num(l, num / den) # NOTE: Possibly must preserve further?
@@ -68,231 +59,16 @@ fun desugar-expr-all(e :: A.Expr) -> A.Expr:
     # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
     method s-rfrac(self, l, num, den):
       A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
-    end
-  })
-end
+    end,
 
-fun desugar(program :: A.Program):
-  doc: ```
-        Desugar non-scope and non-check based constructs.
-        Preconditions on program:
-          - well-formed
-          - contains no s-var, s-fun, s-data, s-check, or s-check-test
-          - contains no s-provide in headers
-          - all where blocks are none
-          - contains no s-name (e.g. call resolve-names first)
-        Postconditions on program:
-          - in addition to preconditions,
-            contains no s-for, s-if (will all be s-if-else), s-op, s-method-field,
-                        s-cases (will all be s-cases-else), s-not, s-when, s-if-pipe, s-paren
-          - contains no s-underscore in expression position (but it may
-            appear in binding positions as in s-let-bind, s-letrec-bind)
-        ```
-  cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
-      generated-binds := SD.make-mutable-string-dict()
-      {
-        ast: A.s-program(l, _provide, provided-types, imports, desugar-expr-all(desugar-expr(body))),
-        new-binds: generated-binds
-      }
-  end
-end
-
-fun mk-id-ann(loc, base, ann) block:
-  a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann, none))
-  { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
-end
-
-fun mk-id-var-ann(loc, base, ann) block:
-  a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-var, a, ann, none))
-  { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id-var(loc, a) }
-end
-
-fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
-
-fun mk-id-var(loc, base): mk-id-var-ann(loc, base, A.a-blank) end
-
-fun desugar-cases-bind(cb):
-  cases(A.CasesBind) cb:
-    | s-cases-bind(l, typ, bind) => A.s-cases-bind(l, typ, desugar-bind(bind))
-  end
-end
-
-fun desugar-case-branch(c):
-  cases(A.CasesBranch) c:
-    | s-cases-branch(l, pat-loc, name, args, body) =>
-      A.s-cases-branch(l, pat-loc, name, args.map(desugar-cases-bind), desugar-expr(body))
-    | s-singleton-cases-branch(l, pat-loc, name, body) =>
-      A.s-singleton-cases-branch(l, pat-loc, name, desugar-expr(body))
-  end
-end
-
-fun desugar-variant-member(m):
-  cases(A.VariantMember) m:
-    | s-variant-member(l, typ, bind) =>
-      A.s-variant-member(l, typ, desugar-bind(bind))
-  end
-end
-
-fun desugar-member(f):
-  cases(A.Member) f:
-    | s-data-field(l, name, value) =>
-      A.s-data-field(l, name, desugar-expr(value))
-    | else => raise("NYI(desugar-member): " + torepr(f))
-  end
-end
-
-fun is-underscore(e):
-  A.is-s-id(e) and A.is-s-underscore(e.id)
-end
-
-fun ds-curry-args(l, args):
-  params-and-args = for fold(acc from pair([list: ], [list: ]), arg from args):
-      if is-underscore(arg):
-        arg-id = mk-id(l, "arg_")
-        pair(link(arg-id.id-b, acc.left), link(arg-id.id-e, acc.right))
-      else:
-        pair(acc.left, link(arg, acc.right))
-      end
-    end
-  pair(params-and-args.left.reverse(), params-and-args.right.reverse())
-end
-
-fun ds-curry-nullary(rebuild-node, l, obj, m):
-  if is-underscore(obj):
-    curried-obj = mk-id(l, "recv_")
-    A.s-lam(l, "", [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none, none, false)
-  else:
-    rebuild-node(l, desugar-expr(obj), m)
-  end
-where:
-  nothing
-  #d = A.dummy-loc
-  #ds-ed = ds-curry-nullary(A.s-dot, d, A.s-id(d, "_"), A.s-id(d, "x"))
-#  ds-ed satisfies
-end
-
-fun desugar-opt<T>(f :: (T -> T), opt :: Option<T>):
-  cases(Option) opt:
-    | none => none
-    | some(e) => some(f(e))
-  end
-end
-
-
-fun desugar-bind(b :: A.Bind):
-  cases(A.Bind) b:
-    | s-bind(l, shadows, name, ann) =>
-      A.s-bind(l, shadows, name, ann)
-    | else => raise("Non-bind given to desugar-bind: " + torepr(b))
-  end
-end
-
-fun desugar-let-binds(binds):
-  for map(bind from binds):
-    cases(A.LetBind) bind:
-      | s-let-bind(l2, b, val) =>
-        A.s-let-bind(l2, desugar-bind(b), desugar-expr(val))
-      | s-var-bind(l2, b, val) =>
-        A.s-var-bind(l2, desugar-bind(b), desugar-expr(val))
-    end
-  end
-end
-
-fun desugar-letrec-binds(binds):
-  for map(bind from binds):
-    cases(A.LetrecBind) bind:
-      | s-letrec-bind(l2, b, val) =>
-        A.s-letrec-bind(l2, desugar-bind(b), desugar-expr(val))
-    end
-  end
-end
-
-fun desugar-expr(expr :: A.Expr):
-  cases(A.Expr) expr:
-    | s-module(l, answer, dv, dt, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types, desugar-expr(checks))
-    | s-instantiate(l, inner-expr, params) =>
-      A.s-instantiate(l, desugar-expr(inner-expr), params)
-    | s-hint-exp(l, hints, exp) => A.s-hint-exp(l, hints, desugar-expr(exp))
-    | s-block(l, stmts) => A.s-block(l, stmts.map(desugar-expr))
-    | s-app(l, f, args) => A.s-app(l, desugar-expr(f), args.map(desugar-expr))
-    | s-prim-app(l, f, args) => A.s-prim-app(l, f, args.map(desugar-expr))
-    | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-lam(l, name, params, args.map(desugar-bind), ann, doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
-    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-method(l, name, params, args.map(desugar-bind), ann, doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
-    | s-type(l, name, params, ann) => A.s-type(l, name, params, ann)
-    | s-newtype(l, name, namet) => expr
-    | s-type-let-expr(l, binds, body, blocky) =>
-      A.s-type-let-expr(l, binds, desugar-expr(body), blocky)
-    | s-let-expr(l, binds, body, blocky) =>
-      new-binds = desugar-let-binds(binds)
-      A.s-let-expr(l, new-binds, desugar-expr(body), blocky)
-    | s-letrec(l, binds, body, blocky) =>
-      A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body), blocky)
-    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
-      fun extend-variant(v):
-        cases(A.Variant) v:
-          | s-variant(l2, constr-loc, vname, members, with-members) =>
-            A.s-variant(
-              l2,
-              constr-loc,
-              vname,
-              members.map(desugar-variant-member),
-              with-members.map(desugar-member))
-          | s-singleton-variant(l2, vname, with-members) =>
-            A.s-singleton-variant(
-              l2,
-              vname,
-              with-members.map(desugar-member))
-        end
-      end
-      A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
-        shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
-    | s-if-else(l, branches, _else, blocky) =>
-      A.s-if-else(
-        l,
-        branches.map(
-          lam(branch):
-            A.s-if-branch(branch.l, desugar-expr(branch.test), desugar-expr(branch.body))
-          end),
-        desugar-expr(_else),
-        blocky)
-    | s-cases(l, typ, val, branches, blocky) =>
-      A.s-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), blocky)
-      # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
-    | s-cases-else(l, typ, val, branches, _else, blocky) =>
-      A.s-cases-else(l, typ, desugar-expr(val),
-        branches.map(desugar-case-branch),
-        desugar-expr(_else),
-        blocky)
-      # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
-    | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
-    | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
-    | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
-    | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
-    | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body, blocky) =>
-      values = bindings.map(_.value).map(desugar-expr)
+    method s-for(self, l, iter, bindings, ann, body, blocky):
+      values = bindings.map(_.value).map(_.visit(self))
       name = "for-body<" + l.format(false) + ">"
-      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), ann, "", desugar-expr(body), none, none, blocky)
-      A.s-app(l, desugar-expr(iter), link(the-function, values))
-    | s-id(l, x) => expr
-    | s-id-var(l, x) => expr
-    | s-id-letrec(_, _, _) => expr
-    | s-srcloc(_, _) => expr
-    | s-num(_, _) => expr
-    | s-frac(_, _, _) => expr
-    | s-rfrac(_, _, _) => expr
-    | s-str(_, _) => expr
-    | s-bool(_, _) => expr
-    | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
-    | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
-    | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
-    | s-reactor(l, fields) =>
+      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(_.visit(self)), ann, "", body.visit(self), none, none, blocky)
+      A.s-app(l, iter.visit(self), link(the-function, values))
+    end,
+
+    method s-reactor(self, l, fields):
       fields-by-name = SD.make-mutable-string-dict()
       init-and-non-init = for lists.partition(f from fields) block:
         when f.name <> "init": fields-by-name.set-now(f.name, f.value) end
@@ -306,13 +82,15 @@ fun desugar-expr(expr :: A.Expr):
           this-field = fields-by-name.get-value-now(f)
           this-field-l = this-field.l
           A.s-data-field(this-field-l, f, A.s-prim-app(this-field-l, "makeSome",
-              [list: A.s-check-expr(this-field-l, desugar-expr(this-field), field-names.get-value(f)(this-field-l))]))
+              [list: A.s-check-expr(this-field-l, this-field.visit(self), field-names.get-value(f)(this-field-l))]))
         else:
           A.s-data-field(l, f, A.s-prim-app(l, "makeNone", [list:]))
         end
       end
-      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, option-fields)])
-    | s-table(l, headers, rows) =>
+      A.s-prim-app(l, "makeReactor", [list: init.visit(self), A.s-obj(l, option-fields)])
+    end,
+
+    method s-table(self, l, headers, rows):
       shadow l = A.dummy-loc
       column-names = for map(header from headers):
         A.s-str(header.l, header.name)
@@ -322,22 +100,15 @@ fun desugar-expr(expr :: A.Expr):
       end
       shadow rows = for map(row from rows):
         elems = for map_n(n from 0, elem from row.elems):
-          check-ann(elem.l, desugar-expr(elem), anns.get(n))
+          check-ann(elem.l, elem.visit(self), anns.get(n))
         end
         A.s-array(l, elems)
       end
       A.s-prim-app(l, "makeTable",
         [list: A.s-array(l, column-names),
                A.s-array(l, rows)])
-    # NOTE(john): see preconditions; desugar-scope should have already happened
-    | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
-    | s-var(_, _, _)              => raise("s-var should have already been desugared")
-    # NOTE(joe): see preconditions; desugar-checks should have already happened
-    | s-check(l, name, body, keyword-check) =>
-      A.s-check(l, name, desugar-expr(body), keyword-check)
-    | s-check-test(l, op, refinement, left, right) =>
-      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
-    | s-load-table(l, headers, spec) =>
+    end,
+    method s-load-table(self, l, headers, spec):
       dummy = A.dummy-loc
       {src; sanitizers} = for fold(acc from {none; empty}, s from spec):
         {src; sanitizers} = acc
@@ -369,8 +140,8 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(dummy, sanitizers)])
 
       A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
-
-    | s-table-extend(l, column-binds, extensions) =>
+    end,
+    method s-table-extend(self, l, column-binds, extensions):
       # NOTE(philip): I am fairly certain that this will need to be moved
       #               to post-type-check desugaring, since the variables used
       #               by reducers is not well-typed
@@ -397,7 +168,8 @@ fun desugar-expr(expr :: A.Expr):
       end
 
       reducer-vars =
-        for fold(acc from pair([SD.string-dict:],[SD.string-dict:]),
+        for fold(
+            {lef; rig} from {[SD.string-dict:]; [SD.string-dict:]},
             extension from reducer-exts):
 
           reducer-id = mk-id-ann(A.dummy-loc,
@@ -406,11 +178,9 @@ fun desugar-expr(expr :: A.Expr):
 
           acc-id = mk-id-var(A.dummy-loc, "acc" + extension.name)
 
-          pair(acc.left.set(extension.name, reducer-id),
-            acc.right.set(extension.name, acc-id))
+          {lef.set(extension.name, reducer-id); rig.set(extension.name, acc-id)}
         end
-      reducers = reducer-vars.left
-      accs = reducer-vars.right
+      {reducers; accs} = reducer-vars
 
       initialized-reducers =
         cases(List) reducer-exts:
@@ -423,7 +193,7 @@ fun desugar-expr(expr :: A.Expr):
                       reducer = reducers.get-value(name)
                       acc = accs.get-value(name)
                       nothing-expr = A.s-id(l, A.s-global("nothing"))
-                      link(A.s-let-bind(l, reducer.id-b, desugar-expr(reducer-expr)),
+                      link(A.s-let-bind(l, reducer.id-b, reducer-expr.visit(self)),
                         link(A.s-var-bind(l, acc.id-b, nothing-expr),
                           reducers-acc))
                   end
@@ -439,7 +209,7 @@ fun desugar-expr(expr :: A.Expr):
       fun process-extension(is-first):
         lam(extension):
           cases(A.TableExtendField) extension:
-            | s-table-extend-field(_, _, _, _) => desugar-expr(extension.value)
+            | s-table-extend-field(_, _, _, _) => extension.value.visit(self)
             | s-table-extend-reducer(shadow l, name, _, col, _) =>
               reducer = reducers.get-value(name)
               acc = accs.get-value(name)
@@ -490,7 +260,7 @@ fun desugar-expr(expr :: A.Expr):
 
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
+          check-table(column-binds.table.l, column-binds.table.visit(self), lam(t): t end)),
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
@@ -510,7 +280,8 @@ fun desugar-expr(expr :: A.Expr):
                     data-pop-mapfun(true),
                     data-pop-mapfun(false),
                     A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]))])]), true)
-    | s-table-update(l, column-binds, updates) =>
+    end,
+    method s-table-update(self, l, column-binds, updates):
       row = mk-id(A.dummy-loc, "row")
       new-row = mk-id(A.dummy-loc, "new-row-row")
       tbl = mk-id(l, "table")
@@ -525,14 +296,17 @@ fun desugar-expr(expr :: A.Expr):
 
       shadow updates =
         updates.map(lam(u):
-          {name: A.s-str(A.dummy-loc, u.name),
-           l:  u.l,
-           idx:  mk-id(A.dummy-loc, u.name),
-           val:  desugar-expr(u.value)} end)
+          {
+            name: A.s-str(A.dummy-loc, u.name),
+            l:  u.l,
+            idx:  mk-id(A.dummy-loc, u.name),
+            val:  u.value.visit(self)
+          }
+        end)
 
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
+          check-table(column-binds.table.l, column-binds.table.visit(self), lam(t): t end)),
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
@@ -563,7 +337,8 @@ fun desugar-expr(expr :: A.Expr):
                             new-row.id-e, update.idx.id-e, update.val])) end),
                       new-row.id-e, true), true), none, none, true),
               A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
-    | s-table-select(l, columns, table) =>
+    end,
+    method s-table-select(self, l, columns, table):
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
       shadow columns =
@@ -573,7 +348,7 @@ fun desugar-expr(expr :: A.Expr):
             name: A.s-str(c.l, c.s)} end)
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(table.l, desugar-expr(table), lam(t): t end)),
+          check-table(table.l, table.visit(self), lam(t): t end)),
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
@@ -590,13 +365,14 @@ fun desugar-expr(expr :: A.Expr):
                   A.s-prim-app(A.dummy-loc, "raw_array_get",
                       [list: row.id-e, c.idx.id-e]) end)), none, none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
-    | s-table-extract(l, column, table) =>
+    end,
+    method s-table-extract(self, l, column, table):
       tbl = mk-id(table.l, "table")
       col = mk-id(A.dummy-loc, column.s)
       row = mk-id(A.dummy-loc, column.s)
       A.s-let-expr(A.dummy-loc, [list:
         A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(table.l, desugar-expr(table), lam(t): t end)),
+          check-table(table.l, table.visit(self), lam(t): t end)),
         A.s-let-bind(A.dummy-loc, col.id-b,
           get-table-column(l, table.l, tbl.id-e, {l: column.l, name: A.s-str(A.dummy-loc,column.s)}))],
         # Table Construction
@@ -605,14 +381,16 @@ fun desugar-expr(expr :: A.Expr):
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
-    | s-table-order(l, table, ordering) =>
+    end,
+    method s-table-order(self, l, table, ordering):
       ordering-raw-arr = for map(o from ordering):
         A.s-array(o.l, [list: A.s-bool(o.l, o.direction == A.ASCENDING), A.s-str(o.l, o.column.s)])
       end
       A.s-app(l,
-        A.s-dot(A.dummy-loc, desugar-expr(table), "multi-order"),
+        A.s-dot(A.dummy-loc, table.visit(self), "multi-order"),
         [list: A.s-array(A.dummy-loc, ordering-raw-arr)])
-    | s-table-filter(l, column-binds, predicate) =>
+    end,
+    method s-table-filter(self, l, column-binds, predicate):
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
       pred-res = mk-id-ann(predicate.l, "pred", A.a-name(predicate.l, A.s-type-global("Boolean")))
@@ -627,7 +405,7 @@ fun desugar-expr(expr :: A.Expr):
 
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
+          check-table(column-binds.table.l, column-binds.table.visit(self), lam(t): t end)),
         # Column Index Bindings
         columns.map(lam(column):
           A.s-let-bind(A.dummy-loc, column.idx.id-b,
@@ -645,18 +423,19 @@ fun desugar-expr(expr :: A.Expr):
                     A.s-prim-app(A.dummy-loc, "raw_array_get",
                           [list: row.id-e, column.idx.id-e])) end),
                     A.s-let-expr(A.dummy-loc,
-                      [list: A.s-let-bind(predicate.l, pred-res.id-b, desugar-expr(predicate))],
+                      [list: A.s-let-bind(predicate.l, pred-res.id-b, predicate.visit(self))],
                       pred-res.id-e, true), true), none, none, true),
             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
-    | s-spy-block(l, message, contents) =>
+    end,
+    method s-spy-block(self, l, message, contents):
       ds-message = cases(Option<A.Expr>) message:
         | none => A.s-str(l, "")
-        | some(msg) => desugar-expr(msg)
+        | some(msg) => msg.visit(self)
       end
       ds-contents-list = for map(spy-exp from contents):
         cases(A.SpyField) spy-exp:
-          | s-spy-name(l2, name) => {A.s-srcloc(l2, l2); A.s-str(l2, name.id.toname()); desugar-expr(name)}
-          | s-spy-expr(l2, name, value) => {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
+          | s-spy-name(l2, name) => {A.s-srcloc(l2, l2); A.s-str(l2, name.id.toname()); name.visit(self)}
+          | s-spy-expr(l2, name, value) => {A.s-srcloc(l2, l2); A.s-str(l2, name); value.visit(self)}
         end
       end
       ds-contents = for L.foldr(acc from {empty; empty; empty}, ds-content from ds-contents-list):
@@ -669,10 +448,53 @@ fun desugar-expr(expr :: A.Expr):
       A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
-    | s-array(l, vs) => A.s-array(l, vs.map(desugar-expr))
-    | else => raise("NYI (desugar): " + torepr(expr))
+    end,
+  })
+end
+
+fun desugar(program :: A.Program):
+  doc: ```
+        Desugar non-scope and non-check based constructs.
+        Preconditions on program:
+          - well-formed
+          - contains no s-var, s-fun, s-data, s-check, or s-check-test
+          - contains no s-provide in headers
+          - all where blocks are none
+          - contains no s-name (e.g. call resolve-names first)
+        Postconditions on program:
+          - in addition to preconditions,
+            contains no s-for, s-if (will all be s-if-else), s-op, s-method-field,
+                        s-cases (will all be s-cases-else), s-not, s-when, s-if-pipe, s-paren
+          - contains no s-underscore in expression position (but it may
+            appear in binding positions as in s-let-bind, s-letrec-bind)
+        ```
+  cases(A.Program) program block:
+    | s-program(l, _provide, provided-types, imports, body) =>
+      generated-binds := SD.make-mutable-string-dict()
+      {
+        ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)),
+        new-binds: generated-binds
+      }
   end
-where:
+end
+
+fun mk-id-ann(loc, base, ann) block:
+  a = names.make-atom(base)
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann, none))
+  { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
+end
+
+fun mk-id-var-ann(loc, base, ann) block:
+  a = names.make-atom(base)
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-var, a, ann, none))
+  { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id-var(loc, a) }
+end
+
+fun mk-id(loc, base): mk-id-ann(loc, base, A.a-blank) end
+
+fun mk-id-var(loc, base): mk-id-var-ann(loc, base, A.a-blank) end
+
+check:
   d = A.dummy-loc
   unglobal = A.default-map-visitor.{
     method s-global(self, s): A.s-name(d, s) end,

@@ -14,6 +14,7 @@ include either
 include file("ds-structs.arr")
 include file("ds-parse.arr")
 include file("ds-environment.arr")
+include file("ds-biject.arr")
 
 
 ################################################################################
@@ -298,6 +299,13 @@ fun match-rec(
             | else => match-error()
           end
         | pat-meta(_, _) => left({env; p})
+        | pat-biject(name, shadow p) =>
+          cases (Option) bijections.get(name):
+            | none => fail("Bijection '" + name + "' not found")
+            | some({_; f}) => match-rec(fresh, env, f(e), p)
+          end
+        # doesn't matter what the returned pattern is since matching pat-biject only happens in
+        # resugaring which will ignore it
         | pat-surf(pname, pargs) =>
           cases (Term) e:
             | g-surf(ename, eargs) => 

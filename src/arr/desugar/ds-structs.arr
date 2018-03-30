@@ -49,6 +49,7 @@ data Pattern:
   | pat-surf(op :: String, args :: List<Pattern>)
   | pat-aux(op :: String, args :: List<Pattern>)
   | pat-meta(op :: String, args :: List<Pattern>)
+  | pat-biject(op :: String, p :: Pattern)
   | pat-var(name :: String)
   | pat-list(l :: SeqPattern)
   | pat-option(opt :: Option<Pattern>)
@@ -108,6 +109,7 @@ fun rename-pat-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
       | pat-surf(op, args) => pat-surf(op, args.map(loop))
       | pat-aux(op, args) => pat-aux(op, args.map(loop))
       | pat-meta(op, args) => pat-meta(op, args.map(loop))
+      | pat-biject(op, shadow p) => pat-biject(op, loop(p))
       | pat-var(_) => p
       | pat-list(l) => pat-list(loop-list(l))
       | pat-option(opt) => pat-option(opt.and-then(loop))

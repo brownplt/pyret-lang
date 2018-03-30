@@ -518,6 +518,15 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
             _ from parser-ignore(t-symbol(")"))):
           pat-meta(name, args)
         end,
+        # Bijection
+        for parser-5(
+            _ from parser-ignore(t-symbol("(")),
+            _ from parser-ignore(t-name("biject")),
+            name from parser-name,
+            p from rec-pattern,
+            _ from parser-ignore(t-symbol(")"))):
+          pat-biject(name, p)
+        end,
         # Aux
         for parser-4(
             _ from parser-ignore(t-symbol("{")),
