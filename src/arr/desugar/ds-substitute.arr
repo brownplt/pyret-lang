@@ -1,6 +1,5 @@
 provide {
-    substitute-pattern: substitute-pattern,
-    desugar-eval: desugar-eval
+    desugar-surf: desugar-surf
 } end
 
 include string-dict
@@ -57,7 +56,7 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
       | p-prim(val) => g-prim(val)
       | p-core(op, args) => g-core(op, args.map(loop))
       | p-aux(op, args)  => g-aux(op, args.map(loop))
-      | p-surf(op, args) => desugar-eval(rules, op, args.map(loop))
+      | p-surf(op, args) => desugar-surf(rules, op, args.map(loop))
       | p-biject(op, shadow p) =>
         cases (Option) bijections.get(op):
           | none => fail("Bijection '" + op + "' not found")
@@ -109,9 +108,7 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
   loop(p)
 end
 
-rec substitute-pattern = subs
-
-fun desugar-eval(rules :: DsRules, op :: String, args :: List<Term>):
+fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>):
   cases (Option) rules.get(op) block:
     | none =>
       # TODO: this should eventually throw an error. Right now
@@ -131,7 +128,7 @@ fun desugar-eval(rules :: DsRules, op :: String, args :: List<Term>):
       cases (Option) opt block:
         | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
         | some({kase; env; p-lhs}) =>
-          g-tag(p-lhs, kase.rhs, substitute-pattern(rules, env, kase.rhs))
+          g-tag(p-lhs, kase.rhs, subs(rules, env, kase.rhs))
       end
   end
 end

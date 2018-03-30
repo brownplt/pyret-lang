@@ -48,7 +48,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-list(lst) => g-list(desugars(lst))
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
-    | g-surf(op, args) => desugar-eval(rules, op, desugars(args))
+    | g-surf(op, args) => desugar-surf(rules, op, desugars(args))
   end
 end
 
@@ -85,7 +85,7 @@ fun resugar(e :: Term) -> Option<Term>:
     | g-tag(lhs, rhs, body) =>
       for chain-option(shadow body from resugar(body)):
         cases (Either) match-pattern(body, rhs):
-          | left({env; _}) => resugar(substitute-pattern(env, lhs)) # arity mismatch
+          | left({env; _}) => ... #resugar(substitute-pattern(env, lhs)) # arity mismatch
           | right(_) => none
         end
       end
