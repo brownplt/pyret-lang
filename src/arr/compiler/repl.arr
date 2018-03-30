@@ -199,11 +199,11 @@ fun make-repl<a>(
     current-compile-options := options
     current-realm := realm
     locator-cache := SD.make-mutable-string-dict()
-    current-modules := SD.make-mutable-string-dict()
+    current-modules := modules.freeze().unfreeze() # Make a copy
     extra-imports := CS.standard-imports
     current-finder := make-finder()
     globals := defs-locator.get-globals()
-    worklist = CL.compile-worklist(finder, defs-locator, compile-context)
+    worklist = CL.compile-worklist-known-modules(finder, defs-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules):
       current-modules.set-now(k, compiled.modules.get-value-now(k))
