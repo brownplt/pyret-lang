@@ -11,10 +11,6 @@ include file("ds-substitute.arr")
 include file("ds-match.arr")
 include file("debugging.arr")
 
-fun generate-pvars(n :: Number) -> List<Pattern>:
-  range(0, n).map(lam(i): pat-pvar("_" + tostring(i), [set: ], none) end)
-end
-
 fun chain-option<A, B>(
     f :: (A -> Option<B>),
     arg :: Option<A>)
@@ -22,17 +18,6 @@ fun chain-option<A, B>(
   cases (Option) arg:
     | none => none
     | some(v) => f(v)
-  end
-end
-
-fun find-option<A, B>(f :: (A -> Option<B>), lst :: List<A>) -> Option<B>:
-  cases (List) lst:
-    | empty => none
-    | link(h, t) => 
-      cases (Option) f(h):
-        | none => find-option(f, t)
-        | some(v) => some(v)
-      end
   end
 end
 
@@ -63,35 +48,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-list(lst) => g-list(desugars(lst))
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
-    | g-surf(op, args) =>
-      shadow args = desugars(args)
-      #nothing ^ push-time("subdesugar: " + op)
-      cases (Option) rules.get(op) block:
-        | none =>
-          # TODO: this should eventually throw an error. Right now
-          # allow it to work so that we can add sugars incrementally
-          pvars = generate-pvars(args.length())
-          pat-lhs = pat-surf(op, pvars)
-          pat-rhs = pat-core(op, pvars)
-          g-tag(pat-lhs, pat-rhs, g-core(op, args)) #^ pop-time
-        | some(kases) =>
-          #nothing ^ push-time("matching: " + op)
-          opt = for find-option(kase from kases) block:
-            cases (Either) match-pattern(g-surf(op, args), kase.lhs):
-              | left({env; p}) => some({kase; env; p})
-              | right(_) => none
-            end
-          end #^ pop-time ^ push-time("substitution: " + op)
-          cases (Option) opt block:
-            | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
-            | some({kase; env; pat-lhs}) =>
-              step = substitute-pattern(env, kase.rhs) #^ pop-time ^ pop-time
-              # print("Expand " + op + " resulting in\n")
-              # print(step)
-              # print("\n\n")
-              g-tag(pat-lhs, kase.rhs, desugar(rules, step))
-          end
-      end
+    | g-surf(op, args) => desugar-eval(rules, op, desugars(args))
   end
 end
 
@@ -141,7 +98,7 @@ fun resugar(e :: Term) -> Option<Term>:
     | g-tag(lhs, rhs, body) =>
       for chain-option(shadow body from resugar(body)):
         cases (Either) match-pattern(body, rhs):
-          | left({env; _}) => resugar(substitute-pattern(env, lhs))
+          | left({env; _}) => resugar(substitute-pattern(env, lhs)) # arity mismatch
           | right(_) => none
         end
       end

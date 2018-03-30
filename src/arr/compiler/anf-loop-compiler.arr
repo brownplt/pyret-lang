@@ -1,5 +1,3 @@
-#lang pyret
-
 provide *
 import ast as A
 import file("ast-anf.arr") as N
