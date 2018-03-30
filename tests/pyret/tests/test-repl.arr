@@ -271,6 +271,13 @@ check:
   should-succeed-string-dict = next-interaction("is-function(make-string-dict)")
   val(should-succeed-string-dict) is some(true)
 
+  tc-result3 = restart("import string-dict as SD", true)
+  tc-result3.v satisfies L.is-success-result
+  next-interaction("x = SD.make-mutable-string-dict()")
+  next-interaction("x.set-now('a', 5)")
+  should-succeed-set = next-interaction("x.get-value-now('a')")
+  val(should-succeed-set) is some(5)
+
   print("Done running repl-tests: " + tostring(time-now()) + "\n")
 
 end
