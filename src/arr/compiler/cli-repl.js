@@ -29,7 +29,9 @@
             restarter.resume("repl done");
           });
           replServer.on('reset', () => {
-            restartInteractions.app("");
+            runtime.runThunk(function() {
+              return restartInteractions.app("");
+            }, function(result) {});
           });
         });
     }
