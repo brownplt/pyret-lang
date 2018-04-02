@@ -2240,21 +2240,20 @@ data RuntimeError:
       ask:
         | is-number(value1) and is-number(value2) then:
           # one (or both) of them must be a roughnum
-          fun within-error(message):
+          fun roughnum-compare-error(message, function-name):
             [ED.error:
               [ED.para: ED.text(message)],
               [ED.para: ED.embed(value1)],
               [ED.para: ED.embed(value2)],
               [ED.para: ED.text("Consider using the "),
-                ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
-            
+                ED.code(ED.text(function-name)), ED.text(" function to compare them instead.")]]
           end
           if num-is-roughnum(value1) and num-is-roughnum(value2):
-            within-error("Attempted to compare two Roughnums for equality, which is not allowed:")
+            roughnum-compare-error("Attempted to compare two Roughnums for equality, which is not allowed:", "is-roughly")
           else if num-is-roughnum(value1):
-            within-error("Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:")
+            roughnum-compare-error("Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:", "within")
           else if num-is-roughnum(value2):
-            within-error("Attempted to compare an Exactnum to a Roughnum for equality, which is not allowed:")
+            roughnum-compare-error("Attempted to compare an Exactnum to a Roughnum for equality, which is not allowed:", "within")
           end
         | otherwise:
           [ED.error:
