@@ -10,13 +10,6 @@ include file("ds-parse.arr")
 #  Environments
 #
 
-data Env:
-  | environment(
-      pvar-map :: StringDict<Term>,
-      fresh-map :: StringDict<Variable>,
-      ellipsis-map :: StringDict<List<Env>>)
-end
-
 fun empty-env() -> Env:
   environment([string-dict: ], [string-dict: ], [string-dict: ])
 end

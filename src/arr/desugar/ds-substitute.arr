@@ -8,23 +8,8 @@ include either
 include file("ds-structs.arr")
 include file("ds-parse.arr")
 include file("ds-environment.arr")
-include file("ds-biject.arr")
 include file("ds-match.arr")
 
-data Metafunction:
-  | metafunction(arity :: Number, f :: (List<Term>, Env -> Term))
-end
-
-metafunctions = [string-dict:
-  "get-loc-of", metafunction(1, lam(args, env):
-    cases (Term) args.get(0):
-      | g-core(_, shadow args) => args.get(0)
-      # TODO: might want to support g-var
-      | else =>
-        fail("get-loc-of should be used on an already desugared value. Got " +
-             tostring(args.get(0)))
-    end
-  end)]
 
 fun find-option<S, T>(f :: (S -> Option<T>), lst :: List<S>) -> Option<T>:
   cases (List) lst:
@@ -58,23 +43,18 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
       | p-aux(op, args)  => g-aux(op, args.map(loop))
       | p-surf(op, args) => desugar-surf(rules, op, args.map(loop))
       | p-biject(op, shadow p) =>
-        cases (Option) bijections.get(op):
-          | none => fail("Bijection '" + op + "' not found")
-          | some({f; _}) => f(loop(p)) # TODO: need recur?
-        end
+        {f; _} = lookup-bijection(op)
+        f(loop(p)) # TODO: need recur?
       | p-meta(op, args) =>
         term-args = args.map(loop)
-        cases (Option) metafunctions.get(op):
-          | none => fail("Metafunction '" + op + "' not found")
-          | some(metaf) =>
-            if term-args.length() == metaf.arity:
-              metaf.f(term-args, env)
-              # TODO: need recur?
-            else:
-              fail("Arity mismatch when calling metafunction '" + op + "'. " +
-                   "Expect " + tostring(metaf.arity) + " arguments. Got " +
-                   tostring(term-args.length()))
-            end
+        metaf = lookup-metafunction(op)
+        if term-args.length() == metaf.arity:
+          metaf.f(term-args, env)
+          # TODO: need recur?
+        else:
+          fail("Arity mismatch when calling metafunction '" + op + "'. " +
+               "Expect " + tostring(metaf.arity) + " arguments. Got " +
+               tostring(term-args.length()))
         end
       | p-var(name) =>
         cases (Option) get-fresh(env, name):

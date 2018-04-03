@@ -10,6 +10,7 @@ import file("conversion-visitor.arr") as CONV
 import file("ds-sugar.arr") as DS
 import file("ds-parse.arr") as P
 include file("debugging.arr")
+import file("ds-metafunctions.arr") as _
 
 # nothing ^ push-time("reading")
 desugaring-rules = block:

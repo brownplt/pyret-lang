@@ -92,6 +92,18 @@ fun naked-var(name :: String) -> Variable:
   }
 end
 
+data Env:
+  | environment(
+      pvar-map :: StringDict<Term>,
+      fresh-map :: StringDict<Variable>,
+      ellipsis-map :: StringDict<List<Env>>)
+end
+
+
+################################################################################
+#  Errors
+#
+
 fun panic(message :: String):
   raise({"Internal error when desugaring"; message})
 end
@@ -99,6 +111,47 @@ end
 fun fail(message :: String):
   raise({"Error when desugaring"; message})
 end
+
+
+################################################################################
+#  Metafunctions and Bijections
+#
+
+data Metafunction:
+  | metafunction(arity :: Number, f :: (List<Term>, Env -> Term))
+end
+
+__METAFUNCTIONS = [mutable-string-dict:]
+
+fun add-metafunction(op :: String, arity :: Number, f :: (List<Term>, Env -> Term)):
+  __METAFUNCTIONS.set-now(op, metafunction(arity, f))
+end
+
+fun lookup-metafunction(op :: String) -> Metafunction:
+  cases (Option) __METAFUNCTIONS.get-now(op):
+    | none => fail("Metafunction '" + op + "' not found")
+    | some(metaf) => metaf
+  end
+end
+
+__BIJECTIONS = [mutable-string-dict:]
+
+fun add-bijection(op :: String, forward :: (Term -> Term), reverse :: (Term -> Term)):
+  __BIJECTIONS.set-now(op, {forward; reverse})
+end
+
+fun lookup-bijection(op :: String) -> { (Term -> Term); (Term -> Term) }:
+  # Note: above spacing must be preserved to satisfy Elder Gods.
+  cases (Option) __BIJECTIONS.get-now(op):
+    | none => fail("Bijection '" + op + "' not found")
+    | some(bij) => bij
+  end
+end
+
+
+################################################################################
+#  Utilities
+#
 
 fun rename-p-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
   fun loop(shadow p :: Pattern):
