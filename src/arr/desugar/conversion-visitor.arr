@@ -445,8 +445,20 @@ shadow ast-to-term-visitor =
         ])
     end,
     method s-app(self, l, _fun, args):
-      g-surf("s-app",
-        [list: g-loc(l), _fun.visit(self), g-list(self.list(args))])
+      cases(Expr) _fun:
+        | s-dot( l-dot,  obj,  field) =>
+          g-surf("s-method-app",
+            [list: 
+              g-loc(l),
+              g-loc(l-dot),
+              obj.visit(self),
+              g-str(field),
+              g-list(self.list(args))
+            ])
+        | else =>
+        g-surf("s-app",
+          [list: g-loc(l), _fun.visit(self), g-list(self.list(args))])
+      end
     end,
     method s-app-enriched(self, l, _fun, args, app-info):
       g-surf("s-app-enriched",

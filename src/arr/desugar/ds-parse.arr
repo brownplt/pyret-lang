@@ -596,7 +596,9 @@ where:
   parse-pattern(none, "3")
     is p-prim(e-num(3))
   parse-pattern(none, "(foo 1 2)")
-    is p-surf("foo", [list: p-prim(e-num(1)), p-prim(e-num(2))])
+    is p-surf("foo", [list: p-pvar("@toploc", [set: ], none), p-prim(e-num(1)), p-prim(e-num(2))])
+  parse-pattern(none, "(foo @l 1 2)")
+    is p-surf("foo", [list: p-pvar("l", [set: ], none), p-prim(e-num(1)), p-prim(e-num(2))])
   parse-pattern(none, "[[a_{i} b_{i}] ...i]")
     is p-list(seq-ellipsis(p-list(seq-cons(p-pvar("a", [set: "i"], none),
     seq-cons(p-pvar("b", [set: "i"], none), seq-empty))), "i"))
@@ -734,14 +736,18 @@ where:
     ```
     # ignore me
     sugar or: # ignore this
-    | (or a:Expr b) => (let (bind x a) (if x x b))
+    | (or @l a:Expr b) => (let (bind @a x l) (if x x b))
     end
     # ignore
     ```) is [string-dict:
     "or", [list:
         ds-rule-case(
-          p-surf("or", [list: p-pvar("a", [set: ], some("Expr")), p-pvar("b", [set: ], none)]),
+          p-surf("or", [list:
+            p-pvar("l", [set: ], none),
+            p-pvar("a", [set: ], some("Expr")),
+            p-pvar("b", [set: ], none)]),
           p-surf("let", [list: 
-              p-surf("bind", [list: p-var("x"), p-pvar("a", [set: ], none)]),
-              p-surf("if", [list: p-var("x"), p-var("x"), p-pvar("b", [set: ], none)])]))]]
+              p-pvar("l", [set: ], none),
+              p-surf("bind", [list: p-pvar("a", [set: ], none), p-var("x"), p-pvar("l", [set: ], none)]),
+              p-surf("if", [list:p-pvar("l", [set: ], none), p-var("x"), p-var("x"), p-pvar("b", [set: ], none)])]))]]
 end

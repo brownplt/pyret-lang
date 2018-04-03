@@ -167,3 +167,13 @@ check "double desugar":
 
   a1 satisfies _ <> a2
 end
+
+check "s-construct":
+  [list: 1, 2, 3, 4, 5, 6] is link(1, link(2, link(3, link(4, link(5, link(6, empty))))))
+  [list: 1, 2, 3, 4, 5] is link(1, link(2, link(3, link(4, link(5, empty)))))
+  [list: 1, 2, 3, 4] is link(1, link(2, link(3, link(4, empty))))
+  [list: 1, 2, 3] is link(1, link(2, link(3, empty)))
+  [list: 1, 2] is link(1, link(2, empty))
+  [list: 1] is link(1, empty)
+  [list: ] is empty
+end
