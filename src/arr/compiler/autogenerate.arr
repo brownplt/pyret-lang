@@ -260,6 +260,18 @@ fun generate-ast-visitor(
 end
 
 
+fun get-stmts(s :: String) -> List<A.Expr>:
+  SP.surface-parse(s, '').block.stmts
+end
+
+fun subst(s, t):
+  s.visit(AV.default-map-visitor.{
+    method s-template(self, _):
+      t
+    end
+  })
+end
+
 fun write-ast-visitors() block:
   generate-ast-visitor(
     [list:
@@ -319,13 +331,13 @@ fun write-ast-visitors() block:
           string-dict-args)
       end
 
-      lookup-dict = A.s-construct(
+      lookup-dict-expr = A.s-construct(
         dummy,
         A.s-construct-normal,
         AT.make-id("string-dict"),
         string-dict-args.reverse())
 
-      degeneric-str = ```
+      degeneric-stmts = ```
 
       rec lookup-dict = ...
 
@@ -356,22 +368,36 @@ fun write-ast-visitors() block:
           | g-tag(_, _, body) => term-to-ast(body)
         end
       end
-      ```
+      ``` ^ get-stmts
 
-      helpers-str = ```
+      helpers-stmts = ```
         fun g-str(s): g-prim(e-str(s)) end
         fun g-num(s): g-prim(e-num(s)) end
         fun g-bool(s): g-prim(e-bool(s)) end
         fun g-loc(s): g-prim(e-loc(s)) end
-        ```
+        ``` ^ get-stmts
 
-      degeneric = SP.surface-parse(degeneric-str, '').visit(AV.default-map-visitor.{
-        method s-template(self, _):
-          lookup-dict
+      s-app-method-stmts = ```
+        cases (Expr) _fun:
+          | s-dot(l-dot, obj, field) =>
+            g-surf("s-method-app",
+              [list: g-loc(l), g-loc(l-dot), obj.visit(self), g-str(field), g-list(self.list(args))])
+          | else => ...
         end
-      })
+        ``` ^ get-stmts
 
-      helpers = SP.surface-parse(helpers-str, '')
-      helpers.block.stmts + body + degeneric.block.stmts
+      shadow body = A.s-block(dummy, body).visit(AV.default-map-visitor.{
+        method s-method-field(self, l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky):
+          # no recursion -- only the top one
+          if name == 's-app':
+            A.s-method-field(l, name, params, args, ann, doc,
+              subst(A.s-block(dummy, s-app-method-stmts), body-expr), _check-loc, _check, blocky)
+          else:
+            A.s-method-field(l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky)
+          end
+        end
+      }).stmts
+
+      helpers-stmts + body + subst(A.s-block(dummy, degeneric-stmts), lookup-dict-expr).stmts
     end)
 end

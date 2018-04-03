@@ -406,11 +406,11 @@ end
 check:
   match-pattern(
     parse-ast("(hello {some jack} [[1 2] [3 4]])"),
-    parse-pattern(none, "(hello {some j} [[a b] ...])"))
+    parse-pattern(none, "(hello {some j} [[a b] ...i])"))
     is left({environment(
-        [string-dict: "j", g-var(naked-var("jack"))],
+        [string-dict: "j", g-var(naked-var("jack")), "@toploc", term-dummy-loc],
         [string-dict: ],
-        [string-dict: "l1", [list:
+        [string-dict: "i", [list:
             environment(
               [string-dict: "a", g-prim(e-num(1)), "b", g-prim(e-num(2))],
               [string-dict: ],
@@ -420,12 +420,13 @@ check:
               [string-dict: ],
               [string-dict: ])]]);
       p-surf("hello", [list:
+          p-pvar("@toploc", [set: ], none),
           p-option(some(p-pvar("j", [set: ], none))),
           p-list(seq-ellipsis-list(
               [list:
                 p-list(seq-cons(p-pvar("a", [set: ], none), seq-cons(p-pvar("b", [set: ], none), seq-empty))),
                 p-list(seq-cons(p-pvar("a", [set: ], none), seq-cons(p-pvar("b", [set: ], none), seq-empty)))],
-              "l1"))
+              "i"))
         ])
     })
   
@@ -436,11 +437,11 @@ check:
           g-tag(parse-pattern(none, "x"), parse-pattern(none, "y"),
             parse-ast("q")))
       ]),
-    parse-pattern(none, "[a ...]"))
+    parse-pattern(none, "[a ...i]"))
     is left({environment(
         [string-dict: ],
         [string-dict: ],
-        [string-dict: "l1", [list:
+        [string-dict: "i", [list:
             environment(
               [string-dict: "a", parse-ast("p")],
               [string-dict: ],
@@ -455,7 +456,7 @@ check:
             p-tag(parse-pattern(none, "1"), parse-pattern(none, "2"),
               p-tag(parse-pattern(none, "x"), parse-pattern(none, "y"),
                 parse-pattern(none, "a")))
-          ], "l1"))})
+          ], "i"))})
   
   match-pattern(
     parse-ast("{some foobar}"),
