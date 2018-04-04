@@ -2,7 +2,7 @@ provide *
 
 include string-dict
 include file("ds-structs.arr")
-import file("ds-sugar.arr") as S
+import file("ds-resugar.arr") as RS
 
 fun reverse-term(e):
   cases (Term) e:
@@ -26,7 +26,7 @@ add-metafunction("get-loc-of", 1,
 
 add-metafunction("resugar", 1,
   lam(args, env):
-    cases (Option) S.resugar(args.get(0)):
+    cases (Option) RS.resugar(args.get(0)):
       | some(e) => g-option(some(e))
       | none => g-option(none)
     end

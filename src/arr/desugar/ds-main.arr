@@ -7,7 +7,8 @@ provide {
 import ast as AST
 import file as F
 import file("conversion-visitor.arr") as CONV
-import file("ds-sugar.arr") as DS
+import file("ds-desugar.arr") as DS
+import file("ds-resugar.arr") as RS
 import file("ds-parse.arr") as P
 include file("debugging.arr")
 import file("ds-metafunctions.arr") as _
