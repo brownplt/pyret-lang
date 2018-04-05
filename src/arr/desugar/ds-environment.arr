@@ -94,6 +94,7 @@ fun set-ellipsis(env :: Env, label :: String, env-list :: List<Env>)
 end
 
 fun assign-fresh-names(env :: Env, fresh :: Set<String>) -> Env block:
+  1 + 2
   fresh.fold(lam(env2, v) block:
       set-fresh(env2, v, naked-var(gensym("_")))
     end, env)
