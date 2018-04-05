@@ -186,7 +186,7 @@ sugar s-table-row:
 end
 
 sugar check-ann:
-  | (check-ann l expr ann) =>
+  | (check-ann expr ann) =>
     (fresh [x] (s-let-expr [(s-let-bind (s-bind false x ann) expr)] (s-id x) true))
 end
 
@@ -194,7 +194,7 @@ sugar s-table:
   | (s-table [{s-field-name l_{i} name_{i} ann_{i}} ...i] [{s-table-row [val_{i j} ...i]} ...j]) =>
     (s-prim-app "makeTable"
       [(s-array [(s-str @l_{i} name_{i}) ...i])
-       (s-array [(s-array [(check-ann (meta get-loc-of val_{i j}) val_{i j} ann_{i}) ...i]) ...j])])
+       (s-array [(s-array [(check-ann val_{i j} ann_{i}) ...i]) ...j])])
 end
 
 
@@ -243,19 +243,20 @@ end
 
 sugar s-reactor:
   | (s-reactor [{s-reactor-field l_{i} name_{i} value_{i}} ...i]) =>
-    (s-reactor-acc [{s-reactor-field l_{i} name_{i} value_{i}} ...i] none [])
+    (reactor-acc [{s-reactor-field l_{i} name_{i} value_{i}} ...i] none [])
   # (meta check-dup [name_{i} ...i]) -- this meta produces a wf-error
   # we can use meta because if wf-error happens, then there's no need to resugar
 end
 
 sugar reactor-acc:
-  | (reactor-acc [] init handlers) => (s-prim-app "makeReactor" init (s-obj handlers))
+  | (reactor-acc [] {some init} handlers) => (s-prim-app "makeReactor" [init (s-obj handlers)])
+  | (reactor-acc [] none handlers) => {WF-ERR-TODO}
 
   | (reactor-acc [{s-reactor-field loc "init" init} rest_{i} ...i] none handlers) =>
     (reactor-acc [rest_{i} ...i] {some init} handlers)
 
   | (reactor-acc [{s-reactor-field loc label value} rest_{i} ...i] init [handler_{j} ...j]) =>
-    (reactor-acc [rest_{i} ...i] init [(reactor-search label value loc
+    (reactor-acc [rest_{i} ...i] init [(reactor-search @loc label value
                                          [{pair "last-image"       "Function"}
                                           {pair "on-tick"          "Function"}
                                           {pair "to-draw"          "Function"}
@@ -269,9 +270,9 @@ sugar reactor-acc:
 end
 
 sugar reactor-search:
-  | (reactor-search label value loc [{pair label check} rest_{i} ...i]) =>
-    (s-data-field loc label (s-check-expr loc value (a-name loc (s-type-global check))))
-  | (reactor-search label value loc [whatever rest_{i} ...i]) =>
-    (reactor-search label value loc [rest_{i} ...i])
-  | (reactor-search label value loc []) => {WF-ERR-TODO}
+  | (reactor-search label value [{pair label check} rest_{i} ...i]) =>
+    (s-data-field label (check-ann value (a-name (s-type-global check))))
+  | (reactor-search label value [whatever rest_{i} ...i]) =>
+    (reactor-search label value [rest_{i} ...i])
+  | (reactor-search label value []) => {WF-ERR-TODO}
 end

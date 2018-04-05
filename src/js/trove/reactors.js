@@ -87,9 +87,7 @@
       runtime.checkObject(fields);
       var handlerDict = {};
       Object.keys(fields.dict).forEach(function(f) {
-        if(runtime.ffi.isSome(gf(fields, f))) {
-          handlerDict[f] = gf(gf(fields, f), "value");
-        }
+        handlerDict[f] = gf(fields, f);
       });
       return makeReactorRaw(init, handlerDict, false, []);
     }

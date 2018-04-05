@@ -4,6 +4,7 @@ provide *
 provide-types *
 import srcloc as SL
 import ast as A
+import ast-visitors as AV
 import parse-pyret as PP
 import file("compile-structs.arr") as CS
 import file("ast-anf.arr") as N
@@ -81,7 +82,7 @@ end
 
 fun count-apps(expr) block:
   var count = 0
-  visitor = A.default-iter-visitor.{
+  visitor = AV.default-iter-visitor.{
       method s-app(self, l, f, args) block:
         count := count + 1
         f.visit(self) and args.map(_.visit(self))
@@ -171,7 +172,7 @@ fun default-env-map-visitor<a, c>(
         s-param-bind :: (Loc, A.Name, c -> c)
       }
     ):
-  A.default-map-visitor.{
+  AV.default-map-visitor.{
     env: initial-env,
     type-env: initial-type-env,
     method s-program(self, l, _provide, _provide-types, imports, body):
@@ -284,7 +285,7 @@ fun default-env-iter-visitor<a, c>(
         s-param-bind :: (Loc, A.Name, c -> c)
       }
     ):
-  A.default-iter-visitor.{
+  AV.default-iter-visitor.{
     env: initial-env,
     type-env: initial-type-env,
 
@@ -518,7 +519,7 @@ fun bad-assignments(initial-env, ast) block:
   errors
 end
 
-inline-lams = A.default-map-visitor.{
+inline-lams = AV.default-map-visitor.{
   method s-app(self, loc, f, exps):
     cases(A.Expr) f:
       | s-lam(l, _, _, args, ann, _, body, _, _, _) =>
@@ -558,7 +559,7 @@ end
 # set-recursive-visitor is to replace s-app with s-app-enhanced with correct is-recursive
 # but with incorrect is-tail (all false)
 # postcondition: no s-app
-set-recursive-visitor = A.default-map-visitor.{
+set-recursive-visitor = AV.default-map-visitor.{
   scope: no-s,
 
   method clear-scope(self):
@@ -686,7 +687,7 @@ end
 
 # set-tail-visitor is to correct is-tail in s-app-enriched
 # precondition: no s-app
-set-tail-visitor = A.default-map-visitor.{
+set-tail-visitor = AV.default-map-visitor.{
   is-tail: false,
 
   method s-module(self, l, answer, dv, dt, provides, types, checks):
@@ -825,7 +826,7 @@ fun value-delays-exec-of(name, expr):
   A.is-s-lam(expr) or A.is-s-method(expr)
 end
 
-letrec-visitor = A.default-map-visitor.{
+letrec-visitor = AV.default-map-visitor.{
   env: SD.make-string-dict(),
   method s-letrec(self, l, binds, body, blocky):
     bind-envs = for map2(b1 from binds, i from range(0, binds.length())) block:
@@ -856,7 +857,7 @@ letrec-visitor = A.default-map-visitor.{
 }
 
 fun make-renamer(replacements :: SD.StringDict):
-  A.default-map-visitor.{
+  AV.default-map-visitor.{
     method s-atom(self, base, serial):
       a = A.s-atom(base, serial)
       k = a.key()

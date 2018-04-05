@@ -170,7 +170,7 @@ field: key COLON binop-expr
      | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
 key: NAME
 
-reactor-fields: field (COMMA field)* [COMMA]
+reactor-fields: reactor-field (COMMA reactor-field)* [COMMA]
 reactor-field: key COLON binop-expr
 
 construct-expr: LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
@@ -185,10 +185,8 @@ table-row: ROW table-items
 table-items: [list-table-item* binop-expr]
 list-table-item: binop-expr COMMA
 
-# NOTE(joe): just parsing as "fields" for now, and handling naming in
-# desugaring/well-formed, so that better error messages can be given
 reactor-expr: REACTOR COLON
-  fields
+  reactor-fields
 END
 
 dot-expr: expr DOT NAME
