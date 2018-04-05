@@ -25,11 +25,6 @@ fun check-table<T>(l, e, cont :: (A.Expr -> T)) -> T:
   cont(A.s-prim-app(l, "checkWrapTable", [list: e]))
 end
 
-fun check-ann(l :: S.Srcloc, expr :: A.Expr, ann :: A.Ann) -> A.Expr:
-  id = mk-id-ann(l, "ann-check_", ann)
-  A.s-let-expr(l, [list: A.s-let-bind(l, id.id-b, expr)], id.id-e, true)
-end
-
 fun get-table-column(op-l, l, e, column):
   A.s-app(l,
     A.s-dot(A.dummy-loc, e, "_column-index"),

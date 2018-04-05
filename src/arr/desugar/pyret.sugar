@@ -1,3 +1,11 @@
+sugar g-id:
+  | (g-id x) => (s-id (s-global x))
+end
+
+sugar b-id:
+  | (b-id x) => (s-dot (g-id "builtins") x)
+end
+
 sugar s-method-app:
   | (s-method-app l2 obj field args) => (s-app (s-dot @l2 obj field) args)
 end
