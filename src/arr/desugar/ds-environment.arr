@@ -5,6 +5,7 @@ include string-dict
 
 include file("ds-structs.arr")
 include file("ds-parse.arr")
+include file("debugging.arr")
 
 ################################################################################
 #  Environments
@@ -22,29 +23,50 @@ fun get-fresh(env :: Env, pvar :: String) -> Option<Variable>:
   env.fresh-map.get(pvar)
 end
 
-fun unify<a>(dict1 :: StringDict<a>, dict2 :: StringDict<a>) -> StringDict<a>:
+fun unify<a>(dict1 :: StringDict<a>, dict2 :: StringDict<a>, label :: String) -> StringDict<a>:
   for fold-keys(acc from dict1, key from dict2):
     val = dict2.get-value(key)
     cases (Option) acc.get(key) block:
       | none => acc.set(key, val)
       | some(val2) =>
         when val <> val2:
-          fail("Fail to unify environment")
+          fail("Fail to unify environment: " + tostring(dict1) + " and " + tostring(dict2) + " due to " + tostring(val) + " and " + tostring(val2) + " on splitting label " + label)
         end
         acc
     end
   end
 end
 
-fun get-ellipsis(env :: Env, label :: String) -> Option<List<Env>>:
+fun unify-list(dict1 :: StringDict<List<Env>>, dict2 :: StringDict<List<Env>>, label :: String) -> StringDict<List<Env>>:
+  for fold-keys(acc from dict1, key from dict2):
+    val = dict2.get-value(key)
+    cases (Option) acc.get(key) block:
+      | none => acc.set(key, val)
+      | some(val2) =>
+        when val.length() <> val2.length():
+          fail("Fail to unify environment: " + tostring(dict1) + " and " + tostring(dict2) + " due to " + tostring(val) + " and " + tostring(val2) + " having different length on splitting label " + label)
+        end
+        acc.set(key, map2(unify-env(_, _, label), val, val2))
+    end
+  end
+end
+
+fun unify-env(env :: Env, env-new :: Env, label :: String) -> Env:
+  pvar-map = unify(env.pvar-map, env-new.pvar-map, label)
+  fresh-map = unify(env.fresh-map, env-new.fresh-map, label)
+  ellipsis-map = unify-list(env.ellipsis-map, env-new.ellipsis-map, label)
+  environment(pvar-map, fresh-map, ellipsis-map)
+end
+
+fun get-ellipsis(env :: Env, label :: String) -> Option<List<Env>> block:
   cases (Option) env.ellipsis-map.get(label):
     | none => none
     | some(envs) =>
       for map(env-new from envs):
-        pvar-map = unify(env.pvar-map, env-new.pvar-map)
-        fresh-map = unify(env.fresh-map, env-new.fresh-map)
-        ellipsis-map = unify(env.ellipsis-map, env-new.ellipsis-map.remove(label))
-        environment(pvar-map, fresh-map, ellipsis-map)
+        unify-env(
+          environment(env.pvar-map, env.fresh-map, env.ellipsis-map.remove(label)),
+          env-new,
+          label)
       end ^ some
   end
 end
@@ -71,8 +93,8 @@ fun set-ellipsis(env :: Env, label :: String, env-list :: List<Env>)
     env.ellipsis-map.set(label, env-list))
 end
 
-fun assign-fresh-names(env :: Env, fresh :: Set<String>) -> Env:
-  fresh.fold(lam(shadow env, v):
-      set-fresh(env, v, naked-var(gensym("_")))
+fun assign-fresh-names(env :: Env, fresh :: Set<String>) -> Env block:
+  fresh.fold(lam(env2, v) block:
+      set-fresh(env2, v, naked-var(gensym("_")))
     end, env)
 end

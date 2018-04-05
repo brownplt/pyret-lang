@@ -792,34 +792,28 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     true
   end,
-  method s-reactor(self, l, fields):
-    method-fields = for filter(f from fields): A.is-s-method-field(f) end
-    if not(is-empty(method-fields)) block:
-      wf-error([list: ED.text("A reactor cannot contain method fields ")], method-fields.first.l)
-      true
-    else:
-      has-init = is-some(for find(f from fields): f.name == "init" end)
-      when not(has-init):
-        wf-error([list: ED.text("A reactor must have a field named "), ED.code(ED.text("init")),
-            ED.text(" for the initial value ")], l)
-      end
-      fields-dict = SD.make-mutable-string-dict()
-      ok-fields = C.reactor-fields
-      for each(f from fields) block:
-        when not(ok-fields.has-key(f.name)):
-          wf-error([list: ED.text("Valid options for reactors are "),
-              ED.h-sequence-sep(ok-fields.keys-list().map({(ok): ED.code(ED.text(ok))}), ", ", ", or "),
-              ED.text(", but found one named "),
-              ED.code(ED.text(f.name)), ED.text(" ")], f.l)
-        end
-        cases(Option<A.Loc>) fields-dict.get-now(f.name):
-          | none => fields-dict.set-now(f.name, f.l)
-          | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
-        end
-        f.visit(self)
-      end
-      true
+  method s-reactor(self, l, fields) block:
+    has-init = is-some(for find(f from fields): f.name == "init" end)
+    when not(has-init):
+      wf-error([list: ED.text("A reactor must have a field named "), ED.code(ED.text("init")),
+          ED.text(" for the initial value ")], l)
     end
+    fields-dict = SD.make-mutable-string-dict()
+    ok-fields = C.reactor-fields
+    for each(f from fields) block:
+      when not(ok-fields.has-key(f.name)):
+        wf-error([list: ED.text("Valid options for reactors are "),
+            ED.h-sequence-sep(ok-fields.keys-list().map({(ok): ED.code(ED.text(ok))}), ", ", ", or "),
+            ED.text(", but found one named "),
+            ED.code(ED.text(f.name)), ED.text(" ")], f.l)
+      end
+      cases(Option<A.Loc>) fields-dict.get-now(f.name):
+        | none => fields-dict.set-now(f.name, f.l)
+        | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
+      end
+      f.visit(self)
+    end
+    true
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
     wf-table-headers(l, header)

@@ -445,6 +445,9 @@ shadow default-map-visitor =
         self.option(_check),
         blocky)
     end,
+    method s-reactor-field(self, l, name, value):
+      s-reactor-field(l, name, value.visit(self))
+    end,
     method s-field-name(self, l, name, ann):
       s-field-name(l, name, ann.visit(self))
     end,
@@ -900,6 +903,7 @@ shadow default-iter-visitor =
         and
         self.option(_check)
     end,
+    method s-reactor-field(self, l, name, value): value.visit(self) end,
     method s-field-name(self, l, name, ann): ann.visit(self) end,
     method s-for-bind(self, l, bind, value):
       bind.visit(self) and value.visit(self)
@@ -1447,6 +1451,9 @@ shadow dummy-loc-visitor =
         _check-loc,
         self.option(_check),
         blocky)
+    end,
+    method s-reactor-field(self, l, name, value):
+      s-reactor-field(dummy-loc, name, value.visit(self))
     end,
     method s-field-name(self, l, name, ann):
       s-field-name(dummy-loc, name, ann.visit(self))

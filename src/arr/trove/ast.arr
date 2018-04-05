@@ -1069,7 +1069,7 @@ data Expr:
             self.body.tosource(), str-end)
       end
     end
-  | s-reactor(l :: Loc, fields :: List<Member>) with:
+  | s-reactor(l :: Loc, fields :: List<ReactorMember>) with:
     method label(self): "s-reactor" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.str("reactor: end"),
@@ -1300,6 +1300,19 @@ data Member:
     method tosource(self):
       funlam-tosource(str-method,
         PP.str(self.name), self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data ReactorMember:
+  | s-reactor-field(l :: Loc, name :: String, value :: Expr) with:
+    method label(self): "s-reactor-field" end,
+    method tosource(self):
+      name-part = PP.str(self.name)
+      PP.nest(INDENT, name-part + str-colonspace + self.value.tosource())
     end
 sharing:
   method visit(self, visitor):
@@ -2078,7 +2091,7 @@ default-map-visitor = {
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     s-construct(l, mod, constructor.visit(self), values.map(_.visit(self)))
   end,
-  method s-reactor(self, l :: Loc, fields :: List<Member>):
+  method s-reactor(self, l :: Loc, fields :: List<ReactorMember>):
     s-reactor(l, fields.map(_.visit(self)))
   end,
   method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
@@ -2634,7 +2647,7 @@ default-iter-visitor = {
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
     constructor.visit(self) and all(_.visit(self), values)
   end,
-  method s-reactor(self, l :: Loc, fields :: List<Member>):
+  method s-reactor(self, l :: Loc, fields :: List<ReactorMember>):
     all(_.visit(self), fields)
   end,
   method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):

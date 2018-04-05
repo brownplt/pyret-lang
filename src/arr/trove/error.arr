@@ -49,8 +49,8 @@ fun please-report-bug():
   [ED.para: ED.text("Please report this as a bug.")]
 end
 
-fun and-if(predicate, option):
-  cases(O.Option) option:
+fun and-if(predicate, opt):
+  cases(O.Option) opt:
     | none => O.none
     | some(v) =>
       if predicate(v):
@@ -61,8 +61,8 @@ fun and-if(predicate, option):
   end
 end
 
-fun and-maybe(f, option):
-  cases(O.Option) option:
+fun and-maybe(f, opt):
+  cases(O.Option) opt:
     | none => O.none
     | some(v) => f(v)
   end

@@ -864,12 +864,26 @@
                    tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
           }
         },
+        'reactor-field': function(node) {
+          // (field key COLON value)
+          return RUNTIME.getField(ast, "s-reactor-field")
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        },
         'fields': function(node) {
           if (node.kids[node.kids.length - 1].name !== "field") {
             // (fields field (COMMA f1)* COMMA)
             return makeListComma(node.kids, 0, node.kids.length - 1);
           } else {
             // (fields field (COMMA f1)*)
+            return makeListComma(node.kids);
+          }
+        },
+        'reactor-fields': function(node) {
+          if (node.kids[node.kids.length - 1].name !== "reactor-field") {
+            // (reactor-fields reactor-field (COMMA f1)* COMMA)
+            return makeListComma(node.kids, 0, node.kids.length - 1);
+          } else {
+            // (reactor-fields reactor-field (COMMA f1)*)
             return makeListComma(node.kids);
           }
         },

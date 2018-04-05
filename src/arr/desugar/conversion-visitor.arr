@@ -683,6 +683,10 @@ shadow ast-to-term-visitor =
           g-bool(blocky)
         ])
     end,
+    method s-reactor-field(self, l, name, value):
+      g-surf("s-reactor-field",
+        [list: g-loc(l), g-str(name), value.visit(self)])
+    end,
     method s-field-name(self, l, name, ann):
       g-surf("s-field-name", [list: g-loc(l), g-str(name), ann.visit(self)])
     end,
@@ -1459,6 +1463,12 @@ rec lookup-dict =
         term-to-ast(args.get(7)),
         term-to-ast(args.get(8)),
         term-to-ast(args.get(9)))
+    end,
+    "s-reactor-field",
+    lam(args):
+      s-reactor-field(term-to-ast(args.get(0)),
+        term-to-ast(args.get(1)),
+        term-to-ast(args.get(2)))
     end,
     "s-field-name",
     lam(args):

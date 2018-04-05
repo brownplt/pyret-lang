@@ -170,6 +170,9 @@ field: key COLON binop-expr
      | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
 key: NAME
 
+reactor-fields: field (COMMA field)* [COMMA]
+reactor-field: key COLON binop-expr
+
 construct-expr: LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
 construct-modifier: | LAZY
 

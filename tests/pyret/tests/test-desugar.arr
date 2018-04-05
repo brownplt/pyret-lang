@@ -177,3 +177,14 @@ check "s-construct":
   [list: 1] is link(1, empty)
   [list: ] is empty
 end
+
+check "s-for":
+  for map(x from [list: 1, 2, 3]):
+    x + 1
+  end is [list: 2, 3, 4]
+end
+
+check "s-bracket":
+  obj = {method get-value(self, v): v * 2 end}
+  (_[_])(obj, 3) is 6
+end

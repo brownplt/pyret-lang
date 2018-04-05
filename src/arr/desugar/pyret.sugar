@@ -1,3 +1,7 @@
+sugar s-method-app:
+  | (s-method-app l2 obj field args) => (s-app (s-dot @l2 obj field) args)
+end
+
 sugar g-id:
   | (g-id x) => (s-id (s-global x))
 end
@@ -17,17 +21,6 @@ end
 
 sugar boolean?:
   | (boolean? x) => (s-prim-app "isBoolean" [x])
-end
-
-################################################################################
-
-sugar s-underscore:
-  | (s-underscore) => {s-underscore}
-end
-
-sugar transform-underscore:
-  | (transform-underscore {s-underscore}) => (fresh [name] name)
-  | (transform-underscore non-underscore) => non-underscore
 end
 
 ################################################################################
@@ -149,139 +142,97 @@ sugar s-import-fields:
 end
 
 ################################################################################
-
-sugar s-import-complete:
-  | (s-import-complete vals types import-type vals-name types-name) =>
-    <s-import-complete vals
-                       types
-                       import-type
-                       (transform-underscore vals-name)
-                       (transform-underscore types-name)>
-  # TODO: need another phase before desugaring that goes through vals and types
-  # and mark {s-underscore} as invalid
-end
-
-sugar s-lam:
-  | (s-lam name [param_{x} ...x] args ann doc body check-loc check blocky) =>
-    <s-lam name [(transform-underscore param_{x}) ...x] args ann doc body check-loc check blocky>
-end
-
-sugar s-bind:
-  | (s-bind shadows {s-underscore} ann) => (s-bind shadows (fresh [x] x) ann)
-  | (s-bind shadows non-underscore ann) => <s-bind shadows non-underscore ann>
-end
-
-
-
+# DONE: s-for
 ################################################################################
 
-sugar check-bool:
-  | (check-bool e) => (s-prim-app "checkWrapBoolean" [e])
+sugar s-for-bind:
+  | (s-for-bind bind value) => {s-for-bind bind value}
 end
 
-sugar s-op:
-  | (s-op op-loc "opor" left right) =>
-    (s-if-else [(s-if-branch left (s-bool true))] (check-bool right) false)
-  | (s-op op-loc "opand" left right) =>
-    (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
-  | (s-op op-loc "op^" left right) => (s-app right [left])
-  | (s-op op-loc op left right) => (curry-binop [left right] op)
+sugar s-for:
+  | (s-for @l iter [{s-for-bind bind_{i} value_{i}} ...i] ann body blocky) =>
+    (s-app
+      iter
+      [(s-lam
+         (meta string-append "<for-body"
+                             (meta string-append (meta srcloc-to-string l) ">"))
+         [] [bind_{i} ...i] ann "" body none none blocky)
+       value_{i} ...i])
 end
+
+################################################################################
+# DONE: s-bracket
+################################################################################
 
 sugar s-bracket:
   | (s-bracket @l obj key) =>
     (s-app (s-dot (s-id (s-global "builtins")) "get-value")
            [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
-  # need to support currying
 end
 
-sugar s-method-field:
-  | (s-method-field name params args ann doc body check-loc check blocky) =>
-    (s-data-field name (s-method name params args ann doc body
-                                 check-loc check blocky))
+################################################################################
+# DONE: s-table
+################################################################################
+
+sugar s-field-name:
+  | (s-field-name @l name ann) => {s-field-name l name ann}
 end
 
-sugar s-id:
-  | (s-id {s-underscore}) => {s-id-underscore}
-  | (s-id id) => <s-id id>
+sugar s-table-row:
+  | (s-table-row elems) => {s-table-row elems}
 end
 
-sugar curry-acc:
-  | (curry-acc [] [param_{x} ...x] args) =>
-    {pair (biject reverse [(mk-s-bind param_{x}) ...x]) (biject reverse args)}
-  | (curry-acc [{s-id-underscore} rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
-    (fresh [f] (curry-acc [rest_{x} ...x] [f param_{y} ...y] [(s-id f) arg_{z} ...z]))
-  | (curry-acc [e rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
-    (curry-acc [rest_{x} ...x] [param_{y} ...y] [e arg_{z} ...z])
+sugar check-ann:
+  | (check-ann l expr ann) =>
+    (fresh [x] (s-let-expr [(s-let-bind (s-bind false x ann) expr)] (s-id x) true))
 end
 
-sugar curry-args:
-  | (curry-args lst) => (curry-acc lst [] [])
+sugar s-table:
+  | (s-table [{s-field-name l_{i} name_{i} ann_{i}} ...i] [{s-table-row [val_{i j} ...i]} ...j]) =>
+    (s-prim-app "makeTable"
+      [(s-array [(s-str @l_{i} name_{i}) ...i])
+       (s-array [(s-array [(check-ann (meta get-loc-of val_{i j}) val_{i j} ann_{i}) ...i]) ...j])])
 end
 
-sugar curry-binop:
-  | (curry-binop args op) => (curry-binop-help (curry-args args) op)
+################################################################################
+# DONE: s-reactor
+################################################################################
+
+sugar s-reactor-field:
+  | (s-reactor-field @l name value) => {s-reactor-field l name value}
 end
 
-sugar curry-binop-help:
-  | (curry-binop-help {pair [] args} "op+") => (s-app (s-id (s-global "_plus")) args)
-  | (curry-binop-help {pair [] args} "op-") => (s-app (s-id (s-global "_minus")) args)
-  | (curry-binop-help {pair [] args} "op*") => (s-app (s-id (s-global "_times")) args)
-  | (curry-binop-help {pair [] args} "op/") => (s-app (s-id (s-global "_divide")) args)
-  | (curry-binop-help {pair [] args} "op<") => (s-app (s-id (s-global "_lessthan")) args)
-  | (curry-binop-help {pair [] args} "op>") => (s-app (s-id (s-global "_greaterthan")) args)
-  | (curry-binop-help {pair [] args} "op>=") => (s-app (s-id (s-global "_greaterequal")) args)
-  | (curry-binop-help {pair [] args} "op<=") => (s-app (s-id (s-global "_lessequal")) args)
-  | (curry-binop-help {pair [] args} "op==") => (s-app (s-id (s-global "equal-always")) args)
-  | (curry-binop-help {pair [] args} "op=~") => (s-app (s-id (s-global "equal-now")) args)
-  | (curry-binop-help {pair [] args} "op<=>") => (s-app (s-id (s-global "identical")) args)
-  | (curry-binop-help {pair [] args} "op<>") =>
-    (s-prim-app "not" [(curry-binop-help {pair [] args} "op==")])
-  | (curry-binop-help {pair params args} op) =>
-    (mk-s-lam params (curry-binop-help {pair [] args} op))
+sugar s-reactor:
+  | (s-reactor [{s-reactor-field l_{i} name_{i} value_{i}} ...i]) =>
+    (s-reactor-acc [{s-reactor-field l_{i} name_{i} value_{i}} ...i] none [])
+  # (meta check-dup [name_{i} ...i]) -- this meta produces a wf-error
+  # we can use meta because if wf-error happens, then there's no need to resugar
 end
 
-sugar curry-help:
-  | (curry-help {pair [] [f args_{x} ...x]}) => <s-app f [args_{x} ...x]>
-  | (curry-help {pair params args}) => (mk-s-lam params (curry-help {pair [] args}))
+sugar reactor-acc:
+  | (reactor-acc [] init handlers) => (s-prim-app "makeReactor" init (s-obj handlers))
+
+  | (reactor-acc [{s-reactor-field loc "init" init} rest_{i} ...i] none handlers) =>
+    (reactor-acc [rest_{i} ...i] {some init} handlers)
+
+  | (reactor-acc [{s-reactor-field loc label value} rest_{i} ...i] init [handler_{j} ...j]) =>
+    (reactor-acc [rest_{i} ...i] init [(reactor-search label value loc
+                                         [{pair "last-image"       "Function"}
+                                          {pair "on-tick"          "Function"}
+                                          {pair "to-draw"          "Function"}
+                                          {pair "on-key"           "Function"}
+                                          {pair "on-mouse"         "Function"}
+                                          {pair "stop-when"        "Function"}
+                                          {pair "seconds-per-tick" "NumPositive"}
+                                          {pair "title"            "String"}
+                                          {pair "close-when-stop"  "Boolean"}])
+                                       handler_{j} ...j])
 end
 
-sugar s-app:
-  | (s-app f [args_{x} ...x]) => (curry-help (curry-args [f args_{x} ...x]))
-end
-
-sugar curry-method-help:
-  | (curry-method-help {pair [] [obj args_{i} ...i]} l-dot field) =>
-    <s-app <s-dot @l-dot obj field> [args_{i} ...i]>
-  | (curry-method-help {pair params args} l-dot field) =>
-    (mk-s-lam params (curry-method-help {pair [] args} l-dot field))
-end
-
-sugar s-method-app:
-  | (s-method-app l-dot obj field [args_{i} ...i]) =>
-    (curry-method-help (curry-args [obj args_{i} ...i]) l-dot field)
-end
-
-sugar s-dot:
-  | (s-dot {s-id-underscore} field) =>
-    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-dot (s-id x) field>))
-  | (s-dot x field) => <s-dot x field>
-end
-
-sugar s-get-bang:
-  | (s-get-bang {s-id-underscore} field) =>
-    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-get-bang (s-id x) field>))
-  | (s-get-bang x field) => <s-get-bang x field>
-end
-
-sugar s-update:
-  | (s-update {s-id-underscore} fields) =>
-    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-update (s-id x) fields>))
-  | (s-update x field) => <s-update x field>
-end
-
-sugar s-extend:
-  | (s-extend {s-id-underscore} fields) =>
-    (fresh [x] (mk-s-lam [(mk-s-bind x)] <s-extend (s-id x) fields>))
-  | (s-extend x field) => <s-extend x field>
+sugar reactor-search:
+  | (reactor-search label value loc [{pair label check} rest_{i} ...i]) =>
+    (s-data-field loc label (s-check-expr loc value (a-name loc (s-type-global check))))
+  | (reactor-search label value loc [whatever rest_{i} ...i]) =>
+    (reactor-search label value loc [rest_{i} ...i])
+  | (reactor-search label value loc []) => {WF-ERR}
 end

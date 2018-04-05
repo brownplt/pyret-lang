@@ -170,7 +170,7 @@ fun weave-contracts(contracts, rev-binds) block:
     else if A.is-s-letrec-bind(bind): A.s-letrec-bind(bind.l, bind.b, new-v)
     end
   end
-    
+
   ans = for fold(acc from empty, bind from rev-binds):
     cases(A.Bind) bind.b:
       | s-bind(l, shadows, id, ann) =>
@@ -215,7 +215,7 @@ fun weave-contracts(contracts, rev-binds) block:
                           rebuild-bind(bind,
                             bind.b,
                             A.s-lam(l, name, params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
-                          acc)                        
+                          acc)
                       end
                     else:
                       errors := link(C.contract-non-function(c.l, id-name, l, true), errors)
@@ -493,7 +493,7 @@ where:
       A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3)),
       p-s(id("x"))
     ])
-  
+
   prog4 = bs("var x = 10 fun f(): 4 end f()")
   prog4
     is A.s-let-expr(d, [list:
@@ -534,7 +534,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
       | empty => {new-binds; new-body}
       | link(_, _) => {new-binds; A.s-let-expr(a.l, lbs.rest, new-body, false)}
     end
-  end  
+  end
   rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, _check-loc, v-check, blocky)
 end
 
@@ -646,7 +646,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
           end
         | else => raise("Impossible")
       end
-      
+
       errors := empty
       {initial-contracts; stmts} = L.take-while(A.is-s-contract, with-provides.stmts)
       all-imported-names = [SD.mutable-string-dict: ]
@@ -851,7 +851,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     { column-binds: A.s-column-binds(column-binds.l, env-and-binds.cbs, column-binds.table.visit(visitor)),
                env: env-and-binds.env }
   end
-      
+
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
@@ -861,7 +861,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           vb = self.env.get-value(k)
           C.is-bo-local(vb.origin)
         end
-      defined-vals = for map(key from non-globals): 
+      defined-vals = for map(key from non-globals):
         vb = self.env.get-value(key)
         atom = vb.atom
         cases(C.ValueBinder) vb.binder block:
@@ -990,7 +990,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
       data-defs = for lists.filter-map(ddk from datatypes.keys-list-now()):
-        dd = datatypes.get-value-now(ddk) 
+        dd = datatypes.get-value-now(ddk)
         if provide-types-dict.has-key(dd.name):
           some(A.p-data(dd.l, dd.namet, none))
         else:
@@ -1074,7 +1074,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {env; fbs} = for fold(acc from { self.env; empty }, fb from binds):
         {env; fbs} = acc
         cases(A.ForBind) fb block:
-          | s-for-bind(l2, bind, val) => 
+          | s-for-bind(l2, bind, val) =>
             atom-env = make-atom-for(bind.id, bind.shadows, env, bindings,
               C.value-bind(C.bo-local(l2), C.vb-let, _, bind.ann.visit(self), none))
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
@@ -1245,7 +1245,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           end
         | s-atom(_, _) => A.s-id(l, id)
         | s-underscore(_) => A.s-id(l, id)
-        | s-global(_) => A.s-id(l, id)
         | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
       end
     end,
@@ -1263,7 +1262,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method s-bind(self, l, shadows, id, ann):
       cases(A.Name) id:
         | s-underscore(_) => A.s-bind(l, shadows, id, ann)
-        | else => 
+        | else =>
           raise("Should not reach non-underscore bindings in resolve-names: " + id.key() + " at " + torepr(l))
       end
     end,
