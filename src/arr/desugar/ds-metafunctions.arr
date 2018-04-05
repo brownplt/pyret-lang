@@ -32,6 +32,21 @@ add-metafunction("resugar", 1,
     end
   end)
 
+add-metafunction("name-to-str", 1,
+  lam(args, env):
+    cases (Term) args.get(0):
+      | g-core(op, lst) =>
+        if op == "s-underscore":
+          g-prim(e-str("_"))
+        else if [list: "s-name", "s-global", "s-type-global", "s-atom"].member(op):
+          lst.get(1)
+        else:
+          fail("name-to-str: get a non Name argument: " + tostring(args.get(0)))
+        end
+      | else => fail("name-to-str: get a non core argument: " + tostring(args.get(0)))
+    end
+  end)
+
 add-metafunction("string-append", 2,
   lam(args, _):
     fun get-string(t :: Term) -> String:

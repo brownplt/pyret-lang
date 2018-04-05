@@ -6,6 +6,10 @@ sugar g-id:
   | (g-id x) => (s-id (s-global x))
 end
 
+sugar b-id:
+  | (b-id x) => (s-dot (g-id "builtins") x)
+end
+
 sugar mk-s-bind:
   | (mk-s-bind name) => (s-bind false name (a-blank))
 end
@@ -166,8 +170,7 @@ end
 
 sugar s-bracket:
   | (s-bracket @l obj key) =>
-    (s-app (s-dot (s-id (s-global "builtins")) "get-value")
-           [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
+    (s-app (b-id "get-value") [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
 end
 
 ################################################################################
@@ -192,6 +195,42 @@ sugar s-table:
     (s-prim-app "makeTable"
       [(s-array [(s-str @l_{i} name_{i}) ...i])
        (s-array [(s-array [(check-ann (meta get-loc-of val_{i j}) val_{i j} ann_{i}) ...i]) ...j])])
+end
+
+
+################################################################################
+# DONE: s-load-table
+################################################################################
+
+sugar s-sanitize:
+  | (s-sanitize name sanitizer) => {s-sanitize name sanitizer}
+end
+
+sugar s-table-src:
+  | (s-table-src src) => {s-table-src src}
+end
+
+sugar load-table-acc:
+  | (load-table-acc [] src sanitizers) => {pair src sanitizers}
+  | (load-table-acc [{s-sanitize name sanitizer} rest_{i} ...i] src [sanitizers_{j} ...j]) =>
+    (load-table-acc [rest_{i} ...i] src
+       [(s-app (b-id "as-loader-option") [(s-str "sanitizer") (s-str (meta name-to-str name)) sanitizer]) sanitizers_{j} ...j])
+  | (load-table-acc [{s-table-src src} rest_{i} ...i] none sanitizers) =>
+    (load-table-acc [rest_{i} ...i] {some src} sanitizers)
+  | (load-table-acc lst {some src} sanitizers) => {WF-ERR-TODO}
+end
+
+sugar s-load-table:
+  | (s-load-table headers spec) => (load-table-helper headers (load-table-acc spec none []))
+end
+
+sugar load-table-helper:
+  | (load-table-helper [{s-field-name l_{i} name_{i} ann_{i}} ...i]
+                       {pair {some src} sanitizers}) =>
+    (s-app (b-id "open-table")
+       [(s-app (s-dot src "load") [(s-array [(s-str name_{i}) ...i])
+                                   (s-array sanitizers)])])
+  | (load-table-helper [header_{i} ...i] {pair none sanitizers}) => {WF-ERR-TODO}
 end
 
 ################################################################################
@@ -234,5 +273,5 @@ sugar reactor-search:
     (s-data-field loc label (s-check-expr loc value (a-name loc (s-type-global check))))
   | (reactor-search label value loc [whatever rest_{i} ...i]) =>
     (reactor-search label value loc [rest_{i} ...i])
-  | (reactor-search label value loc []) => {WF-ERR}
+  | (reactor-search label value loc []) => {WF-ERR-TODO}
 end

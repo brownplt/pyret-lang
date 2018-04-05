@@ -61,58 +61,6 @@ fun desugar-expr(e-top :: A.Expr) -> A.Expr:
       A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
     end,
 
-    method s-table(self, l, headers, rows):
-      shadow l = A.dummy-loc
-      column-names = for map(header from headers):
-        A.s-str(header.l, header.name)
-      end
-      anns = for map(header from headers):
-        header.ann
-      end
-      shadow rows = for map(row from rows):
-        elems = for map_n(n from 0, elem from row.elems):
-          check-ann(elem.l, elem.visit(self), anns.get(n))
-        end
-        A.s-array(l, elems)
-      end
-      A.s-prim-app(l, "makeTable",
-        [list: A.s-array(l, column-names),
-               A.s-array(l, rows)])
-    end,
-
-    method s-load-table(self, l, headers, spec):
-      dummy = A.dummy-loc
-      {src; sanitizers} = for fold(acc from {none; empty}, s from spec):
-        {src; sanitizers} = acc
-        cases(A.LoadTableSpec) s:
-          | s-sanitize(_, name, sanitizer) =>
-            # Convert to loader option
-            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
-              [list:
-                A.s-str(dummy, "sanitizer"),
-                A.s-str(dummy, name.toname()),
-                sanitizer])
-            {src; link(as-option, sanitizers)}
-          | s-table-src(_, source) =>
-            # Well-formedness ensures that this matches exactly once
-            {some(source); sanitizers}
-        end
-      end
-
-      shadow src = cases(Option) src:
-        | none =>
-          raise("s-load-table missing source: Well-formedness should have failed")
-        | some(s) => s
-      end
-
-      loaded = A.s-app(l,
-        A.s-dot(l, src, "load"),
-        [list:
-          A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
-          A.s-array(dummy, sanitizers)])
-
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
-    end,
     method s-table-extend(self, l, column-binds, extensions):
       # NOTE(philip): I am fairly certain that this will need to be moved
       #               to post-type-check desugaring, since the variables used
