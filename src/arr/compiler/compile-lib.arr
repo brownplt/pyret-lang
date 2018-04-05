@@ -333,7 +333,7 @@ end
 fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> {Loadable; List} block:
   G.reset()
   A.global-names.reset()
-  print("Compiling module: " + locator.uri() + "\n")
+  #print("Compiling module: " + locator.uri() + "\n")
   env = CS.compile-env(locator.get-globals(), provide-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>

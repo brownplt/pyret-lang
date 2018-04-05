@@ -403,9 +403,9 @@ end
 check:
   match-pattern(
     parse-ast("(hello {some jack} [[1 2] [3 4]])"),
-    parse-pattern(none, "(hello {some j} [[a b] ...i])"))
+    parse-pattern(none, "(hello @l {some j} [[a b] ...i])"))
     is left({environment(
-        [string-dict: "j", g-var(naked-var("jack")), "@toploc", term-dummy-loc],
+        [string-dict: "j", g-var(naked-var("jack")), "l", term-dummy-loc],
         [string-dict: ],
         [string-dict: "i", [list:
             environment(
@@ -417,7 +417,7 @@ check:
               [string-dict: ],
               [string-dict: ])]]);
       p-surf("hello", [list:
-          p-pvar("@toploc", [set: ], none),
+          p-pvar("l", [set: ], none),
           p-option(some(p-pvar("j", [set: ], none))),
           p-list(seq-ellipsis-list(
               [list:

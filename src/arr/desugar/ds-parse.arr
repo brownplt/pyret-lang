@@ -600,8 +600,6 @@ fun parse-pattern(pvars :: Option<Set<String>>, input :: String) -> Pattern:
 where:
   parse-pattern(none, "3")
     is p-prim(e-num(3))
-  parse-pattern(none, "(foo 1 2)")
-    is p-surf("foo", [list: p-pvar("@toploc", [set: ], none), p-prim(e-num(1)), p-prim(e-num(2))])
   parse-pattern(none, "(foo @l 1 2)")
     is p-surf("foo", [list: p-pvar("l", [set: ], none), p-prim(e-num(1)), p-prim(e-num(2))])
   parse-pattern(none, "[[a_{i} b_{i}] ...i]")

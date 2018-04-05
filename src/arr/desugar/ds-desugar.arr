@@ -164,7 +164,7 @@ check:
   rules = parse-ds-rules(
     ```
     sugar or:
-    | (or a:Expr b) => (fresh [x] (let (bind x a) (if x x b)))
+    | (or @l a:Expr b) => (fresh [x] (let (bind x a) (if x x b)))
     end
     ```)
   e = parse-ast("(or p q)")
@@ -173,18 +173,18 @@ end
 
 check:
   subs([string-dict:], environment(
-      [string-dict: "@toploc", term-dummy-loc],
+      [string-dict: "l", term-dummy-loc],
       [string-dict: ],
       [string-dict: "i", 
         [list:
           set-pvar(empty-env(), "a", parse-ast("<Foo>")),
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
-    parse-pattern(none, "(Bar [a_{i} ...i])")) ^ strip-tags
+    parse-pattern(none, "(Bar @l [a_{i} ...i])")) ^ strip-tags
     is parse-ast("<Bar [<Foo> 5]>")
  
   subs([string-dict:], environment(
-      [string-dict: "@toploc", term-dummy-loc],
+      [string-dict: "l", term-dummy-loc],
       [string-dict: ],
       [string-dict:
         "i", 
@@ -192,6 +192,6 @@ check:
           set-pvar(empty-env(), "a", parse-ast("<Foo>")),
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
-    parse-pattern(none, "(Bar [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
+    parse-pattern(none, "(Bar @l [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
     is parse-ast("<Bar [<Foo> 5] [<Foo> 5]>")  
 end
