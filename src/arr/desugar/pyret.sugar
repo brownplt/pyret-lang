@@ -1,3 +1,12 @@
 sugar s-method-app:
   | (s-method-app l2 obj field args) => (s-app (s-dot @l2 obj field) args)
 end
+
+################################################################################
+# DONE: s-bracket
+################################################################################
+
+sugar s-bracket:
+  | (s-bracket @l obj key) =>
+    (s-app (b-id "get-value") [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
+end
