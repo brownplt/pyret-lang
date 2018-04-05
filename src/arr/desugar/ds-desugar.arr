@@ -1,5 +1,5 @@
 provide {
-    desugar-surf: desugar-surf
+    desugar: desugar    
 } end
 
 include string-dict
@@ -10,6 +10,31 @@ include file("ds-parse.arr")
 include file("ds-environment.arr")
 include file("ds-match.arr")
 
+
+################################################################################
+#  Notes
+#
+
+# Errors:
+# - Desugaring needs to be able to raise errors,
+#   and it needs to be able to raise multiple errors.
+# - There should be a special kind of auxilliary called 'error',
+#   whose children are a list of pyret error expressions.
+# - If a sugar expands to a pattern with one or more 'error',
+#   then desugaring will collect those errors and expand to an 'error'.
+# - If one or more of a sugar's children expands into an 'error',
+#   then that sugar expands into an 'error' (whose children are the union
+#   of the sugars' childrens' errors' children).
+# - If no sugar matches, that's an internal error, and will get automagically
+#   turned into an 'error'.
+# - If a sugar has no matching case when expanding, that's an error.
+# - Possible feature: special 'leftover' rules for turning auxilliary
+#   terms that are leftover after desugaring into errors.
+
+
+################################################################################
+#  Utilities
+#
 
 fun find-option<S, T>(f :: (S -> Option<T>), lst :: List<S>) -> Option<T>:
   cases (List) lst:
@@ -26,9 +51,26 @@ fun generate-pvars(n :: Number) -> List<Pattern>:
   range(0, n).map(lam(i): p-pvar("_" + tostring(i), [set: ], none) end)
 end
 
+
 ################################################################################
-#  Substitution
+#  Desugaring and Substitution
 #
+  
+fun desugar(rules :: DsRules, e :: Term) -> Term:
+  fun desugars(es :: List<Term>) -> List<Term>:
+    es.map(desugar(rules, _))
+  end
+  cases (Term) e block:
+    | g-prim(val) => g-prim(val)
+    | g-core(op, args) => g-core(op, desugars(args))
+    | g-aux(op, args) => g-aux(op, desugars(args))
+    | g-var(v) => g-var(v)
+    | g-list(lst) => g-list(desugars(lst))
+    | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
+    | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
+    | g-surf(op, args) => desugar-surf(rules, op, desugars(args))
+  end
+end
 
 fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
   fun loop(shadow p):
@@ -113,6 +155,22 @@ fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>):
   end
 end
 
+
+################################################################################
+#  Tests
+#
+
+check:
+  rules = parse-ds-rules(
+    ```
+    sugar or:
+    | (or a:Expr b) => (fresh [x] (let (bind x a) (if x x b)))
+    end
+    ```)
+  e = parse-ast("(or p q)")
+  desugar(rules, e) does-not-raise
+end
+
 check:
   subs([string-dict:], environment(
       [string-dict: "@toploc", term-dummy-loc],
@@ -135,6 +193,5 @@ check:
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
     parse-pattern(none, "(Bar [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
-    is parse-ast("<Bar [<Foo> 5] [<Foo> 5]>")
-  
+    is parse-ast("<Bar [<Foo> 5] [<Foo> 5]>")  
 end
