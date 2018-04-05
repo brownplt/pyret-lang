@@ -33,6 +33,7 @@ fun desugar(e :: AST.Program) -> AST.Program block:
     ^ pop-time
     ^ push-time("desugar")
     ^ DS.desugar(desugaring-rules, _)
+    # ^ my-print("after desugar")
     ^ pop-time
     ^ push-time("to ast")
     ^ CONV.term-to-ast

@@ -14,7 +14,7 @@ include either
 include file("ds-structs.arr")
 include file("ds-parse.arr")
 include file("ds-environment.arr")
-
+include file("debugging.arr")
 
 ################################################################################
 #  Errors

@@ -448,9 +448,14 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
     p-var(name)
   end
 
-  fun get-ploc(maybe-loc :: Option<String>) -> Pattern:
+  fun get-ploc(maybe-loc :: Option<Pattern>) -> Pattern:
     cases (Option) maybe-loc:
-      | none => p-pvar(TOPLOC, [set: ], none)
+      | none =>
+        toploc-name = cases (Option) pvars:
+          | none => gen-symbol("@toploc-tmp")
+          | some(_) => TOPLOC
+        end
+        p-pvar(toploc-name, [set: ], none)
       | some(loc-pat) => loc-pat
     end
   end
