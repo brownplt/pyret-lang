@@ -111,6 +111,18 @@ source locations with `@`. For example, in this sugar:
 B is still given A's srcloc, but C is given `x`'s srcloc via the
 bulitin metafunction `get-loc-of`.
 
+## Fresh Variables
+
+Fresh variables can be introduced with `(fresh [x] e)`, where `x` is
+the variable name and `e` is the term. Right now, if you use a
+variable without `fresh`, it will be unhygienic. A better design would
+be to have both `fresh` and `capture`, and have all variables be
+unbound otherwise.
+
+(Implementation note: this "better design" would also simplify
+parsing, which right now has to be clever about distinguishing
+variables from pattern variables.)
+
 ## Error Collection (NYI)
 
 If a sugar produces an auxilliary of the form `{error [msg ...]}`,
@@ -126,6 +138,7 @@ they came from during desugaring. There are two approaches to this in
 Justin's PLDI'14 and ICFP'15 resugaring papers.  For technical
 reasons, we use the ICFP'15 approach, where if a desugaring rule
 rewrites pattern p to p', then it's given a tag containing p and p'.
+
 (Justin's note to self: this is due to the interaction of auxilliary
 terms, tags, and IO evaluation order.)
 
