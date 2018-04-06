@@ -91,7 +91,7 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
         term-args = args.map(loop)
         metaf = lookup-metafunction(op)
         if term-args.length() == metaf.arity:
-          metaf.f(term-args, env)
+          metaf.f(term-args)
           # TODO: need recur?
         else:
           fail("Arity mismatch when calling metafunction '" + op + "'. " +
