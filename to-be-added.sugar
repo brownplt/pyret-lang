@@ -1,109 +1,3 @@
-sugar mk-s-bind:
-  | (mk-s-bind name) => (s-bind false name (a-blank))
-end
-
-sugar mk-s-lam:
-  | (mk-s-lam params body) =>
-    (s-lam "" [] params (a-blank) "" body none none false)
-end
-
-sugar not:
-  | (not x) => (s-prim-app "not" [x])
-end
-
-sugar boolean?:
-  | (boolean? x) => (s-prim-app "isBoolean" [x])
-end
-
-################################################################################
-# DONE: s-when
-################################################################################
-
-sugar s-when:
-  | (s-when @l test body blocky) =>
-    (fresh [cond]
-      (s-let-expr
-        [(s-let-bind (mk-s-bind cond) test)]
-        (s-if-else [(s-if-branch (not (boolean? (s-id cond)))
-                                 (s-prim-app "throwNonBooleanWhen"
-                                             [(s-srcloc l)
-                                              (s-srcloc (meta get-loc-of test))
-                                              (s-id cond)]))
-                    (s-if-branch (s-id cond) (s-block [body (g-id "nothing")]))]
-                   (g-id "nothing")
-                   blocky)
-        false))
-end
-
-################################################################################
-# DONE: s-if, s-if-else, s-if-pipe, s-if-pipe-else
-################################################################################
-
-sugar no-branch-exn:
-  | (no-branch-exn @l typ) =>
-    (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
-end
-
-sugar s-if:
-  | (s-if branches blocky) => (s-if-else branches (no-branch-exn "if") blocky)
-end
-
-sugar s-if-pipe:
-  | (s-if-pipe branches blocky) =>
-    (s-if-else branches (no-branch-exn "ask") blocky)
-end
-
-sugar s-if-pipe-else:
-  | (s-if-pipe-else branches else blocky) => (s-if-else branches else blocky)
-end
-
-sugar s-if-else:
-  | (s-if-else [] else blocky) => else
-  | (s-if-else [branch rest_{x} ...x] else blocky) =>
-    <s-if-else [branch] (s-if-else [rest_{x} ...x] else blocky) blocky>
-end
-
-
-################################################################################
-# DONE: s-construct
-################################################################################
-
-sugar s-construct-normal:
-  | (s-construct-normal) => {s-construct-normal}
-end
-
-sugar s-construct-lazy:
-  | (s-construct-lazy) => {s-construct-lazy}
-end
-
-sugar s-construct-help:
-  | (s-construct-help @l constructor js-name id-name elts) =>
-    (s-app @(meta get-loc-of constructor)
-           (s-prim-app @(meta get-loc-of constructor)
-                       js-name [constructor (s-str id-name) (s-srcloc l)
-                                (s-srcloc (meta get-loc-of constructor))])
-           elts)
-end
-
-sugar s-construct:
-  | (s-construct {s-construct-normal} constructor []) =>
-    (s-construct-help constructor "getMaker0" "make0" [])
-  | (s-construct {s-construct-normal} constructor [e1]) =>
-    (s-construct-help constructor "getMaker1" "make1" [e1])
-  | (s-construct {s-construct-normal} constructor [e1 e2]) =>
-    (s-construct-help constructor "getMaker2" "make2" [e1 e2])
-  | (s-construct {s-construct-normal} constructor [e1 e2 e3]) =>
-    (s-construct-help constructor "getMaker3" "make3" [e1 e2 e3])
-  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4]) =>
-    (s-construct-help constructor "getMaker4" "make4" [e1 e2 e3 e4])
-  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4 e5]) =>
-    (s-construct-help constructor "getMaker5" "make5" [e1 e2 e3 e4 e5])
-  | (s-construct {s-construct-normal} constructor elts) =>
-    (s-construct-help constructor "getMaker" "make" [(s-array elts)])
-  | (s-construct {s-construct-lazy} constructor [elt_{x} ...x]) =>
-    (s-construct-help constructor "getLazyMaker" "lazy-make"
-      [(s-array [(mk-s-lam [] elt_{x}) ...x])])
-end
 
 ################################################################################
 # DONE: s-template, s-user-block, s-paren
@@ -340,26 +234,25 @@ end
 
 ################################################################################
 
-sugar s-column-binds:
-  | (s-column-binds @l binds table) => {s-column-binds l binds table}
+sugar s-column-sort:
+  | (s-column-sort @l column direction) => {s-column-sort l column direction}
 end
 
-sugar s-table-extend-field:
-  | (s-table-extend-field @l name value ann) => {s-table-extend-field l name value ann}
+sugar ASCENDING:
+  | (ASCENDING) => {ASCENDING}
 end
 
-sugar s-table-extend-reducer:
-  | (s-table-extend-reducer @l name reducer col ann) =>
-    {s-table-extend-reducer l name reducer col ann}
+sugar DESCENDING:
+  | (DESCENDING) => {DESCENDING}
 end
 
-sugar s-table-extend:
-  | (s-table-extend column-binds [extension_{i} ...i]) =>
-    [(table-extend-map-extension extention_{i}) ...i]
+sugar s-table-order:
+  | (s-table-order table [{s-column-sort l_{i} column_{i} direction_{i}} ...i]) =>
+    (s-app (s-dot table "multi-order")
+           [(s-array [(table-order-map @l_{i} column_{i} direction_{i}) ...i])])
 end
 
-sugar table-extend-map-extension:
-  | (table-extend-map-extension {s-table-extend-field loc name value ann} is-first) => value
-  | (table-extend-map-extension {s-table-extend-reducer name _ col _}) =>
-    
+sugar table-order-map:
+  | (table-order-map column {ASCENDING}) => (s-array [(s-bool true) (s-str (meta name-to-str column))])
+  | (table-order-map column {DESCENDING}) => (s-array [(s-bool false) (s-str (meta name-to-str column))])
 end

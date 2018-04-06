@@ -80,7 +80,7 @@ fun desugar-expr(e-top :: A.Expr) -> A.Expr:
         A.a-record(loc, [list: one, reduce])
       end
 
-      reducer-vars =
+      {reducers; accs} =
         for fold(
             {lef; rig} from {[SD.string-dict:]; [SD.string-dict:]},
             extension from reducer-exts):
@@ -93,7 +93,6 @@ fun desugar-expr(e-top :: A.Expr) -> A.Expr:
 
           {lef.set(extension.name, reducer-id); rig.set(extension.name, acc-id)}
         end
-      {reducers; accs} = reducer-vars
 
       initialized-reducers =
         cases(List) reducer-exts:

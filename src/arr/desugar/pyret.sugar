@@ -15,6 +15,43 @@ sugar check-ann:
     (fresh [x] (s-let-expr [(s-let-bind (s-bind false x ann) expr)] (s-id x) true))
 end
 
+sugar mk-s-bind:
+  | (mk-s-bind name) => (s-bind false name (a-blank))
+end
+
+sugar mk-s-lam:
+  | (mk-s-lam params body) =>
+    (s-lam "" [] params (a-blank) "" body none none false)
+end
+
+sugar not:
+  | (not x) => (s-prim-app "not" [x])
+end
+
+sugar boolean?:
+  | (boolean? x) => (s-prim-app "isBoolean" [x])
+end
+
+################################################################################
+# DONE: s-when
+################################################################################
+
+sugar s-when:
+  | (s-when @l test body blocky) =>
+    (fresh [cond]
+      (s-let-expr
+        [(s-let-bind (mk-s-bind cond) test)]
+        (s-if-else [(s-if-branch (not (boolean? (s-id cond)))
+                                 (s-prim-app "throwNonBooleanWhen"
+                                             [(s-srcloc l)
+                                              (s-srcloc (meta get-loc-of test))
+                                              (s-id cond)]))
+                    (s-if-branch (s-id cond) (s-block [body (g-id "nothing")]))]
+                   (g-id "nothing")
+                   blocky)
+        false))
+end
+
 ################################################################################
 # DONE: s-bracket
 ################################################################################
@@ -25,7 +62,7 @@ sugar s-bracket:
 end
 
 ################################################################################
-# DONE: s-reactor
+# DONE (kind of): s-reactor
 ################################################################################
 
 sugar s-reactor-field:
@@ -46,6 +83,7 @@ sugar s-reactor:
                  [{s-reactor-field l_{i} name_{i} value_{i}} ...i]
                  (reactor-search {pair "init" "Any"}
                                  [{s-reactor-field l_{i} name_{i} value_{i}} ...i]))
+  # when we use this system for well-formedness checking, include:
   # (meta check-dup [name_{i} ...i]) -- this meta produces a wf-error
   # we can use meta because if wf-error happens, then there's no need to resugar
 end
@@ -55,6 +93,17 @@ sugar reactor-acc:
     (s-prim-app "makeReactor"
                 [value
                  (s-obj [(reactor-map-to-data-field (reactor-search to-find_{i} fields)) ...i])])
+
+  # NOTE: right now we copy `fields` across the map, where `fields` can be arbitrarily large.
+  # I think this is fine because the output is not duplicating stuff (disregarding stuff in tags)
+  # However, should this become an issue, there are two ways to workaround
+
+  # 1. We can use bijection and implement everything in Pyret. We might need to
+  # sacrifice invertibility here
+
+  # 2. We can have 11 arguments, each for last-image, on-tick, etc. And put the
+  # handlers into an appropriate argument box. In the end, clean up by replacing
+  # all none with Pyret's none (which can be done by adding 11 more cases)
 end
 
 sugar reactor-search:
@@ -71,4 +120,74 @@ sugar reactor-map-to-data-field:
       (s-prim-app @l "makeSome" [(check-ann @l value (a-name @l (s-type-global @l check)))]))
   | (reactor-map-to-data-field {not-found l label}) =>
     (s-data-field @l label (s-prim-app @l "makeNone" []))
+end
+
+################################################################################
+# DONE: s-if, s-if-else, s-if-pipe, s-if-pipe-else
+################################################################################
+
+sugar no-branch-exn:
+  | (no-branch-exn @l typ) =>
+    (s-prim-app "throwNoBranchesMatched" [(s-srcloc l) (s-str typ)])
+end
+
+sugar s-if:
+  | (s-if branches blocky) => (s-if-else branches (no-branch-exn "if") blocky)
+end
+
+sugar s-if-pipe:
+  | (s-if-pipe branches blocky) =>
+    (s-if-else branches (no-branch-exn "ask") blocky)
+end
+
+sugar s-if-pipe-else:
+  | (s-if-pipe-else branches else blocky) => (s-if-else branches else blocky)
+end
+
+sugar s-if-else:
+  | (s-if-else [] else blocky) => else
+  | (s-if-else [branch rest_{x} ...x] else blocky) =>
+    <s-if-else [branch] (s-if-else [rest_{x} ...x] else blocky) blocky>
+end
+
+
+################################################################################
+# DONE: s-construct
+################################################################################
+
+sugar s-construct-normal:
+  | (s-construct-normal) => {s-construct-normal}
+end
+
+sugar s-construct-lazy:
+  | (s-construct-lazy) => {s-construct-lazy}
+end
+
+sugar s-construct-help:
+  | (s-construct-help @l constructor js-name id-name elts) =>
+    (s-app @(meta get-loc-of constructor)
+           (s-prim-app @(meta get-loc-of constructor)
+                       js-name [constructor (s-str id-name) (s-srcloc l)
+                                (s-srcloc (meta get-loc-of constructor))])
+           elts)
+end
+
+sugar s-construct:
+  | (s-construct {s-construct-normal} constructor []) =>
+    (s-construct-help constructor "getMaker0" "make0" [])
+  | (s-construct {s-construct-normal} constructor [e1]) =>
+    (s-construct-help constructor "getMaker1" "make1" [e1])
+  | (s-construct {s-construct-normal} constructor [e1 e2]) =>
+    (s-construct-help constructor "getMaker2" "make2" [e1 e2])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3]) =>
+    (s-construct-help constructor "getMaker3" "make3" [e1 e2 e3])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4]) =>
+    (s-construct-help constructor "getMaker4" "make4" [e1 e2 e3 e4])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4 e5]) =>
+    (s-construct-help constructor "getMaker5" "make5" [e1 e2 e3 e4 e5])
+  | (s-construct {s-construct-normal} constructor elts) =>
+    (s-construct-help constructor "getMaker" "make" [(s-array elts)])
+  | (s-construct {s-construct-lazy} constructor [elt_{x} ...x]) =>
+    (s-construct-help constructor "getLazyMaker" "lazy-make"
+      [(s-array [(mk-s-lam [] elt_{x}) ...x])])
 end
