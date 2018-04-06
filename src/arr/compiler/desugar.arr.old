@@ -71,9 +71,7 @@ fun desugar-expr(e-top :: A.Expr) -> A.Expr:
            val: {id-b: c,
                  id-e: A.s-id(c.l, c.id)}} end)
 
-      split-exts = partition(A.is-s-table-extend-reducer, extensions)
-      simple-exts = split-exts.is-false
-      reducer-exts = split-exts.is-true
+      reducer-exts = filter(A.is-s-table-extend-reducer, extensions)
 
       fun mk-reducer-ann(loc, ret-type):
         one = A.a-field(loc, "one", A.a-arrow(loc, [list: A.a-any(loc)], ret-type, true))

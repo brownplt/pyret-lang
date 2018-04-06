@@ -10,6 +10,7 @@ import file("conversion-visitor.arr") as CONV
 import file("ds-desugar.arr") as DS
 import file("ds-resugar.arr") as RS
 import file("ds-parse.arr") as P
+import file("ds-structs.arr") as ST
 include file("debugging.arr")
 import file("ds-metafunctions.arr") as _
 
@@ -31,7 +32,8 @@ fun desugar(e :: AST.Program) -> AST.Program block:
   e.visit(CONV.ast-to-term-visitor)
     ^ push-time("desugar")
     ^ DS.desugar(desugaring-rules, _)
-    # ^ my-print("after desugar")
+    #^ ST.strip-tags
+    #^ my-print("after desugar")
     ^ pop-time
     ^ CONV.term-to-ast
 end

@@ -10,6 +10,11 @@ sugar s-method-app:
   | (s-method-app l2 obj field args) => (s-app (s-dot @l2 obj field) args)
 end
 
+sugar check-ann:
+  | (check-ann expr ann) =>
+    (fresh [x] (s-let-expr [(s-let-bind (s-bind false x ann) expr)] (s-id x) true))
+end
+
 ################################################################################
 # DONE: s-bracket
 ################################################################################
@@ -17,4 +22,53 @@ end
 sugar s-bracket:
   | (s-bracket @l obj key) =>
     (s-app (b-id "get-value") [(s-srcloc l) (s-srcloc (meta get-loc-of obj)) obj key])
+end
+
+################################################################################
+# DONE: s-reactor
+################################################################################
+
+sugar s-reactor-field:
+  | (s-reactor-field @l name value) => {s-reactor-field l name value}
+end
+
+sugar s-reactor:
+  | (s-reactor [{s-reactor-field l_{i} name_{i} value_{i}} ...i]) =>
+    (reactor-acc [{pair "last-image"       "Function"}
+                  {pair "on-tick"          "Function"}
+                  {pair "to-draw"          "Function"}
+                  {pair "on-key"           "Function"}
+                  {pair "on-mouse"         "Function"}
+                  {pair "stop-when"        "Function"}
+                  {pair "seconds-per-tick" "NumPositive"}
+                  {pair "title"            "String"}
+                  {pair "close-when-stop"  "Boolean"}]
+                 [{s-reactor-field l_{i} name_{i} value_{i}} ...i]
+                 (reactor-search {pair "init" "Any"}
+                                 [{s-reactor-field l_{i} name_{i} value_{i}} ...i]))
+  # (meta check-dup [name_{i} ...i]) -- this meta produces a wf-error
+  # we can use meta because if wf-error happens, then there's no need to resugar
+end
+
+sugar reactor-acc:
+  | (reactor-acc [to-find_{i} ...i] fields {found l label value check}) =>
+    (s-prim-app "makeReactor"
+                [value
+                 (s-obj [(reactor-map-to-data-field (reactor-search to-find_{i} fields)) ...i])])
+end
+
+sugar reactor-search:
+  | (reactor-search {pair label check} [{s-reactor-field l label value} rest_{i} ...i]) =>
+    {found l label value check}
+  | (reactor-search pair [whatever rest_{i} ...i]) =>
+    (reactor-search pair [rest_{i} ...i])
+  | (reactor-search @l {pair label check} []) => {not-found l label}
+end
+
+sugar reactor-map-to-data-field:
+  | (reactor-map-to-data-field {found l label value check}) =>
+    (s-data-field @l label
+      (s-prim-app @l "makeSome" [(check-ann @l value (a-name @l (s-type-global @l check)))]))
+  | (reactor-map-to-data-field {not-found l label}) =>
+    (s-data-field @l label (s-prim-app @l "makeNone" []))
 end
