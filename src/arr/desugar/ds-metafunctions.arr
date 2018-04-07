@@ -14,7 +14,7 @@ end
 add-bijection("reverse", reverse-term, reverse-term)
 
 add-metafunction("get-loc-of", 1,
-  lam(args, _):
+  lam(args):
     cases (Term) args.get(0):
       | g-core(_, shadow args) => args.get(0)
       # TODO: might want to support g-var
@@ -25,7 +25,7 @@ add-metafunction("get-loc-of", 1,
   end)
 
 add-metafunction("resugar", 1,
-  lam(args, env):
+  lam(args):
     cases (Option) RS.resugar(args.get(0)):
       | some(e) => g-option(some(e))
       | none => g-option(none)
@@ -51,7 +51,7 @@ add-bijection("name-to-str",
   end)
 
 add-metafunction("string-append", 2,
-  lam(args, _):
+  lam(args):
     fun get-string(t :: Term) -> String:
       cases (Term) t:
         | g-prim(p) =>
@@ -67,7 +67,7 @@ add-metafunction("string-append", 2,
   end)
 
 add-metafunction("srcloc-to-string", 1,
-  lam(args, _):
+  lam(args):
     cases (Term) args.get(0):
       | g-prim(p) =>
         cases (GenericPrimitive) p:

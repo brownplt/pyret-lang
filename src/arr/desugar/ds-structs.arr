@@ -110,12 +110,12 @@ end
 #
 
 data Metafunction:
-  | metafunction(arity :: Number, f :: (List<Term>, Env -> Term))
+  | metafunction(arity :: Number, f :: (List<Term> -> Term))
 end
 
 __METAFUNCTIONS = [mutable-string-dict:]
 
-fun add-metafunction(op :: String, arity :: Number, f :: (List<Term>, Env -> Term)):
+fun add-metafunction(op :: String, arity :: Number, f :: (List<Term> -> Term)):
   __METAFUNCTIONS.set-now(op, metafunction(arity, f))
 end
 
