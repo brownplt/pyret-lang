@@ -403,7 +403,7 @@ end
 check:
   match-pattern(
     parse-ast("(hello {some jack} [[1 2] [3 4]])"),
-    parse-pattern(none, "(hello @l {some j} [[a b] ...i])"))
+    parse-pattern("(hello @l {some j} [[a b] ...i])"))
     is left({environment(
         [string-dict: "j", g-var(naked-var("jack")), "l", term-dummy-loc],
         [string-dict: ],
@@ -430,11 +430,11 @@ check:
   match-pattern(
     g-list([list:
         parse-ast("p"),
-        g-tag(parse-pattern(none, "1"), parse-pattern(none, "2"),
-          g-tag(parse-pattern(none, "x"), parse-pattern(none, "y"),
+        g-tag(parse-pattern("1"), parse-pattern("2"),
+          g-tag(parse-pattern("x"), parse-pattern("y"),
             parse-ast("q")))
       ]),
-    parse-pattern(none, "[a ...i]"))
+    parse-pattern("[a ...i]"))
     is left({environment(
         [string-dict: ],
         [string-dict: ],
@@ -449,23 +449,23 @@ check:
               [string-dict: ])]]);
       p-list(seq-ellipsis-list(
           [list:
-            parse-pattern(none, "a"),
-            p-tag(parse-pattern(none, "1"), parse-pattern(none, "2"),
-              p-tag(parse-pattern(none, "x"), parse-pattern(none, "y"),
-                parse-pattern(none, "a")))
+            parse-pattern("a"),
+            p-tag(parse-pattern("1"), parse-pattern("2"),
+              p-tag(parse-pattern("x"), parse-pattern("y"),
+                parse-pattern("a")))
           ], "i"))})
   
   match-pattern(
     parse-ast("{some foobar}"),
-    p-fresh([set: "a"], parse-pattern(some([set:]), "{some a}")))
+    parse-pattern("(fresh [a] {some a})"))
     is left({environment(
         [string-dict: ],
         [string-dict: "a", naked-var("foobar")],
         [string-dict: ]);
-      p-fresh([set: "a"], parse-pattern(some([set:]), "{some foobar}"))})
+      p-fresh([set: "a"], p-option(some(p-var("foobar"))))})
   
   match-pattern(
     parse-ast("(Foo [1 2] [3 4])"), 
-    parse-pattern(none, "(Foo [a_{i} ...i] [a_{i} ...i])"))
+    parse-pattern("(Foo [a_{i} ...i] [a_{i} ...i])"))
     is right(m-error-pvar("a", g-prim(e-num(3)), g-prim(e-num(1))))
 end

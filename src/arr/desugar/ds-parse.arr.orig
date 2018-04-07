@@ -40,7 +40,7 @@ SPECIAL-TOKENS = [list:
   ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@", "=>",
   "<", ">", "...", "_"
 ]
-TOPLOC = "@toploc"
+MAGIC-LOC = "@"
 
 data Token:
   | t-str(tok :: String)
@@ -395,31 +395,25 @@ parser-name-list =
     names
   end
 
-fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String))
-  -> (List<Token> -> Option<{Pattern; List<Token>}>):
-
-  fun is-pvar(name :: String) -> Boolean:
-    cases (Option) pvars:
-      | none => true
-      | some(shadow pvars) => pvars.member(name)
-    end
+fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
+  
+  fun parser-var(vars :: Set<String>):
+    parser-pred(lam(tok):
+        cases (Token) tok:
+          | t-name(name) =>
+            if vars.member(name):
+              some(p-var(name))
+            else:
+              none
+            end
+          | else => none
+        end
+      end)
   end
-
-  parser-pvar-name = parser-pred(lam(tok):
-      cases (Token) tok:
-        | t-name(name) =>
-          if is-pvar(name):
-            some(name)
-          else:
-            none
-          end
-        | else => none
-      end
-    end)
-
+  
   parser-pvar-name-and-label = parser-choices([list:
       for parser-5(
-        name from parser-pvar-name,
+        name from parser-name,
         _ from parser-ignore(t-symbol("_")),
         _ from parser-ignore(t-symbol("{")),
         labels from parser-seq(parser-name),
@@ -427,7 +421,7 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
       ):
         {name; list-to-set(labels)}
       end,
-      for parser-1(name from parser-pvar-name):
+      for parser-1(name from parser-name):
         {name; [set: ]}
       end
     ])
@@ -444,26 +438,17 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
       end
     ])
 
-  parser-var = for parser-1(name from parser-name):
-    p-var(name)
-  end
-
   fun get-ploc(maybe-loc :: Option<Pattern>) -> Pattern:
     cases (Option) maybe-loc:
-      | none =>
-        toploc-name = cases (Option) pvars:
-          | none => gen-symbol("@toploc-tmp")
-          | some(_) => TOPLOC
-        end
-        p-pvar(toploc-name, [set: ], none)
+      | none          => p-pvar("@", [set:], none)
       | some(loc-pat) => loc-pat
     end
   end
 
-  fun rec-pattern(toks): parser-patt()(toks) end
-  fun rec-list(toks): parser-list-body()(toks) end
+  fun parser-patt(vars :: Set<String>):
+    fun rec-pattern(toks): parser-patt(vars)(toks) end
+    fun rec-list(toks): parser-list-body(vars)(toks) end
 
-  fun parser-patt():
     parser-name-and-opt-loc = parser-choices([list:
         for parser-3(
             name from parser-name,
@@ -494,10 +479,10 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
               | else => none
             end
           end),
+        # Variable
+        parser-var(vars),
         # Pattern var
         parser-pvar,
-        # Variable
-        parser-var,
         # Some
         for parser-4(
             _ from parser-ignore(t-symbol("{")),
@@ -507,13 +492,30 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
           p-option(some(arg))
         end,
         # Fresh
-        for parser-5(
-            _ from parser-ignore(t-symbol("(")),
-            _ from parser-ignore(t-name("fresh")),
-            names from parser-name-list,
-            body from rec-pattern,
-            _ from parser-ignore(t-symbol(")"))):
-          p-fresh(list-to-set(names), body)
+        for parser-chain(_ from parser-ignore(t-symbol("("))):
+          for parser-chain(_ from parser-ignore(t-name("fresh"))):
+            for parser-chain(names from parser-name-list):
+              shadow vars = vars.union(list-to-set(names))
+              for parser-chain(body from parser-patt(vars)):
+                for parser-1(_ from parser-ignore(t-symbol(")"))):
+                  p-fresh(list-to-set(names), body)
+                end
+              end
+            end
+          end
+        end,
+        # Capture
+        for parser-chain(_ from parser-ignore(t-symbol("("))):
+          for parser-chain(_ from parser-ignore(t-name("capture"))):
+            for parser-chain(names from parser-name-list):
+              shadow vars = vars.union(names)
+              for parser-chain(body from parser-patt(vars)):
+                for parser-1(_ from parser-ignore(t-symbol(")"))):
+                  p-capture(list-to-set(names), body)
+                end
+              end
+            end
+          end
         end,
         # Meta
         for parser-5(
@@ -567,7 +569,10 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
       ])
   end
 
-  fun parser-list-body():
+  fun parser-list-body(vars :: Set<String>):
+    fun rec-pattern(toks): parser-patt(vars)(toks) end
+    fun rec-list(toks): parser-list-body(vars)(toks) end
+    
     parser-choices([list:
         # Ellipsis
         for parser-2(
@@ -592,45 +597,38 @@ fun parser-pattern(pvars :: Option<Set<String>>, gen-symbol :: (String -> String
       ])
   end
   
-  parser-patt()
+  parser-patt([set:])
 end
 
-fun parse-pattern(pvars :: Option<Set<String>>, input :: String) -> Pattern:
-  run-parser(parser-pattern(pvars, mk-gen-symbol()), input)
+fun parse-pattern(input :: String) -> Pattern:
+  run-parser(parser-pattern(), input)
 where:
-  parse-pattern(none, "3")
+  parse-pattern("3")
     is p-prim(e-num(3))
-  parse-pattern(none, "(foo @l 1 2)")
+  parse-pattern("(foo @l 1 2)")
     is p-surf("foo", [list: p-pvar("l", [set: ], none), p-prim(e-num(1)), p-prim(e-num(2))])
-  parse-pattern(none, "[[a_{i} b_{i}] ...i]")
+  parse-pattern("[[a_{i} b_{i}] ...i]")
     is p-list(seq-ellipsis(p-list(seq-cons(p-pvar("a", [set: "i"], none),
     seq-cons(p-pvar("b", [set: "i"], none), seq-empty))), "i"))
-  parse-pattern(none, "[a b ...i]")
+  parse-pattern("[a b ...i]")
     is p-list(seq-cons(p-pvar("a", [set: ], none), seq-ellipsis(p-pvar("b", [set: ], none), "i")))
-  parse-pattern(some([set: "a"]), "{c-abc {some a} b}")
-    is p-aux("c-abc", [list: p-option(some(p-pvar("a", [set: ], none))), p-var("b")])
-
-  parse-pattern(none, "[[a ...x] [b ...u]]")
+  parse-pattern("(fresh [b] {c-abc {some a} b})")
+    is p-fresh([set: "b"], p-aux("c-abc", [list: p-option(some(p-pvar("a", [set: ], none))), p-var("b")]))
+  parse-pattern("[[a ...x] [b ...u]]")
     is p-list(seq-cons(p-list(seq-ellipsis(p-pvar("a", [set: ], none), "x")),
       seq-cons(p-list(seq-ellipsis(p-pvar("b", [set: ], none), "u")), seq-empty)))
 end
 
-parse-lhs = parse-pattern(none, _)
-
-fun parse-rhs(pvars :: Set<String>, input :: String) -> Pattern:
-  parse-pattern(some(pvars), input)
-end
-
 fun parse-ast(input :: String) -> Term:
-  pattern = parse-pattern(some([set:]), input)
+  pattern = parse-pattern(input)
   fun args-to-asts(shadow patterns :: List<Pattern>) -> List<Term>:
     link(term-dummy-loc, patterns.rest.map(pattern-to-ast))
   end
   fun pattern-to-ast(shadow pattern :: Pattern) -> Term:
     cases (Pattern) pattern:
       | p-prim(v) => g-prim(v)
-      | p-pvar(name, _, _) => panic("parse-ast - unexpected pvar: " + tostring(name))
-      | p-var(v) => g-var(naked-var(v))
+      | p-pvar(name, _, _) => g-var(naked-var(name)) # Justin's fault
+      | p-var(v) => panic("parse-ast - unexpected var: " + tostring(v))
       | p-core(name, args) => g-core(name, args-to-asts(args))
       | p-aux(name,  args) => g-aux(name,  args-to-asts(args))
       | p-surf(name, args) => g-surf(name, args-to-asts(args))
@@ -643,6 +641,7 @@ fun parse-ast(input :: String) -> Term:
         end ^ g-option
       | p-tag(lhs, rhs, body) => g-tag(lhs, rhs, pattern-to-ast(body))
       | p-fresh(_, _) => panic("parse-ast: unexpected fresh")
+      | p-capture(_, _) => panic("parse-ast: unexpected capture")
     end
   end
   fun list-to-ast(seq :: SeqPattern) -> List<Term>:
@@ -657,45 +656,16 @@ fun parse-ast(input :: String) -> Term:
   pattern-to-ast(pattern)
 end
 
-fun gather-pvars(p :: Pattern) -> Set<String>:
-  cases (Pattern) p:
-    | p-pvar(name, _, _) => [set: name]
-    | p-prim(_) => [set: ]
-    | p-var(_) => [set: ]
-    | p-core(_, args) => gather-pvars-list(args)
-    | p-surf(_, args) => gather-pvars-list(args)
-    | p-aux(_,  args) => gather-pvars-list(args)
-    | p-meta(_, args) => panic("gather-pvars should be called on LHS which has no meta")
-    | p-list(seq) => gather-pvars-seq(seq)
-    | p-option(opt) =>
-      cases (Option) opt:
-        | none => [set: ]
-        | some(shadow p) => gather-pvars(p)
-      end
-    | p-tag(_, _, body) => gather-pvars(body)
-    | p-fresh(_, body) => gather-pvars(body)
-  end
-end
-
-fun gather-pvars-seq(seq :: SeqPattern) -> Set<String>:
-  cases (SeqPattern) seq:
-    | seq-empty => [set: ] 
-    | seq-cons(p, shadow seq) => gather-pvars(p).union(gather-pvars-seq(seq))
-    | seq-ellipsis(p, _) => gather-pvars(p)
-    | seq-ellipsis-list(lst, _) => gather-pvars-list(lst)
-  end
-end
-
-fun gather-pvars-list(ps :: List<Pattern>) -> Set<String>:
-  for fold(acc from [set: ], p from ps):
-    acc.union(gather-pvars(p))
-  end
-end
-
 parser-ds-rule-case =
   for parser-chain(_ from parser-ignore(t-symbol("|"))):
-    gen-symbol = mk-gen-symbol()
-    for parser-chain(lhs from parser-pattern(none, gen-symbol)):
+    for parser-3(
+        lhs from parser-pattern(),
+        _ from parser-ignore(t-symbol("=>")),
+        rhs from parser-pattern()):
+      gen-symbol = mk-gen-symbol()
+      shadow lhs = rename-p-pvar(lhs, lam(loc):
+          if loc == MAGIC-LOC: gen-symbol("@l") else: loc end
+        end)
       toploc-name = cases (Pattern) lhs:
         | p-surf(_, args) =>
           cases (Pattern) args.get(0):
@@ -704,13 +674,10 @@ parser-ds-rule-case =
           end
         | else => fail("LHS should be surface pattern")
       end
-      for parser-chain(_ from parser-ignore(t-symbol("=>"))):
-        pvars = gather-pvars(lhs)
-        for parser-1(rhs from parser-pattern(some(pvars), gen-symbol)):
-          shadow rhs = rename-p-pvar(rhs, TOPLOC, toploc-name)
-          ds-rule-case(lhs, rhs)
-        end
-      end
+      shadow rhs = rename-p-pvar(rhs, lam(loc):
+          if loc == MAGIC-LOC: toploc-name else: loc end
+        end)
+      ds-rule-case(lhs, rhs)
     end
   end
 
@@ -732,25 +699,27 @@ fun parse-ds-rules(input :: String) -> DsRules:
     acc.set(op, kases)
   end
 where:
+  surf-and = p-surf("and", [list: p-pvar("@l1", [set:], none)])
   parse-ds-rules("sugar and: | (and) => (and) end")
     is [string-dict: "and", [list:
-        ds-rule-case(parse-lhs("(and)"), parse-lhs("(and)"))]]
+      ds-rule-case(surf-and, surf-and)]]
   parse-ds-rules(
     ```
     # ignore me
     sugar or: # ignore this
-    | (or @l a:Expr b) => (let (bind @a x l) (if x x b))
+    | (or @l a:Expr b) => (fresh [x] (let (bind @a x l) (if x x b)))
     end
     # ignore
     ```) is [string-dict:
     "or", [list:
-        ds-rule-case(
-          p-surf("or", [list:
+      ds-rule-case(
+        p-surf("or", [list:
             p-pvar("l", [set: ], none),
             p-pvar("a", [set: ], some("Expr")),
             p-pvar("b", [set: ], none)]),
+        p-fresh([set: "x"],
           p-surf("let", [list: 
               p-pvar("l", [set: ], none),
               p-surf("bind", [list: p-pvar("a", [set: ], none), p-var("x"), p-pvar("l", [set: ], none)]),
-              p-surf("if", [list:p-pvar("l", [set: ], none), p-var("x"), p-var("x"), p-pvar("b", [set: ], none)])]))]]
+              p-surf("if", [list:p-pvar("l", [set: ], none), p-var("x"), p-var("x"), p-pvar("b", [set: ], none)])])))]]
 end

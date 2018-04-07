@@ -1,3 +1,107 @@
+
+################################################################################
+# DONE: s-template, s-user-block, s-paren
+################################################################################
+
+sugar s-template:
+  | (s-template @l) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc l)])
+end
+
+sugar s-user-block:
+  | (s-user-block body) => body
+end
+
+sugar s-paren:
+  | (s-paren body) => body
+end
+
+################################################################################
+# DONE: s-import, s-import-fields
+################################################################################
+
+sugar s-import:
+  | (s-import file name) => (s-import-complete [] [] file name name)
+end
+sugar s-import-fields:
+  | (s-import-fields fields file) =>
+    (s-import-complete fields [] file (s-underscore) (s-underscore))
+end
+
+################################################################################
+# DONE: s-for
+################################################################################
+
+sugar s-for-bind:
+  | (s-for-bind bind value) => {s-for-bind bind value}
+end
+
+sugar s-for:
+  | (s-for @l iter [{s-for-bind bind_{i} value_{i}} ...i] ann body blocky) =>
+    (s-app
+      iter
+      [(s-lam
+         (meta string-append "<for-body"
+                             (meta string-append (meta srcloc-to-string l) ">"))
+         [] [bind_{i} ...i] ann "" body none none blocky)
+       value_{i} ...i])
+end
+
+################################################################################
+# DONE: s-table
+################################################################################
+
+sugar s-field-name:
+  | (s-field-name @l name ann) => {s-field-name l name ann}
+end
+
+sugar s-table-row:
+  | (s-table-row elems) => {s-table-row elems}
+end
+
+sugar s-table:
+  | (s-table [{s-field-name l_{i} name_{i} ann_{i}} ...i] [{s-table-row [val_{i j} ...i]} ...j]) =>
+    (s-prim-app "makeTable"
+      [(s-array [(s-str @l_{i} name_{i}) ...i])
+       (s-array [(s-array [(check-ann val_{i j} ann_{i}) ...i]) ...j])])
+end
+
+
+################################################################################
+# DONE: s-load-table
+################################################################################
+
+sugar s-sanitize:
+  | (s-sanitize name sanitizer) => {s-sanitize name sanitizer}
+end
+
+sugar s-table-src:
+  | (s-table-src src) => {s-table-src src}
+end
+
+sugar load-table-acc:
+  | (load-table-acc [] src sanitizers) => {pair src sanitizers}
+  | (load-table-acc [{s-sanitize name sanitizer} rest_{i} ...i] src [sanitizers_{j} ...j]) =>
+    (load-table-acc [rest_{i} ...i] src
+       [(s-app (b-id "as-loader-option") [(s-str "sanitizer") (s-str (meta name-to-str name)) sanitizer]) sanitizers_{j} ...j])
+  | (load-table-acc [{s-table-src src} rest_{i} ...i] none sanitizers) =>
+    (load-table-acc [rest_{i} ...i] {some src} sanitizers)
+  | (load-table-acc lst {some src} sanitizers) => {WF-ERR-TODO}
+end
+
+sugar s-load-table:
+  | (s-load-table headers spec) => (load-table-helper headers (load-table-acc spec none []))
+end
+
+sugar load-table-helper:
+  | (load-table-helper [{s-field-name l_{i} name_{i} ann_{i}} ...i]
+                       {pair {some src} sanitizers}) =>
+    (s-app (b-id "open-table")
+       [(s-app (s-dot src "load") [(s-array [(s-str name_{i}) ...i])
+                                   (s-array sanitizers)])])
+  | (load-table-helper [header_{i} ...i] {pair none sanitizers}) => {WF-ERR-TODO}
+end
+
+
 ################################################################################
 
 sugar s-import-complete:
@@ -126,4 +230,29 @@ end
 sugar transform-underscore:
   | (transform-underscore <s-underscore>) => (fresh [name] name)
   | (transform-underscore non-underscore) => non-underscore
+end
+
+################################################################################
+
+sugar s-column-sort:
+  | (s-column-sort @l column direction) => {s-column-sort l column direction}
+end
+
+sugar ASCENDING:
+  | (ASCENDING) => {ASCENDING}
+end
+
+sugar DESCENDING:
+  | (DESCENDING) => {DESCENDING}
+end
+
+sugar s-table-order:
+  | (s-table-order table [{s-column-sort l_{i} column_{i} direction_{i}} ...i]) =>
+    (s-app (s-dot table "multi-order")
+           [(s-array [(table-order-map @l_{i} column_{i} direction_{i}) ...i])])
+end
+
+sugar table-order-map:
+  | (table-order-map column {ASCENDING}) => (s-array [(s-bool true) (s-str (meta name-to-str column))])
+  | (table-order-map column {DESCENDING}) => (s-array [(s-bool false) (s-str (meta name-to-str column))])
 end
