@@ -197,17 +197,17 @@ end
 # DONE: s-template, s-user-block, s-paren
 ################################################################################
 
-sugar s-template:
-  | (s-template @l) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc l)])
-end
-
-sugar s-user-block:
-  | (s-user-block body) => body
-end
-
-sugar s-paren:
-  | (s-paren body) => body
-end
+# sugar s-template:
+#   | (s-template @l) => (s-prim-app "throwUnfinishedTemplate" [(s-srcloc l)])
+# end
+#
+# sugar s-user-block:
+#   | (s-user-block body) => body
+# end
+#
+# sugar s-paren:
+#   | (s-paren body) => body
+# end
 
 # ################################################################################
 # # DONE: s-import, s-import-fields
