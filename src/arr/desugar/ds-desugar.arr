@@ -64,7 +64,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-prim(val) => g-prim(val)
     | g-core(op, args) => g-core(op, desugars(args))
     | g-aux(op, args) => g-aux(op, desugars(args))
-    | g-var(v) => e
+    | g-var(v) => g-var(v)
     | g-list(lst) => g-list(desugars(lst))
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
@@ -100,7 +100,7 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
         end
       | p-var(name) =>
         cases (Option) get-fresh(env, name):
-          | none => g-var(naked-var(name)) # TODO?
+          | none => panic("Got non fresh variable. This should have errored in the parsing level: " + name)
           | some(v) => g-var(v)
         end
       | p-option(opt) => g-option(opt.and-then(loop))
@@ -180,7 +180,7 @@ check:
           set-pvar(empty-env(), "a", parse-ast("<Foo>")),
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
-    parse-pattern(none, "(Bar @l [a_{i} ...i])")) ^ strip-tags
+    parse-pattern("(Bar @l [a_{i} ...i])")) ^ strip-tags
     is parse-ast("<Bar [<Foo> 5]>")
  
   subs([string-dict:], environment(
@@ -192,6 +192,6 @@ check:
           set-pvar(empty-env(), "a", parse-ast("<Foo>")),
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
-    parse-pattern(none, "(Bar @l [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
+    parse-pattern("(Bar @l [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
     is parse-ast("<Bar [<Foo> 5] [<Foo> 5]>")  
 end

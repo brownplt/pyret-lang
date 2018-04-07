@@ -4,7 +4,7 @@ include string-dict
 include file("ds-structs.arr")
 import file("ds-resugar.arr") as RS
 
-fun reverse-term(e):
+fun reverse-term(e :: Term):
   cases (Term) e:
     | g-list(lst) => g-list(lst.reverse())
     | else => fail("Reverse bijection: expected a list, but found: " + tostring(e))
@@ -35,11 +35,7 @@ add-metafunction("resugar", 1,
 add-bijection("name-to-str",
   lam(name :: Term):
     cases (Term) name:
-      | g-var(v) =>
-        cases (Variable) v:
-          | v-name(_, sname) => g-prim(e-str(sname))
-          | else => fail("name-to-str: get a non var argument: " + tostring(name))
-        end
+      | g-var(v) => g-prim(e-str(v.name))
       | else => fail("name-to-str: get a non var argument: " + tostring(name))
     end
   end,

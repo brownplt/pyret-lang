@@ -4,10 +4,13 @@ provide-types *
 include string-dict
 import ast as AST
 
-data Variable:
-  | v-name(l :: AST.Loc, name :: String)
-  | v-atom(base :: String, serial :: Number)
-end
+type Variable = {
+  name :: String,
+  serial :: Number,
+  loc :: AST.Loc,
+  sign :: Option<VarSign>,
+  shadows :: Boolean,
+}
 
 data GenericPrimitive:
   | e-str(s :: String)
@@ -45,6 +48,7 @@ data Pattern:
   | p-option(opt :: Option<Pattern>)
   | p-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
   | p-fresh(fresh :: Set<String>, body :: Pattern)
+  | p-capture(capture :: Set<String>, body :: Pattern)
 end
 
 data SeqPattern:
@@ -71,7 +75,14 @@ data ScopeRule:
 end
 
 fun naked-var(name :: String) -> Variable:
-  v-name(AST.dummy-loc, name)
+  {
+    name: name,
+    serial: 0,
+    loc: AST.dummy-loc,
+    sign: none,
+    kind: none,
+    shadows: false,
+  }
 end
 
 data Env:
@@ -135,10 +146,10 @@ end
 #  Utilities
 #
 
-fun rename-p-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
+fun rename-p-pvar(p :: Pattern, rename :: (String -> String)) -> Pattern:
   fun loop(shadow p :: Pattern):
     cases (Pattern) p:
-      | p-pvar(s, labels, t) => if s == before: p-pvar(after, labels, t) else: p end
+      | p-pvar(s, labels, t) => p-pvar(rename(s), labels, t)
       | p-prim(_) => p
       | p-core(op, args) => p-core(op, args.map(loop))
       | p-surf(op, args) => p-surf(op, args.map(loop))
