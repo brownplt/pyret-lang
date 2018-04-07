@@ -100,7 +100,7 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
         end
       | p-var(name) =>
         cases (Option) get-fresh(env, name):
-          | none => g-var(naked-var(name)) # TODO?
+          | none => panic("Got non fresh variable. This should have errored in the parsing level: " + name)
           | some(v) => g-var(v)
         end
       | p-option(opt) => g-option(opt.and-then(loop))
