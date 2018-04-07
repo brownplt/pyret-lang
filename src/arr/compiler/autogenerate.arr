@@ -381,7 +381,7 @@ fun write-ast-visitors() block:
         end
         ``` ^ get-stmts)
 
-      s-name-block = A.s-block(dummy, "v-name(l, s)" ^ get-stmts)
+      s-name-block = A.s-block(dummy, "g-var(v-name(l, s))" ^ get-stmts)
 
       shadow body = A.s-block(dummy, body).visit(AV.default-map-visitor.{
         method s-method-field(self, l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky):

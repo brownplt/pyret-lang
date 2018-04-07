@@ -64,7 +64,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-prim(val) => g-prim(val)
     | g-core(op, args) => g-core(op, desugars(args))
     | g-aux(op, args) => g-aux(op, desugars(args))
-    | g-var(v) => g-var(v)
+    | g-var(v) => e
     | g-list(lst) => g-list(desugars(lst))
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))

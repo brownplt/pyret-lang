@@ -22,7 +22,7 @@ shadow ast-to-term-visitor =
       end
     end,
     method s-underscore(self, l): g-surf("s-underscore", [list: g-loc(l)]) end,
-    method s-name(self, l, s): v-name(l, s) end,
+    method s-name(self, l, s): g-var(v-name(l, s)) end,
     method s-global(self, s):
       g-surf("s-global", [list: g-loc(dummy-loc), g-str(s)])
     end,
