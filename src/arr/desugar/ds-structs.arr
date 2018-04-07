@@ -48,6 +48,7 @@ data Pattern:
   | p-option(opt :: Option<Pattern>)
   | p-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
   | p-fresh(fresh :: Set<String>, body :: Pattern)
+  | p-capture(capture :: Set<String>, body :: Pattern)
 end
 
 data SeqPattern:
@@ -79,6 +80,7 @@ fun naked-var(name :: String) -> Variable:
     serial: 0,
     loc: AST.dummy-loc,
     sign: none,
+    kind: none,
     shadows: false,
   }
 end
@@ -148,10 +150,10 @@ end
 #  Utilities
 #
 
-fun rename-p-pvar(p :: Pattern, before :: String, after :: String) -> Pattern:
+fun rename-p-pvar(p :: Pattern, rename :: (String -> String)) -> Pattern:
   fun loop(shadow p :: Pattern):
     cases (Pattern) p:
-      | p-pvar(s, labels, t) => if s == before: p-pvar(after, labels, t) else: p end
+      | p-pvar(s, labels, t) => p-pvar(rename(s), labels, t)
       | p-prim(_) => p
       | p-core(op, args) => p-core(op, args.map(loop))
       | p-surf(op, args) => p-surf(op, args.map(loop))
