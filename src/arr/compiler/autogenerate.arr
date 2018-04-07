@@ -355,13 +355,8 @@ fun write-ast-visitors() block:
             end
           | g-var(v) =>
             ask block:
-              | v.global and (v.kind == some(type-var)) then: s-type-global(v.name)
-              | v.global and (v.kind == some(value-var)) then: s-global(v.name)
-              | v.global then:
-                print("warning: global variable coerced to a value: " + tostring(v))
-                s-global(v.name)
               | v.serial <> 0 then: s-atom(v.name, v.serial)
-              | otherwise: s-name(v.loc, v.name) # TODO: s-underscore
+              | otherwise: s-name(v.loc, v.name)
             end
           | g-list(lst) => lst.map(term-to-ast)
           | g-option(opt) => opt.and-then(term-to-ast)
@@ -377,24 +372,23 @@ fun write-ast-visitors() block:
         fun g-loc(s): g-prim(e-loc(s)) end
         ``` ^ get-stmts
 
-      s-app-method-stmts = ```
-        cases (Expr) _fun:
-          | s-dot(l-dot, obj, field) =>
-            g-surf("s-method-app",
-              [list: g-loc(l), g-loc(l-dot), obj.visit(self), g-str(field), g-list(self.list(args))])
-          | else => ...
-        end
-        ``` ^ get-stmts
-
       shadow body = A.s-block(dummy, body).visit(AV.default-map-visitor.{
         method s-method-field(self, l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky):
           # no recursion -- only the top one
-          if name == 's-app':
-            A.s-method-field(l, name, params, args, ann, doc,
-              subst(A.s-block(dummy, s-app-method-stmts), body-expr), _check-loc, _check, blocky)
-          else:
-            A.s-method-field(l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky)
-          end
+          ask:
+            | name == 's-app' then:
+              subst(A.s-block(dummy, ```
+                cases (Expr) _fun:
+                  | s-dot(l-dot, obj, field) =>
+                    g-surf("s-method-app",
+                      [list: g-loc(l), g-loc(l-dot), obj.visit(self), g-str(field), g-list(self.list(args))])
+                  | else => ...
+                end
+                ``` ^ get-stmts), body-expr)
+            | name == 's-name' then:
+              subst(A.s-block(dummy, "g-var(naked-var(s).{loc: l})" ^ get-stmts), body-expr)
+            | otherwise: body-expr
+          end ^ A.s-method-field(l, name, params, args, ann, doc, _, _check-loc, _check, blocky)
         end
       }).stmts
 

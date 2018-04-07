@@ -294,14 +294,6 @@ fun desugar-expr(e-top :: A.Expr) -> A.Expr:
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
     end,
-    method s-table-order(self, l, table, ordering):
-      ordering-raw-arr = for map(o from ordering):
-        A.s-array(o.l, [list: A.s-bool(o.l, o.direction == A.ASCENDING), A.s-str(o.l, o.column.s)])
-      end
-      A.s-app(l,
-        A.s-dot(A.dummy-loc, table.visit(self), "multi-order"),
-        [list: A.s-array(A.dummy-loc, ordering-raw-arr)])
-    end,
     method s-table-filter(self, l, column-binds, predicate):
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
