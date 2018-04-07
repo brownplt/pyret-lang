@@ -80,7 +80,6 @@ fun naked-var(name :: String) -> Variable:
     serial: 0,
     loc: AST.dummy-loc,
     sign: none,
-    kind: none,
     shadows: false,
   }
 end
