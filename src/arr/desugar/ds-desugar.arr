@@ -180,7 +180,7 @@ check:
           set-pvar(empty-env(), "a", parse-ast("<Foo>")),
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
-    parse-pattern(none, "(Bar @l [a_{i} ...i])")) ^ strip-tags
+    parse-pattern("(Bar @l [a_{i} ...i])")) ^ strip-tags
     is parse-ast("<Bar [<Foo> 5]>")
  
   subs([string-dict:], environment(
@@ -192,6 +192,6 @@ check:
           set-pvar(empty-env(), "a", parse-ast("<Foo>")),
           set-pvar(empty-env(), "a", parse-ast("5"))
       ]]),
-    parse-pattern(none, "(Bar @l [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
+    parse-pattern("(Bar @l [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
     is parse-ast("<Bar [<Foo> 5] [<Foo> 5]>")  
 end
