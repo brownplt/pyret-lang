@@ -37,7 +37,7 @@ add-bijection("name-to-str",
     cases (Term) name:
       | g-var(v) =>
         cases (Variable) v:
-          | v-name(s) => g-prim(e-str(s))
+          | v-name(_, s) => g-prim(e-str(s))
           | else => fail("name-to-str: get a non var argument: " + tostring(name))
         end
       | else => fail("name-to-str: get a non var argument: " + tostring(name))
