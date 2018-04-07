@@ -19,12 +19,6 @@ BUNDLED_DEPS     = build/bundled-node-deps.js
 export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
 SHELL := /bin/bash
 
-
-showpath:
-	@echo my new PATH = $(PATH)
-	@echo `which browserify`
-
-
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
@@ -130,6 +124,10 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
+
+showpath:
+	@echo my new PATH = $(PATH)
+	@echo `which browserify`
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
 	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)

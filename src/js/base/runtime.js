@@ -5,8 +5,9 @@ define("pyret-base/js/runtime",
    "pyret-base/js/runtime-util",
    "pyret-base/js/exn-stack-parser",
    "pyret-base/js/secure-loader",
-   "seedrandom"],
-function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
+   "seedrandom",
+   "js-sha256"],
+function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom, sha) {
   Error.stackTraceLimit = Infinity;
   var require = requirejs;
   var AsciiTable;
@@ -2291,7 +2292,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalAlways(v1, v2) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a, false); }
-      if(typeof v1 === "number" || typeof v1 === "string" || typeof v1 === "boolean") {
+      if (((typeof v1 === 'number')  && (typeof v2 === 'number')) ||
+          ((typeof v1 === 'string')  && (typeof v2 === 'string')) ||
+          ((typeof v1 === 'boolean') && (typeof v2 === 'boolean'))) {
         return v1 === v2;
       }
       return safeCall(function() {
@@ -5090,6 +5093,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var mod = staticMods[uri];
         // CONSOLE.log(uri, mod);
 
+        var hash = sha.create();
+        hash.update(uri);
+        realm.static[uri] = { mod: mod, uriHashed: hash.hex() };
+
         var reqs = mod.requires;
         if(depMap[uri] === undefined) {
           throw new Error("Module has no entry in depmap: " + uri);
@@ -5099,10 +5106,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           if(duri === undefined) {
             throw new Error("Module not found in depmap: " + depToString(d) + " while loading " + uri);
           }
-          if(realm[duri] === undefined) {
+          if(realm.instantiated[duri] === undefined) {
             throw new Error("Module not loaded yet: " + depToString(d) + " while loading " + uri);
           }
-          return getExported(realm[duri]);
+          return getExported(realm.instantiated[duri]);
         });
 
         return thisRuntime.safeCall(function() {
@@ -5123,7 +5130,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           function continu() {
             return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
           }
-          if(realm[uri]) {
+          if(realm.instantiated[uri]) {
             return continu();
           }
           return thisRuntime.safeCall(function() {
@@ -5161,7 +5168,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           },
           function(r) {
             // CONSOLE.log("Result from module: ", r);
-            realm[uri] = r;
+            realm.instantiated[uri] = r;
             if(uri in postLoadHooks) {
               return thisRuntime.safeCall(function() {
                 return postLoadHooks[uri](r);
