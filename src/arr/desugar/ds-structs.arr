@@ -9,9 +9,7 @@ type Variable = {
   serial :: Number,
   loc :: AST.Loc,
   sign :: Option<VarSign>,
-  kind :: Option<VarKind>,
   shadows :: Boolean,
-  global :: Boolean
 }
 
 data GenericPrimitive:
@@ -35,11 +33,6 @@ end
 data VarSign:
   | var-decl
   | var-refn
-end
-
-data VarKind:
-  | type-var
-  | value-var
 end
 
 data Pattern:
@@ -86,9 +79,7 @@ fun naked-var(name :: String) -> Variable:
     serial: 0,
     loc: AST.dummy-loc,
     sign: none,
-    kind: none,
     shadows: false,
-    global: false
   }
 end
 
