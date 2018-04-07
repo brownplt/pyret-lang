@@ -32,18 +32,25 @@ add-metafunction("resugar", 1,
     end
   end)
 
-add-metafunction("name-to-str", 1,
-  lam(args):
-    cases (Term) args.get(0):
-      | g-core(op, lst) =>
-        if op == "s-underscore":
-          g-prim(e-str("_"))
-        else if [list: "s-name", "s-global", "s-type-global", "s-atom"].member(op):
-          lst.get(1)
-        else:
-          fail("name-to-str: get a non Name argument: " + tostring(args.get(0)))
+add-bijection("name-to-str",
+  lam(name :: Term):
+    cases (Term) name:
+      | g-var(v) =>
+        cases (Variable) v:
+          | v-name(_, sname) => g-prim(e-str(sname))
+          | else => fail("name-to-str: get a non var argument: " + tostring(name))
         end
-      | else => fail("name-to-str: get a non core argument: " + tostring(args.get(0)))
+      | else => fail("name-to-str: get a non var argument: " + tostring(name))
+    end
+  end,
+  lam(name :: Term):
+    cases (Term) name:
+      | g-prim(e) =>
+        cases (GenericPrimitive) e:
+          | e-str(s) => g-var(naked-var(s))
+          | else => fail("name-to-str: get a non string argument: " + tostring(name))
+        end
+      | else => fail("name-to-str: get a non string argument: " + tostring(name))
     end
   end)
 
