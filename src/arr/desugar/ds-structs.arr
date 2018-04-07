@@ -103,6 +103,10 @@ fun fail(message :: String):
   raise({"Error when desugaring"; message})
 end
 
+fun fail-rs(message :: String):
+  raise({"Error when resugaring"; message})
+end
+
 
 ################################################################################
 #  Metafunctions and Bijections

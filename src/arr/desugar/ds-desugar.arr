@@ -88,16 +88,14 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
         {f; _} = lookup-bijection(op)
         f(loop(p)) # TODO: need recur?
       | p-meta(op, args) =>
-        term-args = args.map(loop)
         metaf = lookup-metafunction(op)
-        if term-args.length() == metaf.arity:
-          metaf.f(term-args)
-          # TODO: need recur?
-        else:
+        when args.length() <> metaf.arity:
           fail("Arity mismatch when calling metafunction '" + op + "'. " +
-               "Expect " + tostring(metaf.arity) + " arguments. Got " +
-               tostring(term-args.length()))
+            "Expect " + tostring(metaf.arity) + " arguments. Got " +
+            tostring(args.length()))
         end
+        term-args = args.map(loop)
+        metaf.f(term-args) # TODO: need recur?
       | p-var(name) =>
         cases (Option) get-fresh(env, name):
           | none => g-var(naked-var(name)) # TODO?
