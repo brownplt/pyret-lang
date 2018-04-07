@@ -2511,7 +2511,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn || (ann instanceof PTupleAnn && !ann.isCheap));
+      return ann.flat;
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2815,7 +2815,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function PPrimAnn(name, pred) {
       this.name = name;
       this.pred = pred;
-      this.refinement = false;
+      this.flat = true;
     }
     PPrimAnn.prototype.checkOrFail = function(passed, val, loc) {
       var that = this;
@@ -2857,11 +2857,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function PAnnList(anns) {
       this.anns = anns;
-      var refinement = true;
-//      for(var i = 0; i < anns.length; i++) {
-//        if(anns[i].refinement) { refinement = true; }
-//      }
-      this.refinement = refinement;
+      for(var i = 0; i < anns.length; i++) {
+        if(!anns[i].flat) { this.flat = false; }
+      }
     }
 
     function makePAnnList(anns) {
@@ -2897,15 +2895,41 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.ann = ann;
       this.pred = pred;
       this.predname = predname;
-      this.refinement = true;
+      this.flat = false; // Default, see below
     }
     function makePredAnn(ann, pred, predname) {
       checkFunction(pred);
       checkString(predname);
       return new PPredAnn(ann, pred, predname);
     }
+    function makeFlatPredAnn(ann, pred, predname) {
+      checkFunction(pred);
+      checkString(predname);
+      var newAnn = new PPredAnn(ann, pred, predname);
+      newAnn.flat = true;
+      return newAnn;
+    }
     PPredAnn.prototype.check = function(compilerLoc, val) {
+      function fail() {
+        return thisRuntime.ffi.contractFail(
+          makeSrcloc(compilerLoc),
+          thisRuntime.ffi.makePredicateFailure(val, that.predname));
+      }
       var that = this;
+
+      // NOTE(joe): fast, safe path for flat refinement
+      if(that.flat) {
+        var result = that.ann.check(compilerLoc, val);
+        if(thisRuntime.ffi.isOk(result)) {
+          var predPassed = that.pred.app(val);
+          if(predPassed) { return thisRuntime.ffi.contractOk; }
+          else { return fail(); }
+        }
+        else {
+          return result;
+        }
+      }
+
       return safeCall(function() {
         return that.ann.check(compilerLoc, val);
       }, function(result) {
@@ -2917,18 +2941,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               return thisRuntime.ffi.contractOk;
             }
             else {
-              return thisRuntime.ffi.contractFail(
-                makeSrcloc(compilerLoc),
-                thisRuntime.ffi.makePredicateFailure(val, that.predname));
+              return fail();
             }
           },
-                          "PPredAnn.check (after the check)")
+          "PPredAnn.check (after the check)")
         }
         else {
           return result;
         }
       },
-                      "PPredAnn.check");
+      "PPredAnn.check");
     }
 
     function makeBranderAnn(brander, name) {
@@ -2942,14 +2964,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function PTupleAnn(locs, anns) {
       this.locs = locs;
       this.anns = anns;
-      var hasRefinement = false;
-      var isCheap = true;
+      this.flat = false;
       for (var i = 0; i < anns.length; i++) {
-        hasRefinement = hasRefinement || anns[i].refinement;
-        isCheap = isCheap && isCheapAnnotation(anns[i]);
+        if(!anns[i].flat) { this.flat = false; }
       }
-      this.refinement = hasRefinement;
-      this.isCheap = isCheap;
     }
 
     function makeTupleAnn(locs, anns) {
@@ -2967,28 +2985,20 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         //return ffi.throwMessageException("lengths not equal");
         return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
-      if (this.isCheap) {
-        for (var i = 0; i < this.anns.length; i++) {
-          // is this right, or should this.locs be indexed in reversed order?
-          var result = this.anns[i].check(this.locs[i], val.vals[i]);
-          if (thisRuntime.ffi.isFail(result))
-            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
-        }
-        return thisRuntime.ffi.contractOk;
-      }
 
-      // Fast path for no refinements, since arbitrary stack space can't be consumed
-      if(!that.hasRefinement) {
+      // Fast path for flat refinements, since arbitrary stack space can't be consumed
+      if(that.flat) {
         for(var i = 0; i < that.anns.length; i++) {
           var result = that.anns[i].check(that.locs[i], val.vals[i]);
           if(!thisRuntime.ffi.isOk(result)) {
-            return result;
+            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
+            //return result;
           }
         }
         return thisRuntime.ffi.contractOk;
       }
 
-      // Slow path for annotations with refinements, which may call back into Pyret
+      // Slow path for annotations with nonflat refinements, which may call back into Pyret
       function deepCheckFields(remainingAnns) {
         var thisAnn;
         return safeCall(function() {
@@ -3042,11 +3052,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.fields = fields;
       this.locs = locs;
       this.anns = anns;
-      var hasRefinement = false;
+      this.flat = true;
       for (var i = 0; i < fields.length; i++) {
-        hasRefinement = hasRefinement || anns[fields[i]].refinement;
+        if(!anns[fields[i]].flat) { this.flat = false; }
       }
-      this.refinement = hasRefinement;
     }
     function makeRecordAnn(fields, locs, anns) {
       return new PRecordAnn(fields, locs, anns);
@@ -3099,8 +3108,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
       }
 
-      // Fast path: no refinements, so no deep stack/pause potential
-      if(!that.hasRefinement) {
+      // Fast path: flat computation, so no deep stack/pause potential
+      if(that.flat) {
         for(var i = 0; i < that.fields.length; i++) {
           var thisField = that.fields[i];
           var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField));
@@ -3111,7 +3120,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.ffi.contractOk;
       }
 
-      // Slow path: has refinement, so need to stack guard
+      // Slow path: not flat, so need to stack guard
       function deepCheckFields(remainingFields) {
         var thisField;
         return safeCall(function() {
@@ -5236,11 +5245,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       function makeConstructor() {
         var argNames = constructor.$fieldNames;
-        var hasRefinement = false;
+        var flat = true;
         var checkAnns = checkAnnsThunk();
         checkAnns.forEach(function(a) {
-          if(!isCheapAnnotation(a)) {
-            hasRefinement = true;
+          if(!a.flat) {
+            flat = false;
           }
         });
         var constructorBody =
@@ -5265,7 +5274,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t,false); }";
 
         var checksPlusBody = "";
-        if(hasRefinement) {
+        if(!flat) {
           checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
             constructorBody + "\n" +
           "});";
@@ -5652,6 +5661,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'checkConstructorArgs2': checkConstructorArgs2,
       'getDotAnn': getDotAnn,
       'makePredAnn': makePredAnn,
+      'makeFlatPredAnn': makeFlatPredAnn,
       'makePrimitiveAnn': makePrimitiveAnn,
       'makeBranderAnn': makeBranderAnn,
       'makeRecordAnn': makeRecordAnn,

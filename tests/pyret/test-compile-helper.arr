@@ -86,6 +86,15 @@ fun get-compile-errs(str):
   end
 end
 
+fun get-compile-result(str):
+  cases(E.Either) compile-str(str):
+    | right(loadables) =>
+      loadables.last()
+    | left(errs) =>
+      raise("Unexpected compile error for " + str + "\n" + to-repr(errs))
+  end
+end
+
 fun run-str(str): 
   result = run-to-result(str)
   cases(E.Either) result block:

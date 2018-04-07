@@ -139,7 +139,7 @@ end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
+  | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
 
 data ValueExport:
