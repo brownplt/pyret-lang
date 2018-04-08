@@ -35,6 +35,7 @@
       "seedrandom": "empty:",
       "websocket": "empty:",
       "source-map": "empty:",
-      "stacktrace-js": "empty:"
+      "stacktrace-js": "empty:",
+      "repl": "empty:"
     }
 }
