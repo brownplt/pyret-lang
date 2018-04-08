@@ -2857,6 +2857,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function PAnnList(anns) {
       this.anns = anns;
+      this.flat = true;
       for(var i = 0; i < anns.length; i++) {
         if(!anns[i].flat) { this.flat = false; }
       }
@@ -2964,7 +2965,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function PTupleAnn(locs, anns) {
       this.locs = locs;
       this.anns = anns;
-      this.flat = false;
+      this.flat = true;
       for (var i = 0; i < anns.length; i++) {
         if(!anns[i].flat) { this.flat = false; }
       }

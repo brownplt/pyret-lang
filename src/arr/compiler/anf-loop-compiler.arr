@@ -786,8 +786,8 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
               j-expr(j-assign(step, new-label)),
               j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
               j-expr(rt-method("_checkAnn",
-                  [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))]))
-              ])))
+                  [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
+              j-break])))
       cur-target := new-label
       cl-snoc(acc, new-case)
     else:
