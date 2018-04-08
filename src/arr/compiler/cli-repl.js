@@ -30,6 +30,11 @@
             console.log('Received "exit" event from repl!');
             restarter.resume("repl done");
           });
+          replServer.on('reset', () => {
+            runtime.runThunk(function() {
+              return restartInteractions.app("");
+            }, function(result) {});
+          });
         });
     }
     return runtime.makeModuleReturn({
