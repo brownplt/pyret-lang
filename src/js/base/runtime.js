@@ -3593,6 +3593,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var TRACE_DEPTH = 0;
     var SHOW_TRACE = true;
     var TOTAL_VARS = 0;
+    var PROFILE = [];
+    const getTime = ((typeof process !== "undefined") && process.hrtime) ? process.hrtime
+          : (((typeof performance !== "undefined") && performance.now) ? performance.now : Date.now);
+    function profileEnter(loc) {
+      PROFILE.push([loc, true, getTime()]);
+    }
+    function profileExit(loc) {
+      PROFILE.push([loc, false, getTime()]);
+    }
     function traceEnter(name, vars) {
       if (!SHOW_TRACE) return;
       TRACE_DEPTH++;
@@ -5635,6 +5644,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'spy': spy,
 
 
+      'profileEnter' : profileEnter,
+      'profileExit' : profileExit,
+      'getProfile' : function() { return PROFILE; },
       'traceEnter': traceEnter,
       'traceExit': traceExit,
       'traceErrExit': traceErrExit,
@@ -6038,6 +6050,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'makeTupleAnn': 'mTA',
         'makeVariantConstructor': 'mVC',
         'namedBrander': 'nB',
+        'profileEnter': 'pEn',
+        'profileExit': 'pEx',
         'traceEnter': 'tEn',
         'traceErrExit': 'tErEx',
         'traceExit': 'tEx',

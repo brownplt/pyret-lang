@@ -34,6 +34,10 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: true});
   postLoadHooks[main] = function(answer) {
+    var profile = runtime.getProfile();
+    if (profile.length > 0) {
+      profile.forEach(function(entry) { process.stderr.write(JSON.stringify(entry) + "\n"); });
+    }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {

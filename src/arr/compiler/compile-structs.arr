@@ -2478,6 +2478,7 @@ default-compile-options = {
   module-eval: true,
   compiled-cache: "compiled",
   display-progress: true,
+  should-profile: method(_, locator): false end,
   log: lam(s, to-clear):
     cases(Option) to-clear block:
       | none => print(s)

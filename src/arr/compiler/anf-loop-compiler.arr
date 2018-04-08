@@ -202,6 +202,8 @@ rt-name-map = [D.string-dict:
   "makeTupleAnn", "mTA",
   "makeVariantConstructor", "mVC",
   "namedBrander", "nB",
+  "profileEnter", "pEn",
+  "profileExit", "pEx",
   "traceEnter", "tEn",
   "traceErrExit", "tErEx",
   "traceExit", "tEx",
@@ -635,6 +637,11 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         else:
           cl-sing(j-expr(j-unop(rt-field("GAS"), j-incr)))
         end +
+        if local-compiler.options.should-profile:
+          cl-sing(j-expr(rt-method("profileExit", [clist: local-compiler.get-loc(l)])))
+        else:
+          cl-empty
+        end +
         cl-sing(j-return(j-id(local-compiler.cur-ans))))))
   ^ cl-snoc(_, j-default(j-block1(
         j-expr(j-method(rt-field("ffi"), "throwSpinnakerError", [clist: local-compiler.get-loc(l), j-id(step)])))))
@@ -690,16 +697,22 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   end
 
   is-activation-record-call = rt-method("isActivationRecord", [clist: j-id(first-arg)])
-  preamble-stmts = if is-flat:
-    first-entry-stmts
-  else:
-    if-check = if first-entry-stmts.is-empty():
-      j-if1(is-activation-record-call, restorer)
+  preamble-stmts =
+    if local-compiler.options.should-profile:
+      cl-sing(j-expr(rt-method("profileEnter", [clist: local-compiler.get-loc(l)])))
     else:
-      j-if(is-activation-record-call, restorer, j-block(first-entry-stmts))
+      cl-empty
+    end +
+    if is-flat:
+      first-entry-stmts
+    else:
+      if-check = if first-entry-stmts.is-empty():
+        j-if1(is-activation-record-call, restorer)
+      else:
+        j-if(is-activation-record-call, restorer, j-block(first-entry-stmts))
+      end
+      cl-sing(if-check)
     end
-    cl-sing(if-check)
-  end
 
   stack-attach-guard =
     if compiler.options.proper-tail-calls:
@@ -1157,7 +1170,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
       j-list(false, cl-empty)
     end
     compiled-branch-fun =
-      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true, false, false)
+      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false, options: compiler.options.{should-profile: false}}, branch-args, none, branch.body, true, false, false)
     preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
