@@ -46,8 +46,8 @@ data Pattern:
   | p-list(l :: SeqPattern)
   | p-option(opt :: Option<Pattern>)
   | p-tag(lhs :: Pattern, rhs :: Pattern, body :: Pattern)
-  | p-fresh(fresh :: Set<String>, body :: Pattern)
-  | p-capture(capture :: Set<String>, body :: Pattern)
+  | p-fresh(fresh :: List<FreshItem>, body :: Pattern)
+  | p-capture(capture :: List<FreshItem>, body :: Pattern)
 end
 
 data SeqPattern:
@@ -55,6 +55,11 @@ data SeqPattern:
   | seq-cons(first :: Pattern, rest :: SeqPattern)
   | seq-ellipsis(p :: Pattern, label :: String)
   | seq-ellipsis-list(patts :: List<Pattern>, label :: String)
+end
+
+data FreshItem:
+  | fresh-name(name :: String)
+  | fresh-ellipsis(item :: FreshItem, label :: String)
 end
 
 type DsRules = StringDict<List<DsRuleCase>>
@@ -139,6 +144,13 @@ end
 ################################################################################
 #  Utilities
 #
+
+fun get-fresh-item-name(item :: FreshItem) -> String:
+  cases (FreshItem) item:
+    | fresh-name(name) => name
+    | fresh-ellipsis(shadow item, _) => get-fresh-item-name(item)
+  end
+end
 
 fun rename-p-pvar(p :: Pattern, rename :: (String, Set<String>, Option<String> -> Pattern)) -> Pattern:
   fun loop(shadow p :: Pattern):

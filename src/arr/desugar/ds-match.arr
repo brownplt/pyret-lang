@@ -336,9 +336,10 @@ fun match-rec(
           end
         | p-tag(lhs, rhs, body) =>
           panic("Encountered a p-tag while matching, but it should only be used internally: " + tostring(p))
-        | p-fresh(fresh-vars, body) =>
-          for chain-either({shadow env; shadow p} from match-rec(fresh.union(fresh-vars), env, e, body)):
-            left({env; p-fresh(fresh-vars, p)})
+        | p-fresh(fresh-items, body) =>
+          shadow fresh = fresh.union(list-to-set(map(get-fresh-item-name, fresh-items)))
+          for chain-either({shadow env; shadow p} from match-rec(fresh, env, e, body)):
+            left({env; p-fresh(fresh-items, p)})
           end
         | p-capture(_, body) => match-rec(fresh, env, e, body)
         | p-drop(_) =>
@@ -420,75 +421,4 @@ fun term-to-pattern(t :: Term) -> Pattern:
     | g-option(opt) => p-option(opt.and-then(term-to-pattern))
     | g-list(lst) => p-list(terms-to-patterns(lst))
   end
-end
-
-
-check:
-  match-pattern(
-    parse-ast("(hello {some jack} [[1 2] [3 4]])"),
-    parse-pattern("(hello @l {some j} [[a b] ...i])"))
-    is left({environment(
-        [string-dict: "j", g-var(naked-var("jack")), "l", term-dummy-loc],
-        [string-dict: ],
-        [string-dict: "i", [list:
-            environment(
-              [string-dict: "a", g-prim(e-num(1)), "b", g-prim(e-num(2))],
-              [string-dict: ],
-              [string-dict: ]),
-            environment(
-              [string-dict: "a", g-prim(e-num(3)), "b", g-prim(e-num(4))],
-              [string-dict: ],
-              [string-dict: ])]]);
-      p-surf("hello", [list:
-          p-pvar("l", [set: ], none),
-          p-option(some(p-pvar("j", [set: ], none))),
-          p-list(seq-ellipsis-list(
-              [list:
-                p-list(seq-cons(p-pvar("a", [set: ], none), seq-cons(p-pvar("b", [set: ], none), seq-empty))),
-                p-list(seq-cons(p-pvar("a", [set: ], none), seq-cons(p-pvar("b", [set: ], none), seq-empty)))],
-              "i"))
-        ])
-    })
-  
-  match-pattern(
-    g-list([list:
-        parse-ast("p"),
-        g-tag(parse-pattern("1"), parse-pattern("2"),
-          g-tag(parse-pattern("x"), parse-pattern("y"),
-            parse-ast("q")))
-      ]),
-    parse-pattern("[a ...i]"))
-    is left({environment(
-        [string-dict: ],
-        [string-dict: ],
-        [string-dict: "i", [list:
-            environment(
-              [string-dict: "a", parse-ast("p")],
-              [string-dict: ],
-              [string-dict: ]),
-            environment(
-              [string-dict: "a", parse-ast("q")],
-              [string-dict: ],
-              [string-dict: ])]]);
-      p-list(seq-ellipsis-list(
-          [list:
-            parse-pattern("a"),
-            p-tag(parse-pattern("1"), parse-pattern("2"),
-              p-tag(parse-pattern("x"), parse-pattern("y"),
-                parse-pattern("a")))
-          ], "i"))})
-  
-  match-pattern(
-    parse-ast("{some foobar}"),
-    parse-pattern("(fresh [a] {some a})"))
-    is left({environment(
-        [string-dict: ],
-        [string-dict: "a", naked-var("foobar")],
-        [string-dict: ]);
-      p-fresh([set: "a"], p-option(some(p-var("foobar"))))})
-  
-  match-pattern(
-    parse-ast("(Foo [1 2] [3 4])"), 
-    parse-pattern("(Foo [a_{i} ...i] [a_{i} ...i])"))
-    is right(m-error-pvar("a", g-prim(e-num(3)), g-prim(e-num(1))))
 end

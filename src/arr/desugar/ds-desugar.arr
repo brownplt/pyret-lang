@@ -1,5 +1,6 @@
 provide {
-    desugar: desugar    
+    desugar: desugar,
+    substitute: substitute
 } end
 
 include string-dict
@@ -103,8 +104,8 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
         end
       | p-option(opt) => g-option(opt.and-then(loop))
       | p-tag(lhs, rhs, body) => g-tag(lhs, rhs, loop(body))
-      | p-fresh(fresh, body) => subs(rules, assign-fresh-names(env, fresh), body)
-      | p-capture(caps, body) => subs(rules, assign-non-fresh-names(env, caps), body)
+      | p-fresh(fresh, body) => subs(rules, assign-new-names(env, fresh, true), body)
+      | p-capture(caps, body) => subs(rules, assign-new-names(env, caps, false), body)
       | p-list(seq) => g-list(loop-list(seq))
       | p-drop(_) => fail("Don't you ever dare using _ in the RHS")
     end
@@ -155,43 +156,4 @@ fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>):
   end
 end
 
-
-################################################################################
-#  Tests
-#
-
-check:
-  rules = parse-ds-rules(
-    ```
-    sugar or:
-    | (or @l a:Expr b) => (fresh [x] (let (bind x a) (if x x b)))
-    end
-    ```)
-  e = parse-ast("(or p q)")
-  desugar(rules, e) does-not-raise
-end
-
-check:
-  subs([string-dict:], environment(
-      [string-dict: "l", term-dummy-loc],
-      [string-dict: ],
-      [string-dict: "i", 
-        [list:
-          set-pvar(empty-env(), "a", parse-ast("<Foo>")),
-          set-pvar(empty-env(), "a", parse-ast("5"))
-      ]]),
-    parse-pattern("(Bar @l [a_{i} ...i])")) ^ strip-tags
-    is parse-ast("<Bar [<Foo> 5]>")
- 
-  subs([string-dict:], environment(
-      [string-dict: "l", term-dummy-loc],
-      [string-dict: ],
-      [string-dict:
-        "i", 
-        [list:
-          set-pvar(empty-env(), "a", parse-ast("<Foo>")),
-          set-pvar(empty-env(), "a", parse-ast("5"))
-      ]]),
-    parse-pattern("(Bar @l [a_{i} ...i] [a_{i} ...i])")) ^ strip-tags
-    is parse-ast("<Bar [<Foo> 5] [<Foo> 5]>")  
-end
+substitute = subs # Pyret doesn't allow exporting something under another name

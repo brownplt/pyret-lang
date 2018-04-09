@@ -161,7 +161,9 @@ fun tokenize(input-str :: String) -> List<Token> block:
   end
   token-break()
   tokens.reverse()
-where:
+end
+
+check "tokenize":
   #init = time-now()
   #input = string-repeat("[(define-struct    name:Var\t fields:StructFields) @rest:SurfStmts]", 1000)
   #tokenize(input)
@@ -179,8 +181,6 @@ where:
     t-name("FORMAT"), t-name("l"), t-name("false"), t-symbol(")"), t-str(">"),
     t-symbol(")"), t-symbol("}")]
 end
-
-
 
 
 
@@ -380,12 +380,30 @@ parser-name = parser-pred(lam(tok):
     end
   end)
 
-parser-name-list =
+fun parser-fresh-item():
+  rec-fresh-item = lam(toks): parser-fresh-item()(toks) end
+  
+  parser-choices([list:
+      for parser-1(name from parser-name):
+        fresh-name(name)
+      end,
+      for parser-5(
+          _ from parser-ignore(t-symbol("[")),
+          item from rec-fresh-item,
+          _ from parser-ignore(t-symbol("...")),
+          label from parser-name,
+          _ from parser-ignore(t-symbol("]"))):
+        fresh-ellipsis(item, label)
+      end
+    ])
+end
+
+parser-fresh-item-list =
   for parser-3(
       _ from parser-ignore(t-symbol("[")),
-      names from parser-seq(parser-name),
+      items from parser-seq(parser-fresh-item()),
       _ from parser-ignore(t-symbol("]"))):
-    names
+    items
   end
 
 fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
@@ -498,11 +516,11 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
         # Fresh
         for parser-chain(_ from parser-ignore(t-symbol("("))):
           for parser-chain(_ from parser-ignore(t-name("fresh"))):
-            for parser-chain(names from parser-name-list):
-              shadow vars = vars.union(list-to-set(names))
+            for parser-chain(items from parser-fresh-item-list):
+              shadow vars = vars.union(list-to-set(map(get-fresh-item-name, items)))
               for parser-chain(body from parser-patt(vars)):
                 for parser-1(_ from parser-ignore(t-symbol(")"))):
-                  p-fresh(list-to-set(names), body)
+                  p-fresh(items, body)
                 end
               end
             end
@@ -511,11 +529,11 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
         # Capture
         for parser-chain(_ from parser-ignore(t-symbol("("))):
           for parser-chain(_ from parser-ignore(t-name("capture"))):
-            for parser-chain(names from parser-name-list):
-              shadow vars = vars.union(names)
+            for parser-chain(items from parser-fresh-item-list):
+              shadow vars = vars.union(list-to-set(map(get-fresh-item-name, items)))
               for parser-chain(body from parser-patt(vars)):
                 for parser-1(_ from parser-ignore(t-symbol(")"))):
-                  p-capture(list-to-set(names), body)
+                  p-capture(items, body)
                 end
               end
             end
@@ -606,21 +624,6 @@ end
 
 fun parse-pattern(input :: String) -> Pattern:
   run-parser(parser-pattern(), input)
-where:
-  parse-pattern("3")
-    is p-prim(e-num(3))
-  parse-pattern("(foo @l 1 2)")
-    is p-surf("foo", [list: p-pvar("l", [set: ], none), p-prim(e-num(1)), p-prim(e-num(2))])
-  parse-pattern("[[a_{i} b_{i}] ...i]")
-    is p-list(seq-ellipsis(p-list(seq-cons(p-pvar("a", [set: "i"], none),
-    seq-cons(p-pvar("b", [set: "i"], none), seq-empty))), "i"))
-  parse-pattern("[a b ...i]")
-    is p-list(seq-cons(p-pvar("a", [set: ], none), seq-ellipsis(p-pvar("b", [set: ], none), "i")))
-  parse-pattern("(fresh [b] {c-abc {some a} b})")
-    is p-fresh([set: "b"], p-aux("c-abc", [list: p-option(some(p-pvar("a", [set: ], none))), p-var("b")]))
-  parse-pattern("[[a ...x] [b ...u]]")
-    is p-list(seq-cons(p-list(seq-ellipsis(p-pvar("a", [set: ], none), "x")),
-      seq-cons(p-list(seq-ellipsis(p-pvar("b", [set: ], none), "u")), seq-empty)))
 end
 
 fun parse-ast(input :: String) -> Term:
@@ -703,27 +706,4 @@ fun parse-ds-rules(input :: String) -> DsRules:
            {op; kases} from run-parser(parser-ds-rules, input)):
     acc.set(op, kases)
   end
-where:
-  surf-and = p-surf("and", [list: p-pvar("@toploc", [list-set: ], none)])
-  parse-ds-rules("sugar and: | (and) => (and) end")
-    is [string-dict: "and", [list: ds-rule-case(surf-and, surf-and)]]
-  parse-ds-rules(
-    ```
-    # ignore me
-    sugar or: # ignore this
-    | (or @l a:Expr b) => (fresh [x] (let (bind @a x l) (if x x b)))
-    end
-    # ignore
-    ```) is [string-dict:
-    "or", [list:
-      ds-rule-case(
-        p-surf("or", [list:
-            p-pvar("l", [set: ], none),
-            p-pvar("a", [set: ], some("Expr")),
-            p-pvar("b", [set: ], none)]),
-        p-fresh([set: "x"],
-          p-surf("let", [list: 
-              p-pvar("l", [set: ], none),
-              p-surf("bind", [list: p-pvar("a", [set: ], none), p-var("x"), p-pvar("l", [set: ], none)]),
-              p-surf("if", [list:p-pvar("l", [set: ], none), p-var("x"), p-var("x"), p-pvar("b", [set: ], none)])])))]]
 end

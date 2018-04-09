@@ -93,15 +93,21 @@ fun set-ellipsis(env :: Env, label :: String, env-list :: List<Env>)
     env.ellipsis-map.set(label, env-list))
 end
 
-fun assign-fresh-names(env :: Env, fresh :: Set<String>) -> Env block:
-  fresh.fold(lam(env2, v) block:
-      set-fresh(env2, v, naked-var(gensym("_")))
-    end, env)
+fun assign-new-names(env :: Env, items :: List<FreshItem>, fresh :: Boolean) -> Env block:
+  fold(assign-new-name(_, _, fresh), env, items)
 end
 
-fun assign-non-fresh-names(env :: Env, caps :: Set<String>) -> Env block:
-  caps.fold(lam(env2, v) block:
-      set-fresh(env2, v, naked-var(v))
-    end, env)
+fun assign-new-name(env :: Env, item :: FreshItem, fresh :: Boolean) -> Env block:
+  cases (FreshItem) item:
+    | fresh-name(name) =>
+      new-name = if fresh: gensym("_") else: name end
+      set-fresh(env, name, naked-var(new-name)) # TODO: make atom
+    | fresh-ellipsis(shadow item, label) =>
+      cases (Option) env.ellipsis-map.get(label):
+        | none => fail("Ellipsis label " + label + " not found.")
+        | some(envs) =>
+          shadow envs = map(assign-new-name(_, item, fresh), envs)
+          set-ellipsis(env, label, envs)
+      end
+  end
 end
-

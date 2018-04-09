@@ -125,8 +125,8 @@ fun subs(env :: Env, p :: Pattern) -> Option<Term>:
             some(g-option(some(e)))
           end
         end
-      | p-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body)
-      | p-capture(caps, body) => subs(assign-non-fresh-names(env, caps), body)
+      | p-fresh(fresh, body) => subs(assign-new-names(env, fresh, true), body)
+      | p-capture(caps, body) => subs(assign-new-names(env, caps, false), body)
       | p-list(seq) => loop-list(seq).and-then(g-list)
       | p-tag(lhs, rhs, body) =>
         for chain-option(shadow body from subs(env, body)):
