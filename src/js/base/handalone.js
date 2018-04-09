@@ -14,6 +14,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
   var depMap = program.depMap;
   var toLoad = program.toLoad;
   var uris = program.uris;
+  var realm = { instantiated: {}, static: {}};
 
   var main = toLoad[toLoad.length - 1];
 
@@ -38,7 +39,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
 
-      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, realm);
 
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
@@ -72,7 +73,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
 
-      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
+      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, realm);
 
       execRt.runThunk(
         function() {
@@ -165,8 +166,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
   }
 
   return runtime.runThunk(function() {
-    runtime.modules = {};
-    var realm = { instantiated: runtime.modules, static: {}}
+    runtime.modules = realm.instantiated;
     return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });
