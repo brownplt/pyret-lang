@@ -22,7 +22,7 @@ shadow ast-to-term-visitor =
       end
     end,
     method s-underscore(self, l): g-surf("s-underscore", [list: g-loc(l)]) end,
-    method s-name(self, l, s): g-var(naked-var(s).{ loc: l }) end,
+    method s-name(self, l, s): g-var(v-name(l, s)) end,
     method s-global(self, s):
       g-surf("s-global", [list: g-loc(dummy-loc), g-str(s)])
     end,
@@ -1680,9 +1680,9 @@ fun term-to-ast(g):
         | e-loc( l) => l
       end
     | g-var( v) =>
-      ask block:
-        | v.serial <> 0 then: s-atom(v.name, v.serial)
-        | otherwise: s-name(v.loc, v.name)
+      cases (Variable) v:
+        | v-atom(name, serial) => s-atom(name, serial)
+        | v-name(l, name) => s-name(l, name)
       end
     | g-list( lst) => lst.map(term-to-ast)
     | g-option( opt) => opt.and-then(term-to-ast)

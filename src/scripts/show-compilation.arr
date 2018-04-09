@@ -5,6 +5,7 @@ import either as E
 import parse-pyret as P
 import string-dict as SD
 import pprint as PP
+import pathlib as PL
 import file("../../src/arr/compiler/desugar.arr") as D
 import ast as A
 import file("../../src/arr/compiler/compile-structs.arr") as CS
@@ -58,7 +59,10 @@ compile-str = lam(filename, options):
   end
 end
 
-println = lam(s): print(s + "\n") end
+println = lam(s) block:
+  print(s)
+  print("\n")
+end
 
 fun pretty-result(result):
   if A.is-Program(result): result.tosource()
@@ -123,10 +127,11 @@ cases (C.ParsedArguments) parsed-options block:
           | left(v) =>
             println("Compilation failed")
             {_; traces} = v
-            traces.get-value-now(file)
+            traces.get-value-now(PL.basename(file, ""))
           | right(v) =>
             {_; traces} = v
-            traces.get-value-now(file)
+            println(traces.keys-now())
+            traces.get-value-now(PL.basename(file, ""))
         end
 
         for each(phase from comp) block:

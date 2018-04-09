@@ -267,8 +267,8 @@
       // NOTE(joe): can't use checkPyretVal here, because it will re-enter
       // this function and blow up...
       if(!runtime.isPyretVal(val)) {
-        console.log("Actual non Pyret value", val);
-        val = "non Pyret-value; see the console for more details";
+        console.log("Non Pyret value:", val);
+        val = "non-Pyret value; see the console for more details";
       }
       runtime.checkString(typeName);
       raise(err("generic-type-mismatch")(val, typeName));

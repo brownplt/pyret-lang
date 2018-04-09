@@ -4,13 +4,10 @@ provide-types *
 include string-dict
 import ast as AST
 
-type Variable = {
-  name :: String,
-  serial :: Number,
-  loc :: AST.Loc,
-  sign :: Option<VarSign>,
-  shadows :: Boolean,
-}
+data Variable:
+  | v-name(loc :: AST.Loc, name :: String)
+  | v-atom(name :: String, serial :: Number)
+end
 
 data GenericPrimitive:
   | e-str(s :: String)
@@ -75,16 +72,7 @@ data ScopeRule:
       binds :: List<{Number; Number}>) # {i; j} means bind child j in child i
 end
 
-fun naked-var(name :: String) -> Variable:
-  {
-    name: name,
-    serial: 0,
-    loc: AST.dummy-loc,
-    sign: none,
-    kind: none,
-    shadows: false,
-  }
-end
+naked-var = v-name(AST.dummy-loc, _)
 
 data Env:
   | environment(

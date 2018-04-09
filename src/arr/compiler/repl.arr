@@ -28,23 +28,6 @@ fun add-global-type-binding(env :: CS.CompileEnvironment, name :: String):
     env.mods)
 end
 
-fun get-special-imports(program):
-  cases(A.Program) program:
-    | s-program(l, _, _, imports, _) =>
-      special-imps = for filter(i from imports):
-        A.is-s-special-import(i.file)
-      end
-      special-imps.map(_.file)
-  end
-end
-
-fun get-imp-dependency(imp):
-  cases(A.Import) imp:
-    | s-include(_, mod) => mod
-    | else => imp.file
-  end
-end
-
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
   import-names = for fold(names from empty, imp from imports):
@@ -216,11 +199,11 @@ fun make-repl<a>(
     current-compile-options := options
     current-realm := realm
     locator-cache := SD.make-mutable-string-dict()
-    current-modules := SD.make-mutable-string-dict()
+    current-modules := modules.freeze().unfreeze() # Make a copy
     extra-imports := CS.standard-imports
     current-finder := make-finder()
     globals := defs-locator.get-globals()
-    worklist = CL.compile-worklist(finder, defs-locator, compile-context)
+    worklist = CL.compile-worklist-known-modules(finder, defs-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules):
       current-modules.set-now(k, compiled.modules.get-value-now(k))
@@ -238,7 +221,7 @@ fun make-repl<a>(
   end
 
   fun run-interaction(repl-locator :: CL.Locator) block:
-    worklist = CL.compile-worklist(finder, repl-locator, compile-context)
+    worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules) block:
       m = compiled.modules.get-value-now(k)
