@@ -235,7 +235,7 @@ type CLIContext = {
 fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
   this-path = dep.arguments.get(0)
   if P.is-absolute(this-path):
-    this-path
+    P.relative(current-load-path, this-path)
   else:
     P.join(current-load-path, this-path)
   end
