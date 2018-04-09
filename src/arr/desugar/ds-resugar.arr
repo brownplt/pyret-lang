@@ -87,7 +87,10 @@ fun subs(env :: Env, p :: Pattern) -> Option<Term>:
     cases (Pattern) p block:
       | p-pvar(name, _, _) =>
         cases (Option) get-pvar(env, name):
-          | none => fail-rs("Pattern variable '" + name + "' not found.")
+          | none => #some(g-option(none))
+            # TODO: handle dropped pvars (note: may be dropped due to empty ellipses)
+            # IDEA: instantiate ellipsis patterns
+            fail-rs("Pattern variable '" + name + "' not found.")
           | some(e) => some(e)
         end
       | p-prim(val) => g-prim(val) ^ some

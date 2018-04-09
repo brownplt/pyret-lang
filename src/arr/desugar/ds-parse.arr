@@ -13,15 +13,6 @@ include file("ds-structs.arr")
 # Important! The parser must not backtrack too much, or else
 # it will take exponential time, and the ellipsis counter will skip numbers.
 
-fun mk-gen-symbol() -> (String -> String):
-  var label-counter = 0
-  fun gen-symbol(s :: String) -> String block:
-    label-counter := label-counter + 1
-    s + tostring(label-counter)
-  end
-  gen-symbol
-end
-
 ################################################################################
 #  Errors
 #
@@ -37,10 +28,11 @@ end
 
 WHITESPACE = [list: " ", "\t", "\n"]
 SPECIAL-TOKENS = [list:
-  ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@", "=>",
+  "_{", ",", "|", ";", ":", "(", ")", "[", "]", "{", "}", "@", "=>",
   "<", ">", "...", "_"
 ]
 MAGIC-LOC = "@"
+TOP-LOC = "@toploc"
 
 data Token:
   | t-str(tok :: String)
@@ -410,12 +402,21 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
         end
       end)
   end
+
+  parser-drop = parser-choices([list:
+      for parser-3(
+          _ from parser-ignore(t-symbol("_")),
+          _ from parser-ignore(t-symbol(":")),
+          ty from parser-name):
+        p-drop(some(ty))
+      end,
+      parser-const(t-symbol("_"), p-drop(none))
+    ])
   
   parser-pvar-name-and-label = parser-choices([list:
-      for parser-5(
+      for parser-4(
         name from parser-name,
-        _ from parser-ignore(t-symbol("_")),
-        _ from parser-ignore(t-symbol("{")),
+        _ from parser-ignore(t-symbol("_{")),
         labels from parser-seq(parser-name),
         _ from parser-ignore(t-symbol("}"))
       ):
@@ -481,6 +482,8 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
           end),
         # Variable
         parser-var(vars),
+        # Drop
+        parser-drop,
         # Pattern var
         parser-pvar,
         # Some
@@ -662,20 +665,21 @@ parser-ds-rule-case =
         lhs from parser-pattern(),
         _ from parser-ignore(t-symbol("=>")),
         rhs from parser-pattern()):
-      gen-symbol = mk-gen-symbol()
-      shadow lhs = rename-p-pvar(lhs, lam(loc):
-          if loc == MAGIC-LOC: gen-symbol("@l") else: loc end
+      shadow lhs = rename-p-pvar(lhs, lam(loc, labels, typ):
+          if loc == MAGIC-LOC: p-drop(typ) else: p-pvar(loc, labels, typ) end
         end)
-      toploc-name = cases (Pattern) lhs:
-        | p-surf(_, args) =>
+      {shadow lhs; toploc-name} = cases (Pattern) lhs:
+        | p-surf(op, args) =>
           cases (Pattern) args.get(0):
-            | p-pvar(loc-name, _, _) => loc-name
-            | else => panic("First argument of LHS surface is not p-pvar: " + lhs)
+            | p-drop(_) => {p-surf(op, link(p-pvar(TOP-LOC, [set:], none), args.rest)); TOP-LOC}
+            | p-pvar(loc-name, _, _) => {lhs; loc-name}
+            | else => panic("First argument of LHS surface is not p-pvar: " + tostring(lhs))
           end
         | else => fail("LHS should be surface pattern")
       end
-      shadow rhs = rename-p-pvar(rhs, lam(loc):
-          if loc == MAGIC-LOC: toploc-name else: loc end
+      shadow rhs = rename-p-pvar(rhs, lam(loc, labels, typ):
+          pvar = if loc == MAGIC-LOC: toploc-name else: loc end
+          p-pvar(pvar, labels, typ)
         end)
       ds-rule-case(lhs, rhs)
     end
@@ -699,10 +703,9 @@ fun parse-ds-rules(input :: String) -> DsRules:
     acc.set(op, kases)
   end
 where:
-  surf-and = p-surf("and", [list: p-pvar("@l1", [set:], none)])
+  surf-and = p-surf("and", [list: p-pvar("@toploc", [list-set: ], none)])
   parse-ds-rules("sugar and: | (and) => (and) end")
-    is [string-dict: "and", [list:
-      ds-rule-case(surf-and, surf-and)]]
+    is [string-dict: "and", [list: ds-rule-case(surf-and, surf-and)]]
   parse-ds-rules(
     ```
     # ignore me

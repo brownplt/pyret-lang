@@ -98,3 +98,10 @@ fun assign-fresh-names(env :: Env, fresh :: Set<String>) -> Env block:
       set-fresh(env2, v, naked-var(gensym("_")))
     end, env)
 end
+
+fun assign-non-fresh-names(env :: Env, caps :: Set<String>) -> Env block:
+  caps.fold(lam(env2, v) block:
+      set-fresh(env2, v, naked-var(v))
+    end, env)
+end
+

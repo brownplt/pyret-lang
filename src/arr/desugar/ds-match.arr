@@ -340,6 +340,9 @@ fun match-rec(
           for chain-either({shadow env; shadow p} from match-rec(fresh.union(fresh-vars), env, e, body)):
             left({env; p-fresh(fresh-vars, p)})
           end
+        | p-capture(_, body) => match-rec(fresh, env, e, body)
+        | p-drop(_) =>
+          left({env; term-to-pattern(e)})
       end
   end
 end
@@ -396,6 +399,26 @@ fun fold-either2<A, B, Res, Err>(
             | right(err) => right(err)
           end
       end
+  end
+end
+
+fun term-to-pattern(t :: Term) -> Pattern:
+  fun terms-to-patterns(ts :: List<Term>) -> SeqPattern:
+    cases (List) ts:
+      | empty => seq-empty
+      | link(shadow t, shadow ts) =>
+        seq-cons(term-to-pattern(t), terms-to-patterns(ts))
+    end
+  end
+  cases (Term) t:
+    | g-var(v) => p-var(v.name)
+    | g-surf(op, args) => p-surf(op, args.map(term-to-pattern))
+    | g-core(op, args) => p-core(op, args.map(term-to-pattern))
+    | g-aux(op, args) => p-aux(op, args.map(term-to-pattern))
+    | g-tag(l, r, body) => p-tag(l, r, term-to-pattern(body))
+    | g-prim(p) => p-prim(p)
+    | g-option(opt) => p-option(opt.and-then(term-to-pattern))
+    | g-list(lst) => p-list(terms-to-patterns(lst))
   end
 end
 

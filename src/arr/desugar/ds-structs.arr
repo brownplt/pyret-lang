@@ -37,6 +37,7 @@ end
 
 data Pattern:
   | p-pvar(name :: String, labels :: Set<String>, typ :: Option<String>)
+  | p-drop(typ :: Option<String>)
   | p-prim(val :: GenericPrimitive)
   | p-core(op :: String, args :: List<Pattern>)
   | p-surf(op :: String, args :: List<Pattern>)
@@ -150,10 +151,11 @@ end
 #  Utilities
 #
 
-fun rename-p-pvar(p :: Pattern, rename :: (String -> String)) -> Pattern:
+fun rename-p-pvar(p :: Pattern, rename :: (String, Set<String>, Option<String> -> Pattern)) -> Pattern:
   fun loop(shadow p :: Pattern):
     cases (Pattern) p:
-      | p-pvar(s, labels, t) => p-pvar(rename(s), labels, t)
+      | p-pvar(s, labels, t) => rename(s, labels, t)
+      | p-drop(t) => p
       | p-prim(_) => p
       | p-core(op, args) => p-core(op, args.map(loop))
       | p-surf(op, args) => p-surf(op, args.map(loop))
@@ -165,6 +167,7 @@ fun rename-p-pvar(p :: Pattern, rename :: (String -> String)) -> Pattern:
       | p-option(opt) => p-option(opt.and-then(loop))
       | p-tag(lhs, rhs, body) => p-tag(loop(lhs), loop(rhs), loop(body))
       | p-fresh(fresh, body) => p-fresh(fresh, loop(body))
+      | p-capture(capture, body) => p-capture(capture, loop(body))
     end
   end
   fun loop-list(ps :: SeqPattern):

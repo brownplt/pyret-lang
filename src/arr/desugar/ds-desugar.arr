@@ -104,7 +104,9 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
       | p-option(opt) => g-option(opt.and-then(loop))
       | p-tag(lhs, rhs, body) => g-tag(lhs, rhs, loop(body))
       | p-fresh(fresh, body) => subs(rules, assign-fresh-names(env, fresh), body)
+      | p-capture(caps, body) => subs(rules, assign-non-fresh-names(env, caps), body)
       | p-list(seq) => g-list(loop-list(seq))
+      | p-drop(_) => fail("Don't you ever dare using _ in the RHS")
     end
   end
 
