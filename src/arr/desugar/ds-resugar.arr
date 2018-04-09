@@ -49,7 +49,7 @@ fun map-option-2<A, B, C>(f :: (A, B -> Option<C>), lstA :: List<A>, lstB :: Lis
           cases (Option) f(hA, hB):
             | none => none
             | some(h) =>
-              cases (Option) map-option(f, tA, tB):
+              cases (Option) map-option-2(f, tA, tB):
                 | none => none
                 | some(t) => some(link(h, t))
               end
@@ -86,12 +86,16 @@ fun subs(env :: Env, p :: Pattern) -> Option<Term>:
   fun loop(shadow p):
     cases (Pattern) p block:
       | p-pvar(name, _, _) =>
-        cases (Option) get-pvar(env, name):
-          | none => #some(g-option(none))
-            # TODO: handle dropped pvars (note: may be dropped due to empty ellipses)
-            # IDEA: instantiate ellipsis patterns
-            fail-rs("Pattern variable '" + name + "' not found.")
-          | some(e) => some(e)
+        if name == TOP-LOC:
+          some(term-dummy-loc)
+        else:
+          cases (Option) get-pvar(env, name):
+            | none => #some(g-option(none))
+              # TODO: handle dropped pvars (note: may be dropped due to empty ellipses)
+              # IDEA: instantiate ellipsis patterns
+              fail-rs("Pattern variable '" + name + "' not found.")
+            | some(e) => some(e)
+          end
         end
       | p-prim(val) => g-prim(val) ^ some
       | p-core(op, args) => map-option(subs(env, _), args).and-then(g-core(op, _))
@@ -122,7 +126,8 @@ fun subs(env :: Env, p :: Pattern) -> Option<Term>:
           end
         end
       | p-fresh(fresh, body) => subs(assign-fresh-names(env, fresh), body)
-      | p-list(seq) => loop-list(seq).and-then(p-list)
+      | p-capture(caps, body) => subs(assign-non-fresh-names(env, caps), body)
+      | p-list(seq) => loop-list(seq).and-then(g-list)
       | p-tag(lhs, rhs, body) =>
         for chain-option(shadow body from subs(env, body)):
           resugar-tag(lhs, rhs, body)

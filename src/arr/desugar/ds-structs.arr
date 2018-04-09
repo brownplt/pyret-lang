@@ -2,6 +2,7 @@ provide *
 provide-types *
 
 include string-dict
+import srcloc as SL
 import ast as AST
 
 data Variable:
@@ -181,5 +182,40 @@ fun strip-tags(e :: Term) -> Term:
     | g-option(opt) => g-option(opt.and-then(strip-tags))
     | g-var(v) => g-var(v)
     | g-tag(_, _, body) => strip-tags(body)
+  end
+end
+
+fun show-term(e :: Term) -> String:
+  doc: "Print a term, for debugging purposes."
+  fun show-terms(es):
+    map(show-term, es).join-str(" ")
+  end
+  fun show-prim(prim):
+    cases (GenericPrimitive) prim:
+      | e-str(v) => tostring(v)
+      | e-num(v) => tostring(v)
+      | e-bool(v) => tostring(v)
+      | e-loc(v) => "."
+    end
+  end
+  fun show-var(v):
+    cases (Variable) v:
+      | v-name(_, name) => name
+      | v-atom(name, _) => name
+    end
+  end
+  cases (Term) e:
+    | g-prim(val) => show-prim(val)
+    | g-core(op, args) => "<" + op + " " + show-terms(args) + ">"
+    | g-aux(op, args)  => "{" + op + " " + show-terms(args) + "}"
+    | g-surv(op, args) => "(" + op + " " + show-terms(args) + ")"
+    | g-list(lst)      => "[" + show-terms(lst) + "]"
+    | g-option(opt) =>
+      cases (Option) opt:
+        | none => "none"
+        | some(shadow e) => "(some " + show-term(e) + ")"
+      end
+    | g-var(v) => show-var(v)
+    | g-tag(_, _, body) => "#" + show-term(body)
   end
 end

@@ -2,6 +2,7 @@ provide {
     parse-pattern: parse-pattern,
     parse-ast: parse-ast,
     parse-ds-rules: parse-ds-rules,
+    TOP-LOC: TOP-LOC
 } end
 
 import ast as AST

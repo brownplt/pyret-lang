@@ -55,14 +55,27 @@ check:
     sugar let:
     | (let {bind x a} body) => (apply (lambda x body) a)
     end
+    sugar ors:
+    | (ors [a]) => a
+    | (ors [a bs_{i} ...i]) =>
+      (fresh [x] (lets [(bind x a)] (if x x (ors [bs_{i} ...i]))))
+    end
+    sugar lets:
+    | (lets [{bind x_{i} a_{i}} ...i] body) =>
+      (apply (lambda [x_{i} ...i] body) [a_{i} ...i])
+    end
     ```)
 
   e = P.parse-ast("(or p q)")
   RS.resugar(DS.desugar(rules, e)) is some(e)
 
-  # e1 = parse-ast("(bind 1 (+))")
-  # resugar(desugar(rules, e1)) is some(e1)
+  e1 = P.parse-ast("(bind 1 (+))")
+  RS.resugar(DS.desugar(rules, e1)) is some(e1)
 
-  # e2 = parse-ast("(let (bind x (+ 1 2)) (- x 3))")
-  # resugar(desugar(rules, e2)) is some(e2)
+  e2 = P.parse-ast("(let (bind x (+ 1 2)) (- x 3))")
+  RS.resugar(DS.desugar(rules, e2)) is some(e2)
+
+  e3 = P.parse-ast("(ors [p q])")
+  RS.resugar(DS.desugar(rules, e3)) is some(e3)
+  print(ST.show-term(DS.desugar(rules, e3)))
 end
