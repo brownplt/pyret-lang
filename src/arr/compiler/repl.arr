@@ -7,6 +7,7 @@ import load-lib as L
 import parse-pyret as P
 import string-dict as SD
 import runtime-lib as R
+import sets as S
 import file("./ast-util.arr") as U
 import file("./resolve-scope.arr") as RN
 import file("./compile-structs.arr") as CS
@@ -15,6 +16,16 @@ import file("./type-structs.arr") as TS
 import file("./ast-util.arr") as AU
 
 type Either = E.Either
+
+standard-import-names = S.list-to-tree-set(
+  for map(ei from CS.standard-imports.imports):
+    ei.as-name
+  end
+)
+
+fun is-standard-import(imp :: CS.ExtraImport):
+  standard-import-names.member(imp.as-name)
+end
 
 fun add-global-binding(env :: CS.CompileEnvironment, name :: String):
   CS.compile-env(
@@ -254,7 +265,11 @@ fun make-repl<a>(
     end
     # Strip names from these, since they will be provided
     extras-now = CS.extra-imports(for lists.map(ei from extra-imports.imports):
-      CS.extra-import(ei.dependency, "_", ei.values, ei.types)
+      if is-standard-import(ei):
+        ei
+      else:
+        CS.extra-import(ei.dependency, "_", ei.values, ei.types)
+      end
     end)
     globals-now = globals
     {
