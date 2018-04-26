@@ -225,7 +225,7 @@ fun show-term(e :: Term) -> String:
     | g-option(opt) =>
       cases (Option) opt:
         | none => "none"
-        | some(shadow e) => "(some " + show-term(e) + ")"
+        | some(shadow e) => "{some " + show-term(e) + "}"
       end
     | g-var(v) => show-var(v)
     | g-tag(_, _, body) => "#" + show-term(body)
