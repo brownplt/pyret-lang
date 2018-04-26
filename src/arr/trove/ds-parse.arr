@@ -5,11 +5,15 @@ provide {
     TOP-LOC: TOP-LOC
 } end
 
+import global as _
 import ast as AST
 include either
 include string-dict
+include lists
+include option
+import sets as S
 
-include file("ds-structs.arr")
+include ds-structs
 
 # Important! The parser must not backtrack too much, or else
 # it will take exponential time, and the ellipsis counter will skip numbers.
@@ -99,7 +103,7 @@ fun tokenize(input-str :: String) -> List<Token> block:
   end
 
   fun consumes-any(lst :: List<String>):
-    lists.any(consumes-exact, lst)
+    any(consumes-exact, lst)
   end
 
   fun consumes-one():
@@ -408,7 +412,7 @@ parser-fresh-item-list =
 
 fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
   
-  fun parser-var(vars :: Set<String>):
+  fun parser-var(vars :: S.Set<String>):
     parser-pred(lam(tok):
         cases (Token) tok:
           | t-name(name) =>
@@ -439,10 +443,10 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
         labels from parser-seq(parser-name),
         _ from parser-ignore(t-symbol("}"))
       ):
-        {name; list-to-set(labels)}
+        {name; S.list-to-set(labels)}
       end,
       for parser-1(name from parser-name):
-        {name; [set: ]}
+        {name; [S.set: ]}
       end
     ])
 
@@ -460,12 +464,12 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
 
   fun get-ploc(maybe-loc :: Option<Pattern>) -> Pattern:
     cases (Option) maybe-loc:
-      | none          => p-pvar("@", [set:], none)
+      | none          => p-pvar("@", [S.set:], none)
       | some(loc-pat) => loc-pat
     end
   end
 
-  fun parser-patt(vars :: Set<String>):
+  fun parser-patt(vars :: S.Set<String>):
     fun rec-pattern(toks): parser-patt(vars)(toks) end
     fun rec-list(toks): parser-list-body(vars)(toks) end
 
@@ -517,7 +521,7 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
         for parser-chain(_ from parser-ignore(t-symbol("("))):
           for parser-chain(_ from parser-ignore(t-name("fresh"))):
             for parser-chain(items from parser-fresh-item-list):
-              shadow vars = vars.union(list-to-set(map(get-fresh-item-name, items)))
+              shadow vars = vars.union(S.list-to-set(map(get-fresh-item-name, items)))
               for parser-chain(body from parser-patt(vars)):
                 for parser-1(_ from parser-ignore(t-symbol(")"))):
                   p-fresh(items, body)
@@ -530,7 +534,7 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
         for parser-chain(_ from parser-ignore(t-symbol("("))):
           for parser-chain(_ from parser-ignore(t-name("capture"))):
             for parser-chain(items from parser-fresh-item-list):
-              shadow vars = vars.union(list-to-set(map(get-fresh-item-name, items)))
+              shadow vars = vars.union(S.list-to-set(map(get-fresh-item-name, items)))
               for parser-chain(body from parser-patt(vars)):
                 for parser-1(_ from parser-ignore(t-symbol(")"))):
                   p-capture(items, body)
@@ -591,7 +595,7 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
       ])
   end
 
-  fun parser-list-body(vars :: Set<String>):
+  fun parser-list-body(vars :: S.Set<String>):
     fun rec-pattern(toks): parser-patt(vars)(toks) end
     fun rec-list(toks): parser-list-body(vars)(toks) end
     
@@ -619,7 +623,7 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
       ])
   end
   
-  parser-patt([set:])
+  parser-patt([S.set:])
 end
 
 fun parse-pattern(input :: String) -> Pattern:
@@ -675,7 +679,7 @@ parser-ds-rule-case =
       {shadow lhs; toploc-name} = cases (Pattern) lhs:
         | p-surf(op, args) =>
           cases (Pattern) args.get(0):
-            | p-drop(_) => {p-surf(op, link(p-pvar(TOP-LOC, [set:], none), args.rest)); TOP-LOC}
+            | p-drop(_) => {p-surf(op, link(p-pvar(TOP-LOC, [S.set:], none), args.rest)); TOP-LOC}
             | p-pvar(loc-name, _, _) => {lhs; loc-name}
             | else => panic("First argument of LHS surface is not p-pvar: " + tostring(lhs))
           end

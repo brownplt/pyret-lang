@@ -3,7 +3,9 @@ provide *
 
 include ast
 include string-dict
-include file("ds-structs.arr")
+include lists
+include option
+include ds-structs.arr
 import global as _
 import base as _
 fun g-str(s): g-prim(e-str(s)) end
@@ -1680,9 +1682,9 @@ fun term-to-ast(g):
         | e-loc( l) => l
       end
     | g-var( v) =>
-      cases (Variable) v:
-        | v-atom(name, serial) => s-atom(name, serial)
-        | v-name(l, name) => s-name(l, name)
+      cases(Variable) v:
+        | v-atom( name,  serial) => s-atom(name, serial)
+        | v-name( l,  name) => s-name(l, name)
       end
     | g-list( lst) => lst.map(term-to-ast)
     | g-option( opt) => opt.and-then(term-to-ast)

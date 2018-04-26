@@ -4,19 +4,21 @@ provide {
     desugar-expr: desugar-expr
 } end
 
+import global as _
+include option
 import ast as AST
 import file as F
-import file("conversion-visitor.arr") as CONV
-import file("ds-desugar.arr") as DS
-import file("ds-resugar.arr") as RS
-import file("ds-parse.arr") as P
-import file("ds-structs.arr") as ST
-include file("debugging.arr")
-import file("ds-metafunctions.arr") as _
+import conversion-visitor as CONV
+import ds-desugar as DS
+import ds-resugar as RS
+import ds-parse as P
+import ds-structs as ST
+include debugging
+import ds-metafunctions as _
 
 nothing ^ push-time("reading")
 desugaring-rules = block:
-  file = F.input-file("src/arr/desugar/pyret.sugar")
+  file = F.input-file("src/arr/trove/pyret.sugar")
   ds-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   ds-rules

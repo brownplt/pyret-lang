@@ -2,12 +2,15 @@ provide {
     resugar: resugar
 } end
 
+import global as _
 include either
-include file("ds-structs.arr")
-include file("ds-parse.arr")
-include file("ds-environment.arr")
-include file("ds-match.arr")
-include file("debugging.arr")
+include lists
+include option
+include ds-structs
+include ds-parse
+include ds-environment
+include ds-match
+include debugging
 
 fun chain-option<A, B>(
     f :: (A -> Option<B>),

@@ -8,13 +8,17 @@ provide-types {
   Env :: Env
 }
 
+import global as _
 include string-dict
 include either
+include lists
+include option
+import sets as S
 
-include file("ds-structs.arr")
-include file("ds-parse.arr")
-include file("ds-environment.arr")
-include file("debugging.arr")
+include ds-structs
+include ds-parse
+include ds-environment
+include debugging
 
 ################################################################################
 #  Errors
@@ -164,11 +168,11 @@ end
 #
 
 fun match-pattern(e :: Term, p :: Pattern) -> MatchResult:
-  match-rec([set: ], empty-env(), e, p)
+  match-rec([S.set: ], empty-env(), e, p)
 end
 
 fun match-rec(
-    fresh :: Set<String>,
+    fresh :: S.Set<String>,
     env :: Env,
     e :: Term,
     p :: Pattern)
@@ -337,7 +341,7 @@ fun match-rec(
         | p-tag(lhs, rhs, body) =>
           panic("Encountered a p-tag while matching, but it should only be used internally: " + tostring(p))
         | p-fresh(fresh-items, body) =>
-          shadow fresh = fresh.union(list-to-set(map(get-fresh-item-name, fresh-items)))
+          shadow fresh = fresh.union(S.list-to-set(map(get-fresh-item-name, fresh-items)))
           for chain-either({shadow env; shadow p} from match-rec(fresh, env, e, body)):
             left({env; p-fresh(fresh-items, p)})
           end

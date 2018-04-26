@@ -23,7 +23,7 @@ SHELL := /bin/bash
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
-COMPILER_FILES = $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr) $(wildcard src/arr/desugar/*.arr)
+COMPILER_FILES = $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
 TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
 
 # You can download the script to work with s3 here:

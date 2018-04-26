@@ -289,10 +289,12 @@ fun write-ast-visitors() block:
     [list:
       A.s-include(dummy, A.s-const-import(dummy, 'ast')),
       A.s-include(dummy, A.s-const-import(dummy, 'string-dict')),
-      A.s-include(dummy, A.s-special-import(dummy, 'file', [list: 'ds-structs.arr'])),
+      A.s-include(dummy, A.s-const-import(dummy, 'lists')),
+      A.s-include(dummy, A.s-const-import(dummy, 'option')),
+      A.s-include(dummy, A.s-const-import(dummy, 'ds-structs.arr')),
     ],
     'src/arr/trove/ast.arr',
-    'src/arr/desugar/conversion-visitor.arr',
+    'src/arr/trove/conversion-visitor.arr',
     [list: 'ast-to-term-visitor'],
     true,
     lam(collected-variants :: List<AT.SimplifiedVariant>, body) -> List<A.Expr> block:

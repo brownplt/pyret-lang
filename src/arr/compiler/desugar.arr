@@ -11,7 +11,7 @@ import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("resolve-scope.arr") as R
-import file("../desugar/ds-main.arr") as DNew
+import ds-main as DNew
 
 names = A.global-names
 

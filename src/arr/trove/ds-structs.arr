@@ -1,6 +1,10 @@
 provide *
 provide-types *
 
+import global as _
+include lists
+include option
+import sets as S
 include string-dict
 import srcloc as SL
 import ast as AST
@@ -34,7 +38,7 @@ data VarSign:
 end
 
 data Pattern:
-  | p-pvar(name :: String, labels :: Set<String>, typ :: Option<String>)
+  | p-pvar(name :: String, labels :: S.Set<String>, typ :: Option<String>)
   | p-drop(typ :: Option<String>)
   | p-prim(val :: GenericPrimitive)
   | p-core(op :: String, args :: List<Pattern>)
@@ -128,8 +132,8 @@ end
 
 __BIJECTIONS = [mutable-string-dict:]
 
-fun add-bijection(op :: String, forward :: (Term -> Term), reverse :: (Term -> Term)):
-  __BIJECTIONS.set-now(op, {forward; reverse})
+fun add-bijection(op :: String, forward :: (Term -> Term), rev :: (Term -> Term)):
+  __BIJECTIONS.set-now(op, {forward; rev})
 end
 
 fun lookup-bijection(op :: String) -> { (Term -> Term); (Term -> Term) }:
@@ -152,7 +156,7 @@ fun get-fresh-item-name(item :: FreshItem) -> String:
   end
 end
 
-fun rename-p-pvar(p :: Pattern, rename :: (String, Set<String>, Option<String> -> Pattern)) -> Pattern:
+fun rename-p-pvar(p :: Pattern, rename :: (String, S.Set<String>, Option<String> -> Pattern)) -> Pattern:
   fun loop(shadow p :: Pattern):
     cases (Pattern) p:
       | p-pvar(s, labels, t) => rename(s, labels, t)

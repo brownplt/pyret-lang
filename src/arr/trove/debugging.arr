@@ -1,5 +1,8 @@
 provide *
 
+import global as _
+include lists
+
 fun my-print(s):
   lam(v) block:
     print(s + ": " + tostring(v) + "\n")

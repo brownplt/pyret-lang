@@ -1,11 +1,14 @@
 provide *
 provide-types *
 
+import global as _
 include string-dict
+include lists
+include option
 
-include file("ds-structs.arr")
-include file("ds-parse.arr")
-include file("debugging.arr")
+include ds-structs
+include ds-parse
+include debugging
 
 ################################################################################
 #  Environments

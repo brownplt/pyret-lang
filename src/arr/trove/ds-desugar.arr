@@ -3,13 +3,17 @@ provide {
     substitute: substitute
 } end
 
+import global as _
 include string-dict
 include either
+include lists
+include option
+import sets as Set
 
-include file("ds-structs.arr")
-include file("ds-parse.arr")
-include file("ds-environment.arr")
-include file("ds-match.arr")
+include ds-structs
+include ds-parse
+include ds-environment
+include ds-match
 
 
 ################################################################################
@@ -48,8 +52,10 @@ fun find-option<S, T>(f :: (S -> Option<T>), lst :: List<S>) -> Option<T>:
   end
 end
 
-fun generate-pvars(n :: Number) -> List<Pattern>:
-  range(0, n).map(lam(i): p-pvar("_" + tostring(i), [set: ], none) end)
+fun generate-pvars(n :: Number) -> List<Pattern> block:
+  print("help")
+  print(set)
+  range(0, n).map(lam(i): p-pvar("_" + tostring(i), [Set.set: ], none) end)
 end
 
 

@@ -1,8 +1,10 @@
 provide *
 
+import global as _
+include option
 include string-dict
-include file("ds-structs.arr")
-import file("ds-resugar.arr") as RS
+include ds-structs
+import ds-resugar as RS
 
 fun reverse-term(e :: Term):
   cases (Term) e:
