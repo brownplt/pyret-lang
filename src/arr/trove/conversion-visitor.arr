@@ -5,7 +5,7 @@ include ast
 include string-dict
 include lists
 include option
-include ds-structs.arr
+include ds-structs
 import global as _
 import base as _
 fun g-str(s): g-prim(e-str(s)) end

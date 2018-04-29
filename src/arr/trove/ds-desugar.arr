@@ -52,9 +52,7 @@ fun find-option<S, T>(f :: (S -> Option<T>), lst :: List<S>) -> Option<T>:
   end
 end
 
-fun generate-pvars(n :: Number) -> List<Pattern> block:
-  print("help")
-  print(set)
+fun generate-pvars(n :: Number) -> List<Pattern>:
   range(0, n).map(lam(i): p-pvar("_" + tostring(i), [Set.set: ], none) end)
 end
 

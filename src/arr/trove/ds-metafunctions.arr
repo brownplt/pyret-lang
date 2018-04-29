@@ -17,13 +17,17 @@ add-bijection("reverse", reverse-term, reverse-term)
 
 add-metafunction("get-loc-of", 1,
   lam(args):
-    cases (Term) args.get(0):
-      | g-core(_, shadow args) => args.get(0)
-      # TODO: might want to support g-var
-      | else =>
-        fail("get-loc-of should be used on an already desugared value. Got " +
-             tostring(args.get(0)))
+    fun get-loc-of(e :: Term):
+      cases (Term) e:
+        | g-tag(_, _, body) => get-loc-of(body)
+        | g-core(_, shadow args) => args.get(0)
+        # TODO: might want to support g-var
+        | else =>
+          fail("get-loc-of should be used on an already desugared value. Got " +
+               tostring(args.get(0)))
+      end
     end
+    get-loc-of(args.get(0))
   end)
 
 add-metafunction("resugar", 1,

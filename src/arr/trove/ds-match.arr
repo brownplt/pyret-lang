@@ -253,101 +253,104 @@ fun match-rec(
     end
   end
 
-  cases (Term) e:
-    | g-tag(lhs, rhs, body) =>
-      cases (Either) match-rec(fresh, env, body, p):
-        | left({shadow env; shadow p}) => left({env; p-tag(lhs, rhs, p)})
-        | right(err) => right(err)
+  cases (Pattern) p:
+    | p-pvar(pvar, _, _) =>
+      for chain-either(shadow env from bind-pvar(env, pvar, e)):
+        left({env; p})
       end
     | else =>
-      cases (Pattern) p:
-        | p-prim(val) =>
-          is-ok = cases (Term) e:
-            | g-prim(val2) => val == val2
-            | else => false
+      cases (Term) e:
+        | g-tag(lhs, rhs, body) =>
+          cases (Either) match-rec(fresh, env, body, p):
+            | left({shadow env; shadow p}) => left({env; p-tag(lhs, rhs, p)})
+            | right(err) => right(err)
           end
-          if is-ok:
-            left({env; p})
-          else:
-            match-error()
-          end
-        | p-pvar(pvar, _, _) =>
-          for chain-either(shadow env from bind-pvar(env, pvar, e)):
-            left({env; p})
-          end
-        | p-var(v) =>
-          cases (Term) e:
-            | g-var(v2) =>
-              if fresh.member(v):
-                for chain-either(shadow env from bind-fresh(env, v, v2)):
-                  left({env; p-var(v2.name)})
-                end
-              else if v == v2.name:
-                left({env; p-var(v2.name)})
+        | else =>
+          cases (Pattern) p:
+            | p-prim(val) =>
+              is-ok = cases (Term) e:
+                | g-prim(val2) => val == val2
+                | else => false
+              end
+              if is-ok:
+                left({env; p})
               else:
                 match-error()
               end
-            | else => match-error()
-          end
-        | p-core(pname, pargs) =>
-          cases (Term) e:
-            | g-core(ename, eargs) =>
-              match-core-or-sugar(p-core, ename, pname, eargs, pargs)
-            | else => match-error()
-          end
-        | p-aux(pname, pargs) =>
-          cases (Term) e:
-            | g-aux(ename, eargs) =>
-              match-core-or-sugar(p-aux, ename, pname, eargs, pargs)
-            | else => match-error()
-          end
-        | p-meta(_, _) => left({env; p})
-        | p-biject(name, shadow p) =>
-          {_; f} = lookup-bijection(name)
-          match-rec(fresh, env, f(e), p)
-        # doesn't matter what the returned pattern is since matching p-biject only happens in
-        # resugaring which will ignore it
-        | p-surf(pname, pargs) =>
-          cases (Term) e:
-            | g-surf(ename, eargs) => 
-              match-core-or-sugar(p-surf, ename, pname, eargs, pargs)
-            | else => match-error()
-          end
-        | p-list(plist) =>
-          cases (Term) e:
-            | g-list(elist) => match-list(env, elist, plist)
-            | else => match-error()
-          end
-        | p-option(popt) =>
-          cases (Term) e:
-            | g-option(eopt) =>
-              cases (Option) popt:
-                | none =>
-                  cases (Option) eopt:
-                    | none => left({env; p})
-                    | some(_) => match-error()
+            | p-var(v) =>
+              cases (Term) e:
+                | g-var(v2) =>
+                  if fresh.member(v):
+                    for chain-either(shadow env from bind-fresh(env, v, v2)):
+                      left({env; p-var(v2.name)})
+                    end
+                  else if v == v2.name:
+                    left({env; p-var(v2.name)})
+                  else:
+                    match-error()
                   end
-                | some(px) =>
-                  cases (Option) eopt:
-                    | none => match-error()
-                    | some(ex) =>
-                      for chain-either({shadow env; shadow p} from match-rec(fresh, env, ex, px)):
-                        left({env; p-option(some(p))})
+                | else => match-error()
+              end
+            | p-core(pname, pargs) =>
+              cases (Term) e:
+                | g-core(ename, eargs) =>
+                  match-core-or-sugar(p-core, ename, pname, eargs, pargs)
+                | else => match-error()
+              end
+            | p-aux(pname, pargs) =>
+              cases (Term) e:
+                | g-aux(ename, eargs) =>
+                  match-core-or-sugar(p-aux, ename, pname, eargs, pargs)
+                | else => match-error()
+              end
+            | p-meta(_, _) => left({env; p})
+            | p-biject(name, shadow p) =>
+              {_; f} = lookup-bijection(name)
+              match-rec(fresh, env, f(e), p)
+            # doesn't matter what the returned pattern is since matching p-biject only happens in
+            # resugaring which will ignore it
+            | p-surf(pname, pargs) =>
+              cases (Term) e:
+                | g-surf(ename, eargs) =>
+                  match-core-or-sugar(p-surf, ename, pname, eargs, pargs)
+                | else => match-error()
+              end
+            | p-list(plist) =>
+              cases (Term) e:
+                | g-list(elist) => match-list(env, elist, plist)
+                | else => match-error()
+              end
+            | p-option(popt) =>
+              cases (Term) e:
+                | g-option(eopt) =>
+                  cases (Option) popt:
+                    | none =>
+                      cases (Option) eopt:
+                        | none => left({env; p})
+                        | some(_) => match-error()
+                      end
+                    | some(px) =>
+                      cases (Option) eopt:
+                        | none => match-error()
+                        | some(ex) =>
+                          for chain-either({shadow env; shadow p} from match-rec(fresh, env, ex, px)):
+                            left({env; p-option(some(p))})
+                          end
                       end
                   end
+                | else => match-error()
               end
-            | else => match-error()
+            | p-tag(lhs, rhs, body) =>
+              panic("Encountered a p-tag while matching, but it should only be used internally: " + tostring(p))
+            | p-fresh(fresh-items, body) =>
+              shadow fresh = fresh.union(S.list-to-set(map(get-fresh-item-name, fresh-items)))
+              for chain-either({shadow env; shadow p} from match-rec(fresh, env, e, body)):
+                left({env; p-fresh(fresh-items, p)})
+              end
+            | p-capture(_, body) => match-rec(fresh, env, e, body)
+            | p-drop(_) =>
+              left({env; term-to-pattern(e)})
           end
-        | p-tag(lhs, rhs, body) =>
-          panic("Encountered a p-tag while matching, but it should only be used internally: " + tostring(p))
-        | p-fresh(fresh-items, body) =>
-          shadow fresh = fresh.union(S.list-to-set(map(get-fresh-item-name, fresh-items)))
-          for chain-either({shadow env; shadow p} from match-rec(fresh, env, e, body)):
-            left({env; p-fresh(fresh-items, p)})
-          end
-        | p-capture(_, body) => match-rec(fresh, env, e, body)
-        | p-drop(_) =>
-          left({env; term-to-pattern(e)})
       end
   end
 end

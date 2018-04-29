@@ -62,8 +62,12 @@ fun map-option-2<A, B, C>(f :: (A, B -> Option<C>), lstA :: List<A>, lstB :: Lis
 end
 
 fun resugar(e :: Term) -> Option<Term>:
-  cases (Term) e:
+  cases (Term) e block:
     | g-prim(val) => g-prim(val) ^ some
+    | g-focus(t) =>
+      for chain-option(shadow e from resugar(t)):
+        some(g-focus(e))
+      end
     | g-core(op, args) =>
       map-option(resugar, args).and-then(g-core(op, _))
     | g-surf(op, args) =>
@@ -79,9 +83,14 @@ fun resugar(e :: Term) -> Option<Term>:
         end
       end
     | g-tag(lhs, rhs, body) =>
-      for chain-option(shadow body from resugar(body)):
+      #print("$ lhs: " + tostring(lhs) + "\n")
+      #print("$ rhs: " + tostring(rhs) + "\n")
+      #print("$ body: " + tostring(body) + "\n")
+      ret = for chain-option(shadow body from resugar(body)):
         resugar-tag(lhs, rhs, body)
       end
+      #print("$ ret: " + tostring(ret) + "\n")
+      ret
   end
 end
 

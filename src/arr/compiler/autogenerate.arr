@@ -291,7 +291,7 @@ fun write-ast-visitors() block:
       A.s-include(dummy, A.s-const-import(dummy, 'string-dict')),
       A.s-include(dummy, A.s-const-import(dummy, 'lists')),
       A.s-include(dummy, A.s-const-import(dummy, 'option')),
-      A.s-include(dummy, A.s-const-import(dummy, 'ds-structs.arr')),
+      A.s-include(dummy, A.s-const-import(dummy, 'ds-structs')),
     ],
     'src/arr/trove/ast.arr',
     'src/arr/trove/conversion-visitor.arr',

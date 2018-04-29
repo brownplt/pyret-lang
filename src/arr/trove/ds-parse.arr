@@ -23,7 +23,7 @@ include ds-structs
 #
 
 fun parse-error(message :: String):
-  raise({"Failed to parse sugar definitions file"; message})
+  raise({"Failed to parse"; message})
 end
 
 
