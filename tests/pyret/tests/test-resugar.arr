@@ -1,3 +1,4 @@
+import valueskeleton as VS
 import ds-desugar as DS
 import ds-resugar as RS
 include ds-structs
@@ -15,36 +16,37 @@ fun extend-trace(tags, ctx, e, trace):
   link(ctx(g-focus(attach-tags(tags, e))), trace)
 end
 
-fun strip-outer(e):
-  cases (Term) e:
-    | g-tag(_, _, b) => strip-outer(b)
-    | else => e
-  end
+data Closure:
+  | closure(id :: String, body :: Term)
+sharing:
+  method _output(self): VS.vs-str("<closure>") end
 end
 
 fun interp(e :: Term, tags :: List, ctx :: (Term -> Term), trace :: List<Term>, env :: StringDict<Term>) -> {Term; List<Term>} block:
   #print("<<< e: " + tostring(e) + "\n<<< tags: " + tostring(tags) + "\n<<< ctx: " + tostring(ctx(g-option(none))) + "\n<<< trace: " + tostring(trace) + "\n\n")
+  fun step-to(val):
+    v = g-value(val)
+    {v; extend-trace(empty, ctx, v, trace)}
+  end
+
   cases (Term) e:
     | g-tag(lhs, rhs, body) =>
       interp(body, link({lhs; rhs}, tags), ctx, trace, env)
     | g-core(c, args) =>
       ask block:
-        | c == "bool" then: {attach-tags(tags, e); extend-trace(tags, ctx, e, trace)}
-        | c == "num" then: {attach-tags(tags, e); extend-trace(tags, ctx, e, trace)}
+        | c == "bool" then:   step-to(args.get(1).val.b)
+        | c == "num" then:    step-to(args.get(1).val.n)
+        | c == "id" then:     step-to(env.get-value(args.get(1).v.name).val)
+        | c == "lambda" then: step-to(closure(args.get(1).v.name, args.get(2)))
         | c == "if" then:
           cond-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("if",
             [list: term-dummy-loc, e, args.get(2), args.get(3)]))) end
           {cond; shadow trace} = interp(args.get(1), empty, cond-ctx, trace, env)
-          if strip-outer(cond) == g-core("bool", [list: term-dummy-loc, g-prim(e-bool(true))]):
+          if cond == g-value(true):
             interp(args.get(2), empty, ctx, trace, env)
           else:
             interp(args.get(3), empty, ctx, trace, env)
           end
-        | c == "id" then:
-          v = env.get-value(args.get(1).v.name)
-          {v; extend-trace(empty, ctx, v, trace)}
-        | c == "lambda" then:
-          {attach-tags(tags, e); extend-trace(tags, ctx, e, trace)}
         | c == "app" then:
           f-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("app",
             [list: term-dummy-loc, e, args.get(2)]))) end
@@ -52,10 +54,8 @@ fun interp(e :: Term, tags :: List, ctx :: (Term -> Term), trace :: List<Term>, 
           arg-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("app",
             [list: term-dummy-loc, f-val, e]))) end
           {arg-val; shadow trace} = interp(args.get(2), empty, arg-ctx, trace, env)
-          shadow f-val = strip-outer(f-val)
-          id = f-val.args.get(1)
-          body = f-val.args.get(2)
-          interp(body, empty, ctx, trace, env.set(id.v.name, arg-val))
+          shadow env = env.set(f-val.val.id, arg-val)
+          interp(f-val.val.body, empty, ctx, trace, env)
         | c == "add" then:
           l-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("add",
             [list: term-dummy-loc, e, args.get(2)]))) end
@@ -63,11 +63,7 @@ fun interp(e :: Term, tags :: List, ctx :: (Term -> Term), trace :: List<Term>, 
           r-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("add",
             [list: term-dummy-loc, l-val, e]))) end
           {r-val; shadow trace} = interp(args.get(2), empty, r-ctx, trace, env)
-          shadow l-val = strip-outer(l-val)
-          shadow r-val = strip-outer(r-val)
-          real-num = l-val.args.get(1).val.n + r-val.args.get(1).val.n
-          val = g-core("num", [list: term-dummy-loc, g-prim(e-num(real-num))])
-          {val; extend-trace(empty, ctx, val, trace)}
+          step-to(l-val.val + r-val.val)
       end
   end
 end

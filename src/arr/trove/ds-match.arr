@@ -427,5 +427,6 @@ fun term-to-pattern(t :: Term) -> Pattern:
     | g-prim(p) => p-prim(p)
     | g-option(opt) => p-option(opt.and-then(term-to-pattern))
     | g-list(lst) => p-list(terms-to-patterns(lst))
+    | g-value(v) => panic("Unexpected g-value at compile-time")
   end
 end

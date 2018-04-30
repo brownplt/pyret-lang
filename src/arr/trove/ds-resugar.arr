@@ -68,6 +68,7 @@ fun resugar(e :: Term) -> Option<Term>:
       for chain-option(shadow e from resugar(t)):
         some(g-focus(e))
       end
+    | g-value(v) => g-value(v) ^ some
     | g-core(op, args) =>
       map-option(resugar, args).and-then(g-core(op, _))
     | g-surf(op, args) =>

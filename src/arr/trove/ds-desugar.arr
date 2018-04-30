@@ -74,6 +74,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
     | g-surf(op, args) => desugar-surf(rules, op, desugars(args))
+    | g-value(v) => g-value(v)
   end
 end
 

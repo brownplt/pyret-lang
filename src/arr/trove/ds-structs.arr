@@ -31,6 +31,7 @@ data Term:
   | g-option(opt :: Option<Term>)
   | g-tag(lhs :: Pattern, rhs :: Pattern, body :: Term)
   | g-focus(t :: Term)
+  | g-value(val :: Any)
 end
 
 data VarSign:
@@ -192,6 +193,7 @@ term-dummy-loc = g-prim(e-loc(AST.dummy-loc))
 fun strip-tags(e :: Term) -> Term:
   cases (Term) e:
     | g-focus(p) => g-focus(strip-tags(p))
+    | g-value(v) => g-value(v)
     | g-prim(val) => g-prim(val)
     | g-core(op, args) => g-core(op, args.map(strip-tags))
     | g-aux(op, args) => g-aux(op, args.map(strip-tags))
@@ -229,6 +231,7 @@ fun show-term(e :: Term) -> String:
     | g-surf(op, args) => "(" + op + " " + show-terms(args) + ")"
     | g-list(lst)      => "[" + show-terms(lst) + "]"
     | g-focus(t) => "「" + show-term(t) + "」"
+    | g-value(v) => tostring(v)
     | g-option(opt) =>
       cases (Option) opt:
         | none => "none"
