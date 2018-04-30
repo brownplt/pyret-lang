@@ -241,3 +241,48 @@ fun show-term(e :: Term) -> String:
     | g-tag(_, _, body) => "#" + show-term(body)
   end
 end
+
+fun free-pvars(p :: Pattern) -> S.Set<String>:
+  fun loop(shadow p :: Pattern):
+    cases (Pattern) p:
+      | p-pvar(name, _, _) => [S.set: name]
+      | p-drop(_) => S.empty-set
+      | p-prim(_) => S.empty-set
+      | p-core(_, args) => unions(map(loop, args))
+      | p-surf(_, args) => unions(map(loop, args))
+      | p-aux(_, args)  => unions(map(loop, args))
+      | p-meta(_, args) => unions(map(loop, args))
+      | p-biject(_, shadow p) => free-pvars(p)
+      | p-var(_) => S.empty-set
+      | p-option(opt) =>
+        cases (Option) opt:
+          | none => S.empty-set
+          | some(shadow p) => free-pvars(p)
+        end
+      | p-tag(_, _, _) => panic("Unexpected tag encountered while collecting free pattern variables")
+      | p-fresh(_, body) => free-pvars(body)
+      | p-capture(_, body) => free-pvars(body)
+      | p-list(l) => loop-list(l)
+    end
+  end
+  fun loop-list(ps :: SeqPattern):
+    cases (SeqPattern) ps:
+      | seq-empty => S.empty-set
+      | seq-cons(shadow p, shadow ps) => loop(p).union(loop-list(ps))
+      | seq-ellipsis(shadow p, _) => loop(p)
+      | seq-elipsis-list(lst) => unions(map(loop, lst))
+    end
+  end
+  loop(p)
+end
+
+# This is an approximation; there are edge cases of ellipses where it fails.
+fun dropped-pvars(rule-case :: DsRuleCase) -> S.Set<String>:
+  free-pvars(rule-case.lhs).difference(free-pvars(rule-case.rhs))
+end
+
+fun unions(some-sets):
+  for fold(answer from S.empty-set, a-set from some-sets):
+    answer.union(a-set)
+  end
+end

@@ -167,12 +167,13 @@ end
 #  Matching
 #
 
-fun match-pattern(e :: Term, p :: Pattern) -> MatchResult:
-  match-rec([S.set: ], empty-env(), e, p)
+fun match-pattern(e :: Term, p :: Pattern, dropped :: S.Set<String>) -> MatchResult:
+  match-rec([S.set: ], dropped, empty-env(), e, p)
 end
 
 fun match-rec(
     fresh :: S.Set<String>,
+    dropped :: S.Set<String>,
     env :: Env,
     e :: Term,
     p :: Pattern)
@@ -194,7 +195,7 @@ fun match-rec(
             {shadow env; plist} from {env; [list:]},
             expr from exprs,
             patt from patts):
-          for chain-either({shadow env; shadow patt} from match-rec(fresh, env, expr, patt)):
+          for chain-either({shadow env; shadow patt} from match-rec(fresh, dropped, env, expr, patt)):
             left({env; link(patt, plist)})
           end
         end
@@ -224,7 +225,7 @@ fun match-rec(
           | empty => match-error()
           | link(efirst, erest) =>
             for chain-either(
-                {shadow env; patt1} from match-rec(fresh, env, efirst, pfirst)):
+                {shadow env; patt1} from match-rec(fresh, dropped, env, efirst, pfirst)):
               for chain-either(
                   {shadow env; patt2 :: Pattern} from match-list(env, erest, prest)):
                 cases (Pattern) patt2:
@@ -236,7 +237,7 @@ fun match-rec(
         end
       | seq-ellipsis(shadow p :: Pattern, label :: String) =>
         res = for fold-either(result-list from empty, shadow e from elist):
-          for chain-either({shadow env; patt} from match-rec(fresh, empty-env(), e, p)):
+          for chain-either({shadow env; patt} from match-rec(fresh, dropped, empty-env(), e, p)):
             left(link({env; patt}, result-list))
           end
         end
@@ -256,12 +257,13 @@ fun match-rec(
   cases (Pattern) p:
     | p-pvar(pvar, _, _) =>
       for chain-either(shadow env from bind-pvar(env, pvar, e)):
+        shadow p = if dropped.member(pvar): term-to-pattern(e) else: p end
         left({env; p})
       end
     | else =>
       cases (Term) e:
         | g-tag(lhs, rhs, body) =>
-          cases (Either) match-rec(fresh, env, body, p):
+          cases (Either) match-rec(fresh, dropped, env, body, p):
             | left({shadow env; shadow p}) => left({env; p-tag(lhs, rhs, p)})
             | right(err) => right(err)
           end
@@ -306,7 +308,7 @@ fun match-rec(
             | p-meta(_, _) => left({env; p})
             | p-biject(name, shadow p) =>
               {_; f} = lookup-bijection(name)
-              match-rec(fresh, env, f(e), p)
+              match-rec(fresh, dropped, env, f(e), p)
             # doesn't matter what the returned pattern is since matching p-biject only happens in
             # resugaring which will ignore it
             | p-surf(pname, pargs) =>
@@ -333,7 +335,7 @@ fun match-rec(
                       cases (Option) eopt:
                         | none => match-error()
                         | some(ex) =>
-                          for chain-either({shadow env; shadow p} from match-rec(fresh, env, ex, px)):
+                          for chain-either({shadow env; shadow p} from match-rec(fresh, dropped, env, ex, px)):
                             left({env; p-option(some(p))})
                           end
                       end
@@ -344,10 +346,10 @@ fun match-rec(
               panic("Encountered a p-tag while matching, but it should only be used internally: " + tostring(p))
             | p-fresh(fresh-items, body) =>
               shadow fresh = fresh.union(S.list-to-set(map(get-fresh-item-name, fresh-items)))
-              for chain-either({shadow env; shadow p} from match-rec(fresh, env, e, body)):
+              for chain-either({shadow env; shadow p} from match-rec(fresh, dropped, env, e, body)):
                 left({env; p-fresh(fresh-items, p)})
               end
-            | p-capture(_, body) => match-rec(fresh, env, e, body)
+            | p-capture(_, body) => match-rec(fresh, dropped, env, e, body)
             | p-drop(_) =>
               left({env; term-to-pattern(e)})
           end

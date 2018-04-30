@@ -6,6 +6,7 @@ import global as _
 include either
 include lists
 include option
+import sets as S
 include ds-structs
 include ds-parse
 include ds-environment
@@ -180,7 +181,7 @@ fun subs(env :: Env, p :: Pattern) -> Option<Term>:
 end
 
 fun resugar-tag(lhs :: Pattern, rhs :: Pattern, body :: Term) -> Option<Term>:
-  cases (Either) match-pattern(body, rhs):
+  cases (Either) match-pattern(body, rhs, S.empty-set):
     | left({env; _}) => subs(env, lhs)
     | right(_) => none
   end

@@ -148,7 +148,8 @@ fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>):
     | some(kases) =>
       #nothing ^ push-time("matching: " + op)
       opt = for find-option(kase from kases) block:
-        cases (Either) match-pattern(g-surf(op, args), kase.lhs):
+        dropped = dropped-pvars(kase)
+        cases (Either) match-pattern(g-surf(op, args), kase.lhs, dropped):
           | left({env; p}) => some({kase; env; p})
           | right(_) => none
         end

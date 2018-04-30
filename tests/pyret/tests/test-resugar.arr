@@ -24,7 +24,7 @@ end
 
 fun interp(e :: Term, tags :: List, ctx :: (Term -> Term), trace :: List<Term>, env :: StringDict<Term>) -> {Term; List<Term>} block:
   #print("<<< e: " + tostring(e) + "\n<<< tags: " + tostring(tags) + "\n<<< ctx: " + tostring(ctx(g-option(none))) + "\n<<< trace: " + tostring(trace) + "\n\n")
-  fun step-to(val):
+  fun step-to(val, shadow trace):
     v = g-value(val)
     {v; extend-trace(empty, ctx, v, trace)}
   end
@@ -34,10 +34,10 @@ fun interp(e :: Term, tags :: List, ctx :: (Term -> Term), trace :: List<Term>, 
       interp(body, link({lhs; rhs}, tags), ctx, trace, env)
     | g-core(c, args) =>
       ask block:
-        | c == "bool" then:   step-to(args.get(1).val.b)
-        | c == "num" then:    step-to(args.get(1).val.n)
-        | c == "id" then:     step-to(env.get-value(args.get(1).v.name).val)
-        | c == "lambda" then: step-to(closure(args.get(1).v.name, args.get(2)))
+        | c == "bool" then:   step-to(args.get(1).val.b, trace)
+        | c == "num" then:    step-to(args.get(1).val.n, trace)
+        | c == "id" then:     step-to(env.get-value(args.get(1).v.name).val, trace)
+        | c == "lambda" then: step-to(closure(args.get(1).v.name, args.get(2)), trace)
         | c == "if" then:
           cond-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("if",
             [list: term-dummy-loc, e, args.get(2), args.get(3)]))) end
@@ -63,7 +63,7 @@ fun interp(e :: Term, tags :: List, ctx :: (Term -> Term), trace :: List<Term>, 
           r-ctx = lam(shadow e): ctx(attach-tags(tags, g-core("add",
             [list: term-dummy-loc, l-val, e]))) end
           {r-val; shadow trace} = interp(args.get(2), empty, r-ctx, trace, env)
-          step-to(l-val.val + r-val.val)
+          step-to(l-val.val + r-val.val, trace)
       end
   end
 end
@@ -86,11 +86,11 @@ fun resugar(x) block:
   ret
 end
 
-fun eval(e :: Term) -> List<Term>:
+fun eval(e :: Term) -> List<Term> block:
   interp(e, empty, lam(x): x end, empty, [string-dict: ]).{1}.reverse()
-    #^ print-terms("before")
+    # ^ print-terms("before")
     ^ filter-map(resugar, _)
-    #^ print-terms("after")
+    # ^ print-terms("after")
     ^ map(strip-tags, _)
 end
 
@@ -131,6 +131,10 @@ end
 
 sugar or:
   | (or a b) => (fresh [x] (let (binding x a) (if (id x) (id x) b)))
+end
+
+sugar comment:
+  | (comment msg x) => x
 end
   ```)
 
@@ -177,7 +181,7 @@ fun show-seq(s) block:
   print("\n\n")
 end
 
-show-seq("(or (bool false) (bool true))")
+# show-seq("(or (bool false) (bool true))")
 
 show-seq("(if (and (not (bool true)) (not (bool true))) (not (bool false)) (bool false))")
 
@@ -190,3 +194,5 @@ show-seq("(let (binding x (not (bool true))) (and (id x) (bool false)))")
 show-seq("(let (binding x (add (num 1) (num 2))) (add (id x) (id x)))")
 
 show-seq("(add (add (num 1) (num 2)) (num 4))")
+
+show-seq("(comment \"'should be 7'\" (add (add (num 1) (num 2)) (num 4)))")
