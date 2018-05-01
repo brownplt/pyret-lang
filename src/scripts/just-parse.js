@@ -56,6 +56,6 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     }
   } else {
     console.log("Invalid parse: you screwed up.");
-    console.log("Next token is " + toks.curTok.toString(true) + " at " + toks.curTok.pos.toString(true));
+    console.log("Next token is " + toks.curTok.toRepr(true) + " at " + toks.curTok.pos.toString(true));
   }
 });
