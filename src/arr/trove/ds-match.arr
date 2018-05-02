@@ -311,10 +311,10 @@ fun match-rec(
               match-rec(fresh, dropped, env, f(e), p)
             # doesn't matter what the returned pattern is since matching p-biject only happens in
             # resugaring which will ignore it
-            | p-surf(pname, pargs) =>
+            | p-surf(pname, pargs, _) =>
               cases (Term) e:
-                | g-surf(ename, eargs) =>
-                  match-core-or-sugar(p-surf, ename, pname, eargs, pargs)
+                | g-surf(ename, eargs, from-user) =>
+                  match-core-or-sugar(p-surf(_, _, from-user), ename, pname, eargs, pargs)
                 | else => match-error()
               end
             | p-list(plist) =>
@@ -422,7 +422,7 @@ fun term-to-pattern(t :: Term) -> Pattern:
   end
   cases (Term) t:
     | g-var(v) => p-var(v.name)
-    | g-surf(op, args) => p-surf(op, args.map(term-to-pattern))
+    | g-surf(op, args, from-user) => p-surf(op, args.map(term-to-pattern), from-user)
     | g-core(op, args) => p-core(op, args.map(term-to-pattern))
     | g-aux(op, args) => p-aux(op, args.map(term-to-pattern))
     | g-tag(l, r, body) => p-tag(l, r, term-to-pattern(body))

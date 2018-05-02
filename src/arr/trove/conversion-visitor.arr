@@ -23,20 +23,25 @@ shadow ast-to-term-visitor =
         | link( f,  r) => link(f.visit(self), self.list(r))
       end
     end,
-    method s-underscore(self, l): g-surf("s-underscore", [list: g-loc(l)]) end,
+    method s-underscore(self, l):
+      g-surf("s-underscore", [list: g-loc(l)], true)
+    end,
     method s-name(self, l, s): g-var(v-name(l, s)) end,
     method s-global(self, s):
-      g-surf("s-global", [list: g-loc(dummy-loc), g-str(s)])
+      g-surf("s-global", [list: g-loc(dummy-loc), g-str(s)], true)
     end,
     method s-type-global(self, s):
-      g-surf("s-type-global", [list: g-loc(dummy-loc), g-str(s)])
+      g-surf("s-type-global", [list: g-loc(dummy-loc), g-str(s)], true)
     end,
     method s-atom(self, base, serial):
-      g-surf("s-atom", [list: g-loc(dummy-loc), g-str(base), g-num(serial)])
+      g-surf("s-atom",
+        [list: g-loc(dummy-loc), g-str(base), g-num(serial)],
+        true)
     end,
     method app-info-c(self, is-recursive, is-tail):
       g-surf("app-info-c",
-        [list: g-loc(dummy-loc), g-bool(is-recursive), g-bool(is-tail)])
+        [list: g-loc(dummy-loc), g-bool(is-recursive), g-bool(is-tail)],
+        true)
     end,
     method s-program(self, l, _provide, provided-types, imports, block):
       g-surf("s-program",
@@ -46,17 +51,21 @@ shadow ast-to-term-visitor =
           provided-types.visit(self),
           g-list(self.list(imports)),
           block.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-include(self, l, mod):
-      g-surf("s-include", [list: g-loc(l), mod.visit(self)])
+      g-surf("s-include", [list: g-loc(l), mod.visit(self)], true)
     end,
     method s-import(self, l, file, name):
-      g-surf("s-import", [list: g-loc(l), file.visit(self), name.visit(self)])
+      g-surf("s-import",
+        [list: g-loc(l), file.visit(self), name.visit(self)],
+        true)
     end,
     method s-import-fields(self, l, fields, file):
       g-surf("s-import-fields",
-        [list: g-loc(l), g-list(self.list(fields)), file.visit(self)])
+        [list: g-loc(l), g-list(self.list(fields)), file.visit(self)],
+        true)
     end,
     method s-import-complete(
         self,
@@ -75,10 +84,11 @@ shadow ast-to-term-visitor =
           import-type.visit(self),
           vals-name.visit(self),
           types-name.visit(self)
-        ])
+        ],
+        true)
     end,
     method p-value(self, l, v, ann):
-      g-surf("p-value", [list: g-loc(l), v.visit(self), ann.visit(self)])
+      g-surf("p-value", [list: g-loc(l), v.visit(self), ann.visit(self)], true)
     end,
     method p-alias(self, l, in-name, out-name, mod):
       g-surf("p-alias",
@@ -87,14 +97,16 @@ shadow ast-to-term-visitor =
           in-name.visit(self),
           out-name.visit(self),
           g-option(self.option(mod))
-        ])
+        ],
+        true)
     end,
     method p-data(self, l, d, mod):
       g-surf("p-data",
-        [list: g-loc(l), d.visit(self), g-option(self.option(mod))])
+        [list: g-loc(l), d.visit(self), g-option(self.option(mod))],
+        true)
     end,
     method s-provide(self, l, block):
-      g-surf("s-provide", [list: g-loc(l), block.visit(self)])
+      g-surf("s-provide", [list: g-loc(l), block.visit(self)], true)
     end,
     method s-provide-complete(self, l, values, aliases, data-definitions):
       g-surf("s-provide-complete",
@@ -103,38 +115,47 @@ shadow ast-to-term-visitor =
           g-list(self.list(values)),
           g-list(self.list(aliases)),
           g-list(self.list(data-definitions))
-        ])
+        ],
+        true)
     end,
-    method s-provide-all(self, l): g-surf("s-provide-all", [list: g-loc(l)]) end,
+    method s-provide-all(self, l):
+      g-surf("s-provide-all", [list: g-loc(l)], true)
+    end,
     method s-provide-none(self, l):
-      g-surf("s-provide-none", [list: g-loc(l)])
+      g-surf("s-provide-none", [list: g-loc(l)], true)
     end,
     method s-provide-types(self, l, ann):
-      g-surf("s-provide-types", [list: g-loc(l), g-list(self.list(ann))])
+      g-surf("s-provide-types", [list: g-loc(l), g-list(self.list(ann))], true)
     end,
     method s-provide-types-all(self, l):
-      g-surf("s-provide-types-all", [list: g-loc(l)])
+      g-surf("s-provide-types-all", [list: g-loc(l)], true)
     end,
     method s-provide-types-none(self, l):
-      g-surf("s-provide-types-none", [list: g-loc(l)])
+      g-surf("s-provide-types-none", [list: g-loc(l)], true)
     end,
     method s-const-import(self, l, mod):
-      g-surf("s-const-import", [list: g-loc(l), g-str(mod)])
+      g-surf("s-const-import", [list: g-loc(l), g-str(mod)], true)
     end,
     method s-special-import(self, l, kind, args):
       g-surf("s-special-import",
-        [list: g-loc(l), g-str(kind), g-list(args.map(g-str))])
+        [list: g-loc(l), g-str(kind), g-list(args.map(g-str))],
+        true)
     end,
-    method h-use-loc(self, l): g-surf("h-use-loc", [list: g-loc(l)]) end,
+    method h-use-loc(self, l): g-surf("h-use-loc", [list: g-loc(l)], true) end,
     method s-let-bind(self, l, b, value):
-      g-surf("s-let-bind", [list: g-loc(l), b.visit(self), value.visit(self)])
+      g-surf("s-let-bind",
+        [list: g-loc(l), b.visit(self), value.visit(self)],
+        true)
     end,
     method s-var-bind(self, l, b, value):
-      g-surf("s-var-bind", [list: g-loc(l), b.visit(self), value.visit(self)])
+      g-surf("s-var-bind",
+        [list: g-loc(l), b.visit(self), value.visit(self)],
+        true)
     end,
     method s-letrec-bind(self, l, b, value):
       g-surf("s-letrec-bind",
-        [list: g-loc(l), b.visit(self), value.visit(self)])
+        [list: g-loc(l), b.visit(self), value.visit(self)],
+        true)
     end,
     method s-type-bind(self, l, name, params, ann):
       g-surf("s-type-bind",
@@ -143,23 +164,28 @@ shadow ast-to-term-visitor =
           name.visit(self),
           g-list(self.list(params)),
           ann.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-newtype-bind(self, l, name, namet):
       g-surf("s-newtype-bind",
-        [list: g-loc(l), name.visit(self), namet.visit(self)])
+        [list: g-loc(l), name.visit(self), namet.visit(self)],
+        true)
     end,
     method s-defined-value(self, name, value):
       g-surf("s-defined-value",
-        [list: g-loc(dummy-loc), g-str(name), value.visit(self)])
+        [list: g-loc(dummy-loc), g-str(name), value.visit(self)],
+        true)
     end,
     method s-defined-var(self, name, id):
       g-surf("s-defined-var",
-        [list: g-loc(dummy-loc), g-str(name), id.visit(self)])
+        [list: g-loc(dummy-loc), g-str(name), id.visit(self)],
+        true)
     end,
     method s-defined-type(self, name, typ):
       g-surf("s-defined-type",
-        [list: g-loc(dummy-loc), g-str(name), typ.visit(self)])
+        [list: g-loc(dummy-loc), g-str(name), typ.visit(self)],
+        true)
     end,
     method s-module(
         self,
@@ -180,9 +206,10 @@ shadow ast-to-term-visitor =
           provided-values.visit(self),
           g-list(self.list(provided-types)),
           checks.visit(self)
-        ])
+        ],
+        true)
     end,
-    method s-template(self, l): g-surf("s-template", [list: g-loc(l)]) end,
+    method s-template(self, l): g-surf("s-template", [list: g-loc(l)], true) end,
     method s-type-let-expr(self, l, binds, body, blocky):
       g-surf("s-type-let-expr",
         [list: 
@@ -190,7 +217,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(binds)),
           body.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-let-expr(self, l, binds, body, blocky):
       g-surf("s-let-expr",
@@ -199,7 +227,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(binds)),
           body.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-letrec(self, l, binds, body, blocky):
       g-surf("s-letrec",
@@ -208,21 +237,24 @@ shadow ast-to-term-visitor =
           g-list(self.list(binds)),
           body.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-hint-exp(self, l, hints, exp):
       g-surf("s-hint-exp",
-        [list: g-loc(l), g-list(self.list(hints)), exp.visit(self)])
+        [list: g-loc(l), g-list(self.list(hints)), exp.visit(self)],
+        true)
     end,
     method s-instantiate(self, l, expr, params):
       g-surf("s-instantiate",
-        [list: g-loc(l), expr.visit(self), g-list(self.list(params))])
+        [list: g-loc(l), expr.visit(self), g-list(self.list(params))],
+        true)
     end,
     method s-block(self, l, stmts):
-      g-surf("s-block", [list: g-loc(l), g-list(self.list(stmts))])
+      g-surf("s-block", [list: g-loc(l), g-list(self.list(stmts))], true)
     end,
     method s-user-block(self, l, body):
-      g-surf("s-user-block", [list: g-loc(l), body.visit(self)])
+      g-surf("s-user-block", [list: g-loc(l), body.visit(self)], true)
     end,
     method s-fun(
         self,
@@ -249,7 +281,8 @@ shadow ast-to-term-visitor =
           g-option(_check-loc.and-then(g-loc)),
           g-option(self.option(_check)),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-type(self, l, name, params, ann):
       g-surf("s-type",
@@ -258,16 +291,23 @@ shadow ast-to-term-visitor =
           name.visit(self),
           g-list(self.list(params)),
           ann.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-newtype(self, l, name, namet):
-      g-surf("s-newtype", [list: g-loc(l), name.visit(self), namet.visit(self)])
+      g-surf("s-newtype",
+        [list: g-loc(l), name.visit(self), namet.visit(self)],
+        true)
     end,
     method s-var(self, l, name, value):
-      g-surf("s-var", [list: g-loc(l), name.visit(self), value.visit(self)])
+      g-surf("s-var",
+        [list: g-loc(l), name.visit(self), value.visit(self)],
+        true)
     end,
     method s-rec(self, l, name, value):
-      g-surf("s-rec", [list: g-loc(l), name.visit(self), value.visit(self)])
+      g-surf("s-rec",
+        [list: g-loc(l), name.visit(self), value.visit(self)],
+        true)
     end,
     method s-let(self, l, name, value, keyword-val):
       g-surf("s-let",
@@ -276,21 +316,28 @@ shadow ast-to-term-visitor =
           name.visit(self),
           value.visit(self),
           g-bool(keyword-val)
-        ])
+        ],
+        true)
     end,
     method s-contract(self, l, name, ann):
-      g-surf("s-contract", [list: g-loc(l), name.visit(self), ann.visit(self)])
+      g-surf("s-contract",
+        [list: g-loc(l), name.visit(self), ann.visit(self)],
+        true)
     end,
     method s-when(self, l, test, block, blocky):
       g-surf("s-when",
-        [list: g-loc(l), test.visit(self), block.visit(self), g-bool(blocky)])
+        [list: g-loc(l), test.visit(self), block.visit(self), g-bool(blocky)],
+        true)
     end,
     method s-assign(self, l, id, value):
-      g-surf("s-assign", [list: g-loc(l), id.visit(self), value.visit(self)])
+      g-surf("s-assign",
+        [list: g-loc(l), id.visit(self), value.visit(self)],
+        true)
     end,
     method s-if-pipe(self, l, branches, blocky):
       g-surf("s-if-pipe",
-        [list: g-loc(l), g-list(self.list(branches)), g-bool(blocky)])
+        [list: g-loc(l), g-list(self.list(branches)), g-bool(blocky)],
+        true)
     end,
     method s-if-pipe-else(self, l, branches, _else, blocky):
       g-surf("s-if-pipe-else",
@@ -299,11 +346,13 @@ shadow ast-to-term-visitor =
           g-list(self.list(branches)),
           _else.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-if(self, l, branches, blocky):
       g-surf("s-if",
-        [list: g-loc(l), g-list(self.list(branches)), g-bool(blocky)])
+        [list: g-loc(l), g-list(self.list(branches)), g-bool(blocky)],
+        true)
     end,
     method s-if-else(self, l, branches, _else, blocky):
       g-surf("s-if-else",
@@ -312,7 +361,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(branches)),
           _else.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-cases(self, l, typ, val, branches, blocky):
       g-surf("s-cases",
@@ -322,7 +372,8 @@ shadow ast-to-term-visitor =
           val.visit(self),
           g-list(self.list(branches)),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-cases-else(self, l, typ, val, branches, _else, blocky):
       g-surf("s-cases-else",
@@ -333,7 +384,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(branches)),
           _else.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-op(self, l, op-l, op, left, right):
       g-surf("s-op",
@@ -343,7 +395,8 @@ shadow ast-to-term-visitor =
           g-str(op),
           left.visit(self),
           right.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-check-test(self, l, op, refinement, left, right):
       g-surf("s-check-test",
@@ -353,14 +406,16 @@ shadow ast-to-term-visitor =
           g-option(self.option(refinement)),
           left.visit(self),
           g-option(self.option(right))
-        ])
+        ],
+        true)
     end,
     method s-check-expr(self, l, expr, ann):
       g-surf("s-check-expr",
-        [list: g-loc(l), expr.visit(self), ann.visit(self)])
+        [list: g-loc(l), expr.visit(self), ann.visit(self)],
+        true)
     end,
     method s-paren(self, l, expr):
-      g-surf("s-paren", [list: g-loc(l), expr.visit(self)])
+      g-surf("s-paren", [list: g-loc(l), expr.visit(self)], true)
     end,
     method s-lam(
         self,
@@ -387,7 +442,8 @@ shadow ast-to-term-visitor =
           g-option(_check-loc.and-then(g-loc)),
           g-option(self.option(_check)),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-method(
         self,
@@ -414,28 +470,32 @@ shadow ast-to-term-visitor =
           g-option(_check-loc.and-then(g-loc)),
           g-option(self.option(_check)),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-extend(self, l, supe, fields):
       g-surf("s-extend",
-        [list: g-loc(l), supe.visit(self), g-list(self.list(fields))])
+        [list: g-loc(l), supe.visit(self), g-list(self.list(fields))],
+        true)
     end,
     method s-update(self, l, supe, fields):
       g-surf("s-update",
-        [list: g-loc(l), supe.visit(self), g-list(self.list(fields))])
+        [list: g-loc(l), supe.visit(self), g-list(self.list(fields))],
+        true)
     end,
     method s-tuple(self, l, fields):
-      g-surf("s-tuple", [list: g-loc(l), g-list(self.list(fields))])
+      g-surf("s-tuple", [list: g-loc(l), g-list(self.list(fields))], true)
     end,
     method s-tuple-get(self, l, tup, index, index-loc):
       g-surf("s-tuple-get",
-        [list: g-loc(l), tup.visit(self), g-num(index), g-loc(index-loc)])
+        [list: g-loc(l), tup.visit(self), g-num(index), g-loc(index-loc)],
+        true)
     end,
     method s-obj(self, l, fields):
-      g-surf("s-obj", [list: g-loc(l), g-list(self.list(fields))])
+      g-surf("s-obj", [list: g-loc(l), g-list(self.list(fields))], true)
     end,
     method s-array(self, l, values):
-      g-surf("s-array", [list: g-loc(l), g-list(self.list(values))])
+      g-surf("s-array", [list: g-loc(l), g-list(self.list(values))], true)
     end,
     method s-construct(self, l, modifier, constructor, values):
       g-surf("s-construct",
@@ -444,7 +504,8 @@ shadow ast-to-term-visitor =
           modifier.visit(self),
           constructor.visit(self),
           g-list(self.list(values))
-        ])
+        ],
+        true)
     end,
     method s-app(self, l, _fun, args):
       cases(Expr) _fun:
@@ -456,10 +517,12 @@ shadow ast-to-term-visitor =
               obj.visit(self),
               g-str(field),
               g-list(self.list(args))
-            ])
+            ],
+            true)
         | else =>
         g-surf("s-app",
-          [list: g-loc(l), _fun.visit(self), g-list(self.list(args))])
+          [list: g-loc(l), _fun.visit(self), g-list(self.list(args))],
+          true)
       end
     end,
     method s-app-enriched(self, l, _fun, args, app-info):
@@ -469,45 +532,61 @@ shadow ast-to-term-visitor =
           _fun.visit(self),
           g-list(self.list(args)),
           app-info.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-prim-app(self, l, _fun, args):
       g-surf("s-prim-app",
-        [list: g-loc(l), g-str(_fun), g-list(self.list(args))])
+        [list: g-loc(l), g-str(_fun), g-list(self.list(args))],
+        true)
     end,
     method s-prim-val(self, l, name):
-      g-surf("s-prim-val", [list: g-loc(l), g-str(name)])
+      g-surf("s-prim-val", [list: g-loc(l), g-str(name)], true)
     end,
     method s-id(self, l, id):
-      g-surf("s-id", [list: g-loc(l), id.visit(self)])
+      g-surf("s-id", [list: g-loc(l), id.visit(self)], true)
     end,
     method s-id-var(self, l, id):
-      g-surf("s-id-var", [list: g-loc(l), id.visit(self)])
+      g-surf("s-id-var", [list: g-loc(l), id.visit(self)], true)
     end,
     method s-id-letrec(self, l, id, safe):
-      g-surf("s-id-letrec", [list: g-loc(l), id.visit(self), g-bool(safe)])
+      g-surf("s-id-letrec",
+        [list: g-loc(l), id.visit(self), g-bool(safe)],
+        true)
     end,
-    method s-undefined(self, l): g-surf("s-undefined", [list: g-loc(l)]) end,
+    method s-undefined(self, l):
+      g-surf("s-undefined", [list: g-loc(l)], true)
+    end,
     method s-srcloc(self, l, loc):
-      g-surf("s-srcloc", [list: g-loc(l), g-loc(loc)])
+      g-surf("s-srcloc", [list: g-loc(l), g-loc(loc)], true)
     end,
-    method s-num(self, l, n): g-surf("s-num", [list: g-loc(l), g-num(n)]) end,
+    method s-num(self, l, n):
+      g-surf("s-num", [list: g-loc(l), g-num(n)], true)
+    end,
     method s-frac(self, l, num, den):
-      g-surf("s-frac", [list: g-loc(l), g-num(num), g-num(den)])
+      g-surf("s-frac", [list: g-loc(l), g-num(num), g-num(den)], true)
     end,
     method s-rfrac(self, l, num, den):
-      g-surf("s-rfrac", [list: g-loc(l), g-num(num), g-num(den)])
+      g-surf("s-rfrac", [list: g-loc(l), g-num(num), g-num(den)], true)
     end,
-    method s-bool(self, l, b): g-surf("s-bool", [list: g-loc(l), g-bool(b)]) end,
-    method s-str(self, l, s): g-surf("s-str", [list: g-loc(l), g-str(s)]) end,
+    method s-bool(self, l, b):
+      g-surf("s-bool", [list: g-loc(l), g-bool(b)], true)
+    end,
+    method s-str(self, l, s):
+      g-surf("s-str", [list: g-loc(l), g-str(s)], true)
+    end,
     method s-dot(self, l, obj, field):
-      g-surf("s-dot", [list: g-loc(l), obj.visit(self), g-str(field)])
+      g-surf("s-dot", [list: g-loc(l), obj.visit(self), g-str(field)], true)
     end,
     method s-get-bang(self, l, obj, field):
-      g-surf("s-get-bang", [list: g-loc(l), obj.visit(self), g-str(field)])
+      g-surf("s-get-bang",
+        [list: g-loc(l), obj.visit(self), g-str(field)],
+        true)
     end,
     method s-bracket(self, l, obj, key):
-      g-surf("s-bracket", [list: g-loc(l), obj.visit(self), key.visit(self)])
+      g-surf("s-bracket",
+        [list: g-loc(l), obj.visit(self), key.visit(self)],
+        true)
     end,
     method s-data(
         self,
@@ -530,7 +609,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(shared-members)),
           g-option(_check-loc.and-then(g-loc)),
           g-option(self.option(_check))
-        ])
+        ],
+        true)
     end,
     method s-data-expr(
         self,
@@ -555,7 +635,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(shared-members)),
           g-option(_check-loc.and-then(g-loc)),
           g-option(self.option(_check))
-        ])
+        ],
+        true)
     end,
     method s-for(self, l, iterator, bindings, ann, body, blocky):
       g-surf("s-for",
@@ -566,7 +647,8 @@ shadow ast-to-term-visitor =
           ann.visit(self),
           body.visit(self),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-check(self, l, name, body, keyword-check):
       g-surf("s-check",
@@ -575,10 +657,11 @@ shadow ast-to-term-visitor =
           g-option(name.and-then(g-str)),
           body.visit(self),
           g-bool(keyword-check)
-        ])
+        ],
+        true)
     end,
     method s-reactor(self, l, fields):
-      g-surf("s-reactor", [list: g-loc(l), g-list(self.list(fields))])
+      g-surf("s-reactor", [list: g-loc(l), g-list(self.list(fields))], true)
     end,
     method s-table-extend(self, l, column-binds, extensions):
       g-surf("s-table-extend",
@@ -586,35 +669,43 @@ shadow ast-to-term-visitor =
           g-loc(l),
           column-binds.visit(self),
           g-list(self.list(extensions))
-        ])
+        ],
+        true)
     end,
     method s-table-update(self, l, column-binds, updates):
       g-surf("s-table-update",
-        [list: g-loc(l), column-binds.visit(self), g-list(self.list(updates))])
+        [list: g-loc(l), column-binds.visit(self), g-list(self.list(updates))],
+        true)
     end,
     method s-table-select(self, l, columns, table):
       g-surf("s-table-select",
-        [list: g-loc(l), g-list(self.list(columns)), table.visit(self)])
+        [list: g-loc(l), g-list(self.list(columns)), table.visit(self)],
+        true)
     end,
     method s-table-order(self, l, table, ordering):
       g-surf("s-table-order",
-        [list: g-loc(l), table.visit(self), g-list(self.list(ordering))])
+        [list: g-loc(l), table.visit(self), g-list(self.list(ordering))],
+        true)
     end,
     method s-table-filter(self, l, column-binds, predicate):
       g-surf("s-table-filter",
-        [list: g-loc(l), column-binds.visit(self), predicate.visit(self)])
+        [list: g-loc(l), column-binds.visit(self), predicate.visit(self)],
+        true)
     end,
     method s-table-extract(self, l, column, table):
       g-surf("s-table-extract",
-        [list: g-loc(l), column.visit(self), table.visit(self)])
+        [list: g-loc(l), column.visit(self), table.visit(self)],
+        true)
     end,
     method s-table(self, l, headers, rows):
       g-surf("s-table",
-        [list: g-loc(l), g-list(self.list(headers)), g-list(self.list(rows))])
+        [list: g-loc(l), g-list(self.list(headers)), g-list(self.list(rows))],
+        true)
     end,
     method s-load-table(self, l, headers, spec):
       g-surf("s-load-table",
-        [list: g-loc(l), g-list(self.list(headers)), g-list(self.list(spec))])
+        [list: g-loc(l), g-list(self.list(headers)), g-list(self.list(spec))],
+        true)
     end,
     method s-spy-block(self, l, message, contents):
       g-surf("s-spy-block",
@@ -622,26 +713,30 @@ shadow ast-to-term-visitor =
           g-loc(l),
           g-option(self.option(message)),
           g-list(self.list(contents))
-        ])
+        ],
+        true)
     end,
     method s-table-row(self, l, elems):
-      g-surf("s-table-row", [list: g-loc(l), g-list(self.list(elems))])
+      g-surf("s-table-row", [list: g-loc(l), g-list(self.list(elems))], true)
     end,
     method s-spy-name(self, l, name):
-      g-surf("s-spy-name", [list: g-loc(l), name.visit(self)])
+      g-surf("s-spy-name", [list: g-loc(l), name.visit(self)], true)
     end,
     method s-spy-expr(self, l, name, value):
-      g-surf("s-spy-expr", [list: g-loc(l), g-str(name), value.visit(self)])
+      g-surf("s-spy-expr",
+        [list: g-loc(l), g-str(name), value.visit(self)],
+        true)
     end,
     method s-construct-normal(self):
-      g-surf("s-construct-normal", [list: g-loc(dummy-loc)])
+      g-surf("s-construct-normal", [list: g-loc(dummy-loc)], true)
     end,
     method s-construct-lazy(self):
-      g-surf("s-construct-lazy", [list: g-loc(dummy-loc)])
+      g-surf("s-construct-lazy", [list: g-loc(dummy-loc)], true)
     end,
     method s-bind(self, l, shadows, id, ann):
       g-surf("s-bind",
-        [list: g-loc(l), g-bool(shadows), id.visit(self), ann.visit(self)])
+        [list: g-loc(l), g-bool(shadows), id.visit(self), ann.visit(self)],
+        true)
     end,
     method s-tuple-bind(self, l, fields, as-name):
       g-surf("s-tuple-bind",
@@ -649,14 +744,18 @@ shadow ast-to-term-visitor =
           g-loc(l),
           g-list(self.list(fields)),
           g-option(self.option(as-name))
-        ])
+        ],
+        true)
     end,
     method s-data-field(self, l, name, value):
-      g-surf("s-data-field", [list: g-loc(l), g-str(name), value.visit(self)])
+      g-surf("s-data-field",
+        [list: g-loc(l), g-str(name), value.visit(self)],
+        true)
     end,
     method s-mutable-field(self, l, name, ann, value):
       g-surf("s-mutable-field",
-        [list: g-loc(l), g-str(name), ann.visit(self), value.visit(self)])
+        [list: g-loc(l), g-str(name), ann.visit(self), value.visit(self)],
+        true)
     end,
     method s-method-field(
         self,
@@ -683,32 +782,44 @@ shadow ast-to-term-visitor =
           g-option(_check-loc.and-then(g-loc)),
           g-option(self.option(_check)),
           g-bool(blocky)
-        ])
+        ],
+        true)
     end,
     method s-reactor-field(self, l, name, value):
       g-surf("s-reactor-field",
-        [list: g-loc(l), g-str(name), value.visit(self)])
+        [list: g-loc(l), g-str(name), value.visit(self)],
+        true)
     end,
     method s-field-name(self, l, name, ann):
-      g-surf("s-field-name", [list: g-loc(l), g-str(name), ann.visit(self)])
+      g-surf("s-field-name",
+        [list: g-loc(l), g-str(name), ann.visit(self)],
+        true)
     end,
     method s-for-bind(self, l, bind, value):
       g-surf("s-for-bind",
-        [list: g-loc(l), bind.visit(self), value.visit(self)])
+        [list: g-loc(l), bind.visit(self), value.visit(self)],
+        true)
     end,
     method s-column-binds(self, l, binds, table):
       g-surf("s-column-binds",
-        [list: g-loc(l), g-list(self.list(binds)), table.visit(self)])
+        [list: g-loc(l), g-list(self.list(binds)), table.visit(self)],
+        true)
     end,
-    method ASCENDING(self): g-surf("ASCENDING", [list: g-loc(dummy-loc)]) end,
-    method DESCENDING(self): g-surf("DESCENDING", [list: g-loc(dummy-loc)]) end,
+    method ASCENDING(self):
+      g-surf("ASCENDING", [list: g-loc(dummy-loc)], true)
+    end,
+    method DESCENDING(self):
+      g-surf("DESCENDING", [list: g-loc(dummy-loc)], true)
+    end,
     method s-column-sort(self, l, column, direction):
       g-surf("s-column-sort",
-        [list: g-loc(l), column.visit(self), direction.visit(self)])
+        [list: g-loc(l), column.visit(self), direction.visit(self)],
+        true)
     end,
     method s-table-extend-field(self, l, name, value, ann):
       g-surf("s-table-extend-field",
-        [list: g-loc(l), g-str(name), value.visit(self), ann.visit(self)])
+        [list: g-loc(l), g-str(name), value.visit(self), ann.visit(self)],
+        true)
     end,
     method s-table-extend-reducer(self, l, name, reducer, col, ann):
       g-surf("s-table-extend-reducer",
@@ -718,20 +829,27 @@ shadow ast-to-term-visitor =
           reducer.visit(self),
           col.visit(self),
           ann.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-sanitize(self, l, name, sanitizer):
       g-surf("s-sanitize",
-        [list: g-loc(l), name.visit(self), sanitizer.visit(self)])
+        [list: g-loc(l), name.visit(self), sanitizer.visit(self)],
+        true)
     end,
     method s-table-src(self, l, src):
-      g-surf("s-table-src", [list: g-loc(l), src.visit(self)])
+      g-surf("s-table-src", [list: g-loc(l), src.visit(self)], true)
     end,
-    method s-normal(self): g-surf("s-normal", [list: g-loc(dummy-loc)]) end,
-    method s-mutable(self): g-surf("s-mutable", [list: g-loc(dummy-loc)]) end,
+    method s-normal(self):
+      g-surf("s-normal", [list: g-loc(dummy-loc)], true)
+    end,
+    method s-mutable(self):
+      g-surf("s-mutable", [list: g-loc(dummy-loc)], true)
+    end,
     method s-variant-member(self, l, member-type, bind):
       g-surf("s-variant-member",
-        [list: g-loc(l), member-type.visit(self), bind.visit(self)])
+        [list: g-loc(l), member-type.visit(self), bind.visit(self)],
+        true)
     end,
     method s-variant(self, l, constr-loc, name, members, with-members):
       g-surf("s-variant",
@@ -741,29 +859,34 @@ shadow ast-to-term-visitor =
           g-str(name),
           g-list(self.list(members)),
           g-list(self.list(with-members))
-        ])
+        ],
+        true)
     end,
     method s-singleton-variant(self, l, name, with-members):
       g-surf("s-singleton-variant",
-        [list: g-loc(l), g-str(name), g-list(self.list(with-members))])
+        [list: g-loc(l), g-str(name), g-list(self.list(with-members))],
+        true)
     end,
     method s-if-branch(self, l, test, body):
       g-surf("s-if-branch",
-        [list: g-loc(l), test.visit(self), body.visit(self)])
+        [list: g-loc(l), test.visit(self), body.visit(self)],
+        true)
     end,
     method s-if-pipe-branch(self, l, test, body):
       g-surf("s-if-pipe-branch",
-        [list: g-loc(l), test.visit(self), body.visit(self)])
+        [list: g-loc(l), test.visit(self), body.visit(self)],
+        true)
     end,
     method s-cases-bind-ref(self):
-      g-surf("s-cases-bind-ref", [list: g-loc(dummy-loc)])
+      g-surf("s-cases-bind-ref", [list: g-loc(dummy-loc)], true)
     end,
     method s-cases-bind-normal(self):
-      g-surf("s-cases-bind-normal", [list: g-loc(dummy-loc)])
+      g-surf("s-cases-bind-normal", [list: g-loc(dummy-loc)], true)
     end,
     method s-cases-bind(self, l, field-type, bind):
       g-surf("s-cases-bind",
-        [list: g-loc(l), field-type.visit(self), bind.visit(self)])
+        [list: g-loc(l), field-type.visit(self), bind.visit(self)],
+        true)
     end,
     method s-cases-branch(self, l, pat-loc, name, args, body):
       g-surf("s-cases-branch",
@@ -773,49 +896,55 @@ shadow ast-to-term-visitor =
           g-str(name),
           g-list(self.list(args)),
           body.visit(self)
-        ])
+        ],
+        true)
     end,
     method s-singleton-cases-branch(self, l, pat-loc, name, body):
       g-surf("s-singleton-cases-branch",
-        [list: g-loc(l), g-loc(pat-loc), g-str(name), body.visit(self)])
+        [list: g-loc(l), g-loc(pat-loc), g-str(name), body.visit(self)],
+        true)
     end,
-    method s-op-is(self, l): g-surf("s-op-is", [list: g-loc(l)]) end,
+    method s-op-is(self, l): g-surf("s-op-is", [list: g-loc(l)], true) end,
     method s-op-is-roughly(self, l):
-      g-surf("s-op-is-roughly", [list: g-loc(l)])
+      g-surf("s-op-is-roughly", [list: g-loc(l)], true)
     end,
     method s-op-is-op(self, l, op):
-      g-surf("s-op-is-op", [list: g-loc(l), g-str(op)])
+      g-surf("s-op-is-op", [list: g-loc(l), g-str(op)], true)
     end,
-    method s-op-is-not(self, l): g-surf("s-op-is-not", [list: g-loc(l)]) end,
+    method s-op-is-not(self, l):
+      g-surf("s-op-is-not", [list: g-loc(l)], true)
+    end,
     method s-op-is-not-op(self, l, op):
-      g-surf("s-op-is-not-op", [list: g-loc(l), g-str(op)])
+      g-surf("s-op-is-not-op", [list: g-loc(l), g-str(op)], true)
     end,
     method s-op-satisfies(self, l):
-      g-surf("s-op-satisfies", [list: g-loc(l)])
+      g-surf("s-op-satisfies", [list: g-loc(l)], true)
     end,
     method s-op-satisfies-not(self, l):
-      g-surf("s-op-satisfies-not", [list: g-loc(l)])
+      g-surf("s-op-satisfies-not", [list: g-loc(l)], true)
     end,
-    method s-op-raises(self, l): g-surf("s-op-raises", [list: g-loc(l)]) end,
+    method s-op-raises(self, l):
+      g-surf("s-op-raises", [list: g-loc(l)], true)
+    end,
     method s-op-raises-other(self, l):
-      g-surf("s-op-raises-other", [list: g-loc(l)])
+      g-surf("s-op-raises-other", [list: g-loc(l)], true)
     end,
     method s-op-raises-not(self, l):
-      g-surf("s-op-raises-not", [list: g-loc(l)])
+      g-surf("s-op-raises-not", [list: g-loc(l)], true)
     end,
     method s-op-raises-satisfies(self, l):
-      g-surf("s-op-raises-satisfies", [list: g-loc(l)])
+      g-surf("s-op-raises-satisfies", [list: g-loc(l)], true)
     end,
     method s-op-raises-violates(self, l):
-      g-surf("s-op-raises-violates", [list: g-loc(l)])
+      g-surf("s-op-raises-violates", [list: g-loc(l)], true)
     end,
-    method a-blank(self): g-surf("a-blank", [list: g-loc(dummy-loc)]) end,
-    method a-any(self, l): g-surf("a-any", [list: g-loc(l)]) end,
+    method a-blank(self): g-surf("a-blank", [list: g-loc(dummy-loc)], true) end,
+    method a-any(self, l): g-surf("a-any", [list: g-loc(l)], true) end,
     method a-name(self, l, id):
-      g-surf("a-name", [list: g-loc(l), id.visit(self)])
+      g-surf("a-name", [list: g-loc(l), id.visit(self)], true)
     end,
     method a-type-var(self, l, id):
-      g-surf("a-type-var", [list: g-loc(l), id.visit(self)])
+      g-surf("a-type-var", [list: g-loc(l), id.visit(self)], true)
     end,
     method a-arrow(self, l, args, ret, use-parens):
       g-surf("a-arrow",
@@ -824,7 +953,8 @@ shadow ast-to-term-visitor =
           g-list(self.list(args)),
           ret.visit(self),
           g-bool(use-parens)
-        ])
+        ],
+        true)
     end,
     method a-arrow-argnames(self, l, args, ret, use-parens):
       g-surf("a-arrow-argnames",
@@ -833,30 +963,33 @@ shadow ast-to-term-visitor =
           g-list(self.list(args)),
           ret.visit(self),
           g-bool(use-parens)
-        ])
+        ],
+        true)
     end,
     method a-record(self, l, fields):
-      g-surf("a-record", [list: g-loc(l), g-list(self.list(fields))])
+      g-surf("a-record", [list: g-loc(l), g-list(self.list(fields))], true)
     end,
     method a-tuple(self, l, fields):
-      g-surf("a-tuple", [list: g-loc(l), g-list(self.list(fields))])
+      g-surf("a-tuple", [list: g-loc(l), g-list(self.list(fields))], true)
     end,
     method a-app(self, l, ann, args):
       g-surf("a-app",
-        [list: g-loc(l), ann.visit(self), g-list(self.list(args))])
+        [list: g-loc(l), ann.visit(self), g-list(self.list(args))],
+        true)
     end,
     method a-pred(self, l, ann, exp):
-      g-surf("a-pred", [list: g-loc(l), ann.visit(self), exp.visit(self)])
+      g-surf("a-pred", [list: g-loc(l), ann.visit(self), exp.visit(self)], true)
     end,
     method a-dot(self, l, obj, field):
-      g-surf("a-dot", [list: g-loc(l), obj.visit(self), g-str(field)])
+      g-surf("a-dot", [list: g-loc(l), obj.visit(self), g-str(field)], true)
     end,
     method a-checked(self, checked, residual):
       g-surf("a-checked",
-        [list: g-loc(dummy-loc), checked.visit(self), residual.visit(self)])
+        [list: g-loc(dummy-loc), checked.visit(self), residual.visit(self)],
+        true)
     end,
     method a-field(self, l, name, ann):
-      g-surf("a-field", [list: g-loc(l), g-str(name), ann.visit(self)])
+      g-surf("a-field", [list: g-loc(l), g-str(name), ann.visit(self)], true)
     end
   }
 rec lookup-dict =
@@ -1671,7 +1804,7 @@ rec lookup-dict =
   ]
 fun term-to-ast(g):
   cases(Term) g:
-    | g-surf( op,  args) => lookup-dict.get-value(op)(args)
+    | g-surf( op,  args,  _) => lookup-dict.get-value(op)(args)
     | g-core( op,  args) => lookup-dict.get-value(op)(args)
     | g-aux( _,  _) => raise("unexpected g-aux: " + tostring(g))
     | g-prim( val) =>

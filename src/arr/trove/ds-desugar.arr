@@ -73,7 +73,7 @@ fun desugar(rules :: DsRules, e :: Term) -> Term:
     | g-list(lst) => g-list(desugars(lst))
     | g-option(opt) => g-option(opt.and-then(desugar(rules, _)))
     | g-tag(lhs, rhs, body) => g-tag(lhs, rhs, desugar(rules, body))
-    | g-surf(op, args) => desugar-surf(rules, op, desugars(args))
+    | g-surf(op, args, from-user) => desugar-surf(rules, op, desugars(args), from-user)
     | g-value(v) => g-value(v)
   end
 end
@@ -89,7 +89,7 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
       | p-prim(val) => g-prim(val)
       | p-core(op, args) => g-core(op, args.map(loop))
       | p-aux(op, args)  => g-aux(op, args.map(loop))
-      | p-surf(op, args) => desugar-surf(rules, op, args.map(loop))
+      | p-surf(op, args, from-user) => desugar-surf(rules, op, args.map(loop), from-user)
       | p-biject(op, shadow p) =>
         {f; _} = lookup-bijection(op)
         f(loop(p)) # TODO: need recur?
@@ -136,20 +136,20 @@ fun subs(rules :: DsRules, env :: Env, p :: Pattern) -> Term:
   loop(p)
 end
 
-fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>):
+fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>, from-user :: Boolean):
   cases (Option) rules.get(op) block:
     | none =>
       # TODO: this should eventually throw an error. Right now
       # allow it to work so that we can add sugars incrementally
       pvars = generate-pvars(args.length())
-      p-lhs = p-surf(op, pvars)
+      p-lhs = p-surf(op, pvars, true)
       p-rhs = p-core(op, pvars)
       g-tag(p-lhs, p-rhs, g-core(op, args)) #^ pop-time
     | some(kases) =>
       #nothing ^ push-time("matching: " + op)
       opt = for find-option(kase from kases) block:
         dropped = dropped-pvars(kase)
-        cases (Either) match-pattern(g-surf(op, args), kase.lhs, dropped):
+        cases (Either) match-pattern(g-surf(op, args, from-user), kase.lhs, dropped):
           | left({env; p}) => some({kase; env; p})
           | right(_) => none
         end
@@ -157,6 +157,10 @@ fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>):
       cases (Option) opt block:
         | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
         | some({kase; env; p-lhs}) =>
+          # shadow p-lhs = cases (Pattern) p-lhs:
+          #   | p-surf(op, args, _) => p-surf(op, args, from-user)
+          #   | else => panic("Should get p-surf back")
+          # end
           g-tag(p-lhs, kase.rhs, subs(rules, env, kase.rhs))
       end
   end

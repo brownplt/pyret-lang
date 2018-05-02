@@ -583,7 +583,7 @@ fun parser-pattern() -> (List<Token> -> Option<{Pattern; List<Token>}>):
             {name; maybe-loc} from parser-name-and-opt-loc,
             args from parser-seq(rec-pattern),
             _ from parser-ignore(t-symbol(")"))):
-          p-surf(name, link(get-ploc(maybe-loc), args))
+          p-surf(name, link(get-ploc(maybe-loc), args), false)
         end,
         # List
         for parser-3(
@@ -642,7 +642,7 @@ fun parse-ast(input :: String) -> Term:
       | p-var(v) => panic("parse-ast - unexpected var: " + tostring(v))
       | p-core(name, args) => g-core(name, args-to-asts(args))
       | p-aux(name,  args) => g-aux(name,  args-to-asts(args))
-      | p-surf(name, args) => g-surf(name, args-to-asts(args))
+      | p-surf(name, args, _) => g-surf(name, args-to-asts(args), true)
       | p-meta(name, args) => panic("parse-ast: unexpected meta")
       | p-list(seq) => g-list(list-to-ast(seq))
       | p-option(opt) => 
@@ -677,9 +677,9 @@ parser-ds-rule-case =
           if loc == MAGIC-LOC: p-drop(typ) else: p-pvar(loc, labels, typ) end
         end)
       {shadow lhs; toploc-name} = cases (Pattern) lhs:
-        | p-surf(op, args) =>
+        | p-surf(op, args, from-user) =>
           cases (Pattern) args.get(0):
-            | p-drop(_) => {p-surf(op, link(p-pvar(TOP-LOC, [S.set:], none), args.rest)); TOP-LOC}
+            | p-drop(_) => {p-surf(op, link(p-pvar(TOP-LOC, [S.set:], none), args.rest), from-user); TOP-LOC}
             | p-pvar(loc-name, _, _) => {lhs; loc-name}
             | else => panic("First argument of LHS surface is not p-pvar: " + tostring(lhs))
           end

@@ -88,9 +88,9 @@ end
 
 fun eval(e :: Term) -> List<Term> block:
   interp(e, empty, lam(x): x end, empty, [string-dict: ]).{1}.reverse()
-    # ^ print-terms("before")
+    #^ print-terms("before")
     ^ filter-map(resugar, _)
-    # ^ print-terms("after")
+    #^ print-terms("after")
     ^ map(strip-tags, _)
 end
 
@@ -181,7 +181,14 @@ fun show-seq(s) block:
   print("\n\n")
 end
 
-# show-seq("(or (bool false) (bool true))")
+show-seq("(or (bool false) (bool true))")
+
+show-seq("(let (binding x (not (bool true))) (and (id x) (bool false)))")
+
+show-seq("(let (binding x (add (num 1) (num 2))) (add (id x) (id x)))")
+
+
+print("========================================\n\n")
 
 show-seq("(if (and (not (bool true)) (not (bool true))) (not (bool false)) (bool false))")
 
@@ -189,10 +196,4 @@ show-seq("(if (not (and (not (bool true)) (not (bool true)))) (not (bool false))
 
 show-seq("(app (lambda x (not (id x))) (not (bool true)))")
 
-show-seq("(let (binding x (not (bool true))) (and (id x) (bool false)))")
-
-show-seq("(let (binding x (add (num 1) (num 2))) (add (id x) (id x)))")
-
 show-seq("(add (add (num 1) (num 2)) (num 4))")
-
-show-seq("(comment \"'should be 7'\" (add (add (num 1) (num 2)) (num 4)))")

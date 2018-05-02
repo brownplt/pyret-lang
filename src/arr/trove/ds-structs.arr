@@ -24,7 +24,7 @@ end
 data Term:
   | g-prim(val :: GenericPrimitive)
   | g-core(op :: String, args :: List<Term>)
-  | g-surf(op :: String, args :: List<Term>)
+  | g-surf(op :: String, args :: List<Term>, from-user :: Boolean)
   | g-aux(op :: String, args :: List<Term>)
   | g-var(v :: Variable)
   | g-list(lst :: List<Term>)
@@ -44,7 +44,7 @@ data Pattern:
   | p-drop(typ :: Option<String>)
   | p-prim(val :: GenericPrimitive)
   | p-core(op :: String, args :: List<Pattern>)
-  | p-surf(op :: String, args :: List<Pattern>)
+  | p-surf(op :: String, args :: List<Pattern>, from-user :: Boolean)
   | p-aux(op :: String, args :: List<Pattern>)
   | p-meta(op :: String, args :: List<Pattern>)
   | p-biject(op :: String, p :: Pattern)
@@ -165,7 +165,7 @@ fun rename-p-pvar(p :: Pattern, rename :: (String, S.Set<String>, Option<String>
       | p-drop(t) => p
       | p-prim(_) => p
       | p-core(op, args) => p-core(op, args.map(loop))
-      | p-surf(op, args) => p-surf(op, args.map(loop))
+      | p-surf(op, args, from-user) => p-surf(op, args.map(loop), from-user)
       | p-aux(op, args) => p-aux(op, args.map(loop))
       | p-meta(op, args) => p-meta(op, args.map(loop))
       | p-biject(op, shadow p) => p-biject(op, loop(p))
@@ -197,7 +197,7 @@ fun strip-tags(e :: Term) -> Term:
     | g-prim(val) => g-prim(val)
     | g-core(op, args) => g-core(op, args.map(strip-tags))
     | g-aux(op, args) => g-aux(op, args.map(strip-tags))
-    | g-surf(op, args) => g-surf(op, args.map(strip-tags))
+    | g-surf(op, args, from-user) => g-surf(op, args.map(strip-tags), from-user)
     | g-list(seq) => g-list(seq.map(strip-tags))
     | g-option(opt) => g-option(opt.and-then(strip-tags))
     | g-var(v) => g-var(v)
@@ -228,7 +228,7 @@ fun show-term(e :: Term) -> String:
     | g-prim(val) => show-prim(val)
     | g-core(op, args) => "<" + op + " " + show-terms(args) + ">"
     | g-aux(op, args)  => "{" + op + " " + show-terms(args) + "}"
-    | g-surf(op, args) => "(" + op + " " + show-terms(args) + ")"
+    | g-surf(op, args, from-user) => "(" + if from-user: "%" else: "" end + op + " " + show-terms(args) + ")"
     | g-list(lst)      => "[" + show-terms(lst) + "]"
     | g-focus(t) => "「" + show-term(t) + "」"
     | g-value(v) => tostring(v)
@@ -249,7 +249,7 @@ fun free-pvars(p :: Pattern) -> S.Set<String>:
       | p-drop(_) => S.empty-set
       | p-prim(_) => S.empty-set
       | p-core(_, args) => unions(map(loop, args))
-      | p-surf(_, args) => unions(map(loop, args))
+      | p-surf(_, args, _) => unions(map(loop, args))
       | p-aux(_, args)  => unions(map(loop, args))
       | p-meta(_, args) => unions(map(loop, args))
       | p-biject(_, shadow p) => free-pvars(p)

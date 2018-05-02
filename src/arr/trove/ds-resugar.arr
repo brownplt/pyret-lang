@@ -72,8 +72,8 @@ fun resugar(e :: Term) -> Option<Term>:
     | g-value(v) => g-value(v) ^ some
     | g-core(op, args) =>
       map-option(resugar, args).and-then(g-core(op, _))
-    | g-surf(op, args) =>
-      map-option(resugar, args).and-then(g-surf(op, _))
+    | g-surf(op, args, from-user) =>
+      map-option(resugar, args).and-then(g-surf(op, _, from-user))
     | g-aux(op, args) =>
       map-option(resugar, args).and-then(g-aux(op, _))
     | g-var(v) => g-var(v) ^ some
@@ -114,7 +114,7 @@ fun subs(env :: Env, p :: Pattern) -> Option<Term>:
       | p-prim(val) => g-prim(val) ^ some
       | p-core(op, args) => map-option(subs(env, _), args).and-then(g-core(op, _))
       | p-aux(op, args)  => map-option(subs(env, _), args).and-then(g-aux(op, _))
-      | p-surf(op, args) => map-option(subs(env, _), args).and-then(g-surf(op, _))
+      | p-surf(op, args, from-user) => map-option(subs(env, _), args).and-then(g-surf(op, _, from-user))
       | p-biject(op, shadow p) =>
         {f; _} = lookup-bijection(op)
         loop(p).and-then(f) # TODO: need recur?

@@ -157,10 +157,10 @@ fun generate-ast-visitor(
             end
         end
         A.s-app(dummy, AT.make-id("g-surf"),
-          [list: A.s-str(dummy, name), AT.make-list(args)])
+          [list: A.s-str(dummy, name), AT.make-list(args), A.s-bool(dummy, true)])
       | simplified-singleton-variant(_, name, _) =>
         A.s-app(dummy, AT.make-id("g-surf"),
-          [list: A.s-str(dummy, name), AT.make-list([list: g-loc-dummy])])
+          [list: A.s-str(dummy, name), AT.make-list([list: g-loc-dummy]), A.s-bool(dummy, true)])
     end
   end
 
@@ -345,7 +345,7 @@ fun write-ast-visitors() block:
 
       fun term-to-ast(g):
         cases (Term) g:
-          | g-surf(op, args) => lookup-dict.get-value(op)(args)
+          | g-surf(op, args, _) => lookup-dict.get-value(op)(args)
           | g-core(op, args) => lookup-dict.get-value(op)(args)
           | g-aux(_, _) => raise("unexpected g-aux: " + tostring(g))
           | g-prim(val) =>
@@ -378,7 +378,8 @@ fun write-ast-visitors() block:
         cases (Expr) _fun:
           | s-dot(l-dot, obj, field) =>
             g-surf("s-method-app",
-              [list: g-loc(l), g-loc(l-dot), obj.visit(self), g-str(field), g-list(self.list(args))])
+              [list: g-loc(l), g-loc(l-dot), obj.visit(self), g-str(field), g-list(self.list(args))],
+              true)
           | else => ...
         end
         ``` ^ get-stmts)
