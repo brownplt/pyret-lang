@@ -5,7 +5,7 @@
     { "import-type": "builtin", name: "lists" }
   ],
   nativeRequires: [
-    "pyret-base/js/pyret-tokenizer2",
+    "pyret-base/js/pyret-tokenizer",
     "pyret-base/js/pyret-parser"
   ],
   provides: {},
@@ -1400,6 +1400,7 @@
         var countParses = grammar.countAllParses(parsed);
         if (countParses == 0) {
           var nextTok = toks.curTok;
+          console.log(fileName, nextTok);
           message = "There were " + countParses + " potential parses.\n" +
                       "Parse failed, next token is " + nextTok.toRepr(true) +
                       " at " + fileName + ", " + nextTok.pos.toString(true);
