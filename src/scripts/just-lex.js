@@ -7,7 +7,7 @@ R.config({
     'src-base': "../../src/js/base"
   }
 });
-R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-base/pyret-tokenizer2"], function(T, G, fs, Tok) {
+R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "pyret-base/js/pyret-tokenizer2"], function(T, G, fs, Tok) {
   const data = fs.readFileSync(process.argv[2], {encoding: "utf-8"});
   console.log(process.argv[2]);
   
@@ -50,16 +50,29 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-bas
   console.log({"total toks": newAns.length});
   var stats = [];
   for (var tok in t.times) {
-    var sum = t.times[tok].reduce((a, b) => a + b);
-    var avg = sum / t.times[tok].length;
-    stats.push({name: tok, sum, num: t.times[tok].length, avg});
+    var sumNew = t.times[tok].reduce((a, b) => a + b);
+    var avgNew = sumNew / t.times[tok].length;
+    var sumTrue = toks.times[tok].reduce((a, b) => a + b);
+    var avgTrue = sumTrue / toks.times[tok].length;
+    stats.push({name: tok,
+                sumNew, numNew: t.times[tok].length, avgNew,
+                sumTrue, numTrue: toks.times[tok].length, avgTrue,
+                ratio: (avgTrue / avgNew)});
   }
-  stats.sort((a, b) => (a.sum - b.sum));
+  stats.sort((a, b) => (a.ratio - b.ratio));
+  var maxTokLength = 0;
+  stats.forEach(function(stat) { maxTokLength = Math.max(maxTokLength, stat.name.length); });
   stats.forEach((stat) => 
-                console.log(stat.name.padEnd(30), ":",
-                            "sum:", stat.sum.toFixed(10),
-                            "num:", stat.num.toString().padEnd(5),
-                            "avg:", stat.avg.toFixed(10))
+                console.log(stat.name.padEnd(maxTokLength), ":",
+                            "sumNew:", stat.sumNew.toFixed(10),
+                            "numNew:", stat.numNew.toString().padEnd(5),
+                            "avgNew:", stat.avgNew.toFixed(10),
+                            "     ",
+                            "sumTrue:", stat.sumTrue.toFixed(10),
+                            "numTrue:", stat.numTrue.toString().padEnd(5),
+                            "avgTrue:", stat.avgTrue.toFixed(10),
+                            "      ratio:", (stat.avgTrue / stat.avgNew).toFixed(10)
+                           )
                );
   
   // stats.forEach(function(entry) {
