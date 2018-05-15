@@ -1,4 +1,4 @@
-define("src-base/pyret-tokenizer2", ["jglr/jglr"], function(E) {
+define("pyret-base/js/pyret-tokenizer2", ["jglr/jglr"], function(E) {
   const SrcLoc = E.SrcLoc
   const GenTokenizer = E.Tokenizer2;
   const IGNORED_WS = {name: "WS"};
@@ -205,6 +205,9 @@ define("src-base/pyret-tokenizer2", ["jglr/jglr"], function(E) {
                "|[^\\\\\'\n\r])*\'", "g");
 
   const unterminated_string = new RegExp("^(?:[\"\']|```).*", "g");
+  const octit = makeDict("01234567");
+  const digit = makeDict("0123456789");
+  const hexit = makeDict("0123456789abcdefABCDEF");
   
   var symbols = makeTrie([
     {name: "BLOCK", val: "block:", parenIsForExp: true},
@@ -256,18 +259,99 @@ define("src-base/pyret-tokenizer2", ["jglr/jglr"], function(E) {
         var match = undefined;
         var line = this.curLine, col = this.curCol, pos = this.pos;
         var tok_type = "";
+        var rough = false;
+        if (this.str[this.pos] === "~") {
+          rough = true;
+          this.pos++; this.curCol++;
+        }
+        if (this.str[this.pos] === "-" || this.str[this.pos] === "+") {
+          this.pos++; this.curCol++;
+        }
+        if (this.str[this.pos] === ".") { // BAD-NUMBER
+          this.pos = pos; this.curCol = col;
+          return undefined;
+        }
+        if (digit[this.str[this.pos]]) {
+          // Integer portion, or numerator
+          this.pos++; this.curCol++;
+          while (digit[this.str[this.pos]]) {
+            this.pos++; this.curCol++;
+          }
+          if (this.str[this.pos] === "/") { // fraction
+            this.pos++; this.curCol++;
+            if (digit[this.str[this.pos]]) {
+              this.pos++; this.curCol++;
+              while (digit[this.str[this.pos]]) {
+                this.pos++; this.curCol++;
+              }
+              this.parenIsForExp = false;
+              this.priorWhitespace = false;
+              return this.makeToken(rough ? "ROUGHRATIONAL" : "RATIONAL", this.str.slice(pos, this.pos),
+                                    SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                    tok_spec);
+            } else {
+              this.pos = pos; this.curCol = col;
+              return undefined;
+            }
+          }
+          if (this.str[this.pos] === ".") {
+            this.pos++; this.curCol++;
+            // decimal portion
+            if (digit[this.str[this.pos]]) {
+              this.pos++; this.curCol++;
+              while (digit[this.str[this.pos]]) {
+                this.pos++; this.curCol++;
+              }
+            } else {
+              this.pos = pos; this.curCol = col;
+              return undefined;
+            }
+            if (this.str[this.pos] === "e" || this.str[this.pos] === "E") {
+              var advance = this.pos + 1;
+              if (this.str[advance] === "+" || this.str[advance] === "-") {
+                advance++;
+              }
+              if (digit[this.str[advance]]) {
+                advance++;
+                while (digit[this.str[advance]]) {
+                  advance++;
+                }
+                this.curCol += (advance - this.pos);
+                this.pos = advance;
+                this.parenIsForExp = false;
+                this.priorWhitespace = false;
+                return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                      SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                      tok_spec);
+              }
+            }
+          }
+          this.parenIsForExp = false;
+          this.priorWhitespace = false;
+          return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        }
+      }
+
+      /*function tokenizeNumber(tok_spec) {
+        var match = undefined;
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        var tok_type = "";
         number.lastIndex = this.pos;
         roughnum.lastIndex = this.pos;
         rational.lastIndex = this.pos;
         roughrational.lastIndex = this.pos;
-        if (this.str[this.pos] === "~" &&
-            (this.str[this.pos + 1] === ".") ||
-            ((this.str[this.pos + 1] === "-" || this.str[this.pos + 1] === "+") && this.str[this.pos + 2] === ".")) {
-          return undefined;
-        } else if ((match = roughrational.exec(this.str)) && match.index === this.pos) {
-          tok_type = "ROUGHRATIONAL";
-        } else if ((match = rational.exec(this.str)) && match.index === this.pos) {
-          tok_type = "RATIONAL";
+        var rough = (this.str[this.pos] === "~")
+        if (rough) {
+          if ((this.str[this.pos + 1] === ".") ||
+              ((this.str[this.pos + 1] === "-" || this.str[this.pos + 1] === "+") && this.str[this.pos + 2] === ".")) {
+            return undefined;
+          } else if ((match = roughrational.exec(this.str)) && match.index === this.pos) {
+            tok_type = "ROUGHRATIONAL";
+          } else if ((match = rational.exec(this.str)) && match.index === this.pos) {
+            tok_type = "RATIONAL";
+          }
         } else if ((match = roughnum.exec(this.str)) && match.index === this.pos) {
           tok_type = "NUMBER";
         } else if ((match = number.exec(this.str)) && match.index === this.pos) {
@@ -280,7 +364,8 @@ define("src-base/pyret-tokenizer2", ["jglr/jglr"], function(E) {
         return this.makeToken(tok_type, match[0],
                               SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                               tok_spec);
-      }},
+                              }*/
+    },
     { name: "BAD-NUMBER", val: "", firsts: new Set("~-+."),
       process: function tokenizeNumber(tok_spec) {
         var match = undefined;

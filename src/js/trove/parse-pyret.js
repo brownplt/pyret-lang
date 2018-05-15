@@ -5,7 +5,7 @@
     { "import-type": "builtin", name: "lists" }
   ],
   nativeRequires: [
-    "pyret-base/js/pyret-tokenizer",
+    "pyret-base/js/pyret-tokenizer2",
     "pyret-base/js/pyret-parser"
   ],
   provides: {},
