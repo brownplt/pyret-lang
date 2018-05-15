@@ -3,10 +3,11 @@ const R = require("requirejs");
 R.config({
   paths: {
     'jglr': "../../lib/jglr/",
-    'pyret-base': "../../build/phaseA"
+    'pyret-base': "../../build/phaseA",
+    'src-base/js': "../../src/js/base"
   }
 });
-R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-tokenizer2", "pyret-base/js/pyret-parser", "fs"], function(T1, T2, G, fs) {
+R(["pyret-base/js/pyret-tokenizer", "src-base/js/pyret-tokenizer-old", "pyret-base/js/pyret-parser", "fs"], function(T, Told, G, fs) {
   function toTime(hrtime) {
     const NS_PER_SEC = 1e9;
     return (hrtime[0] * NS_PER_SEC + hrtime[1]) / NS_PER_SEC;
@@ -15,8 +16,8 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-tokenizer2", "pyret-bas
   console.log(process.argv[2]);
   const data = fs.readFileSync(process.argv[2], {encoding: "utf-8"});
   var readingTime = process.hrtime(start);
-  const toks2 = new T2.Tokenizer(T2.spec);
-  const toks1 = T1.Tokenizer;
+  const toks2 = T.Tokenizer;
+  const toks1 = Told.Tokenizer;
   toks1.tokenizeFrom(data);
   toks2.tokenizeFrom(data);
   // while (toks.hasNext())

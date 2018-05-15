@@ -4,14 +4,18 @@ R.config({
   paths: {
     'jglr': "../../lib/jglr",
     'pyret-base': "../../build/phaseA",
-    'src-base': "../../src/js/base"
+    'src-base/js': "../../src/js/base"
   }
 });
-R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "pyret-base/js/pyret-tokenizer2"], function(T, G, fs, Tok) {
+R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-base/js/pyret-tokenizer-old"], function(T, G, fs, Told) {
+  function toTime(hrtime) {
+    const NS_PER_SEC = 1e9;
+    return (hrtime[0] * NS_PER_SEC + hrtime[1]) / NS_PER_SEC;
+  }
   const data = fs.readFileSync(process.argv[2], {encoding: "utf-8"});
   console.log(process.argv[2]);
   
-  var t = new Tok.Tokenizer(Tok.spec);
+  var t = T.Tokenizer;
   t.tokenizeFrom(data);
   var startNew = process.hrtime();
   var newAns = [];
@@ -25,24 +29,23 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "pyret-b
   var endNew = process.hrtime(startNew);
 
 
-  const toks = T.Tokenizer;
+  const toks = Told.Tokenizer;
   toks.tokenizeFrom(data);
-  var trueAns = [];
-  var startTrue = process.hrtime();
+  var oldAns = [];
+  var startOld = process.hrtime();
   while (toks.hasNext()) {
     var tok = toks.next();
-    trueAns.push(tok);
+    oldAns.push(tok);
   }
-  var endTrue = process.hrtime(startTrue);
+  var endOld = process.hrtime(startOld);
   console.log("=========================================================");
 
-  const NS_PER_SEC = 1e9;
   var stats =
-      [{"original  ": endTrue},
+      [{"original  ": endOld},
        {"new lexer ": endNew}];
   stats.forEach(function(entry) {
     for (var k in entry) {
-      entry[k] = ((entry[k][0] * NS_PER_SEC + entry[k][1]) / NS_PER_SEC).toFixed(10);
+      entry[k] = toTime(entry[k]).toFixed(10);
     }
   });
   console.log({"RATIO     ": (stats[0]["original  "] / stats[1]["new lexer "]).toFixed(10)});
@@ -52,12 +55,12 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "pyret-b
   for (var tok in t.times) {
     var sumNew = t.times[tok].reduce((a, b) => a + b);
     var avgNew = sumNew / t.times[tok].length;
-    var sumTrue = toks.times[tok].reduce((a, b) => a + b);
-    var avgTrue = sumTrue / toks.times[tok].length;
+    var sumOld = toks.times[tok].reduce((a, b) => a + b);
+    var avgOld = sumOld / toks.times[tok].length;
     stats.push({name: tok,
                 sumNew, numNew: t.times[tok].length, avgNew,
-                sumTrue, numTrue: toks.times[tok].length, avgTrue,
-                ratio: (avgTrue / avgNew)});
+                sumOld, numOld: toks.times[tok].length, avgOld,
+                ratio: (avgOld / avgNew)});
   }
   stats.sort((a, b) => (a.ratio - b.ratio));
   var maxTokLength = 0;
@@ -68,10 +71,10 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "pyret-b
                             "numNew:", stat.numNew.toString().padEnd(5),
                             "avgNew:", stat.avgNew.toFixed(10),
                             "     ",
-                            "sumTrue:", stat.sumTrue.toFixed(10),
-                            "numTrue:", stat.numTrue.toString().padEnd(5),
-                            "avgTrue:", stat.avgTrue.toFixed(10),
-                            "      ratio:", (stat.avgTrue / stat.avgNew).toFixed(10)
+                            "sumOld:", stat.sumOld.toFixed(10),
+                            "numOld:", stat.numOld.toString().padEnd(5),
+                            "avgOld:", stat.avgOld.toFixed(10),
+                            "      ratio (old/new):", (stat.avgOld / stat.avgNew).toFixed(10)
                            )
                );
   
@@ -83,25 +86,26 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "pyret-b
   // console.log(tokHist);
 
 
-  for (var i = 0; i < Math.max(trueAns.length, newAns.length); i++) {
-    if (trueAns[i] === undefined && newAns[i] !== undefined) {
-      var sTrue = "<undefined>";
+  for (var i = 0; i < Math.max(oldAns.length, newAns.length); i++) {
+    if (oldAns[i] === undefined && newAns[i] !== undefined) {
+      var sOld = "<undefined>";
       var sNew = newAns[i].toRepr(true) + " " + newAns[i].pos.toString(true);
-      console.log((""+i).padEnd(5), ": ", sTrue.padEnd(50), sNew);
-    } else if (trueAns[i] !== undefined && newAns[i] === undefined) {
+      console.log((""+i).padEnd(5), ": ", sOld.padEnd(50), sNew);
+    } else if (oldAns[i] !== undefined && newAns[i] === undefined) {
       var sNew = "<undefined>";
-      var sTrue = trueAns[i].toRepr(true) + " " + trueAns[i].pos.toString(true);
-      console.log((""+i).padEnd(5), ": ", sTrue.padEnd(50), sNew);
-    } else if (trueAns[i].toRepr(true) !== newAns[i].toRepr(true) &&
-               (""+trueAns[i].value).trim() !== (""+newAns[i].value).trim()) {
+      var sOld = oldAns[i].toRepr(true) + " " + oldAns[i].pos.toString(true);
+      console.log((""+i).padEnd(5), ": ", sOld.padEnd(50), sNew);
+    } else if (oldAns[i].name !== newAns[i].name ||
+               oldAns[i].pos.toString(true) !== newAns[i].pos.toString(true) ||
+               (""+oldAns[i].value).trim() !== (""+newAns[i].value).trim()) {
       var sNew = newAns[i].toRepr(true) + " " + newAns[i].pos.toString(true);
-      var sTrue = trueAns[i].toRepr(true) + " " + trueAns[i].pos.toString(true);
-      console.log((""+i).padEnd(5), ": ", sTrue.padEnd(50), sNew);
+      var sOld = oldAns[i].toRepr(true) + " " + oldAns[i].pos.toString(true);
+      console.log((""+i).padEnd(5), ": ", sOld.padEnd(50), sNew);
     } else {
-      var sTrue = "";
-      if (trueAns)
-        sTrue = trueAns[i].toRepr(true) + " " + trueAns[i].pos.toString(true);
-      //console.log((""+i).padEnd(5), ": ", sTrue.padEnd(50));
+      var sNew = "";
+      if (newAns)
+        sNew = newAns[i].toRepr(true) + " " + newAns[i].pos.toString(true);
+      //console.log((""+i).padEnd(5), ": ", sNew.padEnd(50));
     }
   }
   
