@@ -240,7 +240,10 @@ data ACasesBind:
   | a-cases-bind(l :: Loc, field-type :: A.CasesBindType, bind :: ABind) with:
     method label(self): "s-cases-bind" end,
     method tosource(self):
-      self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
+      ft = self.field-type.tosource()
+      if PP.is-mt-doc(ft): self.bind.tosource()
+      else: ft + PP.str(" ") + self.bind.tosource()
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -257,13 +260,14 @@ data ACasesBranch:
         PP.group(PP.str("| " + self.name)
             + PP.surround-separate(INDENT, 0, PP.str("()"), PP.lparen, PP.commabreak, PP.rparen,
             self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
-        self.body.tosource())
+        PP.nest(INDENT, self.body.tosource()))
     end
   | a-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr) with:
     method label(self): "a-singleton-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
-        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
+        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one
+          + PP.nest(INDENT, self.body.tosource()))
     end
 sharing:
   method visit(self, visitor):
@@ -333,7 +337,7 @@ data ALettable:
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
-        + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
+        + break-one + PP.group(str-elsebranch + PP.nest(INDENT, break-one + self._else.tosource()))
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
