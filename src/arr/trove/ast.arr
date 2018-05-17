@@ -228,7 +228,7 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     end
   docstr =
     if is-nothing(doc) or (doc == ""): PP.mt-doc
-    else: str-doc + PP.dquote(PP.str(doc)) + PP.hardline
+    else: str-doc + PP.str(torepr(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
 end
@@ -399,7 +399,7 @@ data ImportType:
     method tosource(self):
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(PP.str)))))
+            PP.separate(PP.commabreak, self.args.map(torepr).map(PP.str)))))
     end
 sharing:
   method visit(self, visitor):
@@ -1066,7 +1066,7 @@ data Expr:
             self.body.tosource(), str-end)
         | some(name) => PP.surround(INDENT, 1,
             if self.keyword-check: PP.str("check ") else: PP.str("examples ") end
-              + PP.dquote(PP.str(name)) + str-colon,
+              + PP.str(torepr(name)) + str-colon,
             self.body.tosource(), str-end)
       end
     end

@@ -10,6 +10,7 @@ data ErrorDisplay:
   | bulleted-sequence(contents #|:: List<ErrorDisplay>|#)
   | v-sequence(contents #|:: List<ErrorDisplay>|#)
   | h-sequence(contents #|:: List<ErrorDisplay>|#, sep :: String)
+  | h-sequence-sep(contents #|:: List<ErrorDisplay>|#, sep :: String, last :: String)
   | embed(val :: Any)
   | text(str :: String)
   | loc(loc #|:: S.Srcloc|#)

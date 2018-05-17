@@ -8,12 +8,13 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 
 */
 // TODO: Change to myrequire
-requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
+requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, loadHooksLib, stackLib, program) {
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
   var toLoad = program.toLoad;
   var uris = program.uris;
+  var realm = { instantiated: {}, static: {}};
 
   var main = toLoad[toLoad.length - 1];
 
@@ -181,7 +182,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
 
-      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, program);
+      err.val.pyretStack = stackLib.convertExceptionToPyretStackTrace(err.val, realm);
 
       var locArray = err.val.pyretStack.map(runtime.makeSrcloc);
       var locList = runtime.ffi.makeList(locArray);
@@ -215,7 +216,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
 
-      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
+      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, realm);
 
       execRt.runThunk(
         function() {
@@ -311,7 +312,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"]
   }
 
   return runtime.runThunk(function() {
-    runtime.modules = {};
-    return runtime.runStandalone(staticModules, runtime.modules, depMap, toLoad, postLoadHooks);
+    runtime.modules = realm.instantiated;
+    return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });

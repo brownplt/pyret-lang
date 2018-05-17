@@ -36,6 +36,14 @@
         }
       });
 
+    var rowGetColumns = runtime.makeMethod0(function(self) {
+        ffi.checkArity(1, arguments, "get-column-names", false);
+        var cols = Object.keys(self.$underlyingTable.headerIndex).map(function(k) {
+          return k.slice(7); // chop off "column:"
+        });
+        return runtime.ffi.makeList(cols);
+      });
+
     var rowEquals = runtime.makeMethod2(function(self, other, rec) {
         runtime.checkRow(self);
         runtime.checkRow(other);
@@ -77,6 +85,7 @@
     function makeRow(underlyingTable, rowData) {
       var rowVal = runtime.makeObject({
         "get-value": rowGetValue,
+        "get-column-names": rowGetColumns,
         "_output": rowOutput,
         "_equals": rowEquals
       });
@@ -615,12 +624,6 @@
           }, "table-filter");
         }),
 
-        'get-row': runtime.makeMethod1(function(_, row_index) {
-          ffi.checkArity(2, arguments, "get-row", true);
-          runtime.checkArrayIndex("get-row", rows, row_index);
-          return getRowContentAsGetter(headers, rows[row_index]);
-        }),
-        
         'length': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "length", true);
           return runtime.makeNumber(rows.length);

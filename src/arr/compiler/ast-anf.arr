@@ -326,7 +326,7 @@ data ALettable:
     method tosource(self): PP.str("!" + tostring(self.id)) end
   | a-id-letrec(l :: Loc, id :: A.Name, safe :: Boolean) with:
     method label(self): "a-id-letrec" end,
-    method tosource(self): PP.str("~" + tostring(self.id)) end
+    method tosource(self): PP.str("~!" + tostring(self.id)) end
   | a-cases(l :: Loc, typ :: A.Ann, val :: AVal, branches :: List<ACasesBranch>, _else :: AExpr) with:
     method label(self): "a-cases" end,
     method tosource(self):

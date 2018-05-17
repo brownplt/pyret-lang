@@ -1400,8 +1400,9 @@
         var countParses = grammar.countAllParses(parsed);
         if (countParses == 0) {
           var nextTok = toks.curTok;
+          console.log(fileName, nextTok);
           message = "There were " + countParses + " potential parses.\n" +
-                      "Parse failed, next token is " + nextTok.toString(true) +
+                      "Parse failed, next token is " + nextTok.toRepr(true) +
                       " at " + fileName + ", " + nextTok.pos.toString(true);
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
@@ -1411,6 +1412,8 @@
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-OPER")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
+          else if (nextTok.name === "COLONCOLON")
+            RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));
           else if (typeof opLookup[String(nextTok.value).trim()] === "function")
             RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
           else

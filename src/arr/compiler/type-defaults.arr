@@ -301,7 +301,7 @@ module-const-sets = t-module("builtin://sets",
         "add", t-arrow([list: tva], t-set-app(tva)),
         "remove", t-arrow([list: tva], t-set-app(tva)),
         "size", t-arrow([list: ], t-number),
-        "member", t-arrow([list: tva], t-set-app(tva)),
+        "member", t-arrow([list: tva], t-boolean),
         "pick", t-arrow([list: ], t-pick-app(tva, t-set-app(tva))),
         "union", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
         "intersect", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
@@ -447,11 +447,9 @@ module-const-lists = t-module("builtin://lists",
 
 t-and-then =
   t-forall(
-    [list: tva],
+    [list: tva, tvb],
     t-arrow(
-      [list:
-        t-arrow([list: tva], t-option-app(tvb))
-      ],
+      [list: t-arrow([list: tva], tvb)],
       t-option-app(tvb)))
 
 module-const-option = t-module("builtin://option",

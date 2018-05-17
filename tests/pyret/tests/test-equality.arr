@@ -139,14 +139,22 @@ check "eq-none is equal nothing never always":
   eq-none is-not== eq-all
 end
 
-check "error on bare fun and meth":
+check "error on bare fun and meth and roughnum":
   identical(f, f) raises f-func-err
   equal-always(f, f) raises f-func-err
   equal-now(f, f) raises f-func-err
 
   identical(m, m) raises f-meth-err
-  equal-always(f, f) raises f-func-err
-  equal-now(f, f) raises f-func-err
+  equal-always(m, m) raises f-meth-err
+  equal-now(m, m) raises f-meth-err
+
+  identical(1, ~1) is false
+  equal-always(1, ~1) raises "Roughnum"
+  equal-now(1, ~1) raises "Roughnum"
+
+  identical(~1, 1) is false
+  equal-always(~1, 1) raises "Roughnum"
+  equal-now(~1, 1) raises "Roughnum"
 end
 
 check "error (and non-error) on nested fun and meth":

@@ -443,6 +443,9 @@ fun build-program(path, options, stats) block:
     clear-and-print("All modules already compiled. Cleaning up and generating standalone...\n")
   end
   shadow options = options.{
+    method should-profile(_, locator):
+      options.add-profiling and (locator.uri() == base.locator.uri())
+    end,
     method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)

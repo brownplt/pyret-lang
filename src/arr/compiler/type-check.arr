@@ -472,18 +472,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             end)
           else:
             shadow context = misc-collect-example(e, context)
-
-            synthesis(l, false, context).bind(lam(_, left-type, shadow context):
-              cases(Option<Expr>) r:
-                | some(shadow r) =>
-                  synthesis(r, false, context).bind(lam(_, right-type, shadow-context):
-                    shadow context = context.add-constraint(left-type, right-type)
-                    typing-result(e, expect-type, context)
-                  end)
-                | none =>
-                  typing-result(e, expect-type, context)
-              end
-            end)
+            synthesis-s-check-test(e, loc, op, refinement, l, r, context)
           end
         | s-check-expr(l, expr, ann) =>
           synthesis(expr, false, context) # XXX: this should probably use the annotation instead
@@ -511,7 +500,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                         fold-result(link(new-elt, exprs), context)
                       end)
                   end)
-                end, fold-result(empty, context), elts.reverse(), t-elts.reverse())
+                end, fold-result(empty, context), elts, t-elts)
                 result.typing-bind(lam(exprs, shadow context):
                   typing-result(A.s-tuple(l, exprs), expect-type, context)
                 end)
@@ -748,21 +737,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         end)
       else:
         shadow context = misc-collect-example(e, context)
-        synthesis(l, false, context).bind(lam(_, left-type, shadow context):
-          cases(Option<Expr>) r:
-            | some(shadow r) =>
-              synthesis(r, false, context).bind(lam(_, right-type, shadow-context):
-                shadow context = context.add-constraint(left-type, right-type)
-                result-type = new-existential(loc, false)
-                shadow context = context.add-variable(result-type)
-                typing-result(e, result-type, context)
-              end)
-            | none =>
-              result-type = new-existential(loc, false)
-              shadow context = context.add-variable(result-type)
-              typing-result(e, result-type, context)
-          end
-        end)
+        synthesis-s-check-test(e, loc, op, refinement, l, r, context)
       end
     | s-check-expr(l, expr, ann) =>
       synthesis(expr, false, context) # XXX: this should probably use the annotation instead
@@ -1011,7 +986,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   end, var-type.with-fields)
                 end)
                 variants-meet = cases(List<TypeMembers>) variant-type-fields:
-                  | empty => empty
+                  | empty => [string-dict: ]
                   | link(first, rest) =>
                     cases(List<TypeMembers>) rest:
                       | empty => first
@@ -1316,7 +1291,7 @@ end
 fun synthesis-cases-has-else(l :: Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: {List<A.CasesBranch>; List<Type>}, _else :: A.Expr, context :: Context) -> TypingResult:
   synthesis(_else, false, context).bind(
     lam(new-else, else-type, shadow context):
-      new-cases = A.s-cases-else(l, ann, new-val, split-result.{0}, new-else)
+      new-cases = A.s-cases-else(l, ann, new-val, split-result.{0}, new-else, false)
       meet-branch-types(link(else-type, split-result.{1}), l, context).typing-bind(lam(branches-type, shadow context):
         typing-result(new-cases, branches-type.set-loc(l), context)
       end)
@@ -1377,7 +1352,7 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
                 cases(Option<A.Expr>) maybe-else:
                   | some(_else) =>
                     if is-empty(remaining-branches):
-                      typing-error([list: C.unneccesary-else-branch(tostring(typ), l)])
+                      typing-error([list: C.unnecessary-else-branch(tostring(typ), l)])
                     else:
                       has-else(l, ann, new-val, split-result, _else, context)
                     end
@@ -1468,7 +1443,7 @@ fun handle-branch(data-type :: DataType, cases-loc :: A.Loc, branch :: A.CasesBr
           end
       end
     | none =>
-      fold-errors([list: C.unneccesary-branch(branch, data-type, cases-loc)])
+      fold-errors([list: C.unnecessary-branch(branch, data-type, cases-loc)])
   end
 end
 
@@ -1758,11 +1733,7 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
         | none =>
           cases(A.Name) binding.id:
             | s-atom(base, _) =>
-              if base == "$underscore":
-                t-top(binding.l, false)
-              else:
-                new-existential(binding.l, true)
-              end
+              new-existential(binding.l, true)
             | else =>
               new-existential(binding.l, true)
           end
@@ -1782,8 +1753,12 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     end
     shadow context = context.add-variable(ret-type)
     fold-arg-types = map-fold-result(lam(arg, shadow context):
+      arg-is-underscore = cases(A.Name) arg.id:
+        | s-atom(base, _) => base == "$underscore"
+        | else => false
+      end
       arg-type = coll.get-value(arg.id.key())
-      if top-level and is-t-existential(arg-type):
+      if top-level and is-t-existential(arg-type) and not(arg-is-underscore):
         fold-errors([list: C.toplevel-unann(arg)])
       else:
         shadow context = context.add-variable(arg-type)
@@ -2085,7 +2060,7 @@ fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context
   new-exists = new-existential(loc, false)
   shadow context = context.add-level().add-variable(new-exists)
   shadow context = branch-types.foldr(lam(branch-type, shadow context):
-    context.add-constraint(new-exists, branch-type)
+    context.add-constraint(branch-type, new-exists)
   end, context)
   context.solve-level().bind(lam(solution, shadow context):
     meet-type = solution.generalize(solution.apply(new-exists))
@@ -2364,6 +2339,109 @@ fun ignore-checker(l :: Loc, binds :: List<A.LetBind>, body :: Expr, blocky, con
     end
   else:
     handler(l, binds, body, context)
+  end
+end
+fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, context :: Context) -> TypingResult:
+  fun create-result(shadow context :: Context) -> TypingResult:
+    result-type = new-existential(loc, false)
+    shadow context = context.add-variable(result-type)
+    typing-result(e, result-type, context)
+  end
+
+  fun synthesis-equivalent(l :: Loc) -> TypingResult:
+    cases(Option<Expr>) right:
+      | some(shadow right) =>
+        synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+          synthesis(right, false, context).bind(lam(_, right-type, shadow context):
+            shadow context = context.add-constraint(left-type, right-type)
+            create-result(context)
+          end)
+        end)
+      | none =>
+        raise("Expected test to have a right hand side")
+    end
+  end
+
+  fun synthesis-refinement(l :: Loc) -> TypingResult:
+    cases(Option<Expr>) refinement:
+      | some(shadow refinement) =>
+        cases(Option<Expr>) right:
+          | some(shadow right) =>
+            synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+              synthesis(right, false, context).bind(lam(_, right-type, shadow context):
+                synthesis(refinement, false, context).bind(lam(_, refinement-type, shadow context):
+                  shadow context = context.add-constraint(refinement-type, t-arrow([list: left-type, right-type], t-boolean(loc), l, false))
+                  create-result(context)
+                end)
+              end)
+            end)
+          | none =>
+            raise("Expected test to have a right hand side")
+        end
+      | none =>
+        synthesis-equivalent(l)
+    end
+  end
+
+  fun synthesis-predicate(l :: Loc) -> TypingResult:
+    cases(Option<Expr>) right:
+      | some(shadow right) =>
+        synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+          synthesis(right, false, context).bind(lam(_, pred-type, shadow context):
+            shadow context = context.add-constraint(pred-type, t-arrow([list: left-type], t-boolean(loc), l, false))
+            create-result(context)
+          end)
+        end)
+      | none =>
+        raise("Expected test to have a right hand side")
+    end
+  end
+
+  fun synthesis-string(l :: Loc) -> TypingResult:
+    cases(Option<Expr>) right:
+      | some(shadow right) =>
+        synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+          checking(right, t-string(loc), false, context).bind(lam(_, _, shadow context):
+            create-result(context)
+          end)
+        end)
+      | none =>
+        raise("Expected test to have a right hand side")
+    end
+  end
+
+  fun synthesis-exception(l :: Loc) -> TypingResult:
+    cases(Option<Expr>) right:
+      | some(shadow right) =>
+        synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+          synthesis(right, false, context).bind(lam(_, pred-type, shadow context):
+            shadow context = context.add-constraint(pred-type, t-arrow([list: t-top(l, false)], t-boolean(loc), l, false))
+            create-result(context)
+          end)
+        end)
+      | none =>
+        raise("Expected test to have a right hand side")
+    end
+  end
+
+  cases(A.CheckOp) op:
+    | s-op-is(l) => synthesis-refinement(l)
+    | s-op-is-roughly(l) => synthesis-equivalent(l)
+    | s-op-is-op(l, _) => synthesis-equivalent(l)
+    | s-op-is-not(l) => synthesis-refinement(l)
+    | s-op-is-not-op(l, _) => synthesis-equivalent(l)
+    | s-op-satisfies(l) => synthesis-predicate(l)
+    | s-op-satisfies-not(l) => synthesis-predicate(l)
+    | s-op-raises(l) => synthesis-string(l)
+    | s-op-raises-other(l) => synthesis-string(l)
+    | s-op-raises-not(l) =>
+      synthesis(left, false, context).bind(lam(_, left-type, shadow context):
+        create-result(context)
+      end)
+    | s-op-raises-satisfies(l) =>
+      synthesis-exception(l)
+    | s-op-raises-violates(l) =>
+      synthesis-exception(l)
   end
 end
 

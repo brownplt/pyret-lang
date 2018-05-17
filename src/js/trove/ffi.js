@@ -260,9 +260,10 @@
 
     function throwTypeMismatch(val, typeName) {
       // NOTE(joe): can't use checkPyretVal here, because it will re-enter
-      // this function and blow up... so bottom out at "nothing"
+      // this function and blow up...
       if(!runtime.isPyretVal(val)) {
-        val = runtime.namespace.get("nothing");
+        console.log("Non Pyret value:", val);
+        val = "non-Pyret value; see the console for more details";
       }
       runtime.checkString(typeName);
       raise(err("generic-type-mismatch")(val, typeName));
@@ -466,6 +467,9 @@
     function throwParseErrorBadCheckOper(loc) {
       raise(err("parse-error-bad-check-operator")(loc));
     }
+    function throwParseErrorColonColon(loc, nextToken) {
+      raise(err("parse-error-colon-colon")(loc));
+    }
 
     function throwModuleLoadFailureL(names) {
       raise(makeModuleLoadFailureL(names));
@@ -555,6 +559,14 @@
 
     var isEmpty = gf(L, "is-empty").app;
     var isLink = gf(L, "is-link").app;
+    function listLength(lst) {
+      var len = 0;
+      while (isLink(lst)) {
+        len++;
+        lst = gf(lst, "rest");
+      }
+      return len;
+    }
 
     function isList(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }
 
@@ -606,6 +618,7 @@
       throwModuleLoadFailureL: throwModuleLoadFailureL,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
+      throwParseErrorColonColon: throwParseErrorColonColon,
       throwParseErrorEOF: throwParseErrorEOF,
       throwParseErrorUnterminatedString: throwParseErrorUnterminatedString,
       throwParseErrorBadNumber: throwParseErrorBadNumber,
@@ -678,6 +691,7 @@
       isList: isList,
       isLink: isLink,
       isEmpty : isEmpty,
+      listLength: listLength,
 
       isErrorDisplay: isErrorDisplay,
       checkErrorDisplay: checkErrorDisplay,

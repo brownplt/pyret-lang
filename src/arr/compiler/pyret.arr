@@ -59,6 +59,8 @@ fun main(args :: List<String>) -> Number block:
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
     "checks",
       C.next-val(C.String, C.once, "Specify which checks to execute (all, none, or main)"),
+    "profile",
+      C.flag(C.once, "Add profiling information to the main file"),
     "check-all",
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
@@ -110,6 +112,7 @@ fun main(args :: List<String>) -> Number block:
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
+      add-profiling = r.has-key("profile")
       display-progress = not(r.has-key("no-display-progress"))
       html-file = if r.has-key("html-file"):
             some(r.get-value("html-file"))

@@ -21,7 +21,7 @@
     { "import-type": "builtin", name: "tables" },
     { "import-type": "builtin", name: "reactors" },
     { "import-type": "builtin", name: "data-source" },
-    { "import-type": "builtin", "name": "s-exp" },
+    { "import-type": "builtin", "name": "s-exp" }
   ],
   provides: {},
   nativeRequires: [],

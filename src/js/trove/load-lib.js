@@ -2,9 +2,9 @@
   requires: [
     { "import-type": "builtin", name: "runtime-lib" }
   ],
-  nativeRequires: ["pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
+  nativeRequires: ["pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
   provides: {},
-  theModule: function(runtime, namespace, uri, runtimeLib, stackLib, loader) {
+  theModule: function(runtime, namespace, uri, runtimeLib, loadHooksLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;
     var EXIT_ERROR_RENDERING_ERROR = 2;
@@ -34,7 +34,7 @@
 
     function emptyRealm() {
       return applyBrand(brandRealm, runtime.makeObject({
-        "realm": runtime.makeOpaque({})
+        "realm": runtime.makeOpaque({ instantiated: {}, static: {}})
       }));
     }
 
@@ -61,8 +61,8 @@
       return result.val.program;
     }
 
-    function enrichStack(exn, program) {
-      return stackLib.convertExceptionToPyretStackTrace(exn, program);
+    function enrichStack(exn, realm) {
+      return stackLib.convertExceptionToPyretStackTrace(exn, realm);
     }
 
     function checkSuccess(mr, field) {
@@ -99,6 +99,9 @@
     }
     function getRealm(mr) {
       return mr.val.realm;
+    }
+    function getModuleResultRealm(mr) {
+      return runtime.getField(getRealm(mr), "realm").val;
     }
     function getResultCompileResult(mr) {
       return mr.val.compileResult;
@@ -294,7 +297,10 @@
       var checks = runtime.getField(options, "checks");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       otherRuntime.setParam("command-line-arguments", runtime.ffi.toArray(commandLineArguments));
-      var realm = Object.create(runtime.getField(realmObj, "realm").val);
+      var realm = {
+        instantiated: Object.create(runtime.getField(realmObj, "realm").val.instantiated),
+        static: Object.create(runtime.getField(realmObj, "realm").val.static)
+      };
       var program = loader.safeEval("return " + programString, {});
       var staticModules = program.staticModules;
       var depMap = program.depMap;
@@ -304,10 +310,10 @@
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
 
-      if(realm["builtin://checker"]) {
+      if(realm.instantiated["builtin://checker"]) {
         // NOTE(joe): This is the place to add checkAll
         if (checks !== "none") {
-          var checker = otherRuntime.getField(otherRuntime.getField(realm["builtin://checker"], "provide-plus-types"), "values");
+          var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
           var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks === "all");
           otherRuntime.setParam("current-checker", currentChecker);
         }
@@ -367,13 +373,13 @@
           mainResult = answer;
         }
         return otherRuntime.runThunk(function() {
-          otherRuntime.modules = realm;
+          otherRuntime.modules = realm.instantiated;
           return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {
             // NOTE(joe): we should only reach here if there was an error earlier
             // on in the chain of loading that stopped main from running
-            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, program);
+            result.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(result.exn, realm);
 
             restarter.resume(makeModuleResult(otherRuntime, result, makeRealm(realm), runtime.nothing, program));
           }
@@ -421,6 +427,7 @@
           getModuleResultTypes: getModuleResultTypes,
           getModuleResultValues: getModuleResultValues,
           getModuleResultRuntime: getModuleResultRuntime,
+          getModuleResultRealm: getModuleResultRealm,
           getModuleResultResult: getModuleResultResult,
           getModuleResultNamespace: getModuleResultNamespace,
           getModuleResultDefinedTypes: getModuleResultDefinedTypes,

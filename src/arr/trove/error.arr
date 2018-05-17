@@ -2136,7 +2136,7 @@ data RuntimeError:
           if self.names.length() == 1: ED.text("The following module failed to load:")
           else:                        ED.text("The following modules failed to load:")
           end],
-        ED.h-sequence(self.names.map(ED.text), ", ")]
+        ED.h-sequence-sep(self.names.map(ED.text), ", ", ", and ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -2154,17 +2154,17 @@ data RuntimeError:
                 [ED.para:
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
-                  ED.text(self.reason)],
+                  ED.text(self.reason), ED.text(".")],
                 please-report-bug()]
             else if src-available(loc):
               [ED.sequence:
                 ed-intro(self.method-name, loc, 0, true),
                 ED.cmcode(loc),
                 [ED.para:
-                  ED.text("It. expects that the index passed to it is an integer within the bounds of the array. "),
+                  ED.text("It expects that the index passed to it is an integer within the bounds of the array. "),
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
-                  ED.text(self.reason)]]
+                  ED.text(self.reason), ED.text(".")]]
             else:
               [ED.sequence:
                 [ED.para: 
@@ -2176,7 +2176,7 @@ data RuntimeError:
                 [ED.para:
                   ED.embed(self.index),
                   ED.text(" is an invalid array index because "),
-                  ED.text(self.reason)]]
+                  ED.text(self.reason), ED.text(".")]]
             end
           | none =>
             [ED.sequence:
@@ -2187,7 +2187,7 @@ data RuntimeError:
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
-                ED.text(self.reason)]]
+                ED.text(self.reason), ED.text(".")]]
         end]
     end,
     method render-reason(self):
@@ -2204,7 +2204,7 @@ data RuntimeError:
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
-                ED.text(self.reason)],
+                ED.text(self.reason), ED.text(".")],
               please-report-bug()]
           else:
             [ED.error:
@@ -2217,7 +2217,7 @@ data RuntimeError:
               [ED.para:
                 ED.embed(self.index),
                 ED.text(" is an invalid array index because "),
-                ED.text(self.reason)]]
+                ED.text(self.reason), ED.text(".")]]
           end
         end,
         [ED.error:
@@ -2228,7 +2228,7 @@ data RuntimeError:
           [ED.para:
             ED.embed(self.index),
             ED.text(" is an invalid array index because "),
-            ED.text(self.reason)]])
+            ED.text(self.reason), ED.text(".")]])
     end
   | equality-failure(reason :: String, value1, value2) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
@@ -2456,6 +2456,33 @@ data ParseError:
           ED.text("), or keyword?")],
         [ED.para: ED.text("Is there something there that shouldn’t be?")]
       ]
+    end
+  | parse-error-colon-colon(loc) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.loc):
+        [ED.error:
+          [ED.para: ED.text("Pyret didn't understand your program around ")],
+          ED.cmcode(self.loc),
+          [ED.para: ED.text(" If you were trying to write a type annotation (with "),
+            ED.highlight(ED.code(ED.text("::")),[ED.locs: self.loc],0),
+            ED.text("), remember that annotations only apply directly to names.  "),
+            ED.text("If you were not trying to write an annotation, perhaps use a single colon instead.")]]
+      else:
+        [ED.error:
+          [ED.para: ED.text("Pyret didn't understand your program around "),
+            ED.loc(self.loc)],
+          [ED.para: ED.text(" If you were trying to write a type annotation (with "), ED.code(ED.text("::")),
+            ED.text("), remember that annotations only apply directly to names.  "),
+            ED.text("If you were not trying to write an annotation, perhaps use a single colon instead.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Pyret didn't understand your program around ")],
+        draw-and-highlight(self.loc),
+        [ED.para: ED.text(" If you were trying to write a type annotation (with "), ED.code(ED.text("::")),
+          ED.text("), remember that annotations only apply directly to names.  "),
+          ED.text("If you were not trying to write an annotation, perhaps use a single colon instead.")]]
     end
   | parse-error-eof(loc) with:
     method render-fancy-reason(self, src-available):

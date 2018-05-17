@@ -11,3 +11,6 @@ fun f(o :: Option<Number>):
 end
 
 f(s.get("b"))
+
+sd :: S.StringDict<Number> = [S.string-dict: "a", 1]
+x :: Set<String> = sd.keys()
