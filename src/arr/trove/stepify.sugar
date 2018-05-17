@@ -1,0 +1,37 @@
+
+################################################################################
+# Stepification
+################################################################################
+
+
+sugar s-fun:
+  | (s-fun name params args ann doc body check-loc check blocky) =>
+    <s-fun name params args ann doc (wrap-func-body name args body blocky) check-loc check blocky>
+end
+
+sugar wrap-func-body:
+  | (wrap-func-body name args body blocky) =>
+    (fresh [ans]
+      (s-block [
+        (push name args)
+        (s-let (mk-s-bind ans) body blocky)
+        (pop (s-id ans))
+        (s-id ans)]))
+end
+
+sugar push:
+  | (push name [<s-bind _ arg_{i} _> ...i]) =>
+    (s-prim-app "tracePushCall" [(s-str name)
+      (mk-list [(s-str (biject name-to-str arg_{i})) ...i])
+      (mk-list [(s-app (g-id "tostring") [(s-id arg_{i})]) ...i])])
+end
+
+sugar pop:
+  | (pop ans) =>
+    (s-prim-app "tracePopCall" [ans])
+end
+
+sugar mk-list:
+  | (mk-list list) =>
+    (s-construct {s-construct-normal} (g-id "raw-array") list)
+end

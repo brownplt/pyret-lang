@@ -16,6 +16,11 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime["throwInvalidTableColumn"] = ffi.throwInvalidTableColumn;
         runtime["toArray"] = ffi.toArray;
 
+        runtime["tracePushCall"] = ffi.tracePushCall;
+        runtime["tracePopCall"] = ffi.tracePopCall;
+        runtime["resetTrace"] = ffi.resetTrace;
+        runtime["getTrace"] = ffi.getTrace;
+
         var checkList = runtime.makeCheckType(ffi.isList, "List");
         runtime["checkList"] = checkList;
 

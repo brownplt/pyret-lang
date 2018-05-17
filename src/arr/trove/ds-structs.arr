@@ -207,12 +207,9 @@ end
 
 fun show-term(e :: Term) -> String:
   doc: "Print a term, for debugging purposes."
-  fun show-terms(es):
-    map(show-term, es).join-str(" ")
-  end
   fun show-prim(prim):
     cases (GenericPrimitive) prim:
-      | e-str(v) => tostring(v)
+      | e-str(v) => "\"" + tostring(v) + "\""
       | e-num(v) => tostring(v)
       | e-bool(v) => tostring(v)
       | e-loc(v) => "."
@@ -240,6 +237,10 @@ fun show-term(e :: Term) -> String:
     | g-var(v) => show-var(v)
     | g-tag(_, _, body) => "#" + show-term(body)
   end
+end
+
+fun show-terms(es):
+  map(show-term, es).join-str(" ")
 end
 
 fun free-pvars(p :: Pattern) -> S.Set<String>:
@@ -284,5 +285,11 @@ end
 fun unions(some-sets):
   for fold(answer from S.empty-set, a-set from some-sets):
     answer.union(a-set)
+  end
+end
+
+fun rules-union(rules1 :: DsRules, rules2 :: DsRules) -> DsRules:
+  for fold(rules from rules1, key from rules2.keys-list()):
+    rules.set(key, rules2.get-value(key))
   end
 end

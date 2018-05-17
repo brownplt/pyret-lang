@@ -16,13 +16,19 @@ import ds-structs as ST
 include debugging
 import ds-metafunctions as _
 
-nothing ^ push-time("reading")
 desugaring-rules = block:
   file = F.input-file("src/arr/trove/pyret.sugar")
   ds-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   ds-rules
-end ^ pop-time
+end
+
+stepify-rules = block:
+  file = F.input-file("src/arr/trove/stepify.sugar")
+  step-rules = P.parse-ds-rules(file.read-file())
+  file.close-file()
+  step-rules
+end
 
 fun desugar-expr(e :: AST.Expr) -> AST.Expr:
   e.visit(CONV.ast-to-term-visitor)
@@ -30,12 +36,15 @@ fun desugar-expr(e :: AST.Expr) -> AST.Expr:
     ^ CONV.term-to-ast
 end
 
-fun desugar(e :: AST.Program) -> AST.Program block:
+fun desugar(e :: AST.Program, trace :: Boolean) -> AST.Program block:
+  rules = if trace:
+    ST.rules-union(desugaring-rules, stepify-rules)
+  else:
+    desugaring-rules
+  end
   e.visit(CONV.ast-to-term-visitor)
     ^ push-time("desugar")
-    ^ DS.desugar(desugaring-rules, _)
-    #^ ST.strip-tags
-    #^ my-print("after desugar")
+    ^ DS.desugar(rules, _)
     ^ pop-time
     ^ CONV.term-to-ast
 end

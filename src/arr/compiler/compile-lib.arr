@@ -392,7 +392,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           checked := nothing
           add-phase("Added imports", imported)
 
-          var new-desugared = DNew.desugar(imported)
+          var new-desugared = DNew.desugar(imported, options.trace)
           imported := nothing
           add-phase("New desugar", new-desugared)
 

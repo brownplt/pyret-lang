@@ -561,6 +561,32 @@
       return contract("failure-at-arg")(loc, index, name, args, reason);
     }
 
+    // Function call tracing (enabled with -trace option)
+    var trace = [];
+    var trace_len = 0;
+
+    function tracePushCall(name, formalArgs, actualArgs) {
+      trace.push(["push", name, formalArgs, actualArgs]);
+      indentation = Array(trace_len).join("  ");
+      console.log(indentation + "push", name, formalArgs, actualArgs);
+      trace_len += 1;
+    }
+
+    function tracePopCall(return_val) {
+      trace.push(["pop", return_val]);
+      trace_len -= 1;
+      indentation = Array(trace_len).join("  ");
+      console.log(indentation + "pop", return_val);
+    }
+
+    function resetTrace() {
+      trace = [];
+    }
+
+    function getTrace() {
+      return trace;
+    }
+
     var isOk = contract("is-ok");
     var isFail = contract("is-fail");
     var isFailArg = contract("is-fail-arg");
@@ -653,6 +679,12 @@
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
       makeFailureAtArg: makeFailureAtArg,
+
+      tracePushCall: tracePushCall,
+      tracePopCall: tracePopCall,
+      resetTrace: resetTrace,
+      getTrace: getTrace,
+      
       contractOk: gf(CON, "ok"),
       contractFail: contract("fail"),
       contractFailArg: contract("fail-arg"),

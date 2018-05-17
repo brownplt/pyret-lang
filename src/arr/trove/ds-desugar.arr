@@ -155,7 +155,7 @@ fun desugar-surf(rules :: DsRules, op :: String, args :: List<Term>, from-user :
         end
       end #^ pop-time ^ push-time("substitution: " + op)
       cases (Option) opt block:
-        | none => fail("No case match in " + tostring(op) + " with " + tostring(args))
+        | none => fail("No case match in " + tostring(op) + " with " + show-terms(args))
         | some({kase; env; p-lhs}) =>
           # shadow p-lhs = cases (Pattern) p-lhs:
           #   | p-surf(op, args, _) => p-surf(op, args, from-user)
