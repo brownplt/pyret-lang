@@ -8,9 +8,9 @@ for Pyret's new desugaring system.
 Should sugars expand from the outside-in (OI), or from the inside-out
 (IO)? We chose IO, primarily because it makes desugaring rules behave
 similarly to pattern-matching functions. In OI, you cannot use "helper
-functions". For example if (A x) desugars to (B (C x)), then B will
-expand before C, and recieve (C x) as an argument, which is
-unintuitive if you think of sugars as functions over syntax.
+functions". For example, in OI, if (A x) desugars to (B (C x)) then B will
+expand before C, and recieve (C x) as an argument rather than
+receiving the expansion of (C x) as an argument.
 
 ## Explicit subscripts
 
@@ -32,11 +32,13 @@ performs a matrix transposition. In contrast, this rule:
 also performs a transposition, but it requires all of the elements of
 the matrix to be the same.
 
+(This is not implemented yet. The bottom case
+will behave the same as the top case; this needs to be fixed.)
+
 We can either leave the rules explicit like this, or have the rules be
 _written_ without underscores, but then infer them when parsing the
 rules. Doing so would slightly weaken the power of the desugaring
-language: for instance, these transposition examples would be inferred
-to be identity functions instead.
+language.
 
 ## Surface, Core, and Auxilliary
 
@@ -45,10 +47,10 @@ of terms:
 
 * Surface terms are the sugars of the surface language. Right after
   parsing, all of Pyret is a surface term. They are written in
-  parentheses, like s-expressions `(op e ... e)` (where `op` is the
+  parentheses, like s-expressions `(op e ...)` (where `op` is the
   constructor name, and `e` is a term).
 * Core terms are the terms after desugaring. They are written in angle
-  brackets `<op e ... e>`. It is useful to distinguish surface from
+  brackets `<op e ...>`. It is useful to distinguish surface from
   core terms, because surface terms will be recursively expanded while
   core terms will not. For example, this `if` rule:
 
@@ -109,19 +111,15 @@ source locations with `@`. For example, in this sugar:
     end
 
 B is still given A's srcloc, but C is given `x`'s srcloc via the
-bulitin metafunction `get-loc-of`.
+metafunction `get-loc-of`.
 
 ## Fresh Variables
 
 Fresh variables can be introduced with `(fresh [x] e)`, where `x` is
-the variable name and `e` is the term. Right now, if you use a
-variable without `fresh`, it will be unhygienic. A better design would
-be to have both `fresh` and `capture`, and have all variables be
-unbound otherwise.
-
-(Implementation note: this "better design" would also simplify
-parsing, which right now has to be clever about distinguishing
-variables from pattern variables.)
+the variable name and `e` is the term. If you wish to capture a
+variable instead, it can be introduced with `(capture [x] e)`.
+Any name introduced by `fresh` or `capture` is a variable, and any
+other name is a pattern-variable.
 
 ## Error Collection (NYI)
 
