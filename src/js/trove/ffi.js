@@ -589,8 +589,6 @@
     function tracePushCall(name, formalArgs, actualArgs) {
       var packet = ["push", name, formalArgs, actualArgs];
       trace.push(["push", name, formalArgs, actualArgs]);
-      // indentation = Array(trace_len).join("  ");
-      // console.log(indentation + "push", name, formalArgs, actualArgs);
       for (var i = 0; i < trace_subs.length; i++) {
         trace_subs[i].push_func(packet);
       }
@@ -604,8 +602,6 @@
       for (var i = 0; i < trace_subs.length; i++) {
         trace_subs[i].pop_func(packet);
       }
-      // indentation = Array(trace_len).join("  ");
-      // console.log(indentation + "pop", return_val);
     }
 
     // TODO: figure out how this interacts with subscribers
