@@ -6,6 +6,7 @@ import pathlib as P
 import render-error-display as RED
 import string-dict as D
 import system as SYS
+import simple-function-log as SFL
 import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
@@ -103,6 +104,9 @@ fun main(args :: List<String>) -> Number block:
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       trace = r.has-key("trace")
+      if trace:
+        SFL.subscribe()
+      end
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")

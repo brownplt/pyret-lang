@@ -6,6 +6,7 @@
   provides: {},
   theModule: function(runtime, namespace, uri, ffi) {
     var trace_len = 0;
+    var my_token = -1;
 
     // packet :: ( "push", name :: String, formalArgs :: List<String>, actualArgs :: List<Expressions> )
     function onFunctionPush(packet) {
@@ -23,13 +24,15 @@
       return Array(len).join("  ")
     }
 
-    var my_token = ffi.subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
+    function subscribe() {
+      my_token = ffi.subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
+    }
 
     // do we actually want to make a module?
     // Really, I just want to hook into ffi's subscribe
     // and then print things from there...
     return runtime.makeJSModuleReturn({
-      
+      subscribe: subscribe
     },
       {});
   }
