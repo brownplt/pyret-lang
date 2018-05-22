@@ -32,6 +32,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     return t;
   };
   Tokenizer.prototype.makeWSToken = function makeWSToken(startLine, startCol, startPos) {
+    this.addWhitespace(SrcLoc.make(startLine, startCol, startPos, this.line, this.col, this.pos));
     return IGNORED_WS;
     // var t = new E.Token("WS", this.str.slice(startPos, this.pos));
     // t.pos = SrcLoc.make(startLine, startCol, startPos, this.line, this.col, this.pos);
@@ -88,7 +89,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
   }
 
   var keywords = makeTrie([
-    {name: "AND", val: "and"},
+    {name: "AND", val: "and", parenIsForExp: true},
     {name: "AS", val: "as"},
     {name: "ASCENDING", val: "ascending"},
     {name: "ASK", val: "ask", parenIsForExp: true},
@@ -129,7 +130,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "METHOD", val: "method"},
     {name: "NEWTYPE", val: "newtype"},
     {name: "OF", val: "of"},
-    {name: "OR", val: "or"},
+    {name: "OR", val: "or", parenIsForExp: true},
     {name: "PROVIDE", val: "provide"},
     {name: "PROVIDE-TYPES", val: "provide-types"},
     {name: "RAISES", val: "raises", parenIsForExp: true},
@@ -166,18 +167,18 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
   const identChars = makeDict("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
 
 
-  const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
-  const unsigned_rational_part = "[0-9]+/[0-9]+"; 
+  // const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
+  // const unsigned_rational_part = "[0-9]+/[0-9]+"; 
 
-  const number = new RegExp("[-+]?" + unsigned_decimal_part, "g");
+  // const number = new RegExp("[-+]?" + unsigned_decimal_part, "g");
 
   const badNumber = new RegExp("~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", "g");
 
-  const roughnum = new RegExp("~[-+]?"  + unsigned_decimal_part, "g");
+  // const roughnum = new RegExp("~[-+]?"  + unsigned_decimal_part, "g");
 
-  const rational = new RegExp("[-+]?" + unsigned_rational_part, "g");
+  // const rational = new RegExp("[-+]?" + unsigned_rational_part, "g");
 
-  const roughrational = new RegExp("~[-+]?" + unsigned_rational_part, "g");
+  // const roughrational = new RegExp("~[-+]?" + unsigned_rational_part, "g");
 
   const badOp = new RegExp("(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", "g");
 
@@ -204,7 +205,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
                "|\\\\[\\\\nrt\"\']" +
                "|[^\\\\\'\n\r])*\'", "g");
 
-  const unterminated_string = new RegExp("^(?:[\"\']|```).*", "g");
+  const unterminated_string = new RegExp("(?:[\"\']|```).*", "g");
   const octit = makeDict("01234567");
   const digit = makeDict("0123456789");
   const hexit = makeDict("0123456789abcdefABCDEF");
@@ -246,7 +247,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "DOT", val: ".", noFollow: new Set("1234567890")},
     {name: "BANG", val: "!"},
     {name: "PERCENT", val: "%"},
-    {name: "COMMA", val: ","},
+    {name: "COMMA", val: ",", parenIsForExp: true},
     {name: "THINARROW", val: "->"},
     {name: "COLONEQUALS", val: ":=", parenIsForExp: true},
     {name: "COLON", val: ":", parenIsForExp: true},
@@ -303,8 +304,12 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
                 this.pos++; this.curCol++;
               }
             } else {
-              this.pos = pos; this.curCol = col;
-              return undefined;
+              this.pos--; this.curCol--;
+              this.parenIsForExp = false;
+              this.priorWhitespace = false;
+              return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                    SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                    tok_spec);
             }
             if (this.str[this.pos] === "e" || this.str[this.pos] === "E") {
               var advance = this.pos + 1;
@@ -332,6 +337,9 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
         }
+        // BAD-NUMBER
+        this.pos = pos; this.curCol = col;
+        return undefined;
       }
 
       /*function tokenizeNumber(tok_spec) {
@@ -469,21 +477,21 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
                                 tok_spec);
         }          
       }},
-    {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true},
-    {name: "PLUS", val: "+", mustFollow: wsMustFollow, needsWs: true},
-    {name: "DASH", val: "-", mustFollow: wsMustFollow, needsWs: true},
-    {name: "STAR", val: "*", mustFollow: wsMustFollow, needsWs: true},
-    {name: "SLASH", val: "/", mustFollow: wsMustFollow, needsWs: true},
-    {name: "SPACESHIP", val: "<=>", mustFollow: wsMustFollow, needsWs: true},
-    {name: "LEQ", val: "<=", mustFollow: wsMustFollow, needsWs: true},
-    {name: "GEQ", val: ">=", mustFollow: wsMustFollow, needsWs: true},
-    {name: "EQUALEQUAL", val: "==", mustFollow: wsMustFollow, needsWs: true},
-    {name: "EQUALTILDE", val: "=~", mustFollow: wsMustFollow, needsWs: true},
-    {name: "NEQ", val: "<>", mustFollow: wsMustFollow, needsWs: true},
-    {name: "LT", val: "<", mustFollow: wsMustFollow, needsWs: true},
-    {name: "GT", val: ">", mustFollow: wsMustFollow, needsWs: true},
-    {name: "THICKARROW", val: "=>", mustFollow: wsMustFollow, parenIsForSpace: true},
-    {name: "COLONCOLON", val: "::", mustFollow: wsMustFollow, parenIsForSpace: true},
+    {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "PLUS", val: "+", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "DASH", val: "-", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "STAR", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "SLASH", val: "/", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "SPACESHIP", val: "<=>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "LEQ", val: "<=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "GEQ", val: ">=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "EQUALEQUAL", val: "==", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "EQUALTILDE", val: "=~", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "NEQ", val: "<>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "LT", val: "<", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "GT", val: ">", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "THICKARROW", val: "=>", mustFollow: wsMustFollow, parenIsForExp: true},
+    {name: "COLONCOLON", val: "::", mustFollow: wsMustFollow, parenIsForExp: true},
     { name: "BAD-OPER", val: "", firsts: new Set("^+-*/\<>="),
       process: function tokenizeBadOper(tok_spec) {
         var line = this.curLine, col = this.curCol, pos = this.pos;
@@ -528,14 +536,12 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
             this.curCol++;
           }
         }
+        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
+        this.addWhitespace(ws_loc);
         if (nestingDepth === 0) {
-          return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/,
-                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
-                                tok_spec);
+          return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, ws_loc, tok_spec);
         } else {
-          return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos),
-                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
-                                tok_spec);
+          return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
         }
       }},
     { name: "COMMENT", val: "#",
@@ -545,9 +551,9 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
           this.pos++;
           this.curCol++;
         }
-        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/,
-                              SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
-                              tok_spec);
+        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
+        this.addWhitespace(ws_loc);
+        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, ws_loc, tok_spec);
       }}
   ]);
   
