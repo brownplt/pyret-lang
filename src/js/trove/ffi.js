@@ -561,24 +561,54 @@
       return contract("failure-at-arg")(loc, index, name, args, reason);
     }
 
+    // list of { token:: uint, push_func:: function, pop_func :: function }
+    var trace_subs = [];
+    var lastTok = 0;
+
+    function subscribeToFunctionTraces(push_func, pop_func) {
+      trace_subs.push({ token : lastTok, push_func: push_func, pop_func: pop_func});
+      // increment lastTok post returning
+      return lastTok++;
+    }
+
+    function unsubscribeToFunctionTraces(token) {
+      for (var i = 0; i < trace_subs.length; i ++) {
+        if (trace_subs[i].token == token) {
+          // then remove it and return token
+          return { found: true, val: token };
+        }
+      }
+      // else, return not found
+      return { found: false };
+    }
+
     // Function call tracing (enabled with -trace option)
     var trace = [];
     var trace_len = 0;
 
     function tracePushCall(name, formalArgs, actualArgs) {
+      var packet = ["push", name, formalArgs, actualArgs];
       trace.push(["push", name, formalArgs, actualArgs]);
-      indentation = Array(trace_len).join("  ");
-      console.log(indentation + "push", name, formalArgs, actualArgs);
+      // indentation = Array(trace_len).join("  ");
+      // console.log(indentation + "push", name, formalArgs, actualArgs);
+      for (var i = 0; i < trace_subs.length; i++) {
+        trace_subs[i].push_func(packet);
+      }
       trace_len += 1;
     }
 
     function tracePopCall(return_val) {
-      trace.push(["pop", return_val]);
+      var packet = ["pop", return_val];
+      trace.push(packet);
       trace_len -= 1;
-      indentation = Array(trace_len).join("  ");
-      console.log(indentation + "pop", return_val);
+      for (var i = 0; i < trace_subs.length; i++) {
+        trace_subs[i].pop_func(packet);
+      }
+      // indentation = Array(trace_len).join("  ");
+      // console.log(indentation + "pop", return_val);
     }
 
+    // TODO: figure out how this interacts with subscribers
     function resetTrace() {
       trace = [];
     }
