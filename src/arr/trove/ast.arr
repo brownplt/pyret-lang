@@ -3445,6 +3445,6 @@ dummy-loc-visitor = {
     a-dot(dummy-loc, obj, field)
   end,
   method a-field(self, l, name, ann):
-    a-field(dummy-loc, name.visit(self), ann.visit(self))
+    a-field(dummy-loc, name, ann.visit(self))
   end
 }
