@@ -710,6 +710,10 @@
       makeDotAnnNotPresent: makeDotAnnNotPresent,
       makeFailureAtArg: makeFailureAtArg,
 
+      // for subscribing to function call announcments
+      subscribeToFunctionTraces: subscribeToFunctionTraces,
+      unsubscribeToFunctionTraces: unsubscribeToFunctionTraces,
+
       tracePushCall: tracePushCall,
       tracePopCall: tracePopCall,
       resetTrace: resetTrace,

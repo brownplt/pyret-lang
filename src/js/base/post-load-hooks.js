@@ -21,6 +21,9 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime["resetTrace"] = ffi.resetTrace;
         runtime["getTrace"] = ffi.getTrace;
 
+        runtime["subscribeToFunctionCalls"] = ffi.subscribeToFunctionTraces;
+        runtime["unsubscribeToFunctionCalls"] = ffi.unsubscribeToFunctionTraces;
+
         var checkList = runtime.makeCheckType(ffi.isList, "List");
         runtime["checkList"] = checkList;
 
