@@ -35,7 +35,7 @@
     'provide-plus-types': runtime.makeObject({
       types: runtime.makeObject({}),
       values: runtime.makeObject({
-        'subscribe': makeFunction(subscribe),
+        'subscribe': runtime.makeFunction(subscribe),
       })
     })
   });
