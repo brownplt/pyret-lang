@@ -561,6 +561,30 @@
       return contract("failure-at-arg")(loc, index, name, args, reason);
     }
 
+    var trace_len = 0;
+    var my_token = -1;
+    
+    // packet :: ( "push", name :: String, formalArgs :: List<String>, actualArgs :: List<Expressions> )
+    var onFunctionPush = function(packet) {
+      indentation = getIndentation(trace_len);
+      console.log(indentation + "push", packet[1], packet[2], packet[3]);
+    };
+
+    // packet :: ("pop", return_val :: Expression)
+    var onFunctionPop = function(packet) {
+      indentation = getIndentation(trace_len);
+      console.log(indentation + "pop", packet[1]);
+    };
+
+    var getIndentation = function(len) {
+      return Array(len).join("  ")
+    };
+
+    function subscribe() {
+      console.log("subscribed!");
+      my_token = subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
+    };
+
     // list of { token:: uint, push_func:: function, pop_func :: function }
     var trace_subs = [];
     var lastTok = 0;
@@ -590,6 +614,7 @@
     function tracePushCall(name, formalArgs, actualArgs) {
       var packet = ["push", name, formalArgs, actualArgs];
       trace.push(["push", name, formalArgs, actualArgs]);
+      console.log(packet);
       // this trace_subs.length is 0! why!?
       for (var i = 0; i < trace_subs.length; i++) {
         // if pyret function, call .app
@@ -602,6 +627,7 @@
     function tracePopCall(return_val) {
       var packet = ["pop", return_val];
       trace.push(packet);
+      console.log(packet);
       trace_len -= 1;
       for (var i = 0; i < trace_subs.length; i++) {
         trace_subs[i].pop_func(packet);
@@ -713,6 +739,7 @@
       // for subscribing to function call announcments
       subscribeToFunctionTraces: subscribeToFunctionTraces,
       unsubscribeToFunctionTraces: unsubscribeToFunctionTraces,
+      subscribe: subscribe,
 
       tracePushCall: tracePushCall,
       tracePopCall: tracePopCall,
