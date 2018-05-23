@@ -575,7 +575,7 @@
       for (var i = 0; i < trace_subs.length; i ++) {
         if (trace_subs[i].token == token) {
           // then remove it and return token
-          trace_subs.splice(i, 1),
+          trace_subs.splice(i, 1);
           return { found: true, val: token };
         }
       }
@@ -592,6 +592,8 @@
       trace.push(["push", name, formalArgs, actualArgs]);
       // this trace_subs.length is 0! why!?
       for (var i = 0; i < trace_subs.length; i++) {
+        // if pyret function, call .app
+        // and runtimme.safeCall to prevent consuming stack
         trace_subs[i].push_func(packet);
       }
       trace_len += 1;
