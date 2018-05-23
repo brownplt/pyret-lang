@@ -9,22 +9,22 @@
     var my_token = -1;
 
     // packet :: ( "push", name :: String, formalArgs :: List<String>, actualArgs :: List<Expressions> )
-    function onFunctionPush(packet) {
+    var onFunctionPush = runtime.makeFunction(function(packet) {
       indentation = getIndentation(trace_len);
       console.log(indentation + "push", packet[1], packet[2], packet[3]);
-    }
+    });
 
     // packet :: ("pop", return_val :: Expression)
-    function onFunctionPop(packet) {
+    onFunctionPop = runtime.makeFunction(function(packet) {
       indentation = getIndentation(trace_len);
       console.log(indentation + "pop", packet[1]);
-    }
+    });
 
-    function getIndentation(len) {
+    getIndentation = runtime.makeFunction(function(len) {
       return Array(len).join("  ")
-    }
+    });
 
-    var subscribe = runtime.makeFunction(function(_) {
+    var subscribe = runtime.makeFunction(function() {
       my_token = ffi.subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
     });
 
