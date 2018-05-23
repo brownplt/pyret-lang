@@ -104,7 +104,7 @@ fun main(args :: List<String>) -> Number block:
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
       trace = r.has-key("trace")
-      if trace:
+      when trace:
         SFL.subscribe()
       end
       tail-calls = not(r.has-key("improper-tail-calls"))

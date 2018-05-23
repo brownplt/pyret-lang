@@ -24,14 +24,14 @@
       return Array(len).join("  ")
     }
 
-    function subscribe() {
+    var subscribe = runtime.makeFunction(function(_) {
       my_token = ffi.subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
-    }
+    });
 
     // do we actually want to make a module?
     // Really, I just want to hook into ffi's subscribe
     // and then print things from there...
-    return runtime.makeJSModuleReturn({
+    return runtime.makeModuleReturn({
       subscribe: subscribe
     },
       {});
