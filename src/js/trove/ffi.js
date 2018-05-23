@@ -575,6 +575,7 @@
       for (var i = 0; i < trace_subs.length; i ++) {
         if (trace_subs[i].token == token) {
           // then remove it and return token
+          trace_subs.splice(i, 1),
           return { found: true, val: token };
         }
       }
@@ -589,6 +590,7 @@
     function tracePushCall(name, formalArgs, actualArgs) {
       var packet = ["push", name, formalArgs, actualArgs];
       trace.push(["push", name, formalArgs, actualArgs]);
+      // this trace_subs.length is 0! why!?
       for (var i = 0; i < trace_subs.length; i++) {
         trace_subs[i].push_func(packet);
       }
