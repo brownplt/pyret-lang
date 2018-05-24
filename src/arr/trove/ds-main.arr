@@ -17,14 +17,14 @@ include debugging
 import ds-metafunctions as _
 
 desugaring-rules = block:
-  file = F.input-file("src/arr/trove/pyret.sugar")
+  file = F.input-file("/home/preston/pyret-lang/src/arr/trove/pyret.sugar")
   ds-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   ds-rules
 end
 
 stepify-rules = block:
-  file = F.input-file("src/arr/trove/stepify.sugar")
+  file = F.input-file("/home/preston/pyret-lang/src/arr/trove/stepify.sugar")
   step-rules = P.parse-ds-rules(file.read-file())
   file.close-file()
   step-rules
