@@ -315,6 +315,35 @@ module-const-sets = t-module("builtin://sets",
     .set("List", t-list)
     .set("Pick", t-pick))
 
+module-const-valueskeleton = t-module("builtin://valueskeleton",
+  t-record([string-dict:
+    "is-ValueSkeleton", t-arrow([list: t-top], t-boolean),
+    # NOTE(joe): Intentionally skipping ValueSkeleton
+    "vs-str", t-arrow([list: t-string], t-data-refinement(t-value-skeleton, "vs-str")),
+    "is-vs-str", t-arrow([list: t-top], t-boolean),
+    "vs-value", t-arrow([list: t-top], t-data-refinement(t-value-skeleton, "vs-value")),
+    "is-vs-value", t-arrow([list: t-top], t-boolean),
+    "vs-collection", t-arrow([list: t-string, t-list-app(t-value-skeleton)], t-data-refinement(t-value-skeleton, "vs-collection")),
+    "is-vs-collection", t-arrow([list: t-top], t-boolean),
+    "vs-constr", t-arrow([list: t-string, t-list-app(t-value-skeleton)], t-data-refinement(t-value-skeleton, "vs-constr")),
+    "is-vs-constr", t-arrow([list: t-top], t-boolean),
+    "vs-table", t-arrow([list: t-array(t-value-skeleton), t-list-app(t-array(t-value-skeleton))], t-data-refinement(t-value-skeleton, "vs-table")),
+    "is-vs-table", t-arrow([list: t-top], t-boolean),
+    "vs-row", t-arrow([list: t-array(t-value-skeleton), t-array(t-value-skeleton)], t-data-refinement(t-value-skeleton, "vs-row")),
+    "is-vs-row", t-arrow([list: t-top], t-boolean),
+    "vs-seq", t-arrow([list: t-list-app(t-value-skeleton)], t-data-refinement(t-value-skeleton, "vs-seq")),
+    "is-vs-seq", t-arrow([list: t-top], t-boolean),
+    ]),
+  SD.make-string-dict()
+    .set("ValueSkeleton", t-data(
+      "ValueSkeleton",
+      [list: ],
+      [list: ],
+      [string-dict: ])),
+  SD.make-string-dict()
+    .set("ValueSkeleton", t-value-skeleton)
+    )
+
 module-const-lists = t-module("builtin://lists",
   t-record([string-dict:
     "none", t-forall([list: tva], t-data-refinement(t-option-app(tva), "none")),
@@ -806,5 +835,6 @@ fun make-default-modules() block:
   default-modules.set-now("builtin://s-exp", module-const-s-exp)
   default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
   default-modules.set-now("builtin://json-structs", module-const-json-structs)
+  default-modules.set-now("builtin://valueskeleton", module-const-valueskeleton)
   default-modules.freeze()
 end
