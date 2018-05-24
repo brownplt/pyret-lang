@@ -3,11 +3,18 @@ provide-types *
 
 import global as _
 
+type Modifiers = {
+  shift :: Boolean,
+  alt :: Boolean,
+  meta :: Boolean,
+  control :: Boolean
+}
+
 data Event:
   | time-tick
   | mouse(x :: Number, y :: Number, kind :: String)
   | keypress(key :: String)
-  | raw-key(key :: String, key-action :: String, caps :: Boolean, shift :: Boolean, alt :: Boolean, command :: Boolean, control :: Boolean)
+  | raw-key(symbol :: String, code :: Number, key :: String, action :: String, modifiers :: Modifiers)
 end
 
 data RawKeyEventType:
