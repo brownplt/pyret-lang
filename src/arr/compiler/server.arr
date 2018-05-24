@@ -90,7 +90,7 @@ fun serve(port, pyret-dir):
         )
       end
     with-require-config = with-compiled-read-only-dirs.set("require-config",
-      with-compiled-read-only-dirs.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
+      opts.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
     result = run-task(lam():
       compile(with-require-config)
     end)
