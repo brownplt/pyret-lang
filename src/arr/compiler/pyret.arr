@@ -27,7 +27,7 @@ fun main(args :: List<String>) -> Number block:
     "serve",
       C.flag(C.once, "Start the Pyret server"),
     "port",
-      C.next-val-default(C.String, "1701", none, C.once, "Port to serve on (default 1701)"),
+      C.next-val-default(C.Number, "1701", none, C.once, "Port to serve on"),
     "build-standalone",
       C.next-val(C.String, C.once, "DEPRECATED: use build-runnable instead"),
     "build-runnable",
@@ -56,6 +56,8 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
+    "profile",
+      C.flag(C.once, "Add profiling information to the main file"),
     "check-all",
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
@@ -106,6 +108,7 @@ fun main(args :: List<String>) -> Number block:
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
+      add-profiling = r.has-key("profile")
       display-progress = not(r.has-key("no-display-progress"))
       html-file = if r.has-key("html-file"):
             some(r.get-value("html-file"))
@@ -146,6 +149,7 @@ fun main(args :: List<String>) -> Number block:
                 type-check : type-check,
                 trace : trace,
                 allow-shadowed : allow-shadowed,
+                add-profiling : add-profiling,
                 collect-all: false,
                 collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
                 ignore-unbound: false,

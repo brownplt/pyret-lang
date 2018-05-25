@@ -259,6 +259,17 @@ check:
   repeat(ncalls, "definitions://: line 5, column 6") +
   [list: "interactions://1: line 1, column 0"]
 
+  # Make sure the repl has standard-imports like lists and arrays
+
+  result51 = next-interaction("lists.sort([list: 3, 2, 1]) == [list: 1, 2, 3]")
+  val(result51) is some(true)
+
+  result52 = next-interaction("sets.any(lam(x): x == 0 end, [set: 1, 2, 3])")
+  val(result52) is some(false)
+
+  result53 = next-interaction("sets.empty-set == [list-set: ]")
+  val(result53) is some(true)
+
   # Make sure the repl can import built-in typed modules
 
   tc-result = restart("import string-dict as SD", true)
