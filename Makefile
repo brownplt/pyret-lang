@@ -57,6 +57,8 @@ PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
+SUGAR_RULES := src/js/trove/pyret-sugar-rules.js
+
 
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
@@ -88,7 +90,7 @@ phaseA: $(PHASEA)/pyret.jarr
 phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
+$(PHASEA)/pyret.jarr: $(SUGAR_RULES) $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
@@ -169,6 +171,9 @@ endif
                       --html-file $*.html
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)
+
+$(SUGAR_RULES):		src/arr/trove/pyret.sugar
+	$(MAKE) -C src/js/trove
 
 $(PHASEB_ALL_DEPS): | $(PHASEB) phaseA
 

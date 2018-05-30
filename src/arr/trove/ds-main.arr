@@ -13,13 +13,12 @@ import ds-desugar as DS
 import ds-resugar as RS
 import ds-parse as P
 import ds-structs as ST
+import pyret-sugar-rules as PST
 include debugging
 import ds-metafunctions as _
 
 desugaring-rules = block:
-  file = F.input-file("/home/preston/pyret-lang/src/arr/trove/pyret.sugar")
-  ds-rules = P.parse-ds-rules(file.read-file())
-  file.close-file()
+  ds-rules = P.parse-ds-rules(PST.sugar-rules)
   ds-rules
 end
 
