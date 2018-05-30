@@ -1,1 +1,4 @@
-{ provides: { "sugar-rules": "String" }, theModule: function(r, n, u) { return r.makeModuleReturn({ "sugar-rules": $PYRET_RULES }, {}); } }
+({ requires: [],
+  nativeRequires: [],
+  provides: { "sugar-rules": "String" },
+  theModule: function(r, n, u) { return r.makeModuleReturn({ "sugar-rules": $PYRET_RULES }, {}); } })
