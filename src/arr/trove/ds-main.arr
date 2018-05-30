@@ -14,6 +14,7 @@ import ds-resugar as RS
 import ds-parse as P
 import ds-structs as ST
 import pyret-sugar-rules as PST
+import stepify-sugar-rules as SST
 include debugging
 import ds-metafunctions as _
 
@@ -23,9 +24,7 @@ desugaring-rules = block:
 end
 
 stepify-rules = block:
-  file = F.input-file("/home/preston/pyret-lang/src/arr/trove/stepify.sugar")
-  step-rules = P.parse-ds-rules(file.read-file())
-  file.close-file()
+  step-rules = P.parse-ds-rules(SST.sugar-rules)
   step-rules
 end
 

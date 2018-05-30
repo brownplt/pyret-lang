@@ -72,3 +72,7 @@ compiled/
 
 .pyret-parley.*.pid
 .pyret-parley.*.lock
+
+# mod'ed sugar rules
+src/js/trove/pyret-sugar-rules.js
+src/js/trove/stepify-sugar-rules.js
