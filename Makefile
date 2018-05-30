@@ -57,7 +57,7 @@ PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
 
-SUGAR_RULES := src/js/trove/pyret-sugar-rules.js
+SUGAR_RULES := src/js/trove
 
 
 # NOTE: Needs TWO blank lines here, dunno why
@@ -172,9 +172,9 @@ endif
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)
 
-.PHONY:	sugar-deps
-sugar-deps:		src/arr/trove/pyret.sugar
-	$(MAKE) -C src/js/trove
+.PHONY:	$(SUGAR_RULES)
+$(SUGAR_RULES):
+	$(MAKE) -C $(SUGAR_RULES)
 
 $(PHASEB_ALL_DEPS): | $(PHASEB) phaseA
 

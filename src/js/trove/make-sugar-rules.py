@@ -1,3 +1,4 @@
+# could maybe just triple backtick instead
 with open("../../arr/trove/pyret.sugar") as sugars:
     sugars_contents = ["\"" + line.replace("\"", "\\\"").rstrip() for line in sugars]
     sugars_str = ("\\n\" + \n").join(sugars_contents) + "\""
