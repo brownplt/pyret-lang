@@ -87,7 +87,7 @@ endif
 phaseA: $(PHASEA)/pyret.jarr
 
 .PHONY : phaseA-deps
-phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
+phaseA-deps: $(SUGAR_RULES) $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
 $(PHASEA)/pyret.jarr: $(SUGAR_RULES) $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
@@ -172,7 +172,8 @@ endif
 
 $(PHASEA_ALL_DEPS): | $(PHASEA)
 
-$(SUGAR_RULES):		src/arr/trove/pyret.sugar
+.PHONY:	sugar-deps
+sugar-deps:		src/arr/trove/pyret.sugar
 	$(MAKE) -C src/js/trove
 
 $(PHASEB_ALL_DEPS): | $(PHASEB) phaseA
