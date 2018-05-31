@@ -580,11 +580,6 @@
       return Array(len).join("  ")
     };
 
-    function subscribe() {
-      console.log("subscribed!");
-      my_token = subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
-    };
-
     // list of { token:: uint, push_func:: function, pop_func :: function }
     var trace_subs = [];
     var lastTok = 0;
@@ -739,7 +734,6 @@
       // for subscribing to function call announcments
       subscribeToFunctionTraces: subscribeToFunctionTraces,
       unsubscribeToFunctionTraces: unsubscribeToFunctionTraces,
-      subscribe: subscribe,
 
       tracePushCall: tracePushCall,
       tracePopCall: tracePopCall,
