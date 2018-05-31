@@ -583,9 +583,11 @@
     // list of { token:: uint, push_func:: function, pop_func :: function }
     var trace_subs = [];
     var lastTok = 0;
+    var debugSubscribers = false;
 
     function subscribeToFunctionTraces(push_func, pop_func) {
       trace_subs.push({ token : lastTok, push_func: push_func, pop_func: pop_func});
+      console.log("just handed out " + lastTok + " token");
       // increment lastTok post returning
       return lastTok++;
     }
@@ -609,7 +611,7 @@
     function tracePushCall(name, formalArgs, actualArgs) {
       var packet = ["push", name, formalArgs, actualArgs];
       trace.push(["push", name, formalArgs, actualArgs]);
-      console.log(packet);
+      if (debugSubscribers) { console.log(packet); }
       // this trace_subs.length is 0! why!?
       for (var i = 0; i < trace_subs.length; i++) {
         // if pyret function, call .app
@@ -622,7 +624,7 @@
     function tracePopCall(return_val) {
       var packet = ["pop", return_val];
       trace.push(packet);
-      console.log(packet);
+      if (debugSubscribers) { console.log(packet); }
       trace_len -= 1;
       for (var i = 0; i < trace_subs.length; i++) {
         trace_subs[i].pop_func(packet);
