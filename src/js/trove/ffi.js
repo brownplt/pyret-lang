@@ -609,8 +609,8 @@
     var trace_len = 0;
 
     function tracePushCall(name, formalArgs, actualArgs) {
-      var packet = ["push", name, formalArgs, actualArgs];
-      trace.push(["push", name, formalArgs, actualArgs]);
+      var packet = {action: "push", funName: name, params: formalArgs, args: actualArgs};
+      trace.push(packet);
       if (debugSubscribers) { console.log(packet); }
       // this trace_subs.length is 0! why!?
       for (var i = 0; i < trace_subs.length; i++) {
@@ -622,7 +622,7 @@
     }
 
     function tracePopCall(return_val) {
-      var packet = ["pop", return_val];
+      var packet = {action: "pop", retVal: return_val};
       trace.push(packet);
       if (debugSubscribers) { console.log(packet); }
       trace_len -= 1;
