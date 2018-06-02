@@ -6,7 +6,7 @@ const defaultOpts = {
   getters: false,
   compileFunction: true,
   debug: false,
-  captureMethod: 'lazyDeep',
+  captureMethod: 'lazy',
   newMethod: 'wrapper',
   es: 'sane',
   hofs: 'builtin',

@@ -13,13 +13,14 @@
             getters: false,
             compileFunction: true,
             debug: false,
-            captureMethod: 'lazyDeep',
+            captureMethod: 'lazy',
             newMethod: 'wrapper',
             es: 'sane',
             hofs: 'builtin',
             jsArgs: 'simple',
             requireRuntime: false,
-            noWebpack: true
+            noWebpack: true,
+            knownFlats: [ "R.gF" ]
       };
 
       return Stopify.compileFunction(code, defaultOpts);

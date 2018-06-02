@@ -51,6 +51,6 @@ const defaultOpts = {
 }
 
 $__T = require("stopify-continuations/dist/src/runtime/runtime")
-$__R = $__T.newRTS("lazyDeep")
+$__R = $__T.newRTS("lazy")
 $S = require("stopify/dist/src/runtime/node").init($__R, defaultOpts);
 
