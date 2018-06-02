@@ -301,13 +301,15 @@ all-pyret-test: tests/pyret/all.jarr parse-test tests/pyret/vhull-main.jarr
 	$(NODE) tests/pyret/all.jarr
 	$(NODE) tests/pyret/vhull-main.jarr
 
-vhull-test: tests/pyret/vhull-main1.vs.jarr tests/pyret/vhull-main2.vs.jarr tests/pyret/vhull-main3.vs.jarr
-	-$(NODE) tests/pyret/vhull-main1.vs.jarr
-	-$(NODE) tests/pyret/vhull-main2.vs.jarr
-	-$(NODE) tests/pyret/vhull-main3.vs.jarr
+# ==================== VHULL TESTS ================================== #
+# NOTE(rachit): Building and running %.vs.jarr files take a long time.
+# Instead of building a large vhull-main.vs.jarr, build smaller files
+# and run them.
 
+TESTS_ARR := $(shell cat ./tests/pyret/vhull-main.arr | sed 's/import file("\.\([^"]*\)").*/\1/g' )
+TESTS_VS_JARR := $(patsubst %.arr,tests/pyret%.vs.jarr,$(TESTS_ARR))
 
-tests/pyret/vhull-main1.vs.jarr: tests/pyret/vhull-main1.arr phaseA
+tests/pyret/tests/%.vs.jarr: tests/pyret/tests/%.arr phaseA
 	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
 		--build-runnable $< \
 		--standalone-file "src/js/base/handalone.stop.js" \
@@ -317,25 +319,16 @@ tests/pyret/vhull-main1.vs.jarr: tests/pyret/vhull-main1.arr phaseA
 		-straight-line \
 		-stopify
 
-tests/pyret/vhull-main2.vs.jarr: tests/pyret/vhull-main2.arr phaseA
-	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
-		--build-runnable $< \
-		--standalone-file "src/js/base/handalone.stop.js" \
-		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
-		--require-config src/scripts/standalone-configVS.json \
-		-check-all \
-		-straight-line \
-		-stopify
 
-tests/pyret/vhull-main3.vs.jarr: tests/pyret/vhull-main3.arr phaseA
-	$(NODE) $(PHASEA)/pyret.jarr --outfile $@ \
-		--build-runnable $< \
-		--standalone-file "src/js/base/handalone.stop.js" \
-		--compiled-dir $(STOPIFY_COMPILED_DIR)  \
-		--require-config src/scripts/standalone-configVS.json \
-		-check-all \
-		-straight-line \
-		-stopify
+vhull-test:
+	-@for file in $(TESTS_VS_JARR) ; do \
+		echo "----------------------------------------------" ; \
+		echo "Running $$file" ; \
+		$(NODE) $$file ; \
+	done
+
+
+# =================================================================== #
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \
