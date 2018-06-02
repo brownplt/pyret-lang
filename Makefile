@@ -320,7 +320,7 @@ tests/pyret/tests/%.vs.jarr: tests/pyret/tests/%.arr phaseA
 		-stopify
 
 
-vhull-test:
+vhull-test: $(TESTS_VS_JARR)
 	-@for file in $(TESTS_VS_JARR) ; do \
 		echo "----------------------------------------------" ; \
 		echo "Running $$file" ; \
