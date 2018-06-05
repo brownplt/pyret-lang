@@ -20,7 +20,7 @@ function findLocalParleyDir(base, localParley) {
 function tmpdir() {
   const name = "parley-" + os.userInfo().username;
   const fulldir = "/tmp/" + name;
-  if(!fs.exists(fulldir)) {
+  if(!fs.existsSync(fulldir)) {
     try {
       mkdirp.sync(fulldir);
     }
