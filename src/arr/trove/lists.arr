@@ -515,7 +515,7 @@ end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
-  when n < 0:
+  when (n < 0) or not(num-is-integer(n)):
     raise("Invalid index")
   end
   var prefix = empty
