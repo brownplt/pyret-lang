@@ -75,6 +75,7 @@ check "split-at where: block":
   split-at(4, one-four) is { prefix: one-four, suffix: empty }
   split-at(2, one-four) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
   split-at(-1, one-four) raises "Invalid index"
+  split-at(1.35, one-four) raises "Invalid index"
   split-at(5, one-four) raises "Index too large"
 end
 
