@@ -240,7 +240,7 @@
         'spy-field': function(node) {
           if (node.kids.length === 1) {
             return RUNTIME.getField(ast, 's-spy-expr')
-              .app(pos(node.pos), RUNTIME.makeString(""), tr(node.kids[0]), RUNTIME.makeBoolean(true));
+              .app(pos(node.pos), symbol(node.kids[0].kids[0]), tr(node.kids[0]), RUNTIME.makeBoolean(true));
           } else {
             return RUNTIME.getField(ast, 's-spy-expr')
               .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
