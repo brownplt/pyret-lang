@@ -925,8 +925,8 @@ fun desugar-expr(expr :: A.Expr):
       end
       ds-contents-list = for map(spy-exp from contents):
         cases(A.SpyField) spy-exp:
-          | s-spy-name(l2, name) => {A.s-srcloc(l2, l2); A.s-str(l2, name.id.toname()); desugar-expr(name)}
-          | s-spy-expr(l2, name, value) => {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
+          | s-spy-expr(l2, name, value, _) =>
+            {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
         end
       end
       ds-contents = for L.foldr(acc from {empty; empty; empty}, ds-content from ds-contents-list):
