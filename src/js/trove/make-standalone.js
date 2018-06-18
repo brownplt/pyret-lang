@@ -40,13 +40,15 @@
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, configJSON, standaloneFile, depsFile, thisPyretDir) {
-      runtime.checkArity(6, arguments, ["make-standalone"], false);
+    function makeStandalone(deps, body, configJSON, options) {
+      runtime.checkArity(4, arguments, ["make-standalone"], false);
       runtime.checkList(deps);
       runtime.checkPyretVal(body);
       runtime.checkString(configJSON);
-      runtime.checkString(standaloneFile);
-      runtime.checkString(depsFile);
+      var standaloneFile = runtime.getField(options, "standalone-file");
+      var depsFile = runtime.getField( options, "deps-file");
+      var thisPyretDir = runtime.getField( options, "this-pyret-dir" );
+      var baseDir = runtime.getField( options, "base-dir" );
 
       var AMD_LOADER = path.join(thisPyretDir, "js/amd_loader.js");
 
@@ -87,7 +89,14 @@
       //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
       //fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
       Object.keys(filesToFetch).forEach(function(f) {
-        var filename = filesToFetch[f].replace("$PYRET", thisPyretDir);
+        if (filesToFetch[f].indexOf( "$PYRET" ) !== -1) {
+          var filename = filesToFetch[f].replace("$PYRET", thisPyretDir);
+        } else if (!path.isAbsolute( filesToFetch[f] )) {
+          var filename = path.resolve( path.join( baseDir, filesToFetch[f] ));
+        } else {
+          var filename = filesToFetch[f];
+        }
+
         var contents = fs.readFileSync(filename, {encoding: 'utf8'});
         fs.writeSync(outFile, contents);
       });

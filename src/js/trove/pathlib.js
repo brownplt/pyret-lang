@@ -24,6 +24,13 @@
         var s = RUNTIME.unwrap(p);
         return RUNTIME.makeString(path.resolve(s));
       }),
+      "is-absolute": RUNTIME.makeFunction(function(p) {
+        RUNTIME.ffi.checkArity(1, arguments, "is-absolute", false);
+        RUNTIME.checkString(p);
+        var s = RUNTIME.unwrap(p);
+        return path.isAbsolute(s);
+      }),
+
       "relative": RUNTIME.makeFunction(function(from, to) {
         RUNTIME.ffi.checkArity(2, arguments, "relative", false);
         RUNTIME.checkString(from);
