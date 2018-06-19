@@ -309,7 +309,6 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         this-path = dep.arguments.get(0)
         real-path = P.join(clp, this-path)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
-        spy: real-path, this-path end
         if F.file-exists(real-path):
           CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
         else:
@@ -484,7 +483,6 @@ fun build-program(path, options, stats) block:
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
-  spy: options end
   stats = SD.make-mutable-string-dict()
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
