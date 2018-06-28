@@ -804,8 +804,9 @@ data CompileError:
         [ED.para:
           ED.text("is not inside a "),
           ED.code(ED.text("check")),
+          ED.text(", "), ED.code(ED.text("where")),
           ED.text(" or "),
-          ED.code(ED.text("where")),
+          ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end,
     method render-reason(self):
@@ -815,8 +816,9 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" is not inside a "),
           ED.code(ED.text("check")),
+          ED.text(", "), ED.code(ED.text("where")),
           ED.text(" or "),
-          ED.code(ED.text("where")),
+          ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end
   | unwelcome-test-refinement(refinement, op) with:
