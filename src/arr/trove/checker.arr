@@ -144,6 +144,79 @@ data TestResult:
         ED.embed(self.left),
         ED.embed(self.right)]
     end
+  | failure-is-incomparable(loc :: Loc, left, right) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.loc.is-builtin():
+        self.render-reason()
+      else if src-available(self.loc):
+        cases(Option) maybe-ast(self.loc):
+          | some(test-ast) =>
+            lhs-ast = test-ast.left
+            rhs-ast = test-ast.right.value
+            ed-lhs = ED.highlight(ED.text("left"),  [ED.locs: lhs-ast.l], 0)
+            ed-rhs = ED.highlight(ED.text("right"), [ED.locs: rhs-ast.l], 2)
+            ed-op = ED.h-sequence(test-ast.op.tosource().pretty(80).map(ED.text),"")
+            use-within = [ED.para:
+              ED.text("Use "), ED.code(ED.text("is-roughly")),
+              ED.text(" as the testing operator, or consider using the "),
+              ED.code(ED.text("within")), ED.text(" function to compare them instead.")
+            ]
+            {msg1; msg2} = ask:
+              | is-function(self.left) and is-function(self.right) then:
+                {"Attempted to compare two Functions for equality, which is not allowed:";
+                  [ED.para: ED.text("Did you mean to call them first?")]}
+              | is-function(self.left) or is-function(self.right) then:
+                {"Attempted to compare a Function to another value for equality:";
+                  [ED.para: ED.text("Did you mean to call the function first?")]}
+              | num-is-roughnum(self.left) and num-is-roughnum(self.right) then:
+                {"Attempted to compare two Roughnums for equality, which is not allowed:"; use-within}
+              | num-is-roughnum(self.left) then:
+                {"Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:"; use-within}
+              | otherwise:
+                {"Attempted to compare an Exactnum to a Roughnum for equality, which is not allowed:"; use-within}
+            end
+            [ED.error:
+              [ED.para:
+                ED.text("The test operator "),
+                ED.code(ed-op),
+                ED.text(" failed for the test:")],
+               ED.cmcode(self.loc),
+              [ED.para: ED.text(msg1)],
+              report-value(ed-lhs, self.left),
+              report-value(ed-rhs, self.right),
+              msg2]
+          | none      => self.render-reason()
+        end
+      else:
+        self.render-reason()
+      end
+    end,
+    method render-reason(self):
+      ask:
+        | is-function(self.left) and is-function(self.right) then:
+          [ED.error:
+            [ED.para:
+              ED.text("Attempted to compare two functions using strict equality: did you mean to call them first?")
+            ],
+            ED.embed(self.left),
+            ED.embed(self.right)]
+        | is-function(self.left) or is-function(self.right) then:
+          [ED.error:
+            [ED.para:
+              ED.text("Attempted to compare a function to another value using strict equality: did you mean to call the function first?")
+            ],
+            ED.embed(self.left),
+            ED.embed(self.right)]
+        | otherwise:
+          [ED.error:
+            [ED.para:
+              ED.text("Attempted to compare roughnums using strict equality: use "), ED.code(ED.text("is-roughly")),
+              ED.text(", or consider using the"),
+              ED.code(ED.text("within")), ED.text(" function to compare them instead.")
+            ],
+            ED.embed(self.left),
+            ED.embed(self.right)]
+    end
   | failure-not-different(loc :: Loc, refinement, left, right) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
@@ -547,9 +620,15 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-is(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
-        check-bool(loc,
-          lv == rv,
-          lam(): failure-not-equal(loc, none, lv, rv) end)
+        if is-number(lv) and is-number(rv) and (num-is-roughnum(lv) or num-is-roughnum(rv)):
+          add-result(failure-is-incomparable(loc, lv, rv))
+        else if is-function(lv) or is-function(rv):
+          add-result(failure-is-incomparable(loc, lv, rv))
+        else:
+          check-bool(loc,
+            lv == rv,
+            lam(): failure-not-equal(loc, none, lv, rv) end)
+        end
       end
       nothing
     end,
@@ -563,9 +642,15 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-is-not(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
-        check-bool(loc,
-          not(lv == rv),
-          lam(): failure-not-different(loc, none, lv, rv) end)
+        if is-number(lv) and is-number(rv) and (num-is-roughnum(lv) or num-is-roughnum(rv)):
+          add-result(failure-is-incomparable(loc, lv, rv))
+        else if (is-function(lv) and is-function(rv)): # NOTE: Using `and` here, because == checks tags first
+          add-result(failure-is-incomparable(loc, lv, rv))
+        else:
+          check-bool(loc,
+            not(lv == rv),
+            lam(): failure-not-different(loc, none, lv, rv) end)
+        end
       end
       nothing
     end,
