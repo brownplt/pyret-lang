@@ -216,6 +216,7 @@ data TestResult:
             ],
             ED.embed(self.left),
             ED.embed(self.right)]
+      end
     end
   | failure-not-different(loc :: Loc, refinement, left, right) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
