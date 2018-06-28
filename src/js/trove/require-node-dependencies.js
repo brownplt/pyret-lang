@@ -24,11 +24,13 @@ path = nodeRequire("path");
 define("path", [], function () { return path; });
 
 http = nodeRequire("http");
-define("http", [], function () {return http;});
+define("http", [], function () { return http; });
 
 lockfile = nodeRequire("lockfile");
 define("lockfile", [], function () { return lockfile; });
 
 websocket = nodeRequire("websocket");
-define("websocket", [], function () { return websocket });
+define("websocket", [], function () { return websocket; });
 
+tensorflow = nodeRequire("@tensorflow/tfjs");
+define("@tensorflow/tfjs", [], function () { return tensorflow; });
