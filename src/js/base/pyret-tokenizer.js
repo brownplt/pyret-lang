@@ -311,24 +311,24 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
                                     SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                     tok_spec);
             }
-            if (this.str[this.pos] === "e" || this.str[this.pos] === "E") {
-              var advance = this.pos + 1;
-              if (this.str[advance] === "+" || this.str[advance] === "-") {
+          }
+          if (this.str[this.pos] === "e" || this.str[this.pos] === "E") {
+            var advance = this.pos + 1;
+            if (this.str[advance] === "+" || this.str[advance] === "-") {
+              advance++;
+            }
+            if (digit[this.str[advance]]) {
+              advance++;
+              while (digit[this.str[advance]]) {
                 advance++;
               }
-              if (digit[this.str[advance]]) {
-                advance++;
-                while (digit[this.str[advance]]) {
-                  advance++;
-                }
-                this.curCol += (advance - this.pos);
-                this.pos = advance;
-                this.parenIsForExp = false;
-                this.priorWhitespace = false;
-                return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
-                                      SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
-                                      tok_spec);
-              }
+              this.curCol += (advance - this.pos);
+              this.pos = advance;
+              this.parenIsForExp = false;
+              this.priorWhitespace = false;
+              return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                    SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                    tok_spec);
             }
           }
           this.parenIsForExp = false;
