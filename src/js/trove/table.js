@@ -24,7 +24,7 @@
     var annRow   = runtime.makeBranderAnn(brandRow, "Row");
 
     var rowGetValue = runtime.makeMethod1(function(self, arg) {
-        ffi.checkArity(2, arguments, "get-value", false);
+        ffi.checkArity(2, arguments, "get-value", true);
         runtime.checkArgsInternal1("tables", "get-value",
           arg, runtime.String);
         var index = self.$underlyingTable.headerIndex["column:" + arg];
@@ -37,7 +37,7 @@
       });
 
     var rowGetColumns = runtime.makeMethod0(function(self) {
-        ffi.checkArity(1, arguments, "get-column-names", false);
+        ffi.checkArity(1, arguments, "get-column-names", true);
         var cols = Object.keys(self.$underlyingTable.headerIndex).map(function(k) {
           return k.slice(7); // chop off "column:"
         });
@@ -45,8 +45,9 @@
       });
 
     var rowEquals = runtime.makeMethod2(function(self, other, rec) {
-        runtime.checkRow(self);
-        runtime.checkRow(other);
+        ffi.checkArity(3, arguments, "_equals", true);
+        runtime.checkArgsInternal3("tables", "_equals",
+                                   self, annRow, other, annRow, rec, runtime.Function);
         var headers1 = self.$underlyingTable.headerIndex;
         var headers2 = other.$underlyingTable.headerIndex;
         var hk1 = Object.keys(headers1);
@@ -75,6 +76,7 @@
       });
 
     var rowOutput = runtime.makeMethod0(function(self) {
+      ffi.checkArity(1, arguments, "_output", true);
       var vsValue = get(VS, "vs-value").app;
       var keys = Object.keys(self.$underlyingTable.headerIndex);
       return get(VS, "vs-row").app(
@@ -184,8 +186,6 @@
     }
 
     function makeTable(headers, rows) {
-      ffi.checkArity(2, arguments, "makeTable", false);
-      
       var headerIndex = {};
       
       for (var i = 0; i < headers.length; i++) {
@@ -386,6 +386,9 @@
         }),
 
         'multi-order': runtime.makeMethod1(function(_, colComps) {
+          ffi.checkArity(2, arguments, "multi-order", true);
+          runtime.checkArgsInternal1("tables", "multi-order",
+            colComps, runtime.RawArray);
           // colComps is an array of 2-element arrays, [true iff ascending, colName]
           for(var i = 0; i < colComps.length; i += 1) {
             var colname = colComps[i][1];
@@ -422,7 +425,7 @@
 
         'add-row': runtime.makeMethod1(function(_, row) {
           ffi.checkArity(2, arguments, 'add-row', true);
-          runtime.checkRow(row);
+          runtime.checkArgsInternal1("tables", "add-row", row, annRow);
           var theseKeys = Object.keys(headerIndex);
           var rowKeys = Object.keys(row.$underlyingTable.headerIndex);
           if(theseKeys.length !== rowKeys.length) {
@@ -446,7 +449,7 @@
 
         'row-n': runtime.makeMethod1(function(_, row) {
           ffi.checkArity(2, arguments, "row-n", true);
-          runtime.checkNumNonNegative(row);
+          runtime.checkNumNonNegative(row); // NOTE(Ben): These should be converted to a call to checkArgsInternal
           runtime.checkNumInteger(row);
           var rowFix = runtime.num_to_fixnum(row);
           if(rowFix >= rows.length) {
@@ -481,7 +484,7 @@
 
         'column-n': runtime.makeMethod1(function(_, n) {
           ffi.checkArity(2, arguments, "column-n", true);
-          runtime.checkNumNonNegative(n);
+          runtime.checkNumNonNegative(n); // NOTE(Ben): These should be converted to checkArgsInternal1
           runtime.checkNumInteger(n);
           var lookupIndex = runtime.num_to_fixnum(n);
           if(lookupIndex >= headers.length) {
@@ -513,6 +516,8 @@
         }),
 
         'stack': runtime.makeMethod1(function(_, otherTable) {
+          ffi.checkArity(2, arguments, "stack", true);
+          runtime.checkArgsInternal1("tables", "stack", otherTable, annTable);
           var otherHeaders = runtime.getField(otherTable, "_header-raw-array");
           if(otherHeaders.length !== headers.length) {
             return ffi.throwMessageException("Tables have different column sizes in stack: " + headers.length + " " + otherHeaders.length);
@@ -538,6 +543,10 @@
         }),
 
         'reduce': runtime.makeMethod2(function(_, colname, reducer) {
+          ffi.checkArity(3, arguments, "reduce", true);
+          runtime.checkArgsInternal2("tables", "reduce",
+                                     colname, runtime.String,
+                                     reducer, runtime.Object);
           if(rows.length === 0) { ffi.throwMessageException("Reducing an empty table (column names were " + headers.join(", ") + ")"); }
           var column = getColumn(colname);
           return runtime.safeCall(function() {
@@ -561,10 +570,14 @@
         }),
 
         'empty': runtime.makeMethod0(function(_) {
+          ffi.checkArity(1, arguments, "empty", true);
           return makeTable(headers, []);
         }),
 
         'drop': runtime.makeMethod1(function(_, colname) {
+          ffi.checkArity(2, arguments, "drop", true);
+          runtime.checkArgsInternal1("tables", "drop",
+            colname, runtime.String);
           var newHeaders = headers.filter(function(h) { return h !== colname; })
           var newRows = rows.map(function(rawRow) {
             return rawRow.filter(function(h, i) {
@@ -576,6 +589,9 @@
 
 
         'build-column': runtime.makeMethod1(function(_, colname, func) {
+          ffi.checkArity(3, arguments, "build-column", true);
+          runtime.checkArgsInternal2("tables", "build-column",
+            colname, runtime.String, func, runtime.Function);
           var wrappedFunc = function(rawRow) {
             return runtime.safeCall(function() {
               return func.app(getRowContentAsGetter(headers, rawRow));
@@ -731,6 +747,7 @@
         }),
 
         'row': runtime.makeMethodN(function(self, ...args) {
+          // NOTE: Deliberately no arity check
           if(headers.length !== args.length) {
             throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), args);
           }
