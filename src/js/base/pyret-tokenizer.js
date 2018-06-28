@@ -114,18 +114,54 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
 
   const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
 
-  const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
-  const unsigned_rational_part = "[0-9]+/[0-9]+"; 
+  const unsignedIntegerPart = "[0-9]+";
 
-  const number = new RegExp("^[-+]?" + unsigned_decimal_part, STICKY_REGEXP);
+  const unsignedRationalPart = "[0-9]+/[0-9]+";
 
-  const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+  const unsignedPointDecimalPart = "[0-9]+\\.[0-9]+";
 
-  const roughnum = new RegExp("^~[-+]?"  + unsigned_decimal_part, STICKY_REGEXP);
+  const unsignedExpDecimalPart = "[0-9]+(?:\\.[0-9]+)?[eE][-+]?[0-9]+";
 
-  const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
+  const unsignedDecimalWoDotsPart = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
+  const unsignedDecimalWithDotsPart = "[0-9]+(?:\\.[0-9]+)?\\.\\.\\.(?:[eE][-+]?[0-9]+)?";
+  const unsignedDecimalOptDotsPart = "(?:" + unsignedDecimalWithDotsPart + "|" +
+    unsignedDecimalWoDotsPart + ")";
 
-  const roughrational = new RegExp("^~[-+]?" + unsigned_rational_part, STICKY_REGEXP);
+  const number = new RegExp("^[-+]?" + unsignedDecimalWoDotsPart, STICKY_REGEXP);
+
+  const badNumberLackingDigitsBeforePoint =
+    new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
+
+  const badNumberLackingDigitsAfterPoint =
+    new RegExp("^~?[+-]?[0-9]+\\.(?:[eE][-+]?[0-9]+)", STICKY_REGEXP);
+
+  const badNonRoughnumWithDots = new RegExp("^[+-]?" + unsignedDecimalWithDotsPart, STICKY_REGEXP);
+
+  /*
+  const badIntegerWithSingleDot = new RegExp("^~?[+-]?" + unsignedIntegerPart 
+    + "\\.(?!\\.)", STICKY_REGEXP);
+  */
+
+  const badIntegerWithDots = new RegExp("^~?[+-]?" + unsignedIntegerPart + "\\.\\.+", STICKY_REGEXP);
+
+  const badRationalWithDots = new RegExp("^[+-]?" + unsignedRationalPart + "\\.+", STICKY_REGEXP);
+
+  const badPointDecimalWithDots = new RegExp("^[+-]?" + unsignedPointDecimalPart + "\\.+", STICKY_REGEXP);
+
+  const badRoughnumPointDecimalWithDots = new RegExp("^~[+-]?" + unsignedPointDecimalPart + "\\.+",
+    STICKY_REGEXP);
+
+  const badRoughnumExpDecimalWithDots = new RegExp("^~[+-]?" + unsignedExpDecimalPart + "\\.+",
+    STICKY_REGEXP);
+
+  const badRoughnumWithBadDots = new RegExp("^~[+-]?" + unsignedPointDecimalPart +
+    "(?:" + "\\.(?!\\.)" + "|" + "\\.\\.(?!\\.)" + "|" + "\\.\\.\\.\\.+" + ")", STICKY_REGEXP);
+
+  const roughnum = new RegExp("^~[-+]?"  + unsignedDecimalOptDotsPart, STICKY_REGEXP);
+
+  const rational = new RegExp("^[-+]?" + unsignedRationalPart, STICKY_REGEXP);
+
+  const roughrational = new RegExp("^~[-+]?" + unsignedRationalPart, STICKY_REGEXP);
 
   const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
   const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
@@ -168,7 +204,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
   const opneq = new RegExp(op("<>"), STICKY_REGEXP);
   const oplt = new RegExp(op("<"), STICKY_REGEXP);
   const opgt = new RegExp(op(">"), STICKY_REGEXP);
-  
+
 
   const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", STICKY_REGEXP);
 
@@ -285,7 +321,16 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
     {name: "BY", val: new RegExp(kw("by"), STICKY_REGEXP)},
 
-    {name: "BAD-NUMBER", val: badNumber},
+    {name: "BAD-NUMBER", val: badNumberLackingDigitsBeforePoint},
+    {name: "BAD-NUMBER", val: badNumberLackingDigitsAfterPoint},
+    {name: "BAD-NUMBER", val: badNonRoughnumWithDots},
+    //{name: "BAD-NUMBER", val: badIntegerWithSingleDot},
+    {name: "BAD-NUMBER", val: badIntegerWithDots},
+    {name: "BAD-NUMBER", val: badRationalWithDots},
+    {name: "BAD-NUMBER", val: badPointDecimalWithDots},
+    {name: "BAD-NUMBER", val: badRoughnumPointDecimalWithDots},
+    {name: "BAD-NUMBER", val: badRoughnumExpDecimalWithDots},
+    {name: "BAD-NUMBER", val: badRoughnumWithBadDots},
     {name: "DOTDOTDOT", val: dotdotdot},
     {name: "DOT", val: period},
     {name: "BANG", val: bang},
