@@ -4,10 +4,6 @@ provide-types *
 import global as _
 import lists as lists
 
-type Row = {
-  get-value :: (String -> Any)
-}
-
 type Reducer<Acc, InVal, OutVal> = {
   one :: (InVal -> {Acc; OutVal}),
   reduce :: (Acc, InVal -> {Acc; OutVal})
