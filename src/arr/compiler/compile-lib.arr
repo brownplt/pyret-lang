@@ -430,8 +430,12 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               | ok(_) =>
                 var tc-ast = type-checked.code
                 type-checked := nothing
-                var dp-ast = DP.desugar-post-tc(tc-ast, env)
+                var merged = DP.merge-methods(tc-ast)
                 tc-ast := nothing
+                add-phase("Merged methods", merged.ast)
+                var dp-ast = DP.desugar-post-tc(merged.ast, env)
+                named-result.bindings.merge-now(merged.new-binds)
+                merged := nothing
                 var cleaned = dp-ast
                 dp-ast := nothing
                 cleaned := cleaned.visit(AU.letrec-visitor)

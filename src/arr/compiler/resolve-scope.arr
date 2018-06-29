@@ -102,9 +102,10 @@ fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr> block:
       | s-newtype(l, name, namet) =>
         rev-type-binds := link(A.s-newtype-bind(l, name, namet), rev-type-binds)
       | s-data(l, name, params, mixins, variants, shared, _check-loc, _check) =>
-        namet = names.make-atom(name)
-        rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), namet), rev-type-binds)
-        rev-stmts := link(A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check), rev-stmts)
+        name-type = names.make-atom(name)
+        name-ann = A.s-name(l, name) # placeholder until name resolution happens
+        rev-type-binds := link(A.s-newtype-bind(l, A.s-name(l, name), name-type), rev-type-binds)
+        rev-stmts := link(A.s-data-expr(l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check), rev-stmts)
       | else =>
         rev-stmts := link(s, rev-stmts)
     end
@@ -391,7 +392,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
               # it'll get turned into an s-lam in weave-contracts
               f
               ), rest-stmts)
-        | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
+        | s-data-expr(l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check) =>
           fun b(loc, id :: String): A.s-bind(loc, false, A.s-name(loc, id), A.a-blank) end
           fun bn(loc, n :: A.Name): A.s-bind(loc, false, n, A.a-blank) end
           fun variant-binds(data-blob-id, v):
@@ -404,7 +405,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
             ]
           end
           blob-id = names.make-atom(name)
-          data-expr = A.s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check)
+          data-expr = A.s-data-expr(l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check)
           bind-data = A.s-letrec-bind(l, bn(l, blob-id), data-expr)
           bind-data-pred = A.s-letrec-bind(l, b(l, A.make-checker-name(name)), A.s-dot(l, A.s-id-letrec(l, blob-id, true), name))
           all-binds = for fold(acc from [list: bind-data-pred, bind-data], v from variants):
@@ -994,7 +995,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       data-defs = for lists.filter-map(ddk from datatypes.keys-list-now()):
         dd = datatypes.get-value-now(ddk) 
         if provide-types-dict.has-key(dd.name):
-          some(A.p-data(dd.l, dd.namet, none))
+          some(A.p-data(dd.l, dd.name-type, none))
         else:
           none
         end
@@ -1122,7 +1123,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-cases-branch(l, pat-loc, name, new-args, new-body)
     end,
     # s-singleton-cases-branch introduces no new bindings
-    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) block:
+    method s-data-expr(self, l, name, name-type, _, params, mixins, variants, shared-members, _check-loc, _check) block:
       {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
@@ -1130,10 +1131,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: env}
-      result = A.s-data-expr(l, name, namet, atoms.reverse(),
+      name-ann = self.type-env.get-value(name).atom
+      result = A.s-data-expr(l, name, name-type, name-ann, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
-      datatypes.set-now(namet.key(), result)
+      datatypes.set-now(name-type.key(), result)
       result
     end,
     method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:

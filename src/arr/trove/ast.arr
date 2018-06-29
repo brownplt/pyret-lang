@@ -1003,7 +1003,8 @@ data Expr:
   | s-data-expr(
       l :: Loc,
       name :: String,
-      namet :: Name,
+      name-type :: Name,
+      name-ann :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
@@ -1020,7 +1021,7 @@ data Expr:
       end
       tys = PP.surround-separate(2 * INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         self.params.map(_.tosource()))
-      header = str-data-expr + PP.str(self.name) + PP.comma + self.namet.tosource() + tys + str-colon
+      header = str-data-expr + PP.str(self.name) + PP.comma + self.name-type.tosource() + tys + str-colon
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
@@ -2178,7 +2179,8 @@ default-map-visitor = {
       self,
       l :: Loc,
       name :: String,
-      namet :: Name,
+      name-type :: Name,
+      name-ann :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
@@ -2189,7 +2191,8 @@ default-map-visitor = {
     s-data-expr(
         l,
         name,
-        namet.visit(self),
+        name-type.visit(self),
+        name-ann.visit(self),
         params.map(_.visit(self)),
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),
@@ -2733,7 +2736,8 @@ default-iter-visitor = {
       self,
       l :: Loc,
       name :: String,
-      namet :: Name,
+      name-type :: Name,
+      name-ann :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
@@ -2741,7 +2745,7 @@ default-iter-visitor = {
       _check-loc :: Option<Loc>,
       _check :: Option<Expr>
       ):
-    namet.visit(self)
+    name-type.visit(self) and name-ann.visit(self)
     and lists.all(_.visit(self), params)
     and lists.all(_.visit(self), mixins)
     and lists.all(_.visit(self), variants)
@@ -3275,7 +3279,8 @@ dummy-loc-visitor = {
       self,
       l :: Loc,
       name :: String,
-      namet :: String,
+      name-type :: Name,
+      name-ann :: Name,
       params :: List<Name>, # type params
       mixins :: List<Expr>,
       variants :: List<Variant>,
@@ -3286,7 +3291,8 @@ dummy-loc-visitor = {
     s-data-expr(
         dummy-loc,
         name,
-        namet.visit(self),
+        name-type.visit(self),
+        name-ann.visit(self),
         params.map(_.visit(self)),
         mixins.map(_.visit(self)),
         variants.map(_.visit(self)),

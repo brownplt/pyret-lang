@@ -584,7 +584,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-bracket not implemented")
         | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data should have already been desugared")
-        | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
+        | s-data-expr(l, name, name-type, name-ann, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data-expr should have been handled by s-letrec")
         | s-for(l, iterator, bindings, ann, body) =>
           raise("s-for should have already been desugared")
@@ -857,7 +857,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-bracket not implemented")
     | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data should have already been desugared")
-    | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
+    | s-data-expr(l, name, name-type, name-ann, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data-expr should have been handled by s-letrec")
     | s-for(l, iterator, bindings, ann, body, blocky) =>
       raise("s-for should have already been desugared")
@@ -947,9 +947,9 @@ fun handle-datatype(data-type-bind :: A.LetrecBind, bindings :: List<A.LetrecBin
 context :: Context) -> FoldResult<List<A.LetrecBind>>:
   data-expr = data-type-bind.value
   cases(Expr) data-expr:
-    | s-data-expr(l, name, namet, params, mixins, variants, fields, _check-loc, _check) =>
+    | s-data-expr(l, name, name-type, name-ann, params, mixins, variants, fields, _check-loc, _check) =>
       shadow context = context.add-level()
-      brander-type = t-name(local, namet, l, false)
+      brander-type = t-name(local, name-type, l, false)
       t-vars = params.map(t-var(_, l, false))
       applied-brander-type = if is-empty(t-vars): brander-type else: t-app(brander-type, t-vars, l, false) end
 
@@ -975,7 +975,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
           map-fold-result(collect-variant, variants, context).bind(lam(shadow initial-variant-types, shadow context):
             collect-members(fields, true, context).bind(lam(initial-shared-field-types, shadow context):
               initial-data-type = t-data(name, t-vars, initial-variant-types, initial-shared-field-types, l)
-              shadow context = context.set-data-types(context.data-types.set(namet.key(), initial-data-type))
+              shadow context = context.set-data-types(context.data-types.set(name-type.key(), initial-data-type))
               shadow context = merge-common-fields(initial-variant-types, l, context)
               map-fold-result(lam(variant, shadow context):
                 check-variant(variant, initial-data-type.get-variant-value(variant.name), brander-type, t-vars, context)
@@ -998,7 +998,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   extended-shared-field-types.set(key, variants-meet.get-value(key))
                 end, initial-shared-field-types)
                 shared-data-type = t-data(name, t-vars, new-variant-types, extended-shared-field-types, l)
-                shadow context = context.set-data-types(context.data-types.set(namet.key(), shared-data-type))
+                shadow context = context.set-data-types(context.data-types.set(name-type.key(), shared-data-type))
                 foldr-fold-result(lam(field, shadow context, new-shared-field-types):
                   check-shared-field(field, initial-shared-field-types, applied-brander-type, context).bind(lam(field-type, shadow context):
                     fold-result(new-shared-field-types.set(field.name, field-type), context)
@@ -1010,7 +1010,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   final-data-type = t-data(name, t-vars, new-variant-types, final-shared-field-types, l)
                   context.solve-level().bind(lam(solution, shadow context):
                     solved-data-type = solution.apply-data-type(final-data-type)
-                    shadow context = context.set-data-types(context.data-types.set(namet.key(), solved-data-type))
+                    shadow context = context.set-data-types(context.data-types.set(name-type.key(), solved-data-type))
                     fold-result(link(data-type-bind, new-bindings), context)
                   end)
                 end)
@@ -1658,7 +1658,7 @@ fun collect-letrec-bindings(binds :: List<A.LetrecBind>, top-level :: Boolean, c
       | link(first-bind, rest-binds) =>
         first-value = first-bind.value
         cases(Expr) first-value:
-          | s-data-expr(_, _, _, _, _, variants, _, _, _) =>
+          | s-data-expr(_, _, _, _, _, _, variants, _, _, _) =>
             num-data-binds = (2 * variants.length()) + 1
             split-list = split-at(num-data-binds, rest-binds)
             data-binds = split-list.prefix

@@ -246,12 +246,12 @@ fun default-env-map-visitor<a, c>(
     method s-singleton-cases-branch(self, l, pat-loc, name, body):
       A.s-singleton-cases-branch(l, pat-loc, name, body.visit(self))
     end,
-    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check-loc, _check):
+    method s-data-expr(self, l, name, name-type, name-ann, params, mixins, variants, shared-members, _check-loc, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
       with-params = self.{type-env: new-type-env}
-      A.s-data-expr(l, name, namet.visit(with-params), params,
+      A.s-data-expr(l, name, name-type.visit(with-params), name-ann.visit(with-params), params,
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
     end,
@@ -366,12 +366,12 @@ fun default-env-iter-visitor<a, c>(
       and body.visit(self.{env: args-env})
     end,
     # s-singleton-cases-branch introduces no new bindings, so default visitor is fine
-    method s-data-expr(self, l, name, namet, params, mixins, variants, shared-members, _check-loc, _check):
+    method s-data-expr(self, l, name, name-type, name-ann, params, mixins, variants, shared-members, _check-loc, _check):
       new-type-env = for lists.fold(acc from self.type-env, param from params):
         bind-handlers.s-param-bind(l, param, acc)
       end
       with-params = self.{type-env: new-type-env}
-      namet.visit(with-params)
+      name-type.visit(with-params) and name-ann.visit(with-params)
       and lists.all(_.visit(with-params), mixins)
       and lists.all(_.visit(with-params), variants)
       and lists.all(_.visit(with-params), shared-members)
@@ -1078,7 +1078,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   end
   fun data-expr-to-datatype(exp :: A.Expr % (is-s-data-expr)) -> T.DataType:
     cases(A.Expr) exp:
-      | s-data-expr(l, name, _, params, _, variants, shared-members, _, _) =>
+      | s-data-expr(l, name, _, _, params, _, variants, shared-members, _, _) =>
 
         tvars = for map(tvar from params):
           T.t-var(tvar, l, false)
