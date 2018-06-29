@@ -159,6 +159,13 @@ fun weave-contracts(contracts, rev-binds) block:
       (funargs.first.id.toname() == annargs.first.name) and names-match(funargs.rest, annargs.rest)
     end
   end
+  fun params-match(funargs :: List<A.Name>, cargs :: List<A.Name>):
+    if is-empty(funargs) and is-empty(cargs): true
+    else if is-empty(funargs) or is-empty(cargs): false
+    else:
+      (funargs.first.toname() == cargs.first.toname()) and params-match(funargs.rest, cargs.rest)
+    end
+  end
   fun fun-to-lam(bind):
     new-v = cases(A.Expr) bind.value:
       | s-fun(l-fun, name, params, args, ret, doc, body, _check-loc, _check, blocky) =>
@@ -190,32 +197,54 @@ fun weave-contracts(contracts, rev-binds) block:
                       errors := link(C.contract-redefined(c.l, id-name, l-fun), errors)
                       link(fun-to-lam(bind), acc)
                     else if A.is-a-arrow(c.ann):
-                      if c.ann.args.length() <> args.length() block:
-                        errors := link(C.contract-inconsistent-names(c.l, id-name, l-fun), errors)
-                        link(fun-to-lam(bind), acc)
-                      else:
+                      ok-params =
+                        if is-link(params) and not(params-match(c.params, params)) block:
+                          errors := link(C.contract-inconsistent-params(c.l, id-name, l-fun), errors)
+                          false
+                        else: true
+                        end
+                      ok-args =
+                        if c.ann.args.length() <> args.length() block:
+                          errors := link(C.contract-inconsistent-names(c.l, id-name, l-fun), errors)
+                          false
+                        else: true
+                        end
+                      if ok-params and ok-args:
                         new-args = for map2(a from args, shadow ann from c.ann.args):
                           A.s-bind(a.l, a.shadows, a.id, ann)
                         end
                         link(
                           rebuild-bind(bind,
                             bind.b,
-                            A.s-lam(l, name, params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
+                            A.s-lam(l, name, c.params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
                           acc)
+                      else:
+                        link(fun-to-lam(bind), acc)
                       end
                     else if A.is-a-arrow-argnames(c.ann):
-                      if not(names-match(args, c.ann.args)) block:
-                        errors := link(C.contract-inconsistent-names(c.l, id-name, l), errors)
-                        link(fun-to-lam(bind), acc)
-                      else:
+                      ok-params =
+                        if is-link(params) and not(params-match(c.params, params)) block:
+                          errors := link(C.contract-inconsistent-params(c.l, id-name, l-fun), errors)
+                          false
+                        else: true
+                        end
+                      ok-args =
+                        if not(names-match(args, c.ann.args)) block:
+                          errors := link(C.contract-inconsistent-names(c.l, id-name, l), errors)
+                          false
+                        else: true
+                        end
+                      if ok-params and ok-args:
                         new-args = for map2(a from args, shadow ann from c.ann.args):
                           A.s-bind(a.l, a.shadows, a.id, ann.ann)
                         end
                         link(
                           rebuild-bind(bind,
                             bind.b,
-                            A.s-lam(l, name, params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
-                          acc)                        
+                            A.s-lam(l, name, c.params, new-args, c.ann.ret, doc, body, _check-loc, _check, blocky)),
+                          acc)
+                      else:
+                        link(fun-to-lam(bind), acc)
                       end
                     else:
                       errors := link(C.contract-non-function(c.l, id-name, l, true), errors)
@@ -374,7 +403,7 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
       cases(A.Expr) f:
         | s-type(l, name, params, ann) =>
           add-type-let-bind(binding-group, A.s-type-bind(l, name, params, ann), rest-stmts)
-        | s-contract(l, name, ann) =>
+        | s-contract(l, name, params, ann) =>
           {contracts; shadow rest-stmts} = L.take-while(A.is-s-contract, rest-stmts)
           add-contracts(binding-group, link(f, contracts), rest-stmts)
         | s-let(l, bind, expr, _) =>
