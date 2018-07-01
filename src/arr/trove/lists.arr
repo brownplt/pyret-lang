@@ -7,7 +7,6 @@ import option as O
 import either as E
 import equality as equality
 import valueskeleton as VS
-import comparison as CR
 
 none = O.none
 is-none = O.is-none
@@ -247,28 +246,20 @@ fun length<a>(lst :: List<a>) -> Number:
   help(lst, 0)
 end
 
-fun compare-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> CR.ComparisonResult:
+fun same-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> Boolean:
+  doc: "Returns true if and only if the two given lists have the same length.  Runs in time proportional to the shorter list."
   cases(List) lst1:
     | empty =>
       cases(List) lst2:
-        | empty => CR.Equal
-        | else => CR.LessThan
+        | empty => true
+        | else => false
       end
     | link(_, rest1) =>
       cases(List) lst2:
-        | empty => CR.GreaterThan
-        | link(_, rest2) => compare-length(rest1, rest2)
+        | empty => false
+        | link(_, rest2) => same-length(rest1, rest2)
       end
   end
-where:
-  compare-length([list: 1, 2], [list: true, false]) is CR.Equal
-  compare-length([list: 1, 2, 3], [list: true, false]) is CR.GreaterThan
-  compare-length([list: ], [list: true, false]) is CR.LessThan
-end
-
-fun same-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> Boolean:
-  doc: "Returns true if and only if the two given lists have the same length.  Runs in time proportional to the shorter list."
-  compare-length(lst1, lst2) == CR.Equal
 where:
   same-length([list: 1, 2], [list: true, false]) is true
   same-length([list: 1, 2, 3], [list: true, false]) is false
