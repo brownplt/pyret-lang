@@ -1,5 +1,4 @@
 import equality as E
-import comparison as C
 
 data Box:
   | box(ref v)
@@ -269,11 +268,3 @@ check "more utility functions":
   lists.push(empty, 1) is link(1, empty)
 end
 
-check "compare-length":
-  lists.compare-length([list: ], [list: ]) is C.Equal
-  lists.compare-length([list: 1, 2, 3], [list: ]) is C.GreaterThan
-  lists.compare-length([list: ], [list: 1, 2, 3]) is C.LessThan
-  lists.compare-length([list: 4, 2, 1], [list: 1, 2, 3]) is C.Equal
-  lists.compare-length([list: 4, 2, 1, 5], [list: 1, 2, 3]) is C.GreaterThan
-  lists.compare-length([list: 4, 2, 1, 5], [list: 1, 2, 3, 7, 8]) is C.LessThan
-end
