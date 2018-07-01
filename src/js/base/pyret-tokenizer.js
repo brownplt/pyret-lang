@@ -224,7 +224,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "THENCOLON", val: "then:", parenIsForExp: true},
     {name: "WHERE", val: "where:", parenIsForExp: true},
     {name: "WITH", val: "with:", parenIsForExp: true},
-    {name: "LBRACK", val: "["},
+    {name: "LBRACK", val: lbrack, parenIsForExp: true},
     {name: "RBRACK", val: "]"},
     {name: "LBRACE", val: "{", parenIsForExp: "PARENAFTERBRACE"},
     {name: "RBRACE", val: "}"},
