@@ -80,7 +80,7 @@
       var vsValue = get(VS, "vs-value").app;
       var keys = Object.keys(self.$underlyingTable.headerIndex);
       return get(VS, "vs-row").app(
-        keys.map(function(hdr){console.log(hdr); return vsValue(hdr.slice(7));}),
+        keys.map(function(hdr){return vsValue(hdr.slice(7));}),
         keys.map(function(hdr){return vsValue(self.$rowData[self.$underlyingTable.headerIndex[hdr]]);}));
     });
 
@@ -449,8 +449,8 @@
 
         'row-n': runtime.makeMethod1(function(_, row) {
           ffi.checkArity(2, arguments, "row-n", true);
+          runtime.checkArgsInternal1("tables", "row-n", row, runtime.NumInteger);
           runtime.checkNumNonNegative(row); // NOTE(Ben): These should be converted to a call to checkArgsInternal
-          runtime.checkNumInteger(row);
           var rowFix = runtime.num_to_fixnum(row);
           if(rowFix >= rows.length) {
             throw runtime.ffi.throwMessageException("row-n-too-large");
@@ -484,8 +484,8 @@
 
         'column-n': runtime.makeMethod1(function(_, n) {
           ffi.checkArity(2, arguments, "column-n", true);
+          runtime.checkArgsInternal1("tables", "column-n", n, runtime.NumInteger);
           runtime.checkNumNonNegative(n); // NOTE(Ben): These should be converted to checkArgsInternal1
-          runtime.checkNumInteger(n);
           var lookupIndex = runtime.num_to_fixnum(n);
           if(lookupIndex >= headers.length) {
             throw runtime.ffi.throwMessageException("column-n-too-large");
@@ -498,13 +498,13 @@
 
         'all-columns': runtime.makeMethod0(function(_) {
           ffi.checkArity(1, arguments, "all-columns", true);
-          var collists = new Array(headers.length);
-          for(var i = 0; i < headers.length; i += 1) {
-            collists[i] = []; 
+          var collists = [];
+          for(var c = 0; c < headers.length; c += 1) {
+            collists.push([]);
           }
-          for(var i = 0; i < rows.length; i += 1) {
-            for(var j = 0; j < headers.length; j += 1) {
-              collists[j].push(rows[i][j]);
+          for(var r = 0; r < rows.length; r += 1) {
+            for(var c = 0; c < headers.length; c += 1) {
+              collists[c].push(rows[r][c]);
             }
           }
           return runtime.ffi.makeList(collists.map(runtime.ffi.makeList));
@@ -671,7 +671,7 @@
             }
           }
 
-          var newRows = new Array(colnamesList.length);
+          var newRows = [];
           for(var i = 0; i < rows.length; i += 1) {
             newRows[i] = [];
             for(var j = 0; j < colnamesList.length; j += 1) {

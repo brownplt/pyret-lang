@@ -370,7 +370,7 @@ check "add-row":
   t.add-row(t2.row(true, true, 12)) is answer
 
   t.add-row("a", t.row(true, true, 12)) raises-satisfies E.is-arity-mismatch
-  t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
+  t.add-row(table: a end) raises-satisfies contract(_, C.is-failure-at-arg)
 
   t.add-row([raw-row:]) raises "row-length"
   t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; false}, {"d"; 22}]) raises "row-length"
@@ -392,8 +392,8 @@ check "row-n":
 
   t.row-n(45) raises-satisfies E.is-message-exception
   t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
-  t.row-n(4.3) raises-satisfies E.is-generic-type-mismatch
-  t.row-n("a") raises-satisfies E.is-generic-type-mismatch
+  t.row-n(4.3) raises-satisfies contract(_, C.is-failure-at-arg)
+  t.row-n("a") raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
 end
 
@@ -502,6 +502,14 @@ check "select-columns":
   t.select-columns([list: 1]) raises-satisfies E.is-generic-type-mismatch
   t.select-columns([list: "a"], 2) raises-satisfies E.is-arity-mismatch
 
+  # Regression from https://github.com/brownplt/pyret-lang/issues/1348
+  table-examp = table: a, b, c, d, e
+    row: "Bob", 12, "blue", 62, false
+    row: "Alice", 17, "green", 55, true
+    row: "Eve", 13, "red", 70, false
+  end
+
+  table-examp.select-columns([list: "a", "b", "c", "d", "e"]).row-n(4) raises-satisfies E.is-message-exception
 end
 
 check "filter":
