@@ -599,7 +599,8 @@
 
           var wrappedFunc = function(rawRow) {
             return runtime.safeCall(function() {
-              return func.app(getRowContentAsGetter(headers, rawRow));
+              var thisRow = makeRow({ headerIndex: headerIndex }, rawRow);
+              return func.app(thisRow);
             },
             function(newVal) {
               return rawRow.concat([newVal]);

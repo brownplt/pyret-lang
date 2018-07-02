@@ -5375,7 +5375,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.makeRowFromArray(arr);
       }),
 
-
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),
@@ -5492,6 +5491,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'is-table': makeFunction(function(v) {
         return thisRuntime.isTable(v);
       }, "is-table"),
+      'is-row': makeFunction(function(v) {
+        return thisRuntime.isRow(v);
+      }, "is-row"),
 
       'run-task': makeFunction(execThunk, "run-task"),
 

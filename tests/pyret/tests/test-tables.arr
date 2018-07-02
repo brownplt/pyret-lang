@@ -580,6 +580,11 @@ check "build-column":
 
   with-c-and-d.build-column("d", lam(x): x end) raises "(existing column names were a, b, c, d)"
   t.build-column("a", lam(x): x end) raises "(existing column names were a, b)"
+
+  t.build-column("z", lam(x) block:
+    x satisfies is-row
+    x
+  end)
 end
 
 check "table-from-rows":
