@@ -11,6 +11,7 @@ import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
+import file("autogenerate.arr") as AG
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
@@ -28,7 +29,7 @@ fun main(args :: List<String>) -> Number block:
     "port",
       C.next-val-default(C.Number, "1701", none, C.once, "Port to serve on"),
     "build-standalone",
-      C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
+      C.next-val(C.String, C.once, "DEPRECATED: use build-runnable instead"),
     "build-runnable",
       C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "require-config",
@@ -76,7 +77,11 @@ fun main(args :: List<String>) -> Number block:
     "html-file",
       C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
     "no-module-eval",
-      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)")
+      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
+    "auto-generate",
+      C.flag(C.once, "When true, create all auto-generated files"),
+    "trace",
+      C.flag(C.once, "Show evaluation steps as the program runs"),
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -99,6 +104,7 @@ fun main(args :: List<String>) -> Number block:
       inline-case-body-limit = r.get-value("inline-case-body-limit")
       check-all = r.has-key("check-all")
       type-check = r.has-key("type-check")
+      trace = r.has-key("trace")
       tail-calls = not(r.has-key("improper-tail-calls"))
       compiled-dir = r.get-value("compiled-dir")
       standalone-file = r.get-value("standalone-file")
@@ -123,7 +129,10 @@ fun main(args :: List<String>) -> Number block:
         print-error("Passing command line arguments without compiling standalone no longer supported\n")
         failure-code
       else:
-        if r.has-key("build-runnable") block:
+        if r.has-key("auto-generate") block:
+          AG.write-ast-visitors()
+          success-code
+        else if r.has-key("build-runnable"):
           outfile = if r.has-key("outfile"):
             r.get-value("outfile")
           else:
@@ -138,6 +147,7 @@ fun main(args :: List<String>) -> Number block:
                 standalone-file: standalone-file,
                 check-mode : check-mode,
                 type-check : type-check,
+                trace : trace,
                 allow-shadowed : allow-shadowed,
                 add-profiling : add-profiling,
                 collect-all: false,
@@ -178,6 +188,7 @@ fun main(args :: List<String>) -> Number block:
             CS.default-compile-options.{
               check-mode : check-mode,
               type-check : type-check,
+              trace : trace,
               allow-shadowed : allow-shadowed,
               collect-all: false,
               ignore-unbound: false,
@@ -208,22 +219,21 @@ fun main(args :: List<String>) -> Number block:
           result = CLI.run(r.get-value("run"), CS.default-compile-options.{
               standalone-file: standalone-file,
               display-progress: display-progress,
-              check-all: check-all
+              check-all: check-all,
+              trace: trace
             }, run-args)
           _ = print(result.message + "\n")
           result.exit-code
         else:
-          block:
-            print-error(C.usage-info(options).join-str("\n"))
-            print-error("Unknown command line options\n")
-            failure-code
-          end
+          print-error(C.usage-info(options).join-str("\n"))
+          print-error("Unknown command line options\n")
+          failure-code
         end
       end
     | arg-error(message, partial) =>
       block:
         print-error(message + "\n")
-        print-error(C.usage-info(options).join-str("\n"))
+        print-error(C.usage-info(options).join-str("\n") + "\n")
         failure-code
       end
   end

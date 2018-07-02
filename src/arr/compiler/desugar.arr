@@ -3,6 +3,7 @@
 provide *
 provide-types *
 import ast as A
+import ast-visitors as AV
 import parse-pyret as PP
 import string-dict as SD
 import srcloc as S
@@ -10,6 +11,7 @@ import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("resolve-scope.arr") as R
+import ds-main as DNew
 
 names = A.global-names
 
@@ -302,7 +304,7 @@ where:
         id("y")
       ]
     )
-  ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
+  ds-ed3.visit(AV.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
 
   ds-ed4 = ds-curry(
       d,
@@ -939,16 +941,17 @@ fun desugar-expr(expr :: A.Expr):
       A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+    | s-array(l, vals) => A.s-array(l, vals.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
   d = A.dummy-loc
-  unglobal = A.default-map-visitor.{
+  unglobal = AV.default-map-visitor.{
     method s-global(self, s): A.s-name(d, s) end,
     method s-atom(self, base, serial): A.s-name(d, base) end
   }
-  p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
-  ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
+  p = lam(str): PP.surface-parse(str, "test").block.visit(AV.dummy-loc-visitor) end
+  ds = lam(prog): desugar-expr(DNew.desugar-expr(prog)).visit(unglobal).visit(AV.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   one = A.s-num(d, 1)
   two = A.s-num(d, 2)

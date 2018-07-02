@@ -49,8 +49,8 @@ fun please-report-bug():
   [ED.para: ED.text("Please report this as a bug.")]
 end
 
-fun and-if(predicate, option):
-  cases(O.Option) option:
+fun and-if(predicate, opt):
+  cases(O.Option) opt:
     | none => O.none
     | some(v) =>
       if predicate(v):
@@ -61,8 +61,8 @@ fun and-if(predicate, option):
   end
 end
 
-fun and-maybe(f, option):
-  cases(O.Option) option:
+fun and-maybe(f, opt):
+  cases(O.Option) opt:
     | none => O.none
     | some(v) => f(v)
   end
@@ -450,6 +450,30 @@ data RuntimeError:
         [ED.para:
           ED.text("The left side was not a defined convenience constructor.")]]
     end
+  | bracket-syntax-non-constructor(expr-loc, constr-loc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.expr-loc.is-builtin() or not(src-available(self.expr-loc)):
+        [ED.error:
+          ed-simple-intro("bracket expression", self.expr-loc),
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("The left side was not accessible.")]]
+      else:
+        [ED.error:
+          ed-intro("bracket expression", self.expr-loc, -1, true),
+          ED.cmcode(self.expr-loc),
+          [ED.para:
+            ED.text("The "),
+            ED.highlight(ED.text("left side"), [ED.locs: self.constr-loc], 0),
+            ED.text(" was not accessible.")]]
+      end
+    end,
+    method render-reason(self) block:
+      [ED.error:
+        ed-simple-intro("bracket expression", self.expr-loc),
+        [ED.para:
+          ED.text("The left side was not accessible.")]]
+    end
   | lookup-constructor-not-object(loc, constr-name :: String, field :: String) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin() or not(src-available(self.loc)):
@@ -795,6 +819,37 @@ data RuntimeError:
           ED.text(" for the test in the "), ED.text(self.typ), ED.text(" expression at "),
           draw-and-highlight(self.loc), ED.text(" but got:")],
         ED.embed(self.value)]
+    end
+  | non-boolean-when(loc-when, loc-cond, cond-val) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.loc-when.is-builtin() or self.loc-cond.is-builtin():
+        [ED.error:
+          [ED.para:
+            ED.text("The when statement in "),
+            ED.loc(self.loc-when),
+            ED.text(" failed because the conditional evaluated to a non-boolean: ")],
+          ED.embed(self.loc-cond),
+          please-report-bug()]
+      else if src-available(self.loc-when):
+        [ED.error:
+          [ED.sequence:
+            ed-intro("when expression", self.loc-when, 0, true),
+            ED.cmcode(self.loc-when),
+            [ED.para:
+              ED.text("The "),
+              ED.highlight(ED.text("conditional"), [ED.locs: self.loc-cond], 1),
+              ED.text("did not evaluate to a boolean value:")],
+            ED.embed(self.cond-val)]]
+      else:
+        [ED.error:
+          ed-simple-intro("when expression", self.when-loc),
+          [ED.para:
+            ED.text(" failed because conditional did not evaluate to a boolean value:")],
+          ED.embed(self.cond-val)]
+      end
+    end,
+    method render-reason(self):
+      [ED.error: ED.text("TODO")]
     end
   | non-boolean-op(loc, position, typ, value) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):

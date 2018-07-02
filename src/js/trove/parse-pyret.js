@@ -176,15 +176,9 @@
         },
         'import-stmt': function(node) {
           if (node.kids[node.kids.length - 2].name === "AS") {
-            if (node.kids.length == 4) {
-              // (import-stmt IMPORT import-source AS NAME)
-              return RUNTIME.getField(ast, 's-import')
-                .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
-            } else {
-              // (import-stmt IMPORT import-source AS NAME, TYPES)
-              return RUNTIME.getField(ast, 's-import-types')
-                .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
-            }
+            // (import-stmt IMPORT import-source AS NAME)
+            return RUNTIME.getField(ast, 's-import')
+              .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
           } else if (node.kids[0].name === "INCLUDE") {
             // (import-stmt INCLUDE import-source)
             return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
@@ -669,11 +663,11 @@
         },
         'obj-field': function(node) {
           if (node.kids.length === 4) {
-            // (obj-field MUTABLE key COLON value)
+            // (obj-field REF key COLON value)
             return RUNTIME.getField(ast, 's-mutable-field')
               .app(pos(node.pos), tr(node.kids[1]), RUNTIME.getField(ast, 'a-blank'), tr(node.kids[3]));
           } else if (node.kids.length === 6) {
-            // (obj-field MUTABLE key COLONCOLON ann COLON value)
+            // (obj-field REF key COLONCOLON ann COLON value)
             return RUNTIME.getField(ast, 's-mutable-field')
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
           } else if (node.kids.length === 3) {
@@ -870,12 +864,26 @@
                    tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
           }
         },
+        'reactor-field': function(node) {
+          // (field key COLON value)
+          return RUNTIME.getField(ast, "s-reactor-field")
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        },
         'fields': function(node) {
           if (node.kids[node.kids.length - 1].name !== "field") {
             // (fields field (COMMA f1)* COMMA)
             return makeListComma(node.kids, 0, node.kids.length - 1);
           } else {
             // (fields field (COMMA f1)*)
+            return makeListComma(node.kids);
+          }
+        },
+        'reactor-fields': function(node) {
+          if (node.kids[node.kids.length - 1].name !== "reactor-field") {
+            // (reactor-fields reactor-field (COMMA f1)* COMMA)
+            return makeListComma(node.kids, 0, node.kids.length - 1);
+          } else {
+            // (reactor-fields reactor-field (COMMA f1)*)
             return makeListComma(node.kids);
           }
         },

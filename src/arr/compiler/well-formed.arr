@@ -4,6 +4,7 @@ provide {
 provide-types *
 
 import ast as A
+import ast-visitors as AV
 import srcloc as SL
 import error-display as ED
 import file("compile-structs.arr") as C
@@ -363,7 +364,7 @@ end
 
 var parent-block-loc = nothing
 
-well-formed-visitor = A.default-iter-visitor.{
+well-formed-visitor = AV.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, imports, body):
     raise("Impossible")
   end,
@@ -792,34 +793,28 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     true
   end,
-  method s-reactor(self, l, fields):
-    method-fields = for filter(f from fields): A.is-s-method-field(f) end
-    if not(is-empty(method-fields)) block:
-      wf-error([list: ED.text("A reactor cannot contain method fields ")], method-fields.first.l)
-      true
-    else:
-      has-init = is-some(for find(f from fields): f.name == "init" end)
-      when not(has-init):
-        wf-error([list: ED.text("A reactor must have a field named "), ED.code(ED.text("init")),
-            ED.text(" for the initial value ")], l)
-      end
-      fields-dict = SD.make-mutable-string-dict()
-      ok-fields = C.reactor-fields
-      for each(f from fields) block:
-        when not(ok-fields.has-key(f.name)):
-          wf-error([list: ED.text("Valid options for reactors are "),
-              ED.h-sequence-sep(ok-fields.keys-list().map({(ok): ED.code(ED.text(ok))}), ", ", ", or "),
-              ED.text(", but found one named "),
-              ED.code(ED.text(f.name)), ED.text(" ")], f.l)
-        end
-        cases(Option<A.Loc>) fields-dict.get-now(f.name):
-          | none => fields-dict.set-now(f.name, f.l)
-          | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
-        end
-        f.visit(self)
-      end
-      true
+  method s-reactor(self, l, fields) block:
+    has-init = is-some(for find(f from fields): f.name == "init" end)
+    when not(has-init):
+      wf-error([list: ED.text("A reactor must have a field named "), ED.code(ED.text("init")),
+          ED.text(" for the initial value ")], l)
     end
+    fields-dict = SD.make-mutable-string-dict()
+    ok-fields = C.reactor-fields
+    for each(f from fields) block:
+      when not(ok-fields.has-key(f.name)):
+        wf-error([list: ED.text("Valid options for reactors are "),
+            ED.h-sequence-sep(ok-fields.keys-list().map({(ok): ED.code(ED.text(ok))}), ", ", ", or "),
+            ED.text(", but found one named "),
+            ED.code(ED.text(f.name)), ED.text(" ")], f.l)
+      end
+      cases(Option<A.Loc>) fields-dict.get-now(f.name):
+        | none => fields-dict.set-now(f.name, f.l)
+        | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
+      end
+      f.visit(self)
+    end
+    true
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
     wf-table-headers(l, header)
@@ -903,7 +898,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end
 }
 
-top-level-visitor = A.default-iter-visitor.{
+top-level-visitor = AV.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
@@ -1010,9 +1005,6 @@ top-level-visitor = A.default-iter-visitor.{
   method s-include(_, l, import-type):
     well-formed-visitor.s-include(l, import-type)
   end,
-  method s-import-types(_, l, import-type, name, types):
-    well-formed-visitor.s-import-types(l, import-type, name, types)
-  end,
   method s-import-fields(_, l, fields, import-type):
     well-formed-visitor.s-import-fields(l, fields, import-type)
   end,
@@ -1066,9 +1058,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method s-let(_, l :: Loc, name :: A.Bind, value :: A.Expr, keyword-val :: Boolean):
     well-formed-visitor.s-let(l, name, value, keyword-val)
-  end,
-  method s-ref(_, l :: Loc, ann :: A.Ann):
-    well-formed-visitor.s-ref(l, ann)
   end,
   method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
@@ -1221,9 +1210,6 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method a-arrow-argnames(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow-argnames(l, args, ret, use-parens)
-  end,
-  method a-method(_, l, args, ret):
-    well-formed-visitor.a-method(l, args, ret)
   end,
   method a-record(_, l, fields):
     well-formed-visitor.a-record(l, fields)

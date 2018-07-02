@@ -406,9 +406,6 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end
       anf-name(obj, "anf_bracket", lam(t-obj): k(N.a-dot(l, t-obj, fname)) end)
 
-    | s-ref(l, ann) =>
-      k(N.a-ref(l, ann))
-
     | s-id-var(l, id) =>
       k(N.a-id-var(l, id))
 

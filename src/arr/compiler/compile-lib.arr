@@ -11,6 +11,7 @@ import sets as S
 import sha as SHA
 import srcloc as Loc
 import string-dict as SD
+import ast-visitors as AV
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as C
 import file("gensym.arr") as G
@@ -23,6 +24,7 @@ import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
+import ds-main as DNew
 
 data CompilationPhase:
   | start(time :: Number)
@@ -189,7 +191,6 @@ end
 fun get-import-type(i):
   cases(A.Import) i:
     | s-import(_, f, _) => f
-    | s-import-types(_, f, _, _) => f
     | s-include(_, f) => f
     | s-import-complete(_, _, _, f, _, _) => f
     | s-import-fields(_, _, f) => f
@@ -390,8 +391,13 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
           add-phase("Added imports", imported)
-          var scoped = RS.desugar-scope(imported, env)
+
+          var new-desugared = DNew.desugar(imported, options.trace)
           imported := nothing
+          add-phase("New desugar", new-desugared)
+
+          var scoped = RS.desugar-scope(new-desugared, env)
+          new-desugared := nothing
           add-phase("Desugared scope", scoped)
           var named-result = RS.resolve-names(scoped.ast, env)
           var any-errors = scoped.errors + named-result.errors
@@ -405,6 +411,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end }
           else:
             add-phase("Resolved names", named-result)
+            #print(new-desugared) # TODO: this is for development
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             var desugared = D.desugar(named-result.ast)

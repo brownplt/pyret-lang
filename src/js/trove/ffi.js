@@ -161,6 +161,11 @@
       runtime.checkString(field);
       raise(err("field-not-found")(loc, object, runtime.makeString(field)));
     }
+    function throwBracketSyntaxNonConstructor(exprLoc, constrLoc) {
+      checkSrcloc(exprLoc);
+      checkSrcloc(constrLoc);
+      raise(err("bracket-syntax-non-constructor")(exprLoc, constrLoc));
+    }
     function throwConstructorSyntaxNonConstructor(exprLoc, constrLoc) {
       checkSrcloc(exprLoc);
       checkSrcloc(constrLoc);
@@ -419,6 +424,14 @@
       runtime.checkString(type);
       raise(err("no-branches-matched")(runtime.makeSrcloc(locArray), type));
     }
+    function throwNonBooleanWhen(whenLoc, condLoc, condVal) {
+      checkSrcloc(whenLoc);
+      checkSrcloc(condLoc);
+      runtime.checkPyretVal(condVal);
+      raise(err("non-boolean-when")(runtime.makeSrcloc(whenLoc),
+                                    runtime.makeSrcloc(condLoc),
+                                    condVal));
+    }
     function throwNoCasesMatched(locArray, val) {
       runtime.checkPyretVal(val);
       raise(err("no-cases-matched")(runtime.makeSrcloc(locArray), val));
@@ -548,6 +561,88 @@
       return contract("failure-at-arg")(loc, index, name, args, reason);
     }
 
+    var trace_len = 0;
+    var my_token = -1;
+    
+    // packet :: ( "push", name :: String, formalArgs :: List<String>, actualArgs :: List<Expressions> )
+    var onFunctionPush = function(packet) {
+      indentation = getIndentation(trace_len);
+      console.log(indentation + "push", packet[1], packet[2], packet[3]);
+    };
+
+    // packet :: ("pop", return_val :: Expression)
+    var onFunctionPop = function(packet) {
+      indentation = getIndentation(trace_len);
+      console.log(indentation + "pop", packet[1]);
+    };
+
+    var getIndentation = function(len) {
+      return Array(len).join("  ")
+    };
+
+    function subscribe() {
+      console.log("subscribed!");
+      my_token = subscribeToFunctionTraces(onFunctionPush, onFunctionPop);
+    };
+
+    // list of { token:: uint, push_func:: function, pop_func :: function }
+    var trace_subs = [];
+    var lastTok = 0;
+
+    function subscribeToFunctionTraces(push_func, pop_func) {
+      trace_subs.push({ token : lastTok, push_func: push_func, pop_func: pop_func});
+      // increment lastTok post returning
+      return lastTok++;
+    }
+
+    function unsubscribeToFunctionTraces(token) {
+      for (var i = 0; i < trace_subs.length; i ++) {
+        if (trace_subs[i].token == token) {
+          // then remove it and return token
+          trace_subs.splice(i, 1);
+          return { found: true, val: token };
+        }
+      }
+      // else, return not found
+      return { found: false };
+    }
+
+    // Function call tracing (enabled with -trace option)
+    var trace = [];
+    var trace_len = 0;
+
+    function tracePushCall(name, formalArgs, actualArgs) {
+      var packet = ["push", name, formalArgs, actualArgs];
+      trace.push(["push", name, formalArgs, actualArgs]);
+      console.log(packet);
+      // this trace_subs.length is 0! why!?
+      for (var i = 0; i < trace_subs.length; i++) {
+        // if pyret function, call .app
+        // and runtimme.safeCall to prevent consuming stack
+        trace_subs[i].push_func(packet);
+      }
+      trace_len += 1;
+    }
+
+    function tracePopCall(return_val) {
+      var packet = ["pop", return_val];
+      trace.push(packet);
+      console.log(packet);
+      trace_len -= 1;
+      for (var i = 0; i < trace_subs.length; i++) {
+        trace_subs[i].pop_func(packet);
+      }
+    }
+
+    // TODO: figure out how this interacts with subscribers
+    function resetTrace() {
+      trace = [];
+    }
+
+    function getTrace() {
+      return trace;
+    }
+
     var isOk = contract("is-ok");
     var isFail = contract("is-fail");
     var isFailArg = contract("is-fail-arg");
@@ -583,6 +678,7 @@
       throwSpinnakerError: throwSpinnakerError,
       throwFieldNotFound: throwFieldNotFound,
       throwConstructorSyntaxNonConstructor: throwConstructorSyntaxNonConstructor,
+      throwBracketSyntaxNonConstructor: throwBracketSyntaxNonConstructor,
       throwLookupConstructorNotObject: throwLookupConstructorNotObject,
       throwLookupNonObject: throwLookupNonObject,
       throwLookupNonTuple: throwLookupNonTuple,
@@ -639,6 +735,17 @@
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
       makeFailureAtArg: makeFailureAtArg,
+
+      // for subscribing to function call announcments
+      subscribeToFunctionTraces: subscribeToFunctionTraces,
+      unsubscribeToFunctionTraces: unsubscribeToFunctionTraces,
+      subscribe: subscribe,
+
+      tracePushCall: tracePushCall,
+      tracePopCall: tracePopCall,
+      resetTrace: resetTrace,
+      getTrace: getTrace,
+      
       contractOk: gf(CON, "ok"),
       contractFail: contract("fail"),
       contractFailArg: contract("fail-arg"),

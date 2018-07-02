@@ -425,8 +425,6 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-rec not implemented")
         | s-let(l, name, value, keyword-val) =>
           raise("s-let should have already been desugared")
-        | s-ref(l, ann) =>
-          raise("checking for s-ref not implemented")
         | s-contract(l, name, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
@@ -549,7 +547,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             typing-result(A.s-array(l, new-values), expect-type, context)
           end)
         | s-construct(l, modifier, constructor, values) =>
-          raise("checking for s-construct not implemented")
+          raise("should have already been desugared")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-app(l, _fun, args) =>
@@ -687,8 +685,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-rec not implemented")
     | s-let(l, name, value, keyword-val) =>
       raise("s-let should have already been desugared")
-    | s-ref(l, ann) =>
-      raise("synthesis for s-ref not implemented")
     | s-contract(l, name, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>
@@ -794,7 +790,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         end)
       end)
     | s-construct(l, modifier, constructor, values) =>
-      raise("synthesis for s-construct not implemented")
+      raise("should have already been desugared")
     | s-app(l, _fun, args) =>
       synthesis-app-fun(l, _fun, args, context)
         .typing-bind(lam(fun-type, shadow context):
@@ -2216,8 +2212,6 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
           end
         end)
       end)
-    | a-method(l, args, ret, _) =>
-      fold-errors([list: C.cant-typecheck("a-method not yet implemented", l)])
     | a-record(l, fields) =>
       fields-result = foldr-fold-result(lam(field, shadow context, fields-dict):
         to-type(field.ann, context).bind(lam(maybe-typ, shadow context):

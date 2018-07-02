@@ -99,4 +99,3 @@ fun make-compiled-pyret(program-ast, env, bindings, type-bindings, provides, opt
   compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
   {flat-provides; ccp-dict(compiled)}
 end
-
