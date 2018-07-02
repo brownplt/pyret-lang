@@ -427,7 +427,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-let should have already been desugared")
         | s-ref(l, ann) =>
           raise("checking for s-ref not implemented")
-        | s-contract(l, name, ann) =>
+        | s-contract(l, name, params, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
           raise("s-when should have already been desugared")
@@ -689,7 +689,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-let should have already been desugared")
     | s-ref(l, ann) =>
       raise("synthesis for s-ref not implemented")
-    | s-contract(l, name, ann) =>
+    | s-contract(l, name, params, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>
       raise("s-when should have already been desugared")

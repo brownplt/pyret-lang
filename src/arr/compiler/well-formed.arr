@@ -287,7 +287,7 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | s-rec(l, _, _)                      => add-error(C.block-ending(l, block-loc, "rec-binding"))
     | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
     | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
-    | s-contract(l, _, _)                 => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-contract(l, _, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
     | else => nothing
   end
 end
@@ -421,7 +421,7 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann) block:
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann) block:
     add-error(C.non-toplevel("contract declaration", l, parent-block-loc))
     true
   end,
@@ -1073,7 +1073,7 @@ top-level-visitor = A.default-iter-visitor.{
   method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann):
     # TODO
     true
   end,

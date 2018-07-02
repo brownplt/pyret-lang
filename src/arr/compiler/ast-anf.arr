@@ -284,7 +284,7 @@ data ADefinedValue:
   | a-defined-var(name :: String, id :: A.Name) with:
     method label(self): "a-defined-var" end,
     method tosource(self):
-      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.toname())
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.tosource())
     end
 sharing:
   method visit(self, visitor):

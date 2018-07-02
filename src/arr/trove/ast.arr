@@ -198,7 +198,7 @@ end
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>, blocky :: Boolean) -> PP.PPrintDoc:
   typarams =
-    if is-nothing(params): PP.mt-doc
+    if is-empty(params): PP.mt-doc
     else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         params.map(_.tosource()))
     end
@@ -629,10 +629,15 @@ data Expr:
           PP.group(PP.str("ref ") + ann.tosource())
       end
     end
-  | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
+  | s-contract(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     method label(self): "s-contract" end,
     method tosource(self):
-      PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource())
+      typarams =
+        if is-empty(self.params): PP.mt-doc
+        else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+            self.params.map(_.tosource()))
+        end
+      PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), typarams + self.ann.tosource())
     end
   | s-when(l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean) with:
     method label(self): "s-when" end,
@@ -1975,8 +1980,8 @@ default-map-visitor = {
     s-when(l, test.visit(self), block.visit(self), blocky)
   end,
 
-  method s-contract(self, l, name, ann):
-    s-contract(l, name.visit(self), ann.visit(self))
+  method s-contract(self, l, name, params, ann):
+    s-contract(l, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):
@@ -2537,8 +2542,8 @@ default-iter-visitor = {
     test.visit(self) and block.visit(self)
   end,
 
-  method s-contract(self, l :: Loc, name :: Name, ann :: Ann):
-    name.visit(self) and ann.visit(self)
+  method s-contract(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    name.visit(self) and lists.all(_.visit(self), params) and ann.visit(self)
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):
@@ -3085,8 +3090,8 @@ dummy-loc-visitor = {
     s-when(dummy-loc, test.visit(self), block.visit(self), blocky)
   end,
 
-  method s-contract(self, l, name, ann):
-    s-contract(dummy-loc, name.visit(self), ann.visit(self))
+  method s-contract(self, l, name, params, ann):
+    s-contract(dummy-loc, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):

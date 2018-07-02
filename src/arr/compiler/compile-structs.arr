@@ -497,6 +497,25 @@ data CompileError:
           ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
           ED.text(" specifies arguments that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
     end
+  | contract-inconsistent-params(loc :: Loc, name :: String, defn-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("specifies type parameters that are inconsistent with the "),
+          ED.highlight(ED.text("associated definition"), [list: self.defn-loc], -1), ED.text(":")],
+        ED.cmcode(self.defn-loc)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" specifies type parameters that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
+    end
   | contract-unused(loc :: Loc, name :: String) with:
     method render-fancy-reason(self):
       [ED.error:
