@@ -719,7 +719,7 @@ data Expr:
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + blocky-colon(self.blocky)
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
-        + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
+        + break-one + PP.group(str-elsebranch + PP.nest(INDENT, break-one + self._else.tosource()))
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
   | s-op(l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr) with:
@@ -1528,14 +1528,17 @@ data CasesBindType:
     method tosource(self): PP.str("ref") end
   | s-cases-bind-normal with:
     method label(self): "s-cases-bind-normal" end,
-    method tosource(self): PP.str("") end
+    method tosource(self): PP.mt-doc end
 end
 
 data CasesBind:
   | s-cases-bind(l :: Loc, field-type :: CasesBindType, bind :: Bind) with:
     method label(self): "s-cases-bind" end,
     method tosource(self):
-      self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
+      ft = self.field-type.tosource()
+      if PP.is-mt-doc(ft): self.bind.tosource()
+      else: ft + PP.str(" ") + self.bind.tosource()
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -1551,13 +1554,14 @@ data CasesBranch:
         PP.group(PP.str("| " + self.name)
             + PP.surround-separate(INDENT, 0, PP.str("()"), PP.lparen, PP.commabreak, PP.rparen,
             self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
-        self.body.tosource())
+        PP.nest(INDENT, self.body.tosource()))
     end
   | s-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: Expr) with:
     method label(self): "s-singleton-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
-        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
+        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one
+          + PP.nest(INDENT, self.body.tosource()))
     end
 sharing:
   method visit(self, visitor):
@@ -3441,6 +3445,6 @@ dummy-loc-visitor = {
     a-dot(dummy-loc, obj, field)
   end,
   method a-field(self, l, name, ann):
-    a-field(dummy-loc, name.visit(self), ann.visit(self))
+    a-field(dummy-loc, name, ann.visit(self))
   end
 }

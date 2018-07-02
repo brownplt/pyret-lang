@@ -1401,7 +1401,7 @@
         if (countParses == 0) {
           var nextTok = toks.curTok;
           message = "There were " + countParses + " potential parses.\n" +
-                      "Parse failed, next token is " + nextTok.toString(true) +
+                      "Parse failed, next token is " + nextTok.toRepr(true) +
                       " at " + fileName + ", " + nextTok.pos.toString(true);
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
