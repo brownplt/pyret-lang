@@ -5491,7 +5491,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // (see handalone.js)
       'is-table': makeFunction(function(v) {
         return thisRuntime.isTable(v);
-      }, "is-tuple"),
+      }, "is-table"),
 
       'run-task': makeFunction(execThunk, "run-task"),
 

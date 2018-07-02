@@ -560,6 +560,28 @@ check "filter-by":
 
 end
 
+check "build-column":
+  t = table: a, b
+    row: 1, 2
+    row: 4, 5
+  end
+
+  with-c = t.build-column("c", {(r): r["b"] + 5})
+  with-c is table: a, b, c
+    row: 1, 2, 7
+    row: 4, 5, 10
+  end
+
+  with-c-and-d = with-c.build-column("d", {(r): num-to-string(r["c"])})
+  with-c-and-d is table: a, b, c, d
+    row: 1, 2, 7, "7"
+    row: 4, 5, 10, "10"
+  end
+
+  with-c-and-d.build-column("d", lam(x): x end) raises "(existing column names were a, b, c, d)"
+  t.build-column("a", lam(x): x end) raises "(existing column names were a, b)"
+end
+
 check "table-from-rows":
   table-from-rows = TS.table-from-rows
   [table-from-rows:

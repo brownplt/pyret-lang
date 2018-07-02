@@ -460,6 +460,7 @@
       "Table": ["data", "Table", [], [], {
         "length": ["arrow", [], "Number"]
       }],
+      "Row": ["data", "Row", [], [], { }],
       "Function": ["data", "Function", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],
       "Object": ["data", "Object", [], [], {}],

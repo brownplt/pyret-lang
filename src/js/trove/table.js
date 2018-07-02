@@ -592,6 +592,11 @@
           ffi.checkArity(3, arguments, "build-column", true);
           runtime.checkArgsInternal2("tables", "build-column",
             colname, runtime.String, func, runtime.Function);
+
+          if(hasColumn(colname)) {
+            ffi.throwMessageException("build-column: tried adding the column " + colname + " but it already exists (existing column names were " + headers.join(", ") + ")");
+          }
+
           var wrappedFunc = function(rawRow) {
             return runtime.safeCall(function() {
               return func.app(getRowContentAsGetter(headers, rawRow));
