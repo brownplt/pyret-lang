@@ -77,10 +77,10 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, type-bindings, provides, options)
+fun trace-make-compiled-pyret(add-phase, program-ast, env, modules, bindings, type-bindings, provides, options)
   -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
   anfed = add-phase("ANFed", N.anf-program(program-ast))
-  flatness-env = add-phase("Build flatness env", FL.make-prog-flatness-env(anfed, bindings, type-bindings, env))
+  flatness-env = add-phase("Build flatness env", FL.make-prog-flatness-env(anfed, bindings, type-bindings, env, modules))
   flat-provides = add-phase("Get flat-provides", FL.get-flat-provides(provides, flatness-env, anfed))
   compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, options))
   {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}

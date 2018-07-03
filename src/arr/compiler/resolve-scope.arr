@@ -720,7 +720,7 @@ end
 fun get-origin-loc(o):
   cases(C.BindOrigin) o:
     | bo-local(l) => l
-    | bo-module(_, uri) => S.builtin(uri)
+    | bo-module(uri) => S.builtin(uri)
   end
 end
 
@@ -791,12 +791,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
             | v-var(t) =>
-              b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank, none)
+              b = C.value-bind(C.bo-module(mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank, none)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
-              b = C.value-bind(C.bo-module(none, mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank, none)
+              b = C.value-bind(C.bo-module(mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank, none)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
           end
@@ -809,7 +809,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.types) block:
       mod-info = initial.mods.get-value(initial.globals.types.get-value(name))
-      b = C.type-bind(C.bo-module(none, mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)
+      b = C.type-bind(C.bo-module(mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)
       type-bindings.set-now(names.s-type-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -944,23 +944,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                   cases(C.ValueExport) value-export block:
                     | v-var(t) =>
                       make-atom-for(v, false, e, bindings,
-                        C.value-bind(C.bo-module(some(file), mod-info.from-uri), C.vb-var, _, A.a-any(l2), none))
+                        C.value-bind(C.bo-module(mod-info.from-uri), C.vb-var, _, A.a-any(l2), none))
                     | else =>
                       make-atom-for(v, false, e, bindings,
-                        C.value-bind(C.bo-module(some(file), mod-info.from-uri), C.vb-let, _, A.a-any(l2), none))
+                        C.value-bind(C.bo-module(mod-info.from-uri), C.vb-let, _, A.a-any(l2), none))
                   end
                 | none =>
                   # NOTE(joe): This seems odd – just trusting a binding from another module that
                   # we don't know about statically?
                   make-atom-for(v, false, e, bindings,
-                    C.value-bind(C.bo-module(some(file), mod-info.from-uri), C.vb-let, _, A.a-any(l2), none))
+                    C.value-bind(C.bo-module(mod-info.from-uri), C.vb-let, _, A.a-any(l2), none))
               end
               { v-atom-env.env; link(v-atom-env.atom, vn) }
             end
             {te; tn} = for fold(nv-t from {atom-env-t.env; empty}, t from tnames):
               {te; tn} = nv-t
               t-atom-env = make-atom-for(t, false, te, type-bindings,
-                C.type-bind(C.bo-module(some(file), mod-info.from-uri), C.tb-type-let, _, none))
+                C.type-bind(C.bo-module(mod-info.from-uri), C.tb-type-let, _, none))
               { t-atom-env.env; link(t-atom-env.atom, tn) }
             end
             new-header = A.s-import-complete(l2,

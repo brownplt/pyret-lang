@@ -56,7 +56,7 @@ end
 
 data BindOrigin:
   | bo-local(loc :: Loc)
-  | bo-module(mod :: Option<A.ImportType>, uri :: URI)
+  | bo-module(uri :: URI)
 end
 
 data ValueBinder:
@@ -88,23 +88,6 @@ data TypeBind:
       atom :: A.Name,
       ann :: Option<A.Ann>)
 end
-
-#|
-data ScopeBinding:
-  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
-  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
-end
-
-data TypeBinding:
-  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
-end
-|#
 
 data ScopeResolution:
   | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
@@ -1134,7 +1117,7 @@ data CompileError:
               ED.highlight(ED.text("defined as a type"), [ED.locs: loc], 1),
               ED.text(":")],
             ED.cmcode(loc)]
-        | bo-module(_, uri) =>
+        | bo-module(uri) =>
           [ED.error: intro, usage,
             [ED.para:
               ED.text("But it is defined as a type in "),

@@ -383,43 +383,39 @@ fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv)
   end
 end
 
-fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, type-bindings :: SD.MutableStringDict<C.TypeBind>, env :: C.CompileEnvironment)
+fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, type-bindings :: SD.MutableStringDict<C.TypeBind>, env :: C.CompileEnvironment, modules)
 -> { SD.MutableStringDict<Option<Number>>; SD.MutableStringDict<Option<Number>> } block:
 
   sd = SD.make-mutable-string-dict()
   for SD.each-key-now(k from bindings):
     vb = bindings.get-value-now(k)
     when C.is-bo-module(vb.origin):
-      cases(Option) vb.origin.mod block:
-        | none =>
-          when A.is-s-global(vb.atom) block:
-            name = vb.atom.toname()
-            dep = env.globals.values.get-value(name)
-            provides-opt = env.mods.get(dep)
-            cases (Option) provides-opt:
-              | none => nothing
-              | some(provides) =>
-                ve = provides.values.get-value(name)
-                cases(C.ValueExport) ve:
-                  | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
-                  | else => nothing
-                end
+      if A.is-s-global(vb.atom) block:
+        name = vb.atom.toname()
+        dep = env.globals.values.get-value(name)
+        provides-opt = env.mods.get(dep)
+        cases (Option) provides-opt:
+          | none => nothing
+          | some(provides) =>
+            ve = provides.values.get-value(name)
+            cases(C.ValueExport) ve:
+              | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
+              | else => nothing
             end
-          end
-        | some(import-type) =>
-          dep = AU.import-to-dep(import-type).key()
-          cases(Option) env.mods.get(dep):
-            | none => raise("There is a binding whose module is not in the compile env: " + to-repr(k) + " " + to-repr(import-type))
-            | some(provides) =>
-              exported-as = vb.atom.toname()
-              value-export = provides.values.get-value(exported-as)
-              cases(C.ValueExport) value-export:
-                | v-fun(_, _, flatness) =>
-                  sd.set-now(k, flatness)
-                | else =>
-                  nothing
-              end
-          end
+        end
+      else:
+        cases(Option) modules.get-now(vb.origin.uri):
+          | none => raise("There is a binding whose module is not in the compile env: " + to-repr(k) + " " + vb.origin.uri)
+          | some(mod-info) =>
+            exported-as = vb.atom.toname()
+            value-export = mod-info.provides.values.get-value(exported-as)
+            cases(C.ValueExport) value-export:
+              | v-fun(_, _, flatness) =>
+                sd.set-now(k, flatness)
+              | else =>
+                nothing
+            end
+        end
       end
     end
   end
@@ -449,25 +445,21 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
   for SD.each-key-now(k from type-bindings):
     tb = type-bindings.get-value-now(k)
     when C.is-bo-module(tb.origin):
-      cases(Option) tb.origin.mod block:
-        | none =>
-          when A.is-s-type-global(tb.atom) block:
-            name = tb.atom.toname()
-            dep = env.globals.types.get-value(name)
-            provides-opt = env.mods.get(dep)
-            cases (Option) provides-opt:
-              | none => nothing
-              | some(provides) =>
-                init-type-provides(provides, tb)
-            end
-          end
-        | some(import-type) =>
-          dep = AU.import-to-dep(import-type).key()
-          cases(Option) env.mods.get(dep):
-            | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + to-repr(import-type))
-            | some(provides) =>
-              init-type-provides(provides, tb)
-          end
+      if A.is-s-type-global(tb.atom):
+        name = tb.atom.toname()
+        dep = env.globals.types.get-value(name)
+        provides-opt = env.mods.get(dep)
+        cases (Option) provides-opt:
+          | none => nothing
+          | some(provides) =>
+            init-type-provides(provides, tb)
+        end
+      else:
+        cases(Option) modules.get-now(tb.origin.uri):
+          | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + tb.origin.uri)
+          | some(mod-info) =>
+            init-type-provides(mod-info.provides, tb)
+        end
       end
     end
   end
