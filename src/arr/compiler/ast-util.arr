@@ -791,8 +791,8 @@ set-tail-visitor = A.default-map-visitor.{
       A.app-info-c(app-info.is-recursive, self.is-tail))
   end,
 
-  method s-prim-app(self, l, _fun, args):
-    A.s-prim-app(l, _fun, args.map(_.visit(self.{is-tail: false})))
+  method s-prim-app(self, l, _fun, args, app-info):
+    A.s-prim-app(l, _fun, args.map(_.visit(self.{is-tail: false})), app-info)
   end,
 
   # skip s-instantiate because all positions which could have s-app-enriched could be in the tail position

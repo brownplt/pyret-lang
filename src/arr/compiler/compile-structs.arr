@@ -497,6 +497,25 @@ data CompileError:
           ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
           ED.text(" specifies arguments that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
     end
+  | contract-inconsistent-params(loc :: Loc, name :: String, defn-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("specifies type parameters that are inconsistent with the "),
+          ED.highlight(ED.text("associated definition"), [list: self.defn-loc], -1), ED.text(":")],
+        ED.cmcode(self.defn-loc)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" specifies type parameters that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
+    end
   | contract-unused(loc :: Loc, name :: String) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -2557,6 +2576,7 @@ runtime-provides = provides("builtin://global",
     "is-raw-array", t-pred,
     "is-tuple", t-pred,
     "is-table", t-pred,
+    "is-row", t-pred,
     "gensym", t-top,
     "random", t-top,
     "run-task", t-top,
@@ -2688,6 +2708,7 @@ runtime-provides = provides("builtin://global",
      "NumNonNegative", t-top,
      "String", t-str,
      "Table", t-top,
+     "Row", t-top,
      "Function", t-top,
      "Boolean", t-top,
      "Object", t-top,

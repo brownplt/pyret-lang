@@ -427,7 +427,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-let should have already been desugared")
         | s-ref(l, ann) =>
           raise("checking for s-ref not implemented")
-        | s-contract(l, name, ann) =>
+        | s-contract(l, name, params, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
           raise("s-when should have already been desugared")
@@ -552,7 +552,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-prim-app(l, _fun, args) =>
+        | s-prim-app(l, _fun, args, _) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-val(l, name) =>
           raise("checking for s-prim-val not implemented")
@@ -689,7 +689,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-let should have already been desugared")
     | s-ref(l, ann) =>
       raise("synthesis for s-ref not implemented")
-    | s-contract(l, name, ann) =>
+    | s-contract(l, name, params, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>
       raise("s-when should have already been desugared")
@@ -800,9 +800,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         .typing-bind(lam(fun-type, shadow context):
           synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
         end)
-    | s-prim-app(l, _fun, args) =>
+    | s-prim-app(l, _fun, args, app-info) =>
       lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, shadow context):
-        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _), args, l, context)
+        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _, app-info), args, l, context)
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>

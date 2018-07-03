@@ -55,6 +55,40 @@ data FieldFailure:
 end
 
 data FailureReason:
+  | bad-bracket-target(loc, obj) with:
+    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      obj-loc = if src-available(loc):
+        cases(O.Option) maybe-ast(loc):
+          | some(ast) =>
+            if ast.label() == "s-bracket": ast.obj.l
+            else: loc
+            end
+          | none => loc
+        end
+      else: loc
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("A "), ED.highlight(ED.text("bracket expression"), [ED.locs: self.loc], 0),
+          ED.text(" only works with "),
+          ED.code(ED.text("Row")), ED.text("s, "),
+          ED.code(ED.text("StringDict")), ED.text("s, or values that define a "),
+          ED.code(ED.text("get-value")), ED.text(" method.")],
+        ED.cmcode(self.loc),
+        [ED.para: ED.text("The bracket expression's "),
+          ED.highlight(ED.text("target"), [ED.locs: obj-loc], 1), ED.text(" was:")],
+        [ED.para: ED.embed(self.obj)]]
+    end,
+    method render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para:
+          ED.text("The bracket expression at "), draw-and-highlight(self.loc),
+          ED.text(" only works with "),
+          ED.code(ED.text("Row")), ED.text("s, "),
+          ED.code(ED.text("StringDict")), ED.text("s, or values that define a "),
+          ED.code(ED.text("get-value")), ED.text(" method.  The value was:")],
+        [ED.para: ED.embed(self.obj)]]
+    end
   | failure-at-arg(loc, index, function-name, args, reason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       cases(O.Option) maybe-stack-loc(0, true):
@@ -62,16 +96,23 @@ data FailureReason:
           if src-available(app-loc):
             cases(O.Option) maybe-ast(app-loc):
               | some(ast) =>
+                ast-label = ast.label()
+                {nth-arg; call-type} = ask:
+                  | ast-label == "s-bracket" then:
+                    {if self.index == 0: ast.obj else: ast.key end; "bracket expression"}
+                  | otherwise:
+                    {ast.args.get(self.index); "function application"}
+                end
                 [ED.error:
                   [ED.para:
                     ED.text("The "),
-                    ED.highlight(ED.text("function application"), [ED.locs: app-loc], -1)],
+                    ED.highlight(ED.text(call-type), [ED.locs: app-loc], -1)],
                    ED.cmcode(app-loc),
                   [ED.para:
                     ED.text("failed because the "),
                     ED.highlight(
                       [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")],
-                      [ED.locs: ast.args.get(self.index).l], 0),
+                      [ED.locs: nth-arg.l], 0),
                     ED.text(" evaluated to an unexpected value.")],
                   self.reason.render-fancy-reason(loc, false, maybe-stack-loc, src-available, maybe-ast)]
               | none      =>
@@ -114,9 +155,8 @@ data FailureReason:
           ED.text(" : The argument at position " + tostring(self.index + 1)),
           ED.text(" was invalid because: ")],
         self.reason.render-reason(loc, from-fail-arg),
-        [ED.para:
-          ED.text("The other arguments were:"),
-          ED.h-sequence(L.map(ED.embed, self.args), " ", O.some(" and "))]]
+        [ED.para: ED.text("The other arguments were:")],
+        [ED.para: ED.h-sequence-sep(L.map(ED.embed, self.args), " ", " and ")]]
     end
   | ref-init(loc, reason :: FailureReason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast) block:

@@ -74,6 +74,7 @@
       "is-raw-array":{'bind': 'fun', 'flatness': 0, 'name': 'is-raw-array', 'typ': 'AnyPred'},
       "is-string":{'bind': 'fun', 'flatness': 0, 'name': 'is-string', 'typ': 'AnyPred'},
       "is-table":{'bind': 'fun', 'flatness': 0, 'name': 'is-table', 'typ': 'AnyPred'},
+      "is-row":{'bind': 'fun', 'flatness': 0, 'name': 'is-row', 'typ': 'AnyPred'},
       "is-tuple":{'bind': 'fun', 'flatness': 0, 'name': 'is-tuple', 'typ': 'AnyPred'},
 
       // Array functions
@@ -460,6 +461,7 @@
       "Table": ["data", "Table", [], [], {
         "length": ["arrow", [], "Number"]
       }],
+      "Row": ["data", "Row", [], [], { }],
       "Function": ["data", "Function", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],
       "Object": ["data", "Object", [], [], {}],

@@ -370,7 +370,7 @@ check "add-row":
   t.add-row(t2.row(true, true, 12)) is answer
 
   t.add-row("a", t.row(true, true, 12)) raises-satisfies E.is-arity-mismatch
-  t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
+  t.add-row(table: a end) raises-satisfies contract(_, C.is-failure-at-arg)
 
   t.add-row([raw-row:]) raises "row-length"
   t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; false}, {"d"; 22}]) raises "row-length"
@@ -392,8 +392,8 @@ check "row-n":
 
   t.row-n(45) raises-satisfies E.is-message-exception
   t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
-  t.row-n(4.3) raises-satisfies E.is-generic-type-mismatch
-  t.row-n("a") raises-satisfies E.is-generic-type-mismatch
+  t.row-n(4.3) raises-satisfies contract(_, C.is-failure-at-arg)
+  t.row-n("a") raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
 end
 
@@ -502,6 +502,14 @@ check "select-columns":
   t.select-columns([list: 1]) raises-satisfies E.is-generic-type-mismatch
   t.select-columns([list: "a"], 2) raises-satisfies E.is-arity-mismatch
 
+  # Regression from https://github.com/brownplt/pyret-lang/issues/1348
+  table-examp = table: a, b, c, d, e
+    row: "Bob", 12, "blue", 62, false
+    row: "Alice", 17, "green", 55, true
+    row: "Eve", 13, "red", 70, false
+  end
+
+  table-examp.select-columns([list: "a", "b", "c", "d", "e"]).row-n(4) raises-satisfies E.is-message-exception
 end
 
 check "filter":
@@ -550,6 +558,33 @@ check "filter-by":
   t.filter-by() raises-satisfies E.is-arity-mismatch
   t.filter-by("a", {(a): a > 3}, 4) raises-satisfies E.is-arity-mismatch
 
+end
+
+check "build-column":
+  t = table: a, b
+    row: 1, 2
+    row: 4, 5
+  end
+
+  with-c = t.build-column("c", {(r): r["b"] + 5})
+  with-c is table: a, b, c
+    row: 1, 2, 7
+    row: 4, 5, 10
+  end
+
+  with-c-and-d = with-c.build-column("d", {(r): num-to-string(r["c"])})
+  with-c-and-d is table: a, b, c, d
+    row: 1, 2, 7, "7"
+    row: 4, 5, 10, "10"
+  end
+
+  with-c-and-d.build-column("d", lam(x): x end) raises "(existing column names were a, b, c, d)"
+  t.build-column("a", lam(x): x end) raises "(existing column names were a, b)"
+
+  t.build-column("z", lam(x) block:
+    x satisfies is-row
+    x
+  end)
 end
 
 check "table-from-rows":
