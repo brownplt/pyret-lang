@@ -676,6 +676,17 @@ well-formed-visitor = A.default-iter-visitor.{
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
+  method s-extend(self, l :: Loc, supe :: A.Expr, fields :: List<A.Member>) block:
+    ensure-unique-fields(fields.reverse())
+    check-underscore-name(fields, "a field name")
+    lists.all(_.visit(self), fields)
+  end,
+  method s-dot(self, l :: Loc, obj :: A.Expr, field :: String) block:
+    when field == "_":
+      add-error(C.underscore-as(l, "a field name"))
+    end
+    obj.visit(self)
+  end,
   method s-tuple-get(self, l, tup, index, index-loc):
     if not(num-is-integer(index)) or (index < 0) or (index > 1000) block:
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))

@@ -255,6 +255,9 @@ check "underscores":
   c("provide _ end") satisfies CS.is-non-object-provide
 
   c("table: _, a row: 1, 2 end") satisfies CS.is-underscore-as
+
+  c("{a: 1}.{_: 2}") satisfies CS.is-underscore-as
+  c("{a: 1}._") satisfies CS.is-underscore-as
 end
 
 #|
