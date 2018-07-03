@@ -22,7 +22,6 @@ str-method = PP.str(" method")
 str-letrec = PP.str("letrec ")
 str-period = PP.str(".")
 str-bang = PP.str("!")
-str-brackets = PP.str("[]")
 str-cases = PP.str("cases")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
@@ -374,7 +373,7 @@ data ALettable:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
+  | a-prim-app(l :: Loc, f :: String, args :: List<AVal>, app-info :: A.PrimAppInfo) with:
     method label(self): "a-prim-app" end,
     method tosource(self):
       PP.group(PP.str(self.f) +
@@ -542,8 +541,8 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), app-info)
     | a-method-app(_, obj, meth, args) =>
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
-    | a-prim-app(_, f, args) =>
-      a-prim-app(dummy-loc, f, args.map(strip-loc-val))
+    | a-prim-app(_, f, args, app-info) =>
+      a-prim-app(dummy-loc, f, args.map(strip-loc-val), app-info)
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
     | a-tuple-get(_, tup, index) => a-tuple-get(dummy-loc, strip-loc-val(tup), index)
@@ -658,8 +657,8 @@ default-map-visitor = {
   method a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
     a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))
   end,
-  method a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
-    a-prim-app(l, f, args.map(_.visit(self)))
+  method a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>, app-info :: A.PrimAppInfo):
+    a-prim-app(l, f, args.map(_.visit(self)), app-info)
   end,
   method a-ref(self, l :: Loc, ann :: Option<A.Ann>):
     a-ref(l, ann)
@@ -879,7 +878,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
       for fold(acc from from-obj, arg from args):
         freevars-v-acc(arg, acc)
       end
-    | a-prim-app(_, _, args) =>
+    | a-prim-app(_, _, args, _) =>
       for fold(acc from seen-so-far, arg from args):
         freevars-v-acc(arg, acc)
       end

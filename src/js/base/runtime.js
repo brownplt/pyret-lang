@@ -234,10 +234,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         var headers = thisRuntime.getField(val, "headers");
         var rowVals = thisRuntime.getField(val, "values");
-        console.log("Before: ", headers, rowVals);
         headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         rowVals = rowVals.map(function(v) { return renderValueSkeleton(v, values); });
-        console.log("After:", headers, rowVals);
         var row = [];
         for (var i = 0; i < headers.length; i++) {
           row.push(headers[i]);
@@ -473,6 +471,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function getField(obj, field) {
       return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
+    }
+
+    function getBracket(loc, obj, field) {
+      checkArityC(loc, 3, arguments, false);
+      if (obj && obj.dict && obj.dict["get-value"]) {
+        return getFieldLoc(obj, "get-value", loc).app(field);
+      } else {
+        raiseJSJS(
+          thisRuntime.ffi.contractFail(
+            makeSrcloc(loc),
+            thisRuntime.ffi.makeBadBracketException(makeSrcloc(loc), obj)));
+      }
     }
 
     function getMaker(obj, makerField, exprLoc, constrLoc) {
@@ -5696,6 +5706,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'getFieldLoc'      : getFieldLoc,
       'getFieldRef'      : getFieldRef,
       'getFields'        : getFields,
+      'getBracket'       : getBracket,
       'getColonField'    : getColonField,
       'getColonFieldLoc' : getColonFieldLoc,
       'getTuple'         : getTuple,
@@ -6029,6 +6040,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'getDotAnn': 'gDA',
         'getField': 'gF',
         'getFieldRef': 'gFR',
+        'getBracket': 'gB',
         'hasBrand': 'hB',
         'isActivationRecord': 'isAR',
         'isCont': 'isC',

@@ -204,7 +204,7 @@ fun make-lettable-data-env(
       end
     | a-app(_, f, args, _) => default-ret
     | a-method-app(_, obj, meth, args) => default-ret
-    | a-prim-app(_, f, args) => default-ret
+    | a-prim-app(_, f, args, _) => default-ret
     | a-ref(_, ann) => default-ret
     | a-tuple(_, fields) => default-ret
     | a-tuple-get(_, tup, index) => default-ret
@@ -345,7 +345,7 @@ fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv)
       none
 
       # TODO: Treat prim-app as flat always? Track depths of prim-anns?
-    | a-prim-app(_, f, args) => get-flatness-for-call(f, sd)
+    | a-prim-app(_, f, args, _) => get-flatness-for-call(f, sd)
 
       # May check unknown annotations, so is nonflat
     | a-update(_, supe, fields) => none
