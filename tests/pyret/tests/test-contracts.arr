@@ -11,6 +11,7 @@ run-to-result = CH.run-to-result
 run-str = CH.run-str
 output = CH.output
 contract-error = CH.contract-error
+contract-error-contains = CH.contract-error-contains
 compile-error = CH.compile-error
 success = CH.success
 
@@ -441,6 +442,18 @@ check "standalone contract statements":
     ```
     foo :: <A, B>(x :: A) -> B
     fun foo<A, B>(x): 5 end
-    ```) is%(output) success  
+    ```) is%(output) success
+
+  run-str("{get-value: 4}[3]") is%(output) contract-error-contains("The bracket expression at")
+  run-str("5[3]") is%(output) contract-error-contains("The bracket expression at")
+  run-str(
+    ```
+    fun want-row(r): r["a"] end
+    want-row(table: a row: 1 end)
+    ```) is%(output) contract-error-contains("The bracket expression at")
+  run-str(
+    ```
+    table: a row: 1 end.row-n(0)["a"]
+    ```) is%(output) success
 end
 
