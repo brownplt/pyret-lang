@@ -240,6 +240,23 @@ check "duplicated names in data defintiions":
   c("data Foo: bar | bar end") satisfies CS.is-duplicate-variant
 end
 
+check "underscores":
+  c("cases(List) _: | empty => 5 end") satisfies CS.is-underscore-as-expr
+  c("cases(List) _: | empty => 5 | else => 6 end") satisfies CS.is-underscore-as-expr
+  c("cases(List) empty: | empty => _ end") satisfies CS.is-underscore-as-expr
+  c("cases(List) empty: | _ => 5 end") satisfies CS.is-underscore-as-pattern
+  c("block:\n _ \n 5 \n end") satisfies CS.is-underscore-as-expr
+  c("{ method foo(self): _ end }") satisfies CS.is-underscore-as-expr
+  c("{ fieldname: _ }") satisfies CS.is-underscore-as-expr
+  c("method(self): _ end") satisfies CS.is-underscore-as-expr
+  c("lam(self): _ end") satisfies CS.is-underscore-as-expr
+  c("fun foo(self): _ end") satisfies CS.is-underscore-as-expr
+  c("check: _ end") satisfies CS.is-underscore-as-expr
+  c("provide _ end") satisfies CS.is-non-object-provide
+
+  c("table: _, a row: 1, 2 end") satisfies CS.is-underscore-as
+end
+
 #|
       it("should notice empty blocks", function(done) {
         P.checkCompileError("lam(): end", function(e) {
@@ -383,8 +400,8 @@ end
         P.wait(done);
       });
       it("underscores", function(done) {
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "The underscore");
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "The underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end") satisfies CS.as-underscore
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end") satisfies CS.as-underscore
         P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "The underscore");
         P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
         P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "The underscore");

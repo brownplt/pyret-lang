@@ -331,7 +331,12 @@ fun wf-examples-body(visitor, body):
   end
 end
 
-fun wf-table-headers(loc, headers):
+fun wf-table-headers(loc, headers) block:
+  for lists.each(h from headers):
+    when h.name == "_":
+      add-error(C.underscore-as(h.l, "as a table column's name in a table expression"))
+    end
+  end
   cases(List) headers block:
     | empty =>
       add-error(C.table-empty-header(loc))
@@ -823,7 +828,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
     wf-table-headers(l, header)
-    if is-empty(header):
+    if is-empty(header) block:
       true
     else:
       expected-len = header.length()

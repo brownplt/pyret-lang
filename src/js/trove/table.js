@@ -205,16 +205,6 @@
         return headerIndex.hasOwnProperty("column:" + column_name);
       }
       
-      function getRowAsRecord(row_index) {
-        /* TODO: Raise error if no row at index */
-        var obj = {};
-        var row = rows[row_index];
-        for(var i = 0; i < headers.length; i++) {
-          obj[headers[i]] = row[i];
-        }
-        return obj;
-      }
-
       function getRowContentAsRecordFromHeaders(headers, raw_row) {
         /* TODO: Raise error if no row at index */
         var obj = {};
