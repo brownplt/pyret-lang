@@ -476,13 +476,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function getBracket(loc, obj, field) {
       checkArityC(loc, 3, arguments, false);
       if (obj && obj.dict && obj.dict["get-value"]) {
-        return getFieldLoc(obj, "get-value", loc).app(field);
-      } else {
-        raiseJSJS(
-          thisRuntime.ffi.contractFail(
-            makeSrcloc(loc),
-            thisRuntime.ffi.makeBadBracketException(makeSrcloc(loc), obj)));
+        var gV = getColonFieldLoc(obj, "get-value", loc);
+        if (thisRuntime.isMethod(gV)) {
+          return gV.full_meth(obj, field);
+        } else if (thisRuntime.isFunction(gV)) {
+          return gV.app(field);
+        }
       }
+      raiseJSJS(
+        thisRuntime.ffi.contractFail(
+          makeSrcloc(loc),
+          thisRuntime.ffi.makeBadBracketException(makeSrcloc(loc), obj)));
     }
 
     function getMaker(obj, makerField, exprLoc, constrLoc) {
