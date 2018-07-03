@@ -480,6 +480,12 @@
       return err("module-load-failure")(namesList);
     }
 
+    function makeBadBracketException(loc, val) {
+      runtime.checkPyretVal(val);
+      return contract("bad-bracket-target")(loc, val);
+    }
+    
+    
     function makeRecordFieldsFail(value, failures) {
       runtime.checkPyretVal(value);
       return contract("record-fields-fail")(value, failures);
@@ -625,6 +631,7 @@
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
+      makeBadBracketException: makeBadBracketException,
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
       makeFieldFailure: makeFieldFailure,

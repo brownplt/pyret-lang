@@ -15,6 +15,7 @@ type ANFCont = (N.ALettable -> N.AExpr)
 fun get-value(o): o.value end
 
 names = A.global-names
+flat-prim-app = A.prim-app-info-c(false)
 
 fun mk-id(loc, base):
   t = names.make-atom(base)
@@ -341,7 +342,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       N.a-let(
         l,
         bind(l, array-id),
-        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length())]),
+        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length())], flat-prim-app),
         anf-name-arr-rec(values, array-id, 0, lam():
           k(N.a-val(l, N.a-id(l, array-id)))
         end))
@@ -388,9 +389,9 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
             end)
       end
 
-    | s-prim-app(l, f, args) =>
+    | s-prim-app(l, f, args, app-info) =>
       anf-name-rec(args, "anf_arg", lam(vs):
-          k(N.a-prim-app(l, f, vs))
+          k(N.a-prim-app(l, f, vs, app-info))
         end)
 
     | s-instantiate(_, body, _) =>
@@ -400,11 +401,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf-name(obj, "anf_bracket", lam(t-obj): k(N.a-dot(l, t-obj, field)) end)
 
     | s-bracket(l, obj, field) =>
-      fname = cases(A.Expr) field:
-          | s-str(_, s) => s
-          | else => raise("Non-string field: " + torepr(field))
-        end
-      anf-name(obj, "anf_bracket", lam(t-obj): k(N.a-dot(l, t-obj, fname)) end)
+      raise("Impossible")
 
     | s-ref(l, ann) =>
       k(N.a-ref(l, ann))

@@ -194,6 +194,9 @@ global-names = MakeName(0)
 data AppInfo:
   | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
 end
+data PrimAppInfo:
+  | prim-app-info-c(needs-step :: Boolean)
+end
 
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>, blocky :: Boolean) -> PP.PPrintDoc:
@@ -910,7 +913,7 @@ data Expr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
-  | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
+  | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo) with:
     method label(self): "s-prim-app" end,
     method tosource(self):
       PP.group(PP.str(self._fun)
@@ -969,7 +972,7 @@ data Expr:
     method tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
   | s-bracket(l :: Loc, obj :: Expr, key :: Expr) with:
     method label(self): "s-bracket" end,
-    method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
+    method tosource(self): PP.infix-break(INDENT, 0, PP.mt-doc, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.key.tosource(), PP.rbrack))
     end
   | s-data(
@@ -2116,8 +2119,8 @@ default-map-visitor = {
   method s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo):
     s-app-enriched(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
-  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s-prim-app(l, _fun, args.map(_.visit(self)))
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo):
+    s-prim-app(l, _fun, args.map(_.visit(self)), app-info)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(l, name)
@@ -2676,7 +2679,7 @@ default-iter-visitor = {
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and lists.all(_.visit(self), args)
   end,
-  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, _):
     lists.all(_.visit(self), args)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
@@ -3213,8 +3216,8 @@ dummy-loc-visitor = {
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
   end,
-  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s-prim-app(dummy-loc, _fun, args.map(_.visit(self)))
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo):
+    s-prim-app(dummy-loc, _fun, args.map(_.visit(self)), app-info)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(dummy-loc, name)

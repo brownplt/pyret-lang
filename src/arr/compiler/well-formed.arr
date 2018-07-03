@@ -1158,8 +1158,8 @@ top-level-visitor = A.default-iter-visitor.{
       well-formed-visitor.s-app(l, _fun, args)
     end
   end,
-  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
-    well-formed-visitor.s-prim-app(l, _fun, args)
+  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>, app-info :: A.PrimAppInfo):
+    well-formed-visitor.s-prim-app(l, _fun, args, app-info)
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)

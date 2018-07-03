@@ -125,6 +125,18 @@ end
 
 contract-error = { success: false, runtime: true, check-errors: check-contract-error }
 
+fun contract-error-contains(check-err):
+  { success: false,
+    runtime: true,
+    check-errors:
+      lam(errors):
+        msg = L.render-error-message(errors).message
+        string-contains(msg, check-err)
+      end
+  }
+end
+  
+
 fun field-error(fields):
   { success: false,
     runtime: true,
