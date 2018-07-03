@@ -116,7 +116,7 @@ data FailureReason:
         self.reason.render-reason(loc, from-fail-arg),
         [ED.para:
           ED.text("The other arguments were:"),
-          ED.h-sequence(L.map(ED.embed, self.args), " ")]]
+          ED.h-sequence(L.map(ED.embed, self.args), " ", O.some(" and "))]]
     end
   | ref-init(loc, reason :: FailureReason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast) block:

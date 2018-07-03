@@ -3,22 +3,15 @@ import global as _
 import either as E
 import error-display as ED
 import srcloc as S
-import option as option
-import lists as lists
-
-map_n = lists.map_n
-
-type Option = option.Option
-some = option.some
-none = option.none
+import option as O
 
 fun nth-stack-frame(n :: Number, user-frames-only :: Boolean, stack):
   usable-frames =
     if user-frames-only: stack.filter(S.is-srcloc)
     else: stack
     end
-  if usable-frames.length() > n: some(usable-frames.get(n))
-  else: none
+  if usable-frames.length() > n: O.some(usable-frames.get(n))
+  else: O.none
   end
 end
 
@@ -34,7 +27,7 @@ fun display-to-string(e :: ED.ErrorDisplay, embed-display, stack):
       end
     | loc(l) => l.format(true)
     | maybe-stack-loc(n, user-frames-only, contents-with-loc, contents-without-loc) =>
-      cases(Option) nth-stack-frame(n, user-frames-only, stack):
+      cases(O.Option) nth-stack-frame(n, user-frames-only, stack):
         | none => help(contents-without-loc)
         | some(l) => help(contents-with-loc(l))
       end
@@ -49,6 +42,8 @@ fun display-to-string(e :: ED.ErrorDisplay, embed-display, stack):
     | code(contents) => "`" + help(contents) + "`"
     | h-sequence(contents, sep) =>
       contents.filter(lam(c): not(ED.is-optional(c)) end).map(help).join-str(sep)
+    | h-sequence-sep(contents, sep, last-sep) =>
+      contents.filter(lam(c): not(ED.is-optional(c)) end).map(help).join-str-last(sep, last-sep)
     | v-sequence(contents) =>
       contents.filter(lam(c): not(ED.is-optional(c)) end).map(help).join-str("\n")
     | bulleted-sequence(contents) =>

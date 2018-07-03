@@ -1,7 +1,9 @@
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import render-error-display as RED
 import file("../test-compile-helper.arr") as C
 
 sc = lam(test-str): string-contains(_, test-str) end
+
 fun c(str) block:
   errs = C.get-compile-errs(str)
   when is-empty(errs):
@@ -11,7 +13,7 @@ fun c(str) block:
 end
 fun cwfs(str):
   err = c(str)
-  err.msg
+  RED.display-to-string(err.render-reason(), torepr, empty)
 end
   
 fun cok(str):
@@ -202,8 +204,8 @@ check "tuple bindings":
 end
 
 check "reactors":
-  cwfs("reactor: todraw: 67 end") satisfies sc("must have a field named init")
-  cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named todraw")
+  cwfs("reactor: todraw: 67 end") satisfies sc("must have a field named `init`")
+  cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named `todraw`")
   cwfs("reactor: method f(self): 5 end end") satisfies sc("cannot contain method fields")
   cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end

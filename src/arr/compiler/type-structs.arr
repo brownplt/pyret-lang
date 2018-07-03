@@ -63,7 +63,7 @@ fun type-member-map(members :: TypeMembers, f :: (String, Type -> Type)) -> Type
 end
 
 fun type-member-output(field-name :: String, typ :: Type):
-  VS.vs-seq([list: VS.vs-str(field-name), VS.vs-str(" :: "), VS.vs-value(typ)])
+  field-name + " :: " + typ.to-string()
 end
 
 fun variant-field-get-value(fields :: List<{String; Type}>, name :: String) -> {String; Type}:
@@ -188,7 +188,7 @@ sharing:
         new-onto = onto.substitute(new-type, type-var)
         t-forall(introduces, new-onto, l, inferred)
       | t-ref(typ, l, inferred) =>
-        t-ref(typ.substitute(new-type, type-var, l), inferred)
+        t-ref(typ.substitute(new-type, type-var), l, inferred)
       | t-data-refinement(data-type, variant-name, l, inferred) =>
         t-data-refinement(data-type.substitute(new-type, type-var),
                           variant-name,
@@ -507,64 +507,66 @@ sharing:
   method _lessthan(self, other):
     self.key() < other.key()
   end,
-  method _output(self):
+  method to-string(self):
     var current-letter = "A"
-    fun helper(typ, free-vars-mapping, tyvar-mapping):
+    fun helper(typ, free-vars-mapping, tyvar-mapping) -> String:
       h = helper(_, free-vars-mapping, tyvar-mapping)
       cases(Type) typ:
         | t-name(module-name, id, _, _) =>
-          VS.vs-str(id.toname())
+          id.toname()
         | t-arrow(args, ret, _, _) =>
-          VS.vs-seq([list: VS.vs-str("(")]
-            + interleave(args.map(h), VS.vs-str(", "))
-            + [list: VS.vs-str(" -> "), h(ret), VS.vs-str(")")])
+          "("
+            + args.map(h).join-str(", ")
+            + " -> " + h(ret)
+            + ")"
         | t-app(onto, args, _, _) =>
-          VS.vs-seq([list: h(onto), VS.vs-str("<")]
-            + interleave(args.map(h), VS.vs-str(", "))
-            + [list: VS.vs-str(">")])
+          h(onto) + "<"
+            + args.map(h).join-str(", ")
+            + ">"
         | t-top(_, _) =>
-          VS.vs-str("Any")
+          "Any"
         | t-bot(_, _) =>
-          VS.vs-str("Bot")
+          "Bot"
         | t-record(fields, _, _) =>
-          VS.vs-seq([list: VS.vs-str("{")]
-            + interleave(fields.map-keys(lam(key): type-member-output(key, fields.get-value(key)) end), VS.vs-str(", "))
-            + [list: VS.vs-str("}")])
+          "{"
+            + fields.map-keys(lam(key): type-member-output(key, fields.get-value(key)) end).join-str(", ")
+            + "}"
         | t-tuple(elts, _, _) =>
-          VS.vs-seq([list: VS.vs-str("{")]
-            + interleave(elts.map(h), VS.vs-str("; "))
-            + [list: VS.vs-str("}")])
+          "{"
+            + elts.map(h).join-str("; ")
+            + "}"
         | t-forall(introduces, onto, _, _) =>
-          VS.vs-seq([list: VS.vs-str("forall ")]
-            + interleave(introduces.map(h), VS.vs-str(", "))
-            + [list: VS.vs-str(" . "), h(onto)])
+          "forall "
+            + introduces.map(h).join-str(", ")
+            + " . " + h(onto)
         | t-ref(ref-typ, _, _) =>
-          VS.vs-seq([list: VS.vs-str("ref "), h(ref-typ)])
+          "ref " + h(ref-typ)
         | t-data-refinement(data-type, variant-name, _, _) =>
-          VS.vs-seq([list: VS.vs-str("("),
-                          h(data-type),
-                          VS.vs-str(" % is-" + variant-name + ")")])
+          "("
+            + h(data-type)
+            + " % is-" + variant-name
+            + ")"
         | t-var(id, _, _) =>
           cases(Name) id:
             | s-atom(base, _) =>
               if base == "%tyvar":
                 cases(Option<String>) tyvar-mapping.get-now(typ.key()) block:
-                  | some(name) => VS.vs-str(name)
+                  | some(name) => name
                   | none =>
                     letter = current-letter
                     tyvar-mapping.set-now(typ.key(), current-letter)
                     current-letter := string-from-code-point(string-to-code-point(letter) + 1)
-                    VS.vs-str(letter)
+                    letter
                 end
               else:
-                VS.vs-str(id.toname())
+                id.toname()
               end
             | else =>
-              VS.vs-str(id.toname())
+              id.toname()
           end
         | t-existential(id, _, _) =>
-          VS.vs-str("?-" + free-vars-mapping.get-value(typ.key()))
-          #VS.vs-str(id.key())
+          "?-" + free-vars-mapping.get-value(typ.key())
+          #id.key()
       end
     end
     free-vars-list = self.free-variables().to-list()
@@ -572,7 +574,27 @@ sharing:
       mapping.set(free-var.key(), tostring(position))
     end, 1, SD.make-string-dict(), free-vars-list)
     helper(self, free-vars-mapping, SD.make-mutable-string-dict())
+  end,
+  method _output(self):
+    VS.vs-str(self.to-string())
   end
+end
+
+check:
+  a-name = t-name(local, A.s-name(A.dummy-loc, "a"), A.dummy-loc, false)
+  b-name = t-name(local, A.s-name(A.dummy-loc, "b"), A.dummy-loc, false)
+  a-name.to-string() is "a"
+  t-arrow([list: a-name, b-name], a-name, A.dummy-loc, false).to-string() is "(a, b -> a)"
+  t-top(A.dummy-loc, false).to-string() is "Any"
+  t-bot(A.dummy-loc, false).to-string() is "Bot"
+  t-record([string-dict: "a", a-name, "b", a-name], A.dummy-loc, false).to-string() is "{a :: a, b :: a}"
+  t-tuple([list: a-name, b-name], A.dummy-loc, false).to-string() is "{a; b}"
+  t-forall([list: a-name, b-name], b-name, A.dummy-loc, false).to-string() is "forall a, b . b"
+  t-ref(a-name, A.dummy-loc, false).to-string() is "ref a"
+  t-data-refinement(a-name, "a", A.dummy-loc, false).to-string() is "(a % is-a)"
+  t-var(A.s-atom("%tyvar", 0), A.dummy-loc, false).to-string() is "A"
+  t-var(A.s-name(A.dummy-loc, "a"), A.dummy-loc, false).to-string() is "a"
+  t-existential(A.s-name(A.dummy-loc, "a"), A.dummy-loc, false).to-string() is "?-1"
 end
 
 fun new-existential(l :: Loc, inferred :: Boolean):

@@ -239,11 +239,11 @@
         },
         'spy-field': function(node) {
           if (node.kids.length === 1) {
-            return RUNTIME.getField(ast, 's-spy-name')
-              .app(pos(node.pos), tr(node.kids[0]));
+            return RUNTIME.getField(ast, 's-spy-expr')
+              .app(pos(node.pos), symbol(node.kids[0].kids[0]), tr(node.kids[0]), RUNTIME.makeBoolean(true));
           } else {
             return RUNTIME.getField(ast, 's-spy-expr')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
           }
         },
         'data-with': function(node) {
@@ -1411,6 +1411,8 @@
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-OPER")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
+          else if (nextTok.name === "COLONCOLON")
+            RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));
           else if (typeof opLookup[String(nextTok.value).trim()] === "function")
             RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
           else

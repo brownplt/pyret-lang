@@ -136,6 +136,14 @@ fun make-default-types() block:
   default-typs.set-now("hasField", t-arrow([list: t-record([string-dict: ]), t-string], t-boolean))
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
 
+  default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
+  default-typs.set-now("equal-always", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("equal-now", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("identical", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
+  default-typs.set-now("equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
+  default-typs.set-now("identical3", t-arrow([list: t-top, t-top], t-equality-result))
+
   default-typs.set-now("getMaker", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "make", t-arrow([list: t-array(tvb)], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: t-array(tvb)], tva))))
   default-typs.set-now("getLazyMaker", t-forall([list: tva, tvb], t-arrow([list: t-record([string-dict: "lazy-make", t-arrow([list: t-array(t-arrow([list: ], tvb))], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: t-array(t-arrow([list: ], tvb))], tva))))
   default-typs.set-now("getMaker0", t-forall([list: tva], t-arrow([list: t-record([string-dict: "make0", t-arrow([list: ], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: ], tva))))
@@ -293,7 +301,7 @@ module-const-sets = t-module("builtin://sets",
         "add", t-arrow([list: tva], t-set-app(tva)),
         "remove", t-arrow([list: tva], t-set-app(tva)),
         "size", t-arrow([list: ], t-number),
-        "member", t-arrow([list: tva], t-set-app(tva)),
+        "member", t-arrow([list: tva], t-boolean),
         "pick", t-arrow([list: ], t-pick-app(tva, t-set-app(tva))),
         "union", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
         "intersect", t-arrow([list: t-set-app(tva)], t-set-app(tva)),
@@ -438,11 +446,9 @@ module-const-lists = t-module("builtin://lists",
 
 t-and-then =
   t-forall(
-    [list: tva],
+    [list: tva, tvb],
     t-arrow(
-      [list:
-        t-arrow([list: tva], t-option-app(tvb))
-      ],
+      [list: t-arrow([list: tva], tvb)],
       t-option-app(tvb)))
 
 module-const-option = t-module("builtin://option",

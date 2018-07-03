@@ -228,7 +228,7 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     end
   docstr =
     if is-nothing(doc) or (doc == ""): PP.mt-doc
-    else: str-doc + PP.dquote(PP.str(doc)) + PP.hardline
+    else: str-doc + PP.str(torepr(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
 end
@@ -399,7 +399,7 @@ data ImportType:
     method tosource(self):
       PP.group(PP.str(self.kind)
           + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(PP.str)))))
+            PP.separate(PP.commabreak, self.args.map(torepr).map(PP.str)))))
     end
 sharing:
   method visit(self, visitor):
@@ -1066,7 +1066,7 @@ data Expr:
             self.body.tosource(), str-end)
         | some(name) => PP.surround(INDENT, 1,
             if self.keyword-check: PP.str("check ") else: PP.str("examples ") end
-              + PP.dquote(PP.str(name)) + str-colon,
+              + PP.str(torepr(name)) + str-colon,
             self.body.tosource(), str-end)
       end
     end
@@ -1213,13 +1213,14 @@ sharing:
 end
 
 data SpyField:
-  | s-spy-name(l :: Loc, name :: Expr%(is-s-id)) with:
-    method label(self): "s-spy-name" end,
-    method tosource(self): self.name.tosource() end
-  | s-spy-expr(l :: Loc, name :: String, value :: Expr) with:
+  | s-spy-expr(l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean) with:
+    # implicit-label is true for the shorthand form (`spy: x end`), and false for
+    # the longer form (`spy: some-name: x end`)
     method label(self): "s-spy-expr" end,
-    method tosource(self): 
-      PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
+    method tosource(self):
+      if self.implicit-label: self.value.tosource()
+      else: PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -2306,15 +2307,12 @@ default-map-visitor = {
   method s-table-src(self, l, src :: Expr):
     s-table-src(l, src.visit(self))
   end,
-  
+
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     s-spy-block(l, self.option(message), contents.map(_.visit(self)))
   end,
-  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
-    s-spy-name(l, name.visit(self))
-  end,
-  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
-    s-spy-expr(l, name, value.visit(self))
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
+    s-spy-expr(l, name, value.visit(self), implicit-label)
   end,
 
   method a-blank(self): a-blank end,
@@ -2851,17 +2849,14 @@ default-iter-visitor = {
   method s-table-src(self, l, src):
     src.visit(self)
   end,
-    
+
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     self.option(message) and lists.all(_.visit(self), contents)
   end,
-  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
-    name.visit(self)
-  end,
-  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
     value.visit(self)
   end,
-  
+
   method a-blank(self):
     true
   end,
@@ -3413,11 +3408,8 @@ dummy-loc-visitor = {
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     s-spy-block(dummy-loc, self.option(message), contents.map(_.visit(self)))
   end,
-  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
-    s-spy-name(dummy-loc, name.visit(self))
-  end,
-  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
-    s-spy-expr(dummy-loc, name, value.visit(self))
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
+    s-spy-expr(dummy-loc, name, value.visit(self), implicit-label)
   end,
 
   method a-blank(self): a-blank end,

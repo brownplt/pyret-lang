@@ -3,19 +3,10 @@ provide *
 provide-types *
 
 import global as _
-import option as O
-import either as E
+include option
+include either
 import equality as equality
 import valueskeleton as VS
-
-none = O.none
-is-none = O.is-none
-some = O.some
-is-some = O.is-some
-type Option = O.Option
-left = E.left
-right = E.right
-type Either = E.Either
 
 data List<a>:
   | empty with:
@@ -24,7 +15,7 @@ data List<a>:
       0
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       none
     end,
@@ -99,7 +90,7 @@ data List<a>:
       partition(f, self)
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       find(f, self)
     end,
@@ -228,11 +219,16 @@ sharing:
     doc: "Returns the list without the element if found, or the whole list if it is not"
     remove(self, e)
   end,
-  method join-str(self :: List<a>, str :: String) -> String:
+  method join-str(self :: List<a>, sep :: String) -> String:
     doc: ```Returns a string containing the tostring() forms of the elements of this list,
           joined by the provided separator string.```
-    join-str(self, str)
-  end
+    join-str(self, sep)
+  end,
+  method join-str-last(self :: List<a>, sep :: String, last-sep :: String) -> String:
+    doc: ```Returns a string containing the tostring() forms of the elements of this list,
+            joined by the provided separator string, and the provided last-separator before the last string```
+    join-str-last(self, sep, last-sep)
+  end,
 end
 
 fun length<a>(lst :: List<a>) -> Number:
@@ -356,10 +352,10 @@ end
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
   if start > stop: raise("range: start greater than stop: ("
-                                 + tostring(start)
-                                 + ", "
-                                 + tostring(stop)
-                                 + ")")
+        + tostring(start)
+        + ", "
+        + tostring(stop)
+        + ")")
   else: raw-array-to-list(raw-array-build(_ + start, stop - start))
   end
 end
@@ -436,7 +432,7 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
-fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
+fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
   if is-empty(lst):
@@ -452,7 +448,7 @@ end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
-  when n < 0:
+  when (n < 0) or not(num-is-integer(n)):
     raise("Invalid index")
   end
   var prefix = empty
@@ -683,7 +679,7 @@ fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
   cases(List) lst:
     | empty => base
     | link(elt, r) =>
-      cases(E.Either) f(base, elt):
+      cases(Either) f(base, elt):
         | left(v) => fold-while(f, v, r)
         | right(v) => v
       end
@@ -695,8 +691,6 @@ fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
         starting with the initial value```
   builtins.raw-list-fold(f, base, lst)
 end
-
-rec foldl = fold
 
 fun foldr<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the right,
@@ -751,13 +745,6 @@ fun fold_n<a, b>(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List
   help(num, base, lst)
 end
 
-fun join-str<A>(l :: List<A>, s :: String) -> String:
-  raw-array-map(tostring, builtins.raw-array-from-list(l))
-    ^ builtins.raw-array-join-str(_, s)
-where:
-  join-str([list: 1, "2", 3], "+") is "1+2+3"
-end
-
 fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
   ask:
     | is-empty(lst) then: equality.NotEqual("list", elt, lst)
@@ -779,9 +766,6 @@ end
 fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member3(lst, elt))
 end
-
-member-always3 = member3
-member-always = member
 
 fun member-now3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
   member-with(lst, elt, equal-now3)
@@ -870,6 +854,29 @@ where:
   take-while(_ > 0, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
   take-while(_ == true, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
 end
+
+fun join-str<a>(l :: List<a>, sep :: String) -> String:
+  builtins.raw-list-join-str-last(l, sep, sep)
+where:
+  join-str([list: 1, "2", 3], "+") is "1+2+3"
+  join-str([list: ], "+") is ""
+  join-str([list: 1], "+") is "1"
+  join-str([list: 1, 2], "+") is "1+2"
+end
+
+fun join-str-last<a>(l :: List<a>, sep :: String, last-sep :: String) -> String:
+  builtins.raw-list-join-str-last(l, sep, last-sep)
+where:
+  join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
+  join-str-last([list: ], "+", "-") is ""
+  join-str-last([list: 1], "+", "-") is "1"
+  join-str-last([list: 1, 2], "+", "-") is "1-2"
+  join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
+end
+
+member-always3 = member3
+member-always = member
+foldl = fold
 
 list = {
   make: raw-array-to-list,

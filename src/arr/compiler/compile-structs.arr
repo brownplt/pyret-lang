@@ -139,7 +139,7 @@ end
 
 # The strings in globals should be the appropriate dependency (e.g. in mods)
 data Globals:
-  | globals(values :: StringDict<URI>, types :: StringDict<URI>)
+  | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
 
 data ValueExport:
@@ -329,17 +329,15 @@ fun draw-and-highlight(l):
 end
 
 data CompileError:
-  | wf-err(msg :: String, loc :: A.Loc) with:
+  | wf-err(msg :: List<ED.ErrorDisplay>, loc :: A.Loc) with:
     method render-fancy-reason(self):
       self.render-reason()
     end,
     method render-reason(self):
       [ED.error:
-        [ED.para:
-          ED.text("Well-formedness:"),
-          ED.text(self.msg),
-          ED.text("at")],
-        draw-and-highlight(self.loc)]
+        ED.paragraph([list: ED.highlight(ED.text("Well-formedness:"), [list: self.loc], 0), ED.text(" ")]
+            + self.msg),
+        ED.cmcode(self.loc)]
     end
   | wf-empty-block(loc :: A.Loc) with:
     method render-fancy-reason(self):
@@ -806,8 +804,9 @@ data CompileError:
         [ED.para:
           ED.text("is not inside a "),
           ED.code(ED.text("check")),
+          ED.text(", "), ED.code(ED.text("where")),
           ED.text(" or "),
-          ED.code(ED.text("where")),
+          ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end,
     method render-reason(self):
@@ -817,8 +816,9 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" is not inside a "),
           ED.code(ED.text("check")),
+          ED.text(", "), ED.code(ED.text("where")),
           ED.text(" or "),
-          ED.code(ED.text("where")),
+          ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end
   | unwelcome-test-refinement(refinement, op) with:
@@ -1053,9 +1053,9 @@ data CompileError:
           [ED.error:
             [ED.para:
               ED.text("The name "),
-              ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], 0)),
+              ED.code(ED.highlight(ED.text(self.ann.tosource().pretty(1000).join-str("")), [ED.locs: self.ann.l], 0)),
               ED.text(" is used to indicate a type, but a definition of a type named "),
-              ED.code(ED.highlight(ED.text(self.ann.id.toname()), [ED.locs: self.ann.l], 0)),
+              ED.code(ED.highlight(ED.text(self.ann.tosource().pretty(1000).join-str("")), [ED.locs: self.ann.l], 0)),
               ED.text(" could not be found.")]]
       end
     end,
@@ -1067,7 +1067,7 @@ data CompileError:
             ED.text(self.ann.tosource().pretty(1000).first), ED.text("at"),
             draw-and-highlight(self.id.l)]
         | srcloc(_, _, _, _, _, _, _) =>
-          ann-name = if A.is-a-name(self.ann): self.ann.id.toname() else: self.ann.obj.toname() + "." + self.ann.field end
+          ann-name = self.ann.tosource().pretty(1000).join-str("")
           [ED.error:
             [ED.para:
               ED.text("The name "),
@@ -1860,7 +1860,7 @@ data CompileError:
           ED.loc(self.previous),
           ED.text(".")]]
     end,
-  | unneccesary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
+  | unnecessary-branch(branch :: A.CasesBranch, data-type :: T.DataType, cases-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1895,7 +1895,7 @@ data CompileError:
           ED.text("'s variants:")],
          ED.bulleted-sequence(self.data-type.variants.map(_.name).map(ED.text))]
     end
-  | unneccesary-else-branch(type-name :: String, loc :: A.Loc) with:
+  | unnecessary-else-branch(type-name :: String, loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -2480,6 +2480,7 @@ default-compile-options = {
   module-eval: true,
   compiled-cache: "compiled",
   display-progress: true,
+  should-profile: method(_, locator): false end,
   log: lam(s, to-clear):
     cases(Option) to-clear block:
       | none => print(s)

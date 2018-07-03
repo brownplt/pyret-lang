@@ -15,8 +15,11 @@
                  origin: { "import-type": "uri", uri: "builtin://image" },
                  name: "Image" },
       "ValueSkeleton": { tag: "name",
-                 origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
-                 name: "ValueSkeleton" }
+                         origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
+                         name: "ValueSkeleton" },
+      "Table": { tag: "name",
+                 origin: { "import-type": "uri", uri: "builtin://global" },
+                 name: "Table" }
     },
     values: {
       "keypress": ["arrow", ["String"], ["local", "Event"]],
@@ -27,13 +30,13 @@
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
       "interact": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
-      "interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
-      "simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Any"]],
+      "interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Table"]],
+      "simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Table"]],
       "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "stop-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "get-trace": ["forall", ["a"], ["arrow", ["RofA"], ["List", ["tid", "a"]]]],
-      "get-trace-as-table": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
-      "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]],
+      "get-trace-as-table": ["forall", ["a"], ["arrow", ["RofA"], "Table"]],
+      "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]]
     },
     aliases: {
       "Event": "ReactorEvent",
