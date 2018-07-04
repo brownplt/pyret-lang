@@ -45,6 +45,10 @@
      */
     function makeTensor(underlyingTensor) {
       var obj = O({
+        "size": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "size");
+          return runtime.makeNumber(self.$underlyingTensor.size);
+        }),
         "flatten": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "flatten");
           return makeTensor(self.$underlyingTensor.flatten());
