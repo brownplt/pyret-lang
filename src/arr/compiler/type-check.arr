@@ -180,11 +180,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
-      uri = globts.get-value(g)
+      dep-key = globts.get-value(g)
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.provides-by-uri(uri):
+        cases(Option<C.Provides>) compile-env.provides-by-dep-key(dep-key):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -196,7 +196,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(dep-key) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end
