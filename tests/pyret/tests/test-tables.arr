@@ -560,6 +560,43 @@ check "filter-by":
 
 end
 
+check "transform-column":
+  t = table: a, b, c, d, e
+    row: 1, 2, 3, 4, 5
+    row: 10, 11, 12, 13, 14
+  end
+
+  t2 = t.transform-column("b", lam(x): x * 10 end)
+  t2 is table: a, b, c, d, e
+    row: 1, 20, 3, 4, 5
+    row: 10, 110, 12, 13, 14
+  end
+
+  t3 = t.transform-column("e", lam(x): x * 10 end)
+  t3 is table: a, b, c, d, e
+    row: 1, 2, 3, 4, 50
+    row: 10, 11, 12, 13, 140
+  end
+
+  t4 = t.transform-column("a", lam(x): x * 10 end)
+  t4 is table: a, b, c, d, e
+    row: 10, 2, 3, 4, 5
+    row: 100, 11, 12, 13, 14
+  end
+
+  t5 = t4.transform-column("c", lam(x): x * 10 end)
+  t5 is table: a, b, c, d, e
+    row: 10, 2, 30, 4, 5
+    row: 100, 11, 120, 13, 14
+  end
+
+  t.transform-column("g", lam(x): x end) raises "but it doesn't exist (existing column name(s) were a, b, c, d, e)"
+
+  t-empty = table: a, b end
+  t-empty.transform-column("a", lam(x): raise("should not reach here") end) is t-empty
+
+end
+
 check "build-column":
   t = table: a, b
     row: 1, 2

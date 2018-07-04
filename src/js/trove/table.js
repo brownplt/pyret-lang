@@ -578,6 +578,35 @@
           return makeTable(newHeaders, newRows);
         }),
 
+        'transform-column': runtime.makeMethod1(function(self, colname, func) {
+          ffi.checkArity(3, arguments, "transform-column", true);
+          runtime.checkArgsInternal3("tables", "transform-column",
+            self, annTable, colname, runtime.String, func, runtime.Function);
+
+          if(!hasColumn(colname)) {
+            ffi.throwMessageException("transform-column: tried changing the column " + colname + " but it doesn't exist (existing column name(s) were " + headers.join(", ") + ")");
+          }
+
+          var i = headerIndex['column:' + colname];
+
+          var wrappedFunc = function(rawRow) {
+            return runtime.safeCall(function() {
+              return func.app(rawRow[i]);
+            },
+            function(newVal) {
+              var result = rawRow.slice(0, i).concat([newVal]).concat(rawRow.slice(i + 1, rawRow.length));
+              return result;
+            }, "table-transform-cell");
+          };
+
+          return runtime.safeCall(function() {
+            return runtime.raw_array_map(runtime.makeFunction(wrappedFunc, "func"), rows);
+          }, function(newRows) {
+            return makeTable(headers, newRows);
+          }, "table-transform-column");
+        }),
+
+
 
         'build-column': runtime.makeMethod1(function(self, colname, func) {
           ffi.checkArity(3, arguments, "build-column", true);
