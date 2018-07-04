@@ -9,6 +9,7 @@
     "test": "tests"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^0.11.7",
     "mustache": "^0.8.1",
     "jasmine-node": "1.14.5",
     "sweet.js": "~0.4.2",
