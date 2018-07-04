@@ -75,7 +75,7 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
       imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
       imp-name = A.s-underscore(l)
       info-key = U.import-to-dep(imp).key()
-      mod-info = env.mods.get(info-key)
+      mod-info = env.provides-by-dep-key(info-key)
       cases(Option<C.Provides>) mod-info:
         | none => raise("No compile-time information provided for module " + info-key)
         | some(provides) =>
@@ -704,7 +704,7 @@ where:
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.standard-builtins).ast.visit(A.dummy-loc-visitor) end
+  ds = lam(prog): desugar-scope(prog, C.no-builtins).ast.visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
@@ -736,8 +736,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         -  Contains no s-name in names
        ```
   var name-errors = [list: ]
+
+  # Maps from keys to ValueBinds
   bindings = SD.make-mutable-string-dict()
+
+  # Maps from keys to TypeBinds
   type-bindings = SD.make-mutable-string-dict()
+
+  # Maps from keys to data expressions
   datatypes = SD.make-mutable-string-dict()
 
   fun make-anon-import-for(l, s, env, shadow bindings, b) block:
@@ -775,7 +781,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.values):
-      mod-info = initial.mods.get-value(initial.globals.values.get-value(name))
+      mod-info = initial.provides-by-value-name-value(name)
       val-info = mod-info.values.get(name)
       # TODO(joe): I am a little confused about how many times we are asserting
       # that something is bound here, in bindings vs. in the environment
@@ -808,7 +814,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun type-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.types) block:
-      mod-info = initial.mods.get-value(initial.globals.types.get-value(name))
+      mod-info = initial.provides-by-type-name-value(name)
       b = C.type-bind(C.bo-module(mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)
       type-bindings.set-now(names.s-type-global(name).key(), b)
       acc.set-now(name, b)
@@ -882,7 +888,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     { column-binds: A.s-column-binds(column-binds.l, env-and-binds.cbs, column-binds.table.visit(visitor)),
                env: env-and-binds.env }
   end
-      
+
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
@@ -919,7 +925,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         cases(A.Import) i block:
           | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
             info-key = U.import-to-dep(file).key()
-            mod-info = initial-env.mods.get-value(info-key)
+            mod-info = initial-env.provides-by-dep-key-value(info-key)
             atom-env =
               if A.is-s-underscore(name-vals):
                 make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
@@ -948,6 +954,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                     | else =>
                       make-atom-for(v, false, e, bindings,
                         C.value-bind(C.bo-module(mod-info.from-uri), C.vb-let, _, A.a-any(l2), none))
+
+                    #| MARK
+                      is-shadowing = cases(Option) e.get(v.toname()):
+                        | none => 
+                          make-atom-for(v, false, e, bindings,
+                            C.value-bind(C.bo-module(mod-info.from-uri), C.vb-let, _, A.a-any(l2), none))
+                        | some(vb) =>
+                          file
+                      end
+                      |#
+
                   end
                 | none =>
                   # NOTE(joe): This seems odd – just trusting a binding from another module that
@@ -1451,6 +1468,6 @@ where:
   p = PP.surface-parse(_, "test")
   px = p("x")
   resolved = C.resolved-names(px, empty, [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:])
-  unbound1 = check-unbound-ids-bad-assignments(px, resolved, C.standard-builtins)
+  unbound1 = check-unbound-ids-bad-assignments(px, resolved, C.no-builtins)
   unbound1.length() is 1
 end

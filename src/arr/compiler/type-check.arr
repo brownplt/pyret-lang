@@ -126,7 +126,7 @@ fun split<X, Y>(ps :: List<{X;Y}>) -> {List<X>; List<Y>}:
 end
 
 fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
-  c.mods.get-value(AU.import-to-dep(i).key()).from-uri
+  c.uri-by-dep-key(AU.import-to-dep(i).key())
 end
 
 # if a t-name refers to a polymorphic data type convert it to a t-app with existentials
@@ -166,13 +166,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
-      uri = globvs.get-value(g)
+      dep-key = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
 
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-dep-key-value(dep-key, g).t))
       end
     end
   end, context)
@@ -184,7 +184,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.mods.get(uri):
+        cases(Option<C.Provides>) compile-env.provides-by-uri(uri):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -196,7 +196,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end

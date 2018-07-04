@@ -383,7 +383,7 @@ fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv)
   end
 end
 
-fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, type-bindings :: SD.MutableStringDict<C.TypeBind>, env :: C.CompileEnvironment, modules)
+fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C.ValueBind>, type-bindings :: SD.MutableStringDict<C.TypeBind>, env :: C.CompileEnvironment)
 -> { SD.MutableStringDict<Option<Number>>; SD.MutableStringDict<Option<Number>> } block:
 
   sd = SD.make-mutable-string-dict()
@@ -392,23 +392,18 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
     when C.is-bo-module(vb.origin):
       if A.is-s-global(vb.atom) block:
         name = vb.atom.toname()
-        dep = env.globals.values.get-value(name)
-        provides-opt = env.mods.get(dep)
-        cases (Option) provides-opt:
+        cases (Option) env.global-value(name):
           | none => nothing
-          | some(provides) =>
-            ve = provides.values.get-value(name)
+          | some(ve) =>
             cases(C.ValueExport) ve:
               | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
               | else => nothing
             end
         end
       else:
-        cases(Option) modules.get-now(vb.origin.uri):
-          | none => raise("There is a binding whose module is not in the compile env: " + to-repr(k) + " " + vb.origin.uri)
-          | some(mod-info) =>
-            exported-as = vb.atom.toname()
-            value-export = mod-info.provides.values.get-value(exported-as)
+        cases(Option) env.value-by-uri(vb.origin.uri, vb.atom.toname()):
+          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri)
+          | some(value-export) =>
             cases(C.ValueExport) value-export:
               | v-fun(_, _, flatness) =>
                 sd.set-now(k, flatness)
@@ -447,18 +442,17 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
     when C.is-bo-module(tb.origin):
       if A.is-s-type-global(tb.atom):
         name = tb.atom.toname()
-        dep = env.globals.types.get-value(name)
-        provides-opt = env.mods.get(dep)
+        provides-opt = env.provides-by-type-name(name)
         cases (Option) provides-opt:
           | none => nothing
           | some(provides) =>
             init-type-provides(provides, tb)
         end
       else:
-        cases(Option) modules.get-now(tb.origin.uri):
+        cases(Option) env.provides-by-uri(tb.origin.uri):
           | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + tb.origin.uri)
-          | some(mod-info) =>
-            init-type-provides(mod-info.provides, tb)
+          | some(mod-provides) =>
+            init-type-provides(mod-provides, tb)
         end
       end
     end

@@ -1013,10 +1013,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             cases(Option<String>) compile-env.globals.types.get(name):
               | none => raise("Name not found in globals.types: " + name)
               | some(key) =>
-                cases(Option<CS.Provides>) compile-env.mods.get(key):
-                  | none => raise("Module not found in compile-env.mods: " + key
+                cases(Option<URI>) compile-env.my-modules.get(key):
+                  | none => raise("Module not found in compile-env.my-modules: " + key
                         + " (looked up for " + name + " for module " + uri + ")")
-                  | some(mod) => T.t-name(T.module-uri(mod.from-uri), id, l, false)
+                  | some(mod-uri) => T.t-name(T.module-uri(mod-uri), id, l, false)
                 end
             end
           | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
@@ -1221,8 +1221,8 @@ fun canonicalize-value-export(ve :: CS.ValueExport, uri :: URI, tn):
 end
 
 fun find-mod(compile-env, uri) -> Option<String>:
-  for find(depkey from compile-env.mods.keys-list()):
-    other-uri = compile-env.mods.get-value(depkey).from-uri
+  for find(depkey from compile-env.my-modules.keys-list()):
+    other-uri = compile-env.my-modules.get-value(depkey)
     other-uri == uri
   end
 end
@@ -1277,7 +1277,7 @@ fun canonicalize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvi
           end
         end
       | dependency(d) =>
-        provides-for-d = compile-env.mods.get(d)
+        provides-for-d = compile-env.provides-by-dep-key(d)
         cases(Option<CS.Provides>) provides-for-d:
         | some(p) => T.t-name(module-uri(p.from-uri), name, loc, inferred)
         | none => raise("Unknown module dependency for type: " + torepr(t) + " in provides for " + provides.from-uri)
@@ -1319,7 +1319,7 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
           end
         end
       | dependency(d) =>
-        provides-for-d = compile-env.mods.get(d)
+        provides-for-d = compile-env.my-modules.get(d)
         cases(Option<CS.Provides>) provides-for-d:
         | some(p) => t
         | none => raise("Unknown module dependency for type: " + torepr(t) + " in provides for " + provides.from-uri)

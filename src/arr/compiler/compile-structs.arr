@@ -36,6 +36,8 @@ is-t-app = T.is-t-app
 type URI = String
 type StringDict = SD.StringDict
 string-dict = SD.string-dict
+mutable-string-dict = SD.mutable-string-dict
+type MutableStringDict = SD.MutableStringDict
 
 is-s-block = A.is-s-block
 
@@ -113,14 +115,121 @@ data ExtraImport:
   | extra-import(dependency :: Dependency, as-name :: String, values :: List<String>, types :: List<String>)
 end
 
+data Loadable:
+  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, result-printer :: CompileResult<Any>)
+    # NOTE(joe): there's a circular dependency between this module and js-of-pyret.arr; hence the Any above
+end
+
+
 data CompileEnvironment:
   | compile-env(
         globals :: Globals,
-        mods :: StringDict<Provides> # map from dependency key to info provided from module
+        all-modules :: MutableStringDict<Loadable>,
+        my-modules :: StringDict<URI>
       )
+sharing:
+  # TODO(joe/ben/jose): Write a recursive lookup here
+  # that fully resolves names (once ValueExport and
+  # friends have that information)
+  method value-by-uri(self, uri :: String, name :: String):
+    self.all-modules
+      .get-value-now(uri)
+      .provides
+      .values.get(name)
+  end,
+  method value-by-uri-value(self, uri :: String, name :: String):
+    cases(Option) self.value-by-uri(uri, name):
+      | none => raise("Could not find value " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method type-by-uri(self, uri, name):
+    self.all-modules
+      .get-value-now(uri)
+      .provides
+      .types.get(name)
+  end,
+  method type-by-uri-value(self, uri, name):
+    cases(Option) self.type-by-uri(uri, name):
+      | none => raise("Could not find type " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method global-value(self, name :: String):
+    self.globals.values.get(name)
+      .and-then(self.value-by-dep-key(_, name))
+      .and-then(_.value)
+  end,
+  method global-type(self, name :: String):
+    self.globals.types.get(name)
+      .and-then(self.type-by-dep-key(_, name))
+      .and-then(_.value)
+  end,
+  method uri-by-dep-key(self, dep-key):
+    self.my-modules.get-value(dep-key)
+  end,
+  method provides-by-uri(self, uri):
+    self.all-modules.get-now(uri)
+      .and-then(_.provides)
+  end,
+  method provides-by-dep-key(self, dep-key):
+    self.my-modules.get(dep-key)
+      .and-then(self.all-modules.get-value-now(_))
+      .and-then(_.provides)
+  end,
+  method provides-by-dep-key-value(self, dep-key):
+    cases(Option) self.provides-by-dep-key(dep-key):
+      | none => raise("Could not find dep key: " + dep-key)
+      | some(shadow provides) => provides
+    end
+  end,
+  method provides-by-value-name(self, name):
+    self.globals.values.get(name)
+      .and-then(self.provides-by-dep-key(_))
+      .and-then(_.value)
+  end,
+  method provides-by-value-name-value(self, name):
+    cases(Option) self.provides-by-value-name(name):
+      | none => raise("Could not find value " + name)
+      | some(shadow provides) => provides
+    end
+  end,
+  method provides-by-type-name(self, name):
+    self.globals.types.get(name)
+      .and-then(self.provides-by-dep-key(_))
+      .and-then(_.value)
+  end,
+  method provides-by-type-name-value(self, name):
+    cases(Option) self.provides-by-type-name(name):
+      | none => raise("Could not find type " + name)
+      | some(shadow provides) => provides
+    end
+  end,
+  method value-by-dep-key(self, dep-key, name):
+    uri = self.my-modules.get-value(dep-key)
+    self.value-by-uri(uri, name)
+  end,
+  method value-by-dep-key-value(self, dep-key, name):
+    cases(Option) self.value-by-dep-key(dep-key, name):
+      | none => raise("Could not find " + name + " on " + dep-key)
+      | some(v) => v
+    end
+  end,
+  method type-by-dep-key(self, dep-key, name):
+    uri = self.my-modules.get-value(dep-key)
+    self.type-by-uri(uri, name)
+  end,
+  method uri-by-value-name(self, name):
+    self.globals.values.get(name)
+      .and-then(self.uri-by-dep-key(_))
+  end,
+  method uri-by-type-name(self, name):
+    self.globals.types.get(name)
+      .and-then(self.uri-by-dep-key(_))
+  end
 end
 
-# The strings in globals should be the appropriate dependency (e.g. in mods)
+# The strings in globals should be the appropriate dependency (e.g. in my-modules)
 data Globals:
   | globals(values :: StringDict<String>, types :: StringDict<String>)
 end
@@ -2700,7 +2809,7 @@ runtime-provides = provides("builtin://global",
      "RawArray", t-top  ],
   [string-dict:])
 
-runtime-builtins = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
+runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
   rb.set(k, "builtin(global)")
 end
 
@@ -2711,12 +2820,9 @@ shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-pr
   rt.set(k, "builtin(global)")
 end
 
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides])
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
 
-minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
-
-standard-globals = globals(runtime-builtins, runtime-types)
-standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
+standard-globals = globals(runtime-values, runtime-types)
 
 minimal-imports = extra-imports(empty)
 

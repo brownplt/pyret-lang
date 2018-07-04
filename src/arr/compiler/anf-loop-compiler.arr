@@ -2090,10 +2090,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     # because shared compiled files didn't agree on globals
     cases(A.Name) n:
       | s-global(s) =>
-        dep = env.globals.values.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
+        uri = cases(Option) env.uri-by-value-name(n.toname()):
+          | some(global-uri) => global-uri
+          | none => raise(n.toname() + " not found")
         end
         j-var(js-id-of(n),
           j-bracket(
@@ -2103,10 +2102,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
                 ]),
               j-str(n.toname())))
       | s-type-global(_) =>
-        dep = env.globals.types.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
+        uri = cases(Option) env.uri-by-type-name(n.toname()):
+          | some(type-uri) => type-uri
+          | none => raise(n.toname() + " not found")
         end
         j-var(js-id-of(n),
           j-bracket(
