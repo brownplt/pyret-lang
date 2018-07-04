@@ -597,6 +597,27 @@ check "transform-column":
 
 end
 
+check "rename-column":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+  end
+
+  t2 = t.rename-column("b", "z")
+  t2 is table: a, z, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+  end
+  t2.get-column("z") is [list: 2, 5]
+  t.get-column("z") raises "does not have a column"
+  t2.get-column("b") raises "does not have a column"
+  t.get-column("b") is [list: 2, 5]
+
+  t.rename-column("b", "b") raises "already exists"
+  t.rename-column("z", "b") raises "doesn't exist"
+end
+
+
 check "build-column":
   t = table: a, b
     row: 1, 2

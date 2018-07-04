@@ -578,6 +578,22 @@
           return makeTable(newHeaders, newRows);
         }),
 
+        'rename-column': runtime.makeMethod1(function(self, colname, newcolname) {
+          ffi.checkArity(3, arguments, "rename-column", true);
+          runtime.checkArgsInternal1("tables", "rename-column",
+            self, annTable, colname, runtime.String, newcolname, runtime.String);
+          if(!hasColumn(colname)) {
+            ffi.throwMessageException("transform-column: tried changing the name of column " + colname + " but it doesn't exist (existing column name(s) were " + headers.join(", ") + ")");
+          }
+          if(hasColumn(newcolname)) {
+            ffi.throwMessageException("transform-column: tried changing the name of column " + colname + " to " + newcolname + " but that new name already exists as a column name (existing column name(s) were " + headers.join(", ") + ")");
+          }
+          var newHeaders = headers.map(function(h) {
+            if(h === colname) { return newcolname; } else { return h; }
+          });
+          return makeTable(newHeaders, rows);
+        }),
+
         'transform-column': runtime.makeMethod1(function(self, colname, func) {
           ffi.checkArity(3, arguments, "transform-column", true);
           runtime.checkArgsInternal3("tables", "transform-column",
