@@ -46,22 +46,22 @@
     function makeTensor(underlyingTensor) {
       var obj = O({
         "flatten": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "flatten");
+          checkMethodArity(1, arguments, "flatten");
           return makeTensor(self.$underlyingTensor.flatten());
         }),
         "as-scalar": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "as-scalar");
+          checkMethodArity(1, arguments, "as-scalar");
           if (self.$underlyingTensor.size !== 1) {
             runtime.ffi.throwMessageException("Tensor was size-" + self.$underlyingTensor.size + " but `as-scalar` requires the tensor to be size-1");
           }
           return makeTensor(self.$underlyingTensor.asScalar());
         }),
         "as-1d": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "as-1d");
+          checkMethodArity(1, arguments, "as-1d");
           return makeTensor(self.$underlyingTensor.as1D());
         }),
         "as-2d": runtime.makeMethod2((self, rows, columns) => {
-          checkMethodArity(2, arguments, "as-2d");
+          checkMethodArity(3, arguments, "as-2d");
           runtime.checkNumber(rows);
           runtime.checkNumber(columns);
           var r = unwrap(rows);
@@ -69,7 +69,7 @@
           return makeTensor(self.$underlyingTensor.as2D(r, c));
         }),
         "as-3d": runtime.makeMethod3((self, rows, columns, depth) => {
-          checkMethodArity(3, arguments, "as-3d");
+          checkMethodArity(4, arguments, "as-3d");
           runtime.checkNumber(rows);
           runtime.checkNumber(columns);
           runtime.checkNumber(depth);
@@ -79,7 +79,7 @@
           return makeTensor(self.$underlyingTensor.as3D(r, c, d));
         }),
         "as-4d": runtime.makeMethod4((self, rows, columns, depth1, depth2) => {
-          checkMethodArity(4, arguments, "as-4d");
+          checkMethodArity(5, arguments, "as-4d");
           runtime.checkNumber(rows);
           runtime.checkNumber(columns);
           runtime.checkNumber(depth1);
@@ -91,7 +91,7 @@
           return makeTensor(self.$underlyingTensor.as4D(r, c, d1, d2));
         }),
         "as-type": runtime.makeMethod1((self, datatype) => {
-          checkMethodArity(1, arguments, "as-type");
+          checkMethodArity(2, arguments, "as-type");
           runtime.checkString(datatype);
           var type = unwrap(datatype);
           if (type !== "float32" || type !== "int32" || type !== "bool") {
@@ -108,7 +108,7 @@
         // "data": // Not going to implement `data` since it is async
 
         "data-sync": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "data-sync");
+          checkMethodArity(1, arguments, "data-sync");
           // .dataSync returns a TypedArray, so convert it to a normal JSArray
           // so we can then convert it to a Pyret List:
           var typedArrayData = self.$underlyingTensor.dataSync();
@@ -117,20 +117,20 @@
         }),
         // "dispose":, Probably no need for this
         "to-float": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "to-float");
+          checkMethodArity(1, arguments, "to-float");
           return makeTensor(self.$underlyingTensor.toFloat());
         }),
         "to-int": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "to-int");
+          checkMethodArity(1, arguments, "to-int");
           return makeTensor(self.$underlyingTensor.toInt());
         }),
         "to-bool": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "to-bool");
+          checkMethodArity(1, arguments, "to-bool");
           return makeTensor(self.$underlyingTensor.toBool());
         }),
         // "print":,
         "reshape": runtime.makeMethod0((self, newShape) => {
-          checkMethodArity(1, arguments, "reshape");
+          checkMethodArity(2, arguments, "reshape");
           runtime.checkList(newShape);
           var ns = runtime.toArray(newShape);
           return makeTensor(self.$underlyingTensor.reshape(ns));
@@ -140,7 +140,7 @@
         // "cumsum":,
         // "squeeze":,
         "clone": runtime.makeMethod0((self) => {
-          checkMethodArity(0, arguments, "clone");
+          checkMethodArity(1, arguments, "clone");
           return makeTensor(self.$underlyingTensor.clone());
         }),
         // "to-string":
@@ -153,7 +153,7 @@
     function createTensor(values) {
       arity(1, arguments, "make-tensor", false);
       // A tensor can be rank 0 (just a number); otherwise, it is a List :(
-      if (runtime.isList(values)) {
+      if (runtime.ffi.isList(values)) {
         values = runtime.ffi.toArray(values);
       }
       else {
