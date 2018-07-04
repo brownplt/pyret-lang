@@ -111,7 +111,7 @@ data FailureReason:
                   [ED.para:
                     ED.text("failed because the "),
                     ED.highlight(
-                      [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")], 
+                      [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")],
                       [ED.locs: nth-arg.l], 0),
                     ED.text(" evaluated to an unexpected value.")],
                   self.reason.render-fancy-reason(loc, false, maybe-stack-loc, src-available, maybe-ast)]
@@ -224,7 +224,7 @@ data FailureReason:
         ED.text(" because of the annotation at "), draw-and-highlight(loc),
         ED.text(" but got:")]
       if from-fail-arg:
-        ED.maybe-stack-loc(0, true, 
+        ED.maybe-stack-loc(0, true,
           lam(l):
             [ED.error: message, ED.embed(self.val),
               [ED.para: ED.text("called from around "), draw-and-highlight(l)]]
@@ -284,7 +284,7 @@ data FailureReason:
         ED.text("The predicate"), ED.code(ED.text(self.name)),
         ED.text("in the annotation at"), draw-and-highlight(loc), ED.text("returned false for this value:")]
       if from-fail-arg:
-        ED.maybe-stack-loc(0, true, 
+        ED.maybe-stack-loc(0, true,
           lam(l):
             [ED.error: message, ED.embed(self.val),
               [ED.para: ED.text("called from around"), draw-and-highlight(l)]]
@@ -343,7 +343,7 @@ data FailureReason:
                     ED.highlight(ED.text("expected"), [ED.locs: fl], n),
                     ED.text(" to have a field named "),
                     ED.code(ED.text(ff))]
-                else: 
+                else:
                   [ED.sequence:
                     ED.text("The value was expected to have a field named "),
                     ED.code(ED.text(ff)),
@@ -420,7 +420,7 @@ data FailureReason:
                     ED.highlight(ED.text("expected"), [ED.locs: fl], n),
                     ED.text(" to have a field named "),
                     ED.code(ED.text(ff))]
-                else: 
+                else:
                   [ED.sequence:
                     ED.text("The value was expected to have a field named "),
                     ED.code(ED.text(ff)),
@@ -500,7 +500,7 @@ data FailureReason:
         [ED.para:
           ED.text("The given tuple had the incorrect length of "),
           ED.embed(self.tupleLength)]
-      ] 
+      ]
     end
   | dot-ann-not-present(name, field) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
@@ -560,9 +560,8 @@ data FailureReason:
     end,
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
-        [ED.para: ED.text("Couldn't find"),
+        [ED.para: ED.text("Couldn't find "),
           ED.loc-display(loc, "error-highlight", ED.text("the annotation named " + self.field)),
-          ED.text("in the annotations from"), ED.code(ED.text(self.name))]]
+          ED.text(" in the annotations from"), ED.code(ED.text(self.name))]]
     end
 end
-
