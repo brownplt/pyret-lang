@@ -120,7 +120,7 @@ fun main(args :: List<String>) -> Number block:
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
       if not(is-empty(rest)) block:
-        print-error("No longer supported\n")
+        print-error("Passing command line arguments without compiling standalone no longer supported\n")
         failure-code
       else:
         if r.has-key("build-runnable") block:

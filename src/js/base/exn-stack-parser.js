@@ -40,6 +40,8 @@ define("pyret-base/js/exn-stack-parser", ["source-map"], function(sourceMap) {
 
     var pyretStack = parsedStack.map(function(frame) {
       var uri = uriMap[frame.hashedURI];
+      if(uri === undefined) { return ["unknown"]; }
+      if(realm.static === undefined) { return ["unknown"]; }
       var moduleSourceMap = realm.static[uri].mod.theMap;
       var consumer = new sourceMap.SourceMapConsumer(moduleSourceMap);
       consumer.computeColumnSpans();

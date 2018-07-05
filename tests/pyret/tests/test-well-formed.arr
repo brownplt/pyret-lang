@@ -1,7 +1,9 @@
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
+import render-error-display as RED
 import file("../test-compile-helper.arr") as C
 
 sc = lam(test-str): string-contains(_, test-str) end
+
 fun c(str) block:
   errs = C.get-compile-errs(str)
   when is-empty(errs):
@@ -11,7 +13,7 @@ fun c(str) block:
 end
 fun cwfs(str):
   err = c(str)
-  err.msg
+  RED.display-to-string(err.render-reason(), torepr, empty)
 end
   
 fun cok(str):
@@ -202,8 +204,8 @@ check "tuple bindings":
 end
 
 check "reactors":
-  cwfs("reactor: todraw: 67 end") satisfies sc("must have a field named init")
-  cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named todraw")
+  cwfs("reactor: todraw: 67 end") satisfies sc("must have a field named `init`")
+  cwfs("reactor: init: 5, todraw: 67 end") satisfies sc("but found one named `todraw`")
   cwfs("reactor: method f(self): 5 end end") satisfies sc("cannot contain method fields")
   cwfs("reactor: init: 5, init: 10 end") satisfies sc("Duplicate")
 end
@@ -236,6 +238,26 @@ check "duplicated names in data defintiions":
   c("data Foo: bar | is-bar end") satisfies CS.is-duplicate-is-variant
   c("data Foo: is-bar | bar end") satisfies CS.is-duplicate-is-variant
   c("data Foo: bar | bar end") satisfies CS.is-duplicate-variant
+end
+
+check "underscores":
+  c("cases(List) _: | empty => 5 end") satisfies CS.is-underscore-as-expr
+  c("cases(List) _: | empty => 5 | else => 6 end") satisfies CS.is-underscore-as-expr
+  c("cases(List) empty: | empty => _ end") satisfies CS.is-underscore-as-expr
+  c("cases(List) empty: | _ => 5 end") satisfies CS.is-underscore-as-pattern
+  c("block:\n _ \n 5 \n end") satisfies CS.is-underscore-as-expr
+  c("{ method foo(self): _ end }") satisfies CS.is-underscore-as-expr
+  c("{ fieldname: _ }") satisfies CS.is-underscore-as-expr
+  c("method(self): _ end") satisfies CS.is-underscore-as-expr
+  c("lam(self): _ end") satisfies CS.is-underscore-as-expr
+  c("fun foo(self): _ end") satisfies CS.is-underscore-as-expr
+  c("check: _ end") satisfies CS.is-underscore-as-expr
+  c("provide _ end") satisfies CS.is-non-object-provide
+
+  c("table: _, a row: 1, 2 end") satisfies CS.is-underscore-as
+
+  c("{a: 1}.{_: 2}") satisfies CS.is-underscore-as
+  c("{a: 1}._") satisfies CS.is-underscore-as
 end
 
 #|
@@ -381,8 +403,8 @@ end
         P.wait(done);
       });
       it("underscores", function(done) {
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "The underscore");
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "The underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end") satisfies CS.as-underscore
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end") satisfies CS.as-underscore
         P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "The underscore");
         P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
         P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "The underscore");

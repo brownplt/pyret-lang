@@ -21,8 +21,9 @@ fun ast-lam(ast):
   A.s-lam(ast.l, "", [list: ], [list: ], A.a-blank, "", ast, none, none, true)
 end
 
+flat-prim-app = A.prim-app-info-c(false)
 fun ast-srcloc(l):
-  A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)])
+  A.s-prim-app(l, "makeSrcloc", [list: A.s-srcloc(l, l)], flat-prim-app)
 end
 
 check-stmts-visitor = A.default-map-visitor.{
@@ -110,10 +111,6 @@ fun get-checks(stmts):
               | some(v) => v
             end
             link(check-info(l, check-name, body.visit(check-stmts-visitor), keyword-check), add-check(rest))
-          | s-template(l) =>
-            link(check-info(l, "Incomplete test",
-                A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)]), false),
-              add-check(rest))
           | else => add-check(rest)
         end
     end
@@ -130,7 +127,7 @@ fun create-check-block(l, checks):
             A.s-data-field(l2, "name", A.s-str(l2, name)),
             A.s-data-field(l2, "run", check-fun),
             A.s-data-field(l2, "keyword-check", A.s-bool(l2, keyword-check)),
-            A.s-data-field(l2, "location", A.s-prim-app(l2, "makeSrcloc", [list: A.s-srcloc(l2, l2)]))
+            A.s-data-field(l2, "location", A.s-prim-app(l2, "makeSrcloc", [list: A.s-srcloc(l2, l2)], flat-prim-app))
           ])
     end
   end

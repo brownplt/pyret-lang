@@ -126,7 +126,7 @@ fun split<X, Y>(ps :: List<{X;Y}>) -> {List<X>; List<Y>}:
 end
 
 fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
-  c.mods.get-value(AU.import-to-dep(i).key()).from-uri
+  c.uri-by-dep-key(AU.import-to-dep(i).key())
 end
 
 # if a t-name refers to a polymorphic data type convert it to a t-app with existentials
@@ -166,13 +166,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
-      uri = globvs.get-value(g)
+      dep-key = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
 
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-dep-key-value(dep-key, g).t))
       end
     end
   end, context)
@@ -180,11 +180,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
-      uri = globts.get-value(g)
+      dep-key = globts.get-value(g)
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.mods.get(uri):
+        cases(Option<C.Provides>) compile-env.provides-by-dep-key(dep-key):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -196,7 +196,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(dep-key) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end
@@ -427,7 +427,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-let should have already been desugared")
         | s-ref(l, ann) =>
           raise("checking for s-ref not implemented")
-        | s-contract(l, name, ann) =>
+        | s-contract(l, name, params, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
           raise("s-when should have already been desugared")
@@ -552,7 +552,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-prim-app(l, _fun, args) =>
+        | s-prim-app(l, _fun, args, _) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-val(l, name) =>
           raise("checking for s-prim-val not implemented")
@@ -689,7 +689,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-let should have already been desugared")
     | s-ref(l, ann) =>
       raise("synthesis for s-ref not implemented")
-    | s-contract(l, name, ann) =>
+    | s-contract(l, name, params, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>
       raise("s-when should have already been desugared")
@@ -800,9 +800,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         .typing-bind(lam(fun-type, shadow context):
           synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
         end)
-    | s-prim-app(l, _fun, args) =>
+    | s-prim-app(l, _fun, args, app-info) =>
       lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, shadow context):
-        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _), args, l, context)
+        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _, app-info), args, l, context)
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>
@@ -986,7 +986,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   end, var-type.with-fields)
                 end)
                 variants-meet = cases(List<TypeMembers>) variant-type-fields:
-                  | empty => empty
+                  | empty => [string-dict: ]
                   | link(first, rest) =>
                     cases(List<TypeMembers>) rest:
                       | empty => first
@@ -1291,7 +1291,7 @@ end
 fun synthesis-cases-has-else(l :: Loc, ann :: A.Ann, new-val :: A.Expr, split-result :: {List<A.CasesBranch>; List<Type>}, _else :: A.Expr, context :: Context) -> TypingResult:
   synthesis(_else, false, context).bind(
     lam(new-else, else-type, shadow context):
-      new-cases = A.s-cases-else(l, ann, new-val, split-result.{0}, new-else)
+      new-cases = A.s-cases-else(l, ann, new-val, split-result.{0}, new-else, false)
       meet-branch-types(link(else-type, split-result.{1}), l, context).typing-bind(lam(branches-type, shadow context):
         typing-result(new-cases, branches-type.set-loc(l), context)
       end)
@@ -1733,11 +1733,7 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
         | none =>
           cases(A.Name) binding.id:
             | s-atom(base, _) =>
-              if base == "$underscore":
-                t-top(binding.l, false)
-              else:
-                new-existential(binding.l, true)
-              end
+              new-existential(binding.l, true)
             | else =>
               new-existential(binding.l, true)
           end
@@ -1757,8 +1753,12 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     end
     shadow context = context.add-variable(ret-type)
     fold-arg-types = map-fold-result(lam(arg, shadow context):
+      arg-is-underscore = cases(A.Name) arg.id:
+        | s-atom(base, _) => base == "$underscore"
+        | else => false
+      end
       arg-type = coll.get-value(arg.id.key())
-      if top-level and is-t-existential(arg-type):
+      if top-level and is-t-existential(arg-type) and not(arg-is-underscore):
         fold-errors([list: C.toplevel-unann(arg)])
       else:
         shadow context = context.add-variable(arg-type)
@@ -2060,7 +2060,7 @@ fun meet-branch-types(branch-types :: List<Type>, loc :: Loc, context :: Context
   new-exists = new-existential(loc, false)
   shadow context = context.add-level().add-variable(new-exists)
   shadow context = branch-types.foldr(lam(branch-type, shadow context):
-    context.add-constraint(new-exists, branch-type)
+    context.add-constraint(branch-type, new-exists)
   end, context)
   context.solve-level().bind(lam(solution, shadow context):
     meet-type = solution.generalize(solution.apply(new-exists))

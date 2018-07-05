@@ -7,6 +7,7 @@ import file("js-ast.arr") as J
 import file("gensym.arr") as G
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as CL
+import file("flatness.arr") as FL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
@@ -178,6 +179,7 @@ rt-name-map = [D.string-dict:
   "getDotAnn", "gDA",
   "getField", "gF",
   "getFieldRef", "gFR",
+  "getBracket", "gB",
   "hasBrand", "hB",
   "isActivationRecord", "isAR",
   "isCont", "isC",
@@ -246,10 +248,18 @@ fun get-field-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
   j-app(get-field-loc, [clist: obj, field, loc-expr])
 end
 
+fun get-bracket-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  rt-method("getBracket", [clist: obj, field, loc-expr])
+end
+
 # When the field may not exist, add source mapping so if we can't find it
 # we get a useful stacktrace
 fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
   wrap-with-srcnode(l, get-field-unsafe(obj, field, loc-expr))
+end
+
+fun get-bracket-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  wrap-with-srcnode(l, get-bracket-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
@@ -308,6 +318,20 @@ fun ann-loc(ann):
   end
 end
 
+fun is-flat-enough(flatness):
+  cases(Option) flatness:
+    | none => false
+    | some(v) => v <= 5
+  end
+end
+
+fun is-function-flat(flatness-env :: FL.FEnv, fun-name :: String) -> Boolean:
+  flatness-opt = flatness-env.get-now(fun-name).or-else(none)
+  is-flat-enough(flatness-opt)
+end
+
+
+
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
     | a-name(_, n) => c-exp(j-id(js-id-of(n)), cl-empty)
@@ -364,8 +388,11 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
       end
       compiled-base = compile-ann(base, visitor)
       compiled-exp = expr-to-compile.visit(visitor)
+      is-flat = is-flat-enough(FL.ann-flatness(base, visitor.flatness-env, visitor.type-flatness-env))
+        and is-function-flat(visitor.flatness-env, exp.id.key())
+      pred-maker = if is-flat: "makeFlatPredAnn" else: "makePredAnn" end
       c-exp(
-        rt-method("makePredAnn", [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
+        rt-method(pred-maker, [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
         cl-append(compiled-base.other-stmts, compiled-exp.other-stmts)
         )
     | a-dot(l, m, field) =>
@@ -519,6 +546,7 @@ fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
 end
 
 var total-time = 0
+
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean, is-method :: Boolean) -> J.JBlock block:
@@ -769,6 +797,19 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
                     visitor.get-loc(b.ann.l)])),
               j-break
             ]))
+      cur-target := new-label
+      cl-snoc(acc, new-case)
+    else if is-flat-enough(FL.ann-flatness(b.ann, visitor.flatness-env, visitor.type-flatness-env)):
+      compiled-ann = compile-ann(b.ann, visitor)
+      new-label = visitor.make-label()
+      new-case = j-case(cur-target,
+        j-block(cl-append(compiled-ann.other-stmts,
+            [clist:
+              j-expr(j-assign(step, new-label)),
+              j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
+              j-expr(rt-method("_checkAnn",
+                  [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
+              j-break])))
       cur-target := new-label
       cl-snoc(acc, new-case)
     else:
@@ -1280,17 +1321,8 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
-fun is-function-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: String) -> Boolean:
-  flatness-opt-opt = flatness-env.get(fun-name)
-  flatness-opt = cases (Option) flatness-opt-opt:
-    | some(f-opt) => f-opt
-    | none => none
-  end
-  is-some(flatness-opt) and (flatness-opt.value <= 5)
-end
-
-fun is-id-fn-name(flatness-env :: D.StringDict<Option<Number>>, name :: String) -> Boolean:
-    is-some(flatness-env.get(name))
+fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: String) -> Boolean:
+    flatness-env.has-key-now(name)
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
@@ -1334,8 +1366,75 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
           compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat, false)))])
 end
 
+
+fun compile-split-prim-app(l, compiler, opt-dest, f, args, opt-body):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  c-block(
+    j-block(
+      # Update step before the call, so that if it runs out of gas,
+      # the resumer goes to the right step
+      [clist:
+        j-expr(j-assign(step, after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
+      [clist:
+        j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args)))),
+        j-break]),
+    new-cases)
+end
+
+
+fun compile-flat-prim-app(l, compiler, opt-dest, f, args, opt-body):
+  ans = compiler.cur-ans
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+
+  # Generate the code for calling the function
+  call-code = j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args))))
+
+  # Compile the body of the let. We split it into two portions:
+  # 1) the code that can be in the same "block" (or case region) and
+  # 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-body:
+    | some(body) =>
+      get-remaining-code(compiler, opt-dest, body, ans)
+    | none =>
+      # Special case: there is no more code after this so just jump to the
+      # special last block in the function
+      body = j-block([clist:
+          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+          j-break
+        ])
+      {body; cl-empty}
+  end
+
+  # Now merge the code for calling the function with the next block
+  # (this is basically our optimization, since we're not starting a new case
+  # for the next block)
+  c-block(
+    j-block(cl-cons(call-code, j-block-to-stmt-list(remaining-code))),
+    new-cases)
+end
+
+fun compile-a-prim-app(l :: N.Loc, f :: String, args :: List<N.AVal>,
+    compiler,
+    b :: Option<BindType>,
+    opt-body :: Option<N.AExpr>,
+    app-info :: A.PrimAppInfo):
+
+  app-compiler = if app-info.needs-step:
+    compile-split-prim-app
+  else:
+    compile-flat-prim-app
+  end
+  app-compiler(l, compiler, b, f, args, opt-body)
+end
+
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
   cases(N.ALettable) e:
+    | a-prim-app(l2, f, args, app-info) =>
+      compile-a-prim-app(l2, f, args, compiler, b, opt-body, app-info)
     | a-app(l2, f, args, app-info) =>
       compile-a-app(l2, f, args, compiler, b, opt-body, app-info)
     | a-method-app(l2, obj, m, args) =>
@@ -1490,7 +1589,7 @@ compiler-visitor = {
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     raise("Impossible: a-app directly in compiler-visitor should never happen")
   end,
-  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
+  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>, app-info :: A.PrimAppInfo):
     visit-args = args.map(_.visit(self))
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
@@ -1959,7 +2058,7 @@ fun compile-provides(provides):
   end
 end
 
-fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-env) block:
+fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   js-names.reset()
   shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]) end
@@ -1991,10 +2090,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     # because shared compiled files didn't agree on globals
     cases(A.Name) n:
       | s-global(s) =>
-        dep = env.globals.values.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
+        uri = cases(Option) env.uri-by-value-name(n.toname()):
+          | some(global-uri) => global-uri
+          | none => raise(n.toname() + " not found")
         end
         j-var(js-id-of(n),
           j-bracket(
@@ -2004,10 +2102,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
                 ]),
               j-str(n.toname())))
       | s-type-global(_) =>
-        dep = env.globals.types.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
+        uri = cases(Option) env.uri-by-type-name(n.toname()):
+          | some(type-uri) => type-uri
+          | none => raise(n.toname() + " not found")
         end
         j-var(js-id-of(n),
           j-bracket(
@@ -2192,12 +2289,13 @@ end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
-fun splitting-compiler(env, add-phase, flatness-env, provides, options):
+fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, options):
   compiler-visitor.{
     uri: provides.from-uri,
     add-phase: add-phase,
     options: options,
     flatness-env: flatness-env,
+    type-flatness-env: type-flatness-env,
     method a-program(self, l, _, imports, body) block:
       total-time := 0
       # This achieves nothing with our current code-gen, so it's a waste of time
@@ -2205,7 +2303,7 @@ fun splitting-compiler(env, add-phase, flatness-env, provides, options):
       # add-phase("Remove useless ifs", simplified)
       freevars = N.freevars-e(body)
       add-phase("Freevars-e", freevars)
-      ans = compile-module(self, l, imports, body, freevars, provides, env, flatness-env)
+      ans = compile-module(self, l, imports, body, freevars, provides, env)
       add-phase(string-append("Total simplification: ", tostring(total-time)), nothing)
       ans
     end

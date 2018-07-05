@@ -260,9 +260,10 @@
 
     function throwTypeMismatch(val, typeName) {
       // NOTE(joe): can't use checkPyretVal here, because it will re-enter
-      // this function and blow up... so bottom out at "nothing"
+      // this function and blow up...
       if(!runtime.isPyretVal(val)) {
-        val = runtime.namespace.get("nothing");
+        console.log("Non Pyret value:", val);
+        val = "non-Pyret value; see the console for more details";
       }
       runtime.checkString(typeName);
       raise(err("generic-type-mismatch")(val, typeName));
@@ -479,6 +480,12 @@
       return err("module-load-failure")(namesList);
     }
 
+    function makeBadBracketException(loc, val) {
+      runtime.checkPyretVal(val);
+      return contract("bad-bracket-target")(loc, val);
+    }
+    
+    
     function makeRecordFieldsFail(value, failures) {
       runtime.checkPyretVal(value);
       return contract("record-fields-fail")(value, failures);
@@ -558,6 +565,14 @@
 
     var isEmpty = gf(L, "is-empty").app;
     var isLink = gf(L, "is-link").app;
+    function listLength(lst) {
+      var len = 0;
+      while (isLink(lst)) {
+        len++;
+        lst = gf(lst, "rest");
+      }
+      return len;
+    }
 
     function isList(list) { return runtime.unwrap(runtime.getField(L, "is-List").app(list)); }
 
@@ -616,6 +631,7 @@
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
+      makeBadBracketException: makeBadBracketException,
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
       makeFieldFailure: makeFieldFailure,
@@ -682,6 +698,7 @@
       isList: isList,
       isLink: isLink,
       isEmpty : isEmpty,
+      listLength: listLength,
 
       isErrorDisplay: isErrorDisplay,
       checkErrorDisplay: checkErrorDisplay,

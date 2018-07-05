@@ -5,6 +5,7 @@ provide-types *
 
 import ast as A
 import srcloc as SL
+import error-display as ED
 import file("compile-structs.arr") as C
 import format as F
 import string-dict as SD
@@ -286,7 +287,7 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | s-rec(l, _, _)                      => add-error(C.block-ending(l, block-loc, "rec-binding"))
     | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
     | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
-    | s-contract(l, _, _)                 => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-contract(l, _, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
     | else => nothing
   end
 end
@@ -330,7 +331,12 @@ fun wf-examples-body(visitor, body):
   end
 end
 
-fun wf-table-headers(loc, headers):
+fun wf-table-headers(loc, headers) block:
+  for lists.each(h from headers):
+    when h.name == "_":
+      add-error(C.underscore-as(h.l, "as a table column's name in a table expression"))
+    end
+  end
   cases(List) headers block:
     | empty =>
       add-error(C.table-empty-header(loc))
@@ -420,7 +426,7 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann) block:
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann) block:
     add-error(C.non-toplevel("contract declaration", l, parent-block-loc))
     true
   end,
@@ -430,7 +436,7 @@ well-formed-visitor = A.default-iter-visitor.{
     cases(A.Bind) bind block:
       | s-bind(_,_,_,_) => nothing
       | s-tuple-bind(l2, _, _) =>
-        wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
+        wf-error([list: ED.text("Recursive bindings must be names and cannot be tuple bindings ")], l2)
         nothing
     end
     ans = bind.visit(self) and expr.visit(self)
@@ -483,7 +489,7 @@ well-formed-visitor = A.default-iter-visitor.{
         end
         bind.visit(self) and val.visit(self)
       | s-tuple-bind(l2, _, _) =>
-        wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
+        wf-error([list: ED.text("Variable bindings must be names and cannot be tuple bindings ")], l2)
         true
     end
   end,
@@ -495,20 +501,20 @@ well-formed-visitor = A.default-iter-visitor.{
         end
         bind.visit(self) and val.visit(self)
       | s-tuple-bind(l2, _, _) =>
-        wf-error("Recursive bindings must be names and cannot be tuple bindings ", l2)
+        wf-error([list: ED.text("Recursive bindings must be names and cannot be tuple bindings ")], l2)
         true
     end
   end,
   method s-var-bind(self, l, bind, val) block:
     cases(A.Bind) bind block:
-    | s-bind(_,_,_,_) =>
+      | s-bind(_,_,_,_) =>
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
-       bind.visit(self) and val.visit(self)
-    | s-tuple-bind(l2, _, _) =>
-      wf-error("Variable bindings must be names and cannot be tuple bindings ", l2)
-      true
+        bind.visit(self) and val.visit(self)
+      | s-tuple-bind(l2, _, _) =>
+        wf-error([list: ED.text("Variable bindings must be names and cannot be tuple bindings ")], l2)
+        true
     end
   end,
   method s-block(self, l, stmts):
@@ -670,6 +676,17 @@ well-formed-visitor = A.default-iter-visitor.{
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
+  method s-extend(self, l :: Loc, supe :: A.Expr, fields :: List<A.Member>) block:
+    ensure-unique-fields(fields.reverse())
+    check-underscore-name(fields, "a field name")
+    lists.all(_.visit(self), fields)
+  end,
+  method s-dot(self, l :: Loc, obj :: A.Expr, field :: String) block:
+    when field == "_":
+      add-error(C.underscore-as(l, "a field name"))
+    end
+    obj.visit(self)
+  end,
   method s-tuple-get(self, l, tup, index, index-loc):
     if not(num-is-integer(index)) or (index < 0) or (index > 1000) block:
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
@@ -794,18 +811,22 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-reactor(self, l, fields):
     method-fields = for filter(f from fields): A.is-s-method-field(f) end
     if not(is-empty(method-fields)) block:
-      wf-error("A reactor cannot contain method fields ", method-fields.first.l)
+      wf-error([list: ED.text("A reactor cannot contain method fields ")], method-fields.first.l)
       true
     else:
       has-init = is-some(for find(f from fields): f.name == "init" end)
       when not(has-init):
-        wf-error("A reactor must have a field named init for the initial value ", l)
+        wf-error([list: ED.text("A reactor must have a field named "), ED.code(ED.text("init")),
+            ED.text(" for the initial value ")], l)
       end
       fields-dict = SD.make-mutable-string-dict()
       ok-fields = C.reactor-fields
       for each(f from fields) block:
         when not(ok-fields.has-key(f.name)):
-          wf-error("Valid options for reactors are " + ok-fields.keys-list().join-str(", ") + ", but found one named " + f.name + " ", f.l)
+          wf-error([list: ED.text("Valid options for reactors are "),
+              ED.h-sequence-sep(ok-fields.keys-list().map({(ok): ED.code(ED.text(ok))}), ", ", ", or "),
+              ED.text(", but found one named "),
+              ED.code(ED.text(f.name)), ED.text(" ")], f.l)
         end
         cases(Option<A.Loc>) fields-dict.get-now(f.name):
           | none => fields-dict.set-now(f.name, f.l)
@@ -818,7 +839,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
     wf-table-headers(l, header)
-    if is-empty(header):
+    if is-empty(header) block:
       true
     else:
       expected-len = header.length()
@@ -927,8 +948,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-variant(self, l, constr-loc, name, binds, with-members) block:
     for each(one-bind from binds.map(_.bind)):
       cases(A.Bind) one-bind:
-      | s-bind(_,_,_,_) => nothing
-      | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member ", l2)
+        | s-bind(_,_,_,_) => nothing
+        | s-tuple-bind(l2, _, _) => wf-error([list: ED.text("Tuple binding not allowed as variant member ")], l2)
      end
     end
     ids = fields-to-binds(with-members) + binds.map(_.bind)
@@ -1068,7 +1089,7 @@ top-level-visitor = A.default-iter-visitor.{
   method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann):
     # TODO
     true
   end,
@@ -1148,8 +1169,8 @@ top-level-visitor = A.default-iter-visitor.{
       well-formed-visitor.s-app(l, _fun, args)
     end
   end,
-  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
-    well-formed-visitor.s-prim-app(l, _fun, args)
+  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>, app-info :: A.PrimAppInfo):
+    well-formed-visitor.s-prim-app(l, _fun, args, app-info)
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
@@ -1198,8 +1219,8 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method s-variant-member(_, l :: Loc, member-type :: A.VariantMemberType, bind :: A.Bind) block:
     cases(A.Bind) bind:
-     | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
-     | s-tuple-bind(l2, _, _) => wf-error("Tuple binding not allowed as variant member", l2)
+      | s-bind(_,_,_,_) => well-formed-visitor.s-variant-member(l, member-type, bind)
+      | s-tuple-bind(l2, _, _) => wf-error([list: ED.text("Tuple binding not allowed as variant member")], l2)
     end
   end,
   method s-table(_, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>):

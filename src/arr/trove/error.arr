@@ -2136,7 +2136,7 @@ data RuntimeError:
           if self.names.length() == 1: ED.text("The following module failed to load:")
           else:                        ED.text("The following modules failed to load:")
           end],
-        ED.h-sequence(self.names.map(ED.text), ", ")]
+        ED.h-sequence-sep(self.names.map(ED.text), ", ", ", and ")]
     end
   | invalid-array-index(method-name :: String, array, index :: Number, reason :: String) with: # array is Array
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):

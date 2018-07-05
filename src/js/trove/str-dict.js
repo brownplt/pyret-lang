@@ -16,8 +16,11 @@
                     origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
                     name: "ValueSkeleton" },
       "SetOfA": ["tyapp", { tag: "name",
-               origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
-               name: "ValueSkeleton" }, [["tid", "a"]]]
+               origin: { "import-type": "uri", uri: "builtin://sets" },
+               name: "Set" }, [["tid", "a"]]],
+      "SetOfString": ["tyapp", { tag: "name",
+               origin: { "import-type": "uri", uri: "builtin://sets" },
+               name: "Set" }, ["String"]]
     },
     values: {
       "make-string-dict": ["forall", ["a"], ["arrow", [], "sdOfA"]],
@@ -38,8 +41,8 @@
         "set": ["arrow", ["String", ["tid", "a"]], "sdOfA"],
         "merge": ["arrow", ["sdOfA"], "sdOfA"],
         "remove": ["arrow", ["String"], "sdOfA"],
-        "keys": ["arrow", [], "SetOfA"],
-        "keys-list": ["arrow", [], ["List", ["tid", "a"]]],
+        "keys": ["arrow", [], "SetOfString"],
+        "keys-list": ["arrow", [], ["List", "String"]],
         "items": ["arrow", [], ["List", ["tuple", ["String", ["tid", "a"]]]]],
         "count": ["arrow", [], "Number"],
         "has-key": ["arrow", ["String"], "Boolean"],
@@ -1538,4 +1541,3 @@
       return runtime.makeModuleReturn(vals, types, internal);
     }
   })
-

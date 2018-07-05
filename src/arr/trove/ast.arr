@@ -194,11 +194,14 @@ global-names = MakeName(0)
 data AppInfo:
   | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
 end
+data PrimAppInfo:
+  | prim-app-info-c(needs-step :: Boolean)
+end
 
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     ann :: Ann, doc :: String, body :: Expr, _check :: Option<Expr>, blocky :: Boolean) -> PP.PPrintDoc:
   typarams =
-    if is-nothing(params): PP.mt-doc
+    if is-empty(params): PP.mt-doc
     else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
         params.map(_.tosource()))
     end
@@ -228,7 +231,7 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     end
   docstr =
     if is-nothing(doc) or (doc == ""): PP.mt-doc
-    else: str-doc + PP.dquote(PP.str(doc)) + PP.hardline
+    else: str-doc + PP.str(torepr(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
 end
@@ -629,10 +632,15 @@ data Expr:
           PP.group(PP.str("ref ") + ann.tosource())
       end
     end
-  | s-contract(l :: Loc, name :: Name, ann :: Ann) with:
+  | s-contract(l :: Loc, name :: Name, params :: List<Name>, ann :: Ann) with:
     method label(self): "s-contract" end,
     method tosource(self):
-      PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), self.ann.tosource())
+      typarams =
+        if is-empty(self.params): PP.mt-doc
+        else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
+            self.params.map(_.tosource()))
+        end
+      PP.infix(INDENT, 1, str-coloncolon, self.name.tosource(), typarams + self.ann.tosource())
     end
   | s-when(l :: Loc, test :: Expr, block :: Expr, blocky :: Boolean) with:
     method label(self): "s-when" end,
@@ -719,7 +727,7 @@ data Expr:
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + blocky-colon(self.blocky)
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
-        + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
+        + break-one + PP.group(str-elsebranch + PP.nest(INDENT, break-one + self._else.tosource()))
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
   | s-op(l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr) with:
@@ -905,7 +913,7 @@ data Expr:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(_.tosource())))))
     end
-  | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>) with:
+  | s-prim-app(l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo) with:
     method label(self): "s-prim-app" end,
     method tosource(self):
       PP.group(PP.str(self._fun)
@@ -964,7 +972,7 @@ data Expr:
     method tosource(self): PP.infix-break(INDENT, 0, str-bang, self.obj.tosource(), PP.str(self.field)) end
   | s-bracket(l :: Loc, obj :: Expr, key :: Expr) with:
     method label(self): "s-bracket" end,
-    method tosource(self): PP.infix-break(INDENT, 0, str-period, self.obj.tosource(),
+    method tosource(self): PP.infix-break(INDENT, 0, PP.mt-doc, self.obj.tosource(),
         PP.surround(INDENT, 0, PP.lbrack, self.key.tosource(), PP.rbrack))
     end
   | s-data(
@@ -1066,7 +1074,7 @@ data Expr:
             self.body.tosource(), str-end)
         | some(name) => PP.surround(INDENT, 1,
             if self.keyword-check: PP.str("check ") else: PP.str("examples ") end
-              + PP.dquote(PP.str(name)) + str-colon,
+              + PP.str(torepr(name)) + str-colon,
             self.body.tosource(), str-end)
       end
     end
@@ -1213,13 +1221,14 @@ sharing:
 end
 
 data SpyField:
-  | s-spy-name(l :: Loc, name :: Expr%(is-s-id)) with:
-    method label(self): "s-spy-name" end,
-    method tosource(self): self.name.tosource() end
-  | s-spy-expr(l :: Loc, name :: String, value :: Expr) with:
+  | s-spy-expr(l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean) with:
+    # implicit-label is true for the shorthand form (`spy: x end`), and false for
+    # the longer form (`spy: some-name: x end`)
     method label(self): "s-spy-expr" end,
-    method tosource(self): 
-      PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
+    method tosource(self):
+      if self.implicit-label: self.value.tosource()
+      else: PP.nest(INDENT, PP.str(self.name) + str-colonspace + self.value.tosource())
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -1527,14 +1536,17 @@ data CasesBindType:
     method tosource(self): PP.str("ref") end
   | s-cases-bind-normal with:
     method label(self): "s-cases-bind-normal" end,
-    method tosource(self): PP.str("") end
+    method tosource(self): PP.mt-doc end
 end
 
 data CasesBind:
   | s-cases-bind(l :: Loc, field-type :: CasesBindType, bind :: Bind) with:
     method label(self): "s-cases-bind" end,
     method tosource(self):
-      self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
+      ft = self.field-type.tosource()
+      if PP.is-mt-doc(ft): self.bind.tosource()
+      else: ft + PP.str(" ") + self.bind.tosource()
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -1550,13 +1562,14 @@ data CasesBranch:
         PP.group(PP.str("| " + self.name)
             + PP.surround-separate(INDENT, 0, PP.str("()"), PP.lparen, PP.commabreak, PP.rparen,
             self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
-        self.body.tosource())
+        PP.nest(INDENT, self.body.tosource()))
     end
   | s-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: Expr) with:
     method label(self): "s-singleton-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
-        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
+        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one
+          + PP.nest(INDENT, self.body.tosource()))
     end
 sharing:
   method visit(self, visitor):
@@ -1970,8 +1983,8 @@ default-map-visitor = {
     s-when(l, test.visit(self), block.visit(self), blocky)
   end,
 
-  method s-contract(self, l, name, ann):
-    s-contract(l, name.visit(self), ann.visit(self))
+  method s-contract(self, l, name, params, ann):
+    s-contract(l, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):
@@ -2106,8 +2119,8 @@ default-map-visitor = {
   method s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, app-info :: AppInfo):
     s-app-enriched(l, _fun.visit(self), args.map(_.visit(self)), app-info)
   end,
-  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s-prim-app(l, _fun, args.map(_.visit(self)))
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo):
+    s-prim-app(l, _fun, args.map(_.visit(self)), app-info)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(l, name)
@@ -2306,15 +2319,12 @@ default-map-visitor = {
   method s-table-src(self, l, src :: Expr):
     s-table-src(l, src.visit(self))
   end,
-  
+
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     s-spy-block(l, self.option(message), contents.map(_.visit(self)))
   end,
-  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
-    s-spy-name(l, name.visit(self))
-  end,
-  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
-    s-spy-expr(l, name, value.visit(self))
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
+    s-spy-expr(l, name, value.visit(self), implicit-label)
   end,
 
   method a-blank(self): a-blank end,
@@ -2535,8 +2545,8 @@ default-iter-visitor = {
     test.visit(self) and block.visit(self)
   end,
 
-  method s-contract(self, l :: Loc, name :: Name, ann :: Ann):
-    name.visit(self) and ann.visit(self)
+  method s-contract(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
+    name.visit(self) and lists.all(_.visit(self), params) and ann.visit(self)
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):
@@ -2669,7 +2679,7 @@ default-iter-visitor = {
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and lists.all(_.visit(self), args)
   end,
-  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, _):
     lists.all(_.visit(self), args)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
@@ -2851,17 +2861,14 @@ default-iter-visitor = {
   method s-table-src(self, l, src):
     src.visit(self)
   end,
-    
+
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     self.option(message) and lists.all(_.visit(self), contents)
   end,
-  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
-    name.visit(self)
-  end,
-  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
     value.visit(self)
   end,
-  
+
   method a-blank(self):
     true
   end,
@@ -3086,8 +3093,8 @@ dummy-loc-visitor = {
     s-when(dummy-loc, test.visit(self), block.visit(self), blocky)
   end,
 
-  method s-contract(self, l, name, ann):
-    s-contract(dummy-loc, name.visit(self), ann.visit(self))
+  method s-contract(self, l, name, params, ann):
+    s-contract(dummy-loc, name.visit(self), params.map(_.visit(self)), ann.visit(self))
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):
@@ -3209,8 +3216,8 @@ dummy-loc-visitor = {
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
   end,
-  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>):
-    s-prim-app(dummy-loc, _fun, args.map(_.visit(self)))
+  method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo):
+    s-prim-app(dummy-loc, _fun, args.map(_.visit(self)), app-info)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
     s-prim-val(dummy-loc, name)
@@ -3413,11 +3420,8 @@ dummy-loc-visitor = {
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
     s-spy-block(dummy-loc, self.option(message), contents.map(_.visit(self)))
   end,
-  method s-spy-name(self, l :: Loc, name :: Expr%(is-s-id)):
-    s-spy-name(dummy-loc, name.visit(self))
-  end,
-  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr):
-    s-spy-expr(dummy-loc, name, value.visit(self))
+  method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
+    s-spy-expr(dummy-loc, name, value.visit(self), implicit-label)
   end,
 
   method a-blank(self): a-blank end,
@@ -3449,6 +3453,6 @@ dummy-loc-visitor = {
     a-dot(dummy-loc, obj, field)
   end,
   method a-field(self, l, name, ann):
-    a-field(dummy-loc, name.visit(self), ann.visit(self))
+    a-field(dummy-loc, name, ann.visit(self))
   end
 }

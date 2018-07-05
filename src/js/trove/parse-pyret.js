@@ -239,11 +239,11 @@
         },
         'spy-field': function(node) {
           if (node.kids.length === 1) {
-            return RUNTIME.getField(ast, 's-spy-name')
-              .app(pos(node.pos), tr(node.kids[0]));
+            return RUNTIME.getField(ast, 's-spy-expr')
+              .app(pos(node.pos), symbol(node.kids[0].kids[0]), tr(node.kids[0]), RUNTIME.makeBoolean(true));
           } else {
             return RUNTIME.getField(ast, 's-spy-expr')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
           }
         },
         'data-with': function(node) {
@@ -395,9 +395,9 @@
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'contract-stmt': function(node) {
-          // (contract-stmt NAME COLONCOLON ann)
+          // (contract-stmt NAME COLONCOLON ty-params ann)
           return RUNTIME.getField(ast, 's-contract')
-            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
         },
         'fun-header': function(node) {
           // (fun-header ty-params args return-ann)
@@ -1401,7 +1401,7 @@
         if (countParses == 0) {
           var nextTok = toks.curTok;
           message = "There were " + countParses + " potential parses.\n" +
-                      "Parse failed, next token is " + nextTok.toString(true) +
+                      "Parse failed, next token is " + nextTok.toRepr(true) +
                       " at " + fileName + ", " + nextTok.pos.toString(true);
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
