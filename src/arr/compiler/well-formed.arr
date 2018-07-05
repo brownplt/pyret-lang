@@ -313,10 +313,52 @@ fun reachable-ops(self, l, op-l, op, ast):
   end
 end
 
+fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) block:
+  to-examine = if ignore-last:
+    # Ignore the last statement, because it might well be an expression
+    stmts.reverse().rest.reverse()
+  else:
+    stmts
+  end
+  for each(stmt from to-examine):
+    cases(A.Expr) stmt:
+      | s-op(l, op-l, op, _, _) =>
+        ask:
+          | op == "op==" then:
+            wf-error([list:
+                [ED.para: ED.text("A standalone "),
+                  ED.highlight(ED.code(ED.text("==")), [list: op-l], 1),
+                  ED.text(" operator expression probably isn't intentional.")],
+                [ED.para:
+                  ED.text("To define a name, use the "), ED.code(ED.text("=")), ED.text(" operator instead; "),
+                  ED.text("to write an example or test case, use the "), ED.code(ED.text("is")), ED.text(" operator.")]],
+              l)
+          | otherwise:
+            wf-error([list:
+                [ED.para: ED.text("A standalone "),
+                  ED.highlight(ED.code(ED.text(string-substring(op, 2, string-length(op)))), [list: op-l], 1),
+                  ED.text(" operator expression probably isn't intentional.")]], l)
+        end
+      | s-id(l, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
+      | s-num(l, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-frac(l, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-rfrac(l, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-bool(l, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-str(l, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-dot(l, _, _) => wf-error([list: [ED.para: ED.text("A standalone field-lookup expression probably isn't intentional.")]], l)
+      | else => nothing
+    end
+  end
+  true
+end
+
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts)
   ensure-distinct-lines(A.dummy-loc, false, stmts)
+  when not(in-check-block):
+    reject-standalone-exprs(stmts, true)
+  end
   lists.all(_.visit(visitor), stmts)
 end
 
@@ -703,6 +745,7 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-examples-body(self, body)
     else:
       wrap-visit-check(self, some(body))
+      reject-standalone-exprs(body.stmts, false)
     end
     parent-block-loc := old-pbl
     ans
