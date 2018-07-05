@@ -1941,7 +1941,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     // rel is a flag that indicates whether the tolerance should be
     // interpreted as _absolute_ (two numbers are equal +/- tol) or _relative_
     // (two numbers are equal +/- n * tol, where tol is between 0 and 1)
-    function equal3(left, right, alwaysFlag, tol, rel) {
+
+    // fromWithin is a flag that indicates whether the tolerance came from
+    // a call to within() or one of its variants, or whether it was implicit
+    // (This affects the error message that gets generated)
+    function equal3(left, right, alwaysFlag, tol, rel, fromWithin) {
       if(tol === undefined) { // means that we aren't doing any kind of within
         var isIdentical = identical3(left, right);
         if (!thisRuntime.ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
@@ -1999,7 +2003,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
                 toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
-              toCompare.curAns = thisRuntime.ffi.unknown.app("Roughnums", curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.unknown.app(
+                fromWithin ? "RoughnumZeroTolerances" : "Roughnums",
+                curLeft,
+                curRight);
             } else if (jsnums.equals(curLeft, curRight, NumberErrbacks)) {
               continue;
             } else {
@@ -2198,7 +2205,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         tol, thisRuntime.NumNonNegative);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3(...)"], 2, $a, false); }
-        return equal3(l, r, false, tol);
+        return equal3(l, r, /*always?*/false, tol, /*rel.tol?*/false, /*fromWithin?*/true);
       }, "within-abs-now3(...)");
     };
 
@@ -2208,7 +2215,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         relTol, thisRuntime.Number);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3(...)"], 2, $a, false); }
-        return equal3(l, r, false, relTol, true);
+        return equal3(l, r, /*always?*/false, relTol, /*rel.tol?*/true, /*fromWithin?*/true);
       }, "within-rel-now3(...)");
     };
 
@@ -2219,7 +2226,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3(...)"], 2, $a, false); }
-        return equal3(l, r, true, tol);
+        return equal3(l, r, /*always?*/true, tol, /*rel.tol?*/false, /*fromWithin?*/true);
       }, "within-abs3(...)");
     };
 
@@ -2229,7 +2236,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         relTol, thisRuntime.Number);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3(...)"], 2, $a, false); }
-        return equal3(l, r, true, relTol);
+        return equal3(l, r, /*always?*/true, relTol, /*rel.tol?*/true, /*fromWithin?*/true);
       }, "within-rel3(...)");
     };
 
@@ -2248,7 +2255,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now(...)"], 2, $a, false); }
         return safeCall(function() {
-          return equal3(l, r, false, tol);
+          return equal3(l, r, /*always?*/false, tol, /*rel.tol?*/false, /*fromWithin?*/true);
         }, equalityToBool, "within-abs-now(...)");
       }, "within-abs-now(...)");
     };
@@ -2260,7 +2267,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs(...)"], 2, $a, false); }
         return safeCall(function () {
-          return equal3(l, r, true, tol);
+          return equal3(l, r, /*always?*/true, tol, /*rel.tol?*/false, /*fromWithin?*/true);
         }, equalityToBool, "within-abs(...)");
       }, "within-abs(...)");
     };
@@ -2272,7 +2279,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now(...)"], 2, $a, false); }
         return safeCall(function () {
-          return equal3(l, r, false, relTol, true);
+          return equal3(l, r, /*always?*/false, relTol, /*rel.tol?*/true, /*fromWithin?*/true);
         }, equalityToBool, "within-rel-now(...)");
       }, "within-rel-now(...)");
     };
@@ -2284,7 +2291,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel(...)"], 2, $a, false); }
         return safeCall(function () {
-          return equal3(l, r, true, relTol, true);
+          return equal3(l, r, /*always?*/true, relTol, /*rel.tol?*/true, /*fromWithin?*/true);
         }, equalityToBool, "within-rel(...)");
       }, "within-rel(...)");
     };
@@ -2292,7 +2299,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     // JS function from Pyret values to Pyret equality answers
     function equalAlways3(left, right) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always3"], 2, $a, false); }
-      return equal3(left, right, true);
+      return equal3(left, right, /*always?*/true, 0, /*rel.tol?*/false, /*fromWithin?*/false);
     };
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalAlways(v1, v2) {
@@ -2303,19 +2310,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return v1 === v2;
       }
       return safeCall(function() {
-        return equal3(v1, v2, true);
+        return equal3(v1, v2, /*always?*/true, 0, /*rel.tol?*/false, /*fromWithin?*/false);
       }, equalityToBool, "equal-always");
     };
     // JS function from Pyret values to Pyret equality answers
     function equalNow3(left, right) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now3"], 2, $a, false); }
-      return equal3(left, right, false);
+      return equal3(left, right, /*always?*/false, 0, /*rel.tol?*/false, /*fromWithin?*/false);
     };
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalNow(v1, v2) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now"], 2, $a, false); }
       return safeCall(function() {
-        return equal3(v1, v2, false);
+        return equal3(v1, v2, /*always?*/false, 0, /*rel.tol?*/false, /*fromWithin?*/false);
       }, equalityToBool, "equal-now");
     };
 
