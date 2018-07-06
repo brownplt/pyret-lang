@@ -229,6 +229,12 @@ check "string helper":
   lists.join-str([list:], ",") is ""
   lists.join-str([list: "a"], ",") is "a"
   lists.join-str([list: "a", "b", "c", "d", "e"], "  ") is "a  b  c  d  e"
+
+  lists.join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
+  lists.join-str-last([list: ], "+", "-") is ""
+  lists.join-str-last([list: 1], "+", "-") is "1"
+  lists.join-str-last([list: 1, 2], "+", "-") is "1-2"
+  lists.join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
 end
 
 check "sort as a function":

@@ -27,18 +27,6 @@ fun is-standard-import(imp :: CS.ExtraImport):
   standard-import-names.member(imp.as-name)
 end
 
-fun add-global-binding(env :: CS.CompileEnvironment, name :: String):
-  CS.compile-env(
-    CS.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
-    env.mods)
-end
-
-fun add-global-type-binding(env :: CS.CompileEnvironment, name :: String):
-  CS.compile-env(
-    CS.globals(env.globals.values, env.globals.types.set(name, TS.t-top)),
-    env.mods)
-end
-
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
   import-names = for fold(names from empty, imp from imports):
@@ -157,7 +145,7 @@ end
 
 fun make-repl<a>(
     runtime :: R.Runtime,
-    modules :: SD.MutableStringDict<CL.Loadable>,
+    modules :: SD.MutableStringDict<CS.Loadable>,
     realm :: L.Realm,
     compile-context :: a,
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):

@@ -234,10 +234,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         var headers = thisRuntime.getField(val, "headers");
         var rowVals = thisRuntime.getField(val, "values");
-        console.log("Before: ", headers, rowVals);
         headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         rowVals = rowVals.map(function(v) { return renderValueSkeleton(v, values); });
-        console.log("After:", headers, rowVals);
         var row = [];
         for (var i = 0; i < headers.length; i++) {
           row.push(headers[i]);
@@ -473,6 +471,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function getField(obj, field) {
       return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
+    }
+
+    function getBracket(loc, obj, field) {
+      checkArityC(loc, 3, arguments, false);
+      if (obj && obj.dict && obj.dict["get-value"]) {
+        var gV = getColonFieldLoc(obj, "get-value", loc);
+        if (thisRuntime.isMethod(gV)) {
+          return gV.full_meth(obj, field);
+        } else if (thisRuntime.isFunction(gV)) {
+          return gV.app(field);
+        }
+      }
+      raiseJSJS(
+        thisRuntime.ffi.contractFail(
+          makeSrcloc(loc),
+          thisRuntime.ffi.makeBadBracketException(makeSrcloc(loc), obj)));
     }
 
     function getMaker(obj, makerField, exprLoc, constrLoc) {
@@ -3970,13 +3984,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.ffi.toArray(lst);
     };
 
-    var raw_array_join_str = function(arr, str) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-join-str"], 2, $a, false); }
-      thisRuntime.checkArgsInternal2("RawArrays", "raw-array-join-str",
-        arr, thisRuntime.RawArray, str, thisRuntime.String);
-      return arr.join(str);
-    };
-
     var raw_array_of = function(val, len) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-of"], 2, $a, false); }
       thisRuntime.checkArgsInternal1("RawArrays", "raw-array-of",
@@ -3987,7 +3994,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         arr[i++] = val;
       }
       return arr;
-    }
+    };
 
     var raw_array_build = function(f, len) {
       if (thisRuntime.isActivationRecord(f)) {
@@ -4045,7 +4052,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
         return $ans;
       }
-    }
+    };
 
     var raw_array_build_opt = function(f, len) {
       if (thisRuntime.isActivationRecord(f)) {
@@ -4057,8 +4064,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         f = $ar.args[0];
         len = $ar.args[1];
       } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a, false); }
-        thisRuntime.checkArgsInternal2("RawArrays", "raw-array-build",
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build-opt"], 2, $a, false); }
+        thisRuntime.checkArgsInternal2("RawArrays", "raw-array-build-opt",
           f, thisRuntime.Function, len, thisRuntime.Number);
         var curIdx = 0;
         var arr = new Array();
@@ -4105,7 +4112,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
         return $ans;
       }
-    }
+    };
 
     var raw_array_get = function(arr, ix) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a, false); }
@@ -4120,7 +4127,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-obj-destructure",
         arr, thisRuntime.RawArray, keys, thisRuntime.RawArray);
 
-      var obj = {}
+      var obj = {};
       for(var i = 0; i < keys.length; i++) {
         obj[keys[i]] = arr[i];
       }
@@ -4245,7 +4252,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return res;
         }
         return foldFun();
-      }
+      };
     };
 
     var raw_array_and_mapi = raw_array_bool_mapper("raw-array-and-mapi", true, false);
@@ -4387,6 +4394,47 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if(isContinuation(res)) {
           res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
             ["raw-list-map"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
+      }
+      return foldFun();
+    };
+
+
+    var raw_list_join_str_last = function(lst, sep, lastSep) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-join-str-last"], 3, $a, false); }
+      thisRuntime.checkArgsInternal3("Lists", "raw-list-join-str-last",
+        lst, thisRuntime.List, sep, thisRuntime.String, lastSep, thisRuntime.String);
+      var currentAcc = [];
+      var currentLst = lst;
+      var currentFst;
+      function foldHelp() {
+        while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentFst = thisRuntime.getColonField(currentLst, "first");
+          currentLst = thisRuntime.getColonField(currentLst, "rest");
+          var res = tostring.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          currentAcc.push(res);
+        }
+        if (currentAcc.length <= 1) { return currentAcc.join(sep); }
+        var lastElem = currentAcc.pop();
+        return currentAcc.join(sep) + lastSep + lastElem;
+      }
+      function foldFun($ar) {
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc.push($ar.ans);
+        }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-join-str-last"],
             foldFun,
             0, // step doesn't matter here
             [], []);
@@ -5375,16 +5423,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.makeRowFromArray(arr);
       }),
 
-
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
-      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'get-value': makeFunction(getValue, "get-value"),
       'list-to-raw-array': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'has-field': makeFunction(hasField, "has-field"),
+
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
       'raw-list-map': makeFunction(raw_list_map, "raw-list-map"),
       'raw-list-filter': makeFunction(raw_list_filter, "raw-list-filter"),
       'raw-list-fold': makeFunction(raw_list_fold, "raw-list-fold"),
+      'raw-list-join-str-last': makeFunction(raw_list_join_str_last, "raw-list-join-str-last"),
+
       'current-checker': makeFunction(function() {
         if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a, false); }
         return getParam("current-checker");
@@ -5491,7 +5540,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // (see handalone.js)
       'is-table': makeFunction(function(v) {
         return thisRuntime.isTable(v);
-      }, "is-tuple"),
+      }, "is-table"),
+      'is-row': makeFunction(function(v) {
+        return thisRuntime.isRow(v);
+      }, "is-row"),
 
       'run-task': makeFunction(execThunk, "run-task"),
 
@@ -5585,7 +5637,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-length': makeFunction(raw_array_length, "raw-array-length"),
       'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
-      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
       'raw-array-and-mapi': makeFunction(raw_array_and_mapi, "raw-array-and-mapi"),
       'raw-array-or-mapi': makeFunction(raw_array_or_mapi, "raw-array-or-mapi"),
@@ -5593,6 +5644,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-map-1': makeFunction(raw_array_map1, "raw-array-map-1"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
       'raw-array': raw_array_maker,
+
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
 
       'not': makeFunction(bool_not, "not"),
@@ -5694,6 +5746,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'getFieldLoc'      : getFieldLoc,
       'getFieldRef'      : getFieldRef,
       'getFields'        : getFields,
+      'getBracket'       : getBracket,
       'getColonField'    : getColonField,
       'getColonFieldLoc' : getColonFieldLoc,
       'getTuple'         : getTuple,
@@ -6027,6 +6080,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'getDotAnn': 'gDA',
         'getField': 'gF',
         'getFieldRef': 'gFR',
+        'getBracket': 'gB',
         'hasBrand': 'hB',
         'isActivationRecord': 'isAR',
         'isCont': 'isC',

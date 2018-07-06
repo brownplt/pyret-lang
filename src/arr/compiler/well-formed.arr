@@ -287,7 +287,7 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | s-rec(l, _, _)                      => add-error(C.block-ending(l, block-loc, "rec-binding"))
     | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
     | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
-    | s-contract(l, _, _)                 => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-contract(l, _, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
     | else => nothing
   end
 end
@@ -331,7 +331,12 @@ fun wf-examples-body(visitor, body):
   end
 end
 
-fun wf-table-headers(loc, headers):
+fun wf-table-headers(loc, headers) block:
+  for lists.each(h from headers):
+    when h.name == "_":
+      add-error(C.underscore-as(h.l, "as a table column's name in a table expression"))
+    end
+  end
   cases(List) headers block:
     | empty =>
       add-error(C.table-empty-header(loc))
@@ -421,7 +426,7 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann) block:
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann) block:
     add-error(C.non-toplevel("contract declaration", l, parent-block-loc))
     true
   end,
@@ -671,6 +676,17 @@ well-formed-visitor = A.default-iter-visitor.{
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
   end,
+  method s-extend(self, l :: Loc, supe :: A.Expr, fields :: List<A.Member>) block:
+    ensure-unique-fields(fields.reverse())
+    check-underscore-name(fields, "a field name")
+    lists.all(_.visit(self), fields)
+  end,
+  method s-dot(self, l :: Loc, obj :: A.Expr, field :: String) block:
+    when field == "_":
+      add-error(C.underscore-as(l, "a field name"))
+    end
+    obj.visit(self)
+  end,
   method s-tuple-get(self, l, tup, index, index-loc):
     if not(num-is-integer(index)) or (index < 0) or (index > 1000) block:
       add-error(C.tuple-get-bad-index(l, tup, index, index-loc))
@@ -823,7 +839,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
     wf-table-headers(l, header)
-    if is-empty(header):
+    if is-empty(header) block:
       true
     else:
       expected-len = header.length()
@@ -1073,7 +1089,7 @@ top-level-visitor = A.default-iter-visitor.{
   method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann):
     # TODO
     true
   end,
@@ -1153,8 +1169,8 @@ top-level-visitor = A.default-iter-visitor.{
       well-formed-visitor.s-app(l, _fun, args)
     end
   end,
-  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
-    well-formed-visitor.s-prim-app(l, _fun, args)
+  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>, app-info :: A.PrimAppInfo):
+    well-formed-visitor.s-prim-app(l, _fun, args, app-info)
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)

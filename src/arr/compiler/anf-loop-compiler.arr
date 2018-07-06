@@ -179,6 +179,7 @@ rt-name-map = [D.string-dict:
   "getDotAnn", "gDA",
   "getField", "gF",
   "getFieldRef", "gFR",
+  "getBracket", "gB",
   "hasBrand", "hB",
   "isActivationRecord", "isAR",
   "isCont", "isC",
@@ -247,10 +248,18 @@ fun get-field-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
   j-app(get-field-loc, [clist: obj, field, loc-expr])
 end
 
+fun get-bracket-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  rt-method("getBracket", [clist: obj, field, loc-expr])
+end
+
 # When the field may not exist, add source mapping so if we can't find it
 # we get a useful stacktrace
 fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
   wrap-with-srcnode(l, get-field-unsafe(obj, field, loc-expr))
+end
+
+fun get-bracket-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  wrap-with-srcnode(l, get-bracket-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
@@ -1357,8 +1366,75 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
           compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat, false)))])
 end
 
+
+fun compile-split-prim-app(l, compiler, opt-dest, f, args, opt-body):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  c-block(
+    j-block(
+      # Update step before the call, so that if it runs out of gas,
+      # the resumer goes to the right step
+      [clist:
+        j-expr(j-assign(step, after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
+      [clist:
+        j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args)))),
+        j-break]),
+    new-cases)
+end
+
+
+fun compile-flat-prim-app(l, compiler, opt-dest, f, args, opt-body):
+  ans = compiler.cur-ans
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+
+  # Generate the code for calling the function
+  call-code = j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args))))
+
+  # Compile the body of the let. We split it into two portions:
+  # 1) the code that can be in the same "block" (or case region) and
+  # 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-body:
+    | some(body) =>
+      get-remaining-code(compiler, opt-dest, body, ans)
+    | none =>
+      # Special case: there is no more code after this so just jump to the
+      # special last block in the function
+      body = j-block([clist:
+          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+          j-break
+        ])
+      {body; cl-empty}
+  end
+
+  # Now merge the code for calling the function with the next block
+  # (this is basically our optimization, since we're not starting a new case
+  # for the next block)
+  c-block(
+    j-block(cl-cons(call-code, j-block-to-stmt-list(remaining-code))),
+    new-cases)
+end
+
+fun compile-a-prim-app(l :: N.Loc, f :: String, args :: List<N.AVal>,
+    compiler,
+    b :: Option<BindType>,
+    opt-body :: Option<N.AExpr>,
+    app-info :: A.PrimAppInfo):
+
+  app-compiler = if app-info.needs-step:
+    compile-split-prim-app
+  else:
+    compile-flat-prim-app
+  end
+  app-compiler(l, compiler, b, f, args, opt-body)
+end
+
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
   cases(N.ALettable) e:
+    | a-prim-app(l2, f, args, app-info) =>
+      compile-a-prim-app(l2, f, args, compiler, b, opt-body, app-info)
     | a-app(l2, f, args, app-info) =>
       compile-a-app(l2, f, args, compiler, b, opt-body, app-info)
     | a-method-app(l2, obj, m, args) =>
@@ -1513,7 +1589,7 @@ compiler-visitor = {
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     raise("Impossible: a-app directly in compiler-visitor should never happen")
   end,
-  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
+  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>, app-info :: A.PrimAppInfo):
     visit-args = args.map(_.visit(self))
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
@@ -2014,10 +2090,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     # because shared compiled files didn't agree on globals
     cases(A.Name) n:
       | s-global(s) =>
-        dep = env.globals.values.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
+        uri = cases(Option) env.uri-by-value-name(n.toname()):
+          | some(global-uri) => global-uri
+          | none => raise(n.toname() + " not found")
         end
         j-var(js-id-of(n),
           j-bracket(
@@ -2027,10 +2102,9 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
                 ]),
               j-str(n.toname())))
       | s-type-global(_) =>
-        dep = env.globals.types.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
+        uri = cases(Option) env.uri-by-type-name(n.toname()):
+          | some(type-uri) => type-uri
+          | none => raise(n.toname() + " not found")
         end
         j-var(js-id-of(n),
           j-bracket(
