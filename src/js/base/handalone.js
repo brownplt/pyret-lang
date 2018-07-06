@@ -60,12 +60,12 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
       // So, pause the stack and switch off Pyret stack management so that the
       // use of the callbacks to write (and therefore lack of Pyret return value)
       // doesn't screw up Pyret's runtime.
-      runtime.pauseStack(function(resumer) {
+      return runtime.pauseStack(function(resumer) {
         if(runtime.isObject(summary)) {
           var errs = runtime.getField(summary, "errored");
           var failed = runtime.getField(summary, "failed");
           var exitCode = (errs !== 0 || failed !== 0) ? EXIT_ERROR_CHECK_FAILURES : EXIT_SUCCESS;
-          process.stdout.write(runtime.getField(summary, "message"));
+          process.stdout.write(util.format(runtime.getField(summary, "message")));
           process.stdout.write("\n",
                                function() { process.exit(exitCode); });
         }
