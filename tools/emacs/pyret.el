@@ -136,7 +136,7 @@
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving" "select" "extend" "transform" "extract" "sieve" "order"
-     "of" "ascending" "descending" "sanitize" "using"))
+     "of" "ascending" "descending" "sanitize" "using" "because"))
 (defconst pyret-keywords-hyphen
   '("provide-types" "type-let" 
     "is-not" "is-roughly" "raises-other-than"
@@ -156,7 +156,7 @@
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\(?:\\_<"
           (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>"
-                        "is" "is%" "is==" "is=~" "is<=>" 
+                        "is" "is%" "is==" "is=~" "is<=>" "because"
                         "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>" "is-roughly"
                         "satisfies" "violates" "raises" "raises-other-than"
                         "does-not-raise" "raises-satisfies" "raises-violates"))
@@ -697,6 +697,7 @@ the number of quote characters in the match."
 (defsubst pyret-DOES-NOT-RAISE () (pyret-keyword "does-not-raise"))
 (defsubst pyret-RAISES-SATISFIES () (pyret-keyword "raises-satisfies"))
 (defsubst pyret-RAISES-VIOLATES () (pyret-keyword "raises-VIOLATES"))
+(defsubst pyret-BECAUSE () (pyret-keyword "because"))
 (defsubst pyret-DOC () (pyret-keyword "doc:"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
 (defsubst pyret-ELSE () (pyret-keyword "else:"))

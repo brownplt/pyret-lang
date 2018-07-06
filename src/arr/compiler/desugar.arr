@@ -610,8 +610,8 @@ fun desugar-expr(expr :: A.Expr):
     # NOTE(joe): see preconditions; desugar-checks should have already happened
     | s-check(l, name, body, keyword-check) =>
       A.s-check(l, name, desugar-expr(body), keyword-check)
-    | s-check-test(l, op, refinement, left, right) =>
-      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
+    | s-check-test(l, op, refinement, left, right, cause) =>
+      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right), desugar-opt(desugar-expr, cause))
     | s-load-table(l, headers, spec) =>
       dummy = A.dummy-loc
       {src; sanitizers} = for fold(acc from {none; empty}, s from spec):

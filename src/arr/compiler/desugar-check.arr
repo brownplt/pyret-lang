@@ -27,8 +27,8 @@ fun ast-srcloc(l):
 end
 
 check-stmts-visitor = A.default-map-visitor.{
-  method s-check-test(self, l, op, refinement, left, right):
-    term = A.s-check-test(l, op, refinement, left, right)
+  method s-check-test(self, l, op, refinement, left, right, cause):
+    term = A.s-check-test(l, op, refinement, left, right, cause)
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
         [list: ast-lam(left), ast-lam(right.value), ast-srcloc(l)])

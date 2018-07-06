@@ -464,18 +464,29 @@
             // (check-test left op)
             //             0    1
             return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone());
-          } else if (kids.length === 3) {
-            // (check-test left op right)
-            //             0    1  2
+              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone(), RUNTIME.ffi.makeNone());
+          } else {
+            var refinement, right, because;
+            if (kids[2].name === "PERCENT") {
+              // (check-test left op PERCENT LPAREN refinement RPAREN right ...)
+              //             0    1                 4                 6
+              refinement = RUNTIME.ffi.makeSome(tr(kids[4]));
+              right = RUNTIME.ffi.makeSome(tr(kids[6]));
+            } else {
+              // (check-test left op right ...)
+              //             0    1  2
+              refinement = RUNTIME.ffi.makeNone();
+              right = RUNTIME.ffi.makeSome(tr(kids[2]));
+            }
+            if (kids[kids.length - 2].name === "BECAUSE") {
+              // (check-test ... right BECAUSE cause)
+              //                       len-2   len-1
+              because = RUNTIME.ffi.makeSome(tr(kids[kids.length - 1]));
+            } else {
+              because = RUNTIME.ffi.makeNone();
+            }
             return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[2])));
-          }
-          else {
-            // (check-test left op PERCENT LPAREN refinement RPAREN right)
-            //             0    1                 4                 6
-            return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeSome(tr(kids[4])), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[6])));
+              .app(pos(node.pos), tr(kids[1]), refinement, tr(kids[0]), right, because);
           }
         },
         'binop-expr': function(node) {

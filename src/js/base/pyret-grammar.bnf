@@ -61,7 +61,7 @@ where-clause: [WHERE block]
 
 check-expr: (CHECK|EXAMPLES) STRING COLON block END
 check-expr: (CHECKCOLON|EXAMPLESCOLON) block END
-check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
+check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr [BECAUSE binop-expr]
           | binop-expr check-op-postfix
           | binop-expr
 
