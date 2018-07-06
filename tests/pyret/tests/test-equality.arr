@@ -234,7 +234,7 @@ check "https://github.com/brownplt/pyret-lang/issues/896":
       eq(1, 1)
     end
   }
-  o == {}
+  o == {} is true
   firsteq satisfies E.is-NotEqual
   secondeq satisfies E.is-NotEqual
 end
@@ -252,7 +252,7 @@ check "https://github.com/brownplt/pyret-lang/issues/896":
       eq(1, 1)
     end
   }
-  o == {}
+  o == {} is true
   firsteq satisfies E.is-NotEqual
   secondeq satisfies E.is-NotEqual
 end

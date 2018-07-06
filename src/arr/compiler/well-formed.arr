@@ -320,18 +320,25 @@ fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) blo
   else:
     stmts
   end
-  for each(stmt from to-examine):
+  fun bad-stmt(l, stmt):
     cases(A.Expr) stmt:
-      | s-op(l, op-l, op, _, _) =>
+      | s-op(_, op-l, op, _, _) =>
         ask:
           | op == "op==" then:
             wf-error([list:
                 [ED.para: ED.text("A standalone "),
                   ED.highlight(ED.code(ED.text("==")), [list: op-l], 1),
                   ED.text(" operator expression probably isn't intentional.")],
-                [ED.para:
-                  ED.text("To define a name, use the "), ED.code(ED.text("=")), ED.text(" operator instead; "),
-                  ED.text("to write an example or test case, use the "), ED.code(ED.text("is")), ED.text(" operator.")]],
+                if in-check-block:
+                  [ED.para:
+                    ED.text("To write an example or test case, use the "), ED.code(ED.text("is")), ED.text(" operator; "),
+                    ED.text("to define a name, use the "), ED.code(ED.text("=")), ED.text(" operator instead.")]
+
+                else:
+                  [ED.para:
+                    ED.text("To define a name, use the "), ED.code(ED.text("=")), ED.text(" operator instead.")]
+                end
+              ],
               l)
           | otherwise:
             wf-error([list:
@@ -339,18 +346,37 @@ fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) blo
                   ED.highlight(ED.code(ED.text(string-substring(op, 2, string-length(op)))), [list: op-l], 1),
                   ED.text(" operator expression probably isn't intentional.")]], l)
         end
-      | s-id(l, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
-      | s-num(l, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-frac(l, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-rfrac(l, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-bool(l, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-str(l, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-dot(l, _, _) => wf-error([list: [ED.para: ED.text("A standalone field-lookup expression probably isn't intentional.")]], l)
+      | s-id(_, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
+      | s-num(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-frac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-rfrac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-bool(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-str(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-dot(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone field-lookup expression probably isn't intentional.")]], l)
+      | s-lam(_, _, _, _, _, _, _, _, _, _) => wf-error([list: [ED.para: ED.text("A standalone anonymous function expression probably isn't intentional.")]], l)
+      | s-paren(_, e) => bad-stmt(l, e)
       | else => nothing
+    end
+  end
+  when not(stmts.any(A.is-s-template)): # Need to check all the statements for ...
+    for each(stmt from to-examine): # but only check the non-final statements for standalone expressions
+      bad-stmt(stmt.l, stmt)
     end
   end
   true
 end
+
+fun wrap-reject-standalones-in-check(target) block:
+  cur-in-check = in-check-block
+  in-check-block := true
+  ret = cases(Option) target:
+    | none => true
+    | some(t) => reject-standalone-exprs(t.stmts, false)
+  end
+  in-check-block := cur-in-check
+  ret
+end
+
 
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
@@ -624,6 +650,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -662,6 +689,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -686,6 +714,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -709,6 +738,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -745,7 +775,7 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-examples-body(self, body)
     else:
       wrap-visit-check(self, some(body))
-      reject-standalone-exprs(body.stmts, false)
+      wrap-reject-standalones-in-check(some(body))
     end
     parent-block-loc := old-pbl
     ans
@@ -1032,6 +1062,7 @@ top-level-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     wrap-visit-check(well-formed-visitor, _check)
     parent-block-loc := old-pbl
     true
@@ -1057,6 +1088,7 @@ top-level-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     wrap-visit-check(well-formed-visitor, _check)
     parent-block-loc := old-pbl
     true
