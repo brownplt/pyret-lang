@@ -87,7 +87,7 @@ fun same-sig(s1 :: A.Expr%(is-s-method), s2 :: A.Expr%(is-s-method)):
 end
 fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann, none))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 fun make-renamer():
@@ -108,7 +108,7 @@ fun make-renamer():
               | some(field-ids) =>
                 cases(Option<A.Expr>) field-ids.get-now(field) block:
                   | some(id) =>
-                    print("Replacing " + name.key() + "." + field + " with " + id.id.key() + "\n")
+                    # print("Replacing " + name.key() + "." + field + " with " + id.id.key() + "\n")
                     id
                   | none =>
                     # print("Couldn't find " + field + " in " + name.key() + ", so recurring\n")
@@ -160,7 +160,7 @@ fun merge-data-methods(l, name, name-type, name-ann, params, mixins, variants, s
     sig = method-sigs.get-value-now(m)
     bodies = method-bodies.get-value-now(m)
     when bodies.count-now() == needed block:
-      print("Merging type " + name + " : method " + m + "\n")
+      # print("Merging type " + name + " : method " + m + "\n")
       new-params = sig.params.map(lam(n): names.make-atom(n.toname()) end)
       new-args = sig.args.map(lam(b): mk-id-ann(l, b.id.toname(), b.ann) end)
       case-bodies = for SD.map-keys-now(vname from bodies) block:
