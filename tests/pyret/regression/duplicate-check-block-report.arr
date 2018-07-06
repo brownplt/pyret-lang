@@ -12,7 +12,7 @@ check:
 end
 ```)
 
-  ans.length() is 2 # unbound-id 'x'
+  ans.length() is 1 # unbound-id 'x'
 end
 
 check "https://github.com/brownplt/pyret-lang/issues/1178":
