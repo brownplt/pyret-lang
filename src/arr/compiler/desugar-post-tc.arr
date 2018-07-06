@@ -103,7 +103,7 @@ fun make-renamer():
       method s-dot(self, l, obj, field) block:
         cases(A.Expr) obj block:
           | s-id(_, name) =>
-            print("Trying to replace " + name.key() + "\n")
+            # print("Trying to replace " + name.key() + "\n")
             cases(Option<SD.MutableStringDict<A.Expr>>) fields.get-now(name.key()) block:
               | some(field-ids) =>
                 cases(Option<A.Expr>) field-ids.get-now(field) block:
@@ -130,7 +130,7 @@ fun make-renamer():
   }
 end
 fun merge-data-methods(l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check) block:
-  print("Merging for " + name + "\n")
+  # print("Merging for " + name + "\n")
   shared-names = SD.make-mutable-string-dict()
   for each(s from shared) block:
     shared-names.set-now(s.name, true)
