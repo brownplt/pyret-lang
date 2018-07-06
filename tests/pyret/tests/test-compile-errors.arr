@@ -1,82 +1,78 @@
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
 import file("../test-compile-helper.arr") as C
 
+run-str = C.run-str
+compile-error = C.compile-error
+output = C.output
+
 check:
-  fun c(str) block:
-    errs = C.get-compile-errs(str)
-    if is-empty(errs):
-      "Expected at least one error for running \n\n " + str + "\n\n" + " but got none "
-    else: 
-     errs.first
-    end
-  end
   fun cok(str):
     C.get-compile-errs(str)
   end
 
   check:
     cok("fun f(x): ... x ... end") is empty
-    c("fun f(): ... ... end") satisfies CS.is-template-same-line
-    c("fun f(): block: 5 3 end end") satisfies CS.is-same-line
-    c("fun f(): 5 \n 3 end") satisfies CS.is-block-needed
-    cok("fun f() block: 5 \n 3 end") is empty
+    run-str("fun f(): ... ... end") is%(output) compile-error(CS.is-template-same-line)
+    run-str("fun f(): block: 5 3 end end") is%(output) compile-error(CS.is-same-line)
+    run-str("fun f(): 5 \n 3 end") is%(output) compile-error(CS.is-block-needed)
+    cok("fun f() block: num-sqr(5) \n 3 end") is empty
     cok("fun f(): 5 \n ... \n 3 end") is empty
     cok("fun f(): 5 \n ... end") is empty
     cok("fun f(): 5 \n ... 3 end") is empty
   end
 
   check "provides":
-    c("provide _ end") satisfies CS.is-non-object-provide
-    c("provide a end") satisfies CS.is-non-object-provide
+    run-str("provide _ end") is%(output) compile-error(CS.is-non-object-provide)
+    run-str("provide a end") is%(output) compile-error(CS.is-non-object-provide)
   end
   
   check "underscores":
-    c("a = _") satisfies CS.is-underscore-as-expr
-    c("when _: 5 end") satisfies CS.is-underscore-as-expr
-    c("if _: 5 else: 10 end") satisfies CS.is-underscore-as-expr
-    c("cases(List) _: | empty => true end") satisfies CS.is-underscore-as-expr
-    c("cases(List) 5: | empty => _ end") satisfies CS.is-underscore-as-expr
-    c("check: _ end") satisfies CS.is-underscore-as-expr
-    c("fun f(): _ end") satisfies CS.is-underscore-as-expr
-    c("lam(): _ end") satisfies CS.is-underscore-as-expr
-    c("method(self): _ end") satisfies CS.is-underscore-as-expr
-    c("{x: _}") satisfies CS.is-underscore-as-expr
+    run-str("a = _") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("when _: 5 end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("if _: 5 else: 10 end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("cases(List) _: | empty => true end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("cases(List) 5: | empty => _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("check: _ end") is%(output) compile-error(CS.is-wf-err)
+    run-str("fun f(): _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("lam(): _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("method(self): _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+    run-str("{x: _}") is%(output) compile-error(CS.is-underscore-as-expr)
 
-    c("a :: _ = 5") satisfies CS.is-underscore-as-ann
-    c("a :: _.List = 5") satisfies CS.is-underscore-as-ann
+    run-str("a :: _ = 5") is%(output) compile-error(CS.is-underscore-as-ann)
+    run-str("a :: _.List = 5") is%(output) compile-error(CS.is-underscore-as-ann)
   end
 
   check "duplicate data fields":
-    c("data Node: node(a, a, a) end") satisfies CS.is-duplicate-id
-    c("data Node: node(a, b, a) end") satisfies CS.is-duplicate-id
-    c("data Node: node(a :: Number, a :: String) end") satisfies CS.is-duplicate-id
-    c("data Node: node(z, a, a, c) end") satisfies CS.is-duplicate-id
+    run-str("data Node: node(a, a, a) end") is%(output) compile-error(CS.is-duplicate-id)
+    run-str("data Node: node(a, b, a) end") is%(output) compile-error(CS.is-duplicate-id)
+    run-str("data Node: node(a :: Number, a :: String) end") is%(output) compile-error(CS.is-duplicate-id)
+    run-str("data Node: node(z, a, a, c) end") is%(output) compile-error(CS.is-duplicate-id)
   end
 
   check "underscore data fields":
-    c("data Node: node(_) end") satisfies CS.is-underscore-as
-    c("data Node: node(_, _) end") satisfies CS.is-underscore-as
-    c("data Node: node(a, _) end") satisfies CS.is-underscore-as
-    c("data Node: node(_, a) end") satisfies CS.is-underscore-as
+    run-str("data Node: node(_) end") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data Node: node(_, _) end") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data Node: node(a, _) end") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data Node: node(_, a) end") is%(output) compile-error(CS.is-underscore-as)
   end
 
   check "underscore object fields":
-    c("{_: 5}") satisfies CS.is-underscore-as
-    c("data D: n() with: method _(self): 5 end end") satisfies CS.is-underscore-as
-    c("data D: n() sharing: method _(self): 5 end end") satisfies CS.is-underscore-as
-    c("data D: _() sharing: method m(self): 5 end end") satisfies CS.is-underscore-as
-    c("data _: d() sharing: method m(self): 5 end end") satisfies CS.is-underscore-as
+    run-str("{_: 5}") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data D: n() with: method _(self): 5 end end") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data D: n() sharing: method _(self): 5 end end") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data D: _() sharing: method m(self): 5 end end") is%(output) compile-error(CS.is-underscore-as)
+    run-str("data _: d() sharing: method m(self): 5 end end") is%(output) compile-error(CS.is-underscore-as)
   end
 
   check "tuple duplicate names":
-    c("fun f({k;v;}, {a;k;c;}): a + c end") satisfies CS.is-duplicate-id
-    c("fun f({a;a;}, {x;y;z;}): z end") satisfies CS.is-duplicate-id
-    c("fun f(w, {k; w;}): k end") satisfies CS.is-duplicate-id
+    run-str("fun f({k;v;}, {a;k;c;}): a + c end") is%(output) compile-error(CS.is-duplicate-id)
+    run-str("fun f({a;a;}, {x;y;z;}): z end") is%(output) compile-error(CS.is-duplicate-id)
+    run-str("fun f(w, {k; w;}): k end") is%(output) compile-error(CS.is-duplicate-id)
   end
 
   check "unbound type ids":
-    c("link<NotDefined>(1, empty)") satisfies CS.is-unbound-type-id
-    c(```
+    run-str("link<NotDefined>(1, empty)") is%(output) compile-error(CS.is-unbound-type-id)
+    run-str(```
 fun test<A>(a :: A):
  a
 end
@@ -84,7 +80,7 @@ end
 check:
  test<A>(1) is 1
 end    
-```) satisfies CS.is-unbound-type-id
+```) is%(output) compile-error(CS.is-unbound-type-id)
   end
 
   check "bound type aliases":

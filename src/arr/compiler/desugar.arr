@@ -230,8 +230,8 @@ fun ds-curry-nullary(rebuild-node, l, obj, m):
   else:
     rebuild-node(l, desugar-expr(obj), m)
   end
-where:
-  nothing
+# where:
+#   nothing
   #d = A.dummy-loc
   #ds-ed = ds-curry-nullary(A.s-dot, d, A.s-id(d, "_"), A.s-id(d, "x"))
 #  ds-ed satisfies
