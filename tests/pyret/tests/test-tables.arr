@@ -681,7 +681,7 @@ check "table-from-rows":
   ] + t2.all-rows()
   t4 = table-from-rows.make(raw-array-from-list(new-row-list))
 
-  nothing
+  nothing does-not-raise # Dummy test to avoid well-formedness errors in the previous row
 end
 
 

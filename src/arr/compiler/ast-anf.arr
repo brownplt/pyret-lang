@@ -795,7 +795,6 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: NameDict<A.Name>) -> NameDict<A
     | a-var(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       from-body.remove-now(b.id.key())
-      from-body
       freevars-ann-acc(b.ann, freevars-l-acc(e, from-body))
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)

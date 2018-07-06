@@ -57,15 +57,32 @@ data NativeModule:
 end
 
 data BindOrigin:
-  | bo-local(loc :: Loc)
-  | bo-module(uri :: URI)
+  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI)
+end
+
+fun bo-local(loc):
+  cases(SL.Srcloc) loc:
+    | builtin(source) =>
+      bind-origin(loc, loc, true, source)
+    | else =>
+      bind-origin(loc, loc, true, loc.source)
+  end
+end
+
+# NOTE(joe): If source information ends up in provides, we can add an extra arg
+# here to provide better definition site info for names from other modules
+fun bo-module(loc, uri):
+  bind-origin(loc, SL.builtin(uri), false, uri)
+end
+
+fun bo-global(uri):
+  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
 end
 
 data ValueBinder:
   | vb-letrec
   | vb-let
   | vb-var
-  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
 end
 
 data ValueBind:
@@ -73,14 +90,12 @@ data ValueBind:
       origin :: BindOrigin,
       binder :: ValueBinder,
       atom :: A.Name,
-      ann :: A.Ann,
-      expr :: Option<A.Expr>)
+      ann :: A.Ann)
 end
 
 data TypeBinder:
   | tb-type-let
   | tb-type-var
-  | tb-module(uri :: URI)
 end
 
 data TypeBind:
@@ -91,6 +106,13 @@ data TypeBind:
       ann :: Option<A.Ann>)
 end
 
+data ModuleBind:
+  | module-bind(
+      origin :: BindOrigin,
+      atom :: A.Name,
+      uri :: URI)
+end
+
 data ScopeResolution:
   | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
 end
@@ -99,6 +121,7 @@ data NameResolution:
   | resolved-names(
       ast :: A.Program,
       errors :: List<CompileError>,
+      module-bindings :: SD.MutableStringDict<ModuleBind>,
       bindings :: SD.MutableStringDict<ValueBind>,
       type-bindings :: SD.MutableStringDict<TypeBind>,
       datatypes :: SD.MutableStringDict<A.Expr>)
@@ -205,6 +228,17 @@ sharing:
       | some(shadow provides) => provides
     end
   end,
+  method provides-by-module-name(self, name):
+    self.globals.modules.get(name)
+      .and-then(self.provides-by-dep-key(_))
+      .and-then(_.value)
+  end,
+  method provides-by-module-name-value(self, name):
+    cases(Option) self.provides-by-module-name(name):
+      | none => raise("Could not find module " + name)
+      | some(shadow provides) => provides
+    end
+  end,
   method value-by-dep-key(self, dep-key, name):
     uri = self.my-modules.get-value(dep-key)
     self.value-by-uri(uri, name)
@@ -229,9 +263,9 @@ sharing:
   end
 end
 
-# The strings in globals should be the appropriate dependency (e.g. in my-modules)
+# globals maps from names to the appropriate dependency (e.g. in my-modules)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(modules :: StringDict<String>, values :: StringDict<String>, types :: StringDict<String>)
 end
 
 data ValueExport:
@@ -243,6 +277,7 @@ end
 data Provides:
   | provides(
       from-uri :: URI,
+      modules :: StringDict<URI>,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.DataType>
@@ -382,7 +417,8 @@ fun provides-from-raw-provides(uri, raw):
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  provides(uri, vdict, adict, ddict)
+  # MARK(joe/ben): modules
+  provides(uri, [SD.string-dict:], vdict, adict, ddict)
 end
 
 
@@ -390,7 +426,8 @@ end
 
 fun provides-to-raw-provides-ast(provs, env):
   cases(Provides) provs:
-    | provides(uri, values, aliases, data-defs) =>
+      # MARK(joe/ben): modules
+    | provides(uri, _, values, aliases, data-defs) =>
     #|
       value-fields = for CL.map_list(v from values.keys().to-list()):
         J.j-field(v, type-to-raw-ast(values.get-value(v), compile-env))
@@ -1219,19 +1256,23 @@ data CompileError:
           ED.text(" is being used as a value:")]
       usage = ED.cmcode(self.id.l)
       cases(BindOrigin) self.origin:
-        | bo-local(loc) =>
-          [ED.error: intro, usage,
-            [ED.para:
-              ED.text("But it is "),
-              ED.highlight(ED.text("defined as a type"), [ED.locs: loc], 1),
-              ED.text(":")],
-            ED.cmcode(loc)]
-        | bo-module(uri) =>
-          [ED.error: intro, usage,
-            [ED.para:
-              ED.text("But it is defined as a type in "),
-              ED.embed(uri),
-              ED.text(".")]]
+        | bind-origin(lbind, ldef, newdef, uri) =>
+          if newdef:
+            [ED.error: intro, usage,
+              [ED.para:
+                ED.text("But it is "),
+                ED.highlight(ED.text("defined as a type"), [ED.locs: ldef], 1),
+                ED.text(":")],
+              ED.cmcode(ldef)]
+          else:
+            # MARK(joe/ben): This may be able to use lbind and ldef when they
+            # are more refined; come back to this
+            [ED.error: intro, usage,
+              [ED.para:
+                ED.text("But it is defined as a type in "),
+                ED.embed(uri),
+                ED.text(".")]]
+          end
       end
     end,
     method render-reason(self):
@@ -2627,6 +2668,8 @@ fun t-forall1(f):
 end
 
 runtime-provides = provides("builtin://global",
+  # MARK(joe/ben): modules
+  [string-dict:],
   [string-dict:
     "test-print", t-forall1(lam(a): t-arrow([list: a], a) end),
     "print", t-forall1(lam(a): t-arrow([list: a], a) end),
@@ -2820,9 +2863,11 @@ shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-pr
   rt.set(k, "builtin(global)")
 end
 
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
+# MARK(joe/ben): modules
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
 
-standard-globals = globals(runtime-values, runtime-types)
+# MARK(joe/ben): modules
+standard-globals = globals([string-dict:], runtime-values, runtime-types)
 
 minimal-imports = extra-imports(empty)
 
