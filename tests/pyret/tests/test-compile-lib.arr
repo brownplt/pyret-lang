@@ -464,6 +464,7 @@ check:
   canon = AU.canonicalize-provides(ps, ce)
 
   canon is CM.provides("test-provides1",
+    mt, #MARK(joe/ben): modules
     [string-dict:
       "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
