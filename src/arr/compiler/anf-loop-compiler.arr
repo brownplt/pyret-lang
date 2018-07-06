@@ -2027,8 +2027,7 @@ end
 
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-      # MARK(joe/ben): modules below
-    | provides(thismod-uri, _, values, aliases, data-defs) =>
+    | provides(thismod-uri, values, aliases, data-defs) =>
       value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
           | v-just-type(t) => j-field(v, compile-provided-type(t))
