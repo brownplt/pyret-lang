@@ -39,18 +39,18 @@ fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "curr
 
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _provide, _provide-types, imports, body) =>
+    | s-program(l1, _provide, _provide-types, provides, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              A.s-program(l1, _provide, _provide-types, imports,
+              A.s-program(l1, _provide, _provide-types, provides, imports,
                 A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))]))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): prog
               else:
-                A.s-program(l1, _provide, _provide-types, imports,
+                A.s-program(l1, _provide, _provide-types, provides, imports,
                   A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))]))
               end
           end
@@ -70,12 +70,12 @@ end
 
 fun wrap-toplevels(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _prov, _prov-types, imps, body) =>
+    | s-program(l1, _prov, _prov-types, provides, imps, body) =>
       new-body = cases(A.Expr) body:
         | s-block(l2, stmts) => A.s-block(l2, map(wrap-if-needed, stmts))
         | else => wrap-if-needed(body)
       end
-      A.s-program(l1, _prov, _prov-types, imps, new-body)
+      A.s-program(l1, _prov, _prov-types, provides, imps, new-body)
   end
 end
 
@@ -174,7 +174,7 @@ fun default-env-map-visitor<a, c>(
   A.default-map-visitor.{
     env: initial-env,
     type-env: initial-type-env,
-    method s-program(self, l, _provide, _provide-types, imports, body):
+    method s-program(self, l, _provide, _provide-types, provides, imports, body):
       visit-provide = _provide.visit(self)
       visit-provide-types = _provide-types.visit(self)
       visit-imports = for map(i from imports):
@@ -185,7 +185,8 @@ fun default-env-map-visitor<a, c>(
         bind-handlers.s-header(i, acc.val-env, acc.type-env)
       end
       visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
-      A.s-program(l, visit-provide, visit-provide-types, visit-imports, visit-body)
+      # MARK(joe/ben)
+      A.s-program(l, visit-provide, visit-provide-types, provides, visit-imports, visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       new-envs = { val-env: self.env, type-env: self.type-env }
@@ -288,7 +289,7 @@ fun default-env-iter-visitor<a, c>(
     env: initial-env,
     type-env: initial-type-env,
 
-    method s-program(self, l, _provide, _provide-types, imports, body):
+    method s-program(self, l, _provide, _provide-types, provides, imports, body):
       if _provide.visit(self) and _provide-types.visit(self):
         new-envs = { val-env: self.env, type-env: self.type-env }
         imported-envs = for fold(acc from new-envs, i from imports):
@@ -296,6 +297,7 @@ fun default-env-iter-visitor<a, c>(
         end
         new-visitor = self.{ env: imported-envs.val-env, type-env: imported-envs.type-env }
         lists.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
+        # MARK(joe/ben): provides
       else:
         false
       end
@@ -898,7 +900,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
                 name-to-use)
           end
         end
-      A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
+      A.s-program(p.l, p._provide, p.provided-types, p.provides, full-imports, p.block)
   end
 end
 
@@ -1119,7 +1121,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     end
   end
   cases(A.Program) resolved.ast:
-    | s-program(l, provide-complete, _, _, _) =>
+    | s-program(l, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
@@ -1151,12 +1153,13 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             exp = resolved.datatypes.get-value-now(d.d.key())
             data-typs.set-now(d.d.key(), data-expr-to-datatype(exp))
           end
-          CS.provides(
+          provs = CS.provides(
               uri,
               val-typs.freeze(),
               alias-typs.freeze(),
               data-typs.freeze()
             )
+          provs
       end
   end
 end
@@ -1341,7 +1344,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
-    | s-program(_, provide-complete, _, _, _) =>
+    | s-program(_, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
         | s-provide-complete(_, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()

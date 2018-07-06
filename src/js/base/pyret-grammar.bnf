@@ -1,12 +1,12 @@
-#lang ragg
-
 /*
   name: PyretGrammar
 */
-
 program: prelude block
 
-prelude: [provide-stmt] [provide-types-stmt] import-stmt*
+prelude: provide-stmts import-stmts
+
+provide-stmts: provide-stmt*
+import-stmts: import-stmt*
 
 import-stmt: INCLUDE import-source
 import-stmt: IMPORT import-source AS NAME
@@ -14,8 +14,33 @@ import-stmt: IMPORT comma-names FROM import-source
 import-source: import-special | import-name
 import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
-provide-stmt: PROVIDE stmt END | PROVIDE STAR
+
+provide-stmt: provide-vals-stmt | provide-types-stmt | provide-block
+
+provide-vals-stmt:  PROVIDE stmt END | PROVIDE STAR
 provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
+
+provide-block: PROVIDECOLON [provide-spec (COMMA provide-spec)*] END
+
+provide-spec: provide-name-spec
+            | provide-type-spec
+            | provide-data-spec
+            | provide-module-spec
+
+name-spec: STAR [hiding-spec] | module-ref | module-ref AS NAME
+data-name-spec: STAR | module-ref
+
+provide-name-spec: name-spec
+provide-type-spec: TYPE name-spec
+provide-data-spec: DATA data-name-spec [hiding-spec]
+provide-module-spec: MODULE name-spec
+
+hiding-spec: HIDING (PARENSPACE | PARENNOSPACE) [(NAME COMMA)* NAME] RPAREN
+
+module-ref: (NAME DOT)* NAME
+
+
+
 comma-names: NAME (COMMA NAME)*
 
 block: stmt*

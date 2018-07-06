@@ -402,7 +402,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
         end
       else:
         cases(Option) env.value-by-uri(vb.origin.uri, vb.atom.toname()):
-          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri)
+          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri + " " + to-repr(env.all-modules.get-now(vb.origin.uri)))
           | some(value-export) =>
             cases(C.ValueExport) value-export:
               | v-fun(_, _, flatness) =>

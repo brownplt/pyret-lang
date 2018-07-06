@@ -65,13 +65,14 @@ end
 
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
-    | s-program(l, _, _, imports, body) =>
+    | s-program(l, _, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
+          [list:],
           defined-ids.imports,
           body)
   end
@@ -84,7 +85,7 @@ end
 fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
-    | s-program(l, _, _, imports, body) =>
+    | s-program(l, _, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
@@ -97,6 +98,7 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
           A.s-provide-types(l, env-type-provide),
+          [list:],
           defined-ids.imports,
           body)
   end
@@ -121,7 +123,7 @@ end
 
 fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: String, g :: CS.Globals) -> {new-globals:: CS.Globals, new-extras:: List<CS.ExtraImport>}:
   cases(A.Program) CL.get-ast(l.get-module(), l.uri()):
-    | s-program(_, _, _, imports, _) =>
+    | s-program(_, _, _, _, imports, _) =>
       for fold(res from {new-globals: g, new-extras: empty}, i from imports):
         shadow g = res.new-globals
         cases(A.Import) RN.expand-import(i, env):

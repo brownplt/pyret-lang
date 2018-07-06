@@ -97,9 +97,10 @@ end
 
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
-    | s-program(l, p, _, imports, block) =>
+    | s-program(l, p, _, provides, imports, block) =>
       # Note: provides have been desugared to a structure with no expressions, just
       # names and Ann information
+      # MARK(joe/ben): provides
       N.a-program(l, p, imports.map(anf-import), anf-term(block))
   end
 end

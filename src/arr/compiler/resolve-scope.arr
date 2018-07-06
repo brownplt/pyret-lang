@@ -634,7 +634,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
          - contains no s-let, s-var, s-data, s-tuple-bind
        ```
   cases(A.Program) prog block:
-    | s-program(l, _provide-raw, provide-types-raw, imports-raw, body) =>
+    | s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, body) =>
       imports = imports-raw.map(lam(i): expand-import(i, env) end)
       str = A.s-str(l, _)
       resolved-provides = resolve-provide(_provide-raw, body)
@@ -695,7 +695,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
       end
       recombined = A.s-block(with-provides.l, remaining + stmts)
       visited = recombined.visit(desugar-scope-visitor)
-      C.resolved-scope(A.s-program(l, resolved-provides, resolved-type-provides, imports, visited), errors)
+      C.resolved-scope(A.s-program(l, resolved-provides, resolved-type-provides, provides, imports, visited), errors)
   end
 
 where:
@@ -705,7 +705,7 @@ where:
   checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
   str = A.s-str(d, _)
   ds = lam(prog): desugar-scope(prog, C.no-builtins).ast.visit(A.dummy-loc-visitor) end
-  compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
+  compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:], [list: ],
         A.s-let-expr(d, [list:
             A.s-let-bind(d, b("x"), A.s-num(d, 10))
           ],
@@ -919,7 +919,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
     end,
-    method s-program(self, l, _provide, _provide-types, imports, body) block:
+    method s-program(self, l, _provide, _provide-types, provides, imports, body) block:
       {imp-e; imp-te; imp-imps} = for fold(acc from { self.env; self.type-env; empty }, i from imports):
         {imp-e; imp-te; imp-imps} = acc
         cases(A.Import) i block:
@@ -1052,7 +1052,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         data-defs
       )
 
-      A.s-program(l, one-true-provide, A.s-provide-types-none(l), imp-imps.reverse(), visit-body)
+      A.s-program(l, one-true-provide, A.s-provide-types-none(l), provides, imp-imps.reverse(), visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):

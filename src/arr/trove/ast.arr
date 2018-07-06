@@ -241,7 +241,7 @@ fun blocky-colon(blocky):
 end
 
 data Program:
-  | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, imports :: List<Import>, block :: Expr) with:
+  | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, provides :: List<ProvideBlock>, imports :: List<Import>, block :: Expr) with:
     method label(self): "s-program" end,
     method tosource(self):
       PP.group(
@@ -371,6 +371,44 @@ sharing:
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
+
+data ProvideBlock:
+  | s-provide-block(l :: Loc, specs :: List<ProvideSpec>) with:
+    method label(self): "s-provide-block" end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data ProvideSpec:
+  | s-provide-name(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-provide-name" end
+  | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
+    method label(self): "s-provide-data" end
+  | s-provide-type(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-provide-type" end
+  | s-provide-module(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-provide-module" end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data NameSpec:
+  | s-star(l :: Loc, hidden :: List<Name>) with:
+    method label(self): "s-star" end
+  | s-module-ref(l :: Loc, path :: List<Name>, as-name :: Option<Name>) with:
+    method label(self): "s-module-ref" end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
+
 
 data ProvideTypes:
   | s-provide-types(l :: Loc, ann :: List<AField>) with:
@@ -1792,7 +1830,7 @@ end
 
 fun toplevel-ids(program :: Program) -> List<Name>:
   cases(Program) program:
-    | s-program(_, _, _, _, b) => block-ids(b)
+    | s-program(_, _, _, _, _, b) => block-ids(b)
     | else => raise("Non-program given to toplevel-ids")
   end
 end
@@ -1839,8 +1877,8 @@ default-map-visitor = {
     s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    s-program(l, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _provide, provided-types, provides, imports, body):
+    s-program(l, _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
   end,
 
   method s-include(self, l, import-type):
@@ -2399,9 +2437,10 @@ default-iter-visitor = {
     answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
+  method s-program(self, l, _provide, provided-types, provides, imports, body):
     _provide.visit(self)
     and provided-types.visit(self)
+    and lists.all(_.visit(self), provides)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
   end,
@@ -2949,8 +2988,8 @@ dummy-loc-visitor = {
       answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _provide, provided-types, provides, imports, body):
+    s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
   end,
 
   method s-const-import(self, l :: Loc, mod :: String):

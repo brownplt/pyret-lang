@@ -130,29 +130,120 @@
           var prelude = tr(node.kids[0]);
           var body = tr(node.kids[1]);
           return RUNTIME.getField(ast, 's-program')
-            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+            .app(pos(node.pos), prelude.provides, prelude.provideTypes, prelude.allProvides, prelude.imports, body);
         },
         'prelude': function(node) {
-          var provide;
-          var provideTypes;
-          var kids = node.kids.slice(0);
-          if (kids.length > 0 && kids[0].name === "provide-stmt") {
-            provide = tr(kids.shift());
-          } else {
-            provide = RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos));
-          }
-          if (kids.length > 0 && kids[0].name === "provide-types-stmt") {
-            provideTypes = tr(kids.shift());
-          } else {
-            provideTypes = RUNTIME.getField(ast, 's-provide-types-none').app(pos(node.pos));
-          }
+          var allProvides = tr(node.kids[0]);
           return {
-            provide : provide,
-            provideTypes : provideTypes,
-            imports : makeListTr(kids)
+            provides: allProvides.values,
+            provideTypes: allProvides.types,
+            allProvides: allProvides.provides,
+            imports: tr(node.kids[1])
           };
         },
+        'provide-stmts': function(node) {
+          var provide = undefined;
+          var provideTypes = undefined;
+          var remaining = [];
+          node.kids.forEach(function(kid) {
+            if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
+              provideTypes = tr(kid);
+            }
+            else if(provide === undefined && kid.kids[0].name === 'provide-vals-stmt') {
+              provide = tr(kid);
+            }
+            else {
+              remaining.push(kid);
+            }
+          });
+          if(provide === undefined) {
+            provide = RUNTIME.getField(ast, "s-provide-none").app(pos(node.pos));
+          }
+          if(provideTypes === undefined) {
+            provideTypes = RUNTIME.getField(ast, "s-provide-types-none").app(pos(node.pos));
+          }
+          return {
+            values: provide,
+            types: provideTypes,
+            provides: makeListTr(remaining)
+          };
+        },
+        'import-stmts': function(node) {
+          return makeListTr(node.kids);
+        },
+        'hiding-spec': function(node) {
+          return makeListComma(node.kids, 2, node.kids.length - 1, name);
+        },
+        'module-ref': function(node) {
+          return makeListComma(node.kids, 0, node.kids.length, name);
+        },
+        'name-spec': function(node) {
+          if(node.kids[0].name === "STAR") {
+            if(node.kids.length === 1) {
+              return RUNTIME.getField(ast, "s-star").app(
+                pos(node.pos), makeListTr([]));
+            }
+            else {
+              return RUNTIME.getField(ast, "s-star").app(
+                pos(node.pos), tr(node.kids[1]));
+            }
+          }
+          else if(node.kids.length === 1) {
+            return RUNTIME.getField(ast, "s-module-ref").app(
+              pos(node.pos), tr(node.kids[0]), RUNTIME.ffi.makeNone());
+          }
+          else {
+            return RUNTIME.getField(ast, "s-module-ref").app(
+              pos(node.pos),
+              tr(node.kids[0]),
+              RUNTIME.ffi.makeSome(name(node.kids[2])));
+          }
+        },
+        'provide-spec': function(node) {
+          return tr(node.kids[0]);
+        },
+        'provide-name-spec': function(node) {
+          return RUNTIME.getField(ast, "s-provide-name").app(
+              pos(node.pos),
+              tr(node.kids[0])
+          );
+        },
+        'provide-data-spec': function(node) {
+          var hidings;
+          node.kids[1].name = 'name-spec';
+          if(node.kids.length === 2) {
+            hidings = makeListTr([]);
+          }
+          else {
+            hidings = tr(node.kids[2]);
+          }
+          return RUNTIME.getField(ast, "s-provide-data").app(
+              pos(node.pos),
+              tr(node.kids[1]),
+              hidings
+              );
+        },
+        'provide-type-spec': function(node) {
+          return RUNTIME.getField(ast, "s-provide-type").app(
+              pos(node.pos),
+              tr(node.kids[1])
+          );
+        },
+        'provide-module-spec': function(node) {
+          return RUNTIME.getField(ast, "s-provide-module").app(
+              pos(node.pos),
+              tr(node.kids[1])
+          );
+        },
         'provide-stmt': function(node) {
+          return tr(node.kids[0]);
+        },
+        'provide-block': function(node) {
+          return RUNTIME.getField(ast, "s-provide-block").app(
+            pos(node.pos),
+            makeListComma(node.kids, 1, node.kids.length - 1));
+        },
+        'provide-vals-stmt': function(node) {
           if (node.kids.length === 2) {
             // (provide-stmt PROVIDE STAR)
             return RUNTIME.getField(ast, 's-provide-all')
