@@ -8,7 +8,7 @@ compile-error = C.compile-error
 check "https://github.com/brownplt/pyret-lang/issues/1178":
   ans = C.get-compile-errs(```
 check:
-  x
+  f(x)
 end
 ```)
 
@@ -18,7 +18,7 @@ end
 check "https://github.com/brownplt/pyret-lang/issues/1178":
   ans = C.get-compile-errs(```
 check:
-  5 6
+  f(5) f(6)
 end
 ```)
 
