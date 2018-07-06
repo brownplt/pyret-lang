@@ -8,9 +8,10 @@ import file("compile-structs.arr") as C
 
 mk-id = D.mk-id
 no-branches-exn = D.no-branches-exn
+flat-prim-app = A.prim-app-info-c(false)
 
 fun no-cases-exn(l, val):
-  A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val])
+  A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val], flat-prim-app)
 end
 
 desugar-visitor = A.default-map-visitor.{

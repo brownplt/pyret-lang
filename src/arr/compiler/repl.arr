@@ -27,18 +27,6 @@ fun is-standard-import(imp :: CS.ExtraImport):
   standard-import-names.member(imp.as-name)
 end
 
-fun add-global-binding(env :: CS.CompileEnvironment, name :: String):
-  CS.compile-env(
-    CS.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
-    env.mods)
-end
-
-fun add-global-type-binding(env :: CS.CompileEnvironment, name :: String):
-  CS.compile-env(
-    CS.globals(env.globals.values, env.globals.types.set(name, TS.t-top)),
-    env.mods)
-end
-
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
   import-names = for fold(names from empty, imp from imports):
@@ -145,7 +133,9 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: 
             new-types = for fold(ts from g.types, k from types.map(_.toname())):
               ts.set(k, depname)
             end
+            # MARK(joe/ben): modules
             ng = CS.globals(
+              [SD.string-dict:],
               new-vals.set(vals-name.toname(), dep),
               new-types.set(type-name.toname(), dep))
             ne = link(CS.extra-import(AU.import-to-dep(file), "_", empty, empty), res.new-extras)
@@ -157,7 +147,7 @@ end
 
 fun make-repl<a>(
     runtime :: R.Runtime,
-    modules :: SD.MutableStringDict<CL.Loadable>,
+    modules :: SD.MutableStringDict<CS.Loadable>,
     realm :: L.Realm,
     compile-context :: a,
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
@@ -199,7 +189,8 @@ fun make-repl<a>(
     new-types = for SD.fold-keys(ts from globals.types, provided-name from cr.provides.aliases):
       ts.set(provided-name, dep.key())
     end
-    globals := CS.globals(new-vals, new-types)
+    # MARK(joe/ben): modules
+    globals := CS.globals([SD.string-dict:], new-vals, new-types)
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)

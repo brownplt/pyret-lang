@@ -238,7 +238,6 @@ fun map_list2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> Concat
   end
 end
 
-check:
-  # [clist: 1, 2, 3] is concat-cons(1, concat-cons(2, concat-singleton(3)))
-  nothing
-end
+# check:
+#   [clist: 1, 2, 3] is concat-cons(1, concat-cons(2, concat-singleton(3)))
+# end

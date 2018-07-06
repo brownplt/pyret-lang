@@ -126,7 +126,7 @@ fun split<X, Y>(ps :: List<{X;Y}>) -> {List<X>; List<Y>}:
 end
 
 fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
-  c.mods.get-value(AU.import-to-dep(i).key()).from-uri
+  c.uri-by-dep-key(AU.import-to-dep(i).key())
 end
 
 # if a t-name refers to a polymorphic data type convert it to a t-app with existentials
@@ -166,13 +166,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
-      uri = globvs.get-value(g)
+      dep-key = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
 
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-dep-key-value(dep-key, g).t))
       end
     end
   end, context)
@@ -180,11 +180,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
-      uri = globts.get-value(g)
+      dep-key = globts.get-value(g)
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.mods.get(uri):
+        cases(Option<C.Provides>) compile-env.provides-by-dep-key(dep-key):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -196,7 +196,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(dep-key) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end
@@ -427,7 +427,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-let should have already been desugared")
         | s-ref(l, ann) =>
           raise("checking for s-ref not implemented")
-        | s-contract(l, name, ann) =>
+        | s-contract(l, name, params, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
           raise("s-when should have already been desugared")
@@ -552,7 +552,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-prim-app(l, _fun, args) =>
+        | s-prim-app(l, _fun, args, _) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-val(l, name) =>
           raise("checking for s-prim-val not implemented")
@@ -689,7 +689,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-let should have already been desugared")
     | s-ref(l, ann) =>
       raise("synthesis for s-ref not implemented")
-    | s-contract(l, name, ann) =>
+    | s-contract(l, name, params, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>
       raise("s-when should have already been desugared")
@@ -800,9 +800,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         .typing-bind(lam(fun-type, shadow context):
           synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
         end)
-    | s-prim-app(l, _fun, args) =>
+    | s-prim-app(l, _fun, args, app-info) =>
       lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, shadow context):
-        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _), args, l, context)
+        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _, app-info), args, l, context)
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>
