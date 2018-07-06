@@ -43,7 +43,7 @@ desugar-visitor = A.default-map-visitor.{
 }
 
 fun no-method-exn(l, obj, name):
-  A.s-prim-app(l, "throwFieldNotFound", [list: A.s-srcloc(l, l), obj, name])
+  A.s-prim-app(l, "throwFieldNotFound", [list: A.s-srcloc(l, l), obj, name], flat-prim-app)
 end
 
 var generated-binds = SD.make-mutable-string-dict()
