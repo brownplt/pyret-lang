@@ -37,6 +37,8 @@ is-t-app = T.is-t-app
 type URI = String
 type StringDict = SD.StringDict
 string-dict = SD.string-dict
+mutable-string-dict = SD.mutable-string-dict
+type MutableStringDict = SD.MutableStringDict
 
 is-s-block = A.is-s-block
 
@@ -56,15 +58,32 @@ data NativeModule:
 end
 
 data BindOrigin:
-  | bo-local(loc :: Loc)
-  | bo-module(mod :: Option<A.ImportType>, uri :: URI)
+  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI)
+end
+
+fun bo-local(loc):
+  cases(SL.Srcloc) loc:
+    | builtin(source) =>
+      bind-origin(loc, loc, true, source)
+    | else =>
+      bind-origin(loc, loc, true, loc.source)
+  end
+end
+
+# NOTE(joe): If source information ends up in provides, we can add an extra arg
+# here to provide better definition site info for names from other modules
+fun bo-module(loc, uri):
+  bind-origin(loc, SL.builtin(uri), false, uri)
+end
+
+fun bo-global(uri):
+  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
 end
 
 data ValueBinder:
   | vb-letrec
   | vb-let
   | vb-var
-  | vb-module(uri :: URI) # The A in import ast as A (with URI determined from compile env)
 end
 
 data ValueBind:
@@ -72,14 +91,12 @@ data ValueBind:
       origin :: BindOrigin,
       binder :: ValueBinder,
       atom :: A.Name,
-      ann :: A.Ann,
-      expr :: Option<A.Expr>)
+      ann :: A.Ann)
 end
 
 data TypeBinder:
   | tb-type-let
   | tb-type-var
-  | tb-module(uri :: URI)
 end
 
 data TypeBind:
@@ -90,22 +107,12 @@ data TypeBind:
       ann :: Option<A.Ann>)
 end
 
-#|
-data ScopeBinding:
-  | letrec-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | let-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | var-bind(loc, atom :: A.Name, ann :: A.Ann, expr :: Option<A.Expr>)
-  | global-bind(loc, atom :: A.Name, expr :: Option<A.Expr>)
-  | module-bind(loc, atom :: A.Name, mod :: A.ImportType, expr :: Option<A.Expr>)
+data ModuleBind:
+  | module-bind(
+      origin :: BindOrigin,
+      atom :: A.Name,
+      uri :: URI)
 end
-
-data TypeBinding:
-  | let-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | type-var-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | global-type-bind(loc, atom :: A.Name, ann :: Option<A.Ann>)
-  | module-type-bind(loc, atom :: A.Name, mod :: A.ImportType, ann :: Option<A.Ann>)
-end
-|#
 
 data ScopeResolution:
   | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
@@ -115,6 +122,7 @@ data NameResolution:
   | resolved-names(
       ast :: A.Program,
       errors :: List<CompileError>,
+      module-bindings :: SD.MutableStringDict<ModuleBind>,
       bindings :: SD.MutableStringDict<ValueBind>,
       type-bindings :: SD.MutableStringDict<TypeBind>,
       datatypes :: SD.MutableStringDict<A.Expr>)
@@ -131,16 +139,134 @@ data ExtraImport:
   | extra-import(dependency :: Dependency, as-name :: String, values :: List<String>, types :: List<String>)
 end
 
+data Loadable:
+  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, result-printer :: CompileResult<Any>)
+    # NOTE(joe): there's a circular dependency between this module and js-of-pyret.arr; hence the Any above
+end
+
+
 data CompileEnvironment:
   | compile-env(
         globals :: Globals,
-        mods :: StringDict<Provides> # map from dependency key to info provided from module
+        all-modules :: MutableStringDict<Loadable>,
+        my-modules :: StringDict<URI>
       )
+sharing:
+  # TODO(joe/ben/jose): Write a recursive lookup here
+  # that fully resolves names (once ValueExport and
+  # friends have that information)
+  method value-by-uri(self, uri :: String, name :: String):
+    self.all-modules
+      .get-value-now(uri)
+      .provides
+      .values.get(name)
+  end,
+  method value-by-uri-value(self, uri :: String, name :: String):
+    cases(Option) self.value-by-uri(uri, name):
+      | none => raise("Could not find value " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method type-by-uri(self, uri, name):
+    self.all-modules
+      .get-value-now(uri)
+      .provides
+      .types.get(name)
+  end,
+  method type-by-uri-value(self, uri, name):
+    cases(Option) self.type-by-uri(uri, name):
+      | none => raise("Could not find type " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method global-value(self, name :: String):
+    self.globals.values.get(name)
+      .and-then(self.value-by-dep-key(_, name))
+      .and-then(_.value)
+  end,
+  method global-type(self, name :: String):
+    self.globals.types.get(name)
+      .and-then(self.type-by-dep-key(_, name))
+      .and-then(_.value)
+  end,
+  method uri-by-dep-key(self, dep-key):
+    self.my-modules.get-value(dep-key)
+  end,
+  method provides-by-uri(self, uri):
+    self.all-modules.get-now(uri)
+      .and-then(_.provides)
+  end,
+  method provides-by-dep-key(self, dep-key):
+    self.my-modules.get(dep-key)
+      .and-then(self.all-modules.get-value-now(_))
+      .and-then(_.provides)
+  end,
+  method provides-by-dep-key-value(self, dep-key):
+    cases(Option) self.provides-by-dep-key(dep-key):
+      | none => raise("Could not find dep key: " + dep-key)
+      | some(shadow provides) => provides
+    end
+  end,
+  method provides-by-value-name(self, name):
+    self.globals.values.get(name)
+      .and-then(self.provides-by-dep-key(_))
+      .and-then(_.value)
+  end,
+  method provides-by-value-name-value(self, name):
+    cases(Option) self.provides-by-value-name(name):
+      | none => raise("Could not find value " + name)
+      | some(shadow provides) => provides
+    end
+  end,
+  method provides-by-type-name(self, name):
+    self.globals.types.get(name)
+      .and-then(self.provides-by-dep-key(_))
+      .and-then(_.value)
+  end,
+  method provides-by-type-name-value(self, name):
+    cases(Option) self.provides-by-type-name(name):
+      | none => raise("Could not find type " + name)
+      | some(shadow provides) => provides
+    end
+  end,
+  method provides-by-module-name(self, name):
+    self.globals.modules.get(name)
+      .and-then(self.provides-by-dep-key(_))
+      .and-then(_.value)
+  end,
+  method provides-by-module-name-value(self, name):
+    cases(Option) self.provides-by-module-name(name):
+      | none => raise("Could not find module " + name)
+      | some(shadow provides) => provides
+    end
+  end,
+  method value-by-dep-key(self, dep-key, name):
+    uri = self.my-modules.get-value(dep-key)
+    self.value-by-uri(uri, name)
+  end,
+  method value-by-dep-key-value(self, dep-key, name):
+    cases(Option) self.value-by-dep-key(dep-key, name):
+      | none => raise("Could not find " + name + " on " + dep-key)
+      | some(v) => v
+    end
+  end,
+  method type-by-dep-key(self, dep-key, name):
+    uri = self.my-modules.get-value(dep-key)
+    self.type-by-uri(uri, name)
+  end,
+  method uri-by-value-name(self, name):
+    self.globals.values.get(name)
+      .and-then(self.uri-by-dep-key(_))
+  end,
+  method uri-by-type-name(self, name):
+    self.globals.types.get(name)
+      .and-then(self.uri-by-dep-key(_))
+  end
 end
 
-# The strings in globals should be the appropriate dependency (e.g. in mods)
+# globals maps from names to the appropriate dependency (e.g. in my-modules)
 data Globals:
-  | globals(values :: StringDict<String>, types :: StringDict<String>)
+  | globals(modules :: StringDict<String>, values :: StringDict<String>, types :: StringDict<String>)
 end
 
 data ValueExport:
@@ -152,6 +278,7 @@ end
 data Provides:
   | provides(
       from-uri :: URI,
+      modules :: StringDict<URI>,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
       data-definitions :: StringDict<T.DataType>
@@ -291,7 +418,8 @@ fun provides-from-raw-provides(uri, raw):
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  provides(uri, vdict, adict, ddict)
+  # MARK(joe/ben): modules
+  provides(uri, [SD.string-dict:], vdict, adict, ddict)
 end
 
 
@@ -299,7 +427,8 @@ end
 
 fun provides-to-raw-provides-ast(provs, env):
   cases(Provides) provs:
-    | provides(uri, values, aliases, data-defs) =>
+      # MARK(joe/ben): modules
+    | provides(uri, _, values, aliases, data-defs) =>
     #|
       value-fields = for CL.map_list(v from values.keys().to-list()):
         J.j-field(v, type-to-raw-ast(values.get-value(v), compile-env))
@@ -497,6 +626,25 @@ data CompileError:
           ED.text("The contract for "),
           ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
           ED.text(" specifies arguments that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
+    end
+  | contract-inconsistent-params(loc :: Loc, name :: String, defn-loc :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0)],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("specifies type parameters that are inconsistent with the "),
+          ED.highlight(ED.text("associated definition"), [list: self.defn-loc], -1), ED.text(":")],
+        ED.cmcode(self.defn-loc)]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The contract for "),
+          ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
+          ED.text(" specifies type parameters that are inconsistent with the definition at "), ED.loc(self.defn-loc)]]
     end
   | contract-unused(loc :: Loc, name :: String) with:
     method render-fancy-reason(self):
@@ -805,8 +953,9 @@ data CompileError:
         [ED.para:
           ED.text("is not inside a "),
           ED.code(ED.text("check")),
+          ED.text(", "), ED.code(ED.text("where")),
           ED.text(" or "),
-          ED.code(ED.text("where")),
+          ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end,
     method render-reason(self):
@@ -816,8 +965,9 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" is not inside a "),
           ED.code(ED.text("check")),
+          ED.text(", "), ED.code(ED.text("where")),
           ED.text(" or "),
-          ED.code(ED.text("where")),
+          ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end
   | unwelcome-test-refinement(refinement, op) with:
@@ -1107,19 +1257,23 @@ data CompileError:
           ED.text(" is being used as a value:")]
       usage = ED.cmcode(self.id.l)
       cases(BindOrigin) self.origin:
-        | bo-local(loc) =>
-          [ED.error: intro, usage,
-            [ED.para:
-              ED.text("But it is "),
-              ED.highlight(ED.text("defined as a type"), [ED.locs: loc], 1),
-              ED.text(":")],
-            ED.cmcode(loc)]
-        | bo-module(_, uri) =>
-          [ED.error: intro, usage,
-            [ED.para:
-              ED.text("But it is defined as a type in "),
-              ED.embed(uri),
-              ED.text(".")]]
+        | bind-origin(lbind, ldef, newdef, uri) =>
+          if newdef:
+            [ED.error: intro, usage,
+              [ED.para:
+                ED.text("But it is "),
+                ED.highlight(ED.text("defined as a type"), [ED.locs: ldef], 1),
+                ED.text(":")],
+              ED.cmcode(ldef)]
+          else:
+            # MARK(joe/ben): This may be able to use lbind and ldef when they
+            # are more refined; come back to this
+            [ED.error: intro, usage,
+              [ED.para:
+                ED.text("But it is defined as a type in "),
+                ED.embed(uri),
+                ED.text(".")]]
+          end
       end
     end,
     method render-reason(self):
@@ -2530,6 +2684,8 @@ fun t-forall1(f):
 end
 
 runtime-provides = provides("builtin://global",
+  # MARK(joe/ben): modules
+  [string-dict:],
   [string-dict:
     "test-print", t-forall1(lam(a): t-arrow([list: a], a) end),
     "print", t-forall1(lam(a): t-arrow([list: a], a) end),
@@ -2571,6 +2727,7 @@ runtime-provides = provides("builtin://global",
     "is-raw-array", t-pred,
     "is-tuple", t-pred,
     "is-table", t-pred,
+    "is-row", t-pred,
     "gensym", t-top,
     "random", t-top,
     "run-task", t-top,
@@ -2649,11 +2806,18 @@ runtime-provides = provides("builtin://global",
     "num-within", t-within-num,
     "num-within-rel", t-within-num,
     "num-within-abs", t-within-num,
+    "within-now", t-within-any,
     "within-rel", t-within-any,
     "within-rel-now", t-within-any,
     "within-abs", t-within-any,
     "within-abs-now", t-within-any,
     "within", t-within-any,
+    "within-now3", t-within-any,
+    "within-rel3", t-within-any,
+    "within-rel-now3", t-within-any,
+    "within-abs3", t-within-any,
+    "within-abs-now3", t-within-any,
+    "within3", t-within-any,
     "raw-array-get", t-top,
     "raw-array-set", t-top,
     "raw-array-of", t-top,
@@ -2702,6 +2866,7 @@ runtime-provides = provides("builtin://global",
      "NumNonNegative", t-top,
      "String", t-str,
      "Table", t-top,
+     "Row", t-top,
      "Function", t-top,
      "Boolean", t-top,
      "Object", t-top,
@@ -2710,7 +2875,7 @@ runtime-provides = provides("builtin://global",
      "RawArray", t-top  ],
   [string-dict:])
 
-runtime-builtins = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
+runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
   rb.set(k, "builtin(global)")
 end
 
@@ -2721,12 +2886,11 @@ shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-pr
   rt.set(k, "builtin(global)")
 end
 
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ]), [string-dict: "builtin(global)", runtime-provides])
+# MARK(joe/ben): modules
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
 
-minimal-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
-
-standard-globals = globals(runtime-builtins, runtime-types)
-standard-builtins = compile-env(globals(runtime-builtins, runtime-types), [string-dict: "builtin(global)", runtime-provides])
+# MARK(joe/ben): modules
+standard-globals = globals([string-dict:], runtime-values, runtime-types)
 
 minimal-imports = extra-imports(empty)
 

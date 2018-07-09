@@ -11,6 +11,7 @@ run-to-result = CH.run-to-result
 run-str = CH.run-str
 output = CH.output
 contract-error = CH.contract-error
+contract-error-contains = CH.contract-error-contains
 compile-error = CH.compile-error
 success = CH.success
 
@@ -391,5 +392,68 @@ check "standalone contract statements":
     is-odd :: Number -> Boolean
     fun is-even(n): true end
     ```) is%(output) compile-error(lam(e): CS.is-contract-bad-loc(e) and (e.name == "is-odd") end)
+  # Handling type params in contracts
+  run-str(
+    ```
+    foo :: (x :: A) -> A
+    fun foo(x): 5 end
+    ```) is%(output) compile-error(lam(e): CS.is-unbound-type-id(e) and (e.ann.id.toname() == "A") end)
+  run-str(
+    ```
+    foo :: (x :: A) -> B
+    fun foo(x): 5 end
+    ```) is%(output) compile-error(lam(e): CS.is-unbound-type-id(e) and (e.ann.id.toname() == "A") end)
+  run-str(
+    ```
+    foo :: (x :: A) -> B
+    fun foo(x): 5 end
+    ```) is%(output) compile-error(lam(e): CS.is-unbound-type-id(e) and (e.ann.id.toname() == "B") end)
+  run-str(
+    ```
+    foo :: <A>(x :: A) -> B
+    fun foo(x): 5 end
+    ```) is%(output) compile-error(lam(e): CS.is-unbound-type-id(e) and (e.ann.id.toname() == "B") end)
+  run-str(
+    ```
+    foo :: <A, B>(x :: A) -> B
+    fun foo(x): 5 end
+    ```) is%(output) success
+  run-str(
+    ```
+    foo :: <A, B>(x :: A) -> B
+    fun foo<X, B>(x): 5 end
+    ```) is%(output) compile-error(CS.is-contract-inconsistent-params)
+  run-str(
+    ```
+    foo :: <A, B>(x :: A) -> B
+    fun foo<A, Y>(x): 5 end
+    ```) is%(output) compile-error(CS.is-contract-inconsistent-params)
+  run-str(
+    ```
+    foo :: <A, B>(x :: A) -> B
+    fun foo<A>(x): 5 end
+    ```) is%(output) compile-error(CS.is-contract-inconsistent-params)
+  run-str(
+    ```
+    foo :: <A, B>(x :: A) -> B
+    fun foo<A, B>(y): 5 end
+    ```) is%(output) compile-error(CS.is-contract-inconsistent-names)
+  run-str(
+    ```
+    foo :: <A, B>(x :: A) -> B
+    fun foo<A, B>(x): 5 end
+    ```) is%(output) success
+
+  run-str("{get-value: 4}[3]") is%(output) contract-error-contains("The bracket expression at")
+  run-str("5[3]") is%(output) contract-error-contains("The bracket expression at")
+  run-str(
+    ```
+    fun want-row(r): r["a"] end
+    want-row(table: a row: 1 end)
+    ```) is%(output) contract-error-contains("The bracket expression at")
+  run-str(
+    ```
+    table: a row: 1 end.row-n(0)["a"]
+    ```) is%(output) success
 end
 

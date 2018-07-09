@@ -49,7 +49,7 @@ newtype-bind: NEWTYPE NAME AS NAME
 type-let-bind: type-bind | newtype-bind
 type-let-expr: TYPE-LET type-let-bind (COMMA type-let-bind)* (BLOCK|COLON) block END
 
-contract-stmt: NAME COLONCOLON (ann | noparen-arrow-ann)
+contract-stmt: NAME COLONCOLON ty-params (ann | noparen-arrow-ann)
 
 fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause END
 fun-header: ty-params args return-ann

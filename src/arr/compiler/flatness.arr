@@ -204,7 +204,7 @@ fun make-lettable-data-env(
       end
     | a-app(_, f, args, _) => default-ret
     | a-method-app(_, obj, meth, args) => default-ret
-    | a-prim-app(_, f, args) => default-ret
+    | a-prim-app(_, f, args, _) => default-ret
     | a-ref(_, ann) => default-ret
     | a-tuple(_, fields) => default-ret
     | a-tuple-get(_, tup, index) => default-ret
@@ -345,7 +345,7 @@ fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv)
       none
 
       # TODO: Treat prim-app as flat always? Track depths of prim-anns?
-    | a-prim-app(_, f, args) => get-flatness-for-call(f, sd)
+    | a-prim-app(_, f, args, _) => get-flatness-for-call(f, sd)
 
       # May check unknown annotations, so is nonflat
     | a-update(_, supe, fields) => none
@@ -389,37 +389,28 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
   sd = SD.make-mutable-string-dict()
   for SD.each-key-now(k from bindings):
     vb = bindings.get-value-now(k)
-    when C.is-bo-module(vb.origin):
-      cases(Option) vb.origin.mod block:
-        | none =>
-          when A.is-s-global(vb.atom) block:
-            name = vb.atom.toname()
-            dep = env.globals.values.get-value(name)
-            provides-opt = env.mods.get(dep)
-            cases (Option) provides-opt:
-              | none => nothing
-              | some(provides) =>
-                ve = provides.values.get-value(name)
-                cases(C.ValueExport) ve:
-                  | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
-                  | else => nothing
-                end
+    when not(vb.origin.new-definition):
+      if A.is-s-global(vb.atom) block:
+        name = vb.atom.toname()
+        cases (Option) env.global-value(name):
+          | none => nothing
+          | some(ve) =>
+            cases(C.ValueExport) ve:
+              | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
+              | else => nothing
             end
-          end
-        | some(import-type) =>
-          dep = AU.import-to-dep(import-type).key()
-          cases(Option) env.mods.get(dep):
-            | none => raise("There is a binding whose module is not in the compile env: " + to-repr(k) + " " + to-repr(import-type))
-            | some(provides) =>
-              exported-as = vb.atom.toname()
-              value-export = provides.values.get-value(exported-as)
-              cases(C.ValueExport) value-export:
-                | v-fun(_, _, flatness) =>
-                  sd.set-now(k, flatness)
-                | else =>
-                  nothing
-              end
-          end
+        end
+      else:
+        cases(Option) env.value-by-uri(vb.origin.uri-of-definition, vb.atom.toname()):
+          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri-of-definition)
+          | some(value-export) =>
+            cases(C.ValueExport) value-export:
+              | v-fun(_, _, flatness) =>
+                sd.set-now(k, flatness)
+              | else =>
+                nothing
+            end
+        end
       end
     end
   end
@@ -448,26 +439,21 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
   end
   for SD.each-key-now(k from type-bindings):
     tb = type-bindings.get-value-now(k)
-    when C.is-bo-module(tb.origin):
-      cases(Option) tb.origin.mod block:
-        | none =>
-          when A.is-s-type-global(tb.atom) block:
-            name = tb.atom.toname()
-            dep = env.globals.types.get-value(name)
-            provides-opt = env.mods.get(dep)
-            cases (Option) provides-opt:
-              | none => nothing
-              | some(provides) =>
-                init-type-provides(provides, tb)
-            end
-          end
-        | some(import-type) =>
-          dep = AU.import-to-dep(import-type).key()
-          cases(Option) env.mods.get(dep):
-            | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + to-repr(import-type))
-            | some(provides) =>
-              init-type-provides(provides, tb)
-          end
+    when not(tb.origin.new-definition):
+      if A.is-s-type-global(tb.atom):
+        name = tb.atom.toname()
+        provides-opt = env.provides-by-type-name(name)
+        cases (Option) provides-opt:
+          | none => nothing
+          | some(provides) =>
+            init-type-provides(provides, tb)
+        end
+      else:
+        cases(Option) env.provides-by-uri(tb.origin.uri-of-definition):
+          | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + tb.origin.uri-of-definition)
+          | some(mod-provides) =>
+            init-type-provides(mod-provides, tb)
+        end
       end
     end
   end
@@ -518,7 +504,8 @@ end
 fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
-    | provides(uri, values, aliases, datatypes) =>
+      # MARK(joe/ben): modules
+    | provides(uri, _, values, aliases, datatypes) =>
       new-values = for SD.fold-keys(s from [SD.string-dict:], k from values):
         maybe-flatness = flatness-env.get-now(dvs-dict.get-value(k))
         existing-val = values.get-value(k)
@@ -529,7 +516,8 @@ fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
         end
         s.set(k, new-val)
       end
-      C.provides(uri, new-values, aliases, datatypes)
+      # MARK(joe/ben): provides
+      C.provides(uri, [SD.string-dict:], new-values, aliases, datatypes)
   end
 end
 

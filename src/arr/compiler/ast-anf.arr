@@ -22,7 +22,6 @@ str-method = PP.str(" method")
 str-letrec = PP.str("letrec ")
 str-period = PP.str(".")
 str-bang = PP.str("!")
-str-brackets = PP.str("[]")
 str-cases = PP.str("cases")
 str-colon = PP.str(":")
 str-coloncolon = PP.str("::")
@@ -240,7 +239,10 @@ data ACasesBind:
   | a-cases-bind(l :: Loc, field-type :: A.CasesBindType, bind :: ABind) with:
     method label(self): "s-cases-bind" end,
     method tosource(self):
-      self.field-type.tosource() + PP.str(" ") + self.bind.tosource()
+      ft = self.field-type.tosource()
+      if PP.is-mt-doc(ft): self.bind.tosource()
+      else: ft + PP.str(" ") + self.bind.tosource()
+      end
     end
 sharing:
   method visit(self, visitor):
@@ -257,13 +259,14 @@ data ACasesBranch:
         PP.group(PP.str("| " + self.name)
             + PP.surround-separate(INDENT, 0, PP.str("()"), PP.lparen, PP.commabreak, PP.rparen,
             self.args.map(lam(a): a.tosource() end)) + break-one + str-thickarrow) + break-one +
-        self.body.tosource())
+        PP.nest(INDENT, self.body.tosource()))
     end
   | a-singleton-cases-branch(l :: Loc, pat-loc :: Loc, name :: String, body :: AExpr) with:
     method label(self): "a-singleton-cases-branch" end,
     method tosource(self):
       PP.nest(INDENT,
-        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one + self.body.tosource())
+        PP.group(PP.str("| " + self.name) + break-one + str-thickarrow) + break-one
+          + PP.nest(INDENT, self.body.tosource()))
     end
 sharing:
   method visit(self, visitor):
@@ -280,7 +283,7 @@ data ADefinedValue:
   | a-defined-var(name :: String, id :: A.Name) with:
     method label(self): "a-defined-var" end,
     method tosource(self):
-      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.toname())
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.id.tosource())
     end
 sharing:
   method visit(self, visitor):
@@ -333,7 +336,7 @@ data ALettable:
       header = str-cases + PP.parens(self.typ.tosource()) + break-one
         + self.val.tosource() + str-colon
       body = PP.separate(break-one, self.branches.map(lam(b): PP.group(b.tosource()) end))
-        + break-one + PP.group(str-elsebranch + break-one + self._else.tosource())
+        + break-one + PP.group(str-elsebranch + PP.nest(INDENT, break-one + self._else.tosource()))
       PP.surround(INDENT, 1, PP.group(header), body, str-end)
     end
   | a-if(l :: Loc, c :: AVal, t :: AExpr, e :: AExpr) with:
@@ -370,7 +373,7 @@ data ALettable:
           + PP.parens(PP.nest(INDENT,
             PP.separate(PP.commabreak, self.args.map(lam(f): f.tosource() end)))))
     end
-  | a-prim-app(l :: Loc, f :: String, args :: List<AVal>) with:
+  | a-prim-app(l :: Loc, f :: String, args :: List<AVal>, app-info :: A.PrimAppInfo) with:
     method label(self): "a-prim-app" end,
     method tosource(self):
       PP.group(PP.str(self.f) +
@@ -538,8 +541,8 @@ fun strip-loc-lettable(lettable :: ALettable):
       a-app(dummy-loc, strip-loc-val(f), args.map(strip-loc-val), app-info)
     | a-method-app(_, obj, meth, args) =>
       a-method-app(dummy-loc, strip-loc-val(obj), meth, args.map(strip-loc-val))
-    | a-prim-app(_, f, args) =>
-      a-prim-app(dummy-loc, f, args.map(strip-loc-val))
+    | a-prim-app(_, f, args, app-info) =>
+      a-prim-app(dummy-loc, f, args.map(strip-loc-val), app-info)
     | a-ref(_, ann) => a-ref(dummy-loc, A.dummy-loc-visitor.option(ann))
     | a-tuple(_, fields) => a-tuple(dummy-loc, fields.map(strip-loc-val))
     | a-tuple-get(_, tup, index) => a-tuple-get(dummy-loc, strip-loc-val(tup), index)
@@ -654,8 +657,8 @@ default-map-visitor = {
   method a-method-app(self, l :: Loc, obj :: AVal, meth :: String, args :: List<AVal>):
     a-method-app(l, obj.visit(self), meth, args.map(_.visit(self)))
   end,
-  method a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>):
-    a-prim-app(l, f, args.map(_.visit(self)))
+  method a-prim-app(self, l :: Loc, f :: String, args :: List<AVal>, app-info :: A.PrimAppInfo):
+    a-prim-app(l, f, args.map(_.visit(self)), app-info)
   end,
   method a-ref(self, l :: Loc, ann :: Option<A.Ann>):
     a-ref(l, ann)
@@ -792,7 +795,6 @@ fun freevars-e-acc(expr :: AExpr, seen-so-far :: NameDict<A.Name>) -> NameDict<A
     | a-var(_, b, e, body) =>
       from-body = freevars-e-acc(body, seen-so-far)
       from-body.remove-now(b.id.key())
-      from-body
       freevars-ann-acc(b.ann, freevars-l-acc(e, from-body))
     | a-seq(_, e1, e2) =>
       from-e2 = freevars-e-acc(e2, seen-so-far)
@@ -875,7 +877,7 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
       for fold(acc from from-obj, arg from args):
         freevars-v-acc(arg, acc)
       end
-    | a-prim-app(_, _, args) =>
+    | a-prim-app(_, _, args, _) =>
       for fold(acc from seen-so-far, arg from args):
         freevars-v-acc(arg, acc)
       end
