@@ -31,9 +31,7 @@
     "pyret": "src/server/pyret.js"
   },
   "scripts": {
-    "install": "make phaseA-deps",
-    "test": "make test-all",
-    "prepublish": "make phaseA libA"
+    "test": "make test-all"
   },
   "repository": {
     "type": "git",
