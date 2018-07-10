@@ -45,7 +45,6 @@ check "Worklist generation (simple)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -114,7 +113,6 @@ check "Worklist generation (DAG)":
       method get-native-modules(self): empty end,
       method get-extra-imports(self): CM.minimal-imports end,
       method get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      method get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       method get-globals(self): CM.no-builtins.globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -177,7 +175,6 @@ check "Worklist generation (Cycle)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -239,7 +236,6 @@ check "Multiple includes":
       method get-modified-time(self): 0 end,
       method get-options(self, options): options end,
       method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method get-native-modules(self): empty end,
       method uri(self): "file://" + name end,
@@ -403,6 +399,7 @@ check "raw-provide-syntax":
 
   provs = CM.provides-from-raw-provides("test-raw-provides", {
     uri: "test-raw-provides",
+    # MARK(joe/ben): modules
     values: raw-array-to-list(raw.get-raw-value-provides()),
     aliases: raw-array-to-list(raw.get-raw-alias-provides()),
     datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
@@ -441,21 +438,33 @@ end
 
 check:
   ps = CM.provides("test-provides1",
+    # MARK(joe/ben): modules
+    mt,
     [string-dict:
       "x", CM.v-just-type(T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)
 
-  ce = CM.compile-env(CM.globals(mt, mt),
+  ce = CM.compile-env(CM.globals(mt, mt, mt),
+    [SD.mutable-string-dict:
+      "builtin://global",
+      CM.module-as-string(
+          # MARK(joe/ben): modules
+          CM.provides("builtin://global", mt, mt, mt,
+            [SD.string-dict:
+              "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)]),
+          CM.no-builtins,
+          CM.ok("dummy")
+        )
+      ],
     [string-dict:
-      "builtin(global)", CM.provides("builtin://global", mt, mt,
-        [SD.string-dict:
-          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)])])
+      "builtin(global)", "builtin://global"])
 
   canon = AU.canonicalize-provides(ps, ce)
 
   canon is CM.provides("test-provides1",
+    mt, #MARK(joe/ben): modules
     [string-dict:
       "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],

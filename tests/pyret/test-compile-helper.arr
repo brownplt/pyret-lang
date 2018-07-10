@@ -61,7 +61,9 @@ fun run-to-result-typed(loc, base-path):
 end
 
 fun make-base-path-context(base-path):
-  {current-load-path: P.resolve(base-path), cache-base-dir: P.resolve("./tests/compiled")}
+  {current-load-path: P.resolve(base-path),
+   cache-base-dir: P.resolve("./tests/compiled"),
+   compiled-read-only-dirs: empty}
 end
 
 fun compile-str(program):
@@ -124,6 +126,18 @@ fun check-contract-error(errors):
 end
 
 contract-error = { success: false, runtime: true, check-errors: check-contract-error }
+
+fun contract-error-contains(check-err):
+  { success: false,
+    runtime: true,
+    check-errors:
+      lam(errors):
+        msg = L.render-error-message(errors).message
+        string-contains(msg, check-err)
+      end
+  }
+end
+  
 
 fun field-error(fields):
   { success: false,

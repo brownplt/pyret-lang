@@ -66,7 +66,6 @@ check "unterminated string":
 end
 
 bad-operator = [list:
-  "+",
   "0+",
   "*0",
   "0+0"

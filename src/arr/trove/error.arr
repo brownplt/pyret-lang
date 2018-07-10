@@ -2243,13 +2243,23 @@ data RuntimeError:
           fun within-error(message):
             [ED.error:
               [ED.para: ED.text(message)],
+              [ED.para: ED.text("The left side was:")],
               [ED.para: ED.embed(value1)],
+              [ED.para: ED.text("The right side was:")],
               [ED.para: ED.embed(value2)],
               [ED.para: ED.text("Consider using the "),
                 ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
             
           end
-          if num-is-roughnum(value1) and num-is-roughnum(value2):
+          if self.reason == "RoughnumZeroTolerances":
+            [ED.error:
+              [ED.para: ED.text("Pyret cannot be certain that Roughnums are the same to exactly-zero tolerance.")],
+              [ED.para: ED.text("The left side was:")],
+              [ED.para: ED.embed(value1)],
+              [ED.para: ED.text("The right side was:")],
+              [ED.para: ED.embed(value2)],
+              [ED.para: ED.text("Use a larger tolerance, or "), ED.embed(~0), ED.text(" instead.")]]
+          else if num-is-roughnum(value1) and num-is-roughnum(value2):
             within-error("Attempted to compare two Roughnums for equality, which is not allowed:")
           else if num-is-roughnum(value1):
             within-error("Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:")

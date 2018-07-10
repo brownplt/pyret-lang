@@ -75,6 +75,7 @@ check "split-at where: block":
   split-at(4, one-four) is { prefix: one-four, suffix: empty }
   split-at(2, one-four) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
   split-at(-1, one-four) raises "Invalid index"
+  split-at(1.35, one-four) raises "Invalid index"
   split-at(5, one-four) raises "Index too large"
 end
 
@@ -228,6 +229,12 @@ check "string helper":
   lists.join-str([list:], ",") is ""
   lists.join-str([list: "a"], ",") is "a"
   lists.join-str([list: "a", "b", "c", "d", "e"], "  ") is "a  b  c  d  e"
+
+  lists.join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
+  lists.join-str-last([list: ], "+", "-") is ""
+  lists.join-str-last([list: 1], "+", "-") is "1"
+  lists.join-str-last([list: 1, 2], "+", "-") is "1-2"
+  lists.join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
 end
 
 check "sort as a function":

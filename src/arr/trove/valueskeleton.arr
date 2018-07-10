@@ -10,7 +10,7 @@ data ValueSkeleton:
   | vs-value(v :: Any)
   | vs-collection(name :: String, items)
   | vs-constr(name :: String, args)
-  | vs-table(headers :: RawArray, rows #| :: List<RawArray>|#)
+  | vs-table(headers :: RawArray, rows #| :: RawArray<RawArray>|#)
   | vs-row(headers :: RawArray, values :: RawArray)
   | vs-seq(items)
 end

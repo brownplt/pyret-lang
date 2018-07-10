@@ -767,6 +767,7 @@ the number of quote characters in the match."
    (:constructor pyret-make-indent 
                  (fun cases data shared try except graph parens object 
                   vars fields initial-period block-comment-depth))
+   (:type vector)
    :named)
    fun cases data shared try except graph parens object vars fields initial-period block-comment-depth)
 (defun pyret-map-indent (f total delta)
