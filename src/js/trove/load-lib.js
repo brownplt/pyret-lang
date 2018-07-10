@@ -319,51 +319,7 @@
         }
       }
 
-      var postLoadHooks = {
-        "builtin://srcloc": function(srcloc) {
-          otherRuntime.srcloc = otherRuntime.getField(otherRuntime.getField(srcloc, "provide-plus-types"), "values");
-        },
-        "builtin://ffi": function(ffi) {
-          ffi = ffi.jsmod;
-          otherRuntime.ffi = ffi;
-          otherRuntime["throwMessageException"] = ffi.throwMessageException;
-          otherRuntime["throwNoBranchesMatched"] = ffi.throwNoBranchesMatched;
-          otherRuntime["throwNoCasesMatched"] = ffi.throwNoCasesMatched;
-          otherRuntime["throwNonBooleanCondition"] = ffi.throwNonBooleanCondition;
-          otherRuntime["throwNonBooleanOp"] = ffi.throwNonBooleanOp;
-          otherRuntime["throwUnfinishedTemplate"] = ffi.throwUnfinishedTemplate;
-
-          var checkList = otherRuntime.makeCheckType(ffi.isList, "List");
-          otherRuntime["checkList"] = checkList;
-
-          otherRuntime["checkEQ"] = otherRuntime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
-        },
-        "builtin://checker": function(checker) {
-          // NOTE(joe): This is the place to add checkAll
-          if (checks !== "none") {
-            var checker = otherRuntime.getField(otherRuntime.getField(checker, "provide-plus-types"), "values");
-            var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks === "all");
-            otherRuntime.setParam("current-checker", currentChecker);
-          }
-        },
-        "builtin://table": function(table) {
-          table = table.jsmod;
-          otherRuntime["makeTable"] = table.makeTable;
-          otherRuntime["makeRow"] = table.makeRow;
-          otherRuntime["makeRowFromArray"] = table.makeRowFromArray;
-          otherRuntime["openTable"] = table.openTable;
-          otherRuntime["checkTable"] = otherRuntime.makeCheckType(table.isTable, "Table");
-          otherRuntime["checkRow"] = otherRuntime.makeCheckType(table.isRow, "Row");
-          otherRuntime["isTable"] = table.isTable;
-          otherRuntime["isRow"] = table.isTable;
-          otherRuntime["checkWrapTable"] = function(val) {
-            otherRuntime.checkTable(val);
-            return val;
-          };
-          otherRuntime.makePrimAnn("Table", table.isTable);
-        },
-      };
-
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: checks});
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;
