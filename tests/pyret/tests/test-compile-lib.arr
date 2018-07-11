@@ -448,10 +448,18 @@ check:
     mt)
 
   ce = CM.compile-env(CM.globals(mt, mt),
+    [SD.mutable-string-dict:
+      "builtin://global",
+      CM.module-as-string(
+          CM.provides("builtin://global", mt, mt,
+            [SD.string-dict:
+              "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)]),
+          CM.no-builtins,
+          CM.ok("dummy")
+        )
+      ],
     [string-dict:
-      "builtin(global)", CM.provides("builtin://global", mt, mt,
-        [SD.string-dict:
-          "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)])])
+      "builtin(global)", "builtin://global"])
 
   canon = AU.canonicalize-provides(ps, ce)
 

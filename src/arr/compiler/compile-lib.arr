@@ -96,9 +96,6 @@ type Either = E.Either
 
 mtd = [SD.string-dict:]
 
-# for re-export
-standard-builtins = CS.standard-builtins
-
 type URI = String
 
 data PyretCode:
@@ -106,11 +103,10 @@ data PyretCode:
   | pyret-ast(ast :: A.Program)
 end
 
-data Loadable:
-  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
-end
-
 type ModuleResult = Any
+
+type Loadable = CS.Loadable
+module-as-string = CS.module-as-string
 
 type Provides = CS.Provides
 
@@ -301,7 +297,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
     if not(cache.has-key-now(uri)) block:
       provide-map = dict-map(
           w.dependency-map,
-          lam(_, v): cache.get-value-now(v.uri()).provides end
+          lam(_, v): v.uri() end
       )
       options.before-compile(w.locator)
       {loadable :: Loadable; trace :: List} = compile-module(w.locator, provide-map, cache, options)
@@ -334,11 +330,15 @@ fun unique(lst):
   sets.list-to-list-set(lst).to-list()
 end
 
-fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> {Loadable; List} block:
+fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, modules, options) -> {Loadable; List} block:
+  doc: ```
+    Invariant: provide-map maps dependency keys to URIs
+    which ALL must be keys in modules.
+  ```
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
-  env = CS.compile-env(locator.get-globals(), provide-map)
+  env = CS.compile-env(locator.get-globals(), modules, provide-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
       #print("Module is already compiled\n")
@@ -474,7 +474,7 @@ type PyretAnswer = Any
 type PyretMod = Any
 
 fun is-error-compilation(cr):
-  is-module-as-string(cr) and CS.is-err(cr.result-printer)
+  CS.is-module-as-string(cr) and CS.is-err(cr.result-printer)
 end
 
 fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):

@@ -287,7 +287,7 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | s-rec(l, _, _)                      => add-error(C.block-ending(l, block-loc, "rec-binding"))
     | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
     | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
-    | s-contract(l, _, _)                 => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-contract(l, _, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
     | else => nothing
   end
 end
@@ -313,10 +313,78 @@ fun reachable-ops(self, l, op-l, op, ast):
   end
 end
 
+fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) block:
+  to-examine = if ignore-last:
+    # Ignore the last statement, because it might well be an expression
+    stmts.reverse().rest.reverse()
+  else:
+    stmts
+  end
+  fun bad-stmt(l, stmt):
+    cases(A.Expr) stmt:
+      | s-op(_, op-l, op, _, _) =>
+        ask:
+          | op == "op==" then:
+            wf-error([list:
+                [ED.para: ED.text("A standalone "),
+                  ED.highlight(ED.code(ED.text("==")), [list: op-l], 1),
+                  ED.text(" operator expression probably isn't intentional.")],
+                if in-check-block:
+                  [ED.para:
+                    ED.text("To write an example or test case, use the "), ED.code(ED.text("is")), ED.text(" operator; "),
+                    ED.text("to define a name, use the "), ED.code(ED.text("=")), ED.text(" operator instead.")]
+
+                else:
+                  [ED.para:
+                    ED.text("To define a name, use the "), ED.code(ED.text("=")), ED.text(" operator instead.")]
+                end
+              ],
+              l)
+          | otherwise:
+            wf-error([list:
+                [ED.para: ED.text("A standalone "),
+                  ED.highlight(ED.code(ED.text(string-substring(op, 2, string-length(op)))), [list: op-l], 1),
+                  ED.text(" operator expression probably isn't intentional.")]], l)
+        end
+      | s-id(_, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
+      | s-num(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-frac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-rfrac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-bool(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-str(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-dot(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone field-lookup expression probably isn't intentional.")]], l)
+      | s-lam(_, _, _, _, _, _, _, _, _, _) => wf-error([list: [ED.para: ED.text("A standalone anonymous function expression probably isn't intentional.")]], l)
+      | s-paren(_, e) => bad-stmt(l, e)
+      | else => nothing
+    end
+  end
+  when not(stmts.any(A.is-s-template)): # Need to check all the statements for ...
+    for each(stmt from to-examine): # but only check the non-final statements for standalone expressions
+      bad-stmt(stmt.l, stmt)
+    end
+  end
+  true
+end
+
+fun wrap-reject-standalones-in-check(target) block:
+  cur-in-check = in-check-block
+  in-check-block := true
+  ret = cases(Option) target:
+    | none => true
+    | some(t) => reject-standalone-exprs(t.stmts, false)
+  end
+  in-check-block := cur-in-check
+  ret
+end
+
+
 fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts)
   ensure-distinct-lines(A.dummy-loc, false, stmts)
+  when not(in-check-block):
+    reject-standalone-exprs(stmts, true)
+  end
   lists.all(_.visit(visitor), stmts)
 end
 
@@ -331,7 +399,12 @@ fun wf-examples-body(visitor, body):
   end
 end
 
-fun wf-table-headers(loc, headers):
+fun wf-table-headers(loc, headers) block:
+  for lists.each(h from headers):
+    when h.name == "_":
+      add-error(C.underscore-as(h.l, "as a table column's name in a table expression"))
+    end
+  end
   cases(List) headers block:
     | empty =>
       add-error(C.table-empty-header(loc))
@@ -421,7 +494,7 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann) block:
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann) block:
     add-error(C.non-toplevel("contract declaration", l, parent-block-loc))
     true
   end,
@@ -577,6 +650,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -615,6 +689,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -639,6 +714,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -662,6 +738,7 @@ well-formed-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     shadow ans = ans and wrap-visit-check(self, _check)
     parent-block-loc := old-pbl
     ans
@@ -670,6 +747,17 @@ well-formed-visitor = A.default-iter-visitor.{
     ensure-unique-fields(fields.reverse())
     check-underscore-name(fields, "a field name")
     lists.all(_.visit(self), fields)
+  end,
+  method s-extend(self, l :: Loc, supe :: A.Expr, fields :: List<A.Member>) block:
+    ensure-unique-fields(fields.reverse())
+    check-underscore-name(fields, "a field name")
+    lists.all(_.visit(self), fields)
+  end,
+  method s-dot(self, l :: Loc, obj :: A.Expr, field :: String) block:
+    when field == "_":
+      add-error(C.underscore-as(l, "a field name"))
+    end
+    obj.visit(self)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
     if not(num-is-integer(index)) or (index < 0) or (index > 1000) block:
@@ -687,6 +775,7 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-examples-body(self, body)
     else:
       wrap-visit-check(self, some(body))
+      wrap-reject-standalones-in-check(some(body))
     end
     parent-block-loc := old-pbl
     ans
@@ -823,7 +912,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
     wf-table-headers(l, header)
-    if is-empty(header):
+    if is-empty(header) block:
       true
     else:
       expected-len = header.length()
@@ -973,6 +1062,7 @@ top-level-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     wrap-visit-check(well-formed-visitor, _check)
     parent-block-loc := old-pbl
     true
@@ -998,6 +1088,7 @@ top-level-visitor = A.default-iter-visitor.{
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
     end
+    wrap-reject-standalones-in-check(_check)
     wrap-visit-check(well-formed-visitor, _check)
     parent-block-loc := old-pbl
     true
@@ -1073,7 +1164,7 @@ top-level-visitor = A.default-iter-visitor.{
   method s-when(_, l :: Loc, test :: A.Expr, block :: A.Expr, blocky):
     well-formed-visitor.s-when(l, test, block, blocky)
   end,
-  method s-contract(_, l :: Loc, name :: A.Name, ann :: A.Ann):
+  method s-contract(_, l :: Loc, name :: A.Name, params :: List<A.Name>, ann :: A.Ann):
     # TODO
     true
   end,
@@ -1153,8 +1244,8 @@ top-level-visitor = A.default-iter-visitor.{
       well-formed-visitor.s-app(l, _fun, args)
     end
   end,
-  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>):
-    well-formed-visitor.s-prim-app(l, _fun, args)
+  method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>, app-info :: A.PrimAppInfo):
+    well-formed-visitor.s-prim-app(l, _fun, args, app-info)
   end,
   method s-frac(_, l :: Loc, num, den):
     well-formed-visitor.s-frac(l, num, den)
