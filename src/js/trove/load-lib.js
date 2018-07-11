@@ -319,7 +319,7 @@
         }
       }
 
-      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: checks});
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checkAll: checks === "all"});
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;

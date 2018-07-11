@@ -35,7 +35,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
   function checkFlag(name) {
-    return !!(program.runtimeOptions && program.runtimeOptions[name]);
+    return program.runtimeOptions && program.runtimeOptions[name];
   }
 
   if(checkFlag("disableAnnotationChecks")) {
@@ -45,7 +45,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
     runtime._checkAnn = function() {};
   }
 
-  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: checkFlag("checks")});
+  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: checkFlag("checks") === "all"});
   postLoadHooks[main] = function(answer) {
     var checks = checkFlag("checks");
     if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
