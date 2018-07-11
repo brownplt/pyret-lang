@@ -88,6 +88,10 @@
           checkMethodArity(1, arguments, "size");
           return runtime.makeNumber(self.$underlyingTensor.size);
         }),
+        "shape": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "shape");
+          return runtime.ffi.makeList(self.$underlyingTensor.shape);
+        }),
         "flatten": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "flatten");
           return buildTensorObject(self.$underlyingTensor.flatten());
@@ -177,8 +181,10 @@
           // .dataSync returns a TypedArray, so convert it to a normal JSArray
           // so we can then convert it to a Pyret List:
           var typedArrayData = self.$underlyingTensor.dataSync();
-          console.log(typedArrayData);
           var arrayData = Array.from(typedArrayData);
+          // Convert to Roughnums, since the numbers returned from a Tensor are
+          // floating point:
+          arrayData = arrayData.map((x) => { return runtime.num_to_roughnum(x); });
           return runtime.ffi.makeList(arrayData);
         }),
         // "dispose":, Probably no need for this
@@ -235,7 +241,6 @@
       arity(1, arguments, "tensor", false);
       runtime.checkArray(array);
       var fixnums = array.map((x) => { return runtime.num_to_fixnum(x); });
-      console.log(fixnums);
       return createTensor(fixnums);
     }
 
@@ -284,8 +289,8 @@
       return createTensorFromArray([a, b, c, d, e]);
     }
 
-    function makeTensor(values) {
-      arity(1, arguments, "make-tensor", false);
+    function listToTensor(values) {
+      arity(1, arguments, "list-to-tensor", false);
       // A tensor can be rank 0 (just a number); otherwise, it is a List :(
       runtime.checkList(values);
       values = runtime.ffi.toArray(values);
@@ -318,12 +323,40 @@
      * Operations (Arithmetic)
      */
 
+    // assertEqualShapes is not a Pyret function; it's a helper method for
+    // the "strict" operation methods:
+    function assertEqualShapes(a, b) {
+      // Get the underlying array representation of Tensor shapes:
+      var aShape = a.$underlyingTensor.shape;
+      var bShape = b.$underlyingTensor.shape;
+
+      // Check if the shapes are the same length:
+      if (aShape.length != bShape.length) { return false; }
+
+      // Check element-wise equality:
+      for (var i = 0; i < aShape.length; i++) {
+        if (aShape[i] != bShape[i]) {
+          runtime.ffi.throwMessageException("The first tensor does not have " +
+          "the same shape as the second tensor");
+        }
+      }
+      return true;
+    }
+
     function addTensors(a, b) {
       arity(2, arguments, "add-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
       assertBrand(brandTensor, b, "Tensor");
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
+      return buildTensorObject(tf.add(aTensor, bTensor));
+    }
+
+    function addStrict(a, b) {
+      arity(2, arguments, "strict-add-tensors", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
       return buildTensorObject(tf.add(aTensor, bTensor));
     }
 
@@ -336,6 +369,14 @@
       return buildTensorObject(tf.sub(aTensor, bTensor));
     }
 
+    function subtractStrict(a, b) {
+      arity(2, arguments, "strict-subtract-tensors", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
+      return buildTensorObject(tf.sub(aTensor, bTensor));
+    }
+
     function multiplyTensors(a, b) {
       arity(2, arguments, "multiply-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -345,12 +386,28 @@
       return buildTensorObject(tf.mul(aTensor, bTensor));
     }
 
+    function multiplyStrict(a, b) {
+      arity(2, arguments, "strict-multiply-tensors", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
+      return buildTensorObject(tf.mul(aTensor, bTensor));
+    }
+
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
       assertBrand(brandTensor, b, "Tensor");
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
+      return buildTensorObject(tf.div(aTensor, bTensor));
+    }
+
+    function divideStrict(a, b) {
+      arity(2, arguments, "strict-divide-tensors", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
       return buildTensorObject(tf.div(aTensor, bTensor));
     }
 
@@ -372,12 +429,28 @@
       return buildTensorObject(tf.maximum(aTensor, bTensor));
     }
 
+    function maxStrict(a, b) {
+      arity(2, arguments, "strict-tensor-max", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
+      return buildTensorObject(tf.maximum(aTensor, bTensor));
+    }
+
     function minTensor(a, b) {
       arity(2, arguments, "tensor-min", false);
       assertBrand(brandTensor, a, "Tensor");
       assertBrand(brandTensor, b, "Tensor");
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
+      return buildTensorObject(tf.minimum(aTensor, bTensor));
+    }
+
+    function minStrict(a, b) {
+      arity(2, arguments, "strict-tensor-min", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
       return buildTensorObject(tf.minimum(aTensor, bTensor));
     }
 
@@ -390,6 +463,14 @@
       return buildTensorObject(tf.mod(aTensor, bTensor));
     }
 
+    function moduloStrict(a, b) {
+      arity(2, arguments, "strict-tensor-modulo", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
+      return buildTensorObject(tf.mod(aTensor, bTensor));
+    }
+
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
       assertBrand(brandTensor, base, "Tensor");
@@ -399,12 +480,28 @@
       return buildTensorObject(tf.pow(baseTensor, expTensor));
     }
 
-    function squaredDifferenceTensors(a, b) {
-      arity(2, arguments, "squared-difference-tensors", false);
+    function exptStrict(a, b) {
+      arity(2, arguments, "strict-tensor-modulo", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
+      return buildTensorObject(tf.pow(aTensor, bTensor));
+    }
+
+    function tensorSquaredDifference(a, b) {
+      arity(2, arguments, "squared-difference", false);
       assertBrand(brandTensor, a, "Tensor");
       assertBrand(brandTensor, b, "Tensor");
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
+      return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
+    }
+
+    function strictSquaredDifference(a, b) {
+      arity(2, arguments, "strict-squared-difference", false);
+      assertBrand(brandTensor, a, "Tensor");
+      assertBrand(brandTensor, b, "Tensor");
+      assertEqualShapes(a, b);
       return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
     }
 
@@ -507,7 +604,7 @@
       return exponentialLinearUnits(x);
     }
 
-    function exponentialLinearUnits() {
+    function exponentialLinearUnits(x) {
       arity(1, arguments, "exponential-linear-units", false);
       assertBrand(brandTensor, x, "Tensor");
       var tensor = x.$underlyingTensor;
@@ -991,7 +1088,7 @@
     var values = {
       // Tensors
       "is-tensor": F(isTensor, "is-tensor"),
-      "make-tensor": F(makeTensor, "make-tensor"),
+      "list-to-tensor": F(listToTensor, "list-to-tensor"),
       "make-scalar": F(makeScalar, "make-scalar"),
       "tensor": O({
         make: F(createTensorFromArray, "tensor:make"),
@@ -1015,7 +1112,17 @@
       "tensor-min": F(minTensor, "tensor-min"),
       "tensor-modulo": F(moduloTensor, "tensor-modulo"),
       "tensor-expt": F(exptTensor, "tensor-expt"),
-      "squared-difference-tensors": F(squaredDifferenceTensors, "squared-difference-tensors"),
+      "squared-difference": F(tensorSquaredDifference, "squared-difference"),
+
+      "strict-add-tensors": F(addStrict, "strict-add-tensors"),
+      "strict-subtract-tensors": F(subtractStrict, "strict-subtract-tensors"),
+      "strict-multiply-tensors": F(multiplyStrict, "strict-multiply-tensors"),
+      "strict-divide-tensors": F(divideStrict, "strict-divide-tensors"),
+      "strict-tensor-max": F(maxStrict, "strict-tensor-max"),
+      "strict-tensor-min": F(minStrict, "strict-tensor-min"),
+      "strict-tensor-modulo": F(moduloStrict, "strict-tensor-modulo"),
+      "strict-tensor-expt": F(exptStrict, "strict-tensor-expt"),
+      "strict-squared-difference": F(strictSquaredDifference, "strict-squared-difference"),
 
       // Operations (Basic Math)
       "tensor-abs": F(abs, "tensor-abs"),
