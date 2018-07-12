@@ -271,7 +271,7 @@
         'provide-block': function(node) {
           return RUNTIME.getField(ast, "s-provide-block").app(
             pos(node.pos),
-            makeListComma(node.kids, 1, node.kids.length - 1));
+            makeListTr(node.kids, 1, node.kids.length - 1));
         },
         'provide-vals-stmt': function(node) {
           if (node.kids.length === 2) {
@@ -309,7 +309,7 @@
           } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name === "FROM") {
             return RUNTIME.getField(ast, 's-include-from').app(pos(node.pos), 
               tr(node.kids[2]),
-              makeListComma(node.kids, 4, node.kids.length - 1));
+              makeListTr(node.kids, 4, node.kids.length - 1));
           } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name !== "FROM") {
             // (import-stmt INCLUDE import-source)
             return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));

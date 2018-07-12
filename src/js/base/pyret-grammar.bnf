@@ -9,7 +9,7 @@ provide-stmts: provide-stmt*
 import-stmts: import-stmt*
 
 import-stmt: INCLUDE import-source
-import-stmt: INCLUDE FROM module-ref COLON [include-spec (COMMA include-spec)*] END
+import-stmt: INCLUDE FROM module-ref COLON [include-spec include-spec*] END
 import-stmt: IMPORT import-source AS NAME
 import-stmt: IMPORT comma-names FROM import-source
 import-source: import-special | import-name
@@ -32,7 +32,7 @@ provide-stmt: provide-vals-stmt | provide-types-stmt | provide-block
 provide-vals-stmt:  PROVIDE stmt END | PROVIDE STAR
 provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
 
-provide-block: PROVIDECOLON [provide-spec (COMMA provide-spec)*] END
+provide-block: PROVIDECOLON [provide-spec provide-spec*] END
 
 provide-spec: provide-name-spec
             | provide-type-spec
