@@ -52,6 +52,11 @@
         runtime.ffi.throwTypeMismatch(val, name);
       }
     }
+    function assertOption(val) {
+      if (!runtime.ffi.isOption(val)) {
+        runtime.ffi.throwTypeMismatch(val, "Option");
+      }
+    }
 
     var unwrapObject = (obj) => { return unwrap(obj).dict; };
 
@@ -87,15 +92,15 @@
         "size": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "size");
           return runtime.makeNumber(self.$underlyingTensor.size);
-        }, "size"),
+        }),
         "shape": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "shape");
           return runtime.ffi.makeList(self.$underlyingTensor.shape);
-        }, "shape"),
+        }),
         "flatten": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "flatten");
           return buildTensorObject(self.$underlyingTensor.flatten());
-        }, "flatten"),
+        }),
         "as-scalar": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "as-scalar");
           if (self.$underlyingTensor.size !== 1) {
@@ -104,11 +109,11 @@
               "tensor to be size-1");
           }
           return buildTensorObject(self.$underlyingTensor.asScalar());
-        }, "as-scalar"),
+        }),
         "as-1d": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "as-1d");
           return buildTensorObject(self.$underlyingTensor.as1D());
-        }, "as-1d"),
+        }),
         "as-2d": runtime.makeMethod2(function(self, rows, columns) {
           checkMethodArity(3, arguments, "as-2d");
           runtime.checkNumInteger(rows);
@@ -122,7 +127,7 @@
               "existing entries");
           }
           return buildTensorObject(self.$underlyingTensor.as2D(r, c));
-        }, "as-2d"),
+        }),
         "as-3d": runtime.makeMethod3(function(self, rows, columns, depth) {
           checkMethodArity(4, arguments, "as-3d");
           runtime.checkNumInteger(rows);
@@ -138,7 +143,7 @@
               "existing entries");
           }
           return buildTensorObject(self.$underlyingTensor.as3D(r, c, d));
-        }, "as-3d"),
+        }),
         "as-4d": runtime.makeMethod4(function(self, rows, columns, depth1, depth2) {
           checkMethodArity(5, arguments, "as-4d");
           runtime.checkNumInteger(rows);
@@ -156,7 +161,7 @@
               "existing entries");
           }
           return buildTensorObject(self.$underlyingTensor.as4D(r, c, d1, d2));
-        }, "as-4d"),
+        }),
         "as-type": runtime.makeMethod1(function(self, datatype) {
           checkMethodArity(2, arguments, "as-type");
           runtime.checkString(datatype);
@@ -167,7 +172,7 @@
               "or 'bool'");
           }
           return buildTensorObject(self.$underlyingTensor.asType(type));
-        }, "as-type"),
+        }),
         // "buffer": runtime.makeMethod0((self) => {
         //   checkMethodArity(0, arguments, "buffer");
         //   // TODO(Zachary): make TensorBuffer
@@ -186,24 +191,24 @@
           // floating point:
           arrayData = arrayData.map((x) => { return runtime.num_to_roughnum(x); });
           return runtime.ffi.makeList(arrayData);
-        }, "data-sync"),
+        }),
         // "dispose":, Probably no need for this
         "to-float": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-float");
           return buildTensorObject(self.$underlyingTensor.toFloat());
-        }, "to-float"),
+        }),
         "to-int": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-int");
           return buildTensorObject(self.$underlyingTensor.toInt());
-        }, "to-int"),
+        }),
         "to-bool": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-bool");
           return buildTensorObject(self.$underlyingTensor.toBool());
-        }, "to-bool"),
+        }),
         "to-variable": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-variable");
           return makeVariable(self);
-        }, "to-variable"),
+        }),
         // "print":,
         "reshape": runtime.makeMethod0(function(self, newShape) {
           checkMethodArity(2, arguments, "reshape");
@@ -216,7 +221,7 @@
               "existing entries");
           }
           return buildTensorObject(self.$underlyingTensor.reshape(ns));
-        }, "reshape"),
+        }),
         // "reshape-as":,
         // "expand-dims":,
         // "cumsum":,
@@ -224,7 +229,7 @@
         "clone": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "clone");
           return buildTensorObject(self.$underlyingTensor.clone());
-        }, "clone"),
+        }),
         // "to-string":
       });
       obj = applyBrand(brandTensor, obj);
@@ -913,14 +918,14 @@
           }
           self.$underlyingSequential.add(layer.$underlyingLayer);
           return runtime.makeNothing();
-        }, "add"),
+        }),
         "compile": runtime.makeMethod1(function(self, config) {
           checkMethodArity(2, arguments, "compile");
           runtime.checkObject(config);
           var c = unwrapObject(config);
           self.$underlyingSequential.compile(c);
           return runtime.makeNothing();
-        }, "compile"),
+        }),
         "evaluate": runtime.makeMethod3(function(self, x, y, config) {
           checkMethodArity(4, arguments, "evaluate");
           if (!hasBrand(brandTensor, x)) {
@@ -935,7 +940,7 @@
           var c = unwrapObject(config);
           var result = self.$underlyingSequential.evaluate(xTensor, yTensor, c);
           return buildTensorObject(result);
-        }, "evaluate"),
+        }),
         "predict": runtime.makeMethod2(function(self, x, config) {
           checkMethodArity(3, arguments, "predict");
           if (!hasBrand(brandTensor, x)) {
@@ -946,7 +951,7 @@
           var c = unwrapObject(config);
           var result = self.$underlyingSequential.predict(xTensor, c);
           return buildTensorObject(result);
-        }, "predict"),
+        }),
         "predict-on-batch": runtime.makeMethod1(function(self, x) {
           checkMethodArity(2, arguments, "predict-on-batch");
           if (!hasBrand(brandTensor, x)) {
@@ -955,7 +960,7 @@
           var xTensor = x.$underlyingTensor;
           var result = self.$underlyingSequential.predictOnBatch(xTensor, c);
           return buildTensorObject(result);
-        }, "predict-on-batch"),
+        }),
         "fit": runtime.makeMethod3(function(self, x, y, config, callback) {
           checkMethodArity(5, arguments, "fit");
           if (!hasBrand(brandTensor, x)) {
@@ -975,7 +980,7 @@
           }};
           self.$underlyingSequential.fit(xTensor, yTensor, c);
           return runtime.makeNothing();
-        }, "fit")
+        })
       });
       obj = applyBrand(brandSequential, obj);
       obj.$underlyingSequential = underlyingSequential;
@@ -999,14 +1004,14 @@
     var brandLayer = runtime.namedBrander("dense-layer", ["dense-layer: dense-layer brander"]);
     var annLayer = runtime.makeBranderAnn(brandLayer, "Layer");
 
-    function isDenseLayer(obj) {
-      arity(1, arguments, "is-dense-layer", false);
+    function isLayer(obj) {
+      arity(1, arguments, "is-layer", false);
       return runtime.makeBoolean(hasBrand(brandLayer, obj));
     }
 
     // Constructor
 
-    function buildDenseLayerObject(underlyingLayer) {
+    function buildLayerObject(underlyingLayer) {
       var obj = O({
         // "apply":,
       });
@@ -1016,11 +1021,11 @@
     }
 
     function makeDenseLayer(config) {
-      arity(1, arguments, "make-dense-layer", false);
+      arity(1, arguments, "dense-layer", false);
       runtime.checkObject(config);
       var c = unwrapObject(config);
       var layer = tf.layers.dense(c);
-      return buildDenseLayerObject(layer);
+      return buildLayerObject(layer);
     }
 
     /**
@@ -1056,7 +1061,7 @@
             return scalar.$underlyingTensor;
           }); //, true, variables);
           return runtime.makeNothing();
-        }, "minimize")
+        })
       });
       obj = applyBrand(brandOptimizer, obj);
       obj.$underlyingOptimizer = underlyingOptimizer;
@@ -1237,8 +1242,8 @@
       "make-sequential": F(makeSequential, "make-sequential"),
 
       // Layers
-      "is-dense-layer": F(isDenseLayer, "is-dense-layer"),
-      "make-dense-layer": F(makeDenseLayer, "make-dense-layer"),
+      "is-layer": F(isLayer, "is-layer"),
+      "dense-layer": F(makeDenseLayer, "dense-layer"),
 
       // Training (Optimizers)
       "is-optimizer": F(isOptimizer, "is-optimizer"),
