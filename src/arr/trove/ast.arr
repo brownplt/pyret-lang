@@ -265,6 +265,12 @@ data Import:
     method tosource(self):
       PP.flow([list: str-include, self.mod.tosource()])
     end
+  | s-include-from(l :: Loc, mod :: List<Name>, specs :: List<IncludeSpec>) with:
+    method label(self): "s-include" end,
+    method tosource(self):
+      PP.flow([list: str-include, str-from, PP.separate(str-period, self.mod.map(_.tosource())), str-colon,
+        PP.separate(PP.commabreak, self.specs.map(_.tosource()))])
+    end
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     method label(self): "s-import" end,
     method tosource(self):
@@ -304,6 +310,22 @@ sharing:
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
+
+data IncludeSpec:
+  | s-include-name(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-include-name" end
+  | s-include-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
+    method label(self): "s-include-data" end
+  | s-include-type(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-include-type" end
+  | s-include-module(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-include-module" end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 
 data ProvidedValue:
   # INVARIANT(joe): all a-names in Ann are defined in the lists of

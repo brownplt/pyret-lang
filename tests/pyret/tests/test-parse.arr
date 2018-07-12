@@ -520,3 +520,22 @@ check "combined provide syntax":
   does-parse("provide: data Num as N end") is false
   does-parse("provide: data List end") is true
 end
+
+check "include from syntax":
+  
+  does-parse("include from A: x end") is true
+  does-parse("include from A: x, y, z end") is true
+  does-parse("include from A.B.C: x, y, z end") is true
+  does-parse("include from A.B.C: type List end") is true
+  does-parse("include from A: end") is true
+  does-parse("include from A:end") is true
+  does-parse("include from A: module B.C end") is true
+
+  does-parse("includefrom A: module B.C end") is false
+  does-parse("include fromA: module B.C end") is false
+  does-parse("include from A : module B.C end") is true
+  does-parse("include from A: moduleB.C end") is true
+  does-parse("include from A: data D end") is true
+  does-parse("include from A: dataD end") is true
+
+end

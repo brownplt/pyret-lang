@@ -67,6 +67,7 @@
         }
       }
     }
+
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
       // We might have to rewrite the whole algorithm
@@ -81,6 +82,41 @@
           throw new Error("Cannot find " + node.name + " in translators");
         return translators[node.name](node);
       }
+
+      function nameSpec(node, constructor) {
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[0])
+        );
+      }
+      function typeSpec(node, constructor) {
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[1])
+        );
+      }
+      function dataSpec(node, constructor) {
+        var hidings;
+        node.kids[1].name = 'name-spec';
+        if(node.kids.length === 2) {
+          hidings = makeListTr([]);
+        }
+        else {
+          hidings = tr(node.kids[2]);
+        }
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[1]),
+            hidings
+            );
+      }
+      function moduleSpec(node, constructor) {
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[1])
+        );
+      }
+
       var pos = function(p) { return makePyretPos(fileName, p); };
       var pos2 = function(p1, p2) { return combinePyretPos(fileName, p1, p2); };
       function makeListTr(arr, start, end, onto, f) {
@@ -171,6 +207,21 @@
         'import-stmts': function(node) {
           return makeListTr(node.kids);
         },
+        'include-spec': function(node) {
+          return tr(node.kids[0]);
+        },
+        'include-data-spec': function(node) {
+          return dataSpec(node, 's-include-data');
+        },
+        'include-type-spec': function(node) {
+          return typeSpec(node, 's-include-type');
+        },
+        'include-name-spec': function(node) {
+          return nameSpec(node, 's-include-name');
+        },
+        'include-module-spec': function(node) {
+          return moduleSpec(node, 's-include-module');
+        },
         'hiding-spec': function(node) {
           return makeListComma(node.kids, 2, node.kids.length - 1, name);
         },
@@ -203,37 +254,16 @@
           return tr(node.kids[0]);
         },
         'provide-name-spec': function(node) {
-          return RUNTIME.getField(ast, "s-provide-name").app(
-              pos(node.pos),
-              tr(node.kids[0])
-          );
+          return nameSpec(node, 's-provide-name');
         },
         'provide-data-spec': function(node) {
-          var hidings;
-          node.kids[1].name = 'name-spec';
-          if(node.kids.length === 2) {
-            hidings = makeListTr([]);
-          }
-          else {
-            hidings = tr(node.kids[2]);
-          }
-          return RUNTIME.getField(ast, "s-provide-data").app(
-              pos(node.pos),
-              tr(node.kids[1]),
-              hidings
-              );
+          return dataSpec(node, 's-provide-data');
         },
         'provide-type-spec': function(node) {
-          return RUNTIME.getField(ast, "s-provide-type").app(
-              pos(node.pos),
-              tr(node.kids[1])
-          );
+          return typeSpec(node, 's-provide-type');
         },
         'provide-module-spec': function(node) {
-          return RUNTIME.getField(ast, "s-provide-module").app(
-              pos(node.pos),
-              tr(node.kids[1])
-          );
+          return moduleSpec(node, 's-provide-module');
         },
         'provide-stmt': function(node) {
           return tr(node.kids[0]);
@@ -276,7 +306,11 @@
               return RUNTIME.getField(ast, 's-import-types')
                 .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
             }
-          } else if (node.kids[0].name === "INCLUDE") {
+          } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name === "FROM") {
+            return RUNTIME.getField(ast, 's-include-from').app(pos(node.pos), 
+              tr(node.kids[2]),
+              makeListComma(node.kids, 4, node.kids.length - 1));
+          } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name !== "FROM") {
             // (import-stmt INCLUDE import-source)
             return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
           } else {
