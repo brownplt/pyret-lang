@@ -681,11 +681,13 @@
       return buildTensorObject(tf.neg(tensor));
     }
 
-    function prelu(x) {
-      arity(1, arguments, "parametric-relu", false);
+    function prelu(x, alpha) {
+      arity(2, arguments, "parametric-relu", false);
       assertBrand(brandTensor, x, "Tensor");
+      runtime.checkNumber(alpha);
       var tensor = x.$underlyingTensor;
-      return buildTensorObject(tf.prelu(tensor));
+      var a = runtime.num_to_fixnum(alpha);
+      return buildTensorObject(tf.prelu(tensor, a));
     }
 
     function reciprocal(x) {
@@ -804,6 +806,13 @@
       return buildTensorObject(tf.all(tensor));
     }
 
+    function any(x) {
+      arity(1, arguments, "any", false);
+      assertBrand(brandTensor, x, "Tensor");
+      var tensor = x.$underlyingTensor;
+      return buildTensorObject(tf.any(tensor));
+    }
+
     function argMax(x) {
       arity(1, arguments, "arg-max", false);
       assertBrand(brandTensor, x, "Tensor");
@@ -833,7 +842,7 @@
     }
 
     function mean(x) {
-      arity(1, arguments, "mean", false);
+      arity(1, arguments, "reduce-mean", false);
       assertBrand(brandTensor, x, "Tensor");
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.mean(tensor));
@@ -1167,11 +1176,12 @@
 
       // Operations (Reduction)
       "all": F(all, "all"),
+      "any": F(any, "any"),
       "arg-max": F(argMax, "arg-max"),
       "arg-min": F(argMin, "arg-min"),
       "log-sum-exp": F(logSumExp, "log-sum-exp"),
       "reduce-max": F(max, "reduce-max"),
-      "mean": F(mean, "mean"),
+      "reduce-mean": F(mean, "reduce-mean"),
       "reduce-min": F(min, "reduce-min"),
       "reduce-sum": F(sum, "reduce-sum"),
 
