@@ -135,7 +135,9 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: 
             new-types = for fold(ts from g.types, k from types.map(_.toname())):
               ts.set(k, depname)
             end
+            # MARK(joe/ben): modules
             ng = CS.globals(
+              [SD.string-dict:],
               new-vals.set(vals-name.toname(), dep),
               new-types.set(type-name.toname(), dep))
             ne = link(CS.extra-import(AU.import-to-dep(file), "_", empty, empty), res.new-extras)
@@ -189,7 +191,8 @@ fun make-repl<a>(
     new-types = for SD.fold-keys(ts from globals.types, provided-name from cr.provides.aliases):
       ts.set(provided-name, dep.key())
     end
-    globals := CS.globals(new-vals, new-types)
+    # MARK(joe/ben): modules
+    globals := CS.globals([SD.string-dict:], new-vals, new-types)
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)
