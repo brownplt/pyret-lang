@@ -1063,6 +1063,13 @@
       return obj;
     }
 
+    function unwrapFixnumOption(option) {
+      return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", option, {
+        some: (v) => { return runtime.num_to_fixnum(v); },
+        none: () => { return null; }
+      });
+    }
+
     function trainSgd(learningRate) {
       arity(1, arguments, "train-sgd", false);
       runtime.checkNumber(learningRate);
@@ -1070,28 +1077,64 @@
       return buildOptimizerObject(tf.train.sgd(rate));
     }
 
-    function trainMomentum() {
-
+    function trainMomentum(learningRate, momentum) {
+      arity(2, arguments, "train-momentum", false);
+      runtime.checkNumber(learningRate);
+      runtime.checkNumber(momentum);
+      var rate = runtime.num_to_fixnum(learningRate);
+      var moment = runtime.num_to_fixnum(momentum);
+      return buildOptimizerObject(tf.train.momentum(rate, moment));
     }
 
-    function trainAdagrad() {
-
+    function trainAdagrad(learningRate, initialAccumulatorValue) {
+      arity(2, arguments, "train-adagrad", false);
+      runtime.checkNumber(learningRate);
+      var rate = runtime.num_to_fixnum(learningRate);
+      var initial = unwrapFixnumOption(initialAccumulatorValue);
+      if ((initial !== null) && (initial <= 0)) {
+        runtime.ffi.throwMessageException("The initial accumulator value " +
+          "passed to `train-adagrad` must be positive");
+      }
+      return buildOptimizerObject(tf.train.adagrad(rate, initial));
     }
 
-    function trainAdadelta() {
-
+    function trainAdadelta(learningRate, rho, epsilon) {
+      arity(3, arguments, "train-adadelta", false);
+      var l = unwrapFixnumOption(learningRate);
+      var r = unwrapFixnumOption(rho);
+      var e = unwrapFixnumOption(epsilon);
+      return buildOptimizerObject(tf.train.adadelta(l, r, e));
     }
 
-    function trainAdam() {
-
+    function trainAdam(learningRate, beta1, beta2, epsilon) {
+      arity(4, arguments, "train-adam", false);
+      var l = unwrapFixnumOption(learningRate);
+      var b1 = unwrapFixnumOption(beta1);
+      var b2 = unwrapFixnumOption(beta2);
+      var e = unwrapFixnumOption(epsilon);
+      return buildOptimizerObject(tf.train.adam(l, b1, b2, e));
     }
 
-    function trainAdamax() {
-
+    function trainAdamax(learningRate, beta1, beta2, epsilon, decay) {
+      arity(5, arguments, "train-adamax", false);
+      var l = unwrapFixnumOption(learningRate);
+      var b1 = unwrapFixnumOption(beta1);
+      var b2 = unwrapFixnumOption(beta2);
+      var e = unwrapFixnumOption(epsilon);
+      var d = unwrapFixnumOption(decay);
+      return buildOptimizerObject(tf.train.adam(l, b1, b2, e, d));
     }
 
-    function trainRmsprop() {
-
+    function trainRmsprop(learningRate, decay, momentum, epsilon, centered) {
+      arity(5, arguments, "train-rmsprop", false);
+      runtime.checkNumber(learningRate);
+      runtime.checkBoolean(centered);
+      var rate = runtime.num_to_fixnum(learningRate);
+      var d = unwrapFixnumOption(decay);
+      var m = unwrapFixnumOption(momentum);
+      var e = unwrapFixnumOption(epsilon);
+      var c = runtime.isPyretTrue(centered);
+      return buildOptimizerObject(tf.train.rmsprop(rate, d, m, e, c));
     }
 
     var values = {
@@ -1200,6 +1243,12 @@
       // Training (Optimizers)
       "is-optimizer": F(isOptimizer, "is-optimizer"),
       "train-sgd": F(trainSgd, "train-sgd"),
+      "train-momentum": F(trainMomentum, "train-momentum"),
+      "train-adagrad": F(trainAdagrad, "train-adagrad"),
+      "train-adadelta": F(trainAdadelta, "train-sgd"),
+      "train-adam": F(trainAdam, "train-adam"),
+      "train-adamax": F(trainAdamax, "train-adamax"),
+      "train-rmsprop": F(trainRmsprop, "train-rmsprop"),
     };
     var types = {
       Tensor: annTensor,
