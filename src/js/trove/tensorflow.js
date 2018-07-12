@@ -1020,12 +1020,102 @@
       return obj;
     }
 
+    function makeActivationLayer(config) {
+      arity(1, arguments, "activation-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.activation(c));
+    }
+
     function makeDenseLayer(config) {
       arity(1, arguments, "dense-layer", false);
       runtime.checkObject(config);
       var c = unwrapObject(config);
-      var layer = tf.layers.dense(c);
-      return buildLayerObject(layer);
+      return buildLayerObject(tf.layers.dense(c));
+    }
+
+    function makeDropoutLayer(config) {
+      arity(1, arguments, "dropout-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.dropout(c));
+    }
+
+    function makeEmbeddingLayer(config) {
+      arity(1, arguments, "embedding-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.embedding(c));
+    }
+
+    function makeFlattenLayer(config) {
+      arity(1, arguments, "flatten-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.flatten(c));
+    }
+
+    function makeRepeatVectorLayer(config) {
+      arity(1, arguments, "repeat-vector-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.repeatVector(c));
+    }
+
+    function makeReshapeLayer(config) {
+      arity(1, arguments, "reshape-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.reshape(c));
+    }
+
+    function makeConv1dLayer(config) {
+      arity(1, arguments, "conv-1d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.conv1d(c));
+    }
+
+    function makeConv2dLayer(config) {
+      arity(1, arguments, "conv-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.conv2d(c));
+    }
+
+    function makeConv2dTransposeLayer(config) {
+      arity(1, arguments, "conv-2d-transpose-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.conv2dTranspose(c));
+    }
+
+    function makeCropping2dLayer(config) {
+      arity(1, arguments, "cropping-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.cropping2D(c));
+    }
+
+    function makeDepthwiseConv2dLayer(config) {
+      arity(1, arguments, "depthwise-conv-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.depthwiseConv2d(c));
+    }
+
+    function makeSeparableConv2dLayer(config) {
+      arity(1, arguments, "separable-conv-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.separableConv2d(c));
+    }
+
+    function makeUpSampling2dLayer(config) {
+      arity(1, arguments, "up-sampling-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.upSampling2d(c));
     }
 
     /**
@@ -1243,7 +1333,20 @@
 
       // Layers
       "is-layer": F(isLayer, "is-layer"),
+      "activation-layer": F(makeActivationLayer, "activation-layer"),
       "dense-layer": F(makeDenseLayer, "dense-layer"),
+      "dropout-layer": F(makeDropoutLayer, "dropout-layer"),
+      "embedding-layer": F(makeEmbeddingLayer, "embedding-layer"),
+      "flatten-layer": F(makeFlattenLayer, "flatten-layer"),
+      "repeat-vector-layer": F(makeRepeatVectorLayer, "repeat-vector-layer"),
+      "reshape-layer": F(makeReshapeLayer, "reshape-layer"),
+      "conv-1d-layer": F(makeConv1dLayer, "conv-1d-layer"),
+      "conv-2d-layer": F(makeConv2dLayer, "conv-2d-layer"),
+      "conv-2d-transpose-layer": F(makeConv2dTransposeLayer, "conv-2d-transpose-layer"),
+      "cropping-2d-layer": F(makeCropping2dLayer, "cropping-2d-layer"),
+      "depthwise-conv-2d-layer": F(makeDepthwiseConv2dLayer, "depthwise-conv-2d-layer"),
+      "separable-conv-2d-layer": F(makeSeparableConv2dLayer, "separable-conv-2d-layer"),
+      "up-sampling-2d-layer": F(makeUpSampling2dLayer, "up-sampling-2d-layer"),
 
       // Training (Optimizers)
       "is-optimizer": F(isOptimizer, "is-optimizer"),
