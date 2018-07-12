@@ -1885,6 +1885,13 @@ default-map-visitor = {
     s-atom(base, serial)
   end,
 
+  method s-star(self, l, hidden):
+    s-star(l, hidden.map(_.visit(self)))
+  end,
+  method s-module-ref(self, l, path, as-name):
+    s-module-ref(l, path.map(_.visit(self)), self.option(as-name))
+  end,
+
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -1901,6 +1908,22 @@ default-map-visitor = {
 
   method s-program(self, l, _provide, provided-types, provides, imports, body):
     s-program(l, _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  method s-include-from(self, l, specs):
+    s-include-from(l, specs.map(_.visit(self)))
+  end,
+  method s-include-name(self, l, name-spec):
+    s-include-name(l, name-spec.visit(self))
+  end,
+  method s-include-data(self, l, name-spec, hidden):
+    s-include-data(l, name-spec.visit(self), hidden.map(_.visit(self)))
+  end,
+  method s-include-type(self, l, name-spec):
+    s-include-type(l, name-spec.visit(self))
+  end,
+  method s-include-module(self, l, name-spec):
+    s-include-module(l, name-spec.visit(self))
   end,
 
   method s-include(self, l, import-type):
@@ -1951,6 +1974,22 @@ default-map-visitor = {
   method s-provide-types-none(self, l):
     s-provide-types-none(l)
   end,
+  method s-provide-block(self, l, specs):
+    s-provide-block(l, specs.map(_.visit(self)))
+  end,
+  method s-provide-name(self, l, name-spec):
+    s-provide-name(l, name-spec.visit(self))
+  end,
+  method s-provide-data(self, l, name-spec, hidden):
+    s-provide-data(l, name-spec.visit(self), hidden.map(_.visit(self)))
+  end,
+  method s-provide-type(self, l, name-spec):
+    s-provide-type(l, name-spec.visit(self))
+  end,
+  method s-provide-module(self, l, name-spec):
+    s-provide-module(l, name-spec.visit(self))
+  end,
+
 
   method s-bind(self, l, shadows, name, ann):
     s-bind(l, shadows, name.visit(self), ann.visit(self))
@@ -2445,6 +2484,14 @@ default-iter-visitor = {
     true
   end,
 
+  method s-star(self, l, hidden):
+    hidden.all(_.visit(self))
+  end,
+  method s-module-ref(self, l, path, as-name):
+    path.all(_.visit(self)) and self.option(as-name)
+  end,
+
+
   method s-defined-value(self, name, val):
     val.visit(self)
   end,
@@ -2480,6 +2527,23 @@ default-iter-visitor = {
   method s-include(self, l, import-type):
     import-type.visit(self)
   end,
+
+  method s-include-from(self, l, mod, specs):
+    mod.visit(self) and specs.all(_.visit(self))
+  end,
+  method s-include-name(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-include-data(self, l, name-spec, hidden):
+    name-spec.visit(self) and hidden.all(_.visit(self))
+  end,
+  method s-include-type(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-include-module(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+
   method s-const-import(self, l, mod):
     true
   end,
@@ -2512,6 +2576,22 @@ default-iter-visitor = {
   end,
   method s-provide-types-none(self, l):
     true
+  end,
+  method s-provide-block(self, l, specs):
+    specs.all(_.visit(self))
+  end,
+
+  method s-provide-name(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-provide-data(self, l, name-spec, hidden):
+    name-spec.visit(self) and hidden.all(_.visit(self))
+  end,
+  method s-provide-type(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-provide-module(self, l, name-spec):
+    name-spec.visit(self)
   end,
 
   method s-template(self, l):
@@ -2995,6 +3075,13 @@ dummy-loc-visitor = {
     s-atom(base, serial)
   end,
 
+  method s-star(self, _, hidden):
+    s-star(dummy-loc, hidden.map(_.visit(self)))
+  end,
+  method s-module-ref(self, _, path, as-name):
+    s-module-ref(dummy-loc, path.map(_.visit(self)), self.option(as-name))
+  end,
+
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -3032,6 +3119,23 @@ dummy-loc-visitor = {
       vals-name.visit(self),
       types-name.visit(self))
   end,
+
+  method s-include-from(self, l, specs):
+    s-include-from(dummy-loc, specs.map(_.visit(self)))
+  end,
+  method s-include-name(self, l, name-spec):
+    s-include-name(dummy-loc, name-spec.visit(self))
+  end,
+  method s-include-data(self, l, name-spec, hidden):
+    s-include-data(dummy-loc, name-spec.visit(self), hidden.map(_.visit(self)))
+  end,
+  method s-include-type(self, l, name-spec):
+    s-include-type(dummy-loc, name-spec.visit(self))
+  end,
+  method s-include-module(self, l, name-spec):
+    s-include-module(dummy-loc, name-spec.visit(self))
+  end,
+
   method s-include(self, l, import-type):
     s-include(dummy-loc, import-type.visit(self))
   end,
