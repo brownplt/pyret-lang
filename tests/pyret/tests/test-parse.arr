@@ -534,8 +534,8 @@ check "include from syntax":
   does-parse("includefrom A: module B.C end") is false
   does-parse("include fromA: module B.C end") is false
   does-parse("include from A : module B.C end") is true
-  does-parse("include from A: moduleB.C end") is true
+  does-parse("include from A: moduleB.C end") is true # where moduleB is a module
   does-parse("include from A: data D end") is true
-  does-parse("include from A: dataD end") is true
+  does-parse("include from A: dataD end") is true # where dataD is a value name
 
 end
