@@ -74,6 +74,13 @@
       }
     }
 
+    function unwrapFixnumOption(option) {
+      return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", option, {
+        some: (v) => { return runtime.num_to_fixnum(v); },
+        none: () => { return null; }
+      });
+    }
+
     /**
      * Tensors
      */
@@ -310,11 +317,22 @@
       return buildTensorObject(newScalar);
     }
 
-    function randomNormal(shape) {
-      arity(1, arguments, "random-normal", false);
+    function randomNormal(shape, mean, standardDeviation) {
+      arity(3, arguments, "random-normal", false);
       runtime.checkList(shape);
       var s = runtime.ffi.toArray(shape);
-      return buildTensorObject(tf.randomNormal(s));
+      var m = unwrapFixnumOption(mean);
+      var d = unwrapFixnumOption(standardDeviation)
+      return buildTensorObject(tf.randomNormal(s, m, d));
+    }
+
+    function randomUniform(shape, minVal, maxVal) {
+      arity(3, arguments, "random-uniform", false);
+      runtime.checkList(shape);
+      var s = runtime.ffi.toArray(shape);
+      var min = unwrapFixnumOption(minVal);
+      var max = unwrapFixnumOption(maxVal)
+      return buildTensorObject(tf.randomUniform(s, min, max));
     }
 
     function makeVariable(tensor) {
@@ -923,6 +941,11 @@
           checkMethodArity(2, arguments, "compile");
           runtime.checkObject(config);
           var c = unwrapObject(config);
+          // If there's an Optimizer defined, we have to unwrap it since
+          // Tensorflow.js doesn't recognize PyretOptimizers:
+          if ("optimizer" in c) {
+            c["optimizer"] = c["optimizer"].$underlyingOptimizer;
+          }
           self.$underlyingSequential.compile(c);
           return runtime.makeNothing();
         }),
@@ -1263,13 +1286,6 @@
       return obj;
     }
 
-    function unwrapFixnumOption(option) {
-      return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", option, {
-        some: (v) => { return runtime.num_to_fixnum(v); },
-        none: () => { return null; }
-      });
-    }
-
     function trainSgd(learningRate) {
       arity(1, arguments, "train-sgd", false);
       runtime.checkNumber(learningRate);
@@ -1352,6 +1368,7 @@
         make5: F(createTensor5, "tensor:make5")
       }),
       "random-normal": F(randomNormal, "random-normal"),
+      "random-uniform": F(randomUniform, "random-uniform"),
       "make-variable": F(makeVariable, "make-variable"),
 
       // Operations (Arithmetic)
