@@ -1118,6 +1118,111 @@
       return buildLayerObject(tf.layers.upSampling2d(c));
     }
 
+    function makeAddLayer(config) {
+      arity(1, arguments, "add-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.add(c));
+    }
+
+    function makeAverageLayer(config) {
+      arity(1, arguments, "average-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.average(c));
+    }
+
+    function makeConcatenateLayer(config) {
+      arity(1, arguments, "concatenate-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.concatenate(c));
+    }
+
+    function makeMaximumLayer(config) {
+      arity(1, arguments, "maximum-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.maximum(c));
+    }
+
+    function makeMinimumLayer(config) {
+      arity(1, arguments, "minimum-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.minimum(c));
+    }
+
+    function makeMultiplyLayer(config) {
+      arity(1, arguments, "multiply-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.multiply(c));
+    }
+
+    function makeBatchNormalizationLayer(config) {
+      arity(1, arguments, "batch-normalization-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.batchNormalization(c));
+    }
+
+    function makeAveragePooling1dLayer(config) {
+      arity(1, arguments, "average-pooling-1d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.averagePooling1d(c));
+    }
+
+    function makeAveragePooling2dLayer(config) {
+      arity(1, arguments, "average-pooling-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.averagePooling2d(c));
+    }
+
+    function makeGlobalAveragePooling1dLayer(config) {
+      arity(1, arguments, "global-average-pooling-1d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.globalAveragePooling1d(c));
+    }
+
+    function makeGlobalAveragePooling2dLayer(config) {
+      arity(1, arguments, "global-average-pooling-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.globalAveragePooling2d(c));
+    }
+
+    function makeGlobalMaxPooling1dLayer(config) {
+      arity(1, arguments, "global-max-pooling-1d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.globalMaxPooling1d(c));
+    }
+
+    function makeGlobalMaxPooling2dLayer(config) {
+      arity(1, arguments, "global-max-pooling-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.globalMaxPooling2d(c));
+    }
+
+    function makeMaxPooling1dLayer(config) {
+      arity(1, arguments, "max-pooling-1d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.maxPooling1d(c));
+    }
+
+    function makeMaxPooling2dLayer(config) {
+      arity(1, arguments, "max-pooling-2d-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.maxPooling2d(c));
+    }
+
     /**
      * Training (Optimizers)
      */
@@ -1347,6 +1452,21 @@
       "depthwise-conv-2d-layer": F(makeDepthwiseConv2dLayer, "depthwise-conv-2d-layer"),
       "separable-conv-2d-layer": F(makeSeparableConv2dLayer, "separable-conv-2d-layer"),
       "up-sampling-2d-layer": F(makeUpSampling2dLayer, "up-sampling-2d-layer"),
+      "add-layer": F(makeAddLayer, "add-layer"),
+      "average-layer": F(makeAverageLayer, "average-layer"),
+      "concatenate-layer": F(makeConcatenateLayer, "concatenate-layer"),
+      "maximum-layer": F(makeMaximumLayer, "maximum-layer"),
+      "minimum-layer": F(makeMinimumLayer, "minimum-layer"),
+      "multiply-layer": F(makeMultiplyLayer, "multiply-layer"),
+      "batch-normalization-layer": F(makeBatchNormalizationLayer, "batch-normalization-layer"),
+      "average-pooling-1d-layer": F(makeAveragePooling1dLayer, "average-pooling-1d-layer"),
+      "average-pooling-2d-layer": F(makeAveragePooling2dLayer, "average-pooling-2d-layer"),
+      "global-average-pooling-1d-layer": F(makeGlobalAveragePooling1dLayer, "global-average-pooling-1d-layer"),
+      "global-average-pooling-2d-layer": F(makeGlobalAveragePooling2dLayer, "global-average-pooling-2d-layer"),
+      "global-max-pooling-1d-layer": F(makeGlobalMaxPooling1dLayer, "global-max-pooling-1d-layer"),
+      "global-max-pooling-2d-layer": F(makeGlobalMaxPooling2dLayer, "global-max-pooling-2d-layer"),
+      "max-pooling-1d-layer": F(makeMaxPooling1dLayer, "max-pooling-1d-layer"),
+      "max-pooling-2d-layer": F(makeMaxPooling2dLayer, "max-pooling-2d-layer"),
 
       // Training (Optimizers)
       "is-optimizer": F(isOptimizer, "is-optimizer"),
