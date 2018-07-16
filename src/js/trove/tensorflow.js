@@ -77,7 +77,7 @@
     function unwrapFixnumOption(option) {
       return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", option, {
         some: (v) => { return runtime.num_to_fixnum(v); },
-        none: () => { return null; }
+        none: () => { return undefined; }
       });
     }
 
@@ -186,8 +186,6 @@
         //   // return buildTensorObject(self.$underlyingTensor.asType(type));
         // })
 
-        // "data": // Not going to implement `data` since it is async
-
         "data-sync": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "data-sync");
           // .dataSync returns a TypedArray, so convert it to a normal JSArray
@@ -199,7 +197,6 @@
           arrayData = arrayData.map((x) => { return runtime.num_to_roughnum(x); });
           return runtime.ffi.makeList(arrayData);
         }),
-        // "dispose":, Probably no need for this
         "to-float": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-float");
           return buildTensorObject(self.$underlyingTensor.toFloat());
@@ -216,7 +213,6 @@
           checkMethodArity(1, arguments, "to-variable");
           return makeVariable(self);
         }),
-        // "print":,
         "reshape": runtime.makeMethod0(function(self, newShape) {
           checkMethodArity(2, arguments, "reshape");
           runtime.checkList(newShape);
@@ -229,7 +225,6 @@
           }
           return buildTensorObject(self.$underlyingTensor.reshape(ns));
         }),
-        // "reshape-as":,
         // "expand-dims":,
         // "cumsum":,
         // "squeeze":,
@@ -237,7 +232,46 @@
           checkMethodArity(1, arguments, "clone");
           return buildTensorObject(self.$underlyingTensor.clone());
         }),
-        // "to-string":
+        "add": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "add");
+          return addTensors(self, b);
+        }),
+        "subtract": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "subtract");
+          return subtractTensors(self, b);
+        }),
+        "multiply": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "multiply");
+          return multiplyTensors(self, b);
+        }),
+        "divide": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "divide");
+          return divideTensors(self, b);
+        }),
+        "floor-divide": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "floor-divide");
+          return floorDivideTensors(self, b);
+        }),
+        "max": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "max");
+          return maxTensor(self, b);
+        }),
+        "min": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "min");
+          return minTensor(self, b);
+        }),
+        "modulo": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "modulo");
+          return moduloTensor(self, b);
+        }),
+        "expt": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "expt");
+          return exptTensor(self, b);
+        }),
+        "squared-difference": runtime.makeMethod1(function(self, b) {
+          checkMethodArity(2, arguments, "squared-difference");
+          return tensorSquaredDifference(self, b);
+        }),
       });
       obj = applyBrand(brandTensor, obj);
       obj.$underlyingTensor = underlyingTensor;
@@ -249,24 +283,47 @@
       return buildTensorObject(underlyingTensor);
     }
 
+    /**
+     * Creates a PyretTensor with the given values.
+     * @param {JSArray<Number>} array An array of types
+     * @returns {PyretTensor} A Tensor
+     */
     function createTensorFromArray(array) {
       arity(1, arguments, "tensor", false);
       runtime.checkArray(array);
-      var fixnums = array.map((x) => { return runtime.num_to_fixnum(x); });
+      var fixnums = array.map((x) => {
+        runtime.checkNumber(x);
+        return runtime.num_to_fixnum(x);
+      });
       return createTensor(fixnums);
     }
 
+    /**
+     * Creates a PyretTensor with no values.
+     * @returns {PyretTensor} A PyretTensor with no values
+     */
     function createTensor0() {
       arity(0, arguments, "tensor0", false);
       return createTensorFromArray([]);
     }
 
+    /**
+     * Creates a PyretTensor with one value.
+     * @param {Number} a The first value to put in the Tensor
+     * @returns {PyretTensor} A PyretTensor with the value a
+     */
     function createTensor1(a) {
       arity(1, arguments, "tensor1", false);
       runtime.checkNumber(a);
       return createTensorFromArray([a]);
     }
 
+    /**
+     * Creates a PyretTensor with two values.
+     * @param {Number} a The first value to put in the Tensor
+     * @param {Number} b The second value to put in the Tensor
+     * @returns {PyretTensor} A PyretTensor with the values a and b
+     */
     function createTensor2(a, b) {
       arity(2, arguments, "tensor2", false);
       runtime.checkNumber(a);
@@ -274,6 +331,13 @@
       return createTensorFromArray([a, b]);
     }
 
+    /**
+     * Creates a PyretTensor with three values.
+     * @param {Number} a The first value to put in the Tensor
+     * @param {Number} b The second value to put in the Tensor
+     * @param {Number} c The third value to put in the Tensor
+     * @returns {PyretTensor} A PyretTensor with the values a, b, and c
+     */
     function createTensor3(a, b, c) {
       arity(3, arguments, "tensor3", false);
       runtime.checkNumber(a);
@@ -282,6 +346,14 @@
       return createTensorFromArray([a, b, c]);
     }
 
+    /**
+     * Creates a PyretTensor with four values.
+     * @param {Number} a The first value to put in the Tensor
+     * @param {Number} b The second value to put in the Tensor
+     * @param {Number} c The third value to put in the Tensor
+     * @param {Number} d The fourth value to put in the Tensor
+     * @returns {PyretTensor} A PyretTensor with the values a, b, c, and d
+     */
     function createTensor4(a, b, c, d) {
       arity(4, arguments, "tensor4", false);
       runtime.checkNumber(a);
@@ -291,6 +363,15 @@
       return createTensorFromArray([a, b, c, d]);
     }
 
+    /**
+     * Creates a PyretTensor with five values.
+     * @param {Number} a The first value to put in the Tensor
+     * @param {Number} b The second value to put in the Tensor
+     * @param {Number} c The third value to put in the Tensor
+     * @param {Number} d The fourth value to put in the Tensor
+     * @param {Number} e The fifth value to put in the Tensor
+     * @returns {PyretTensor} A PyretTensor with the values a, b, c, d, e
+     */
     function createTensor5(a, b, c, d, e) {
       arity(5, arguments, "tensor5", false);
       runtime.checkNumber(a);
@@ -301,6 +382,11 @@
       return createTensorFromArray([a, b, c, d, e]);
     }
 
+    /**
+     * Creates a PyretTensor with the values in the input List.
+     * @param {List<Number>} values A List of values to put in the Tensor
+     * @returns {PyretTensor} A PyretTensor with the values in the input List
+     */
     function listToTensor(values) {
       arity(1, arguments, "list-to-tensor", false);
       // A tensor can be rank 0 (just a number); otherwise, it is a List :(
@@ -309,6 +395,11 @@
       return createTensorFromArray(values);
     }
 
+    /**
+     * Creates a PyretTensor of rank-0 with the input value.
+     * @param {Number} value The value to put into the Tensor
+     * @returns {PyretTensor} A PyretTensor with the input value
+     */
     function makeScalar(value) {
       arity(1, arguments, "make-scalar", false);
       runtime.checkNumber(value);
@@ -317,15 +408,36 @@
       return buildTensorObject(newScalar);
     }
 
+    /**
+     * Creates a PyretTensor with values sampled from a normal distribution.
+     * @param {List<Number>} shape A List<Number> defining the Tensor's shape
+     * @param {Option<Number>} mean The mean of the normal distribution;
+     *  if `none`, set to the TensorFlow.js default
+     * @param {Option<Number>} standardDeviation The standard deviation of the
+     *  normal distribution; if `none`, set to the TensorFlow.js default
+     * @returns {PyretTensor} A PyretTensor with the input value
+     */
     function randomNormal(shape, mean, standardDeviation) {
       arity(3, arguments, "random-normal", false);
       runtime.checkList(shape);
       var s = runtime.ffi.toArray(shape);
       var m = unwrapFixnumOption(mean);
-      var d = unwrapFixnumOption(standardDeviation)
+      var d = unwrapFixnumOption(standardDeviation);
+      console.log(m);
+      console.log(d);
       return buildTensorObject(tf.randomNormal(s, m, d));
     }
 
+    /**
+     * Creates a PyretTensor with values sampled from a uniform distribution.
+     * @param {List<Number>} shape A List<Number> defining the Tensor's shape
+     * @param {Option<Number>} minVal The lower bound on the range of random
+     *  values to generate; if `none`, set to the TensorFlow.js default
+     * @param {Option<Number>} maxVal The upper bound on the range
+     *  of random values to generate; if `none`, set to the TensorFlow.js
+     *  default
+     * @returns {PyretTensor} A PyretTensor with the input value
+     */
     function randomUniform(shape, minVal, maxVal) {
       arity(3, arguments, "random-uniform", false);
       runtime.checkList(shape);
@@ -335,6 +447,11 @@
       return buildTensorObject(tf.randomUniform(s, min, max));
     }
 
+    /**
+     * Creates a mutable PyretTensor from the input PyretTensor.
+     * @param {PyretTensor} tensor A PyretTensor
+     * @returns {PyretTensor} A mutable PyretTensor
+     */
     function makeVariable(tensor) {
       arity(1, arguments, "make-variable", false);
       assertBrand(brandTensor, tensor, "Tensor");
@@ -346,8 +463,16 @@
      * Operations (Arithmetic)
      */
 
-    // assertEqualShapes is not a Pyret function; it's a helper method for
-    // the "strict" operation methods:
+    /**
+     * Returns true if the PyretTensors `a` and `b` have the same shape;
+     * otherwise, throws a Pyret runtime exception.
+     *
+     * This is not intended to be a Pyret function, but instead a helper JS
+     * function for the "strict" operation methods.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {boolean} Always returns true if no exception was thrown
+     */
     function assertEqualShapes(a, b) {
       // Get the underlying array representation of Tensor shapes:
       var aShape = a.$underlyingTensor.shape;
@@ -366,6 +491,12 @@
       return true;
     }
 
+    /**
+     * Adds `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a + b
+     */
     function addTensors(a, b) {
       arity(2, arguments, "add-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -375,6 +506,13 @@
       return buildTensorObject(tf.add(aTensor, bTensor));
     }
 
+    /**
+     * Adds `a` and `b`, element-wise, but throws an exception if they are not
+     * the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a + b
+     */
     function addStrict(a, b) {
       arity(2, arguments, "strict-add-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -383,6 +521,12 @@
       return buildTensorObject(tf.add(aTensor, bTensor));
     }
 
+    /**
+     * Subtracts `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a - b
+     */
     function subtractTensors(a, b) {
       arity(2, arguments, "subtract-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -392,6 +536,13 @@
       return buildTensorObject(tf.sub(aTensor, bTensor));
     }
 
+    /**
+     * Subtracts `a` and `b`, element-wise, but throws an exception if they are
+     * not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a - b
+     */
     function subtractStrict(a, b) {
       arity(2, arguments, "strict-subtract-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -400,6 +551,12 @@
       return buildTensorObject(tf.sub(aTensor, bTensor));
     }
 
+    /**
+     * Multiplies `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a * b
+     */
     function multiplyTensors(a, b) {
       arity(2, arguments, "multiply-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -409,6 +566,13 @@
       return buildTensorObject(tf.mul(aTensor, bTensor));
     }
 
+    /**
+     * Multiplies `a` and `b`, element-wise, but throws an exception if they are
+     * not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a * b
+     */
     function multiplyStrict(a, b) {
       arity(2, arguments, "strict-multiply-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -417,6 +581,12 @@
       return buildTensorObject(tf.mul(aTensor, bTensor));
     }
 
+    /**
+     * Divides `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a / b
+     */
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -426,6 +596,13 @@
       return buildTensorObject(tf.div(aTensor, bTensor));
     }
 
+    /**
+     * Divides `a` and `b`, element-wise, but throws an exception if they are
+     * not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a / b
+     */
     function divideStrict(a, b) {
       arity(2, arguments, "strict-divide-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -434,6 +611,13 @@
       return buildTensorObject(tf.div(aTensor, bTensor));
     }
 
+    /**
+     * Divides `a` and `b`, element-wise, with the result rounded with the
+     * floor function.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result of a / b
+     */
     function floorDivideTensors(a, b) {
       arity(2, arguments, "floor-divide-tensors", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -944,7 +1128,11 @@
           // If there's an Optimizer defined, we have to unwrap it since
           // Tensorflow.js doesn't recognize PyretOptimizers:
           if ("optimizer" in c) {
-            c["optimizer"] = c["optimizer"].$underlyingOptimizer;
+            // But it could also be a string key that maps to a predefined
+            // TF.js optimizer:
+            if (typeof c["optimizer"] !== "string") {
+              c["optimizer"] = c["optimizer"].$underlyingOptimizer;
+            }
           }
           self.$underlyingSequential.compile(c);
           return runtime.makeNothing();
@@ -997,9 +1185,9 @@
           var yTensor = y.$underlyingTensor;
           var c = unwrapObject(config);
           c.callbacks = {onEpochEnd: async (epoch, log) => {
-            console.log(epoch);
-            console.log(log);
-            callback.app(runtime.makeNumber(epoch), runtime.makeObject(log));
+            runtime.safeCall(() => {
+              callback.app(runtime.makeNumber(epoch), runtime.makeObject(log));
+            }, (_) => {}); // handler purposely blank
           }};
           self.$underlyingSequential.fit(xTensor, yTensor, c);
           return runtime.makeNothing();
@@ -1266,19 +1454,25 @@
       var obj = O({
         "minimize": runtime.makeMethod2(function(self, functionToMinimize, varList) {
           checkMethodArity(3, arguments, "minimize");
+          // varList is a list of mutable tensors for the Optimizer to edit. If
+          // it is empty, it should be set to `undefined` so TensorFlow.js
+          // knows to modify all available mutable tensors in the space:
           runtime.checkList(varList);
           var variables = runtime.ffi.toArray(varList)
                                      .map((v) => { return v.$underlyingTensor; });
           if (variables.length === 0) {
-            variables = null;
+            variables = undefined;
           }
-          // Run minimization lambda:
-          self.$underlyingOptimizer.minimize(function() {
-            var scalar = functionToMinimize.app();
-            assertBrand(brandTensor, scalar, "Tensor");
-            return scalar.$underlyingTensor;
-          }); //, true, variables);
-          return runtime.makeNothing();
+          // Run minimization lambda (returns a scalar):
+          var result = self.$underlyingOptimizer.minimize(() => {
+            return runtime.safeCall(() => {
+              return functionToMinimize.app();
+            }, (scalar) => {
+              assertBrand(brandTensor, scalar, "Tensor");
+              return scalar.$underlyingTensor;
+            });
+          }, true, variables);
+          return buildTensorObject(result);
         })
       });
       obj = applyBrand(brandOptimizer, obj);
