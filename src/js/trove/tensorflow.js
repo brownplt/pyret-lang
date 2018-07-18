@@ -17,8 +17,6 @@
   },
   theModule: function(runtime, namespace, uri, tfStructs, tf) {
 
-    require("@tensorflow/tfjs-node");
-
     /**
      * Tensorflow Brands and Annotations
      */
