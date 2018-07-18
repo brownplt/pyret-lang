@@ -472,7 +472,7 @@ well-formed-visitor = A.default-iter-visitor.{
     add-error(C.non-toplevel("data declaration", l, parent-block-loc))
     true
   end,
-  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check-loc, _check) block:
+  method s-data-expr(self, l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check) block:
     add-error(C.non-toplevel("data declaration", l, parent-block-loc))
     true
   end,
@@ -1067,7 +1067,7 @@ top-level-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     true
   end,
-  method s-data-expr(self, l, name, namet, params, mixins, variants, shared, _check-loc, _check) block:
+  method s-data-expr(self, l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check) block:
     old-pbl = parent-block-loc
     parent-block-loc := cases(Option) _check-loc:
       | none => l

@@ -387,7 +387,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-let-expr(l, new-binds, desugar-expr(body), blocky)
     | s-letrec(l, binds, body, blocky) =>
       A.s-letrec(l, desugar-letrec-binds(binds), desugar-expr(body), blocky)
-    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
+    | s-data-expr(l, name, name-type, name-ann, params, mixins, variants, shared, _check-loc, _check) =>
       fun extend-variant(v):
         cases(A.Variant) v:
           | s-variant(l2, constr-loc, vname, members, with-members) =>
@@ -404,7 +404,7 @@ fun desugar-expr(expr :: A.Expr):
               with-members.map(desugar-member))
         end
       end
-      A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
+      A.s-data-expr(l, name, name-type, name-ann, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
     | s-when(l, test, body, blocky) =>
       ds-test = desugar-expr(test)
