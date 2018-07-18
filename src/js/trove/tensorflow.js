@@ -17,17 +17,31 @@
   },
   theModule: function(runtime, namespace, uri, tfStructs, tf) {
 
+    require("@tensorflow/tfjs-node");
+
     /**
      * Tensorflow Brands and Annotations
      */
     var brandTensor = runtime.namedBrander("tensor", ["tensor: tensor brander"]);
     var annTensor = runtime.makeBranderAnn(brandTensor, "Tensor");
 
+    var brandTensorBuffer = runtime.namedBrander("tensor-buffer", ["tensor-buffer: tensor-buffer brander"]);
+    var annTensorBuffer = runtime.makeBranderAnn(brandTensorBuffer, "TensorBuffer");
+
     var brandModel = runtime.namedBrander("model", ["model: model brander"]);
     var annModel = runtime.makeBranderAnn(brandModel, "Model");
 
     var brandSequential = runtime.namedBrander("sequential", ["sequential: sequential brander"]);
     var annSequential = runtime.makeBranderAnn(brandSequential, "Sequential");
+
+    var brandSymbolicTensor = runtime.namedBrander("symbolic-tensor", ["symbolic-tensor: symbolic-tensor brander"]);
+    var annSymbolicTensor = runtime.makeBranderAnn(brandSymbolicTensor, "SymbolicTensor");
+
+    var brandLayer = runtime.namedBrander("layer", ["layer: layer brander"]);
+    var annLayer = runtime.makeBranderAnn(brandLayer, "Layer");
+
+    var brandOptimizer = runtime.namedBrander("optimizer", ["optimizer: optimizer brander"]);
+    var annOptimizer = runtime.makeBranderAnn(brandOptimizer, "Optimizer");
 
     /**
      * Runtime Helpers
@@ -60,9 +74,13 @@
 
     var unwrapObject = (obj) => { return unwrap(obj).dict; };
 
-    var checkTensor = (val) => { runtime._checkAnn(["tensor"], annModel, val); };
+    var checkTensor = (val) => { runtime._checkAnn(["tensor"], annTensor, val); };
+    var checkTensorBuffer = (val) => { runtime._checkAnn(["tensor-buffer"], annTensorBuffer, val); };
     var checkSequential = (val) => { runtime._checkAnn(["sequential"], annSequential, val); };
     var checkModel = (val) => { runtime._checkAnn(["model"], annModel, val); };
+    var checkSymbolicTensor = (val) => { runtime._checkAnn(["symbolic-tensor"], annSymbolicTensor, val); };
+    var checkLayer = (val) => { runtime._checkAnn(["layer"], annLayer, val); };
+    var checkOptimizer = (val) => { runtime._checkAnn(["optimizer"], annOptimizer, val); };
 
     function checkMethodArity(arity, args, methodName) {
       if (args.length !== arity) {
@@ -87,6 +105,12 @@
 
     // Brand Checks
 
+    /**
+     * Returns PyretTrue if the input `obj` is a PyretTensor; otherwise,
+     * returns PyretFalse.
+     * @param {Any} obj Some Pyret value
+     * @returns {PyretBoolean} A Pyret object representing true or false
+     */
     function isTensor(obj) {
       arity(1, arguments, "is-tensor", false);
       return runtime.makeBoolean(hasBrand(brandTensor, obj));
@@ -225,9 +249,23 @@
           }
           return buildTensorObject(self.$underlyingTensor.reshape(ns));
         }),
-        // "expand-dims":,
+        "expand-dims": runtime.makeMethod1(function(self, axis) {
+          checkMethodArity(2, arguments, "expand-dims");
+          var a = unwrapFixnumOption(axis);
+          return buildTensorObject(self.$underlyingTensor.expandDims(a));
+        }),
         // "cumsum":,
-        // "squeeze":,
+        "squeeze": runtime.makeMethod1(function(self, axes) {
+          checkMethodArity(2, arguments, "squeeze");
+          var a = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
+            some: (v) => {
+              runtime.checkList(v);
+              return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
+            },
+            none: () => { return undefined; }
+          });
+          return buildTensorObject(self.$underlyingTensor.squeeze(a));
+        }),
         "clone": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "clone");
           return buildTensorObject(self.$underlyingTensor.clone());
@@ -408,9 +446,40 @@
       return buildTensorObject(newScalar);
     }
 
+    function fill(shape, value) {
+      arity(2, arguments, "fill", false);
+      runtime.checkList(shape);
+      runtime.checkNumber(value);
+      var s = runtime.ffi.toArray(shape).map((x) => {
+        runtime.checkNumber(value);
+        return runtime.num_to_fixnum(x);
+      });
+      var v = runtime.num_to_fixnum(value);
+      return buildTensorObject(tf.fill(s, v));
+    }
+
+    function multinomial(logits, numSamples, randomSeed, normalized) {
+      arity(4, arguments, "multinomial", false);
+      checkTensor(logits);
+      runtime.checkNumber(numSamples);
+      runtime.checkBoolean(normalized);
+      var tensor  = logits.$underlyingTensor;
+      var samples = runtime.num_to_fixnum(numSamples);
+      var seed    = unwrapFixnumOption(randomSeed);
+      var norm    = runtime.isPyretTrue(normalized);
+      // Check if `logits` is 1D or 2D, as required by the `multinomial`
+      // function:
+      var dimensions = tensor.shape.length;
+      if (dimensions !== 1 && dimensions !== 2) {
+        runtime.ffi.throwMessageException("The `logits` argument must be a " +
+          "one-dimensional or two-dimensional Tensor");
+      }
+      return buildTensorObject(tf.multinomial(tensor, samples, seed, norm));
+    }
+
     /**
      * Creates a PyretTensor with values sampled from a normal distribution.
-     * @param {List<Number>} shape A List<Number> defining the Tensor's shape
+     * @param {List<NumInteger>} shape A List<Number> defining the Tensor's shape
      * @param {Option<Number>} mean The mean of the normal distribution;
      *  if `none`, set to the TensorFlow.js default
      * @param {Option<Number>} standardDeviation The standard deviation of the
@@ -421,16 +490,15 @@
       arity(3, arguments, "random-normal", false);
       runtime.checkList(shape);
       var s = runtime.ffi.toArray(shape);
+      s.forEach((x) => { runtime.checkNumInteger(x); });
       var m = unwrapFixnumOption(mean);
       var d = unwrapFixnumOption(standardDeviation);
-      console.log(m);
-      console.log(d);
       return buildTensorObject(tf.randomNormal(s, m, d));
     }
 
     /**
      * Creates a PyretTensor with values sampled from a uniform distribution.
-     * @param {List<Number>} shape A List<Number> defining the Tensor's shape
+     * @param {List<NumInteger>} shape A List<Number> defining the Tensor's shape
      * @param {Option<Number>} minVal The lower bound on the range of random
      *  values to generate; if `none`, set to the TensorFlow.js default
      * @param {Option<Number>} maxVal The upper bound on the range
@@ -442,6 +510,7 @@
       arity(3, arguments, "random-uniform", false);
       runtime.checkList(shape);
       var s = runtime.ffi.toArray(shape);
+      s.forEach((x) => { runtime.checkNumInteger(x); });
       var min = unwrapFixnumOption(minVal);
       var max = unwrapFixnumOption(maxVal)
       return buildTensorObject(tf.randomUniform(s, min, max));
@@ -460,6 +529,59 @@
     }
 
     /**
+     * TensorBuffers
+     */
+
+    function isTensorBuffer(obj) {
+      arity(1, arguments, "is-tensor-buffer", false);
+      return runtime.makeBoolean(hasBrand(brandTensorBuffer, obj));
+    }
+
+    // Constructor
+
+    function buildTensorBufferObject(underlyingBuffer) {
+      var obj = O({
+        "set": runtime.makeMethod2(function(self, value, locs) {
+          checkMethodArity(3, arguments, "set");
+          runtime.checkNumber(value);
+          runtime.checkList(locs);
+          var val = runtime.num_to_fixnum(value);
+          var locations = runtime.ffi.toArray(locs).map((x) => {
+            runtime.checkNumber(x);
+            return runtime.num_to_fixnum(x);
+          });
+          self.$underlyingBuffer.set(val, ...locations);
+          return runtime.makeNothing();
+        }),
+        "get": runtime.makeMethod1(function(self, locs) {
+          checkMethodArity(2, arguments, "get");
+          runtime.checkList(locs);
+          var locations = runtime.ffi.toArray(locs).map((x) => {
+            runtime.checkNumber(x);
+            return runtime.num_to_fixnum(x);
+          });
+          var result = self.$underlyingBuffer.get(...locations);
+          return runtime.makeNumber(result);
+        }),
+        "to-tensor": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "to-tensor");
+          return buildTensorObject(self.$underlyingBuffer.toTensor());
+        })
+      });
+      obj = applyBrand(brandTensorBuffer, obj);
+      obj.$underlyingBuffer = underlyingBuffer;
+      return obj;
+    }
+
+    function makeBuffer(shape) {
+      arity(1, arguments, "make-buffer", false);
+      runtime.checkList(shape);
+      var s = runtime.ffi.toArray(shape);
+      s.forEach((x) => { runtime.checkNumInteger(x); });
+      return buildTensorBufferObject(tf.buffer(s));
+    }
+
+    /**
      * Operations (Arithmetic)
      */
 
@@ -471,7 +593,7 @@
      * function for the "strict" operation methods.
      * @param {PyretTensor} a The first PyretTensor
      * @param {PyretTensor} b The second PyretTensor
-     * @returns {boolean} Always returns true if no exception was thrown
+     * @returns {JSBoolean} Always returns true if no exception was thrown
      */
     function assertEqualShapes(a, b) {
       // Get the underlying array representation of Tensor shapes:
@@ -627,6 +749,12 @@
       return buildTensorObject(tf.floorDiv(aTensor, bTensor));
     }
 
+    /**
+     * Returns the maximum of `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function maxTensor(a, b) {
       arity(2, arguments, "tensor-max", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -636,6 +764,13 @@
       return buildTensorObject(tf.maximum(aTensor, bTensor));
     }
 
+    /**
+     * Returns the maximum of `a` and `b`, element-wise, but throws an
+     * exception if they are not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function maxStrict(a, b) {
       arity(2, arguments, "strict-tensor-max", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -644,6 +779,12 @@
       return buildTensorObject(tf.maximum(aTensor, bTensor));
     }
 
+    /**
+     * Returns the minimum of `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function minTensor(a, b) {
       arity(2, arguments, "tensor-min", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -653,6 +794,13 @@
       return buildTensorObject(tf.minimum(aTensor, bTensor));
     }
 
+    /**
+     * Returns the minimum of `a` and `b`, element-wise, but throws an
+     * exception if they are not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function minStrict(a, b) {
       arity(2, arguments, "strict-tensor-min", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -661,6 +809,12 @@
       return buildTensorObject(tf.minimum(aTensor, bTensor));
     }
 
+    /**
+     * Returns the modulo of `a` and `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function moduloTensor(a, b) {
       arity(2, arguments, "tensor-modulo", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -670,6 +824,13 @@
       return buildTensorObject(tf.mod(aTensor, bTensor));
     }
 
+    /**
+     * Returns the modulo of `a` and `b`, element-wise, but throws an
+     * exception if they are not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function moduloStrict(a, b) {
       arity(2, arguments, "strict-tensor-modulo", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -678,6 +839,12 @@
       return buildTensorObject(tf.mod(aTensor, bTensor));
     }
 
+    /**
+     * Computes `a` raised to `b`, element-wise.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
       assertBrand(brandTensor, base, "Tensor");
@@ -687,6 +854,13 @@
       return buildTensorObject(tf.pow(baseTensor, expTensor));
     }
 
+    /**
+     * Computes `a` raised to `b`, element-wise, but throws an exception
+     * if they are not the same shape.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     * @returns {PyretTensor} The result
+     */
     function exptStrict(a, b) {
       arity(2, arguments, "strict-tensor-modulo", false);
       assertBrand(brandTensor, a, "Tensor");
@@ -1070,6 +1244,87 @@
     }
 
     /**
+     * Operations (Slicing and Joining)
+     */
+
+    // List<Tensor> Option<Number> -> Tensor
+    function concatenate(tensors, axis) {
+      arity(2, arguments, "concatenate", false);
+      runtime.checkList(tensors);
+      var ts = runtime.ffi.toArray(tensors).map((x) => {
+        checkTensor(x);
+        return x.$underlyingTensor;
+      });
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.concat(ts, a));
+    }
+
+    // Tensor Tensor Option<Number> -> Tensor
+    function gather(tensor, indices, axis) {
+      arity(3, arguments, "gather", false);
+      checkTensor(x);
+      checkTensor(indices);
+      var t = tensor.$underlyingTensor;
+      var i = tensor.$underlyingTensor;
+      if (i.shape.length !== 1) {
+        runtime.ffi.throwMessageException("The `indices` argument to `gather` " +
+          "must be a one-dimensional Tensor");
+      }
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.gather(t, i, a));
+    }
+
+    // Tensor Option<List<Number>> -> Tensor
+    function reverse(tensor, axes) {
+      arity(2, arguments, "reverse", false);
+      checkTensor(x);
+      var t = tensor.$underlyingTensor;
+      var a = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
+        some: (v) => {
+          runtime.checkList(axes);
+          return runtime.ffi.toArray(axes).map((x) => { return runtime.num_to_fixnum(x); });
+        },
+        none: () => { return undefined; }
+      });
+      return buildTensorObject(tf.reverse(t, a));
+    }
+
+    function slice() {
+
+    }
+
+    function split() {
+
+    }
+
+    function stack() {
+
+    }
+
+    function tile() {
+
+    }
+
+    function unstack() {
+
+    }
+
+    // PyretTensor List<Number> List<Number> List<Number> -> PyretTensor
+    function stridedSlice(tensor, begin, end, strides) {
+      arity(4, arguments, "strided-slice", false);
+      checkTensor(tensor);
+      runtime.checkList(begin);
+      runtime.checkList(end);
+      runtime.checkList(strides);
+      var t = tensor.$underlyingTensor;
+      var b = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
+      var e = runtime.ffi.toArray(end).map((x) => { return runtime.num_to_fixnum(x); });
+      var s = runtime.ffi.toArray(strides).map((x) => { return runtime.num_to_fixnum(x); });
+      var result = tf.stridedSlice(t, b, e, s);
+      return buildTensorObject(result);
+    }
+
+    /**
      * Models (Generic)
      */
 
@@ -1207,13 +1462,75 @@
     }
 
     /**
+     * Models (SymbolicTensors)
+     */
+
+    function buildSymbolicTensorObject(underlyingSymbolic) {
+      var obj = O({
+        "shape": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "shape");
+          var optionValues = self.$underlyingSymbolic.shape.map((x) => {
+            if (x) {
+              return runtime.ffi.makeSome(x);
+            }
+            else {
+              return runtime.ffi.makeNone();
+            }
+          });
+          return runtime.ffi.makeList(optionValues);
+        }),
+      });
+      obj = applyBrand(brandSymbolicTensor, obj);
+      obj.$underlyingSymbolic = underlyingSymbolic;
+      return obj;
+    }
+
+    /**
+     * Used to instantiate an input to a PyretModel as a PyretSymbolicTensor.
+     * @param {List<Option<Number>>} shape A shape, not including the batch size
+     * @returns {PyretSymbolicTensor} The result
+     */
+    function makeInput(shape) {
+      arity(1, arguments, "make-input", false);
+      runtime.checkList(shape);
+      var array = runtime.ffi.toArray(shape);
+      var s = array.map((x) => {
+        var num = unwrapFixnumOption(x);
+        if (num === undefined) {
+          num = null;
+        }
+        return num;
+      });
+      var input = tf.input({ shape: s });
+      return buildSymbolicTensorObject(input);
+    }
+
+    /**
+     * Used to instantiate an input to a PyretModel as a PyretSymbolicTensor.
+     * @param {List<Option<Number>>} batchShape A shape tuple that includes the
+     *  batch size
+     * @returns {PyretSymbolicTensor} The result
+     */
+    function makeBatchInput(batchShape) {
+      arity(1, arguments, "make-batch-input", false);
+      runtime.checkList(shape);
+      var array = runtime.ffi.toArray(shape);
+      var s = array.map((x) => {
+        var num = unwrapFixnumOption(x);
+        if (num === undefined) {
+          num = null;
+        }
+        return num;
+      });
+      var input = tf.input({ batchShape: s });
+      return buildSymbolicTensorObject(input);
+    }
+
+    /**
      * Dense Layer
      */
 
     // Brand Checks
-
-    var brandLayer = runtime.namedBrander("dense-layer", ["dense-layer: dense-layer brander"]);
-    var annLayer = runtime.makeBranderAnn(brandLayer, "Layer");
 
     function isLayer(obj) {
       arity(1, arguments, "is-layer", false);
@@ -1224,7 +1541,30 @@
 
     function buildLayerObject(underlyingLayer) {
       var obj = O({
-        // "apply":,
+        "apply-tensors": runtime.makeMethod1(function(self, tensors) {
+          checkMethodArity(2, arguments, "apply-tensors");
+          runtime.checkList(tensors);
+          var inputs = runtime.ffi.toArray(tensors).map((x) => {
+            checkTensor(x);
+            return x.$underlyingTensor;
+          });
+          var outputs = self.$underlyingLayer.apply(inputs).map((x) => {
+            buildTensorObject(x);
+          });
+          return runtime.ffi.makeList(outputs);
+        }),
+        "apply-symbolic-tensors": runtime.makeMethod1(function(self, symbolics) {
+          checkMethodArity(2, arguments, "apply-symbolic-tensors");
+          runtime.checkList(symbolics);
+          var inputs = runtime.ffi.toArray(symbolics).map((x) => {
+            checkTensor(x);
+            return x.$underlyingSymbolic;
+          });
+          var outputs = self.$underlyingLayer.apply(inputs).map((x) => {
+            return buildTensorObject(x);
+          });
+          return runtime.ffi.makeList(outputs);
+        })
       });
       obj = applyBrand(brandLayer, obj);
       obj.$underlyingLayer = underlyingLayer;
@@ -1434,14 +1774,67 @@
       return buildLayerObject(tf.layers.maxPooling2d(c));
     }
 
+    function makeGruLayer(config) {
+      arity(1, arguments, "gru-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.gru(c));
+    }
+
+    function makeGruCellLayer(config) {
+      arity(1, arguments, "gru-cell-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.gruCell(c));
+    }
+
+    function makeLstmLayer(config) {
+      arity(1, arguments, "lstm-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.lstm(c));
+    }
+
+    function makeLstmCellLayer(config) {
+      arity(1, arguments, "lstm-cell-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.lstmCell(c));
+    }
+
+    function makeRNNLayer(config) {
+      arity(1, arguments, "rnn-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.rnn(c));
+    }
+
+    function makeSimpleRNNLayer(config) {
+      arity(1, arguments, "simple-rnn-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.simpleRNN(c));
+    }
+
+    function makeSimpleRNNCellLayer(config) {
+      arity(1, arguments, "simple-rnn-cell-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.simpleRNNCell(c));
+    }
+
+    function makeStackedRNNCellsLayer(config) {
+      arity(1, arguments, "stacked-rnn-cells-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.stackedRNNCells(c));
+    }
+
     /**
      * Training (Optimizers)
      */
 
     // Brand Checks
-
-    var brandOptimizer = runtime.namedBrander("optimizer", ["optimizer: optimizer brander"]);
-    var annOptimizer = runtime.makeBranderAnn(brandOptimizer, "Optimizer");
 
     function isOptimizer(obj) {
       arity(1, arguments, "is-optimizer", false);
@@ -1547,11 +1940,34 @@
       return buildOptimizerObject(tf.train.rmsprop(rate, d, m, e, c));
     }
 
+
+
+
+    function grabTextFromURL(url) {
+      arity(1, arguments, "grab-text-from-url", false);
+      runtime.checkString(url);
+
+      var request = new XMLHttpRequest();
+      request.open('GET', url, false);  // `false` makes the request synchronous
+      request.setRequestHeader("Accept", "text/plain,text/html,application/xhtml+xml,application/xml");
+      request.send("");
+
+      if (request.status === 200) {
+        return runtime.makeString(request.responseText);
+      }
+      else {
+        return runtime.makeString("");
+      }
+    }
+
     var values = {
+      "grab-text-from-url": F(grabTextFromURL, "grab-text-from-url"),
+
       // Tensors
       "is-tensor": F(isTensor, "is-tensor"),
       "list-to-tensor": F(listToTensor, "list-to-tensor"),
       "make-scalar": F(makeScalar, "make-scalar"),
+      "fill": F(fill, "fill"),
       "tensor": O({
         make: F(createTensorFromArray, "tensor:make"),
         make0: F(createTensor0, "tensor:make0"),
@@ -1561,9 +1977,14 @@
         make4: F(createTensor4, "tensor:make4"),
         make5: F(createTensor5, "tensor:make5")
       }),
+      "multinomial": F(multinomial, "multinomial"),
       "random-normal": F(randomNormal, "random-normal"),
       "random-uniform": F(randomUniform, "random-uniform"),
       "make-variable": F(makeVariable, "make-variable"),
+
+      // TensorBuffers
+      "is-tensor-buffer": F(isTensorBuffer, "is-tensor-buffer"),
+      "make-buffer": F(makeBuffer, "make-buffer"),
 
       // Operations (Arithmetic)
       "add-tensors": F(addTensors, "add-tensors"),
@@ -1639,6 +2060,17 @@
       "reduce-min": F(min, "reduce-min"),
       "reduce-sum": F(sum, "reduce-sum"),
 
+      // Operations (Slicing and Joining)
+      "concatenate": F(concatenate, "concatenate"),
+      "gather": F(gather, "gather"),
+      "reverse": F(reverse, "reverse"),
+      "slice": F(slice, "slice"),
+      "split": F(split, "split"),
+      "stack": F(stack, "stack"),
+      "tile": F(tile, "tile"),
+      "unstack": F(unstack, "unstack"),
+      "strided-slice": F(stridedSlice, "strided-slice"),
+
       // Models (Generic)
       "is-model": F(isModel, "is-model"),
       "make-model": F(makeModel, "make-model"),
@@ -1646,6 +2078,10 @@
       // Models (Sequential)
       "is-sequential": F(isSequential, "is-sequential"),
       "make-sequential": F(makeSequential, "make-sequential"),
+
+      // Models (Inputs / SymbolicTensors)
+      "make-input": F(makeInput, "make-input"),
+      "make-batch-input": F(makeBatchInput, "make-batch-input"),
 
       // Layers
       "is-layer": F(isLayer, "is-layer"),
@@ -1678,6 +2114,14 @@
       "global-max-pooling-2d-layer": F(makeGlobalMaxPooling2dLayer, "global-max-pooling-2d-layer"),
       "max-pooling-1d-layer": F(makeMaxPooling1dLayer, "max-pooling-1d-layer"),
       "max-pooling-2d-layer": F(makeMaxPooling2dLayer, "max-pooling-2d-layer"),
+      "gru-layer": F(makeGruLayer, "gru-layer"),
+      "gru-cell-layer": F(makeGruCellLayer, "gru-cell-layer"),
+      "lstm-layer": F(makeLstmLayer, "lstm-layer"),
+      "lstm-cell-layer": F(makeLstmCellLayer, "lstm-cell-layer"),
+      "rnn-layer": F(makeRNNLayer, "rnn-layer"),
+      "simple-rnn-layer": F(makeSimpleRNNLayer, "simple-rnn-layer"),
+      "simple-rnn-cell-layer": F(makeSimpleRNNCellLayer, "simple-rnn-cell-layer"),
+      "stacked-rnn-cells-layer": F(makeStackedRNNCellsLayer, "stacked-rnn-cells-layer"),
 
       // Training (Optimizers)
       "is-optimizer": F(isOptimizer, "is-optimizer"),
@@ -1697,7 +2141,12 @@
       Optimizer: annOptimizer,
     };
     var internal = {
-      checkTensor: checkTensor
+      checkTensor: checkTensor,
+      checkSequential: checkSequential,
+      checkModel: checkModel,
+      checkSymbolicTensor: checkSymbolicTensor,
+      checkLayer: checkLayer,
+      checkOptimizer: checkOptimizer
     };
     return runtime.makeModuleReturn(values, types, internal);
   }
