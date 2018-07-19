@@ -114,9 +114,6 @@
           if (args.length === 0) {
             return RUNTIME.getField(ast, con);
           } else {
-            if (con == 'block') {
-              qqq
-            }
             return RUNTIME.getField(ast, con).app.apply(this, args);
           }
         },
