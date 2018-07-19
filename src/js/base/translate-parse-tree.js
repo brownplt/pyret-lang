@@ -1,7 +1,7 @@
 define("pyret-base/js/translate-parse-tree", [], function() {
   
   function translate(ast, fileName, constructors) {
-    let makeNode             = constructors.makeASTNode;
+    let makeNode             = constructors.makeNode;
     let opLookup             = constructors.opLookup;
     let makeLink             = constructors.makeLink;
     let makeEmpty            = constructors.makeEmpty;

@@ -109,7 +109,7 @@
 
     function translate(node, fileName) {
       let constructors = {
-        "makeASTNode": function(con) {
+        "makeNode": function(con) {
           let args = Array.prototype.slice.call(arguments, 1);
           if (args.length === 0) {
             return RUNTIME.getField(ast, con);
