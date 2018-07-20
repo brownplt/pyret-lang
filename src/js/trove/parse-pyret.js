@@ -142,8 +142,8 @@
         "getRecordFields": function(record) {
           return RUNTIME.getField(record, 'fields');
         },
-        "makePyretPos": makePyretPos,
-        "combinePyretPos": combinePyretPos,
+        "makeSrcloc": makePyretPos,
+        "combineSrcloc": combinePyretPos,
         "detectAndComplainAboutOperatorWhitespace": detectAndComplainAboutOperatorWhitespace
       };
       return translator.translate(node, fileName, constructors);

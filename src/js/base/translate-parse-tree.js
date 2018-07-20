@@ -1,7 +1,10 @@
 define("pyret-base/js/translate-parse-tree", [], function() {
   
   function translate(ast, fileName, constructors) {
+    // makeNode will be called on the node name, followed by the node args
     let makeNode             = constructors.makeNode;
+    // opLookup should be a dictionary that
+    // maps bin-ops to strings and check-ops to (srcloc -> ast) functions.
     let opLookup             = constructors.opLookup;
     let makeLink             = constructors.makeLink;
     let makeEmpty            = constructors.makeEmpty;
@@ -11,8 +14,11 @@ define("pyret-base/js/translate-parse-tree", [], function() {
     let makeNone             = constructors.makeNone; // RT.ffi.makeNone
     let makeSome             = constructors.makeSome; // RT.ffi.makeSome
     let getRecordFields      = constructors.getRecordFields; // getField(rec, 'fields')
-    let makePyretPos         = constructors.makePyretPos;
-    let combinePyretPos      = constructors.combinePyretPos;
+    // makeSrcloc: fileName, pos -> srcloc
+    let makeSrcloc         = constructors.makeSrcloc;
+    // combineSrcloc: fileName, pos, pos -> srcloc   -- beg of first to end of second
+    let combineSrcloc      = constructors.combineSrcloc;
+    // To improve error messages in an edge case. See parse-pyret.arr.
     let detectAndComplainAboutOperatorWhitespace
       = constructors.detectAndComplainAboutOperatorWhitespace;
 
@@ -29,8 +35,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         throw new Error("Cannot find " + node.name + " in translators");
       return translators[node.name](node);
     }
-    var pos = function(p) { return makePyretPos(fileName, p); };
-    var pos2 = function(p1, p2) { return combinePyretPos(fileName, p1, p2); };
+    var pos = function(p) { return makeSrcloc(fileName, p); };
+    var pos2 = function(p1, p2) { return combineSrcloc(fileName, p1, p2); };
     function makeListTr(arr, start, end, onto, f) {
       var ret = onto || makeEmpty();
       start = start || 0;
@@ -461,7 +467,7 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           return [makeNone(), makeNone()];
         } else {
           // (where-clause WHERE block)
-          return [makeSome(makePyretPos(fileName, node.kids[0].pos)),
+          return [makeSome(makeSrcloc(fileName, node.kids[0].pos)),
                   makeSome(tr(node.kids[1]))];
         }
       },
@@ -1187,7 +1193,7 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         var extensions = tr(node.kids[node.kids.length - 2]);
         return makeNode('s-table-extend', pos(node.pos),
                     makeNode('s-column-binds', 
-                         combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                         combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
                          makeList(columns),
                          table),
                     extensions);
@@ -1200,7 +1206,7 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         var extensions = tr(node.kids[node.kids.length - 2]);
         return makeNode('s-table-update', pos(node.pos),
                     makeNode('s-column-binds', 
-                         combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                         combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
                          makeList(columns),
                          table),
                     extensions);
@@ -1239,7 +1245,7 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         var predicate = tr(node.kids[node.kids.length - 2]);
         return makeNode('s-table-filter', pos(node.pos),
                     makeNode('s-column-binds', 
-                         combinePyretPos(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                         combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
                          makeList(columns),
                          table),
                     predicate);
