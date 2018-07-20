@@ -12,6 +12,7 @@ import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL
 import file("flatness.arr") as FL
 import file("js-ast.arr") as J
+import file("direct-codegen.arr") as D
 
 cl-empty = CL.concat-empty
 cl-cons = CL.concat-cons
@@ -40,10 +41,13 @@ data CompiledCodePrinter:
       self.to-j-expr(self.dict).tosource()
     end,
     method pyret-to-js-runnable(self) -> String:
-      self.to-j-expr(self.dict).to-ugly-source()
+      self.dict.get-value("theModule").to-ugly-source()
     end,
     method print-js-runnable(self, printer):
-      self.to-j-expr(self.dict).print-ugly-source(printer)
+      self.dict.get-value("theModule").print-ugly-source(printer)
+    end,
+    method print-js-module(self, printer):
+      self.dict.get-value("theModule").print-ugly-source(printer)
     end
   | ccp(compiled :: J.JExpr) with:
     method pyret-to-js-pretty(self) -> PP.PPrintDoc:
@@ -65,6 +69,20 @@ data CompiledCodePrinter:
     method print-js-runnable(self, printer):
       printer(self.compiled)
     end
+  | ccp-two-files(static-path :: String, code-path :: String) with:
+    method pyret-to-js-pretty(self, width) -> String:
+      raise("Cannot generate pretty JS from code string")
+    end,
+    method print-js-static(self, printer):
+      printer(F.file-to-string(self.static-path))
+    end,
+    method print-js-runnable(self, printer):
+      printer(F.file-to-string(self.code-path))
+    end,
+    method pyret-to-js-runnable(self) -> String:
+      F.file-to-string(self.code-path)
+    end,
+
   | ccp-file(path :: String) with:
     method pyret-to-js-pretty(self, width) -> String:
       raise("Cannot generate pretty JS from code string")
@@ -77,26 +95,17 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, type-bindings, provides, options)
+fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, type-bindings, datatypes, provides, options)
   -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  anfed = add-phase("ANFed", N.anf-program(program-ast))
-  flatness-env = add-phase("Build flatness env", FL.make-prog-flatness-env(anfed, bindings, type-bindings, env))
-  flat-provides = add-phase("Get flat-provides", FL.get-flat-provides(provides, flatness-env, anfed))
-  compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, options))
-  {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
+  make-compiled-pyret(program-ast, env, bindings, type-bindings, datatypes, provides, options)
 end
 
 fun println(s) block:
   print(s + "\n")
 end
 
-fun make-compiled-pyret(program-ast, env, bindings, type-bindings, provides, options) -> { C.Provides; CompiledCodePrinter} block:
-#  each(println, program-ast.tosource().pretty(80))
-  anfed = N.anf-program(program-ast)
-  #each(println, anfed.tosource().pretty(80))
-  flatness-env = FL.make-prog-flatness-env(anfed, bindings, type-bindings, env)
-  flat-provides = FL.get-flat-provides(provides, flatness-env, anfed)
-  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
-  {flat-provides; ccp-dict(compiled)}
+fun make-compiled-pyret(program-ast, env, bindings, type-bindings, datatypes, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
+  {provides; 
+    C.ok(ccp-dict(D.compile-program(program-ast, env, datatypes, provides, options)))}
 end
 

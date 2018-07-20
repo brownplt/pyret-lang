@@ -2,7 +2,7 @@ provide *
 provide-types *
 
 import string-dict as SD
-import ast as A
+import file("ast.arr") as A
 import lists as LISTS
 import valueskeleton as VS
 import equality as E

@@ -2,8 +2,8 @@
 
 provide *
 provide-types *
-import ast as A
-import parse-pyret as PP
+import file("ast.arr") as A
+import js-file("parse-pyret") as PP
 import string-dict as SD
 import srcloc as S
 import lists as L

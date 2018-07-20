@@ -2,8 +2,8 @@ provide *
 provide-types *
 
 import either as E
-import parse-pyret as P
-import ast as A
+import js-file("parse-pyret") as P
+import file("ast.arr") as A
 import load-lib as L
 import render-error-display as RED
 import runtime-lib as R
@@ -110,6 +110,12 @@ module-as-string = CS.module-as-string
 
 type Provides = CS.Provides
 
+data CompileTODO:
+  | already-done( result :: CS.CompileResult )
+  | arr-js-file( provides, header-file :: String, code-file :: String )
+  | arr-file( mod, libs, options )
+end
+
 type Locator = {
 
   # In milliseconds-since-epoch format
@@ -145,7 +151,7 @@ type Locator = {
   set-compiled :: (Loadable, SD.StringDict<Provides> -> Nothing),
 
   # Pre-compile if needs-compile is false
-  get-compiled :: ( -> Option<CS.CompileResult>),
+  get-compiled :: ( -> CompileTODO ),
 
   # _equals should compare uris for locators
   _equals :: Method
@@ -161,7 +167,7 @@ fun string-locator(uri :: URI, s :: String):
     method get-module(self): pyret-string(s) end,
     method get-native-modules(self): [list:] end,
     method get-dependencies(self): get-standard-dependencies(pyret-string(s), uri) end,
-    method get-extra-imports(self): CS.standard-imports end,
+    method get-extra-imports(self): CS.minimal-imports end,
     method get-globals(self): CS.standard-globals end,
     method uri(self): uri end,
     method name(self): uri end,
@@ -201,7 +207,7 @@ end
 
 fun get-standard-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   mod-deps = get-dependencies(p, uri)
-  mod-deps + CS.standard-imports.imports.map(_.dependency)
+  mod-deps + CS.minimal-imports.imports.map(_.dependency)
 end
 
 fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
@@ -313,18 +319,17 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
   env = CS.compile-env(locator.get-globals(), modules, provide-map)
-  cases(Option<Loadable>) locator.get-compiled() block:
-    | some(loadable) =>
+  cases(CompileTODO) locator.get-compiled(options) block:
+    | already-done(loadable) =>
       #print("Module is already compiled\n")
       cases(Loadable) loadable:
         | module-as-string(pvds, ce-unused, m) =>
           {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m); empty}
       end
-    | none =>
+    | arr-js-file(provides, header-file, code-file) =>
+      {module-as-string(provides, CS.no-builtins, CS.ok(JSP.ccp-two-files(header-file, code-file))); empty}
+    | arr-file(mod, libs, shadow options)  =>
       #print("Module is being freshly compiled\n")
-      shadow options = locator.get-options(options)
-      libs = locator.get-extra-imports()
-      mod = locator.get-module()
       var ast = cases(PyretCode) mod:
         | pyret-string(module-string) =>
           P.surface-parse(module-string, locator.uri())
@@ -342,7 +347,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
         end
         value
       end
-      var ast-ended = AU.append-nothing-if-necessary(ast)
+      var ast-ended = ast #AU.append-nothing-if-necessary(ast)
       ast := nothing
       add-phase("Added nothing", ast-ended)
       ast-ended := AU.wrap-toplevels(ast-ended)
@@ -358,7 +363,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
         | ok(_) =>
           var wf-ast = wf.code
           wf := nothing
-          var checked = checker(wf-ast)
+          var checked = wf-ast
+          # NOTE(joe, anchor): no desugaring of check blocks
+          # checker(wf-ast)
           wf-ast := nothing
           add-phase(if not(options.checks == "none"): "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
@@ -381,21 +388,26 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             add-phase("Resolved names", named-result)
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
-            var desugared = D.desugar(named-result.ast)
-            named-result.bindings.merge-now(desugared.new-binds)
+            var desugared = named-result.ast
+            
+            # NOTE(joe, anchor): removed this to see what un-desugared output looks like
+            # and changed desugared.ast to desugared below
+            # var desugared = D.desugar(named-result.ast)
+            # named-result.bindings.merge-now(desugared.new-binds)
+
             # ...in order to be checked for bad assignments here
-            any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
-            add-phase("Fully desugared", desugared.ast)
+            any-errors := RS.check-unbound-ids-bad-assignments(desugared, named-result, env)
+            add-phase("Fully desugared", desugared)
             var type-checked =
               if options.type-check:
-                type-checked = T.type-check(desugared.ast, env, modules)
+                type-checked = T.type-check(desugared, env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)
                 else:
                   type-checked
                 end
-              else: CS.ok(desugared.ast)
+              else: CS.ok(desugared)
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
@@ -417,7 +429,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                 end
                 add-phase("Cleaned AST", cleaned)
                 {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, named-result.datatypes, provides, options)
                 else:
                   if options.collect-all and options.ignore-unbound:
                     JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)

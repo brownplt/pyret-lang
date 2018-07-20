@@ -1,0 +1,30 @@
+{
+  "requires": [ ],
+  "provides": {
+    "shorthands": {
+      "tva":      ["tid", "a"]
+    },
+    "values": {
+      "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
+      "nothing": "Nothing"
+    },
+    "aliases": {
+    },
+    "datatypes": {
+      "Number": ["data", "Number", [], [], {
+        "_plus": ["arrow", ["Number"], "Number"],
+        "_times": ["arrow", ["Number"], "Number"],
+        "_divide": ["arrow", ["Number"], "Number"],
+        "_minus": ["arrow", ["Number"], "Number"],
+        "_lessthan": ["arrow", ["Number"], "Boolean"],
+        "_lessequal": ["arrow", ["Number"], "Boolean"],
+        "_greaterthan": ["arrow", ["Number"], "Boolean"],
+        "_greaterequal": ["arrow", ["Number"], "Boolean"]
+      }],
+      "String": ["data", "String", [], [], {}],
+      "Boolean": ["data", "Boolean", [], [], {}],
+      "Nothing": ["data", "Nothing", [], [], {}]
+    }
+  }
+}
+

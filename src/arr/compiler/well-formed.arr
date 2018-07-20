@@ -3,7 +3,7 @@ provide {
 } end
 provide-types *
 
-import ast as A
+import file("ast.arr") as A
 import srcloc as SL
 import error-display as ED
 import file("compile-structs.arr") as C

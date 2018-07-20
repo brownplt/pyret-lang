@@ -2,7 +2,7 @@
 
 provide *
 provide-types *
-import ast as A
+import file("ast.arr") as A
 import pprint as PP
 import srcloc as SL
 import string-dict as SD

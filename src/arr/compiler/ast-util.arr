@@ -3,8 +3,8 @@
 provide *
 provide-types *
 import srcloc as SL
-import ast as A
-import parse-pyret as PP
+import file("ast.arr") as A
+import js-file("parse-pyret") as PP
 import file("compile-structs.arr") as CS
 import file("ast-anf.arr") as N
 import file("type-structs.arr") as T
@@ -35,7 +35,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
+fun checkers(l): A.s-prim-app(l, "current-checker", [list: ], A.prim-app-info-c( false )) end
 
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
@@ -62,8 +62,7 @@ end
 fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   l = exp.l
   if ok-last(exp) and not(A.is-s-spy-block(exp)):
-    A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
-      [list: A.s-srcloc(l, l), exp])
+    A.s-prim-app(l, "trace-value", [list: A.s-srcloc(l, l), exp], A.prim-app-info-c( true ))
   else: exp
   end
 end

@@ -10,7 +10,7 @@ import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
-import file("server.arr") as S
+# import file("server.arr") as S
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
@@ -177,7 +177,7 @@ fun main(args :: List<String>) -> Number block:
               success-code
             else if r.has-key("serve"):
               port = r.get-value("port")
-              S.serve(port, this-pyret-dir)
+              # S.serve(port, this-pyret-dir)
               success-code
             else if r.has-key("build-standalone"):
               print-error("Use build-runnable instead of build-standalone\n")

@@ -3,7 +3,7 @@ provide-types *
 
 import type-logger as LOG
 
-import ast as A
+import file("ast.arr") as A
 import string-dict as SD
 import valueskeleton as VS
 import lists as LISTS

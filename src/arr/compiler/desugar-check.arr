@@ -2,7 +2,7 @@
 
 provide *
 provide-types *
-import ast as A
+import file("ast.arr") as A
 import srcloc as SL
 import lists as L
 import file("gensym.arr") as G

@@ -1,7 +1,7 @@
 #lang pyret
 
 provide *
-import ast as A
+import file("ast.arr") as A
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J
 import file("gensym.arr") as G

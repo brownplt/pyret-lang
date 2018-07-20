@@ -1,7 +1,7 @@
 provide *
 provide-types *
 
-import ast as A
+import file("ast.arr") as A
 import string-dict as SD
 
 import file("ast-anf.arr") as AA

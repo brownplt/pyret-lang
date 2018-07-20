@@ -1,10 +1,10 @@
 
 provide *
-import ast as A
+import file("ast.arr") as A
 import base as _
 import either as E
 import load-lib as L
-import parse-pyret as P
+import js-file("parse-pyret") as P
 import string-dict as SD
 import runtime-lib as R
 import sets as S
@@ -279,7 +279,7 @@ fun make-repl<a>(
       method uri(self): uri end,
       method name(self): "interactions" + num-to-string(this-interaction) end,
       method set-compiled(self, env, result): nothing end,
-      method get-compiled(self): none end,
+      method get-compiled(self, options): none end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -311,7 +311,7 @@ fun make-repl<a>(
       method uri(self): "definitions://" end,
       method name(self): "definitions" end,
       method set-compiled(self, env, result): nothing end,
-      method get-compiled(self): none end,
+      method get-compiled(self, options): none end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end

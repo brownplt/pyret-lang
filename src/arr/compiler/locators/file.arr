@@ -1,7 +1,7 @@
 provide *
 
 import builtin-modules as B
-import parse-pyret as PP
+import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CS
 import file("../js-of-pyret.arr") as JSP
@@ -44,7 +44,7 @@ fun mockable-file-locator(file-ops):
         [list:]
       end,
       method get-extra-imports(self):
-        CS.standard-imports
+        CS.minimal-imports
       end,
       method get-globals(self): self.globals end,
       method set-compiled(self, cr, deps) block:
@@ -54,8 +54,8 @@ fun mockable-file-locator(file-ops):
       method needs-compile(self, provides):
         true
       end,
-      method get-compiled(self):
-        none
+      method get-compiled(self, options):
+        CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options))
       end,
       method uri(self): "file://" + string-replace(file-ops.real-path(self.path), P.path-sep, "/") end,
       method name(self): P.basename(self.path, "") end,

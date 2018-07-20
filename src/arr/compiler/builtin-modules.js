@@ -9,33 +9,13 @@
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {
     var F = RUNTIME.makeFunction;
 
-    function builtinLocatorFromString(content) {
-      var noModuleContent = {};
-      var moduleContent = noModuleContent;
-
-      function getData(moduleString) {
-        if(moduleContent === noModuleContent) {
-          var setAns = function(answer) {
-            moduleContent = answer;
-          }
-          try {
-            loader.safeEval("define(" + moduleString + ")", {define: setAns});
-            return moduleContent;
-          }
-          catch(e) {
-            console.error("Content was: ", content);
-            throw e;
-          }
-        }
-        else {
-          return moduleContent;
-        }
-      }
+    function builtinLocatorFromString(codeContent, headerContent) {
+      var staticInfo = JSON.parse(headerContent);
 
       return RUNTIME.makeObject({
           "get-raw-dependencies":
             F(function() {
-              var m = getData(content);
+              var m = staticInfo;
               if(m.requires) {
                 return m.requires.map(function(m) {
                   // NOTE(joe): This allows us to use builtin imports
@@ -52,7 +32,7 @@
             }, "get-raw-dependencies"),
           "get-raw-native-modules":
             F(function() {
-              var m = getData(content);
+              var m = staticInfo;
               if(Array.isArray(m.nativeRequires)) {
                 return m.nativeRequires.map(RUNTIME.makeString);
               } else {
@@ -61,7 +41,7 @@
             }, "get-raw-native-modules"),
           "get-raw-datatype-provides":
             F(function() {
-              var m = getData(content);
+              var m = staticInfo;
               if(m.provides && m.provides.datatypes) {
                 /*
                 if(Array.isArray(m.provides.datatypes)) {
@@ -87,7 +67,7 @@
             }, "get-raw-datatype-provides"),
           "get-raw-alias-provides":
             F(function() {
-              var m = getData(content);
+              var m = staticInfo;
               if(m.provides) {
                 if(Array.isArray(m.provides.types)) {
                   return m.provides.types;
@@ -109,7 +89,7 @@
             }, "get-raw-alias-provides"),
           "get-raw-value-provides":
             F(function() {
-              var m = getData(content);
+              var m = staticInfo;
               if(m.provides) {
                 if(Array.isArray(m.provides.values)) {
                   return m.provides.values;
@@ -129,11 +109,7 @@
                 }
               }
               return [];
-            }, "get-raw-value-provides"),
-          "get-raw-compiled":
-            F(function() {
-              return content;
-            }, "get-raw-compiled")
+            }, "get-raw-value-provides")
         });
     }
 
@@ -142,8 +118,9 @@
         console.error("Got undefined name in builtin locator");
         console.trace();
       }
-      var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
-      return builtinLocatorFromString(content);
+      var codeContent = String(fs.readFileSync(fs.realpathSync(path + ".arr.js")));
+      var headerContent = String(fs.readFileSync(fs.realpathSync(path + ".arr.json")));
+      return builtinLocatorFromString(codeContent, headerContent);
     }
     var O = RUNTIME.makeObject;
     return O({

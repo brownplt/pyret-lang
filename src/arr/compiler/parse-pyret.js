@@ -1,7 +1,7 @@
 ({
   requires: [
     { "import-type": "builtin", name: "srcloc" },
-    { "import-type": "builtin", name: "ast" },
+    { "import-type": "dependency", protocol: "file", args: ["./ast.arr"] },
     { "import-type": "builtin", name: "lists" }
   ],
   nativeRequires: [

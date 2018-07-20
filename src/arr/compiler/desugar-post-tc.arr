@@ -2,7 +2,7 @@
 
 provide *
 provide-types *
-import ast as A
+import file("ast.arr") as A
 import file("desugar.arr") as D
 import file("compile-structs.arr") as C
 

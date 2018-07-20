@@ -5,7 +5,7 @@ import make-standalone as MS
 import load-lib as L
 import either as E
 import json as JSON
-import ast as A
+import file("ast.arr") as A
 import pathlib as P
 import sha as crypto
 import string-dict as SD
@@ -22,6 +22,7 @@ import file("locators/file.arr") as FL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
+import js-file("dependency-tree") as DT
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -134,7 +135,7 @@ fun get-cached(basedir, uri, name, cache-type):
       raise("Should never fetch source for builtin module " + static-path)
     end,
     method get-extra-imports(self):
-      CS.standard-imports
+      CS.minimal-imports
     end,
     method get-dependencies(_):
       deps = raw.get-raw-dependencies()
@@ -152,15 +153,14 @@ fun get-cached(basedir, uri, name, cache-type):
     method name(_): name end,
 
     method set-compiled(_, _, _): nothing end,
-    method get-compiled(self):
+    method get-compiled(self, options):
       provs = CS.provides-from-raw-provides(self.uri(), {
           uri: self.uri(),
           values: raw-array-to-list(raw.get-raw-value-provides()),
           aliases: raw-array-to-list(raw.get-raw-alias-provides()),
           datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
         })
-      some(CL.module-as-string(provs, CS.no-builtins,
-          CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
+      CL.arr-js-file(provs, F.real-path(module-path + ".arr.json"), F.real-path(module-path + ".arr.js"))
     end,
 
     method _equals(self, other, req-eq):
@@ -238,42 +238,86 @@ fun get-loadable(basedir, read-only-basedirs, l) -> Option<Loadable>:
   end
 end
 
-fun set-loadable(basedir, locator, loadable) -> String block:
-  doc: "Returns the module path of the cached file"
-  when not(FS.exists(basedir)):
-    FS.create-dir(basedir)
+fun maybe-mkdir(path):
+  when not(FS.exists(path)): FS.create-dir(path) end
+end
+
+fun mkdirp(path) block:
+  components = string-split-all(path, P.path-sep)
+  for fold(p from "/", c from components) block:
+    new-p = P.join(p, c)
+    maybe-mkdir(new-p)
+    new-p
   end
+end
+
+fun setup-compiled-dirs( options ) block:
+  base-dir = P.resolve( options.base-dir )
+  compiled-dir = P.resolve( options.compiled-cache )
+  project-dir  = P.join( compiled-dir, "project" )
+  builtin-dir  = P.join( compiled-dir, "builtin" )
+	
+	mkdirp( compiled-dir )
+	mkdirp( project-dir )
+	mkdirp( builtin-dir )
+
+  {base-dir; project-dir; builtin-dir}
+end
+
+fun set-loadable(options, locator, loadable) block:
+  doc: "Returns the module path of the cached file"
+  { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
   locuri = loadable.provides.from-uri
+
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
-      save-static-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-static.js")
-      save-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-module.js")
-      fs = F.output-file(save-static-path, false)
-      fm = F.output-file(save-module-path, false)
 
-      ccp.print-js-runnable(fm.display)
+      uri = locator.uri()
 
-      # NOTE(joe August 2017): This is a little bit dumb. When caching a file,
-      # if we have enough information, split it into -static and -module
-      # pieces.  If we don't have a dictionary of this information, save two
-      # copies of it. We simply don't have enough metadata floating around to
-      # make good decisions at fetch time. The copying is fairly innocuous,
-      # because it only happens for hand-written JS files, which are smaller.
-      # But this is a point to revisit.
+      {save-path; static-ext; code-ext} = ask block:
+        | string-index-of(uri, "builtin://") == 0 then:
+            {P.join(builtin-dir, locator.name()); ".arr.json"; ".js"}
+        | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
+          cutoff = if (string-index-of(uri, "jsfile://") == 0): 9 else: 7 end
 
-      if JSP.is-ccp-dict(ccp):
-        ccp.print-js-static(fs.display)
-      else:
-        ccp.print-js-runnable(fs.display)
+          full-path = string-substring(uri, cutoff, string-length(uri))
+
+          when string-index-of(full-path, project-base) <> 0:
+            raise("An included file was at " + full-path + " which is outside the current project: " + project-base)
+          end
+
+          relative-to-project = string-substring(full-path, string-length(project-base), string-length(full-path))
+
+          dep-path = P.dirname(P.join(project-dir, relative-to-project))
+          when not( FS.exists( dep-path ) ):
+            FS.create-dir( builtin-dir )
+          end
+
+          print(full-path)
+          print("\n")
+          print(relative-to-project)
+          print("\n")
+
+          {P.join(project-dir, relative-to-project); ".json"; ".js"}
       end
+
+      save-static-path = save-path + static-ext
+      save-code-path = save-path + code-ext
+
+      fs = F.output-file(save-static-path, false)
+      fr = F.output-file(save-code-path, false)
+
+      ccp.print-js-static(fs.display)
+      ccp.print-js-runnable(fr.display)
 
       fs.flush()
       fs.close-file()
-      fm.flush()
-      fm.close-file()
+      fr.flush()
+      fr.close-file()
 
-      save-module-path
-    | err(_) => ""
+      {save-static-path; save-code-path}
+
+    | err(_) => {""; ""}
   end
 end
 
@@ -408,6 +452,56 @@ fun run(path, options, subsequent-command-line-arguments):
   end
 end
 
+fun copy-js-dependency( dep-path, uri, dirs ) block:
+  { base-dir; project-dir; builtin-dir } = dirs
+  save-path = ask block:
+    | string-index-of( uri, "builtin://" ) == 0 then:
+        builtin-dir
+    | (string-index-of( uri, "jsfile://" ) == 0) or ( string-index-of( uri, "file://" ) == 0 ) then:
+        project-dir
+  end
+  
+  cutoff = string-substring( dep-path, string-length( base-dir ), string-length( dep-path ) )
+
+  save-code-path = P.join( save-path, cutoff )
+  mkdirp( P.resolve( P.dirname( save-code-path ) ) )
+
+  fc = F.output-file( save-code-path, false )
+
+  file-content = F.file-to-string( dep-path )
+  fc.display( file-content )
+  
+  fc.flush()
+  fc.close-file()
+
+  save-code-path
+end
+
+fun copy-js-dependencies( wl, options ) block:
+  dirs = setup-compiled-dirs( options )
+  arr-js-modules = for filter( tc from wl ):
+    CL.is-arr-js-file( tc.locator.get-compiled( options ) )
+  end
+
+  paths = SD.make-mutable-string-dict()
+
+  for each( tc from arr-js-modules ):
+    code-path = tc.locator.get-compiled( options ).code-file
+    deps = DT.get-dependencies( code-path )
+    deps-list = raw-array-to-list( deps )
+    
+    for each( dep-path from deps-list ):
+      when P.resolve( code-path ) <> dep-path:
+        paths.set-now( dep-path, tc.locator.uri() )
+      end
+    end
+  end
+
+  for each( dep-path from paths.keys-list-now() ):
+    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs )
+  end
+end
+
 fun build-program(path, options, stats) block:
   doc: ```Returns the program as a JavaScript AST of module list and dependency map,
           and its native dependencies as a list of strings```
@@ -432,8 +526,10 @@ fun build-program(path, options, stats) block:
   }, base-module)
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
+  copy-js-dependencies( wl, options )
   clear-and-print("Loading existing compiled modules...")
   storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
+
   starter-modules = storage.load-modules(wl)
 
   cached-modules = starter-modules.count-now()
@@ -451,7 +547,7 @@ fun build-program(path, options, stats) block:
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + ": " + locator.name())
     end,
-    method on-compile(_, locator, loadable, trace) block:
+    method on-compile(self, locator, loadable, trace) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
@@ -464,15 +560,15 @@ fun build-program(path, options, stats) block:
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
-      module-path = set-loadable(options.compiled-cache, locator, loadable)
+      {static-path; code-path} = set-loadable(self, locator, loadable)
       if (num-compiled == total-modules) and options.collect-all:
         # Don't squash the final JS-AST if we're collecting all of them, so
         # it can be pretty-printed after all
         loadable
       else:
-        cases(CS.Loadable) loadable:
+        cases(CL.Loadable) loadable:
           | module-as-string(prov, env, rp) =>
-            CS.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
+            CL.module-as-string(prov, env, CS.ok(JSP.ccp-two-files(static-path, code-path)))
           | else => loadable
         end
       end
@@ -489,6 +585,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
+      #|
       shadow require-config-path = if not( P.is-absolute( require-config-path ) ):
           P.resolve(P.join(options.base-dir, require-config-path))
         else: require-config-path
@@ -519,6 +616,8 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
         end
       end
       ans
+      |#
+      nothing
   end
 end
 

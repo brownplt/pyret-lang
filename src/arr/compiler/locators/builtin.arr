@@ -1,9 +1,9 @@
 provide *
-import builtin-modules as B
+import js-file("../builtin-modules") as B
 import string-dict as SD
 import file as F
 import pathlib as P
-import parse-pyret as PP
+import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
 import file("../type-structs.arr") as T
@@ -47,10 +47,12 @@ end
 
 fun make-builtin-js-locator(basedir, builtin-name):
   raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
+  source-path = P.join(basedir, builtin-name + ".arr.js")
+  header-path = P.join(basedir, builtin-name + ".arr.json")
   {
     method needs-compile(_, _): false end,
     method get-modified-time(self):
-      F.file-times(P.join(basedir, builtin-name + ".js")).mtime
+      F.file-times(P.join(basedir, builtin-name + ".arr.js")).mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false, type-check: false }
@@ -59,7 +61,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
       raise("Should never fetch source for builtin module " + builtin-name)
     end,
     method get-extra-imports(self):
-      CM.standard-imports
+      CM.minimal-imports
     end,
     method get-dependencies(_):
       deps = raw.get-raw-dependencies()
@@ -77,15 +79,14 @@ fun make-builtin-js-locator(basedir, builtin-name):
     method name(_): builtin-name end,
 
     method set-compiled(_, _, _): nothing end,
-    method get-compiled(self):
+    method get-compiled(self, options):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.no-builtins,
-          CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
+      CL.arr-js-file(provs, header-path, source-path)
     end,
 
     method _equals(self, other, req-eq):
@@ -96,6 +97,7 @@ end
 
 fun make-builtin-arr-locator(basedir, builtin-name):
   path = P.join(basedir, builtin-name + ".arr")
+  
   var ast = nothing
   {
     method get-modified-time(self):
@@ -141,8 +143,9 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         true
       end
     end,
-    method get-compiled(self):
+    method get-compiled(self, options):
       cpath = path + ".js"
+
       if F.file-exists(path) and F.file-exists(cpath):
         # NOTE(joe):
         # Since we're not explicitly acquiring locks on files, there is a race
@@ -184,7 +187,7 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
     end
   end.filter(is-some).map(_.value)
   matching-js-files = for map(p from builtin-js-dirs):
-    full-path = P.join(p, builtin-name + ".js")
+    full-path = P.join(p, builtin-name + ".arr.js")
     if F.file-exists(full-path):
       some(full-path)
     else:

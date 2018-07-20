@@ -5,7 +5,7 @@ provide-types *
 import pprint as PP
 import format as F
 import source-map-lib as SM
-import ast as A
+import file("ast.arr") as A
 import file("concat-lists.arr") as CL
 
 type CList = CL.ConcatList

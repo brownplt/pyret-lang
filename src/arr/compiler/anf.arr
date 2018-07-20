@@ -3,7 +3,7 @@
 provide *
 provide-types *
 
-import ast as A
+import file("ast.arr") as A
 import srcloc as SL
 import file("ast-anf.arr") as N
 

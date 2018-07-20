@@ -2,7 +2,7 @@
 
 provide *
 provide-types *
-import ast as A
+import file("ast.arr") as A
 import sets as S
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J

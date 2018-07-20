@@ -2,9 +2,9 @@
 
 provide *
 provide-types *
-import ast as A
+import file("ast.arr") as A
 import srcloc as S
-import parse-pyret as PP
+import js-file("parse-pyret") as PP
 import string-dict as SD
 import lists as L
 import file("compile-structs.arr") as C
