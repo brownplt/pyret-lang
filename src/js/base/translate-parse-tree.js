@@ -429,18 +429,19 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           // (binop-expr e)
           return tr(node.kids[0]);
         } else {
-          var mkOp = makeNode('s-op').app;
-          var expr = mkOp(pos2(node.kids[0].pos, node.kids[2].pos),
-                          pos(node.kids[1].pos),
-                          tr(node.kids[1]),
-                          tr(node.kids[0]),
-                          tr(node.kids[2]));
+          var expr = makeNode('s-op',
+                              pos2(node.kids[0].pos, node.kids[2].pos),
+                              pos(node.kids[1].pos),
+                              tr(node.kids[1]),
+                              tr(node.kids[0]),
+                              tr(node.kids[2]));
           for(var i = 4; i < node.kids.length; i += 2) {
-            expr = mkOp(pos2(node.kids[0].pos, node.kids[i].pos),
-                        pos(node.kids[i - 1].pos),
-                        tr(node.kids[i - 1]),
-                        expr,
-                        tr(node.kids[i]));
+            expr = makeNode('s-op',
+                            pos2(node.kids[0].pos, node.kids[i].pos),
+                            pos(node.kids[i - 1].pos),
+                            tr(node.kids[i - 1]),
+                            expr,
+                            tr(node.kids[i]));
           }
           return expr;
         }
