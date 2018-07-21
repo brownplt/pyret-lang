@@ -59,11 +59,6 @@
     function hasBrand(brand, val) {
       return get(brand, "test").app(val);
     }
-    function assertBrand(brand, val, name) {
-      if (!hasBrand(brand, val)) {
-        runtime.ffi.throwTypeMismatch(val, name);
-      }
-    }
     function assertOption(val) {
       if (!runtime.ffi.isOption(val)) {
         runtime.ffi.throwTypeMismatch(val, "Option");
@@ -202,12 +197,11 @@
           }
           return buildTensorObject(self.$underlyingTensor.asType(type));
         }),
-        // "buffer": runtime.makeMethod0((self) => {
-        //   checkMethodArity(0, arguments, "buffer");
-        //   // TODO(Zachary): make TensorBuffer
-        //   // return buildTensorObject(self.$underlyingTensor.asType(type));
-        // })
-
+        "to-buffer": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "to-buffer");
+          var newBuffer = self.$underlyingTensor.buffer()
+          return buildTensorBufferObject(newBuffer);
+        }),
         "data-sync": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "data-sync");
           // .dataSync returns a TypedArray, so convert it to a normal JSArray
@@ -252,7 +246,6 @@
           var a = unwrapFixnumOption(axis);
           return buildTensorObject(self.$underlyingTensor.expandDims(a));
         }),
-        // "cumsum":,
         "squeeze": runtime.makeMethod1(function(self, axes) {
           checkMethodArity(2, arguments, "squeeze");
           var a = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
@@ -521,7 +514,7 @@
      */
     function makeVariable(tensor) {
       arity(1, arguments, "make-variable", false);
-      assertBrand(brandTensor, tensor, "Tensor");
+      checkTensor(tensor);
       var newVariable = tf.variable(tensor.$underlyingTensor);
       return buildTensorObject(newVariable);
     }
@@ -619,8 +612,8 @@
      */
     function addTensors(a, b) {
       arity(2, arguments, "add-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.add(aTensor, bTensor));
@@ -635,8 +628,8 @@
      */
     function addStrict(a, b) {
       arity(2, arguments, "strict-add-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.add(aTensor, bTensor));
     }
@@ -649,8 +642,8 @@
      */
     function subtractTensors(a, b) {
       arity(2, arguments, "subtract-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.sub(aTensor, bTensor));
@@ -665,8 +658,8 @@
      */
     function subtractStrict(a, b) {
       arity(2, arguments, "strict-subtract-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.sub(aTensor, bTensor));
     }
@@ -679,8 +672,8 @@
      */
     function multiplyTensors(a, b) {
       arity(2, arguments, "multiply-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.mul(aTensor, bTensor));
@@ -695,8 +688,8 @@
      */
     function multiplyStrict(a, b) {
       arity(2, arguments, "strict-multiply-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.mul(aTensor, bTensor));
     }
@@ -709,8 +702,8 @@
      */
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.div(aTensor, bTensor));
@@ -725,8 +718,8 @@
      */
     function divideStrict(a, b) {
       arity(2, arguments, "strict-divide-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.div(aTensor, bTensor));
     }
@@ -740,8 +733,8 @@
      */
     function floorDivideTensors(a, b) {
       arity(2, arguments, "floor-divide-tensors", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.floorDiv(aTensor, bTensor));
@@ -755,8 +748,8 @@
      */
     function maxTensor(a, b) {
       arity(2, arguments, "tensor-max", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.maximum(aTensor, bTensor));
@@ -771,8 +764,8 @@
      */
     function maxStrict(a, b) {
       arity(2, arguments, "strict-tensor-max", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.maximum(aTensor, bTensor));
     }
@@ -785,8 +778,8 @@
      */
     function minTensor(a, b) {
       arity(2, arguments, "tensor-min", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.minimum(aTensor, bTensor));
@@ -801,8 +794,8 @@
      */
     function minStrict(a, b) {
       arity(2, arguments, "strict-tensor-min", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.minimum(aTensor, bTensor));
     }
@@ -815,8 +808,8 @@
      */
     function moduloTensor(a, b) {
       arity(2, arguments, "tensor-modulo", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.mod(aTensor, bTensor));
@@ -831,8 +824,8 @@
      */
     function moduloStrict(a, b) {
       arity(2, arguments, "strict-tensor-modulo", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.mod(aTensor, bTensor));
     }
@@ -845,8 +838,8 @@
      */
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
-      assertBrand(brandTensor, base, "Tensor");
-      assertBrand(brandTensor, exp, "Tensor");
+      checkTensor(base);
+      checkTensor(exp);
       var baseTensor = base.$underlyingTensor;
       var expTensor = exp.$underlyingTensor;
       return buildTensorObject(tf.pow(baseTensor, expTensor));
@@ -861,16 +854,16 @@
      */
     function exptStrict(a, b) {
       arity(2, arguments, "strict-tensor-modulo", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.pow(aTensor, bTensor));
     }
 
     function tensorSquaredDifference(a, b) {
       arity(2, arguments, "squared-difference", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
@@ -878,8 +871,8 @@
 
     function strictSquaredDifference(a, b) {
       arity(2, arguments, "strict-squared-difference", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       assertEqualShapes(a, b);
       return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
     }
@@ -890,50 +883,50 @@
 
     function abs(x) {
       arity(1, arguments, "tensor-abs", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.abs(tensor));
     }
 
     function acos(x) {
       arity(1, arguments, "tensor-acos", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.acos(tensor));
     }
 
     function acosh(x) {
       arity(1, arguments, "tensor-acosh", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.acosh(tensor));
     }
 
     function asin(x) {
       arity(1, arguments, "tensor-asin", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.asin(tensor));
     }
 
     function asinh(x) {
       arity(1, arguments, "tensor-asinh", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.asinh(tensor));
     }
 
     function atan(x) {
       arity(1, arguments, "tensor-atan", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.atan(tensor));
     }
 
     function atan2(a, b) {
       arity(2, arguments, "tensor-atan2", false);
-      assertBrand(brandTensor, a, "Tensor");
-      assertBrand(brandTensor, b, "Tensor");
+      checkTensor(a);
+      checkTensor(b);
       var aTensor = a.$underlyingTensor;
       var bTensor = b.$underlyingTensor;
       return buildTensorObject(tf.atan2(aTensor, bTensor));
@@ -941,21 +934,21 @@
 
     function atanh(x) {
       arity(1, arguments, "tensor-atanh", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.atanh(tensor));
     }
 
     function ceil(x) {
       arity(1, arguments, "tensor-ceil", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.atan(tensor));
     }
 
     function clipByValue(x, min, max) {
       arity(3, arguments, "clip-by-value", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       runtime.checkNumber(min);
       runtime.checkNumber(max);
       var tensor = x.$underlyingTensor;
@@ -966,14 +959,14 @@
 
     function cos(x) {
       arity(1, arguments, "tensor-cos", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.cos(tensor));
     }
 
     function cosh(x) {
       arity(1, arguments, "tensor-cosh", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.cosh(tensor));
     }
@@ -985,7 +978,7 @@
 
     function exponentialLinearUnits(x) {
       arity(1, arguments, "exponential-linear-units", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.elu(tensor));
     }
@@ -997,35 +990,35 @@
 
     function gaussError(x) {
       arity(1, arguments, "gauss-error", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.erf(tensor));
     }
 
     function exp(x) {
       arity(1, arguments, "tensor-exp", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.exp(tensor));
     }
 
     function expm1(x) {
       arity(1, arguments, "tensor-exp-min1", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.expm1(tensor));
     }
 
     function floor(x) {
       arity(1, arguments, "tensor-floor", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.floor(tensor));
     }
 
     function leakyRelu(x, alpha) {
       arity(2, arguments, "leaky-relu", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       runtime.checkNumber(alpha);
       var tensor = x.$underlyingTensor;
       var a = unwrap(alpha);
@@ -1034,35 +1027,35 @@
 
     function log(x) {
       arity(1, arguments, "tensor-log", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.log(tensor));
     }
 
     function log1p(x) {
       arity(1, arguments, "tensor-log-plus1", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.log1p(tensor));
     }
 
     function logSigmoid(x) {
       arity(1, arguments, "log-sigmoid", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.logSigmoid(tensor));
     }
 
     function neg(x) {
       arity(1, arguments, "tensor-negate", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.neg(tensor));
     }
 
     function prelu(x, alpha) {
       arity(2, arguments, "parametric-relu", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       runtime.checkNumber(alpha);
       var tensor = x.$underlyingTensor;
       var a = runtime.num_to_fixnum(alpha);
@@ -1071,105 +1064,105 @@
 
     function reciprocal(x) {
       arity(1, arguments, "tensor-reciprocal", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.reciprocal(tensor));
     }
 
     function relu(x) {
       arity(1, arguments, "relu", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.relu(tensor));
     }
 
     function round(x) {
       arity(1, arguments, "tensor-round", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.round(tensor));
     }
 
     function rsqrt(x) {
       arity(1, arguments, "reciprocal-sqrt", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.rsqrt(tensor));
     }
 
     function selu(x) {
       arity(1, arguments, "scaled-elu", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.selu(tensor));
     }
 
     function sigmoid(x) {
       arity(1, arguments, "sigmoid", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.sigmoid(tensor));
     }
 
     function sign(x) {
       arity(1, arguments, "signed-ones", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.sign(tensor));
     }
 
     function sin(x) {
       arity(1, arguments, "tensor-sin", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.sin(tensor));
     }
 
     function sinh(x) {
       arity(1, arguments, "tensor-sinh", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.sinh(tensor));
     }
 
     function softplus(x) {
       arity(1, arguments, "softplus", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.softplus(tensor));
     }
 
     function sqrt(x) {
       arity(1, arguments, "tensor-sqrt", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.sqrt(tensor));
     }
 
     function square(x) {
       arity(1, arguments, "tensor-square", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.square(tensor));
     }
 
     function step(x) {
       arity(1, arguments, "step", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.step(tensor));
     }
 
     function tan(x) {
       arity(1, arguments, "tensor-tan", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.tan(tensor));
     }
 
     function tanh(x) {
       arity(1, arguments, "tensor-tanh", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.tanh(tensor));
     }
@@ -1180,65 +1173,69 @@
 
     function all(x) {
       arity(1, arguments, "all", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.all(tensor));
     }
 
     function any(x) {
       arity(1, arguments, "any", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.any(tensor));
     }
 
     function argMax(x) {
       arity(1, arguments, "arg-max", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.argMax(tensor));
     }
 
     function argMin(x) {
       arity(1, arguments, "arg-min", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.argMin(tensor));
     }
 
     function logSumExp(x) {
       arity(1, arguments, "log-sum-exp", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
       return buildTensorObject(tf.logSumExp(tensor));
     }
 
-    function max(x) {
-      arity(1, arguments, "reduce-max", false);
-      assertBrand(brandTensor, x, "Tensor");
+    function max(x, axis) {
+      arity(2, arguments, "reduce-max", false);
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
-      return buildTensorObject(tf.max(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.max(tensor, a));
     }
 
-    function mean(x) {
+    function mean(x, axis) {
       arity(1, arguments, "reduce-mean", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
-      return buildTensorObject(tf.mean(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.mean(tensor, a));
     }
 
-    function min(x) {
+    function min(x, axis) {
       arity(1, arguments, "reduce-min", false);
-      assertBrand(brandTensor, x, "Tensor");
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
-      return buildTensorObject(tf.min(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.min(tensor, a));
     }
 
-    function sum(x) {
-      arity(1, arguments, "reduce-sum", false);
-      assertBrand(brandTensor, x, "Tensor");
+    function sum(x, axis) {
+      arity(2, arguments, "reduce-sum", false);
+      checkTensor(x);
       var tensor = x.$underlyingTensor;
-      return buildTensorObject(tf.sum(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.sum(tensor, a));
     }
 
     /**
@@ -1279,16 +1276,29 @@
       var t = tensor.$underlyingTensor;
       var a = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
         some: (v) => {
-          runtime.checkList(axes);
-          return runtime.ffi.toArray(axes).map((x) => { return runtime.num_to_fixnum(x); });
+          runtime.checkList(v);
+          return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
         },
         none: () => { return undefined; }
       });
       return buildTensorObject(tf.reverse(t, a));
     }
 
-    function slice() {
-
+    // Tensor List<Number> Option<List<Number>> -> Tensor
+    function slice(tensor, begin, size) {
+      arity(3, arguments, "slice", false);
+      checkTensor(tensor);
+      runtime.checkList(begin);
+      var t = tensor.$underlyingTensor;
+      var b = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
+      var s = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
+        some: (v) => {
+          runtime.checkList(v);
+          return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
+        },
+        none: () => { return undefined; }
+      });
+      return buildTensorObject(tf.slice(t, b, s));
     }
 
     function split() {
@@ -1392,12 +1402,8 @@
         }),
         "evaluate": runtime.makeMethod3(function(self, x, y, config) {
           checkMethodArity(4, arguments, "evaluate");
-          if (!hasBrand(brandTensor, x)) {
-            runtime.ffi.throwTypeMismatch(x, "Tensor");
-          }
-          if (!hasBrand(brandTensor, y)) {
-            runtime.ffi.throwTypeMismatch(y, "Tensor");
-          }
+          checkTensor(x);
+          checkTensor(y);
           runtime.checkObject(config);
           var xTensor = x.$underlyingTensor;
           var yTensor = y.$underlyingTensor;
@@ -1407,9 +1413,7 @@
         }),
         "predict": runtime.makeMethod2(function(self, x, config) {
           checkMethodArity(3, arguments, "predict");
-          if (!hasBrand(brandTensor, x)) {
-            runtime.ffi.throwTypeMismatch(x, "Tensor");
-          }
+          checkTensor(x);
           runtime.checkObject(config);
           var xTensor = x.$underlyingTensor;
           var c = unwrapObject(config);
@@ -1418,21 +1422,15 @@
         }),
         "predict-on-batch": runtime.makeMethod1(function(self, x) {
           checkMethodArity(2, arguments, "predict-on-batch");
-          if (!hasBrand(brandTensor, x)) {
-            runtime.ffi.throwTypeMismatch(x, "Tensor");
-          }
+          checkTensor(x);
           var xTensor = x.$underlyingTensor;
           var result = self.$underlyingSequential.predictOnBatch(xTensor, c);
           return buildTensorObject(result);
         }),
         "fit": runtime.makeMethod3(function(self, x, y, config, callback) {
           checkMethodArity(5, arguments, "fit");
-          if (!hasBrand(brandTensor, x)) {
-            runtime.ffi.throwTypeMismatch(x, "Tensor");
-          }
-          if (!hasBrand(brandTensor, y)) {
-            runtime.ffi.throwTypeMismatch(y, "Tensor");
-          }
+          checkTensor(x);
+          checkTensor(y);
           runtime.checkObject(config);
           var xTensor = x.$underlyingTensor;
           var yTensor = y.$underlyingTensor;
@@ -1790,6 +1788,19 @@
       arity(1, arguments, "lstm-layer", false);
       runtime.checkObject(config);
       var c = unwrapObject(config);
+      // If there's an Layer defined, we have to unwrap it since
+      // Tensorflow.js doesn't recognize PyretLayers:
+      if ("batchInputShape" in c) {
+        runtime.checkList(c["batchInputShape"]);
+        var batchInputs = runtime.ffi.toArray(c["batchInputShape"]);
+        var unwrapped = batchInputs.map((input) => {
+          return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", input, {
+            some: (v) => { return runtime.num_to_fixnum(v); },
+            none: () => { return null; }
+          });
+        })
+        c["batchInputShape"] = unwrapped;
+      }
       return buildLayerObject(tf.layers.lstm(c));
     }
 
@@ -1828,6 +1839,25 @@
       return buildLayerObject(tf.layers.stackedRNNCells(c));
     }
 
+    function makeBidirectionalLayer(config) {
+      arity(1, arguments, "bidirectional-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      return buildLayerObject(tf.layers.bidirectional(c));
+    }
+
+    function makeTimeDistributedLayer(config) {
+      arity(1, arguments, "time-distributed-layer", false);
+      runtime.checkObject(config);
+      var c = unwrapObject(config);
+      // If there's an Layer defined, we have to unwrap it since
+      // Tensorflow.js doesn't recognize PyretLayers:
+      if ("layer" in c) {
+        c["layer"] = c["layer"].$underlyingLayer;
+      }
+      return buildLayerObject(tf.layers.timeDistributed(c));
+    }
+
     /**
      * Training (Optimizers)
      */
@@ -1859,7 +1889,7 @@
             return runtime.safeCall(() => {
               return functionToMinimize.app();
             }, (scalar) => {
-              assertBrand(brandTensor, scalar, "Tensor");
+              checkTensor(scalar);
               return scalar.$underlyingTensor;
             });
           }, true, variables);
@@ -1938,29 +1968,7 @@
       return buildOptimizerObject(tf.train.rmsprop(rate, d, m, e, c));
     }
 
-
-
-
-    function grabTextFromURL(url) {
-      arity(1, arguments, "grab-text-from-url", false);
-      runtime.checkString(url);
-
-      var request = new XMLHttpRequest();
-      request.open('GET', url, false);  // `false` makes the request synchronous
-      request.setRequestHeader("Accept", "text/plain,text/html,application/xhtml+xml,application/xml");
-      request.send("");
-
-      if (request.status === 200) {
-        return runtime.makeString(request.responseText);
-      }
-      else {
-        return runtime.makeString("");
-      }
-    }
-
     var values = {
-      "grab-text-from-url": F(grabTextFromURL, "grab-text-from-url"),
-
       // Tensors
       "is-tensor": F(isTensor, "is-tensor"),
       "list-to-tensor": F(listToTensor, "list-to-tensor"),
@@ -2120,6 +2128,8 @@
       "simple-rnn-layer": F(makeSimpleRNNLayer, "simple-rnn-layer"),
       "simple-rnn-cell-layer": F(makeSimpleRNNCellLayer, "simple-rnn-cell-layer"),
       "stacked-rnn-cells-layer": F(makeStackedRNNCellsLayer, "stacked-rnn-cells-layer"),
+      "bidirectional-layer": F(makeBidirectionalLayer, "bidirectional-layer"),
+      "time-distributed-layer": F(makeTimeDistributedLayer, "time-distributed-layer"),
 
       // Training (Optimizers)
       "is-optimizer": F(isOptimizer, "is-optimizer"),
