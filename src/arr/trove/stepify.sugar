@@ -3,13 +3,6 @@
 # Stepification
 ################################################################################
 
-# what if this s-program isn't even used?
-#sugar s-program:
-  #| (s-program provide provide-types imports <s-block [exprs_{i} ...i]>) =>
-    #<s-program provide provide-types imports <s-block [(s-app (b-id "subscribe") []) exprs_{i} ...i]>>
-# <s-program provide provide-types imports <s-block [(s-prim-app "subscribe" []) exprs_{i} ...i]>>
-#end
-
 sugar s-fun:
   | (s-fun name params args ann doc body check-loc check blocky) =>
     <s-fun name params args ann doc (wrap-func-body name args body blocky) check-loc check blocky>
