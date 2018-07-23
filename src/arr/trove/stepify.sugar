@@ -8,6 +8,12 @@ sugar s-lam:
   | (s-lam name params args ann doc body check-loc check blocky) =>
     <s-lam name params args ann doc (wrap-func-body name args body blocky) check-loc check blocky>
 end
+
+sugar s-method:
+  | (s-method name params args ann doc body check-loc check blocky) =>
+    <s-method name params args ann doc (wrap-func-body name args body blocky) check-loc check blocky>
+end
+
 sugar s-fun:
   | (s-fun name params args ann doc body check-loc check blocky) =>
     <s-fun name params args ann doc (wrap-func-body name args body blocky) check-loc check blocky>
