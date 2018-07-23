@@ -82,11 +82,11 @@ fun serve(port, pyret-dir):
     with-compiled-read-only-dirs =
       if opts.has-key("perilous") and opts.get-value("perilous"):
         with-pyret-dir.set("compiled-read-only",
-          link(P.resolve(P.join(pyret-dir, "lib-compiled")), empty)
+          link(P.resolve(P.join(pyret-dir, "../../src/runtime")), empty)
         ).set("user-annotations", false)
       else:
         with-pyret-dir.set("compiled-read-only",
-          link(P.resolve(P.join(pyret-dir, "compiled")), empty)
+          link(P.resolve(P.join(pyret-dir, "../../src/runtime")), empty)
         )
       end
     with-require-config = with-compiled-read-only-dirs.set("require-config",

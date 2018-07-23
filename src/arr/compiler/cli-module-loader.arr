@@ -102,8 +102,8 @@ end
 fun cached-available(basedir, uri, name, modified-time) -> Option<CachedType>:
   saved-path = P.join(basedir, uri-to-path(uri, name))
 
-  if (F.file-exists(saved-path + "-static.js") and
-      (F.file-times(saved-path + "-static.js").mtime > modified-time)):
+  if (F.file-exists(saved-path + ".arr.js") and
+      (F.file-times(saved-path + ".arr.js").mtime > modified-time)):
     some(split)
   else if (F.file-exists(saved-path + ".js") and
       (F.file-times(saved-path + ".js").mtime > modified-time)):
@@ -160,7 +160,7 @@ fun get-cached(basedir, uri, name, cache-type):
           aliases: raw-array-to-list(raw.get-raw-alias-provides()),
           datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
         })
-      CL.arr-js-file(provs, F.real-path(module-path + ".arr.json"), F.real-path(module-path + ".arr.js"))
+      CL.arr-js-file(provs, P.resolve(module-path + ".arr.json"), P.resolve(module-path + ".arr.js"))
     end,
 
     method _equals(self, other, req-eq):
@@ -183,7 +183,7 @@ fun get-file-locator(basedir, real-path):
   get-cached-if-available(basedir, loc)
 end
 
-fun get-builtin-locator(basedir, read-only-basedirs, modname):
+fun get-builtin-locator(basedir, read-only-basedirs, modname, options):
   all-dirs = link(basedir, read-only-basedirs)
 
   first-available = for find(rob from all-dirs):
@@ -191,7 +191,7 @@ fun get-builtin-locator(basedir, read-only-basedirs, modname):
   end
   cases(Option) first-available:
     | none =>
-      cases(Option) BL.maybe-make-builtin-locator(modname) block:
+      cases(Option) BL.maybe-make-builtin-locator(modname, options) block:
         | some(loc) =>
           get-cached-if-available(basedir, loc)
         | none =>
@@ -203,8 +203,8 @@ fun get-builtin-locator(basedir, read-only-basedirs, modname):
   end
 end
 
-fun get-builtin-test-locator(basedir, modname):
-  loc = BL.make-builtin-locator(modname).{
+fun get-builtin-test-locator(basedir, modname, options):
+  loc = BL.make-builtin-locator(modname, options).{
     method uri(_): "builtin-test://" + modname end
   }
   get-cached-if-available(basedir, loc)
@@ -359,7 +359,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
           raise("Cannot find import " + torepr(dep))
         end
       else if protocol == "builtin-test":
-        l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
+        l = get-builtin-test-locator(ctxt.cache-base-dir, args.first, ctxt.options)
         force-check-mode = l.{
           method get-options(self, options):
             options.{ checks: "all", type-check: false }
@@ -387,20 +387,22 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         raise("Unknown import type: " + protocol)
       end
     | builtin(modname) =>
-      CL.located(get-builtin-locator(ctxt.cache-base-dir, ctxt.compiled-read-only-dirs, modname), ctxt)
+      CL.located(get-builtin-locator(ctxt.cache-base-dir, ctxt.compiled-read-only-dirs, modname, ctxt.options), ctxt)
   end
 end
 
 default-start-context = {
   current-load-path: P.resolve("./"),
   cache-base-dir: P.resolve("./compiled"),
-  compiled-read-only-dirs: empty
+  compiled-read-only-dirs: empty,
+  options: CS.default-compile-options
 }
 
 default-test-context = {
   current-load-path: P.resolve("./"),
   cache-base-dir: P.resolve("./tests/compiled"),
-  compiled-read-only-dirs: empty
+  compiled-read-only-dirs: empty,
+  options: CS.default-compile-options
 }
 
 fun compile(path, options):
@@ -408,7 +410,8 @@ fun compile(path, options):
   base = module-finder({
     current-load-path: P.resolve(options.base-dir),
     cache-base-dir: options.compiled-cache,
-    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve)
+    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
+    options: options
   }, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   compiled = CL.compile-program(wl, options)
@@ -452,16 +455,20 @@ fun run(path, options, subsequent-command-line-arguments):
   end
 end
 
-fun copy-js-dependency( dep-path, uri, dirs ) block:
+fun copy-js-dependency( dep-path, uri, dirs, options ) block:
   { base-dir; project-dir; builtin-dir } = dirs
-  save-path = ask block:
+  {save-path; cutoff} = ask block:
     | string-index-of( uri, "builtin://" ) == 0 then:
-        builtin-dir
+        {
+          builtin-dir;
+          string-substring( dep-path, string-length(options.builtin-js-dirs.first), string-length(dep-path))
+          }
     | (string-index-of( uri, "jsfile://" ) == 0) or ( string-index-of( uri, "file://" ) == 0 ) then:
-        project-dir
+        { project-dir;
+          string-substring( dep-path, string-length( base-dir ), string-length( dep-path ) )
+        }
   end
   
-  cutoff = string-substring( dep-path, string-length( base-dir ), string-length( dep-path ) )
 
   save-code-path = P.join( save-path, cutoff )
   mkdirp( P.resolve( P.dirname( save-code-path ) ) )
@@ -487,9 +494,10 @@ fun copy-js-dependencies( wl, options ) block:
 
   for each( tc from arr-js-modules ):
     code-path = tc.locator.get-compiled( options ).code-file
+
     deps = DT.get-dependencies( code-path )
     deps-list = raw-array-to-list( deps )
-    
+
     for each( dep-path from deps-list ):
       when P.resolve( code-path ) <> dep-path:
         paths.set-now( dep-path, tc.locator.uri() )
@@ -498,7 +506,7 @@ fun copy-js-dependencies( wl, options ) block:
   end
 
   for each( dep-path from paths.keys-list-now() ):
-    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs )
+    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs, options )
   end
 end
 
@@ -522,7 +530,8 @@ fun build-program(path, options, stats) block:
   base = module-finder({
     current-load-path: P.resolve(options.base-dir),
     cache-base-dir: options.compiled-cache,
-    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve)
+    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
+    options: options
   }, base-module)
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)

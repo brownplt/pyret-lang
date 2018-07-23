@@ -2667,6 +2667,7 @@ fun make-default-compile-options(this-pyret-dir):
     this-pyret-dir: this-pyret-dir,
     deps-file: P.resolve(P.join(this-pyret-dir, "bundled-node-deps.js")),
     standalone-file: P.resolve(P.join(this-pyret-dir, "js/handalone.js")),
+    builtin-js-dirs: [list: P.resolve(P.join(this-pyret-dir, "../../src/runtime/"))]
   }
 end
 
