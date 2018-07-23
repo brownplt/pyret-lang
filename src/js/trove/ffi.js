@@ -704,8 +704,6 @@
 
       tracePushCall: tracePushCall,
       tracePopCall: tracePopCall,
-      resetTrace: resetTrace,
-      getTrace: getTrace,
       
       contractOk: gf(CON, "ok"),
       contractFail: contract("fail"),

@@ -18,8 +18,6 @@ define("pyret-base/js/post-load-hooks", function() {
 
         runtime["tracePushCall"] = ffi.tracePushCall;
         runtime["tracePopCall"] = ffi.tracePopCall;
-        runtime["resetTrace"] = ffi.resetTrace;
-        runtime["getTrace"] = ffi.getTrace;
 
         runtime["subscribeToFunctionTraces"] = ffi.subscribeToFunctionTraces;
         runtime["unsubscribeToFunctionTraces"] = ffi.unsubscribeToFunctionTraces;
