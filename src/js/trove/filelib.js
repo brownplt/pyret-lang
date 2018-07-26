@@ -5,7 +5,7 @@
   theModule: function(RUNTIME, NAMESPACE, uri, fs) {
     function InputFile(name) {
       this.name = name;
-      this.fd = fs.openSync(name, "r")
+      this.fd = fs.openSync(name, "r");
     }
 
     function OutputFile(name, append) {

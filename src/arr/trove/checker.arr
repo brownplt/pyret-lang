@@ -12,23 +12,8 @@ import valueskeleton as VS
 import ffi as _
 
 import either as either
-import lists as lists
-import option as option
-
-type Either = either.Either
-
-type List = lists.List
-link = lists.link
-empty = lists.empty
-list = lists.list
-is-empty = lists.is-empty
-fold = lists.fold
-each = lists.each
-
-type Option = option.Option
-is-some = option.is-some
-some = option.some
-none = option.none
+include lists
+include option
 
 type Loc = SL.Srcloc
 
@@ -41,9 +26,6 @@ fun get-op-fun-name(opname):
     | otherwise: raise("Unknown op: " + opname)
   end
 end
-
-is-right = either.is-right
-is-left = either.is-left
 
 data CheckOperand:
   | on-left
@@ -583,13 +565,13 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun left-right-check(loc):
     lam(with-vals, left, right):
       lv = run-task(if is-function(left): left else: left.v end)
-      if is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))
+      if either.is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))
       else:
         rv = run-task(if is-function(right): right else: right.v end)
-        if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right))
+        if either.is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right))
         else:
           res = run-task(lam(): with-vals(lv.v, rv.v) end)
-          if is-right(res): add-result(failure-exn(loc, res.v, on-refinement))
+          if either.is-right(res): add-result(failure-exn(loc, res.v, on-refinement))
           else: res.v
           end
         end
@@ -611,7 +593,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           results-before = current-results
           reset-results()
           result = run-task(c.run)
-          cases(Either) result:
+          cases(either.Either) result:
             | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
             | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
           end
@@ -709,7 +691,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises(self, thunk, expected, comparator, on-failure, loc) block:
       result = run-task(thunk)
-      cases(Either) result:
+      cases(either.Either) result:
         | left(v) => add-result(failure-no-exn(loc, some(expected)))
         | right(v) =>
           if comparator(exn-unwrap(v), expected):
@@ -736,7 +718,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-not(self, thunk, loc) block:
       add-result(
-        cases(Either) run-task(thunk):
+        cases(either.Either) run-task(thunk):
           | left(v)    => success(loc)
           | right(exn) => failure-exn(loc, exn, on-left)
         end)
@@ -744,7 +726,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-satisfies(self, thunk, pred, loc) block:
       add-result(
-        cases(Either) run-task(thunk):
+        cases(either.Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
           | right(exn) =>
             if pred(
@@ -762,7 +744,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-violates(self, thunk, pred, loc) block:
       add-result(
-        cases(Either) run-task(thunk):
+        cases(either.Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none)
           | right(exn) =>
             if not(pred(
@@ -827,7 +809,7 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
         stack = get-stack(err)
         "\n  " + block-type + " block ended in the following error (not all tests may have run): \n\n  "
           + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
-          + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
+          + RED.display-to-string(ED.v-sequence(map(ED.loc, stack)), torepr, empty)
           + "\n\n"
     end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
