@@ -29,12 +29,12 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-var builtin-js-dirs = [list: "src/js/trove/"]
-var builtin-arr-dirs = [list: "src/arr/trove/"]
+var _defunct-builtin-js-dirs = [list: "src/js/runtime"]
+var builtin-arr-dirs = [list:]
 var allow-builtin-overrides = false
 
 fun set-builtin-js-dirs(paths :: List<String>):
-  builtin-js-dirs := paths
+  _defunct-builtin-js-dirs := paths
 end
 
 fun set-builtin-arr-dirs(paths :: List<String>):
@@ -177,7 +177,13 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   }
 end
 
-fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> block:
+fun maybe-make-builtin-locator(builtin-name :: String, options) -> Option<CL.Locator> block:
+
+  #NOTE(jose) - options.builtin-js-dirs did not have the path specified by --builtin-js-dir argument,
+  #             instead it had {base-dir}/src/src/runtime, which caused it to not find our compiled
+  #             module files
+  builtin-js-dirs = _defunct-builtin-js-dirs #options.builtin-js-dirs
+  
   matching-arr-files = for map(p from builtin-arr-dirs):
     full-path = P.join(p, builtin-name + ".arr")
     if F.file-exists(full-path):
@@ -218,10 +224,10 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
   end
 end
 
-fun make-builtin-locator(builtin-name):
-  cases(Option) maybe-make-builtin-locator(builtin-name):
+fun make-builtin-locator(builtin-name, options):
+  cases(Option) maybe-make-builtin-locator(builtin-name, options):
     | none =>
-      raise("Could not find module " + builtin-name + " in any of " + (builtin-arr-dirs + builtin-js-dirs).join-str(", "))
+      raise("Could not find module " + builtin-name + " in any of " + (builtin-arr-dirs + options.builtin-js-dirs).join-str(", "))
     | some(v) => v
   end
 end
