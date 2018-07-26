@@ -225,9 +225,8 @@ end
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
-      
       {a-exp; a-stmts} = compile-expr(context, answer)
-      
+
       ans = j-obj([clist:
                 j-field("answer", a-exp),
                 j-field("namespace", J.j-undefined),
@@ -462,8 +461,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-id-var(l, x) => nyi("s-id-var")
     | s-frac(l, num, den) => nyi("s-frac")
     | s-rfrac(l, num, den) => nyi("s-rfrac")
-    | s-str(_, _) => nyi("s-str")
-    | s-bool(_, _) => nyi("s-bool")
+    | s-str(l, str) => {j-str( str ); cl-empty}
+    | s-bool(l, bool) =>
+        if bool:
+          {j-true; cl-empty}
+        else:
+          {j-false; cl-empty}
+        end
     | s-obj(l, fields) => nyi("s-obj")
     | s-tuple(l, fields) => nyi("s-tuple")
     | s-tuple-get(l, tup, index, index-loc) => nyi("s-tuple-get")
@@ -489,7 +493,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
 end
 
-fun compile-program(prog, env, datatypes, provides, options) block:
+fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
   {ans; stmts} = compile-expr({
     uri: provides.from-uri,
     options: options,
@@ -547,6 +551,7 @@ fun compile-program(prog, env, datatypes, provides, options) block:
       true
     end
   }
+
   # prog.visit(collect-globals)
 
   var global-binds = for CL.map_list(k from global-bind-dict.keys-list-now()):
@@ -591,13 +596,25 @@ fun compile-program(prog, env, datatypes, provides, options) block:
 
   { base-dir; absolute-source-dir } = get-base-dir( provides.from-uri, options.this-pyret-dir )
   pre-append-dir = get-compiled-relative-path( base-dir, absolute-source-dir )
-  relative-path = string-append( pre-append-dir, options.runtime-path )
+  relative-path = pre-append-dir #string-append( pre-append-dir, options.runtime-path )
 
-  require-runtime =
-    J.j-var(const-id("R"), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "/runtime.js")]))
+  imports = cases( A.Program ) prog:
+    | s-program( _, _, _, shadow imports, _ ) =>
+        imports
+  end
 
+  import-stmts = imports.foldl( lam( import-module, import-list ):
+    cases( A.Import ) import-module:
+      | s-import-complete( _,  _, _, import-type, name, _ ) =>
+          cases( A.ImportType ) import-type:
+            | s-const-import( _, file ) =>
+                [clist: J.j-var(name, j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + file + ".js")]))] + import-list
+          end
+    end
+  end, cl-empty )
+  
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
-  module-body = J.j-block([clist: require-runtime] + stmts + [clist: j-return(ans)])
+  module-body = J.j-block(import-stmts + stmts + [clist: j-return(ans)])
 
   the-module = module-body
 

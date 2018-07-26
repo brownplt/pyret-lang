@@ -1,7 +1,9 @@
 var runtime = require('./runtime.js')
 
-export function print(v) {
-  console.log(runtime);
-  process.stdout.write(String(v));
-}
+module.exports = {
+  print: function(v) {
+    console.log(runtime);
+    process.stdout.write(String(v));
+  }
+};
 

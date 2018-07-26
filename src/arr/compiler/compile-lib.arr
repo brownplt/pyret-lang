@@ -347,7 +347,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
         end
         value
       end
-      var ast-ended = ast #AU.append-nothing-if-necessary(ast)
+      var ast-ended = AU.append-nothing-if-necessary(ast)
       ast := nothing
       add-phase("Added nothing", ast-ended)
       ast-ended := AU.wrap-toplevels(ast-ended)

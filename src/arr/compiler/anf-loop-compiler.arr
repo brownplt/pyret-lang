@@ -1847,6 +1847,7 @@ compiler-visitor = {
                 j-dot(j-id(variant-brand-id), "_brand"),
                 j-true))
           ])
+
       predicate = j-field(A.make-checker-name(vname), get-field-unsafe(j-id(variant-brand-id), j-str("test"), self.get-loc(v.l))) #make-brand-predicate(v.l, j-dot(j-id(variant-brand-id), "_brand"), A.make-checker-name(vname))
 
       cases(N.AVariant) v:
@@ -1879,7 +1880,7 @@ compiler-visitor = {
     obj-fields = for fold(acc from cl-empty, piece from variant-pieces):
       cl-append(acc, [clist: piece.predicate, piece.constructor])
     end
-
+    
     data-predicate = j-field(name, get-field-unsafe(external-brand, j-str("test"), self.get-loc(l))) #make-brand-predicate(l, j-dot(external-brand, "_brand"), name)
 
     data-object = rt-method("makeObject", [clist: j-obj(cl-cons(data-predicate, obj-fields))])

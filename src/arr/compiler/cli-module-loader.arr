@@ -256,17 +256,20 @@ fun setup-compiled-dirs( options ) block:
   compiled-dir = P.resolve( options.compiled-cache )
   project-dir  = P.join( compiled-dir, "project" )
   builtin-dir  = P.join( compiled-dir, "builtin" )
-	
+  
+  builtin-js-dir = P.resolve( P.join( base-dir,
+    string-substring( options.runtime-path, string-length( "../builtin" ), string-length( options.runtime-path ) ) ) )
+
 	mkdirp( compiled-dir )
 	mkdirp( project-dir )
 	mkdirp( builtin-dir )
 
-  {base-dir; project-dir; builtin-dir}
+  {base-dir; project-dir; builtin-dir; builtin-js-dir}
 end
 
 fun set-loadable(options, locator, loadable) block:
   doc: "Returns the module path of the cached file"
-  { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
+  { project-base; project-dir; builtin-dir; builtin-js-dir } = setup-compiled-dirs( options )
   locuri = loadable.provides.from-uri
 
   cases(CS.CompileResult) loadable.result-printer block:
@@ -453,7 +456,8 @@ fun run(path, options, subsequent-command-line-arguments):
 end
 
 fun copy-js-dependency( dep-path, uri, dirs ) block:
-  { base-dir; project-dir; builtin-dir } = dirs
+  { base-dir; project-dir; builtin-dir; builtin-js-dir } = dirs
+  
   save-path = ask block:
     | string-index-of( uri, "builtin://" ) == 0 then:
         builtin-dir
@@ -461,7 +465,7 @@ fun copy-js-dependency( dep-path, uri, dirs ) block:
         project-dir
   end
   
-  cutoff = string-substring( dep-path, string-length( base-dir ), string-length( dep-path ) )
+  cutoff = string-substring( dep-path, string-length( builtin-js-dir ), string-length( dep-path ) )
 
   save-code-path = P.join( save-path, cutoff )
   mkdirp( P.resolve( P.dirname( save-code-path ) ) )

@@ -910,6 +910,7 @@ end
 
 fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
+
   cases(CS.ExtraImports) env:
     | extra-imports(imports) =>
       full-imports = p.imports + for map(i from imports):
