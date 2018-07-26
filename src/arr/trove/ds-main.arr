@@ -41,9 +41,9 @@ fun desugar(e :: AST.Program, trace :: Boolean) -> AST.Program block:
     desugaring-rules
   end
   e.visit(CONV.ast-to-term-visitor)
-    ^ push-time("desugar")
+    # ^ push-time("desugar")
     ^ DS.desugar(rules, _)
-    ^ pop-time
+    # ^ pop-time
     ^ CONV.term-to-ast
 end
 
