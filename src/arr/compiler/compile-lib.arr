@@ -23,6 +23,7 @@ import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
+import resugar as RESUGAR
 
 data CompilationPhase:
   | start(time :: Number)
@@ -407,6 +408,8 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             add-phase("Resolved names", named-result)
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
+
+            RESUGAR.resugar(named-result.ast)
             var desugared = D.desugar(named-result.ast)
             named-result.bindings.merge-now(desugared.new-binds)
             # ...in order to be checked for bad assignments here

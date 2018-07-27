@@ -15,7 +15,8 @@
 
     "jglr/jglr": "lib/jglr/jglr.js",
     "jglr/rnglr": "lib/jglr/rnglr.js",
-    "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js"
+      "jglr/cyclicJSON": "lib/jglr/cyclicJSON.js",
+      "resugar/resugar": "lib/resugar/resugar.js"
   },
   "baseUrl": "./build/phaseC",
   "optimize": "none"

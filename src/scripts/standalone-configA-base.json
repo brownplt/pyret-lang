@@ -3,6 +3,7 @@
   "optimize": "none",
   "paths": {
       "jglr": "../../lib/jglr",
+      "resugar": "../../lib/resugar",
       "pyret-base": "./",
       "crypto": "empty:",
       "fs": "empty:",
