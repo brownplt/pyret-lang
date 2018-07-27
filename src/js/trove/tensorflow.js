@@ -158,8 +158,6 @@
      * Tensors
      */
 
-    // Brand Checks
-
     /**
      * Returns PyretTrue if the input `obj` is a PyretTensor; otherwise,
      * returns PyretFalse.
@@ -170,8 +168,6 @@
       arity(1, arguments, "is-tensor", false);
       return runtime.makeBoolean(hasBrand(brandTensor, obj));
     }
-
-    // Constructor
 
     /**
      * Consumes a PyretTensor and returns its underlying TensorFlow.js
@@ -661,8 +657,6 @@
       arity(1, arguments, "is-tensor-buffer", false);
       return runtime.makeBoolean(hasBrand(brandTensorBuffer, obj));
     }
-
-    // Constructor
 
     /**
      * Consumes a PyretTensorBuffer and returns its underlying TensorFlow.js
@@ -1600,6 +1594,13 @@
      * Operations (Reduction)
      */
 
+    /**
+     * Reduces the input Tensor across all dimensions by computing the logical
+     * "and" of its elements. The input must be of type "bool"; otherwise, the
+     * function raises an error.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function all(x) {
       arity(1, arguments, "all", false);
       checkTensor(x);
@@ -1607,6 +1608,13 @@
       return buildTensorObject(tf.all(tensor));
     }
 
+    /**
+     * Reduces the input Tensor across all dimensions by computing the logical
+     * "or" of its elements. The input must be of type "bool"; otherwise, the
+     * function raises an error.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function any(x) {
       arity(1, arguments, "any", false);
       checkTensor(x);
@@ -1614,6 +1622,12 @@
       return buildTensorObject(tf.any(tensor));
     }
 
+    /**
+     * Returns a new Tensor where each element is the index of the maximum
+     * values along the outermost dimension of x.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function argMax(x) {
       arity(1, arguments, "arg-max", false);
       checkTensor(x);
@@ -1621,6 +1635,12 @@
       return buildTensorObject(tf.argMax(tensor));
     }
 
+    /**
+     * Returns a new Tensor where each element is the index of the minimum
+     * values along the outermost dimension of x.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function argMin(x) {
       arity(1, arguments, "arg-min", false);
       checkTensor(x);
@@ -1628,6 +1648,12 @@
       return buildTensorObject(tf.argMin(tensor));
     }
 
+    /**
+     * Computes log(sum(exp(elements along the outermost dimension)). Reduces
+     * x along the outermost dimension.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function logSumExp(x) {
       arity(1, arguments, "log-sum-exp", false);
       checkTensor(x);
@@ -1635,6 +1661,13 @@
       return buildTensorObject(tf.logSumExp(tensor));
     }
 
+    /**
+     * Computes the maximum of elements across the axis of x. If axis is none,
+     * all dimensions are reduced, and a Tensor containing a single value is
+     * returned.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function max(x, axis) {
       arity(2, arguments, "reduce-max", false);
       checkTensor(x);
@@ -1643,6 +1676,13 @@
       return buildTensorObject(tf.max(tensor, a));
     }
 
+    /**
+     * Computes the mean of elements across the axis of x. If axis is none,
+     * all dimensions are reduced, and a Tensor containing a single value is
+     * returned.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function mean(x, axis) {
       arity(1, arguments, "reduce-mean", false);
       checkTensor(x);
@@ -1651,6 +1691,13 @@
       return buildTensorObject(tf.mean(tensor, a));
     }
 
+    /**
+     * Computes the minimum of elements across the axis of x. If axis is none,
+     * all dimensions are reduced, and a Tensor containing a single value is
+     * returned.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function min(x, axis) {
       arity(1, arguments, "reduce-min", false);
       checkTensor(x);
@@ -1659,6 +1706,13 @@
       return buildTensorObject(tf.min(tensor, a));
     }
 
+    /**
+     * Computes the sum of elements across the axis of x. If axis is none,
+     * all dimensions are reduced, and a Tensor containing a single value is
+     * returned.
+     * @param {PyretTensor} x
+     * @returns {PyretTensor} The result
+     */
     function sum(x, axis) {
       arity(2, arguments, "reduce-sum", false);
       checkTensor(x);
@@ -1765,8 +1819,6 @@
      * Models (Generic)
      */
 
-    // Brand Checks
-
     /**
      * Returns PyretTrue if the input `obj` is a PyretModel; otherwise,
      * returns PyretFalse.
@@ -1777,8 +1829,6 @@
       arity(1, arguments, "is-model", false);
       return runtime.makeBoolean(hasBrand(brandModel, obj));
     }
-
-    // Constructor
 
     /**
      * Consumes a PyretModel and returns its underlying TensorFlow.js Model.
@@ -1821,8 +1871,6 @@
      * Models (Sequential)
      */
 
-    // Brand Checks
-
     /**
      * Returns PyretTrue if the input `obj` is a PyretSequential; otherwise,
      * returns PyretFalse.
@@ -1833,8 +1881,6 @@
       arity(1, arguments, "is-sequential", false);
       return runtime.makeBoolean(hasBrand(brandSequential, obj));
     }
-
-    // Constructor
 
     /**
      * Consumes a PyretSequential and returns its underlying TensorFlow.js
@@ -2035,8 +2081,6 @@
      * Dense Layer
      */
 
-    // Brand Checks
-
     /**
      * Returns PyretTrue if the input `obj` is a PyretLayer; otherwise,
      * returns PyretFalse.
@@ -2047,8 +2091,6 @@
       arity(1, arguments, "is-layer", false);
       return runtime.makeBoolean(hasBrand(brandLayer, obj));
     }
-
-    // Constructor
 
     /**
      * Consumes a PyretLayer and returns its underlying TensorFlow.js
@@ -2401,8 +2443,6 @@
      * Training (Optimizers)
      */
 
-    // Brand Checks
-
     /**
      * Returns PyretTrue if the input `obj` is a PyretOptimizer; otherwise,
      * returns PyretFalse.
@@ -2412,9 +2452,7 @@
     function isOptimizer(obj) {
       arity(1, arguments, "is-optimizer", false);
       return runtime.makeBoolean(hasBrand(brandOptimizer, obj));
-    }
-
-    // Constructors
+    }s
 
     /**
      * Consumes a PyretOptimizer and returns its underlying TensorFlow.js
