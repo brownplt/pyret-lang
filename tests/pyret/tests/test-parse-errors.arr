@@ -68,7 +68,10 @@ end
 bad-operator = [list:
   "0+",
   "*0",
-  "0+0"
+  "0+0",
+  "0*0",
+  "0 *0",
+  "0* 0"
 ]
 
 check "bad operator":

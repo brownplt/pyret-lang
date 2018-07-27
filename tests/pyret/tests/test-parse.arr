@@ -471,14 +471,18 @@ end
 
 check "combined provide syntax":
   does-parse("provide: x end") is true
-  does-parse("provide: x y z end") is true
-  does-parse("provide: x, y, z end") is false
+  does-parse("provide: x y z end") is false
+  does-parse("provide: x, y, z end") is true
 
   does-parse("provide: x y as end") is false
   does-parse("provide: x y as z") is false
-  does-parse("provide: x y as z end") is true
+  does-parse("provide: x y as z end") is false
+  does-parse("provide: x, y as z end") is true
 
   does-parse("provide: * end") is true
+  does-parse("provide: *, end") is true
+  does-parse("provide: * , end") is true
+  does-parse("provide: *\n end") is true
   does-parse("provide: * hiding (can,you,see,me) end") is true
   does-parse("provide: * hiding (can,you,see,me) hiding(a) end") is false
   does-parse("provide: * hiding () end") is true
@@ -493,8 +497,10 @@ check "combined provide syntax":
   does-parse("provide: data * hiding (is-link) end") is true
   does-parse("provide: data * hiding (is-link) hiding (a) end") is false
   does-parse("provide: module * end") is true
-  does-parse("provide: * hiding () * end") is true
-  does-parse("provide: * hiding (a) * end") is true
+  does-parse("provide: * hiding () * end") is false
+  does-parse("provide: * hiding (a) * end") is false
+  does-parse("provide: * hiding (), * end") is true
+  does-parse("provide: * hiding (a), * end") is true
 
   does-parse("provide: a as b hiding(c) end") is false
   does-parse("provide: a hiding(c) end") is false
@@ -522,9 +528,9 @@ check "combined provide syntax":
 
   does-parse(```
 provide:
-  data *
-  type *
-  module *
+  data *,
+  type *,
+  module *,
   *
 end
   ```) is true
@@ -533,8 +539,10 @@ end
 check "include from syntax":
   
   does-parse("include from A: x end") is true
-  does-parse("include from A: x y z end") is true
-  does-parse("include from A.B.C: x y z end") is true
+  does-parse("include from A: x y z end") is false
+  does-parse("include from A: x, y, z end") is true
+  does-parse("include from A.B.C: x y z end") is false
+  does-parse("include from A.B.C: x, y, z end") is true
   does-parse("include from A.B.C: type List end") is true
   does-parse("include from A: end") is true
   does-parse("include from A:end") is true
@@ -550,10 +558,10 @@ check "include from syntax":
   does-parse(```
 import lists as L
 include from L:
-  data Option
-  type NumList
-  type NumList as NList
-  module A
+  data Option,
+  type NumList,
+  type NumList as NList,
+  module A,
   type A.AnotherType as NList
 end
   ```) is true
@@ -561,9 +569,9 @@ end
   does-parse(```
 import lists as L
 include from L:
-  *
-  type *
-  module *
+  *,
+  type *,
+  module *,
   data *
 end
   ```) is true

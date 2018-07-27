@@ -229,7 +229,7 @@
           return makeListComma(node.kids, 0, node.kids.length, name);
         },
         'name-spec': function(node) {
-          if(node.kids[0].name === "STAR") {
+          if(node.kids[0].name === "STAR" || node.kids[0].name === "TIMES") {
             if(node.kids.length === 1) {
               return RUNTIME.getField(ast, "s-star").app(
                 pos(node.pos), makeListTr([]));
@@ -269,9 +269,11 @@
           return tr(node.kids[0]);
         },
         'provide-block': function(node) {
+          var skippedLast = 1;
+          if (node.kids[node.kids.length - 2].name === "COMMA") skippedLast++;
           return RUNTIME.getField(ast, "s-provide-block").app(
             pos(node.pos),
-            makeListTr(node.kids, 1, node.kids.length - 1));
+            makeListComma(node.kids, 1, node.kids.length - skippedLast));
         },
         'provide-vals-stmt': function(node) {
           if (node.kids.length === 2) {
@@ -285,7 +287,7 @@
           }
         },
         'provide-types-stmt': function(node) {
-          if (node.kids[1].name === "STAR") {
+          if (node.kids[1].name === "STAR" || node.kids[1].name === "TIMES") {
             return RUNTIME.getField(ast, 's-provide-types-all').app(pos(node.pos));
           } else {
             // will produce record-ann
@@ -307,9 +309,11 @@
                 .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
             }
           } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name === "FROM") {
+            var skippedLast = 1;
+            if (node.kids[node.kids.length - 2].name === "COMMA") skippedLast++;
             return RUNTIME.getField(ast, 's-include-from').app(pos(node.pos), 
               tr(node.kids[2]),
-              makeListTr(node.kids, 4, node.kids.length - 1));
+              makeListComma(node.kids, 4, node.kids.length - skippedLast));
           } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name !== "FROM") {
             // (import-stmt INCLUDE import-source)
             return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
@@ -1534,7 +1538,7 @@
             RUNTIME.ffi.throwParseErrorUnterminatedString(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-NUMBER")
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
-          else if (nextTok.name === "BAD-OPER")
+          else if (nextTok.name === "BAD-OPER" || nextTok.name === "STAR")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "COLONCOLON")
             RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));

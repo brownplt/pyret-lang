@@ -257,6 +257,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BAR", val: "|", parenIsForExp: true},
     {name: "EQUALS", val: "=", noFollow: new Set("~"), parenIsForExp: true},
     {name: "LANGLE", val: "<", noFollow: new Set(">=")},
+    {name: "STAR", val: "*", noFollow: new Set(wsString), needsWs: true, parenIsForExp: true},
     {name: "RANGLE", val: ">", noFollow: new Set("=")},
     { name: "NUMBER", val: "", firsts: new Set("~-+1234567890"),
       process: function tokenizeNumber(tok_spec) {
@@ -483,7 +484,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "PLUS", val: "+", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "DASH", val: "-", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
-    {name: "STAR", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "TIMES", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "SLASH", val: "/", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "SPACESHIP", val: "<=>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "LEQ", val: "<=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
