@@ -54,24 +54,53 @@
     /**
      * Tensorflow Brands and Annotations
      */
+
+    /**
+     * The Pyret version of a TensorFlow.js Tensor.
+     * @typedef {Object} PyretTensor
+     */
     var brandTensor = runtime.namedBrander("tensor", ["tensor: tensor brander"]);
     var annTensor = runtime.makeBranderAnn(brandTensor, "Tensor");
 
+    /**
+     * The Pyret version of a TensorFlow.js TensorBuffer.
+     * @typedef {Object} PyretTensorBuffer
+     */
     var brandTensorBuffer = runtime.namedBrander("tensor-buffer", ["tensor-buffer: tensor-buffer brander"]);
     var annTensorBuffer = runtime.makeBranderAnn(brandTensorBuffer, "TensorBuffer");
 
+    /**
+     * The Pyret version of a TensorFlow.js Model.
+     * @typedef {Object} PyretModel
+     */
     var brandModel = runtime.namedBrander("model", ["model: model brander"]);
     var annModel = runtime.makeBranderAnn(brandModel, "Model");
 
+    /**
+     * The Pyret version of a TensorFlow.js Sequential.
+     * @typedef {Object} PyretSequential
+     */
     var brandSequential = runtime.namedBrander("sequential", ["sequential: sequential brander"]);
     var annSequential = runtime.makeBranderAnn(brandSequential, "Sequential");
 
+    /**
+     * The Pyret version of a TensorFlow.js SymbolicTensor.
+     * @typedef {Object} PyretSymbolicTensor
+     */
     var brandSymbolicTensor = runtime.namedBrander("symbolic-tensor", ["symbolic-tensor: symbolic-tensor brander"]);
     var annSymbolicTensor = runtime.makeBranderAnn(brandSymbolicTensor, "SymbolicTensor");
 
+    /**
+     * The Pyret version of a TensorFlow.js Layer.
+     * @typedef {Object} PyretLayer
+     */
     var brandLayer = runtime.namedBrander("layer", ["layer: layer brander"]);
     var annLayer = runtime.makeBranderAnn(brandLayer, "Layer");
 
+    /**
+     * The Pyret version of a TensorFlow.js Optimizer.
+     * @typedef {Object} PyretOptimizer
+     */
     var brandOptimizer = runtime.namedBrander("optimizer", ["optimizer: optimizer brander"]);
     var annOptimizer = runtime.makeBranderAnn(brandOptimizer, "Optimizer");
 
@@ -135,7 +164,7 @@
      * Returns PyretTrue if the input `obj` is a PyretTensor; otherwise,
      * returns PyretFalse.
      * @param {Any} obj Some Pyret value
-     * @returns {PyretBoolean} A Pyret object representing true or false
+     * @returns {PBoolean} A Pyret object representing true or false
      */
     function isTensor(obj) {
       arity(1, arguments, "is-tensor", false);
@@ -626,7 +655,7 @@
      * Returns PyretTrue if the input `obj` is a P; otherwise,
      * returns PyretFalse.
      * @param {Any} obj Some Pyret value
-     * @returns {PyretBoolean} A Pyret object representing true or false
+     * @returns {PBoolean} A Pyret object representing true or false
      */
     function isTensorBuffer(obj) {
       arity(1, arguments, "is-tensor-buffer", false);
@@ -1738,6 +1767,12 @@
 
     // Brand Checks
 
+    /**
+     * Returns PyretTrue if the input `obj` is a PyretModel; otherwise,
+     * returns PyretFalse.
+     * @param {Any} obj Some Pyret value
+     * @returns {PBoolean} A Pyret object representing true or false
+     */
     function isModel(obj) {
       arity(1, arguments, "is-model", false);
       return runtime.makeBoolean(hasBrand(brandModel, obj));
@@ -1745,6 +1780,23 @@
 
     // Constructor
 
+    /**
+     * Consumes a PyretModel and returns its underlying TensorFlow.js Model.
+     * @param {PyretModel} PyretModel
+     * @returns {TFModel} The underlying TensorFlow.js Model
+     *  of the input PyretModel
+     */
+    function unwrapSequential(pyretModel) {
+      return pyretModel.$underlyingModel;
+    }
+
+    /**
+     * Consumes a TFModel and wraps it in a PyretObject to make it a
+     * PyretModel.
+     * @param {TFModel} underlyingLayer A TensorFlow.js Layer
+     * @returns {PyretModel} A new PyretModel with the input
+     *  as its underlying TFModel
+     */
     function buildModelObject(underlyingModel) {
       var obj = O({
         "_output": runtime.makeMethod0(function(self) {
@@ -1775,7 +1827,7 @@
      * Returns PyretTrue if the input `obj` is a PyretSequential; otherwise,
      * returns PyretFalse.
      * @param {Any} obj Some Pyret value
-     * @returns {PyretBoolean} A Pyret object representing true or false
+     * @returns {PBoolean} A Pyret object representing true or false
      */
     function isSequential(obj) {
       arity(1, arguments, "is-sequential", false);
@@ -1989,7 +2041,7 @@
      * Returns PyretTrue if the input `obj` is a PyretLayer; otherwise,
      * returns PyretFalse.
      * @param {Any} obj Some Pyret value
-     * @returns {PyretBoolean} A Pyret object representing true or false
+     * @returns {PBoolean} A Pyret object representing true or false
      */
     function isLayer(obj) {
       arity(1, arguments, "is-layer", false);
@@ -2355,7 +2407,7 @@
      * Returns PyretTrue if the input `obj` is a PyretOptimizer; otherwise,
      * returns PyretFalse.
      * @param {Any} obj Some Pyret value
-     * @returns {PyretBoolean} A Pyret object representing true or false
+     * @returns {PBoolean} A Pyret object representing true or false
      */
     function isOptimizer(obj) {
       arity(1, arguments, "is-optimizer", false);
