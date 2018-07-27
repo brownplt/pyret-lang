@@ -394,56 +394,81 @@ fun write-ast-visitors() block:
       ``` ^ get-stmts
 
       helpers-stmts = ```
-      fun wrap-str(s):
-        j-obj([string-dict:
-            "t", j-str("P"),
-            "v", j-obj([string-dict:
-                "t", j-str("St"),
-                "v", j-str(s)])])
-      end
-      fun wrap-num(n):
-        j-obj([string-dict:
-            "t", j-str("P"),
-            "v", j-obj([string-dict:
-                "t", j-str("N"),
-                "v", j-str(num-to-string(n))])])
-      end
-      fun wrap-bool(b):
-        j-obj([string-dict:
-            "t", j-str("P"),
-            "v", j-obj([string-dict:
-                "t", j-str("B"),
-                "v", j-bool(b)])])
-      end
-      fun wrap-loc(l):
-        j-obj([string-dict:
-            "t", j-str("P"),
-            "v", j-obj([string-dict:
-                "t", j-str("Lo"),
-                "v", j-str(l.format(false))])])
-      end
-      fun wrap-surf(name, args):
-        j-obj([string-dict:
-            "t", j-str("S"),
-            "v", j-obj([string-dict:
-                "n", j-str(name),
-                "ps", j-arr(args)
-              ])
-          ])
-      end
-      fun wrap-list(l):
-        j-obj([string-dict:
-            "t", j-str("L"),
-            "v", j-obj([string-dict:
-                "ps", j-arr(l),
-                "ellipsis", j-null])])
-      end
-      fun wrap-option(opt):
-        cases (Option) opt:
-          | none => [string-dict: "t", j-str("None")]
-          | some(v) => [string-dict: "t", j-str("Some"), "v", v]
-        end ^ j-obj
-      end
+aTYPE = "t"
+aVALUE = "v"
+aNAME = "n"
+aPATTERNS = "ps"
+
+aSTRING = "St"
+aNUMBER = "N"
+aBOOL = "B"
+aLOC = "Lo"
+aPRIM = "P"
+aSURFACE = "S"
+aCORE = "C"
+aLIST = "L"
+aNONE = "None"
+aSOME = "Some"
+aOPTION = "Option"
+aVAR = "Var"
+aTAG = "Tag"
+aPVAR = "PVar"
+aDROP = "Drop"
+aFRESH = "Fresh"
+aCAPTURE = "Capture"
+aEXT = "Ext"
+aAUX = "Aux"
+
+fun wrap-str(s):
+  j-obj([string-dict:
+      aTYPE, j-str(aPRIM),
+      aVALUE, j-obj([string-dict:
+          aTYPE, j-str(aSTRING),
+          aVALUE, j-str(s)])])
+end
+fun wrap-num(n):
+  j-obj([string-dict:
+      aTYPE, j-str(aPRIM),
+      aVALUE, j-obj([string-dict:
+          "t", j-str(aNUMBER),
+          "v", j-str(num-to-string(n))])])
+end
+fun wrap-bool(b):
+  j-obj([string-dict:
+      aTYPE, j-str(aPRIM),
+      aVALUE, j-obj([string-dict:
+          aTYPE, j-str(aBOOL),
+          aVALUE, j-bool(b)])])
+end
+fun wrap-loc(l):
+  j-obj([string-dict:
+      aTYPE, j-str(aPRIM),
+      aVALUE, j-obj([string-dict:
+          aTYPE, j-str(aLOC),
+          aVALUE, j-str(l.format(false))])])
+end
+fun wrap-surf(name, args):
+  j-obj([string-dict:
+      aTYPE, j-str(aSURFACE),
+      aVALUE, j-obj([string-dict:
+          aNAME, j-str(name),
+          aPATTERNS, j-arr(args)
+        ])
+    ])
+end
+fun wrap-list(l):
+  j-obj([string-dict:
+      aTYPE, j-str(aLIST),
+      aVALUE, j-obj([string-dict:
+          aPATTERNS, j-arr(l),
+          "ellipsis", j-null])])
+end
+fun wrap-option(opt):
+  cases (Option) opt:
+    | none => [string-dict: aTYPE, j-str(aOPTION), aVALUE, [string-dict: aTYPE, j-str(aNONE)]]
+    | some(v) => [string-dict: aTYPE, j-str(aOPTION), aVALUE, [string-dict: aTYPE, j-str(aSOME), aVALUE, v]]
+  end ^ j-obj
+end
         ``` ^ get-stmts
 
 
