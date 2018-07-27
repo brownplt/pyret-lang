@@ -159,23 +159,6 @@ fun generate-ast-visitor(
         end,
       }```
     },
-    'ast-to-term-visitor', {
-      transformer: ast-to-term-visitor-transform,
-      preamble: ```{
-        method option(self, opt):
-          cases(Option) opt:
-            | none => none
-            | some(v) => some(v.visit(self))
-          end
-        end,
-        method list(self, lst):
-          cases(List) lst:
-            | empty => empty
-            | link(f, r) => link(f.visit(self), self.list(r))
-          end
-        end,
-      }```
-    }
   ]
 
   body = for map(vname from requirements):
