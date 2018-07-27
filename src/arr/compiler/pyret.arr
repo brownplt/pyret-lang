@@ -11,6 +11,7 @@ import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
+import file("autogenerate.arr") as AG
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
@@ -76,7 +77,9 @@ fun main(args :: List<String>) -> Number block:
     "html-file",
       C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
     "no-module-eval",
-      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)")
+      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
+    "auto-generate",
+      C.flag(C.once, "When true, create all auto-generated files"),
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -123,7 +126,10 @@ fun main(args :: List<String>) -> Number block:
         print-error("Passing command line arguments without compiling standalone no longer supported\n")
         failure-code
       else:
-        if r.has-key("build-runnable") block:
+        if r.has-key("auto-generate") block:
+          AG.write-ast-visitors()
+          success-code
+        else if r.has-key("build-runnable"):
           outfile = if r.has-key("outfile"):
             r.get-value("outfile")
           else:

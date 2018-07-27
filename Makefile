@@ -88,7 +88,7 @@ phaseA: $(PHASEA)/pyret.jarr
 phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS) src/arr/trove/ast-visitors.arr
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
@@ -131,6 +131,9 @@ showpath:
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
 	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+
+# src/arr/trove/ast-visitors.arr: src/arr/trove/ast.arr src/arr/compiler/autogenerate.arr
+# 	$(NODE) $(PYRET_COMP0) -auto-generate
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
