@@ -2452,7 +2452,7 @@
     function isOptimizer(obj) {
       arity(1, arguments, "is-optimizer", false);
       return runtime.makeBoolean(hasBrand(brandOptimizer, obj));
-    }s
+    }
 
     /**
      * Consumes a PyretOptimizer and returns its underlying TensorFlow.js
