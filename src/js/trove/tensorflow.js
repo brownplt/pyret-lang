@@ -2492,7 +2492,7 @@
       arity(2, arguments, "train-momentum", false);
       runtime.checkNumber(learningRate);
       runtime.checkNumber(momentum);
-      var rate = runtime.num_to_fixnum(learningRate);
+      var rate   = runtime.num_to_fixnum(learningRate);
       var moment = runtime.num_to_fixnum(momentum);
       return buildOptimizerObject(tf.train.momentum(rate, moment));
     }
@@ -2507,7 +2507,7 @@
     function trainAdagrad(learningRate, initialAccumulatorValue) {
       arity(2, arguments, "train-adagrad", false);
       runtime.checkNumber(learningRate);
-      var rate = runtime.num_to_fixnum(learningRate);
+      var rate    = runtime.num_to_fixnum(learningRate);
       var initial = unwrapFixnumOption(initialAccumulatorValue);
       if ((initial !== null) && (initial <= 0)) {
         runtime.ffi.throwMessageException("The initial accumulator value " +
@@ -2544,10 +2544,10 @@
      */
     function trainAdam(learningRate, beta1, beta2, epsilon) {
       arity(4, arguments, "train-adam", false);
-      var l = unwrapFixnumOption(learningRate);
+      var l  = unwrapFixnumOption(learningRate);
       var b1 = unwrapFixnumOption(beta1);
       var b2 = unwrapFixnumOption(beta2);
-      var e = unwrapFixnumOption(epsilon);
+      var e  = unwrapFixnumOption(epsilon);
       return buildOptimizerObject(tf.train.adam(l, b1, b2, e));
     }
 
@@ -2564,11 +2564,11 @@
      */
     function trainAdamax(learningRate, beta1, beta2, epsilon, decay) {
       arity(5, arguments, "train-adamax", false);
-      var l = unwrapFixnumOption(learningRate);
+      var l  = unwrapFixnumOption(learningRate);
       var b1 = unwrapFixnumOption(beta1);
       var b2 = unwrapFixnumOption(beta2);
-      var e = unwrapFixnumOption(epsilon);
-      var d = unwrapFixnumOption(decay);
+      var e  = unwrapFixnumOption(epsilon);
+      var d  = unwrapFixnumOption(decay);
       return buildOptimizerObject(tf.train.adam(l, b1, b2, e, d));
     }
 
@@ -2589,10 +2589,10 @@
       runtime.checkNumber(learningRate);
       runtime.checkBoolean(centered);
       var rate = runtime.num_to_fixnum(learningRate);
-      var d = unwrapFixnumOption(decay);
-      var m = unwrapFixnumOption(momentum);
-      var e = unwrapFixnumOption(epsilon);
-      var c = runtime.isPyretTrue(centered);
+      var d    = unwrapFixnumOption(decay);
+      var m    = unwrapFixnumOption(momentum);
+      var e    = unwrapFixnumOption(epsilon);
+      var c    = runtime.isPyretTrue(centered);
       return buildOptimizerObject(tf.train.rmsprop(rate, d, m, e, c));
     }
 
