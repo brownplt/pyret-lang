@@ -553,11 +553,61 @@
       runtime.checkList(shape);
       runtime.checkNumber(value);
       var s = runtime.ffi.toArray(shape).map((x) => {
-        runtime.checkNumber(value);
+        runtime.checkNumInteger(x);
         return runtime.num_to_fixnum(x);
       });
       var v = runtime.num_to_fixnum(value);
       return buildTensorObject(tf.fill(s, v));
+    }
+
+    /**
+     * Returns a PyretTensor whose values are an evenly spaced sequence of
+     * numbers over the given interval.
+     * @param {Number} startRange The start value of the sequence
+     * @param {Number} stopRange The end value of the sequence
+     * @param {Number} numValues The number of values to generate
+     * @returns {PyretTensor} A one-dimensional PyretTensor whose values are
+     *  spread across the input range
+     */
+    function linspace(startRange, stopRange, numValues) {
+      arity(3, arguments, "linspace", false);
+      runtime.checkNumber(startRange);
+      runtime.checkNumber(stopRange);
+      runtime.checkNumber(numValues);
+      var start = runtime.num_to_fixnum(startRange);
+      var stop  = runtime.num_to_fixnum(stopRange);
+      var nums  = runtime.num_to_fixnum(numValues);
+      return buildTensorObject(tf.linspace(start, stop, nums));
+    }
+
+    /**
+     * Returns a PyretTensor with the given shape where every entry is a 1.
+     * @param {List<NumInteger>} shape The shape of the output tensor
+     * @returns {PyretTensor} A PyretTensor of ones with the input shape
+     */
+    function ones(shape) {
+      arity(1, arguments, "ones", false);
+      runtime.checkList(shape);
+      var s = runtime.ffi.toArray(shape).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      return buildTensorObject(tf.ones(s));
+    }
+
+    /**
+     * Returns a PyretTensor with the given shape where every entry is a 0.
+     * @param {List<NumInteger>} shape The shape of the output tensor
+     * @returns {PyretTensor} A PyretTensor of zeros with the input shape
+     */
+    function zeros(shape) {
+      arity(1, arguments, "zeros", false);
+      runtime.checkList(shape);
+      var s = runtime.ffi.toArray(shape).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      return buildTensorObject(tf.zeros(s));
     }
 
     /**
@@ -1595,70 +1645,85 @@
      */
 
     /**
-     * Reduces the input Tensor across all dimensions by computing the logical
+     * Reduces the input Tensor across the input axis by computing the logical
      * "and" of its elements. The input must be of type "bool"; otherwise, the
-     * function raises an error.
+     * function raises an error. If axis is none, reduces the tensor across
+     * all dimensions.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
-    function all(x) {
-      arity(1, arguments, "all", false);
+    function all(x, axis) {
+      arity(2, arguments, "all", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
-      return buildTensorObject(tf.all(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.all(tensor, a));
     }
 
     /**
-     * Reduces the input Tensor across all dimensions by computing the logical
+     * Reduces the input Tensor across the input axis by computing the logical
      * "or" of its elements. The input must be of type "bool"; otherwise, the
-     * function raises an error.
+     * function raises an error. If axis is none, reduces the tensor across
+     * all dimensions.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
-    function any(x) {
-      arity(1, arguments, "any", false);
+    function any(x, axis) {
+      arity(2, arguments, "any", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
-      return buildTensorObject(tf.any(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.any(tensor, a));
     }
 
     /**
      * Returns a new Tensor where each element is the index of the maximum
-     * values along the outermost dimension of x.
+     * values along the axis of x. If axis is none, reduces along the outermost
+     * dimension.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
-    function argMax(x) {
-      arity(1, arguments, "arg-max", false);
+    function argMax(x, axis) {
+      arity(2, arguments, "arg-max", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
-      return buildTensorObject(tf.argMax(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.argMax(tensor, a));
     }
 
     /**
      * Returns a new Tensor where each element is the index of the minimum
-     * values along the outermost dimension of x.
+     * values along the axis of x. If axis is none, reduces along the outermost
+     * dimension.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
-    function argMin(x) {
-      arity(1, arguments, "arg-min", false);
+    function argMin(x, axis) {
+      arity(2, arguments, "arg-min", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
-      return buildTensorObject(tf.argMin(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.argMin(tensor, a));
     }
 
     /**
      * Computes log(sum(exp(elements along the outermost dimension)). Reduces
-     * x along the outermost dimension.
+     * x along the axis of x. If axis is none, reduces along the outermost
+     * dimension.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
-    function logSumExp(x) {
-      arity(1, arguments, "log-sum-exp", false);
+    function logSumExp(x, axis) {
+      arity(2, arguments, "log-sum-exp", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
-      return buildTensorObject(tf.logSumExp(tensor));
+      var a = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.logSumExp(tensor, a));
     }
 
     /**
@@ -1666,6 +1731,7 @@
      * all dimensions are reduced, and a Tensor containing a single value is
      * returned.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function max(x, axis) {
@@ -1681,6 +1747,7 @@
      * all dimensions are reduced, and a Tensor containing a single value is
      * returned.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function mean(x, axis) {
@@ -1696,6 +1763,7 @@
      * all dimensions are reduced, and a Tensor containing a single value is
      * returned.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function min(x, axis) {
@@ -1711,6 +1779,7 @@
      * all dimensions are reduced, and a Tensor containing a single value is
      * returned.
      * @param {PyretTensor} x
+     * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function sum(x, axis) {
@@ -2649,6 +2718,9 @@
         make4: F(createTensor4, "tensor:make4"),
         make5: F(createTensor5, "tensor:make5")
       }),
+      "linspace": F(linspace, "linspace"),
+      "ones": F(ones, "ones"),
+      "zeros": F(zeros, "zeros"),
       "multinomial": F(multinomial, "multinomial"),
       "random-normal": F(randomNormal, "random-normal"),
       "random-uniform": F(randomUniform, "random-uniform"),
