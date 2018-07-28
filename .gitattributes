@@ -1,0 +1,2 @@
+lib/resugar/resugar.js linguist-generated=true
+lib/resugar/resugar.js -diff

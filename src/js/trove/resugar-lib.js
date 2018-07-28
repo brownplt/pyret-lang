@@ -5,7 +5,7 @@
         // { "import-type": "builtin", name: "lists" }
     ],
     nativeRequires: [
-        "resugar/resugar",
+        'resugar/resugar',
     ],
     provides: {},
     theModule: function(RUNTIME, NAMESPACE, uri, /* srclocLib, astLib, listsLib, */ resugarLib) {
@@ -16,13 +16,16 @@
         // var link = RUNTIME.getField(lists, "link");
         // var empty = RUNTIME.getField(lists, "empty");
 
-        function resugar(rules) {
+        function resugar(rules, settings) {
             // no resugar, yes srclocExt
-            return RUNTIME.makeFunction(resugarLib.runJSON(rules, [false, true]), "resugar");
+            return RUNTIME.makeFunction(resugarLib.runJSON(rules, {
+                resugar: RUNTIME.getField(settings, 'resugar'),
+                srclocExt: RUNTIME.getField(settings, 'srclocExt')
+            }), 'resugar');
         }
 
         return RUNTIME.makeModuleReturn({
-            'resugar': RUNTIME.makeFunction(resugar, "resugar")
+            resugar: RUNTIME.makeFunction(resugar, 'resugar')
         }, {});
     }
 })

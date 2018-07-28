@@ -1293,6 +1293,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           end
         | s-atom(_, _) => A.s-id(l, id)
         | s-underscore(_) => A.s-id(l, id)
+        | s-global(_) => A.s-id(l, id)
         | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
       end
     end,

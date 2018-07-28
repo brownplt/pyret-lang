@@ -391,7 +391,17 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
           add-phase("Added imports", imported)
-          var scoped = RS.desugar-scope(imported, env)
+
+
+          var first-desugared = RESUGAR.resugar(imported, locator.uri())
+          # first-desugared
+          #   ^ _.tosource()
+          #   ^ _.pretty(80)
+          #   ^ _.join-str("\n")
+          #   ^ print
+          # print("\n\n")
+
+          var scoped = RS.desugar-scope(first-desugared, env)
           imported := nothing
           add-phase("Desugared scope", scoped)
           var named-result = RS.resolve-names(scoped.ast, env)
@@ -409,8 +419,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
 
-            RESUGAR.resugar(named-result.ast)
+
             var desugared = D.desugar(named-result.ast)
+            first-desugared := nothing
             named-result.bindings.merge-now(desugared.new-binds)
             # ...in order to be checked for bad assignments here
             any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)

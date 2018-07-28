@@ -290,6 +290,7 @@ fun write-ast-visitors() block:
       A.s-include(dummy, A.s-const-import(dummy, 'lists')),
       A.s-include(dummy, A.s-const-import(dummy, 'option')),
       A.s-include(dummy, A.s-const-import(dummy, 'json-structs')),
+      A.s-include(dummy, A.s-const-import(dummy, 'srcloc')),
     ],
     'src/arr/trove/ast.arr',
     'src/arr/trove/resugar-visitor.arr',
@@ -299,7 +300,7 @@ fun write-ast-visitors() block:
       fun get-arg-list(lst :: List<A.Bind>) -> List<A.Expr>:
         for map_n(i from 0, _ from lst):
           [list: AT.make-method-call(AT.make-id('args'), 'get', [list: A.s-num(dummy, i)])]
-            ^ A.s-app(dummy, AT.make-id("term-to-ast"), _)
+            ^ A.s-app(dummy, AT.make-id("loop"), _)
         end
       end
 
@@ -338,60 +339,64 @@ fun write-ast-visitors() block:
         string-dict-args.reverse())
 
       term-to-ast-stmts = ```
-      rec lookup-dict = ...
 
-      fun term-to-ast(top-json):
-        top = top-json.dict # we are sure top-json is a j-obj
-        typ = top.get-value("t").s
-        ask block:
-          | typ == "C" then:
-            surface-json = top.get-value("v")
-            surface = surface-json.dict
-            lookup-dict.get-value(surface.get-value("n").s)(
-              let patterns-json = surface.get-value("ps"):
-                patterns-json.l # we are sure patterns-json is a j-arr
-              end)
-          | typ == "P" then:
-            prim-json = top.get-value("v")
-            prim = prim-json.dict
-            shadow typ = prim.get-value("t").s
-            value-json = prim.get-value("v")
-            ask:
-              | typ == "B" then:
-                value-json.b # we are sure value-json is a j-bool
-              | typ == "N" then:
-                string-to-number(value-json.s).value # we are sure value-json is a j-str
-              | typ == "St" then:
-                value-json.s # we are sure value-json is a j-str
-              | typ == "Lo" then:
-                dummy-loc
-            end
-          | typ == "L" then:
-            list-json = top.get-value("v")
-            patterns = list-json.l # we are sure list-json is a j-arr
-            patterns.map(term-to-ast)
-          | typ == "Option" then:
-            opt-json = top.get-value("v")
-            opt = opt-json.dict # we are sure opt-json is a j-obj
-            shadow typ = opt.get-value("typ").s
-            ask:
-              | typ == "None" then:
-                none
-              | otherwise:
-                value-json = opt.get-value("v")
-                some(term-to-ast(value-json))
-            end
-          | typ == "Tag" then:
-            tag-json = top.get-value("v")
-            tag = tag-json.dict # we are sure tag-json is a j-obj
-            term-to-ast(tag.get-value("body"))
-          | typ == "Var" then:
-            var-json = top.get-value("v")
-            variable = var-json.s # we are sure var-json is a j-str
-            s-name(dummy-loc, variable)
+fun term-to-ast(top-json, uri):
+  rec lookup-dict = ...
+
+  fun loop(shadow top-json):
+    top = top-json.dict # we are sure top-json is a j-obj
+    typ = top.get-value(aTYPE).s
+    ask:
+      | typ == aCORE then:
+        surface-json = top.get-value(aVALUE)
+        surface = surface-json.dict
+        lookup-dict.get-value(surface.get-value("n").s)(
+          let patterns-json = surface.get-value("ps"):
+            patterns-json.l # we are sure patterns-json is a j-arr
+          end)
+      | typ == aPRIM then:
+        prim-json = top.get-value(aVALUE)
+        prim = prim-json.dict
+        shadow typ = prim.get-value(aTYPE).s
+        value-json = prim.get-value(aVALUE)
+        ask:
+          | typ == aBOOL then:
+            value-json.b # we are sure value-json is a j-bool
+          | typ == aNUMBER then:
+            string-to-number(value-json.s).value # we are sure value-json is a j-str
+          | typ == aSTRING then:
+            value-json.s # we are sure value-json is a j-str
+          | typ == aLOC then:
+            deserialize(value-json.s, uri) # we are sure value-json is a j-str
         end
-      end
-      ``` ^ get-stmts
+      | typ == aLIST then:
+        list-json = top.get-value(aVALUE)
+        patterns = list-json.l # we are sure list-json is a j-arr
+        patterns.map(loop)
+      | typ == aOPTION then:
+        opt-json = top.get-value(aVALUE)
+        opt = opt-json.dict # we are sure opt-json is a j-obj
+        shadow typ = opt.get-value(aTYPE).s
+        ask:
+          | typ == aNONE then:
+            none
+          | typ == aSOME then:
+            value-json = opt.get-value(aVALUE)
+            some(loop(value-json))
+        end
+      | typ == aTAG then:
+        tag-json = top.get-value(aVALUE)
+        tag = tag-json.dict # we are sure tag-json is a j-obj
+        loop(tag.get-value("body"))
+      | typ == aVAR then:
+        var-json = top.get-value(aVALUE)
+        variable = var-json.s # we are sure var-json is a j-str
+        s-name(dummy-loc, variable)
+    end
+  end
+  loop(top-json)
+end
+``` ^ get-stmts
 
       helpers-stmts = ```
 aTYPE = "t"
@@ -418,6 +423,7 @@ aFRESH = "Fresh"
 aCAPTURE = "Capture"
 aEXT = "Ext"
 aAUX = "Aux"
+aMETA = "Meta"
 
 fun wrap-str(s):
   j-obj([string-dict:
@@ -445,16 +451,14 @@ fun wrap-loc(l):
       aTYPE, j-str(aPRIM),
       aVALUE, j-obj([string-dict:
           aTYPE, j-str(aLOC),
-          aVALUE, j-str(l.format(false))])])
+          aVALUE, j-str(l.serialize())])])
 end
 fun wrap-surf(name, args):
   j-obj([string-dict:
       aTYPE, j-str(aSURFACE),
       aVALUE, j-obj([string-dict:
           aNAME, j-str(name),
-          aPATTERNS, j-arr(args)
-        ])
-    ])
+          aPATTERNS, j-arr(args)])])
 end
 fun wrap-list(l):
   j-obj([string-dict:
@@ -465,8 +469,8 @@ fun wrap-list(l):
 end
 fun wrap-option(opt):
   cases (Option) opt:
-    | none => [string-dict: aTYPE, j-str(aOPTION), aVALUE, [string-dict: aTYPE, j-str(aNONE)]]
-    | some(v) => [string-dict: aTYPE, j-str(aOPTION), aVALUE, [string-dict: aTYPE, j-str(aSOME), aVALUE, v]]
+    | none => [string-dict: aTYPE, j-str(aOPTION), aVALUE, j-obj([string-dict: aTYPE, j-str(aNONE)])]
+    | some(v) => [string-dict: aTYPE, j-str(aOPTION), aVALUE, j-obj([string-dict: aTYPE, j-str(aSOME), aVALUE, v])]
   end ^ j-obj
 end
         ``` ^ get-stmts

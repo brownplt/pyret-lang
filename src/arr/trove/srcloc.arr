@@ -24,15 +24,16 @@ data Srcloc:
     method contains(self, other):
       false
     end,
-    method is-builtin(self): true end
+    method is-builtin(self): true end,
+    method serialize(self): "b" + self.module-name end
   | srcloc(
-        source :: String,
-        start-line :: Number,
-        start-column :: Number,
-        start-char :: Number,
-        end-line :: Number,
-        end-column :: Number,
-        end-char :: Number
+      source :: String,
+      start-line :: Number,
+      start-column :: Number,
+      start-char :: Number,
+      end-line :: Number,
+      end-column :: Number,
+      end-char :: Number
       ) with:
     method format(self, show-file):
       doc: "Returns either 'file: line, col' or just 'line, col', depending on the show-file flag"
@@ -109,12 +110,27 @@ data Srcloc:
     end,
     method contains(self, other):
       is-srcloc(other)
-        and (self.start-line <= other.start-line)
-        and (self.start-char <= other.start-char)
-        and (self.end-line >= other.end-line)
-        and (self.end-char >= other.end-char)
+      and (self.start-line <= other.start-line)
+      and (self.start-char <= other.start-char)
+      and (self.end-line >= other.end-line)
+      and (self.end-char >= other.end-char)
     end,
-    method is-builtin(self): false end
+    method is-builtin(self): false end,
+    method serialize(self):
+      tostring(self.start-line) + "," + tostring(self.start-column) + "," +
+      tostring(self.start-char) + "," +
+      tostring(self.end-line) + "," + tostring(self.end-column) + "," +
+      tostring(self.end-char)
+    end
 sharing:
   method after(self, other): other.before(self) end
+end
+
+fun deserialize(s :: String, uri :: String):
+  if string-char-at(s, 0) == "b":
+    builtin(string-substring(s, 1, string-length(s)))
+  else:
+    lst = string-split-all(s, ",").map(string-to-number).map(_.value)
+    srcloc(uri, lst.get(0), lst.get(1), lst.get(2), lst.get(3), lst.get(4), lst.get(5))
+  end
 end

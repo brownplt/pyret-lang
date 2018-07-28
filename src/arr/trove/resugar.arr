@@ -22,7 +22,6 @@ sugar s-method-app:
   | (s-method-app l2 obj field args) => (s-app (s-dot @l2 obj field) args)
 end
 
-
 sugar check-ann:
   | (check-ann expr ann) =>
     (fresh x (s-let-expr [(s-let-bind (s-bind false x ann) expr)] (s-id x) true))
@@ -37,14 +36,20 @@ sugar mk-s-lam:
     (s-lam "" [] params (a-blank) "" body none none false)
 end
 
-sugar not:
-  | (not x) => (s-prim-app "not" [x] (flat-prim-app))
-end
+################################################################################
+# DONE: s-when
+################################################################################
 
-sugar is-boolean:
-  | (is-boolean x) => (s-prim-app "isBoolean" [x] (flat-prim-app))
+sugar s-when:
+  | (s-when @l test body blocky) =>
+    (fresh cond
+      (s-let-expr
+        [(s-let-bind (mk-s-bind cond) test)]
+        (s-if-else [(s-if-branch (s-id cond) (s-block [body (g-id "nothing")]))]
+                   (g-id "nothing")
+                   blocky)
+        false))
 end
-
 
 ################################################################################
 # DONE: s-if, s-if-else, s-if-pipe, s-if-pipe-else
@@ -64,6 +69,10 @@ sugar s-if-pipe:
     (s-if-else branches (no-branch-exn "ask") blocky)
 end
 
+sugar s-if-pipe-branch:
+  | (s-if-pipe-branch test body) => (s-if-branch test body)
+end
+
 sugar s-if-pipe-else:
   | (s-if-pipe-else branches else blocky) => (s-if-else branches else blocky)
 end
@@ -72,6 +81,48 @@ sugar s-if-else:
   | (s-if-else [] else blocky) => else
   | (s-if-else [branch rest_{x} ...x] else blocky) =>
     <s-if-else [branch] (s-if-else [rest_{x} ...x] else blocky) blocky>
+end
+
+################################################################################
+# DONE: s-construct
+################################################################################
+
+sugar s-construct-normal:
+  | (s-construct-normal) => {s-construct-normal}
+end
+
+sugar s-construct-lazy:
+  | (s-construct-lazy) => {s-construct-lazy}
+end
+
+sugar s-construct-help:
+  | (s-construct-help @l constructor js-name id-name elts) =>
+    (s-app @(meta get-loc constructor)
+           (s-prim-app @(meta get-loc constructor)
+                       js-name [constructor (s-str id-name) (s-srcloc l)
+                                (s-srcloc (meta get-loc constructor))]
+                       (flat-prim-app))
+           elts)
+end
+
+sugar s-construct:
+  | (s-construct {s-construct-normal} constructor []) =>
+    (s-construct-help constructor "getMaker0" "make0" [])
+  | (s-construct {s-construct-normal} constructor [e1]) =>
+    (s-construct-help constructor "getMaker1" "make1" [e1])
+  | (s-construct {s-construct-normal} constructor [e1 e2]) =>
+    (s-construct-help constructor "getMaker2" "make2" [e1 e2])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3]) =>
+    (s-construct-help constructor "getMaker3" "make3" [e1 e2 e3])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4]) =>
+    (s-construct-help constructor "getMaker4" "make4" [e1 e2 e3 e4])
+  | (s-construct {s-construct-normal} constructor [e1 e2 e3 e4 e5]) =>
+    (s-construct-help constructor "getMaker5" "make5" [e1 e2 e3 e4 e5])
+  | (s-construct {s-construct-normal} constructor elts) =>
+    (s-construct-help constructor "getMaker" "make" [(s-array elts)])
+  | (s-construct {s-construct-lazy} constructor [elt_{x} ...x]) =>
+    (s-construct-help constructor "getLazyMaker" "lazy-make"
+      [(s-array [(mk-s-lam [] elt_{x}) ...x])])
 end
 
 ################################################################################
@@ -91,36 +142,30 @@ sugar s-paren:
   | (s-paren body) => body
 end
 
-
 ################################################################################
-# DONE: s-table
+# DONE: s-for
 ################################################################################
 
-sugar s-field-name:
-  | (s-field-name @l name ann) => {s-field-name l name ann}
+sugar s-for-bind:
+  | (s-for-bind bind value) => {s-for-bind bind value}
 end
 
-sugar s-table-row:
-  | (s-table-row elems) => {s-table-row elems}
-end
-
-sugar s-table:
-  | (s-table [{s-field-name l_{i} name_{i} ann_{i}} ...i] [{s-table-row [val_{i j} ...i]} ...j]) =>
-    (s-prim-app "makeTable"
-      [(s-array [(s-str @l_{i} name_{i}) ...i])
-       (s-array [(s-array [(check-ann val_{i j} ann_{i}) ...i]) ...j])]
-      (flat-prim-app))
+sugar s-for:
+  | (s-for @l iter [{s-for-bind bind_{i} value_{i}} ...i] ann body blocky) =>
+    (s-app
+      iter
+      [(s-lam
+         (meta string-append "<for-body"
+                             (meta string-append (meta loc-to-string l) ">"))
+         [] [bind_{i} ...i] ann "" body none none blocky)
+       value_{i} ...i])
 end
 ```
 
-resugarer = RL.resugar(rules)
+resugarer = RL.resugar(rules, {resugar: false, srclocExt: true})
 
-fun resugar(ast):
+fun resugar(ast, uri :: String):
   resugarer(ast.visit(RV.ast-to-term-visitor).serialize())
     ^ JSON.read-json
-    ^ RV.term-to-ast
-    ^ _.tosource()
-    ^ _.pretty(80)
-    ^ _.join-str("\n")
-    # ^ print
+    ^ RV.term-to-ast(_, uri)
 end

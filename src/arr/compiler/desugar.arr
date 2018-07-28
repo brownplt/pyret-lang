@@ -82,9 +82,6 @@ end
 fun bool-op-exn(l, position, typ, val):
   A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val], flat-prim-app)
 end
-fun template-exn(l):
-  A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)], flat-prim-app)
-end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
@@ -122,6 +119,14 @@ fun desugar(program :: A.Program):
           - contains no s-provide in headers
           - all where blocks are none
           - contains no s-name (e.g. call resolve-names first)
+        Additionally, with the desugaring language:
+          - contains no s-when
+          - contains no s-if, s-if-pipe, s-if-pipe-else
+          - contains no s-user-block
+          - contains no s-template
+          - contains no s-for
+          - contains no s-construct
+          - contains no s-paren
         Postconditions on program:
           - in addition to preconditions,
             contains no s-for, s-if (will all be s-if-else), s-op, s-method-field,
@@ -166,12 +171,8 @@ fun get-arith-op(str):
   end
 end
 
-fun desugar-if(l, branches, _else :: A.Expr, blocky):
-  for fold(acc from desugar-expr(_else), branch from branches.reverse()):
-    A.s-if-else(l,
-      [list: A.s-if-branch(branch.l, desugar-expr(branch.test), desugar-expr(branch.body))],
-      acc, blocky)
-  end
+fun desugar-if-branch(branch):
+  A.s-if-branch(branch.l, desugar-expr(branch.test), desugar-expr(branch.body))
 end
 
 fun desugar-cases-bind(cb):
@@ -361,9 +362,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
-    | s-user-block(l, body) =>
-      desugar-expr(body)
-    | s-template(l) => template-exn(l)
     | s-app(l, f, args) =>
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args, app-info) =>
@@ -406,25 +404,8 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-data-expr(l, name, namet, params, mixins.map(desugar-expr), variants.map(extend-variant),
         shared.map(desugar-member), _check-loc, desugar-opt(desugar-expr, _check))
-    | s-when(l, test, body, blocky) =>
-      ds-test = desugar-expr(test)
-      g-nothing = gid(l, "nothing")
-      ds-body = desugar-expr(body)
-      A.s-if-else(l,
-        [list:
-          A.s-if-branch(l, ds-test, if A.is-s-block(body): A.s-block(l, ds-body.stmts + [list: g-nothing])
-            else: A.s-block(l, [list: ds-body, g-nothing])
-            end)],
-        A.s-block(l, [list: g-nothing]),
-        blocky)
-    | s-if(l, branches, blocky) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "if")]), blocky)
     | s-if-else(l, branches, _else, blocky) =>
-      desugar-if(l, branches, _else, blocky)
-    | s-if-pipe(l, branches, blocky) =>
-      desugar-if(l, branches, A.s-block(l, [list: no-branches-exn(l, "ask")]), blocky)
-    | s-if-pipe-else(l, branches, _else, blocky) =>
-      desugar-if(l, branches, _else, blocky)
+      A.s-if-else(l, branches.map(desugar-if-branch), desugar-expr(_else), blocky)
     | s-cases(l, typ, val, branches, blocky) =>
       A.s-cases(l, desugar-ann(typ), desugar-expr(val), branches.map(desugar-case-branch), blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch),
@@ -443,11 +424,6 @@ fun desugar-expr(expr :: A.Expr):
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
-    | s-for(l, iter, bindings, ann, body, blocky) =>
-      values = bindings.map(_.value).map(desugar-expr)
-      name = "for-body<" + l.format(false) + ">"
-      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, none, blocky)
-      A.s-app(l, desugar-expr(iter), link(the-function, values))
     | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
@@ -539,32 +515,6 @@ fun desugar-expr(expr :: A.Expr):
     | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
     | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
-    | s-construct(l, modifier, constructor, elts) =>
-      cases(A.ConstructModifier) modifier:
-        | s-construct-normal =>
-          len = elts.length()
-          desugared-elts = elts.map(desugar-expr)
-          if len <= 5:
-            A.s-app(constructor.l,
-              A.s-prim-app(constructor.l, "getMaker" + tostring(len),
-                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make" + tostring(len)),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
-              desugared-elts)
-          else:
-            A.s-app(constructor.l,
-              A.s-prim-app(constructor.l, "getMaker",
-                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make"),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
-              [list: A.s-array(l, desugared-elts)])
-          end
-        | s-construct-lazy =>
-          A.s-app(constructor.l,
-            A.s-prim-app(constructor.l, "getLazyMaker",
-              [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "lazy-make"),
-                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
-            [list: A.s-array(l,
-                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
-      end
     | s-reactor(l, fields) =>
       fields-by-name = SD.make-mutable-string-dict()
       init-and-non-init = for lists.partition(f from fields) block:
@@ -603,7 +553,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-prim-app(l, "makeTable",
         [list: A.s-array(l, column-names),
                A.s-array(l, rows)], flat-prim-app)
-    | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
     | s-var(_, _, _)              => raise("s-var should have already been desugared")
@@ -947,6 +896,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+    | s-array(l, vals) => A.s-array(l, vals.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
@@ -966,25 +916,6 @@ where:
   ask-otherwise = "ask: | true then: 5 | otherwise: 6 end"
   p(if-else) ^ pretty is if-else
   p(ask-otherwise) ^ pretty is ask-otherwise
-
-  prog2 = p("[list: 1,2,1 + 2]")
-  ds(prog2)
-    is A.s-block(d,
-    [list:  A.s-app(d,
-        A.s-prim-app(d, "getMaker3", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make3"), A.s-srcloc(d, d), A.s-srcloc(d, d)], flat-prim-app),
-        [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
-
-  prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
-  ds(prog3)
-    is A.s-block(d,
-    [list:  A.s-app(d,
-        A.s-prim-app(d, "getMaker", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make"), A.s-srcloc(d, d), A.s-srcloc(d, d)], flat-prim-app),
-        [list:  A.s-array(d,
-            [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
-              one, two, A.s-app(d, id("_plus"), [list: two, one])])])])
-
-  prog4 = p("for map(elt from l): elt + 1 end")
-  ds(prog4) is p("map(lam(elt): _plus(elt, 1) end, l)")
 
   # Some kind of bizarre parse error here
   # prog4 = p("(((5 + 1)) == 6) or o^f")

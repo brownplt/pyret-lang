@@ -6,6 +6,7 @@ include string-dict
 include lists
 include option
 include json-structs
+include srcloc
 import global as _
 import base as _
 aTYPE = "t"
@@ -31,6 +32,7 @@ aFRESH = "Fresh"
 aCAPTURE = "Capture"
 aEXT = "Ext"
 aAUX = "Aux"
+aMETA = "Meta"
 fun wrap-str(s):
   j-obj([string-dict: 
       aTYPE,
@@ -60,7 +62,7 @@ fun wrap-loc(l):
       aTYPE,
       j-str(aPRIM),
       aVALUE,
-      j-obj([string-dict: aTYPE, j-str(aLOC), aVALUE, j-str(l.format(false))])
+      j-obj([string-dict: aTYPE, j-str(aLOC), aVALUE, j-str(l.serialize())])
     ])
 end
 fun wrap-surf(name, args):
@@ -86,14 +88,14 @@ fun wrap-option(opt):
           aTYPE,
           j-str(aOPTION),
           aVALUE,
-          [string-dict: aTYPE, j-str(aNONE)]
+          j-obj([string-dict: aTYPE, j-str(aNONE)])
         ]
     | some(v) =>
       [string-dict: 
           aTYPE,
           j-str(aOPTION),
           aVALUE,
-          [string-dict: aTYPE, j-str(aSOME), aVALUE, v]
+          j-obj([string-dict: aTYPE, j-str(aSOME), aVALUE, v])
         ]
   end
   ^
@@ -1026,875 +1028,755 @@ shadow ast-to-term-visitor =
       wrap-surf("a-field", [list: wrap-loc(l), wrap-str(name), ann.visit(self)])
     end
   }
-rec lookup-dict =
-  [string-dict: 
-    "s-underscore",
-    lam(args): s-underscore(term-to-ast(args.get(0))) end,
-    "s-name",
-    lam(args): s-name(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-global",
-    lam(args): s-global(term-to-ast(args.get(1))) end,
-    "s-type-global",
-    lam(args): s-type-global(term-to-ast(args.get(1))) end,
-    "s-atom",
-    lam(args): s-atom(term-to-ast(args.get(1)), term-to-ast(args.get(2))) end,
-    "app-info-c",
-    lam(args):
-      app-info-c(term-to-ast(args.get(1)), term-to-ast(args.get(2)))
-    end,
-    "prim-app-info-c",
-    lam(args): prim-app-info-c(term-to-ast(args.get(1))) end,
-    "s-program",
-    lam(args):
-      s-program(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-include",
-    lam(args): s-include(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-import",
-    lam(args):
-      s-import(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-import-types",
-    lam(args):
-      s-import-types(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-import-fields",
-    lam(args):
-      s-import-fields(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-import-complete",
-    lam(args):
-      s-import-complete(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)))
-    end,
-    "p-value",
-    lam(args):
-      p-value(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "p-alias",
-    lam(args):
-      p-alias(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "p-data",
-    lam(args):
-      p-data(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-provide",
-    lam(args): s-provide(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-provide-complete",
-    lam(args):
-      s-provide-complete(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-provide-all",
-    lam(args): s-provide-all(term-to-ast(args.get(0))) end,
-    "s-provide-none",
-    lam(args): s-provide-none(term-to-ast(args.get(0))) end,
-    "s-provide-types",
-    lam(args):
-      s-provide-types(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-provide-types-all",
-    lam(args): s-provide-types-all(term-to-ast(args.get(0))) end,
-    "s-provide-types-none",
-    lam(args): s-provide-types-none(term-to-ast(args.get(0))) end,
-    "s-const-import",
-    lam(args):
-      s-const-import(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-special-import",
-    lam(args):
-      s-special-import(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "h-use-loc",
-    lam(args): h-use-loc(term-to-ast(args.get(0))) end,
-    "s-let-bind",
-    lam(args):
-      s-let-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-var-bind",
-    lam(args):
-      s-var-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-letrec-bind",
-    lam(args):
-      s-letrec-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-type-bind",
-    lam(args):
-      s-type-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-newtype-bind",
-    lam(args):
-      s-newtype-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-defined-value",
-    lam(args):
-      s-defined-value(term-to-ast(args.get(1)), term-to-ast(args.get(2)))
-    end,
-    "s-defined-var",
-    lam(args):
-      s-defined-var(term-to-ast(args.get(1)), term-to-ast(args.get(2)))
-    end,
-    "s-defined-type",
-    lam(args):
-      s-defined-type(term-to-ast(args.get(1)), term-to-ast(args.get(2)))
-    end,
-    "s-module",
-    lam(args):
-      s-module(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)))
-    end,
-    "s-template",
-    lam(args): s-template(term-to-ast(args.get(0))) end,
-    "s-type-let-expr",
-    lam(args):
-      s-type-let-expr(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-let-expr",
-    lam(args):
-      s-let-expr(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-letrec",
-    lam(args):
-      s-letrec(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-hint-exp",
-    lam(args):
-      s-hint-exp(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-instantiate",
-    lam(args):
-      s-instantiate(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-block",
-    lam(args): s-block(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-user-block",
-    lam(args):
-      s-user-block(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-fun",
-    lam(args):
-      s-fun(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)),
-        term-to-ast(args.get(9)))
-    end,
-    "s-type",
-    lam(args):
-      s-type(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-newtype",
-    lam(args):
-      s-newtype(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-var",
-    lam(args):
-      s-var(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-rec",
-    lam(args):
-      s-rec(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-let",
-    lam(args):
-      s-let(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-ref",
-    lam(args): s-ref(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-contract",
-    lam(args):
-      s-contract(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-when",
-    lam(args):
-      s-when(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-assign",
-    lam(args):
-      s-assign(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-if-pipe",
-    lam(args):
-      s-if-pipe(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-if-pipe-else",
-    lam(args):
-      s-if-pipe-else(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-if",
-    lam(args):
-      s-if(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-if-else",
-    lam(args):
-      s-if-else(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-cases",
-    lam(args):
-      s-cases(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-cases-else",
-    lam(args):
-      s-cases-else(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)))
-    end,
-    "s-op",
-    lam(args):
-      s-op(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-check-test",
-    lam(args):
-      s-check-test(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-check-expr",
-    lam(args):
-      s-check-expr(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-paren",
-    lam(args): s-paren(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-lam",
-    lam(args):
-      s-lam(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)),
-        term-to-ast(args.get(9)))
-    end,
-    "s-method",
-    lam(args):
-      s-method(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)),
-        term-to-ast(args.get(9)))
-    end,
-    "s-extend",
-    lam(args):
-      s-extend(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-update",
-    lam(args):
-      s-update(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-tuple",
-    lam(args): s-tuple(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-tuple-get",
-    lam(args):
-      s-tuple-get(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-obj",
-    lam(args): s-obj(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-array",
-    lam(args): s-array(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-construct",
-    lam(args):
-      s-construct(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-app",
-    lam(args):
-      s-app(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-app-enriched",
-    lam(args):
-      s-app-enriched(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-prim-app",
-    lam(args):
-      s-prim-app(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-prim-val",
-    lam(args):
-      s-prim-val(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-id",
-    lam(args): s-id(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-id-var",
-    lam(args): s-id-var(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-id-letrec",
-    lam(args):
-      s-id-letrec(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-undefined",
-    lam(args): s-undefined(term-to-ast(args.get(0))) end,
-    "s-srcloc",
-    lam(args): s-srcloc(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-num",
-    lam(args): s-num(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-frac",
-    lam(args):
-      s-frac(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-rfrac",
-    lam(args):
-      s-rfrac(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-bool",
-    lam(args): s-bool(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-str",
-    lam(args): s-str(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-dot",
-    lam(args):
-      s-dot(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-get-bang",
-    lam(args):
-      s-get-bang(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-bracket",
-    lam(args):
-      s-bracket(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-data",
-    lam(args):
-      s-data(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)))
-    end,
-    "s-data-expr",
-    lam(args):
-      s-data-expr(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)))
-    end,
-    "s-for",
-    lam(args):
-      s-for(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)))
-    end,
-    "s-check",
-    lam(args):
-      s-check(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-reactor",
-    lam(args): s-reactor(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "s-table-extend",
-    lam(args):
-      s-table-extend(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-update",
-    lam(args):
-      s-table-update(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-select",
-    lam(args):
-      s-table-select(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-order",
-    lam(args):
-      s-table-order(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-filter",
-    lam(args):
-      s-table-filter(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-extract",
-    lam(args):
-      s-table-extract(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table",
-    lam(args):
-      s-table(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-load-table",
-    lam(args):
-      s-load-table(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-spy-block",
-    lam(args):
-      s-spy-block(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-row",
-    lam(args):
-      s-table-row(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-spy-expr",
-    lam(args):
-      s-spy-expr(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-construct-normal",
-    lam(args): s-construct-normal end,
-    "s-construct-lazy",
-    lam(args): s-construct-lazy end,
-    "s-bind",
-    lam(args):
-      s-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-tuple-bind",
-    lam(args):
-      s-tuple-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-data-field",
-    lam(args):
-      s-data-field(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-mutable-field",
-    lam(args):
-      s-mutable-field(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-method-field",
-    lam(args):
-      s-method-field(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)),
-        term-to-ast(args.get(5)),
-        term-to-ast(args.get(6)),
-        term-to-ast(args.get(7)),
-        term-to-ast(args.get(8)),
-        term-to-ast(args.get(9)))
-    end,
-    "s-field-name",
-    lam(args):
-      s-field-name(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-for-bind",
-    lam(args):
-      s-for-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-column-binds",
-    lam(args):
-      s-column-binds(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "ASCENDING",
-    lam(args): ASCENDING end,
-    "DESCENDING",
-    lam(args): DESCENDING end,
-    "s-column-sort",
-    lam(args):
-      s-column-sort(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-extend-field",
-    lam(args):
-      s-table-extend-field(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-table-extend-reducer",
-    lam(args):
-      s-table-extend-reducer(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-sanitize",
-    lam(args):
-      s-sanitize(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-table-src",
-    lam(args):
-      s-table-src(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-normal",
-    lam(args): s-normal end,
-    "s-mutable",
-    lam(args): s-mutable end,
-    "s-variant-member",
-    lam(args):
-      s-variant-member(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-variant",
-    lam(args):
-      s-variant(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-singleton-variant",
-    lam(args):
-      s-singleton-variant(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-if-branch",
-    lam(args):
-      s-if-branch(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-if-pipe-branch",
-    lam(args):
-      s-if-pipe-branch(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-cases-bind-ref",
-    lam(args): s-cases-bind-ref end,
-    "s-cases-bind-normal",
-    lam(args): s-cases-bind-normal end,
-    "s-cases-bind",
-    lam(args):
-      s-cases-bind(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "s-cases-branch",
-    lam(args):
-      s-cases-branch(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)),
-        term-to-ast(args.get(4)))
-    end,
-    "s-singleton-cases-branch",
-    lam(args):
-      s-singleton-cases-branch(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "s-op-is",
-    lam(args): s-op-is(term-to-ast(args.get(0))) end,
-    "s-op-is-roughly",
-    lam(args): s-op-is-roughly(term-to-ast(args.get(0))) end,
-    "s-op-is-op",
-    lam(args):
-      s-op-is-op(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-op-is-not",
-    lam(args): s-op-is-not(term-to-ast(args.get(0))) end,
-    "s-op-is-not-op",
-    lam(args):
-      s-op-is-not-op(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "s-op-satisfies",
-    lam(args): s-op-satisfies(term-to-ast(args.get(0))) end,
-    "s-op-satisfies-not",
-    lam(args): s-op-satisfies-not(term-to-ast(args.get(0))) end,
-    "s-op-raises",
-    lam(args): s-op-raises(term-to-ast(args.get(0))) end,
-    "s-op-raises-other",
-    lam(args): s-op-raises-other(term-to-ast(args.get(0))) end,
-    "s-op-raises-not",
-    lam(args): s-op-raises-not(term-to-ast(args.get(0))) end,
-    "s-op-raises-satisfies",
-    lam(args): s-op-raises-satisfies(term-to-ast(args.get(0))) end,
-    "s-op-raises-violates",
-    lam(args): s-op-raises-violates(term-to-ast(args.get(0))) end,
-    "a-blank",
-    lam(args): a-blank end,
-    "a-any",
-    lam(args): a-any(term-to-ast(args.get(0))) end,
-    "a-name",
-    lam(args): a-name(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "a-type-var",
-    lam(args):
-      a-type-var(term-to-ast(args.get(0)), term-to-ast(args.get(1)))
-    end,
-    "a-arrow",
-    lam(args):
-      a-arrow(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "a-arrow-argnames",
-    lam(args):
-      a-arrow-argnames(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)),
-        term-to-ast(args.get(3)))
-    end,
-    "a-method",
-    lam(args):
-      a-method(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "a-record",
-    lam(args): a-record(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "a-tuple",
-    lam(args): a-tuple(term-to-ast(args.get(0)), term-to-ast(args.get(1))) end,
-    "a-app",
-    lam(args):
-      a-app(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "a-pred",
-    lam(args):
-      a-pred(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "a-dot",
-    lam(args):
-      a-dot(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
-    end,
-    "a-checked",
-    lam(args): a-checked(term-to-ast(args.get(1)), term-to-ast(args.get(2))) end,
-    "a-field",
-    lam(args):
-      a-field(term-to-ast(args.get(0)),
-        term-to-ast(args.get(1)),
-        term-to-ast(args.get(2)))
+fun term-to-ast(top-json, uri):
+  rec lookup-dict =
+    [string-dict: 
+      "s-underscore",
+      lam(args): s-underscore(loop(args.get(0))) end,
+      "s-name",
+      lam(args): s-name(loop(args.get(0)), loop(args.get(1))) end,
+      "s-global",
+      lam(args): s-global(loop(args.get(1))) end,
+      "s-type-global",
+      lam(args): s-type-global(loop(args.get(1))) end,
+      "s-atom",
+      lam(args): s-atom(loop(args.get(1)), loop(args.get(2))) end,
+      "app-info-c",
+      lam(args): app-info-c(loop(args.get(1)), loop(args.get(2))) end,
+      "prim-app-info-c",
+      lam(args): prim-app-info-c(loop(args.get(1))) end,
+      "s-program",
+      lam(args):
+        s-program(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-include",
+      lam(args): s-include(loop(args.get(0)), loop(args.get(1))) end,
+      "s-import",
+      lam(args):
+        s-import(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-import-types",
+      lam(args):
+        s-import-types(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-import-fields",
+      lam(args):
+        s-import-fields(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-import-complete",
+      lam(args):
+        s-import-complete(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)))
+      end,
+      "p-value",
+      lam(args):
+        p-value(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "p-alias",
+      lam(args):
+        p-alias(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "p-data",
+      lam(args):
+        p-data(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-provide",
+      lam(args): s-provide(loop(args.get(0)), loop(args.get(1))) end,
+      "s-provide-complete",
+      lam(args):
+        s-provide-complete(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-provide-all",
+      lam(args): s-provide-all(loop(args.get(0))) end,
+      "s-provide-none",
+      lam(args): s-provide-none(loop(args.get(0))) end,
+      "s-provide-types",
+      lam(args): s-provide-types(loop(args.get(0)), loop(args.get(1))) end,
+      "s-provide-types-all",
+      lam(args): s-provide-types-all(loop(args.get(0))) end,
+      "s-provide-types-none",
+      lam(args): s-provide-types-none(loop(args.get(0))) end,
+      "s-const-import",
+      lam(args): s-const-import(loop(args.get(0)), loop(args.get(1))) end,
+      "s-special-import",
+      lam(args):
+        s-special-import(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)))
+      end,
+      "h-use-loc",
+      lam(args): h-use-loc(loop(args.get(0))) end,
+      "s-let-bind",
+      lam(args):
+        s-let-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-var-bind",
+      lam(args):
+        s-var-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-letrec-bind",
+      lam(args):
+        s-letrec-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-type-bind",
+      lam(args):
+        s-type-bind(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-newtype-bind",
+      lam(args):
+        s-newtype-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-defined-value",
+      lam(args): s-defined-value(loop(args.get(1)), loop(args.get(2))) end,
+      "s-defined-var",
+      lam(args): s-defined-var(loop(args.get(1)), loop(args.get(2))) end,
+      "s-defined-type",
+      lam(args): s-defined-type(loop(args.get(1)), loop(args.get(2))) end,
+      "s-module",
+      lam(args):
+        s-module(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)))
+      end,
+      "s-template",
+      lam(args): s-template(loop(args.get(0))) end,
+      "s-type-let-expr",
+      lam(args):
+        s-type-let-expr(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-let-expr",
+      lam(args):
+        s-let-expr(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-letrec",
+      lam(args):
+        s-letrec(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-hint-exp",
+      lam(args):
+        s-hint-exp(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-instantiate",
+      lam(args):
+        s-instantiate(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-block",
+      lam(args): s-block(loop(args.get(0)), loop(args.get(1))) end,
+      "s-user-block",
+      lam(args): s-user-block(loop(args.get(0)), loop(args.get(1))) end,
+      "s-fun",
+      lam(args):
+        s-fun(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)),
+          loop(args.get(7)),
+          loop(args.get(8)),
+          loop(args.get(9)))
+      end,
+      "s-type",
+      lam(args):
+        s-type(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-newtype",
+      lam(args):
+        s-newtype(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-var",
+      lam(args):
+        s-var(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-rec",
+      lam(args):
+        s-rec(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-let",
+      lam(args):
+        s-let(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-ref",
+      lam(args): s-ref(loop(args.get(0)), loop(args.get(1))) end,
+      "s-contract",
+      lam(args):
+        s-contract(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-when",
+      lam(args):
+        s-when(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-assign",
+      lam(args):
+        s-assign(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-if-pipe",
+      lam(args):
+        s-if-pipe(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-if-pipe-else",
+      lam(args):
+        s-if-pipe-else(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-if",
+      lam(args):
+        s-if(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-if-else",
+      lam(args):
+        s-if-else(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-cases",
+      lam(args):
+        s-cases(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-cases-else",
+      lam(args):
+        s-cases-else(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)))
+      end,
+      "s-op",
+      lam(args):
+        s-op(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-check-test",
+      lam(args):
+        s-check-test(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-check-expr",
+      lam(args):
+        s-check-expr(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-paren",
+      lam(args): s-paren(loop(args.get(0)), loop(args.get(1))) end,
+      "s-lam",
+      lam(args):
+        s-lam(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)),
+          loop(args.get(7)),
+          loop(args.get(8)),
+          loop(args.get(9)))
+      end,
+      "s-method",
+      lam(args):
+        s-method(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)),
+          loop(args.get(7)),
+          loop(args.get(8)),
+          loop(args.get(9)))
+      end,
+      "s-extend",
+      lam(args):
+        s-extend(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-update",
+      lam(args):
+        s-update(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-tuple",
+      lam(args): s-tuple(loop(args.get(0)), loop(args.get(1))) end,
+      "s-tuple-get",
+      lam(args):
+        s-tuple-get(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-obj",
+      lam(args): s-obj(loop(args.get(0)), loop(args.get(1))) end,
+      "s-array",
+      lam(args): s-array(loop(args.get(0)), loop(args.get(1))) end,
+      "s-construct",
+      lam(args):
+        s-construct(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-app",
+      lam(args):
+        s-app(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-app-enriched",
+      lam(args):
+        s-app-enriched(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-prim-app",
+      lam(args):
+        s-prim-app(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-prim-val",
+      lam(args): s-prim-val(loop(args.get(0)), loop(args.get(1))) end,
+      "s-id",
+      lam(args): s-id(loop(args.get(0)), loop(args.get(1))) end,
+      "s-id-var",
+      lam(args): s-id-var(loop(args.get(0)), loop(args.get(1))) end,
+      "s-id-letrec",
+      lam(args):
+        s-id-letrec(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-undefined",
+      lam(args): s-undefined(loop(args.get(0))) end,
+      "s-srcloc",
+      lam(args): s-srcloc(loop(args.get(0)), loop(args.get(1))) end,
+      "s-num",
+      lam(args): s-num(loop(args.get(0)), loop(args.get(1))) end,
+      "s-frac",
+      lam(args):
+        s-frac(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-rfrac",
+      lam(args):
+        s-rfrac(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-bool",
+      lam(args): s-bool(loop(args.get(0)), loop(args.get(1))) end,
+      "s-str",
+      lam(args): s-str(loop(args.get(0)), loop(args.get(1))) end,
+      "s-dot",
+      lam(args):
+        s-dot(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-get-bang",
+      lam(args):
+        s-get-bang(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-bracket",
+      lam(args):
+        s-bracket(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-data",
+      lam(args):
+        s-data(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)),
+          loop(args.get(7)))
+      end,
+      "s-data-expr",
+      lam(args):
+        s-data-expr(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)),
+          loop(args.get(7)),
+          loop(args.get(8)))
+      end,
+      "s-for",
+      lam(args):
+        s-for(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)))
+      end,
+      "s-check",
+      lam(args):
+        s-check(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-reactor",
+      lam(args): s-reactor(loop(args.get(0)), loop(args.get(1))) end,
+      "s-table-extend",
+      lam(args):
+        s-table-extend(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-update",
+      lam(args):
+        s-table-update(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-select",
+      lam(args):
+        s-table-select(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-order",
+      lam(args):
+        s-table-order(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-filter",
+      lam(args):
+        s-table-filter(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-extract",
+      lam(args):
+        s-table-extract(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table",
+      lam(args):
+        s-table(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-load-table",
+      lam(args):
+        s-load-table(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-spy-block",
+      lam(args):
+        s-spy-block(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-row",
+      lam(args): s-table-row(loop(args.get(0)), loop(args.get(1))) end,
+      "s-spy-expr",
+      lam(args):
+        s-spy-expr(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-construct-normal",
+      lam(args): s-construct-normal end,
+      "s-construct-lazy",
+      lam(args): s-construct-lazy end,
+      "s-bind",
+      lam(args):
+        s-bind(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-tuple-bind",
+      lam(args):
+        s-tuple-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-data-field",
+      lam(args):
+        s-data-field(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-mutable-field",
+      lam(args):
+        s-mutable-field(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-method-field",
+      lam(args):
+        s-method-field(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)),
+          loop(args.get(5)),
+          loop(args.get(6)),
+          loop(args.get(7)),
+          loop(args.get(8)),
+          loop(args.get(9)))
+      end,
+      "s-field-name",
+      lam(args):
+        s-field-name(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-for-bind",
+      lam(args):
+        s-for-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-column-binds",
+      lam(args):
+        s-column-binds(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "ASCENDING",
+      lam(args): ASCENDING end,
+      "DESCENDING",
+      lam(args): DESCENDING end,
+      "s-column-sort",
+      lam(args):
+        s-column-sort(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-extend-field",
+      lam(args):
+        s-table-extend-field(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-table-extend-reducer",
+      lam(args):
+        s-table-extend-reducer(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-sanitize",
+      lam(args):
+        s-sanitize(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-table-src",
+      lam(args): s-table-src(loop(args.get(0)), loop(args.get(1))) end,
+      "s-normal",
+      lam(args): s-normal end,
+      "s-mutable",
+      lam(args): s-mutable end,
+      "s-variant-member",
+      lam(args):
+        s-variant-member(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)))
+      end,
+      "s-variant",
+      lam(args):
+        s-variant(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-singleton-variant",
+      lam(args):
+        s-singleton-variant(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)))
+      end,
+      "s-if-branch",
+      lam(args):
+        s-if-branch(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-if-pipe-branch",
+      lam(args):
+        s-if-pipe-branch(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)))
+      end,
+      "s-cases-bind-ref",
+      lam(args): s-cases-bind-ref end,
+      "s-cases-bind-normal",
+      lam(args): s-cases-bind-normal end,
+      "s-cases-bind",
+      lam(args):
+        s-cases-bind(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "s-cases-branch",
+      lam(args):
+        s-cases-branch(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)),
+          loop(args.get(4)))
+      end,
+      "s-singleton-cases-branch",
+      lam(args):
+        s-singleton-cases-branch(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "s-op-is",
+      lam(args): s-op-is(loop(args.get(0))) end,
+      "s-op-is-roughly",
+      lam(args): s-op-is-roughly(loop(args.get(0))) end,
+      "s-op-is-op",
+      lam(args): s-op-is-op(loop(args.get(0)), loop(args.get(1))) end,
+      "s-op-is-not",
+      lam(args): s-op-is-not(loop(args.get(0))) end,
+      "s-op-is-not-op",
+      lam(args): s-op-is-not-op(loop(args.get(0)), loop(args.get(1))) end,
+      "s-op-satisfies",
+      lam(args): s-op-satisfies(loop(args.get(0))) end,
+      "s-op-satisfies-not",
+      lam(args): s-op-satisfies-not(loop(args.get(0))) end,
+      "s-op-raises",
+      lam(args): s-op-raises(loop(args.get(0))) end,
+      "s-op-raises-other",
+      lam(args): s-op-raises-other(loop(args.get(0))) end,
+      "s-op-raises-not",
+      lam(args): s-op-raises-not(loop(args.get(0))) end,
+      "s-op-raises-satisfies",
+      lam(args): s-op-raises-satisfies(loop(args.get(0))) end,
+      "s-op-raises-violates",
+      lam(args): s-op-raises-violates(loop(args.get(0))) end,
+      "a-blank",
+      lam(args): a-blank end,
+      "a-any",
+      lam(args): a-any(loop(args.get(0))) end,
+      "a-name",
+      lam(args): a-name(loop(args.get(0)), loop(args.get(1))) end,
+      "a-type-var",
+      lam(args): a-type-var(loop(args.get(0)), loop(args.get(1))) end,
+      "a-arrow",
+      lam(args):
+        a-arrow(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "a-arrow-argnames",
+      lam(args):
+        a-arrow-argnames(loop(args.get(0)),
+          loop(args.get(1)),
+          loop(args.get(2)),
+          loop(args.get(3)))
+      end,
+      "a-method",
+      lam(args):
+        a-method(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "a-record",
+      lam(args): a-record(loop(args.get(0)), loop(args.get(1))) end,
+      "a-tuple",
+      lam(args): a-tuple(loop(args.get(0)), loop(args.get(1))) end,
+      "a-app",
+      lam(args):
+        a-app(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "a-pred",
+      lam(args):
+        a-pred(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "a-dot",
+      lam(args):
+        a-dot(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end,
+      "a-checked",
+      lam(args): a-checked(loop(args.get(1)), loop(args.get(2))) end,
+      "a-field",
+      lam(args):
+        a-field(loop(args.get(0)), loop(args.get(1)), loop(args.get(2)))
+      end
+    ]
+  fun loop(shadow top-json):
+    top = top-json.dict
+    typ = top.get-value(aTYPE).s
+    ask:
+      | typ == aCORE
+          then:
+        surface-json = top.get-value(aVALUE)
+        surface = surface-json.dict
+        lookup-dict.get-value(surface.get-value("n").s)(let 
+              patterns-json = surface.get-value("ps"):
+            patterns-json.l
+          end)
+      | typ == aPRIM
+          then:
+        prim-json = top.get-value(aVALUE)
+        prim = prim-json.dict
+        shadow typ = prim.get-value(aTYPE).s
+        value-json = prim.get-value(aVALUE)
+        ask:
+          | typ == aBOOL then: value-json.b
+          | typ == aNUMBER then: string-to-number(value-json.s).value
+          | typ == aSTRING then: value-json.s
+          | typ == aLOC then: deserialize(value-json.s, uri)
+        end
+      | typ == aLIST
+          then:
+        list-json = top.get-value(aVALUE)
+        patterns = list-json.l
+        patterns.map(loop)
+      | typ == aOPTION
+          then:
+        opt-json = top.get-value(aVALUE)
+        opt = opt-json.dict
+        shadow typ = opt.get-value(aTYPE).s
+        ask:
+          | typ == aNONE then: none
+          | typ == aSOME
+              then:
+            value-json = opt.get-value(aVALUE)
+            some(loop(value-json))
+        end
+      | typ == aTAG
+          then:
+        tag-json = top.get-value(aVALUE)
+        tag = tag-json.dict
+        loop(tag.get-value("body"))
+      | typ == aVAR
+          then:
+        var-json = top.get-value(aVALUE)
+        variable = var-json.s
+        s-name(dummy-loc, variable)
     end
-  ]
-fun term-to-ast(top-json):
-  top = top-json.dict
-  typ = top.get-value("t").s
-  ask block:
-    | typ == "C"
-        then:
-      surface-json = top.get-value("v")
-      surface = surface-json.dict
-      lookup-dict.get-value(surface.get-value("n").s)(let 
-            patterns-json = surface.get-value("ps"):
-          patterns-json.l
-        end)
-    | typ == "P"
-        then:
-      prim-json = top.get-value("v")
-      prim = prim-json.dict
-      shadow typ = prim.get-value("t").s
-      value-json = prim.get-value("v")
-      ask:
-        | typ == "B" then: value-json.b
-        | typ == "N" then: string-to-number(value-json.s).value
-        | typ == "St" then: value-json.s
-        | typ == "Lo" then: dummy-loc
-      end
-    | typ == "L"
-        then:
-      list-json = top.get-value("v")
-      patterns = list-json.l
-      patterns.map(term-to-ast)
-    | typ == "Option"
-        then:
-      opt-json = top.get-value("v")
-      opt = opt-json.dict
-      shadow typ = opt.get-value("typ").s
-      ask:
-        | typ == "None" then: none
-        | otherwise:
-        value-json = opt.get-value("v")
-        some(term-to-ast(value-json))
-      end
-    | typ == "Tag"
-        then:
-      tag-json = top.get-value("v")
-      tag = tag-json.dict
-      term-to-ast(tag.get-value("body"))
-    | typ == "Var"
-        then:
-      var-json = top.get-value("v")
-      variable = var-json.s
-      s-name(dummy-loc, variable)
   end
+  loop(top-json)
 end
