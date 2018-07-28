@@ -8,15 +8,8 @@ import global as _
 import base as _
 shadow default-map-visitor =
   {
-    method option(self, opt):
-      cases(Option) opt: | none => none | some(v) => some(v.visit(self)) end
-    end,
-    method list(self, lst):
-      cases(List) lst:
-        | empty => empty
-        | link(f, r) => link(f.visit(self), self.list(r))
-      end
-    end,
+    method option(self, opt): opt.and-then(_.visit(self)) end,
+    method list(self, lst): lst.map(_.visit(self)) end,
     method s-underscore(self, l): s-underscore(l) end,
     method s-name(self, l, s): s-name(l, s) end,
     method s-global(self, s): s-global(s) end,
@@ -1000,15 +993,8 @@ shadow default-iter-visitor =
   }
 shadow dummy-loc-visitor =
   {
-    method option(self, opt):
-      cases(Option) opt: | none => none | some(v) => some(v.visit(self)) end
-    end,
-    method list(self, lst):
-      cases(List) lst:
-        | empty => empty
-        | link(f, r) => link(f.visit(self), self.list(r))
-      end
-    end,
+    method option(self, opt): opt.and-then(_.visit(self)) end,
+    method list(self, lst): lst.map(_.visit(self)) end,
     method s-underscore(self, l): s-underscore(dummy-loc) end,
     method s-name(self, l, s): s-name(dummy-loc, s) end,
     method s-global(self, s): s-global(s) end,

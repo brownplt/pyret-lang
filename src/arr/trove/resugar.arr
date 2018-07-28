@@ -164,8 +164,27 @@ end
 
 resugarer = RL.resugar(rules, {resugar: false, srclocExt: true})
 
+# var current = nothing
+
+# fun init-time():
+#   current := time-now()
+# end
+
+# fun log-time(s):
+#   lam(e) block:
+#     now = time-now()
+#     print("\n" + tostring(now - current) + ": " + s + "\n")
+#     current := now
+#     e
+#   end
+# end
+
 fun resugar(ast, uri :: String):
-  resugarer(ast.visit(RV.ast-to-term-visitor).serialize())
-    ^ JSON.read-json
+  # _ = init-time()
+  ast.visit(RV.ast-to-term-visitor)
+    # ^ log-time("ast-to-term-visitor")
+    ^ resugarer
+    # ^ log-time("actual desugaring")
     ^ RV.term-to-ast(_, uri)
+    # ^ log-time("term-to-ast")
 end

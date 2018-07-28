@@ -168,16 +168,10 @@ fun generate-ast-visitor(
       transformer: default-map-visitor-transform,
       preamble: ```{
         method option(self, opt):
-          cases(Option) opt:
-            | none => none
-            | some(v) => some(v.visit(self))
-          end
+          opt.and-then(_.visit(self))
         end,
         method list(self, lst):
-          cases(List) lst:
-            | empty => empty
-            | link(f, r) => link(f.visit(self), self.list(r))
-          end
+          lst.map(_.visit(self))
         end,
       }```
     },
@@ -202,16 +196,10 @@ fun generate-ast-visitor(
       transformer: dummy-loc-visitor-transform,
       preamble: ```{
         method option(self, opt):
-          cases(Option) opt:
-            | none => none
-            | some(v) => some(v.visit(self))
-          end
+          opt.and-then(_.visit(self))
         end,
         method list(self, lst):
-          cases(List) lst:
-            | empty => empty
-            | link(f, r) => link(f.visit(self), self.list(r))
-          end
+          lst.map(_.visit(self))
         end,
       }```
     },
@@ -219,16 +207,10 @@ fun generate-ast-visitor(
       transformer: ast-to-term-visitor-transform,
       preamble: ```{
         method option(self, opt):
-          cases(Option) opt:
-            | none => none
-            | some(v) => some(v.visit(self))
-          end
+          opt.and-then(_.visit(self))
         end,
         method list(self, lst):
-          cases(List) lst:
-            | empty => empty
-            | link(f, r) => link(f.visit(self), self.list(r))
-          end
+          lst.map(_.visit(self))
         end,
       }```
     }
@@ -299,8 +281,9 @@ fun write-ast-visitors() block:
     lam(collected-variants :: List<AT.SimplifiedVariant>, body) -> List<A.Expr> block:
       fun get-arg-list(lst :: List<A.Bind>) -> List<A.Expr>:
         for map_n(i from 0, _ from lst):
-          [list: AT.make-method-call(AT.make-id('args'), 'get', [list: A.s-num(dummy, i)])]
-            ^ A.s-app(dummy, AT.make-id("loop"), _)
+          params = [list: AT.make-id('args'), A.s-num(dummy, i)]
+          params2 = [list: A.s-app(dummy, AT.make-id("raw-array-get"), params)]
+          A.s-app(dummy, AT.make-id("loop"), params2)
         end
       end
 
@@ -340,61 +323,24 @@ fun write-ast-visitors() block:
 
       term-to-ast-stmts = ```
 
-fun term-to-ast(top-json, uri):
+fun term-to-ast(top, uri):
   rec lookup-dict = ...
 
-  fun loop(shadow top-json):
-    top = top-json.dict # we are sure top-json is a j-obj
-    typ = top.get-value(aTYPE).s
+  fun loop(e):
+    typ = e.t
     ask:
-      | typ == aCORE then:
-        surface-json = top.get-value(aVALUE)
-        surface = surface-json.dict
-        lookup-dict.get-value(surface.get-value("n").s)(
-          let patterns-json = surface.get-value("ps"):
-            patterns-json.l # we are sure patterns-json is a j-arr
-          end)
-      | typ == aPRIM then:
-        prim-json = top.get-value(aVALUE)
-        prim = prim-json.dict
-        shadow typ = prim.get-value(aTYPE).s
-        value-json = prim.get-value(aVALUE)
-        ask:
-          | typ == aBOOL then:
-            value-json.b # we are sure value-json is a j-bool
-          | typ == aNUMBER then:
-            string-to-number(value-json.s).value # we are sure value-json is a j-str
-          | typ == aSTRING then:
-            value-json.s # we are sure value-json is a j-str
-          | typ == aLOC then:
-            deserialize(value-json.s, uri) # we are sure value-json is a j-str
-        end
-      | typ == aLIST then:
-        list-json = top.get-value(aVALUE)
-        patterns = list-json.l # we are sure list-json is a j-arr
-        patterns.map(loop)
-      | typ == aOPTION then:
-        opt-json = top.get-value(aVALUE)
-        opt = opt-json.dict # we are sure opt-json is a j-obj
-        shadow typ = opt.get-value(aTYPE).s
-        ask:
-          | typ == aNONE then:
-            none
-          | typ == aSOME then:
-            value-json = opt.get-value(aVALUE)
-            some(loop(value-json))
-        end
-      | typ == aTAG then:
-        tag-json = top.get-value(aVALUE)
-        tag = tag-json.dict # we are sure tag-json is a j-obj
-        loop(tag.get-value("body"))
-      | typ == aVAR then:
-        var-json = top.get-value(aVALUE)
-        variable = var-json.s # we are sure var-json is a j-str
-        s-name(dummy-loc, variable)
+      | typ == aCORE then: lookup-dict.get-value(e.n)(e.ps)
+      | typ == aBOOL   then: e.v
+      | typ == aNUMBER then: string-to-number(e.v).value
+      | typ == aSTRING then: e.v
+      | typ == aLOC    then: deserialize(e.v, uri)
+      | typ == aLIST then: raw-array-to-list(raw-array-map(loop, e.v))
+      | typ == aNONE then: none
+      | typ == aSOME then: some(loop(e.v))
+      | typ == aVAR then: s-name(dummy-loc, e.v)
     end
   end
-  loop(top-json)
+  loop(top)
 end
 ``` ^ get-stmts
 
@@ -408,13 +354,11 @@ aSTRING = "St"
 aNUMBER = "N"
 aBOOL = "B"
 aLOC = "Lo"
-aPRIM = "P"
 aSURFACE = "S"
 aCORE = "C"
 aLIST = "L"
 aNONE = "None"
 aSOME = "Some"
-aOPTION = "Option"
 aVAR = "Var"
 aTAG = "Tag"
 aPVAR = "PVar"
@@ -426,52 +370,28 @@ aAUX = "Aux"
 aMETA = "Meta"
 
 fun wrap-str(s):
-  j-obj([string-dict:
-      aTYPE, j-str(aPRIM),
-      aVALUE, j-obj([string-dict:
-          aTYPE, j-str(aSTRING),
-          aVALUE, j-str(s)])])
+  {t: aSTRING, v: s}
 end
 fun wrap-num(n):
-  j-obj([string-dict:
-      aTYPE, j-str(aPRIM),
-      aVALUE, j-obj([string-dict:
-          "t", j-str(aNUMBER),
-          "v", j-str(num-to-string(n))])])
+  {t: aNUMBER, v: num-to-string(n)}
 end
 fun wrap-bool(b):
-  j-obj([string-dict:
-      aTYPE, j-str(aPRIM),
-      aVALUE, j-obj([string-dict:
-          aTYPE, j-str(aBOOL),
-          aVALUE, j-bool(b)])])
+  {t: aBOOL, v: b}
 end
 fun wrap-loc(l):
-  j-obj([string-dict:
-      aTYPE, j-str(aPRIM),
-      aVALUE, j-obj([string-dict:
-          aTYPE, j-str(aLOC),
-          aVALUE, j-str(l.serialize())])])
+  {t: aLOC, v: l.serialize()}
 end
 fun wrap-surf(name, args):
-  j-obj([string-dict:
-      aTYPE, j-str(aSURFACE),
-      aVALUE, j-obj([string-dict:
-          aNAME, j-str(name),
-          aPATTERNS, j-arr(args)])])
+  {t: aSURFACE, n: name, ps: builtins.raw-array-from-list(args)}
 end
 fun wrap-list(l):
-  j-obj([string-dict:
-      aTYPE, j-str(aLIST),
-      aVALUE, j-obj([string-dict:
-          aPATTERNS, j-arr(l),
-          "ellipsis", j-null])])
+  {t: aLIST, v: builtins.raw-array-from-list(l)}
 end
 fun wrap-option(opt):
   cases (Option) opt:
-    | none => [string-dict: aTYPE, j-str(aOPTION), aVALUE, j-obj([string-dict: aTYPE, j-str(aNONE)])]
-    | some(v) => [string-dict: aTYPE, j-str(aOPTION), aVALUE, j-obj([string-dict: aTYPE, j-str(aSOME), aVALUE, v])]
-  end ^ j-obj
+    | none => {t: aNONE}
+    | some(v) => {t: aSOME, v: v}
+  end
 end
         ``` ^ get-stmts
 
