@@ -424,82 +424,6 @@ fun desugar-expr(expr :: A.Expr):
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
-    | s-op(l, op-l, op, left, right) =>
-      cases(Option) get-arith-op(op):
-        | some(field) =>
-          ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-            lam(e1, e2):
-              A.s-app(l, gid(l, field), [list: e1, e2])
-            end)
-        | none =>
-          fun thunk(e):
-            A.s-lam(l, "", [list: ], [list: ], A.a-blank, "",
-              if A.is-s-block(e): e else: A.s-block(l, [list: e]) end,
-              none, none, false)
-          end
-          fun opbool(fld):
-            A.s-app(l, A.s-dot(l, desugar-expr(left), fld), [list: thunk(desugar-expr(right))])
-          end
-          fun collect-op(opname, exp):
-            if A.is-s-op(exp):
-              if exp.op == opname: collect-op(opname, exp.left) + collect-op(opname, exp.right)
-              else: [list: exp]
-              end
-            else: [list: exp]
-            end
-          end
-          collect-ors = collect-op("opor", _)
-          collect-ands = collect-op("opand", _)
-          collect-carets = collect-op("op^", _)
-          fun eq-op(fun-name):
-            ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-              lam(e1, e2):
-                A.s-app(l, gid(l, fun-name), [list: e1, e2])
-              end)
-          end
-          if op == "op==": eq-op("equal-always")
-          else if op == "op=~": eq-op("equal-now")
-          else if op == "op<=>": eq-op("identical")
-          else if op == "op<>":
-            ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
-              lam(e1, e2):
-                A.s-prim-app(l, "not", [list: A.s-app(l, gid(l, "equal-always"), [list: e1, e2])], flat-prim-app)
-              end)
-          else if op == "opor":
-            fun helper(operands):
-              cases(List) operands.rest:
-                | empty =>
-                  check-bool(operands.first.l, desugar-expr(operands.first), lam(or-oper): or-oper end)
-                | link(_, _) =>
-                  A.s-if-else(l,
-                    [list: A.s-if-branch(l, desugar-expr(operands.first), A.s-bool(l, true))],
-                    helper(operands.rest), false)
-              end
-            end
-            operands = collect-ors(expr)
-            helper(operands)
-          else if op == "opand":
-            fun helper(operands):
-              cases(List) operands.rest:
-                | empty =>
-                  check-bool(operands.first.l, desugar-expr(operands.first), lam(and-oper): and-oper end)
-                | link(_, _) =>
-                  A.s-if-else(l,
-                    [list: A.s-if-branch(l, desugar-expr(operands.first), helper(operands.rest))],
-                    A.s-bool(l, false), false)
-              end
-            end
-            operands = collect-ands(expr)
-            helper(operands)
-          else if op == "op^":
-            operands = collect-carets(expr)
-            for fold(acc from desugar-expr(operands.first), f from operands.rest):
-              A.s-app(l, desugar-expr(f), [list: acc])
-            end
-          else:
-            raise("No implementation for " + op)
-          end
-      end
     | s-id(l, x) => expr
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
@@ -831,13 +755,6 @@ fun desugar-expr(expr :: A.Expr):
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
               A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e], flat-prim-app), none, none, true),
              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])], flat-prim-app), true)
-    | s-table-order(l, table, ordering) =>
-      ordering-raw-arr = for map(o from ordering):
-        A.s-array(o.l, [list: A.s-bool(o.l, o.direction == A.ASCENDING), A.s-str(o.l, o.column.s)])
-      end
-      A.s-app(l,
-        A.s-dot(A.dummy-loc, desugar-expr(table), "multi-order"),
-        [list: A.s-array(A.dummy-loc, ordering-raw-arr)])
     | s-table-filter(l, column-binds, predicate) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")

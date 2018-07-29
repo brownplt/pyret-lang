@@ -330,14 +330,19 @@ fun wrap-option(opt):
 end
         ``` ^ get-stmts
 
+      s-name-block = A.s-block(dummy, ```
+        {t: aSURFACE, n: "s-name", ps: [raw-array: wrap-loc(l), {t: aVAR, v: s}]}
+        ``` ^ get-stmts)
+
       shadow body = A.s-block(dummy, body).visit(AV.default-map-visitor.{
-        method s-method-field(self, l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky):
-          # no recursion -- only the top one
-          ask:
-            | otherwise: body-expr
-          end ^ A.s-method-field(l, name, params, args, ann, doc, _, _check-loc, _check, blocky)
-        end
-      }).stmts
+          method s-method-field(self, l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky):
+            # no recursion -- only the top one
+            ask:
+              | name == 's-name' then: s-name-block
+              | otherwise: body-expr
+            end ^ A.s-method-field(l, name, params, args, ann, doc, _, _check-loc, _check, blocky)
+          end
+        }).stmts
 
       helpers-stmts + body
     end)

@@ -50,7 +50,11 @@ shadow ast-to-term-visitor =
       wrap-surf("s-underscore", [list: wrap-loc(l)])
     end,
     method s-name(self, l, s):
-      wrap-surf("s-name", [list: wrap-loc(l), wrap-str(s)])
+      {
+        t: aSURFACE,
+        n: "s-name",
+        ps: [raw-array: wrap-loc(l), { t: aVAR, v: s }]
+      }
     end,
     method s-global(self, s):
       wrap-surf("s-global", [list: wrap-loc(dummy-loc), wrap-str(s)])

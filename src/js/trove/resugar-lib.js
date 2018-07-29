@@ -71,7 +71,7 @@
                         });
                 case 'Lo': return deserialize(obj.v, uri);
                 case 'B': return obj.v;
-                case 'Var': return sName.app(dummyLoc, obj.v);
+                case 'Var': return obj.v;
                 case 'C':
                     var args = obj.ps.map(loop);
                     switch (obj.n) {

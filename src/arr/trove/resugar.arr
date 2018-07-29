@@ -24,7 +24,8 @@ end
 
 sugar check-ann:
   | (check-ann expr ann) =>
-    (fresh x (s-let-expr [(s-let-bind (s-bind false x ann) expr)] (s-id x) true))
+    (fresh x (s-let-expr [(s-let-bind (s-bind false (s-name x) ann) expr)]
+               (s-id (s-name x)) true))
 end
 
 sugar mk-s-bind:
@@ -36,6 +37,11 @@ sugar mk-s-lam:
     (s-lam "" [] params (a-blank) "" body none none false)
 end
 
+sugar transform-underscore:
+  | (transform-underscore <s-underscore>) => (fresh name (s-name name))
+  | (transform-underscore non-underscore) => non-underscore
+end
+
 ################################################################################
 # DONE: s-when
 ################################################################################
@@ -44,8 +50,8 @@ sugar s-when:
   | (s-when @l test body blocky) =>
     (fresh cond
       (s-let-expr
-        [(s-let-bind (mk-s-bind cond) test)]
-        (s-if-else [(s-if-branch (s-id cond) (s-block [body (g-id "nothing")]))]
+        [(s-let-bind (mk-s-bind (s-name cond)) test)]
+        (s-if-else [(s-if-branch (s-id (s-name cond)) (s-block [body (g-id "nothing")]))]
                    (g-id "nothing")
                    blocky)
         false))
@@ -160,6 +166,89 @@ sugar s-for:
          [] [bind_{i} ...i] ann "" body none none blocky)
        value_{i} ...i])
 end
+
+################################################################################
+# DONE: s-table-sort
+################################################################################
+
+sugar s-column-sort:
+  | (s-column-sort @l column direction) => {s-column-sort l column direction}
+end
+
+sugar ASCENDING:
+  | (ASCENDING) => {ASCENDING}
+end
+
+sugar DESCENDING:
+  | (DESCENDING) => {DESCENDING}
+end
+
+sugar s-table-order:
+  | (s-table-order table [{s-column-sort l_{i} column_{i} direction_{i}} ...i]) =>
+    (s-app (s-dot table "multi-order")
+           [(s-array [(table-order-map @l_{i} column_{i} direction_{i}) ...i])])
+end
+
+sugar table-order-map:
+  | (table-order-map <s-name column> {ASCENDING}) => (s-array [(s-bool true) (s-str (biject name-to-str column))])
+  | (table-order-map <s-name column> {DESCENDING}) => (s-array [(s-bool false) (s-str (biject name-to-str column))])
+end
+
+###############################################################################
+
+sugar curry-args-acc:
+  | (curry-args-acc [] [param_{x} ...x] args) =>
+    {pair (biject reverse [(mk-s-bind param_{x}) ...x]) (biject reverse args)}
+  | (curry-args-acc [<s-id <s-underscore>> rest_{x} ...x]
+                    [param_{y} ...y]
+                    [arg_{z} ...z]) =>
+    (fresh f (curry-args-acc [rest_{x} ...x] [(s-name f) param_{y} ...y] [(s-id (s-name f)) arg_{z} ...z]))
+  | (curry-args-acc [e rest_{x} ...x] [param_{y} ...y] [arg_{z} ...z]) =>
+    (curry-args-acc [rest_{x} ...x] [param_{y} ...y] [e arg_{z} ...z])
+end
+
+
+sugar curry-args:
+  | (curry-args lst) => (curry-args-acc lst [] [])
+end
+
+###############################################################################
+
+sugar curry-binop:
+  | (curry-binop args op) => (curry-binop-help (curry-args args) op)
+end
+
+sugar curry-binop-help:
+  | (curry-binop-help {pair [] args} "op+") => (s-app (s-id (s-global "_plus")) args)
+  | (curry-binop-help {pair [] args} "op-") => (s-app (s-id (s-global "_minus")) args)
+  | (curry-binop-help {pair [] args} "op*") => (s-app (s-id (s-global "_times")) args)
+  | (curry-binop-help {pair [] args} "op/") => (s-app (s-id (s-global "_divide")) args)
+  | (curry-binop-help {pair [] args} "op<") => (s-app (s-id (s-global "_lessthan")) args)
+  | (curry-binop-help {pair [] args} "op>") => (s-app (s-id (s-global "_greaterthan")) args)
+  | (curry-binop-help {pair [] args} "op>=") => (s-app (s-id (s-global "_greaterequal")) args)
+  | (curry-binop-help {pair [] args} "op<=") => (s-app (s-id (s-global "_lessequal")) args)
+  | (curry-binop-help {pair [] args} "op==") => (s-app (s-id (s-global "equal-always")) args)
+  | (curry-binop-help {pair [] args} "op=~") => (s-app (s-id (s-global "equal-now")) args)
+  | (curry-binop-help {pair [] args} "op<=>") => (s-app (s-id (s-global "identical")) args)
+  | (curry-binop-help {pair [] args} "op<>") =>
+    (s-prim-app "not" [(s-app (s-id (s-global "equal-always")) args)] (flat-prim-app))
+  | (curry-binop-help {pair params args} op) =>
+    (mk-s-lam params (curry-binop-help {pair [] args} op))
+end
+
+sugar check-bool:
+  | (check-bool e) => (s-prim-app "checkWrapBoolean" [e] (flat-prim-app))
+end
+
+sugar s-op:
+  | (s-op op-loc "opor" left right) =>
+    (s-if-else [(s-if-branch left (s-bool true))] (check-bool right) false)
+  | (s-op op-loc "opand" left right) =>
+    (s-if-else [(s-if-branch left (check-bool right))] (s-bool false) false)
+  | (s-op op-loc "op^" left right) => (s-app right [left])
+  | (s-op op-loc op left right) => (curry-binop [left right] op)
+end
+
 ```
 
 resugarer = RL.resugar(rules, {resugar: false, srclocExt: true})
