@@ -521,8 +521,23 @@ shadow ast-to-term-visitor =
         ])
     end,
     method s-app(self, l, _fun, args):
-      wrap-surf("s-app",
-        [list: wrap-loc(l), _fun.visit(self), wrap-list(self.list(args))])
+      cases(Expr) _fun:
+        | s-dot(l-dot, obj, field) =>
+          {
+              t: aSURFACE,
+              n: "s-method-app",
+              ps: [raw-array: 
+                  wrap-loc(l),
+                  wrap-loc(l-dot),
+                  obj.visit(self),
+                  wrap-str(field),
+                  wrap-list(self.list(args))
+                ]
+            }
+        | else =>
+          wrap-surf("s-app",
+            [list: wrap-loc(l), _fun.visit(self), wrap-list(self.list(args))])
+      end
     end,
     method s-app-enriched(self, l, _fun, args, app-info):
       wrap-surf("s-app-enriched",

@@ -125,12 +125,3 @@ data Srcloc:
 sharing:
   method after(self, other): other.before(self) end
 end
-
-fun deserialize(s :: String, uri :: String):
-  if string-char-at(s, 0) == "b":
-    builtin(string-substring(s, 1, string-length(s)))
-  else:
-    lst = string-split-all(s, ",").map(string-to-number).map(_.value)
-    srcloc(uri, lst.get(0), lst.get(1), lst.get(2), lst.get(3), lst.get(4), lst.get(5))
-  end
-end

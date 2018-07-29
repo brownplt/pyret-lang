@@ -330,6 +330,24 @@ fun wrap-option(opt):
 end
         ``` ^ get-stmts
 
+      s-app-block = A.s-block(dummy, ```
+        cases (Expr) _fun:
+          | s-dot(l-dot, obj, field) =>
+            {
+              t: aSURFACE,
+              n: "s-method-app",
+              ps: [raw-array:
+                wrap-loc(l),
+                wrap-loc(l-dot),
+                obj.visit(self),
+                wrap-str(field),
+                wrap-list(self.list(args))
+              ]
+            }
+          | else => ...
+        end
+        ``` ^ get-stmts)
+
       s-name-block = A.s-block(dummy, ```
         {t: aSURFACE, n: "s-name", ps: [raw-array: wrap-loc(l), {t: aVAR, v: s}]}
         ``` ^ get-stmts)
@@ -339,6 +357,7 @@ end
             # no recursion -- only the top one
             ask:
               | name == 's-name' then: s-name-block
+              | name == 's-app' then: subst(s-app-block, body-expr)
               | otherwise: body-expr
             end ^ A.s-method-field(l, name, params, args, ann, doc, _, _check-loc, _check, blocky)
           end

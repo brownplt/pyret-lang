@@ -199,8 +199,6 @@ end
 
 fun desugar-member(f):
   cases(A.Member) f:
-    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)))
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -236,17 +234,6 @@ fun ds-curry-nullary(rebuild-node, l, obj, m):
   #d = A.dummy-loc
   #ds-ed = ds-curry-nullary(A.s-dot, d, A.s-id(d, "_"), A.s-id(d, "x"))
 #  ds-ed satisfies
-end
-
-fun ds-curry-binop(s, e1, e2, rebuild):
-  params-and-args = ds-curry-args(s, [list: e1, e2])
-  params = params-and-args.left
-  cases(List) params:
-    | empty => rebuild(e1, e2)
-    | link(f, r) =>
-      curry-args = params-and-args.right
-      A.s-lam(s, "", [list: ], params, A.a-blank, "", rebuild(curry-args.first, curry-args.rest.first), none, none, false)
-  end
 end
 
 fun ds-curry(l, f, args):
@@ -362,8 +349,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
-    | s-app(l, f, args) =>
-      ds-curry(l, f, args.map(desugar-expr))
+    | s-app(l, f, args) => A.s-app(l, desugar-expr(f), args.map(desugar-expr))
     | s-prim-app(l, f, args, app-info) =>
       A.s-prim-app(l, f, args.map(desugar-expr), app-info)
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
@@ -416,14 +402,12 @@ fun desugar-expr(expr :: A.Expr):
         blocky)
       # desugar-cases(l, typ, desugar-expr(val), branches.map(desugar-case-branch), desugar-expr(_else))
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
-    | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
-    | s-bracket(l, obj, key) =>
-      ds-curry-binop(l, desugar-expr(obj), desugar-expr(key), lam(e1, e2):
-          A.s-prim-app(l, "getBracket", [list: A.s-srcloc(l, l), e1, e2], A.prim-app-info-c(true))
-        end)
-    | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
-    | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
-    | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
+    | s-dot(l, obj, field) => A.s-dot(l, desugar-expr(obj), field)
+    | s-get-bang(l, obj, field) => A.s-get-bang(l, desugar-expr(obj), field)
+    | s-update(l, obj, fields) =>
+      A.s-update(l, desugar-expr(obj), fields.map(desugar-member))
+    | s-extend(l, obj, fields) =>
+      A.s-extend(l, desugar-expr(obj), fields.map(desugar-member))
     | s-id(l, x) => expr
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
@@ -460,23 +444,6 @@ fun desugar-expr(expr :: A.Expr):
         end
       end
       A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, option-fields)], flat-prim-app)
-    | s-table(l, headers, rows) =>
-      shadow l = A.dummy-loc
-      column-names = for map(header from headers):
-        A.s-str(header.l, header.name)
-      end
-      anns = for map(header from headers):
-        desugar-ann(header.ann)
-      end
-      shadow rows = for map(row from rows):
-        elems = for map_n(n from 0, elem from row.elems):
-          check-ann(elem.l, desugar-expr(elem), anns.get(n))
-        end
-        A.s-array(l, elems)
-      end
-      A.s-prim-app(l, "makeTable",
-        [list: A.s-array(l, column-names),
-               A.s-array(l, rows)], flat-prim-app)
     # NOTE(john): see preconditions; desugar-scope should have already happened
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
     | s-var(_, _, _)              => raise("s-var should have already been desugared")
@@ -485,39 +452,6 @@ fun desugar-expr(expr :: A.Expr):
       A.s-check(l, name, desugar-expr(body), keyword-check)
     | s-check-test(l, op, refinement, left, right) =>
       A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
-    | s-load-table(l, headers, spec) =>
-      dummy = A.dummy-loc
-      {src; sanitizers} = for fold(acc from {none; empty}, s from spec):
-        {src; sanitizers} = acc
-        cases(A.LoadTableSpec) s:
-          | s-sanitize(_, name, sanitizer) =>
-            # Convert to loader option
-            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
-              [list:
-                A.s-str(dummy, "sanitizer"),
-                A.s-str(dummy, name.toname()),
-                sanitizer])
-            {src; link(as-option, sanitizers)}
-          | s-table-src(_, source) =>
-            # Well-formedness ensures that this matches exactly once
-            {some(source); sanitizers}
-        end
-      end
-
-      shadow src = cases(Option) src:
-        | none =>
-          raise("s-load-table missing source: Well-formedness should have failed")
-        | some(s) => s
-      end
-
-      loaded = A.s-app(l,
-        A.s-dot(l, src, "load"),
-        [list:
-          A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
-          A.s-array(dummy, sanitizers)])
-
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
-
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
       #               to post-type-check desugaring, since the variables used
@@ -792,27 +726,6 @@ fun desugar-expr(expr :: A.Expr):
                       pred-res.id-e, true), true), none, none, true),
                 A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])],
           flat-prim-app), true)
-    | s-spy-block(l, message, contents) =>
-      ds-message = cases(Option<A.Expr>) message:
-        | none => A.s-str(l, "")
-        | some(msg) => desugar-expr(msg)
-      end
-      ds-contents-list = for map(spy-exp from contents):
-        cases(A.SpyField) spy-exp:
-          | s-spy-expr(l2, name, value, _) =>
-            {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
-        end
-      end
-      ds-contents = for L.foldr(acc from {empty; empty; empty}, ds-content from ds-contents-list):
-        {
-          ds-content.{0} ^ link(_, acc.{0});
-          ds-content.{1} ^ link(_, acc.{1});
-          ds-content.{2} ^ link(_, acc.{2})
-        }
-      end
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
-        [list: A.s-srcloc(l, l), ds-message,
-          A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
     | s-array(l, vals) => A.s-array(l, vals.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end

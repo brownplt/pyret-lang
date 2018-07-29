@@ -185,7 +185,17 @@ check "s-for":
   end is [list: 2, 3, 4]
 end
 
-# check "s-bracket":
-#   obj = {method get-value(self, v): v * 2 end}
-#   (_[_])(obj, 3) is 6
-# end
+check "s-op curry":
+  (_ - _)(2, 3) is -1
+  (1 - _)(-1) is 2
+  (_ - 2)(5) is 3
+end
+
+check "s-bracket":
+  t = table: a, b end
+  row = t.row(3, 4)
+  (_[_])(row, "b") is 4
+  (row[_])("a") is 3
+  (_["b"])(row) is 4
+  row["a"] is 3
+end
