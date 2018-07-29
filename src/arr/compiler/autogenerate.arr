@@ -278,72 +278,7 @@ fun write-ast-visitors() block:
     'src/arr/trove/resugar-visitor.arr',
     [list: 'ast-to-term-visitor'],
     true,
-    lam(collected-variants :: List<AT.SimplifiedVariant>, body) -> List<A.Expr> block:
-      fun get-arg-list(lst :: List<A.Bind>) -> List<A.Expr>:
-        for map_n(i from 0, _ from lst):
-          params = [list: AT.make-id('args'), A.s-num(dummy, i)]
-          params2 = [list: A.s-app(dummy, AT.make-id("raw-array-get"), params)]
-          A.s-app(dummy, AT.make-id("loop"), params2)
-        end
-      end
-
-      # use string-dict so that we can simply lookup without searching
-      # (searching strategy's performance is really bad!)
-      var string-dict-args = empty
-
-      for each(variant from collected-variants) block:
-        bodylam = cases (AT.SimplifiedVariant) variant:
-          | simplified-variant(_, name, members) =>
-            arg-list = cases (List) members:
-              | empty => empty
-              | link(first, rest) =>
-                cases (AT.Tag) AT.get-tag(first.ann):
-                  | t-loc => get-arg-list(members)
-                  # add dummy member (to match dummy srcloc)
-                  | else => get-arg-list(link(first, members)).rest
-                end
-            end
-            A.s-app(dummy, AT.make-id(name), arg-list)
-          | simplified-singleton-variant(_, name, _) => AT.make-id(name)
-        end
-
-        string-dict-args := link(A.s-str(dummy, variant.name), string-dict-args)
-        string-dict-args := link(
-          A.s-lam(
-            dummy, "", empty, [list: AT.make-bind("args")],
-            A.a-blank, "", bodylam, none, none, false),
-          string-dict-args)
-      end
-
-      lookup-dict-expr = A.s-construct(
-        dummy,
-        A.s-construct-normal,
-        AT.make-id("string-dict"),
-        string-dict-args.reverse())
-
-      term-to-ast-stmts = ```
-
-fun term-to-ast(top, uri):
-  rec lookup-dict = ...
-
-  fun loop(e):
-    typ = e.t
-    ask:
-      | typ == aCORE then: lookup-dict.get-value(e.n)(e.ps)
-      | typ == aBOOL   then: e.v
-      | typ == aNUMBER then: string-to-number(e.v).value
-      | typ == aSTRING then: e.v
-      | typ == aLOC    then: deserialize(e.v, uri)
-      | typ == aLIST then: raw-array-to-list(raw-array-map(loop, e.v))
-      | typ == aNONE then: none
-      | typ == aSOME then: some(loop(e.v))
-      | typ == aVAR then: s-name(dummy-loc, e.v)
-    end
-  end
-  loop(top)
-end
-``` ^ get-stmts
-
+    lam(_, body) -> List<A.Expr> block:
       helpers-stmts = ```
 aTYPE = "t"
 aVALUE = "v"
@@ -395,7 +330,6 @@ fun wrap-option(opt):
 end
         ``` ^ get-stmts
 
-
       shadow body = A.s-block(dummy, body).visit(AV.default-map-visitor.{
         method s-method-field(self, l, name, params, args, ann, doc, body-expr, _check-loc, _check, blocky):
           # no recursion -- only the top one
@@ -405,7 +339,7 @@ end
         end
       }).stmts
 
-      helpers-stmts + body + subst(A.s-block(dummy, term-to-ast-stmts), lookup-dict-expr).stmts
+      helpers-stmts + body
     end)
 
 end

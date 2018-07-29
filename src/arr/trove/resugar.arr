@@ -183,8 +183,6 @@ fun resugar(ast, uri :: String):
   # _ = init-time()
   ast.visit(RV.ast-to-term-visitor)
     # ^ log-time("ast-to-term-visitor")
-    ^ resugarer
+    ^ resugarer(_, uri)
     # ^ log-time("actual desugaring")
-    ^ RV.term-to-ast(_, uri)
-    # ^ log-time("term-to-ast")
 end
