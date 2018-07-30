@@ -182,7 +182,7 @@ fun maybe-make-builtin-locator(builtin-name :: String, options) -> Option<CL.Loc
   #NOTE(jose) - options.builtin-js-dirs did not have the path specified by --builtin-js-dir argument,
   #             instead it had {base-dir}/src/src/runtime, which caused it to not find our compiled
   #             module files
-  builtin-js-dirs = _defunct-builtin-js-dirs #options.builtin-js-dirs
+  builtin-js-dirs = options.builtin-js-dirs
   
   matching-arr-files = for map(p from builtin-arr-dirs):
     full-path = P.join(p, builtin-name + ".arr")

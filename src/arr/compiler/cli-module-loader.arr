@@ -256,20 +256,17 @@ fun setup-compiled-dirs( options ) block:
   compiled-dir = P.resolve( options.compiled-cache )
   project-dir  = P.join( compiled-dir, "project" )
   builtin-dir  = P.join( compiled-dir, "builtin" )
-  
-  builtin-js-dir = P.resolve( P.join( base-dir,
-    string-substring( options.runtime-path, string-length( "../builtin" ), string-length( options.runtime-path ) ) ) )
 
 	mkdirp( compiled-dir )
 	mkdirp( project-dir )
 	mkdirp( builtin-dir )
 
-  {base-dir; project-dir; builtin-dir; builtin-js-dir}
+  {base-dir; project-dir; builtin-dir}
 end
 
 fun set-loadable(options, locator, loadable) block:
   doc: "Returns the module path of the cached file"
-  { project-base; project-dir; builtin-dir; builtin-js-dir } = setup-compiled-dirs( options )
+  { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
   locuri = loadable.provides.from-uri
 
   cases(CS.CompileResult) loadable.result-printer block:
@@ -458,17 +455,19 @@ fun run(path, options, subsequent-command-line-arguments):
   end
 end
 
-fun copy-js-dependency( dep-path, uri, dirs ) block:
-  { base-dir; project-dir; builtin-dir; builtin-js-dir } = dirs
-  
-  save-path = ask block:
+fun copy-js-dependency( dep-path, uri, dirs, options ) block:
+  { base-dir; project-dir; builtin-dir } = dirs
+  {save-path; cutoff} = ask block:
     | string-index-of( uri, "builtin://" ) == 0 then:
-        builtin-dir
+      {
+         builtin-dir;
+         string-substring( dep-path, string-length(options.builtin-js-dirs.first), string-length(dep-path))
+      }
     | (string-index-of( uri, "jsfile://" ) == 0) or ( string-index-of( uri, "file://" ) == 0 ) then:
-        project-dir
+       { project-dir;
+         string-substring( dep-path, string-length( base-dir ), string-length( dep-path ) )
+       }
   end
-  
-  cutoff = string-substring( dep-path, string-length( builtin-js-dir ), string-length( dep-path ) )
 
   save-code-path = P.join( save-path, cutoff )
   mkdirp( P.resolve( P.dirname( save-code-path ) ) )
@@ -506,7 +505,7 @@ fun copy-js-dependencies( wl, options ) block:
   end
 
   for each( dep-path from paths.keys-list-now() ):
-    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs )
+    copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs, options )
   end
 end
 
