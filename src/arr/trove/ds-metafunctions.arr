@@ -39,7 +39,8 @@ add-metafunction("resugar", 1,
   end)
 
 add-bijection("name-to-str",
-  lam(name :: Term):
+  lam(name :: Term) block:
+    print(name)
     cases (Term) name:
       | g-var(v) =>
         cases (Variable) v:
