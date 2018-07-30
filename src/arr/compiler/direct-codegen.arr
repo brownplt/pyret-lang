@@ -8,6 +8,7 @@ import file("gensym.arr") as G
 import file("concat-lists.arr") as CL
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
+import pathlib as P
 import sha as sha
 import string-dict as D
 
@@ -558,27 +559,31 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
     global-bind-dict.get-value-now(k)
   end
 
-  fun get-base-dir( source-dir, build-dir ):
+  fun get-base-dir( source, build-dir ):
     source-head = ask:
-      | string-index-of( source-dir, "file://" ) == 0 then: 7
-      | string-index-of( source-dir, "jsfile://" ) == 0 then: 9
+      | string-index-of( source, "file://" ) == 0 then: 7
+      | string-index-of( source, "jsfile://" ) == 0 then: 9
     end
 
     fun find-cutoff( dir-A, dir-B, index-A, index-B, length ):
-      if ( string-char-at( dir-A, index-A ) == string-char-at( dir-B, index-B ) ):
+      if (index-A >= string-length(dir-A)) or (index-B >= string-length(dir-B)):
+        length
+      else if ( string-char-at( dir-A, index-A ) == string-char-at( dir-B, index-B ) ):
         find-cutoff( dir-A, dir-B, index-A + 1, index-B + 1, length + 1 )
       else:
         length
       end
     end
 
-    cutoff-index = find-cutoff( source-dir, build-dir, source-head, 0, 0 )
+    cutoff-index = find-cutoff( source, build-dir, source-head, 0, 0 )
     { string-substring( build-dir, 0, cutoff-index );
-      string-substring( source-dir, source-head, string-length( source-dir ) ) }
+      string-substring( source, source-head, string-length( source ) ) }
   end
 
-  fun get-compiled-relative-path( base-dir, source-dir ):
-    cutoff = string-substring( source-dir, string-length( base-dir ), string-length( source-dir ) )
+  fun get-compiled-relative-path( base-dir, source ):
+    shadow base-dir = P.resolve(base-dir)
+    shadow source = P.resolve(source)
+    cutoff = string-substring( source, string-length( base-dir ) + 1, string-length( source ) )
     
     fun calculate-relative-path( path ):
       if string-contains( path, "/" ):
@@ -594,8 +599,8 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
     calculate-relative-path( cutoff )
   end
 
-  { base-dir; absolute-source-dir } = get-base-dir( provides.from-uri, options.this-pyret-dir )
-  pre-append-dir = get-compiled-relative-path( base-dir, absolute-source-dir )
+  { base-dir; absolute-source } = get-base-dir( provides.from-uri, options.base-dir )
+  pre-append-dir = get-compiled-relative-path( base-dir, absolute-source )
   relative-path = pre-append-dir #string-append( pre-append-dir, options.runtime-path )
 
   imports = cases( A.Program ) prog:
