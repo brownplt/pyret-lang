@@ -48,9 +48,17 @@ check-stmts-visitor = A.default-map-visitor.{
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
         [list: ast-lam(left), right.value, ast-srcloc(l)])
     end
+    fun check-raises-not(fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), ast-srcloc(l)])
+    end
     fun check-raises-cause(shadow cause, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
         [list: ast-lam(left), right.value, ast-lam(cause), ast-srcloc(l)])
+    end
+    fun check-raises-not-cause(shadow cause, fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), ast-lam(cause), ast-srcloc(l)])
     end
     cases(A.CheckOp) op:
       | s-op-is(_)                =>
@@ -113,8 +121,8 @@ check-stmts-visitor = A.default-map-visitor.{
         end
       | s-op-raises-not(_)        =>
         cases(Option) cause:
-          | none                  => check-raises("check-raises-not")
-          | some(shadow cause)    => check-raises-cause(cause, "check-raises-not-cause")
+          | none                  => check-raises-not("check-raises-not")
+          | some(shadow cause)    => check-raises-not-cause(cause, "check-raises-not-cause")
         end
       | s-op-raises-other(_)      =>
         cases(Option) cause:

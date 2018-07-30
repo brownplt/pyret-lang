@@ -771,7 +771,7 @@ data Expr:
       left = self.left.tosource()
       op = cases(Option) self.refinement:
         | none => self.op.tosource()
-        | some(r) => PP.infix(INDENT, 0, str-percent, self.op.tosource, PP.parens(r.tosource()))
+        | some(r) => PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(r.tosource()))
       end
       main = PP.infix(INDENT, 1, op, left, option-tosource(self.right))
       cases(Option) self.cause:
