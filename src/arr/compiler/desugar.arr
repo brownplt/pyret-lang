@@ -119,7 +119,7 @@ fun desugar(program :: A.Program):
           - contains no s-provide in headers
           - all where blocks are none
           - contains no s-name (e.g. call resolve-names first)
-        Additionally, with the desugaring language:
+        Additionally, with the sugar language:
           - contains no s-when
           - contains no s-if, s-if-pipe, s-if-pipe-else
           - contains no s-user-block
@@ -127,6 +127,17 @@ fun desugar(program :: A.Program):
           - contains no s-for
           - contains no s-construct
           - contains no s-paren
+          - contains no s-method-field
+          - contains no s-table, s-load-table
+          - contains no s-spy-block
+          - contains no s-op (which was curried already, too)
+        And with the sugar language, the following has been curried:
+          - s-dot
+          - s-app
+          - s-bracket
+          - s-get-bang
+          - s-update
+          - s-extend
         Postconditions on program:
           - in addition to preconditions,
             contains no s-for, s-if (will all be s-if-else), s-op, s-method-field,
@@ -208,101 +219,6 @@ end
 
 fun is-underscore(e):
   A.is-s-id(e) and A.is-s-underscore(e.id)
-end
-
-fun ds-curry-args(l, args):
-  params-and-args = for fold(acc from pair([list: ], [list: ]), arg from args):
-      if is-underscore(arg):
-        arg-id = mk-id(l, "arg_")
-        pair(link(arg-id.id-b, acc.left), link(arg-id.id-e, acc.right))
-      else:
-        pair(acc.left, link(arg, acc.right))
-      end
-    end
-  pair(params-and-args.left.reverse(), params-and-args.right.reverse())
-end
-
-fun ds-curry-nullary(rebuild-node, l, obj, m):
-  if is-underscore(obj):
-    curried-obj = mk-id(l, "recv_")
-    A.s-lam(l, "", [list: ], [list: curried-obj.id-b], A.a-blank, "", rebuild-node(l, curried-obj.id-e, m), none, none, false)
-  else:
-    rebuild-node(l, desugar-expr(obj), m)
-  end
-# where:
-#   nothing
-  #d = A.dummy-loc
-  #ds-ed = ds-curry-nullary(A.s-dot, d, A.s-id(d, "_"), A.s-id(d, "x"))
-#  ds-ed satisfies
-end
-
-fun ds-curry(l, f, args):
-  fun fallthrough():
-    params-and-args = ds-curry-args(l, args)
-    params = params-and-args.left
-    if is-underscore(f):
-      f-id = mk-id(l, "f_")
-      A.s-lam(l, "", empty, link(f-id.id-b, params), A.a-blank, "", A.s-app(l, f-id.id-e, params-and-args.right), none, none, false)
-    else:
-      ds-f = desugar-expr(f)
-      if is-empty(params): A.s-app(l, ds-f, args)
-      else: A.s-lam(l, "", [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, none, false)
-      end
-    end
-  end
-  cases(A.Expr) f:
-    | s-dot(l2, obj, m) =>
-      if is-underscore(obj):
-        curried-obj = mk-id(l, "recv_")
-        params-and-args = ds-curry-args(l, args)
-        params = params-and-args.left
-        A.s-lam(l, "", [list: ], link(curried-obj.id-b, params), A.a-blank, "",
-            A.s-app(l, A.s-dot(l, curried-obj.id-e, m), params-and-args.right), none, none, false)
-      else:
-        fallthrough()
-      end
-    | else => fallthrough()
-  end
-where:
-  d = A.dummy-loc
-  n = A.s-global
-  id = lam(s): A.s-id(d, A.s-global(s)) end
-  under = A.s-id(d, A.s-underscore(d))
-  ds-ed = ds-curry(
-      d,
-      id("f"),
-      [list:  under, id("x") ]
-    )
-  ds-ed satisfies A.is-s-lam
-  ds-ed.args.length() is 1
-
-  ds-ed2 = ds-curry(
-      d,
-      id("f"),
-      [list:  under, under ]
-    )
-  ds-ed2 satisfies A.is-s-lam
-  ds-ed2.args.length() is 2
-
-  ds-ed3 = ds-curry(
-      d,
-      id("f"),
-      [list:
-        id("x"),
-        id("y")
-      ]
-    )
-  ds-ed3.visit(A.dummy-loc-visitor) is A.s-app(d, id("f"), [list: id("x"), id("y")])
-
-  ds-ed4 = ds-curry(
-      d,
-      A.s-dot(d, under, "f"),
-      [list:
-        id("x")
-      ])
-  ds-ed4 satisfies A.is-s-lam
-  ds-ed4.args.length() is 1
-
 end
 
 fun desugar-opt<T>(f :: (T -> T), opt :: Option<T>):

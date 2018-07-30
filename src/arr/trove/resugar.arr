@@ -219,7 +219,8 @@ sugar s-table-row:
 end
 
 sugar s-table:
-  | (s-table [{s-field-name l_{i} name_{i} ann_{i}} ...i] [{s-table-row [val_{i j} ...i]} ...j]) =>
+  | (s-table [{s-field-name l_{i} name_{i} ann_{i}} ...i]
+             [{s-table-row [val_{i j} ...i]} ...j]) =>
     (s-prim-app "makeTable"
       [(s-array [(s-str @l_{i} name_{i}) ...i])
        (s-array [(s-array [(check-ann val_{i j} ann_{i}) ...i]) ...j])]
@@ -240,7 +241,9 @@ sugar load-table-acc:
   # if nothing is left in the to-do queue, returns
   | (load-table-acc [] src sanitizers) => {pair src sanitizers}
   # if we have a sanitizer, pop it from the to-do queue to the result
-  | (load-table-acc [{s-sanitize <s-name name> sanitizer} rest_{i} ...i] src [sanitizers_{j} ...j]) =>
+  | (load-table-acc [{s-sanitize <s-name name> sanitizer} rest_{i} ...i]
+                    src
+                    [sanitizers_{j} ...j]) =>
     (load-table-acc [rest_{i} ...i] src
        [(s-app (b-id "as-loader-option")
           [(s-str "sanitizer")
