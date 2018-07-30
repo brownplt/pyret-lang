@@ -36,7 +36,10 @@
     "websocket": "^1.0.23",
     "ws": "^3.1.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jest": "^23.4.2",
+    "jshint": "^2.9.5"
+  },
   "bin": {
     "pyret": "src/server/pyret.js"
   },

@@ -290,13 +290,8 @@ fun set-loadable(options, locator, loadable) block:
 
           dep-path = P.dirname(P.join(project-dir, relative-to-project))
           when not( FS.exists( dep-path ) ):
-            FS.create-dir( builtin-dir )
+            mkdirp( dep-path )
           end
-
-          print(full-path)
-          print("\n")
-          print(relative-to-project)
-          print("\n")
 
           {P.join(project-dir, relative-to-project); ".json"; ".js"}
       end

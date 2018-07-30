@@ -294,7 +294,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       js-args = for CL.map_list(a from args): js-id-of(a.id) end
       
-      {j-fun(0, js-id-of(const-id(name)).toname(), js-args,
+      {j-fun("0", js-id-of(const-id(name)).toname(), js-args,
         j-block(body-stmts + [clist: j-return(body-val)])); cl-empty}
 
     | s-app(l, f, args) =>
@@ -349,7 +349,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-variant(_, cl, shadow name, members, _) =>
             args = for map(m from members): js-id-of(m.bind.id) end
             j-field(name,
-              j-fun(0, js-id-of(const-id(name)).toname(), args,
+              j-fun("0", js-id-of(const-id(name)).toname(), args,
                 j-block1(
                   j-return(j-obj(
                     [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
@@ -366,7 +366,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       variant-recognizers = for CL.map_list(v from variants):
         j-field("is-" + v.name,
-          j-fun(0, js-id-of(const-id(v.name)).toname(), [clist: const-id("val")],
+          j-fun("0", js-id-of(const-id(v.name)).toname(), [clist: const-id("val")],
             j-block1(
               j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
       end
@@ -595,7 +595,7 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
     fun calculate-relative-path( path ):
       if string-contains( path, "/" ):
         slash-location = string-index-of( path, "/" )
-        remaining-path = string-substring( path, slash-location, string-length( path ) )
+        remaining-path = string-substring( path, slash-location + 1, string-length( path ) )
 
         string-append( "../", calculate-relative-path( remaining-path ) ) 
       else:

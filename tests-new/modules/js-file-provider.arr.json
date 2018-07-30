@@ -1,0 +1,8 @@
+{
+  "requires": [],
+  "provides": {
+    "values": {
+      "x": "Number"
+    }
+  }
+}
