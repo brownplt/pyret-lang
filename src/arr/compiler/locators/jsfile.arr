@@ -1,5 +1,5 @@
 provide *
-import builtin-modules as B
+import js-file("../builtin-modules") as B
 import string-dict as SD
 import file as F
 import pathlib as P
@@ -20,7 +20,7 @@ fun make-jsfile-locator(path):
   {
     method needs-compile(_, _): false end,
     method get-modified-time(self):
-      F.file-times(path + ".js").mtime
+      F.file-times(path + ".arr.js").mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false }
@@ -43,7 +43,7 @@ fun make-jsfile-locator(path):
       CM.standard-globals
     end,
 
-    method uri(_): "jsfile://" + string-replace(F.real-path(path + ".js"), P.path-sep, "/") end,
+    method uri(_): "jsfile://" + string-replace(F.real-path(path + ".arr"), P.path-sep, "/") end,
     method name(_): P.basename(path, "") end,
 
     method set-compiled(_, _, _): nothing end,

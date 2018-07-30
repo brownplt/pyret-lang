@@ -3,10 +3,10 @@ provide-types *
 
 import srcloc as SL
 import file("ast.arr") as A
+import file("ast-util.arr") as AU
 import file("js-ast.arr") as J
 import file("gensym.arr") as G
 import file("concat-lists.arr") as CL
-import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
 import pathlib as P
 import sha as sha
@@ -587,12 +587,12 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
     
     fun calculate-relative-path( path ):
       if string-contains( path, "/" ):
-        slash-location = string-index-of( path, "/" ) + 1
+        slash-location = string-index-of( path, "/" )
         remaining-path = string-substring( path, slash-location, string-length( path ) )
 
         string-append( "../", calculate-relative-path( remaining-path ) ) 
       else:
-        ""
+        "./"
       end
     end
 
@@ -603,18 +603,32 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
   pre-append-dir = get-compiled-relative-path( base-dir, absolute-source )
   relative-path = pre-append-dir #string-append( pre-append-dir, options.runtime-path )
 
+
   imports = cases( A.Program ) prog:
-    | s-program( _, _, _, shadow imports, _ ) =>
-        imports
+    | s-program( _, _, _, shadow imports, _ ) => imports
+  end
+
+  fun uri-to-real-fs-path(uri):
+    full-path = ask:
+      | string-index-of(uri, "jsfile://") == 0 then: string-substring(uri, 9, string-length(uri)) + ".js"
+      | string-index-of(uri, "file://") == 0 then: string-substring(uri, 7, string-length(uri)) + ".js"
+    end
+    full-path
   end
 
   import-stmts = imports.foldl( lam( import-module, import-list ):
     cases( A.Import ) import-module:
       | s-import-complete( _,  _, _, import-type, name, _ ) =>
-          cases( A.ImportType ) import-type:
-            | s-const-import( _, file ) =>
-                [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + file + ".arr.js")]))] + import-list
-          end
+        cases( A.ImportType ) import-type:
+          | s-special-import( _, _, _ ) =>
+            uri = env.uri-by-dep-key(AU.import-to-dep(import-type).key())
+            target-path = uri-to-real-fs-path(uri)
+            this-path = uri-to-real-fs-path(provides.from-uri)
+            js-require-path = P.relative(P.dirname(this-path), target-path)
+            [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str("./" + js-require-path)]))] + import-list
+          | s-const-import( _, file ) =>
+              [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + file + ".arr.js")]))] + import-list
+        end
     end
   end, cl-empty )
   
