@@ -276,7 +276,7 @@ fun set-loadable(options, locator, loadable) block:
 
       {save-path; static-ext; code-ext} = ask block:
         | string-index-of(uri, "builtin://") == 0 then:
-            {P.join(builtin-dir, locator.name()); ".arr.json"; ".js"}
+            {P.join(builtin-dir, locator.name()); ".arr.json"; ".arr.js"}
         | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
           cutoff = if (string-index-of(uri, "jsfile://") == 0): 9 else: 7 end
 

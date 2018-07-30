@@ -613,7 +613,7 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
       | s-import-complete( _,  _, _, import-type, name, _ ) =>
           cases( A.ImportType ) import-type:
             | s-const-import( _, file ) =>
-                [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + file + ".js")]))] + import-list
+                [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + file + ".arr.js")]))] + import-list
           end
     end
   end, cl-empty )

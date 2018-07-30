@@ -2,9 +2,10 @@
   "requires": [],
   "provides": {
     "values": {
-      "fileExists": ["arrow", ["String"], "Boolean"],
-      "fileToString": ["arrow", ["String"], "String"],
-      "realPath": ["arrow", ["String"], "String"]
+      "file-exists": ["arrow", ["String"], "Boolean"],
+      "file-times": ["arrow", ["String"], ["record", {"mtime": "Number", "atime": "Number", "ctime": "Number"}]],
+      "file-to-string": ["arrow", ["String"], "String"],
+      "real-path": ["arrow", ["String"], "String"]
     }
   }
 }
