@@ -9,6 +9,50 @@ check "is-tensor":
   is-tensor([list: 1, 2, 3]) is false
 end
 
+check "make-scalar":
+  make-scalar(1).size() is 0
+  make-scalar(~12.3).shape() is empty
+  make-scalar(2.34).data-sync() is [list: 1]
+end
+
+check "zeros":
+  zeros([list: 0]).data-sync() is-roughly [list: ]
+  zeros([list: 4]).data-sync() is-roughly [list: ~0, ~0, ~0, ~0]
+  two-dim = zeros([list: 3, 2])
+  two-dim.shape() is [list: 3, 2]
+  two-dim.data-sync() is-roughly [list: ~0, ~0, ~0, ~0, ~0, ~0]
+end
+
+check "ones":
+  ones([list: 0]).data-sync() is-roughly [list: ]
+  ones([list: 4]).data-sync() is-roughly [list: ~1, ~1, ~1, ~1]
+  two-dim = ones([list: 3, 2])
+  two-dim.shape() is [list: 3, 2]
+  two-dim.data-sync() is-roughly [list: ~1, ~1, ~1, ~1, ~1, ~1]
+end
+
+check "linspace":
+  linspace(0, 3, 1).data-sync()
+    is-roughly [list: ~0]
+  linspace(10, 11, 1).data-sync()
+    is-roughly [list: ~10]
+  linspace(5, 1, 5).data-sync()
+    is-roughly [list: ~5, ~4, ~3, ~2, ~1]
+  linspace(0, 9, 10).data-sync()
+    is-roughly [list: ~0, ~1, ~2, ~3, ~4, ~5, ~6, ~7, ~8, ~9]
+  linspace(0, 4, 9).data-sync()
+    is-roughly [list: ~0, ~0.5, ~1, ~1.5, ~2, ~2.5, ~3, ~3.5, ~4]
+end
+
+check "fill":
+  fill([list: 0], 1).data-sync()
+    is-roughly [list: ]
+  fill([list: 3], 5).data-sync()
+    is-roughly [list: ~5, ~5, ~5]
+  fill([list: 3, 2], -3).data-sync()
+    is-roughly [list: ~-3, ~-3, ~-3, ~-3, ~-3, ~-3]
+end
+
 check "Tensor .size":
   make-scalar(4.21).size() is 1
   [TF.tensor: 6.32].size() is 1
