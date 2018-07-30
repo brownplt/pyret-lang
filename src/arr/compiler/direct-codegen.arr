@@ -228,19 +228,26 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
       {a-exp; a-stmts} = compile-expr(context, answer)
 
-      ans = j-obj([clist:
-                j-field("answer", a-exp),
-                j-field("namespace", J.j-undefined),
-                j-field("defined-values", j-obj(cl-empty)),
-                j-field("defined-types", j-obj(cl-empty)),
-                j-field("provide-plus-types",
-                  j-obj([clist:
-                          j-field("values", J.j-undefined),
-                          j-field("types", J.j-undefined)
-                      ])),
-                j-field("checks", J.j-undefined)])
+      when not(A.is-s-obj(provides)):
+        raise("Fatal: provides is not an object")
+      end
 
-      {ans; a-stmts}
+      {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, p from provides.fields) block:
+        when not(A.is-s-data-field(p)):
+          raise("Can only provide data fields")
+        end
+
+        {val; field-stmts} = compile-expr(context, p.value)
+
+        { cl-cons(j-field(p.name, val), fields); field-stmts + stmts }
+      end
+
+      ans = j-obj(fields + [clist:
+                j-field("$answer", a-exp),
+                j-field("$checks", J.j-undefined)])
+
+      assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
+      {assign-ans; a-stmts + stmts}
     | s-block(l, exprs) => compile-seq(context, exprs)
     | s-num(l, n) => 
       e = if num-is-fixnum(n):
