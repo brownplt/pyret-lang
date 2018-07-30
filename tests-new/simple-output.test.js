@@ -5,17 +5,17 @@ const path = require('path');
 const cp = require('child_process');
 
 describe("testing simple-output programs", () => {
-  const files = glob.sync("tests/simple-output/*.arr", {});
+  const files = glob.sync("tests-new/simple-output/*.arr", {});
   files.forEach(f => {
     test(`${f}`, () => {
-      cp.spawnSync("rm", ["-rf", "tests/compiled"]);
-      cp.spawnSync("mkdir", ["-p", "tests/compiled"]);
+      cp.spawnSync("rm", ["-rf", "tests-new/compiled"]);
+      cp.spawnSync("mkdir", ["-p", "tests-new/compiled"]);
       const compileProcess = cp.spawnSync("node",
         [ "./build/phaseA/pyret.jarr"
         , "--builtin-js-dir"
         , "src/runtime"
         , "--compiled-dir"
-        , "tests/compiled"
+        , "tests-new/compiled"
         , "--build-runnable"
         , f]);
       assert(compileProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}`);
@@ -25,7 +25,7 @@ describe("testing simple-output programs", () => {
       const expect = firstLine.slice(firstLine.indexOf(" "));
 
       const basename = path.basename(f);
-      const dest = glob.sync(`./tests/compiled/project/tests/simple-output/**${basename}.js`)[0];
+      const dest = glob.sync(`./tests-new/compiled/project/tests-new/simple-output/**${basename}.js`)[0];
 
       console.log("Dest", dest);
 

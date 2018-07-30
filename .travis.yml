@@ -12,7 +12,7 @@ before_script:
 - make
 script:
 - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/; fi
-- make all-pyret-test
+- npm test
 notifications:
   slack:
     secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=

@@ -44,8 +44,8 @@
     "pyret": "src/server/pyret.js"
   },
   "scripts": {
-    "install": "make phaseA-deps",
-    "test": "make test-all"
+    "install": "pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
+    "test": "jest test"
   },
   "repository": {
     "type": "git",
