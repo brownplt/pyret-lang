@@ -184,7 +184,7 @@ fun rt-method(name, args):
 end
 
 
-fun compile-seq(context, exprs) -> CList<J.JStmt>:
+fun compile-seq(context, exprs):
   if is-empty(exprs.rest):
     compile-expr(context, exprs.first)
   else:

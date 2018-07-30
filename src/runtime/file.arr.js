@@ -1,10 +1,6 @@
 const fs = require( 'fs' );
 
 module.exports = {
-  foo: function() {
-    return 1234;
-  }/*,
-
   fileExists: function( path ) {
     return fs.existsSync( path );
   },
@@ -19,6 +15,6 @@ module.exports = {
   },
 
   realPath: function( path ) {
-    return fs.realPathSync( path );
-  }*/
+    return fs.realpathSync( path );
+  }
 };

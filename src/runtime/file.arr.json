@@ -2,7 +2,9 @@
   "requires": [],
   "provides": {
     "values": {
-      "foo": ["arrow", [], "Number"]
+      "fileExists": ["arrow", ["String"], "Boolean"],
+      "fileToString": ["arrow", ["String"], "String"],
+      "realPath": ["arrow", ["String"], "String"]
     }
   }
 }
