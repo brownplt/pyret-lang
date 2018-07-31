@@ -40,13 +40,13 @@ add-metafunction("resugar", 1,
 
 add-bijection("name-to-str",
   lam(name :: Term) block:
-    print(name)
     cases (Term) name:
       | g-var(v) =>
         cases (Variable) v:
           | v-name(_, s) => g-prim(e-str(s))
           | else => fail("name-to-str: get a non var argument: " + tostring(name))
         end
+      | g-tag(lhs, rhs, body) => g-prim(e-str("dummy"))
       | else => fail("name-to-str: get a non var argument: " + tostring(name))
     end
   end,
