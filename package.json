@@ -46,6 +46,7 @@
   },
   "scripts": {
     "install": "pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
+    "build": "pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
     "test": "jest test"
   },
   "repository": {
