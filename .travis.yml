@@ -4,7 +4,7 @@ git:
   submodules: false
 language: node_js
 node_js:
-- 8.3.0
+- 8.11.3
 install:
 - npm install
 - npm install -g heroku
