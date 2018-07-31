@@ -2,7 +2,6 @@
   "name": "pyret-lang",
   "version": "0.0.0",
   "description": "The Pyret programming language",
-  "main": "build/phase0/main-wrapper.js",
   "directories": {
     "doc": "docs",
     "example": "examples",
@@ -42,7 +41,7 @@
     "jshint": "^2.9.5"
   },
   "scripts": {
-    "build": "pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
+    "build": "mkdir -p build/phaseA; pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
     "test": "jest test"
   },
   "repository": {
