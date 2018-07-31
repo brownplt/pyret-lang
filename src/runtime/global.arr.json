@@ -5,6 +5,7 @@
       "tva":      ["tid", "a"]
     },
     "values": {
+      "raw-array": "tany",
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing"
     },

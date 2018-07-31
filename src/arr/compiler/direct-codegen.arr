@@ -184,6 +184,15 @@ fun rt-method(name, args):
   j-method(RUNTIME, rt-name, args)
 end
 
+fun compile-list(context, exprs):
+  if is-empty(exprs):
+    { [clist:]; [clist:] }
+  else:
+    {first-ans; start-stmts} = compile-expr(context, exprs.first)
+    {rest-ans; rest-stmts} = compile-list(context, exprs.rest)
+    { cl-cons(first-ans, rest-ans) ; start-stmts + rest-stmts}
+  end
+end
 
 fun compile-seq(context, exprs):
   if is-empty(exprs.rest):
@@ -259,19 +268,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-id(l, id) => {j-id(js-id-of(id)); cl-empty}
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
     | s-prim-app(l, name, args, _) =>
-      {argvs; argstmts} = for fold({argvs; argstmts} from {cl-empty; cl-empty}, a from args):
-        {argv; stmts} = compile-expr(context, a)
-        {cl-snoc(argvs, argv); argstmts + stmts}
-      end
+      {argvs; argstmts} = compile-list(context, args)
       { console([clist: j-str(name)] + argvs); argstmts }
       
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
       {fv; fstmts} = compile-expr(context, f)
-      {argvs; argstmts} = for fold({argvs; argstmts} from {cl-empty; cl-empty}, a from args):
-        {argv; stmts} = compile-expr(context, a)
-        {cl-snoc(argvs, argv); argstmts + stmts}
-      end
+      {argvs; argstmts} = compile-list(context, args)
+      { j-app(fv, argvs); fstmts + argstmts }
+
+    | s-app(l, f, args) =>
+      {fv; fstmts} = compile-expr(context, f)
+      {argvs; argstmts} = compile-list(context, args)
       { j-app(fv, argvs); fstmts + argstmts }
 
     | s-srcloc(_, l) => { j-str("srcloc"); cl-empty }
@@ -282,7 +290,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       val = ask:
         | op == "op+" then: j-binop(lv, J.j-plus, rv)
         | op == "op-" then: j-binop(lv, J.j-minus, rv)
-        | op == "op==" then: rt-method("py_equal", [list: lv, rv])
+        | op == "op<" then: j-binop(lv, J.j-lt, rv)
+        | op == "op>" then: j-binop(lv, J.j-gt, rv)
+        | op == "op==" then: j-binop(lv, J.j-eq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
         | otherwise: nyi(op)
       end
@@ -296,14 +306,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       
       {j-fun("0", js-id-of(const-id(name)).toname(), js-args,
         j-block(body-stmts + [clist: j-return(body-val)])); cl-empty}
-
-    | s-app(l, f, args) =>
-      {fv; fstmts} = compile-expr(context, f)
-      {argvs; argstmts} = for fold({argvs; argstmts} from {cl-empty; cl-empty}, a from args):
-        {argv; stmts} = compile-expr(context, a)
-        {cl-snoc(argvs, argv); argstmts + stmts}
-      end
-      { j-app(fv, argvs); fstmts + argstmts }
 
     | s-let-expr(l, binds, body, _) =>
 
@@ -449,6 +451,26 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           ]
       }
 
+
+    | s-obj(l, fields) =>
+
+      {fieldvs; stmts} = for fold({fieldvs; stmts} from {cl-empty; cl-empty}, f from fields) block:
+        when not(A.is-s-data-field(f)):
+          raise("Can only provide data fields")
+        end
+
+        {val; field-stmts} = compile-expr(context, f.value)
+
+        { cl-cons(j-field(f.name, val), fieldvs); field-stmts + stmts }
+      end
+
+      { j-obj(fieldvs); stmts }
+
+    | s-construct(l, modifier, constructor, elts) =>
+      { c-val; c-stmts } = compile-expr(context, constructor)
+      { elts-vals; elts-stmts } = compile-list(context, elts)
+      { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(true, elts-vals)]); c-stmts + elts-stmts }
+
     | s-instantiate(l, inner-expr, params) => nyi("s-instantiate")
     | s-user-block(l, body) => nyi("s-user-block")
     | s-template(l) => nyi("s-template")
@@ -476,11 +498,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         else:
           {j-false; cl-empty}
         end
-    | s-obj(l, fields) => nyi("s-obj")
     | s-tuple(l, fields) => nyi("s-tuple")
     | s-tuple-get(l, tup, index, index-loc) => nyi("s-tuple-get")
     | s-ref(l, ann) => nyi("s-ref")
-    | s-construct(l, modifier, constructor, elts) => nyi("s-construct")
+      
+    
+    
+    nyi("s-construct")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) => nyi("s-table")
     | s-paren(l, e) => nyi("s-paren")
