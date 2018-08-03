@@ -289,12 +289,15 @@ fun set-loadable(options, locator, loadable) block:
           relative-to-project = string-substring(full-path, string-length(project-base), string-length(full-path))
 
           dep-path = P.dirname(P.join(project-dir, relative-to-project))
+          spy: dep-path end
           when not( FS.exists( dep-path ) ):
             mkdirp( dep-path )
           end
 
           {P.join(project-dir, relative-to-project); ".json"; ".js"}
       end
+
+      
 
       save-static-path = save-path + static-ext
       save-code-path = save-path + code-ext

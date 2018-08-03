@@ -21,6 +21,8 @@ describe("testing simple-output programs", () => {
       const firstLine = contents.split("\n")[0];
       const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
 
+      console.log(String(compileProcess.stdout), String(compileProcess.stderr));
+
       const basename = path.basename(f);
       var nested_path = "tests-new/.pyret/compiled/project/tests-new/simple-output/";
       var sofar = ".";
