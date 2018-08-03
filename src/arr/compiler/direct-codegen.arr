@@ -501,10 +501,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-tuple(l, fields) => nyi("s-tuple")
     | s-tuple-get(l, tup, index, index-loc) => nyi("s-tuple-get")
     | s-ref(l, ann) => nyi("s-ref")
-      
-    
-    
-    nyi("s-construct")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) => nyi("s-table")
     | s-paren(l, e) => nyi("s-paren")
