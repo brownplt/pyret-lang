@@ -18,7 +18,7 @@ function findLocalParleyDir(base, localParley) {
   TODO: windows
 */
 function tmpdir() {
-  const name = "parley-" + os.userInfo().username;
+  const name = "parley-anchor" + os.userInfo().username;
   const fulldir = "/tmp/" + name;
   if(!fs.existsSync(fulldir)) {
     try {
