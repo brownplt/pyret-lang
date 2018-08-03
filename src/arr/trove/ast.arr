@@ -1588,9 +1588,9 @@ end
 
 fun get-op-fun-name(opname):
   ask:
-    | opname == "op==" then: "equal-always"
-    | opname == "op=~" then: "equal-now"
-    | opname == "op<=>" then: "identical"
+    | opname == "op==" then: "equal-always3"
+    | opname == "op=~" then: "equal-now3"
+    | opname == "op<=>" then: "identical3"
     | otherwise: raise("Unknown op: " + opname)
   end
 end

@@ -472,6 +472,10 @@
               //             0    1                 4                 6
               refinement = RUNTIME.ffi.makeSome(tr(kids[4]));
               right = RUNTIME.ffi.makeSome(tr(kids[6]));
+            } else if (kids[2].name === "BECAUSE") {
+              // (check-test left does-not-raise because ...)
+              refinement = RUNTIME.ffi.makeNone();
+              right = RUNTIME.ffi.makeNone();
             } else {
               // (check-test left op right ...)
               //             0    1  2
