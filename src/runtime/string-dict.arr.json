@@ -1,0 +1,16 @@
+{
+  "requires": [],
+  "provides": {
+    "shorthands": {
+      "tva": ["tid", "a"]
+    },
+    "values": {
+      "count": ["arrow", ["tany"], "tany"],
+      "size": ["arrow", ["tany"], "Number"],
+      "get": ["arrow", ["tany", "tany"], "tany"],
+      "has-key": ["arrow", ["tany", "tany"], "Boolean"],
+      "keys": ["arrow", ["tany"], "tany"],
+      "values": ["arrow", ["tany"], "tany"]
+    }
+  }
+}

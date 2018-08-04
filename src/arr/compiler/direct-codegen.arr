@@ -290,9 +290,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       val = ask:
         | op == "op+" then: j-binop(lv, J.j-plus, rv)
         | op == "op-" then: j-binop(lv, J.j-minus, rv)
+        | op == "op*" then: j-binop(lv, J.j-times, rv)
+        | op == "op/" then: j-binop(lv, J.j-divide, rv)
         | op == "op<" then: j-binop(lv, J.j-lt, rv)
         | op == "op>" then: j-binop(lv, J.j-gt, rv)
         | op == "op==" then: j-binop(lv, J.j-eq, rv)
+        | op == "op<>" then: j-binop(lv, J.j-neq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
         | otherwise: nyi(op)
       end

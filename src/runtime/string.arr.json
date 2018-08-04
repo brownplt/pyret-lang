@@ -1,0 +1,8 @@
+{
+  "requires": [],
+  "provides": {
+    "values": {
+      "string-to-lower": ["arrow", ["String"], "String"]
+    }
+  }
+}
