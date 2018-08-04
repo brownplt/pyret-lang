@@ -21,19 +21,11 @@ describe("testing simple-output programs", () => {
       const firstLine = contents.split("\n")[0];
       const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
 
-      console.log(String(compileProcess.stdout), String(compileProcess.stderr));
-
       const basename = path.basename(f);
-      var nested_path = "tests-new/.pyret/compiled/project/tests-new/simple-output/";
-      var sofar = ".";
-      for(piece of nested_path.split("/")) {
-        console.log(sofar, fs.readdirSync(sofar));
-        sofar = path.join(sofar, piece);
-      }
       const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/simple-output/**${basename}.js`)[0];
 
       const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
-      assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
+      assert(runProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}\n${runProcess.stdout}\n${runProcess.stderr}`);
       assert(runProcess.stdout.indexOf(expect) !== -1, `${runProcess.stdout} should contain ${expect}`);
     });
   });

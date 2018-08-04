@@ -329,7 +329,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Because if we're taking type seriously, this can't fail! 
       compile-expr(context, body)
 
-    | s-data-expr(l, name, _, namet, params, mixins, variants, shared, _check-loc, _check) =>
+    | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
 
       variant-uniqs = for fold(uniqs from [D.string-dict:], v from variants):
         uniqs.set(v.name, fresh-id(compiler-name(v.name)))
@@ -349,7 +349,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       variant-constructors = for CL.map_list_n(local-tag from 0, v from variants):
         cases(A.Variant) v:
           | s-variant(_, cl, shadow name, members, _) =>
-            args = for map(m from members): js-id-of(m.bind.id) end
+            args = for CL.map_list(m from members): js-id-of(m.bind.id) end
             j-field(name,
               j-fun("0", js-id-of(const-id(name)).toname(), args,
                 j-block1(
@@ -465,6 +465,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       { j-obj(fieldvs); stmts }
+
+    | s-array(l, elts) =>
+      { elts-vals; elts-stmts } = compile-list(context, elts)
+      { j-list(true, elts-vals); elts-stmts }
 
     | s-construct(l, modifier, constructor, elts) =>
       { c-val; c-stmts } = compile-expr(context, constructor)

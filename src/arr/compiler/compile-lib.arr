@@ -392,6 +392,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             
             # NOTE(joe, anchor): removed this to see what un-desugared output looks like
             # and changed desugared.ast to desugared below
+
             # var desugared = D.desugar(named-result.ast)
             # named-result.bindings.merge-now(desugared.new-binds)
 

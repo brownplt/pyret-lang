@@ -7,12 +7,13 @@ client.start({
     compiler: "build/phaseA/pyret.jarr",
   },
   _all: {
-    'local-parley': "tests-new/.pyret",
+    'local-parley': "tests-new/.pyret"
   },
   meta: {
     norun: true
   },
   "pyret-options": {
+    'type-check': true,
     'checks': 'none',
     'program': process.argv[2],
     'builtin-js-dir': 'src/runtime',

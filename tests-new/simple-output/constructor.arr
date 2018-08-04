@@ -2,7 +2,7 @@
 import global as G
 
 counter = {
-  make: lam(arr): arr.length end
+  make: lam(arr :: RawArray<Any>) -> Number: arr.length end
 }
 
 c = [counter: "a", "b", "c"]
