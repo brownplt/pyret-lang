@@ -154,6 +154,7 @@ fun make-default-types() block:
   default-typs.set-now("getMaker5", t-forall([list: tva, tvb, tvc, tvd, tve, tvf], t-arrow([list: t-record([string-dict: "make5", t-arrow([list: tvb, tvc, tvd, tve, tvf], tva)]), t-string, t-srcloc, t-srcloc], t-arrow([list: tvb, tvc, tvd, tve, tvf], tva))))
 
   default-typs.set-now("makeTable", t-arrow([list: t-array(t-top), t-array(t-array(t-top))], t-table))
+  default-typs.set-now("trace-value", t-arrow([list: t-top, t-top], t-top))
 
   default-typs.freeze()
 end

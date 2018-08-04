@@ -5,6 +5,8 @@
       "tva":      ["tid", "a"]
     },
     "values": {
+      "display-string": ["arrow", ["String"], "Nothing"],
+      "num-to-str": ["arrow", ["Number"], "String"],
       "raw-array": "tany",
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing"
@@ -24,7 +26,10 @@
       }],
       "String": ["data", "String", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],
-      "Nothing": ["data", "Nothing", [], [], {}]
+      "Nothing": ["data", "Nothing", [], [], {}],
+      "RawArray": ["data", "RawArray", ["a"], [], {
+        "length": "Number"
+      }]
     }
   }
 }

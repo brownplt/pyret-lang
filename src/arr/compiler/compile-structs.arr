@@ -1139,6 +1139,7 @@ data CompileError:
     method render-reason(self):
       cases(SL.Srcloc) self.id.l:
         | builtin(_) =>
+          spy: id: self.id end
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin that's unbound:"),
             ED.text(self.id.id.toname()),
@@ -2695,6 +2696,7 @@ runtime-provides = provides("builtin://global",
      "Number", t-top,
      "String", t-str,
      "Boolean", t-top,
+     "RawArray", t-top,
      "Nothing", t-top ],
   [string-dict:])
 
