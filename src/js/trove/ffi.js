@@ -16,7 +16,6 @@
   nativeRequires: [],
   theModule: function(runtime, namespace, uri, L, Se, O, E, EQ, ERR, S, CON, /* CH, */ ED, VS) {
     var gf = runtime.getField;
-    var srcloc = runtime.getField(S, "values");
     L = gf(L, "values");
     Se = gf(Se, "values");
     O = gf(O, "values");
@@ -43,7 +42,7 @@
 
     function makePyretPos(fileName, p) {
       var n = runtime.makeNumber;
-      return runtime.getField(srcloc, "srcloc").app(
+      return runtime.getField(S, "srcloc").app(
         runtime.makeString(fileName),
         n(p.startRow),
         n(p.startCol),
@@ -55,7 +54,7 @@
     }
     function combinePyretPos(fileName, p1, p2) {
       var n = runtime.makeNumber;
-      return runtime.getField(srcloc, "srcloc").app(
+      return runtime.getField(S, "srcloc").app(
         runtime.makeString(fileName),
         n(p1.startRow),
         n(p1.startCol),
