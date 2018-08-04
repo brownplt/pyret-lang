@@ -179,6 +179,9 @@ sharing:
       | some(v) => v
     end
   end,
+  method global-value-dep-key(self, name :: String):
+    self.globals.values.get-value(name)
+  end,
   method global-value(self, name :: String):
     self.globals.values.get(name)
       .and-then(self.value-by-dep-key(_, name))
@@ -253,6 +256,12 @@ sharing:
   method type-by-dep-key(self, dep-key, name):
     uri = self.my-modules.get-value(dep-key)
     self.type-by-uri(uri, name)
+  end,
+  method uri-by-value-name-value(self, name):
+    cases(Option) self.uri-by-value-name(name):
+      | none => raise("Could not find " + name + " in global values.")
+      | some(g) => g
+    end
   end,
   method uri-by-value-name(self, name):
     self.globals.values.get(name)

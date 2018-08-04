@@ -471,12 +471,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-array(l, elts) =>
       { elts-vals; elts-stmts } = compile-list(context, elts)
-      { j-list(true, elts-vals); elts-stmts }
+      { j-list(false, elts-vals); elts-stmts }
 
     | s-construct(l, modifier, constructor, elts) =>
       { c-val; c-stmts } = compile-expr(context, constructor)
       { elts-vals; elts-stmts } = compile-list(context, elts)
-      { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(true, elts-vals)]); c-stmts + elts-stmts }
+      { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(false, elts-vals)]); c-stmts + elts-stmts }
 
     | s-instantiate(l, inner-expr, params) => nyi("s-instantiate")
     | s-user-block(l, body) => nyi("s-user-block")
@@ -528,71 +528,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
 end
 
-fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
-  {ans; stmts} = compile-expr({
-    uri: provides.from-uri,
-    options: options,
-    provides: provides,
-    datatypes: datatypes,
-    env: env
-  }, prog.block)
 
-  globals = D.make-mutable-string-dict()
-
-  fun global-bind(n):
-    name = n.toname()
-    dep = env.globals.values.get-value(name)
-    uri = cases(Option) env.mods.get(dep):
-      | some(d) => d.from-uri
-      | none => raise(dep + " not found in: " + torepr(env.mods))
-    end
-    j-var(js-id-of(n),
-      j-bracket(
-         rt-method("getField", [clist:
-              j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-              j-str("defined-values")
-            ]),
-          j-str(name)))
-  end
-
-  fun global-type-bind(n):
-    name = n.toname()
-    dep = env.globals.types.get-value(name)
-    uri = cases(Option) env.mods.get(dep):
-      | some(d) => d.from-uri
-      | none => raise(dep + " not found in: " + torepr(env.mods))
-    end
-    j-var(js-id-of(n),
-      j-bracket(
-          rt-method("getField", [clist:
-              j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-            j-str("defined-types")]),
-          j-str(name)))
-  end
-
-  var global-bind-dict = D.make-mutable-string-dict()
-
-  collect-globals = A.default-iter-visitor.{
-    method s-id(self, l, name) block:
-      when A.is-s-global(name):
-        global-bind-dict.set-now(name.toname(), global-bind(name))
-      end
-      true
-    end,
-    method a-name(self, l, name) block:
-      when A.is-s-global(name):
-        global-bind-dict.set-now(name.toname(), global-type-bind(name))
-      end
-      true
-    end
-  }
-
-  # prog.visit(collect-globals)
-
-  var global-binds = for CL.map_list(k from global-bind-dict.keys-list-now()):
-    global-bind-dict.get-value-now(k)
-  end
-
+fun node-prelude(prog, provides, env, options) block:
   fun get-base-dir( source, build-dir ):
     source-head = ask:
       | string-index-of( source, "file://" ) == 0 then: 7
@@ -637,7 +574,6 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
   pre-append-dir = get-compiled-relative-path( base-dir, absolute-source )
   relative-path = pre-append-dir #string-append( pre-append-dir, options.runtime-path )
 
-
   imports = cases( A.Program ) prog:
     | s-program( _, _, _, shadow imports, _ ) => imports
   end
@@ -650,24 +586,84 @@ fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
     full-path
   end
 
-  import-stmts = imports.foldl( lam( import-module, import-list ):
-    cases( A.Import ) import-module:
-      | s-import-complete( _,  _, _, import-type, name, _ ) =>
-        cases( A.ImportType ) import-type:
-          | s-special-import( _, _, _ ) =>
-            uri = env.uri-by-dep-key(AU.import-to-dep(import-type).key())
-            target-path = uri-to-real-fs-path(uri)
-            this-path = uri-to-real-fs-path(provides.from-uri)
-            js-require-path = P.relative(P.dirname(this-path), target-path)
-            [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str("./" + js-require-path)]))] + import-list
-          | s-const-import( _, file ) =>
-              [clist: J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + file + ".arr.js")]))] + import-list
-        end
+  fun starts-with(s, prefix):
+    string-index-of(s, prefix) == 0
+  end
+
+  fun uri-to-import(uri, name) block:
+    ask:
+      | starts-with(uri, "builtin://") then:
+        builtin-name = string-substring(uri, 10, string-length(uri))
+        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + builtin-name + ".arr.js")]))
+      | starts-with(uri, "jsfile://") or starts-with(uri, "file://") then:
+        target-path = uri-to-real-fs-path(uri)
+        this-path = uri-to-real-fs-path(provides.from-uri)
+        js-require-path = P.relative(P.dirname(this-path), target-path)
+        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str("./" + js-require-path)]))
     end
-  end, cl-empty )
-  
+  end
+
+  global-names = AU.get-globals(prog)
+  uri-to-local-js-name = [D.mutable-string-dict:]
+
+  # We create a JS require() statement for each import in the Pyret program
+  # and bind it to a unique name. dep-to-local-js-names helps us look
+  # up these names later if we need to access a value from that module
+  explicit-imports = for CL.map_list(import-stmt from imports):
+    cases( A.Import ) import-stmt block:
+      | s-import-complete( _,  _, _, import-type, name, _ ) =>
+        dep-key = AU.import-to-dep(import-type).key()
+        uri = env.uri-by-dep-key(dep-key)
+        uri-to-local-js-name.set-now(uri, name)
+        uri-to-import(uri, name)
+    end
+  end
+
+  # We _also_ insert a require for any modules that have a globally-referenced
+  # name. This won't re-instantiate them since require() caches modules; it just
+  # gives us a local name to use, and leverages the built-in Node module system
+  # rather than having Pyret's runtime track all loaded modules.
+  non-imported-global-names = for filter(g from global-names.keys-list-now()):
+    not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
+  end
+  var implicit-imports = cl-empty
+  for each(g from non-imported-global-names):
+    uri = env.uri-by-value-name-value(g)
+    when not(uri-to-local-js-name.has-key-now(uri)) block:
+      new-name = fresh-id(compiler-name("G"))
+      uri-to-local-js-name.set-now(uri, new-name)
+      implicit-imports := cl-cons(uri-to-import(uri, new-name), implicit-imports)
+    end
+  end
+
+  import-stmts = explicit-imports + implicit-imports
+
+  # We also build up a list of var statements that bind local JS names for
+  # all the globals used as identifiers, to make compiling uses of s-global
+  # straightforward.
+  pyret-globals-as-js-ids = for CL.map_list(g from global-names.keys-list-now()):
+    uri = env.uri-by-value-name-value(g)
+    imported-as = uri-to-local-js-name.get-value-now(uri)
+    J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+  end
+
+  import-stmts + pyret-globals-as-js-ids
+
+end
+
+fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
+  {ans; stmts} = compile-expr({
+    uri: provides.from-uri,
+    options: options,
+    provides: provides,
+    datatypes: datatypes,
+    env: env
+  }, prog.block)
+
+  prelude = node-prelude(prog, provides, env, options)
+
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
-  module-body = J.j-block(import-stmts + stmts + [clist: j-return(ans)])
+  module-body = J.j-block(prelude + stmts + [clist: j-return(ans)])
 
   the-module = module-body
 

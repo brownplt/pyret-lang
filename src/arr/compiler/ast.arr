@@ -148,7 +148,7 @@ sharing:
   method _greaterthan(self, other): self.key() > other.key() end,
   method _greaterequal(self, other): self.key() >= other.key() end,
   method _equals(self, other, eq): eq(self.key(), other.key()) end,
-  method _output(self): VS.vs-str(self.tosourcestring()) end,
+#  method _output(self): VS.vs-str(self.tosourcestring()) end,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -1185,7 +1185,7 @@ data Expr:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -2664,6 +2664,9 @@ default-iter-visitor = {
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     _fun.visit(self) and lists.all(_.visit(self), args)
   end,
+  method s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, info):
+    _fun.visit(self) and lists.all(_.visit(self), args)
+  end,
   method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, _):
     lists.all(_.visit(self), args)
   end,
@@ -3200,6 +3203,9 @@ dummy-loc-visitor = {
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
     s-app(dummy-loc, _fun.visit(self), args.map(_.visit(self)))
+  end,
+  method s-app-enriched(self, l :: Loc, _fun :: Expr, args :: List<Expr>, info):
+    s-app-enriched(dummy-loc, _fun.visit(self), args.map(_.visit(self)), info)
   end,
   method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, app-info :: PrimAppInfo):
     s-prim-app(dummy-loc, _fun, args.map(_.visit(self)), app-info)

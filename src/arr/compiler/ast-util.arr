@@ -1396,3 +1396,14 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   end
 end
 
+fun get-globals(program) block:
+  global-names = [SD.mutable-string-dict:]
+  get-globals-visitor = A.default-iter-visitor.{
+    method s-global(self, s) block:
+      global-names.set-now(s, true)
+      true
+    end
+  }
+  program.visit(get-globals-visitor)
+  global-names
+end
