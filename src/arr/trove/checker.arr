@@ -649,7 +649,7 @@ data TestResult:
         [ED.para: ED.text("The custom equality function must return a boolean, but instead it returned: ")],
         [ED.para: ED.embed(self.test-result)]]
     end
-  | error-not-pred(loc :: Loc, predicate) with:
+  | error-not-pred(loc :: Loc, predicate, arity :: Number) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin():
         self.render-reason()
@@ -658,12 +658,12 @@ data TestResult:
           | some(test-ast) =>
             pred-lhs = ED.highlight(ED.text("test predicate"),  [ED.locs: on-right.test-component(test-ast).l], 2)
             [ED.error:
-              [ED.para: ED.text("The "), pred-lhs, ED.text(" must be a 1-argument function that returns a boolean:")],
+              [ED.para: ED.text("The "), pred-lhs, ED.text(" must be a " + to-string(self.arity) + "-argument function that returns a boolean:")],
               ED.cmcode(self.loc),
               [ED.para: ED.text("Instead it was: "), ED.embed(self.predicate)]]
           | none =>
             [ED.error:
-              [ED.para: ED.text("The test predicate must be a 1-argument function that returns a boolean, but instead it was: ")],
+              [ED.para: ED.text("The test predicate must be a " + to-string(self.arity) + "-argument function that returns a boolean, but instead it was: ")],
               [ED.para: ED.embed(self.predicate)],
               ED.cmcode(self.loc)]
         end
@@ -671,7 +671,7 @@ data TestResult:
     end,
     method render-reason(self):
       [ED.error:
-        [ED.para: ED.text("The test predicate must be a 1-argument function that returns a boolean, but instead it was: ")],
+        [ED.para: ED.text("The test predicate must be a " + to-string(self.arity) + "-argument function that returns a boolean, but instead it was: ")],
         [ED.para: ED.embed(self.predicate)]]
     end
   | error-not-boolean-pred(loc :: Loc, predicate, left, left-src, test-result) with:
@@ -864,29 +864,13 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-is-refinement(self, refinement, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
-        test-result = refinement(lv, rv)
-        ask:
-          | is-Unknown(test-result)     then: add-result(failure-is-incomparable(loc, test-result, lv, on-left, rv, on-right))
-          | (test-result == false)
-            or is-NotEqual(test-result) then: add-result(failure-not-equal(loc, some(refinement), lv, on-left, rv, on-right))
-          | not(is-boolean(test-result)
-              or is-Equal(test-result)) then: add-result(error-not-boolean(loc, refinement, lv, on-left, rv, on-right, test-result))
-          | otherwise:                        add-result(success(loc))
-        end
-      end
-      nothing
-    end,
-    method check-is-refinement-cause(self, refinement, left, right, cause, loc) block:
-      for left-right-cause-check(loc)(lv from left, rv from right, cv from cause):
-        cause-result = refinement(cv, rv) # Same order as refinement(lv, rv)
-        ask:
-          | is-Unknown(cause-result)     then: add-result(failure-is-incomparable(loc, cause-result, cv, on-cause, rv, on-right))
-          | (cause-result == false)
-            or is-NotEqual(cause-result) then: add-result(failure-not-equal(loc, some(refinement), cv, on-cause, rv, on-right))
-          | not(is-boolean(cause-result)
-              or is-Equal(cause-result)) then: add-result(error-not-boolean(loc, refinement, cv, on-cause, rv, on-right, cause-result))
-          | otherwise:
-            test-result = refinement(lv, rv)
+        cases(Either) run-task(lam(): refinement(lv, rv) end):
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, refinement, 2))
+            else: add-result(failure-exn(loc, exn, on-refinement))
+            end
+          | left(test-result) =>
             ask:
               | is-Unknown(test-result)     then: add-result(failure-is-incomparable(loc, test-result, lv, on-left, rv, on-right))
               | (test-result == false)
@@ -896,47 +880,55 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
               | otherwise:                        add-result(success(loc))
             end
         end
-        #|
-        ask:
-          | not(is-boolean(cause-result)) then: 
-          | not(cause-result)             then: add-result(failure-not-equal(loc, some(refinement), cv, on-cause, rv, on-right))
-          | otherwise:
-            test-result = refinement(lv, rv)
+      end
+      nothing
+    end,
+    method check-is-refinement-cause(self, refinement, left, right, cause, loc) block:
+      for left-right-cause-check(loc)(lv from left, rv from right, cv from cause):
+        cases(Either) run-task(lam(): refinement(cv, rv) end): # Same order as refinement(lv, rv)
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, refinement, 2))
+            else: add-result(failure-exn(loc, exn, on-refinement))
+            end
+          | left(cause-result) =>
             ask:
-              | not(is-boolean(test-result)) then: add-result(error-not-boolean(loc, refinement, lv, on-left, rv, on-right, test-result))
-              | not(test-result)             then: add-result(failure-not-equal(loc, some(refinement), lv, on-left, rv, on-right))
-              | otherwise:                         add-result(success(loc))
+              | is-Unknown(cause-result)     then: add-result(failure-is-incomparable(loc, cause-result, cv, on-cause, rv, on-right))
+              | (cause-result == false)
+                or is-NotEqual(cause-result) then: add-result(failure-not-equal(loc, some(refinement), cv, on-cause, rv, on-right))
+              | not(is-boolean(cause-result)
+                  or is-Equal(cause-result)) then: add-result(error-not-boolean(loc, refinement, cv, on-cause, rv, on-right, cause-result))
+              | otherwise:
+                cases(Either) run-task(lam(): refinement(lv, rv) end):
+                  | right(exn) =>
+                    exn-v = exn-unwrap(exn)
+                    if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, refinement, 2))
+                    else: add-result(failure-exn(loc, exn, on-refinement))
+                    end
+                  | left(test-result) =>
+                    ask:
+                      | is-Unknown(test-result)     then: add-result(failure-is-incomparable(loc, test-result, lv, on-left, rv, on-right))
+                      | (test-result == false)
+                        or is-NotEqual(test-result) then: add-result(failure-not-equal(loc, some(refinement), lv, on-left, rv, on-right))
+                      | not(is-boolean(test-result)
+                          or is-Equal(test-result)) then: add-result(error-not-boolean(loc, refinement, lv, on-left, rv, on-right, test-result))
+                      | otherwise:                        add-result(success(loc))
+                    end
+                end
             end
         end
-        |#
       end
       nothing
     end,
     method check-is-not-refinement(self, refinement, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
-        test-result = refinement(lv, rv)
-        ask:
-          | is-Unknown(test-result)        then: add-result(failure-is-incomparable(loc, test-result, lv, on-left, rv, on-right))
-          | (test-result == true)
-            or is-Equal(test-result)       then: add-result(failure-not-different(loc, some(refinement), lv, on-left, rv, on-right))
-          | not(is-boolean(test-result)
-              or is-NotEqual(test-result)) then: add-result(error-not-boolean(loc, refinement, lv, on-left, rv, on-right, test-result))
-          | otherwise:                           add-result(success(loc))
-        end
-      end
-      nothing
-    end,
-    method check-is-not-refinement-cause(self, refinement, left, right, cause, loc) block:
-      for left-right-cause-check(loc)(lv from left, rv from right, cv from cause):
-        cause-result = refinement(cv, rv) # Same order as refinement(lv, rv)
-        ask:
-          | is-Unknown(cause-result)        then: add-result(failure-is-incomparable(loc, cause-result, cv, on-cause, rv, on-right))
-          | (cause-result == true)
-            or is-Equal(cause-result)       then: add-result(failure-not-different(loc, some(refinement), cv, on-cause, rv, on-right))
-          | not(is-boolean(cause-result)
-              or is-NotEqual(cause-result)) then: add-result(error-not-boolean(loc, refinement, cv, on-cause, rv, on-right, cause-result))
-          | otherwise:
-            test-result = refinement(lv, rv)
+        cases(Either) run-task(lam(): refinement(lv, rv) end):
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, refinement, 2))
+            else: add-result(failure-exn(loc, exn, on-refinement))
+            end
+          | left(test-result) =>
             ask:
               | is-Unknown(test-result)        then: add-result(failure-is-incomparable(loc, test-result, lv, on-left, rv, on-right))
               | (test-result == true)
@@ -949,10 +941,51 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       end
       nothing
     end,
+    method check-is-not-refinement-cause(self, refinement, left, right, cause, loc) block:
+      for left-right-cause-check(loc)(lv from left, rv from right, cv from cause):
+        cases(Either) run-task(lam(): refinement(cv, rv) end): # Same order as refinement(lv, rv)
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, refinement, 2))
+            else: add-result(failure-exn(loc, exn, on-refinement))
+            end
+          | left(cause-result) =>
+            ask:
+              | is-Unknown(cause-result)        then: add-result(failure-is-incomparable(loc, cause-result, cv, on-cause, rv, on-right))
+              | (cause-result == true)
+                or is-Equal(cause-result)       then: add-result(failure-not-different(loc, some(refinement), cv, on-cause, rv, on-right))
+              | not(is-boolean(cause-result)
+                  or is-NotEqual(cause-result)) then: add-result(error-not-boolean(loc, refinement, cv, on-cause, rv, on-right, cause-result))
+              | otherwise:
+                cases(Either) run-task(lam(): refinement(lv, rv) end):
+                  | right(exn) =>
+                    exn-v = exn-unwrap(exn)
+                    if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, refinement, 2))
+                    else: add-result(failure-exn(loc, exn, on-refinement))
+                    end
+                  | left(test-result) =>
+                    ask:
+                      | is-Unknown(test-result)        then: add-result(failure-is-incomparable(loc, test-result, lv, on-left, rv, on-right))
+                      | (test-result == true)
+                        or is-Equal(test-result)       then: add-result(failure-not-different(loc, some(refinement), lv, on-left, rv, on-right))
+                      | not(is-boolean(test-result)
+                          or is-NotEqual(test-result)) then: add-result(error-not-boolean(loc, refinement, lv, on-left, rv, on-right, test-result))
+                      | otherwise:                           add-result(success(loc))
+                    end
+                end
+            end
+        end
+      end
+      nothing
+    end,
     method check-satisfies-delayed(self, left, pred, loc) block:
       for left-right-check(loc)(lv from left, pv from pred):
         cases(Either) run-task(lam(): pv(lv) end):
-          | right(exn) => add-result(error-not-pred(loc, pv))
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
+            else: add-result(failure-exn(loc, exn, on-right))
+            end
           | left(test-result) =>
             ask:
               | not(is-boolean(test-result)) then: add-result(error-not-boolean-pred(loc, pv, lv, on-left, test-result))
@@ -966,14 +999,22 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     method check-satisfies-delayed-cause(self, left, pred, cause, loc) block:
       for left-right-cause-check(loc)(lv from left, pv from pred, cv from cause):
         cases(Either) run-task(lam(): pv(cv) end):
-          | right(exn) => add-result(error-not-pred(loc, pv))
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
+            else: add-result(failure-exn(loc, exn, on-right))
+            end
           | left(cause-result) =>
             ask:
               | not(is-boolean(cause-result)) then: add-result(error-not-boolean-pred(loc, pv, cv, on-cause, cause-result))
               | not(cause-result)             then: add-result(failure-not-satisfied(loc, cv, on-cause, pv))
               | otherwise:
                 cases(Either) run-task(lam(): pv(lv) end):
-                  | right(exn) => add-result(error-not-pred(loc, pv))
+                  | right(exn) =>
+                    exn-v = exn-unwrap(exn)
+                    if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
+                    else: add-result(failure-exn(loc, exn, on-right))
+                    end
                   | left(test-result) =>
                     ask:
                       | not(is-boolean(test-result)) then: add-result(error-not-boolean-pred(loc, pv, lv, on-left, test-result))
@@ -989,7 +1030,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     method check-satisfies-not-delayed(self, left, pred, loc) block:
       for left-right-check(loc)(lv from left, pv from pred):
         cases(Either) run-task(lam(): pv(lv) end):
-          | right(exn) => add-result(error-not-pred(loc, pv))
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
+            else: add-result(failure-exn(loc, exn, on-right))
+            end
           | left(test-result) =>
             ask:
               | not(is-boolean(test-result)) then: add-result(error-not-boolean-pred(loc, pv, lv, on-left, test-result))
@@ -1003,14 +1048,22 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     method check-satisfies-not-delayed-cause(self, left, pred, cause, loc) block:
       for left-right-cause-check(loc)(lv from left, pv from pred, cv from cause):
         cases(Either) run-task(lam(): pv(cv) end):
-          | right(exn) => add-result(error-not-pred(loc, pv))
+          | right(exn) =>
+            exn-v = exn-unwrap(exn)
+            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
+            else: add-result(failure-exn(loc, exn, on-right))
+            end
           | left(cause-result) =>
             ask:
               | not(is-boolean(cause-result)) then: add-result(error-not-boolean-pred(loc, pv, cv, on-cause, cause-result))
               | cause-result                  then: add-result(failure-not-dissatisfied(loc, cv, on-cause, pv))
               | otherwise:
                 cases(Either) run-task(lam(): pv(lv) end):
-                  | right(exn) => add-result(error-not-pred(loc, pv))
+                  | right(exn) =>
+                    exn-v = exn-unwrap(exn)
+                    if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
+                    else: add-result(failure-exn(loc, exn, on-right))
+                    end
                   | left(test-result) =>
                     ask:
                       | not(is-boolean(test-result)) then: add-result(error-not-boolean-pred(loc, pv, lv, on-left, test-result))
@@ -1137,7 +1190,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
                 exn-unwrap(exn)
               end
             cases(Either) run-task(lam(): pred(exn-val) end):
-              | right(_) => error-not-pred(loc, pred)
+              | right(shadow exn) =>
+                exn-v = exn-unwrap(exn)
+                if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
+                else: failure-exn(loc, exn, on-right)
+                end
               | left(pred-result) =>
                 ask:
                   | not(is-boolean(pred-result)) then: error-not-boolean-pred(loc, pred, exn-val, on-left, pred-result)
@@ -1160,7 +1217,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
                 exn-unwrap(exn)
               end
             cases(Either) run-task(lam(): pred(exn-cause-val) end):
-              | right(_) => error-not-pred(loc, pred)
+              | right(shadow exn) =>
+                exn-v = exn-unwrap(exn)
+                if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
+                else: failure-exn(loc, exn, on-right)
+                end
               | left(pred-cause-result) =>
                 ask:
                   | not(is-boolean(pred-cause-result)) then: error-not-boolean-pred(loc, pred, exn-cause-val, on-cause, pred-cause-result)
@@ -1176,7 +1237,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
                             exn-unwrap(exn)
                           end
                         cases(Either) run-task(lam(): pred(exn-thunk-val) end):
-                          | right(_) => error-not-pred(loc, pred)
+                          | right(shadow exn) =>
+                            exn-v = exn-unwrap(exn)
+                            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
+                            else: failure-exn(loc, exn, on-right)
+                            end
                           | left(pred-thunk-result) =>
                             ask:
                               | not(is-boolean(pred-thunk-result)) then: error-not-boolean-pred(loc, pred, exn-thunk-val, on-left, pred-thunk-result)
@@ -1202,7 +1267,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
                 exn-unwrap(exn)
               end
             cases(Either) run-task(lam(): pred(exn-val) end):
-              | right(_) => error-not-pred(loc, pred)
+              | right(shadow exn) =>
+                exn-v = exn-unwrap(exn)
+                if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
+                else: failure-exn(loc, exn, on-right)
+                end
               | left(pred-result) =>
                 ask:
                   | not(is-boolean(pred-result)) then: error-not-boolean-pred(loc, pred, exn-val, on-left, pred-result)
@@ -1225,7 +1294,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
                 exn-unwrap(exn)
               end
             cases(Either) run-task(lam(): pred(exn-cause-val) end):
-              | right(_) => error-not-pred(loc, pred)
+              | right(shadow exn) =>
+                exn-v = exn-unwrap(exn)
+                if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
+                else: failure-exn(loc, exn, on-right)
+                end
               | left(pred-cause-result) =>
                 ask:
                   | not(is-boolean(pred-cause-result)) then: error-not-boolean-pred(loc, pred, exn-cause-val, on-cause, pred-cause-result)
@@ -1241,7 +1314,11 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
                             exn-unwrap(exn)
                           end
                         cases(Either) run-task(lam(): pred(exn-thunk-val) end):
-                          | right(_) => error-not-pred(loc, pred)
+                          | right(shadow exn) =>
+                            exn-v = exn-unwrap(exn)
+                            if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
+                            else: failure-exn(loc, exn, on-right)
+                            end
                           | left(pred-thunk-result) =>
                             ask:
                               | not(is-boolean(pred-thunk-result)) then: error-not-boolean-pred(loc, pred, exn-thunk-val, on-left, pred-thunk-result)
