@@ -430,9 +430,11 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
         } else if ((match = unterminated_string.exec(this.str))) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
-          return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
+          var token = this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
+          token.delim_tag = "DQ";
+          return token;
         }          
       }},
     { name: "STRING", val: "'",
@@ -448,9 +450,11 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
         } else if ((match = unterminated_string.exec(this.str))) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
-          return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
+          var token = this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
+          token.delim_tag = "SQ";
+          return token;
         }          
       }},
     { name: "STRING", val: "```",
@@ -472,9 +476,11 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
         } else if ((match = unterminated_string.exec(this.str))) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
-          return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
+          var token = this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
+          token.delim_tag = "TQ";
+          return token;
         }          
       }},
     {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
