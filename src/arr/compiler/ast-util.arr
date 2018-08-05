@@ -888,7 +888,6 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
                 i.values.map(A.s-name(loc, _)),
                 i.types.map(A.s-name(loc, _)),
                 A.s-const-import(p.l, name),
-                name-to-use,
                 name-to-use)
             | dependency(protocol, args) =>
               A.s-import-complete(
@@ -896,7 +895,6 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
                 i.values.map(A.s-name(p.l, _)),
                 i.types.map(A.s-name(p.l, _)),
                 A.s-special-import(p.l, protocol, args),
-                name-to-use,
                 name-to-use)
           end
         end
@@ -1013,7 +1011,9 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         cases(A.Name) id:
           | s-type-global(name) =>
             cases(Option<String>) compile-env.globals.types.get(name):
-              | none => raise("Name not found in globals.types: " + name)
+              | none =>
+                spy: globals: compile-env.globals end
+                raise("Name not found in globals.types: " + name)
               | some(key) =>
                 cases(Option<URI>) compile-env.my-modules.get(key):
                   | none => raise("Module not found in compile-env.my-modules: " + key

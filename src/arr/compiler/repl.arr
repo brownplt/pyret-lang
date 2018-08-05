@@ -127,7 +127,7 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: 
       for fold(res from {new-globals: g, new-extras: empty}, i from imports):
         shadow g = res.new-globals
         cases(A.Import) RN.expand-import(i, env):
-          | s-import-complete(_, values, types, file, vals-name, type-name) =>
+          | s-import-complete(_, values, types, file, mod-name) =>
             depname = AU.import-to-dep(file).key()
             new-vals = for fold(vs from g.values, k from values.map(_.toname())):
               vs.set(k, depname)
@@ -137,10 +137,10 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: 
             end
             # MARK(joe/ben): modules
             ng = CS.globals(
-              [SD.string-dict:],
-              new-vals.set(vals-name.toname(), dep),
-              new-types.set(type-name.toname(), dep))
-            ne = link(CS.extra-import(AU.import-to-dep(file), "_", empty, empty), res.new-extras)
+              g.modules.set(mod-name.toname(), dep),
+              new-vals,
+              new-types)
+            ne = link(CS.extra-import(AU.import-to-dep(file), mod-name.toname(), empty, empty), res.new-extras)
             { new-globals: ng, new-extras: ne }
         end
       end

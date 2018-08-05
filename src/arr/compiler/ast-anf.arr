@@ -77,8 +77,7 @@ data AImport:
       values :: List<A.Name>,
       types :: List<A.Name>,
       import-type :: AImportType,
-      vals-name :: A.Name,
-      types-name :: A.Name) with:
+      mod-name :: A.Name) with:
     method label(self): "a-import-complete" end,
     method tosource(self):
       PP.flow([list: str-import,
@@ -86,8 +85,7 @@ data AImport:
           str-from,
           self.import-type.tosource(),
           str-as,
-          self.vals-name.tosource(),
-          self.types-name.tosource()])
+          self.mod-name.tosource()])
     end
 sharing:
   method visit(self, visitor):
@@ -477,6 +475,9 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
+  | a-id-modref(l :: Loc, id :: A.Name, uri :: String, name :: String) with:
+    method label(self): "a-id" end,
+    method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-safe-letrec" end,
     method tosource(self): PP.str("~" + tostring(self.id)) end
@@ -495,8 +496,8 @@ end
 
 fun strip-loc-import(i :: AImport):
   cases(AImport) i:
-    | a-import-complete(_, vns, tns, imp, vn, tn) =>
-      a-import-complete(dummy-loc, vns, tns, imp, vn, tn)
+    | a-import-complete(_, vns, tns, imp, mn) =>
+      a-import-complete(dummy-loc, vns, tns, imp, mn)
   end
 end
 
@@ -582,6 +583,7 @@ fun strip-loc-val(val :: AVal):
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
+    | a-id-modref(_, id, uri, name) => a-id-modref(dummy-loc, id, uri, name)
     | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
   end
 end
@@ -719,6 +721,9 @@ default-map-visitor = {
   end,
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
+  end,
+  method a-id-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    a-id-modref(l, id, uri, name)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     a-id-var(l, id)
@@ -958,6 +963,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
     | a-id(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
+    | a-id-modref(_, id, uri, name) => seen-so-far
     | a-id-var(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far

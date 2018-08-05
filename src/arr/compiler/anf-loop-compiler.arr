@@ -400,7 +400,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         rt-method("getDotAnn", [clist:
             visitor.get-loc(l),
             j-str(m.toname()),
-            j-id(js-id-of(m)),
+            j-dot(j-dot(j-id(js-id-of(m)), "dict"), "types"),
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
@@ -541,7 +541,7 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
   vars
 end
 
-fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
+fun copy-mutable-dict<E>(s :: D.MutableStringDict<E>) -> D.MutableStringDict<E>:
   s.freeze().unfreeze()
 end
 
@@ -1686,6 +1686,16 @@ compiler-visitor = {
   method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
   end,
+  method a-id-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    c-exp(  
+      j-bracket(
+        j-dot(
+          j-dot(
+            j-dot(j-id(js-id-of(id)), "dict"),
+            "values"),
+          "dict"),
+        j-str(name)), cl-empty)
+  end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
   end,
@@ -2069,8 +2079,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     )
 
   for each(i from imports) block:
-    freevars.remove-now(i.vals-name.key())
-    freevars.remove-now(i.types-name.key())
+    freevars.remove-now(i.mod-name.key())
   end
 
   import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
@@ -2135,9 +2144,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     else: js-id-of(name)
     end
   end
-  ids = imports.map(lam(i): clean-import-name(i.vals-name) end)
-  type-imports = imports.filter(N.is-a-import-complete)
-  type-ids = type-imports.map(lam(i): clean-import-name(i.types-name) end)
+  mod-ids = imports.map(lam(i): clean-import-name(i.mod-name) end)
   module-locators = imports.map(lam(i):
     cases(N.AImportType) i.import-type:
       | a-import-builtin(_, name) => CS.builtin(name)
@@ -2171,7 +2178,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
       if A.is-s-atom(i) and (i.base == "$import"): js-names.make-atom("$$import")
       else: js-id-of(compiler-name(i.toname()))
       end
-    end, ids)
+    end, mod-ids)
   cases-dispatches = dispatches-box(cl-empty)
   fun wrap-modules(modules, body-name, body-fun) block:
     mod-input-names = CL.map_list(_.input-id, modules)
@@ -2180,15 +2187,8 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
     mod-val-ids = modules.map(get-id)
     moduleVal = const-id("moduleVal")
     j-block(
-      for lists.fold2(acc from cl-empty, m from mod-val-ids, in from mod-input-ids-list):
-        if (in.id.base == "$$import"): acc
-        else: acc ^ cl-snoc(_, j-var(m, rt-method("getField", [clist: in, j-str("values")])))
-        end
-      end +
-      for lists.fold2(acc from cl-empty, mt from type-ids, in from mod-input-ids-list):
-        if (in.id.base == "$$import"): acc
-        else: acc ^ cl-snoc(_, j-var(mt, rt-method("getField", [clist: in, j-str("types")])))
-        end
+      for CL.map_list(m from modules):
+        j-var(m.id, j-id(m.input-id))
       end +
       for CL.map_list(m from modules):
         j-expr(j-assign(NAMESPACE.id, rt-method("addModuleToNamespace",
@@ -2215,7 +2215,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
               j-str("Evaluating " + body-name.toname())
         ]))])
   end
-  module-specs = for map3(i from imports, id from ids, in-id from input-ids.to-list()):
+  module-specs = for map3(i from imports, id from mod-ids, in-id from input-ids.to-list()):
     { id: id, input-id: in-id, imp: i}
   end
   var locations = cl-empty

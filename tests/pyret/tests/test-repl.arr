@@ -65,6 +65,7 @@ check:
 
   importsd = "import string-dict as SD\nstring-dict = SD.string-dict\n55"
   result7 = restart(importsd, false)
+  result7 satisfies E.is-right
   val(result7) is some(55)
 
   # should fail because y no longer bound
@@ -72,6 +73,7 @@ check:
   result8 satisfies E.is-left
 
   result9 = next-interaction("is-function(string-dict.make)")
+  result9 satisfies E.is-right
   val(result9) is some(true)
 
   result10 = next-interaction("import string-dict as SD2")

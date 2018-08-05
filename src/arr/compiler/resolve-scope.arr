@@ -67,10 +67,10 @@ is-s-import-complete = A.is-s-import-complete
 fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
   cases(A.Import) imp:
     | s-import(l, shadow imp, name) =>
-      A.s-import-complete(l, empty, empty, imp, name, name)
+      A.s-import-complete(l, empty, empty, imp, name)
     | s-import-fields(l, fields, shadow imp) =>
       imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-      A.s-import-complete(l, fields, empty, imp, A.s-underscore(l), A.s-underscore(l))
+      A.s-import-complete(l, fields, empty, imp, A.s-underscore(l))
     | s-include(l, shadow imp) =>
       imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
       imp-name = A.s-underscore(l)
@@ -81,9 +81,9 @@ fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (i
         | some(provides) =>
           val-names = provides.values.map-keys(A.s-name(l, _))
           type-names = provides.aliases.map-keys(A.s-name(l, _))
-          A.s-import-complete(l, val-names, type-names, imp, imp-name, imp-name)
+          A.s-import-complete(l, val-names, type-names, imp, imp-name)
       end
-    | s-import-complete(_, _, _, _, _, _) => imp
+    | s-import-complete(_, _, _, _, _) => imp
   end
 end
 
@@ -737,7 +737,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   var name-errors = [list: ]
 
   # Maps from keys to ModuleBinds
-  modules = SD.make-mutable-string-dict()
+  module-bindings = SD.make-mutable-string-dict()
 
   # Maps from keys to ValueBinds
   bindings = SD.make-mutable-string-dict()
@@ -830,7 +830,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       mod-info = initial.provides-by-module-name-value(name)
       # MARK(joe/ben): Should this be a new s-module-global below
       b = C.module-bind(C.bo-global(mod-info.from-uri), names.s-global(name), mod-info.modules.get-value(name))
-      modules.set-now(names.s-global(name).key(), b)
+      module-bindings.set-now(names.s-global(name).key(), b)
       acc.set-now(name, b)
     end
     acc.freeze()
@@ -905,27 +905,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     for fold(acc from { self.env; self.type-env; self.module-env; empty }, i from imports):
       {imp-e; imp-te; imp-me; imp-imps} = acc
       cases(A.Import) i block:
-        | s-import-complete(l2, vnames, tnames, file, name-vals, name-types) =>
+        | s-import-complete(l2, vnames, tnames, file, local-name) =>
           info-key = U.import-to-dep(file).key()
           mod-info = initial-env.provides-by-dep-key-value(info-key)
           mod-uri = mod-info.from-uri
-          atom-env =
-            if A.is-s-underscore(name-vals):
-              make-anon-import-for(name-vals.l, "$import", imp-e, bindings,
-                C.value-bind(C.bo-local(name-vals.l), C.vb-let, _, A.a-any(l2)))
+          atom-env-m =
+            if A.is-s-underscore(local-name):
+              make-anon-import-for(local-name.l, "$import", imp-me, module-bindings,
+                C.module-bind(C.bo-local(local-name.l), _, mod-uri))
             else:
-              make-atom-for(name-vals, false, imp-e, bindings,
-                C.value-bind(C.bo-local(name-vals.l), C.vb-let, _, A.a-any(l2)))
+              make-atom-for(local-name, false, imp-me, module-bindings,
+                C.module-bind(C.bo-local(local-name.l), _, mod-uri))
             end
-          atom-env-t =
-            if A.is-s-underscore(name-types):
-              make-anon-import-for(name-types.l, "$import", imp-te, type-bindings,
-                C.type-bind(C.bo-local(name-types.l), C.tb-type-let, _, none))
-            else:
-              make-atom-for(name-types, false, imp-te, type-bindings,
-                C.type-bind(C.bo-local(name-types.l), C.tb-type-let, _, none))
-            end
-          {e; vn} = for fold(nv-v from {atom-env.env; empty}, v from vnames):
+          {e; vn} = for fold(nv-v from {imp-e; empty}, v from vnames):
             {e; vn} = nv-v
             maybe-value-export = mod-info.values.get(v.toname())
             v-atom-env = cases(Option) maybe-value-export block:
@@ -957,7 +949,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             end
             { v-atom-env.env; link(v-atom-env.atom, vn) }
           end
-          {te; tn} = for fold(nv-t from {atom-env-t.env; empty}, t from tnames):
+          {te; tn} = for fold(nv-t from {imp-te; empty}, t from tnames):
             {te; tn} = nv-t
             t-atom-env = make-atom-for(t, false, te, type-bindings,
               C.type-bind(C.bo-module(t.l, mod-info.from-uri), C.tb-type-let, _, none))
@@ -967,9 +959,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             vn,
             tn,
             file,
-            atom-env.atom,
-            atom-env-t.atom)
-          { e; te; self.module-env; link(new-header, imp-imps) }
+            atom-env-m.atom)
+          { e; te; atom-env-m.env; link(new-header, imp-imps) }
         | else => raise("Should only have s-import-complete when checking scope")
       end
     end
@@ -1290,6 +1281,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | else => raise("Wasn't expecting a non-s-name in resolve-names for assignment: " + torepr(id))
       end
     end,
+    method s-dot(self, l, obj, name):
+      cases(A.Expr) obj:
+        | s-id(_, id) =>
+          cases(A.Name) id:
+            | s-name(_, s) => 
+              # Is this name _not_ a known value _and_ a known module?
+              if not(self.env.has-key(s)) and self.module-env.has-key(s):
+                mod-bind = self.module-env.get-value(s)
+                A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
+              else:
+                A.s-dot(l, obj.visit(self), name)
+              end
+            | else => A.s-dot(l, obj.visit(self), name)
+          end
+        | else => A.s-dot(l, obj.visit(self), name)
+      end
+    end,
     # NOTE(joe): Since there's no syntactic difference between _uses_ of letrec-,
     # let-, and var-bound names, this case disambiguates based on known binding
     # information
@@ -1346,10 +1354,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method a-dot(self, l, obj, field) block:
       cases(A.Name) obj block:
         | s-name(nameloc, s) =>
-          cases(Option) self.type-env.get(s):
+          cases(Option) self.module-env.get(s):
             | none => A.a-dot(l, obj, field)
-            | some(tb) =>
-              A.a-dot(l, tb.atom, field)
+            | some(mb) =>
+              A.a-dot(l, mb.atom, field)
           end
         | else =>
           name-errors := link(C.underscore-as-ann(obj.l), name-errors)
@@ -1382,13 +1390,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-table-extent(l, column.visit(self), table)
     end,
   }
-  C.resolved-names(p.visit(names-visitor), name-errors, modules, bindings, type-bindings, datatypes)
+  C.resolved-names(p.visit(names-visitor), name-errors, module-bindings, bindings, type-bindings, datatypes)
 end
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
   var shadow errors = [list: ] # THE MUTABLE LIST OF ERRORS
   bindings = resolved.bindings
   type-bindings = resolved.type-bindings
+  module-bindings = resolved.module-bindings
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(id, loc):
     if A.is-s-underscore(id) block:
@@ -1461,7 +1470,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         else if A.is-s-type-global(name) and initial-env.globals.types.has-key(name.toname()):
           # need to figure out how to read through the imports here, I think
           nothing
-        else if type-bindings.has-key-now(name.key()):
+        else if type-bindings.has-key-now(name.key()) or module-bindings.has-key-now(name.key()):
           nothing
         else:
           # need to figure out how to read through the imports here, I think

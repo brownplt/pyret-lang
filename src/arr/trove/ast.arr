@@ -293,8 +293,7 @@ data Import:
       values :: List<Name>,
       types :: List<Name>,
       import-type :: ImportType,
-      vals-name :: Name,
-      types-name :: Name) with:
+      mod-name :: Name) with:
     method label(self): "s-import-complete" end,
     method tosource(self):
       PP.flow([list: str-import,
@@ -302,8 +301,7 @@ data Import:
           str-from,
           self.import-type.tosource(),
           str-as,
-          self.vals-name.tosource(),
-          self.types-name.tosource()])
+          self.local-name.tosource()])
     end
 sharing:
   method visit(self, visitor):
@@ -992,6 +990,10 @@ data Expr:
   | s-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
     method label(self): "s-id-letrec" end,
     method tosource(self): PP.str("~") + self.id.tosource() end
+  # A fully-resolved reference to a module
+  | s-id-modref(l :: Loc, id :: Name, uri :: String, name :: String) with:
+    method label(self): "s-id-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | s-undefined(l :: Loc) with:
     method label(self): "s-undefined" end,
     method tosource(self): PP.str("undefined") end
@@ -1932,14 +1934,13 @@ default-map-visitor = {
   method s-import(self, l, import-type, name):
     s-import(l, import-type.visit(self), name.visit(self))
   end,
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
+  method s-import-complete(self, l, values, types, mod, mod-name):
     s-import-complete(
       l,
       values.map(_.visit(self)),
       types.map(_.visit(self)),
       mod.visit(self),
-      vals-name.visit(self),
-      types-name.visit(self))
+      mod-name.visit(self))
   end,
   method s-const-import(self, l, mod):
     s-const-import(l, mod)
@@ -2233,6 +2234,9 @@ default-map-visitor = {
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(l, id.visit(self), safe)
   end,
+  method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-modref(l, id.visit(self), uri, name)
+  end,
   method s-undefined(self, l :: Loc):
     s-undefined(self)
   end,
@@ -2517,12 +2521,11 @@ default-iter-visitor = {
   method s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
+  method s-import-complete(self, l, values, types, mod, mod-name):
     lists.all(_.visit(self), values) and
       lists.all(_.visit(self), types) and
       mod.visit(self) and
-      vals-name.visit(self) and
-      types-name.visit(self)
+      mod-name.visit(self)
   end,
   method s-include(self, l, import-type):
     import-type.visit(self)
@@ -2835,6 +2838,9 @@ default-iter-visitor = {
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     id.visit(self)
   end,
+  method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    id.visit(self)
+  end,
   method s-undefined(self, l :: Loc):
     true
   end,
@@ -3110,14 +3116,13 @@ dummy-loc-visitor = {
   method s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type.visit(self), name.visit(self))
   end,
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
+  method s-import-complete(self, l, values, types, mod, mod-name):
     s-import-complete(
       dummy-loc,
       values.map(_.visit(self)),
       types.map(_.visit(self)),
       mod.visit(self),
-      vals-name.visit(self),
-      types-name.visit(self))
+      mod-name.visit(self))
   end,
 
   method s-include-from(self, l, specs):
@@ -3395,6 +3400,9 @@ dummy-loc-visitor = {
   end,
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(dummy-loc, id.visit(self), safe)
+  end,
+  method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-modref(dummy-loc, id.visit(self), uri, name)
   end,
   method s-undefined(self, l :: Loc):
     s-undefined(self)

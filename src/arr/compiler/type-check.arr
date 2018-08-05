@@ -226,16 +226,16 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     | s-program(l, _provide, provided-types, provides, imports, body) =>
       shadow context = imports.foldl(lam(_import, shadow context):
         cases(A.Import) _import block:
-          | s-import-complete(_, vals, types, file, vname, tname) =>
+          | s-import-complete(_, vals, types, file, mname) =>
             key = import-to-string(file, compile-env)
-            new-module-names = context.module-names.set(tname.key(), key)
+            new-module-names = context.module-names.set(mname.key(), key)
             thismod = cases(Option) context.modules.get(key):
               | some(m) => m
-              | none => raise(ERR.internal-error("Couldn't find " + key + " (needed for " + tname.key() + ") in context.modules:", [list: context.modules.keys-list-now()]))
+              | none => raise(ERR.internal-error("Couldn't find " + key + " (needed for " + mname.key() + ") in context.modules:", [list: context.modules.keys-list-now()]))
             end
             thismod-provides = thismod.provides.fields
-            new-global-types = context.global-types.set(vname.key(), thismod.provides)
-            new-aliases = context.aliases.set(tname.key(), t-top(l, false))
+            new-global-types = context.global-types.set(mname.key(), thismod.provides)
+            new-aliases = context.aliases.set(mname.key(), t-top(l, false))
             shadow new-aliases = types.foldl(lam(a, shadow new-aliases):
               cases(Option) thismod.aliases.get(a.toname()):
                 | none => raise("Alias key " + a.toname() + " not found on " + torepr(thismod))
@@ -558,6 +558,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-prim-val not implemented")
         | s-id(l, id) =>
           check-synthesis(e, expect-type, top-level, context)
+        | s-id-modref(l, _, uri, name) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-id-var(l, id) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-id-letrec(l, id, safe) =>
@@ -811,6 +813,16 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         typing-result(e, id-type, context)
       end)
+    | s-id-modref(l, _, uri, name) =>
+      mod-typs = context.modules.get-value(uri)
+      provided-types = mod-typs.provides
+      cases(Type) mod-typs.provides:
+        | t-record(fields, _, _) =>
+          cases(Option) fields.get(name):
+            | none => raise("Should be caught in unbound-ids: no such name on module " + uri + ": " + name)
+            | some(t) => typing-result(e, t, context)
+          end
+      end
     | s-id-var(l, id) =>
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         cases(Type) id-type:

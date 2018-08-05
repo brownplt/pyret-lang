@@ -114,12 +114,12 @@ end
 
 fun anf-import(i :: A.Import):
   cases(A.Import) i:
-    | s-import-complete(l, vals, types, f, val-name, types-name) =>
+    | s-import-complete(l, vals, types, f, mod-name) =>
       itype = cases(A.ImportType) f:
         | s-const-import(_, mod) => N.a-import-builtin(l, mod)
         | s-special-import(_, kind, args) => N.a-import-special(l, kind, args)
       end
-      N.a-import-complete(l, vals, types, itype, val-name, types-name)
+      N.a-import-complete(l, vals, types, itype, mod-name)
   end
 end
 
@@ -176,6 +176,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k(N.a-val(l, N.a-id(l, id)))
+    | s-id-modref(l, id, uri, name) => k(N.a-val(l, N.a-id-modref(l, id, uri, name)))
     | s-srcloc(l, loc) => k(N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:

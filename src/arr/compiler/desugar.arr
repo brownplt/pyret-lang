@@ -525,6 +525,7 @@ fun desugar-expr(expr :: A.Expr):
           end
       end
     | s-id(l, x) => expr
+    | s-id-modref(_, _, _, _) => expr
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
