@@ -145,7 +145,10 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
-    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+    | s-module(l, answer, dms, dvs, dts, checks) =>
+      adms = for map(dm from dms):
+        N.a-defined-module(dm.name, dm.value, dm.uri)
+      end
       adts = for map(dt from dts):
         N.a-defined-type(dt.name, dt.typ)
       end
@@ -159,12 +162,10 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
         anf-name(answer, "answer", lam(ans):
-            anf-name(provides, "provides", lam(provs):
-                anf-name(checks, "checks", lam(chks):
-                    k(N.a-module(l, ans, advs + avars, adts, provs, types, chks))
-                  end)
-              end)
+          anf-name(checks, "checks", lam(chks):
+              k(N.a-module(l, ans, adms, advs + avars, adts, chks))
           end)
+        end)
         
       end)
     | s-num(l, n) => k(N.a-val(l, N.a-num(l, n)))

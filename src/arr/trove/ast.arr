@@ -325,6 +325,17 @@ sharing:
 end
 
 
+
+data ProvidedModule:
+  | p-module(l :: Loc, name :: String, v :: Name, uri :: String) with:
+    method label(self):
+      "p-module"
+    end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.v.toname()), self.ann.tosource())
+    end
+end
+
 data ProvidedValue:
   # INVARIANT(joe): all a-names in Ann are defined in the lists of
   # ProvidedAlias or ProvidedDatatype
@@ -366,6 +377,7 @@ data Provide:
     end
   | s-provide-complete(
       l :: Loc,
+      modules :: List<ProvidedModule>,
       values :: List<ProvidedValue>,
       aliases :: List<ProvidedAlias>,
       data-definitions :: List<ProvidedDatatype>
@@ -524,6 +536,18 @@ sharing:
   end
 end
 
+data DefinedModule:
+  | s-defined-module(name :: String, value :: Name, uri :: String) with:
+    method label(self): "s-defined-module" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.uri))
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data DefinedValue:
   | s-defined-value(name :: String, value :: Expr) with:
     method label(self): "s-defined-value" end,
@@ -560,10 +584,9 @@ data Expr:
   | s-module(
       l :: Loc,
       answer :: Expr,
+      defined-modules :: List<DefinedModule>,
       defined-values :: List<DefinedValue>,
       defined-types :: List<DefinedType>,
-      provided-values :: Expr,
-      provided-types :: List<AField>,
       checks :: Expr) with:
     method label(self): "s-module" end,
     method tosource(self):
@@ -1262,7 +1285,7 @@ data Expr:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1894,6 +1917,9 @@ default-map-visitor = {
     s-module-ref(l, path.map(_.visit(self)), self.option(as-name))
   end,
 
+  method s-defined-module(self, name, val, uri):
+    s-defined-module(name, val.visit(self), uri)
+  end,
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -1904,8 +1930,8 @@ default-map-visitor = {
     s-defined-type(name, typ.visit(self))
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+  method s-module(self, l, answer, dm, dv, dt, checks):
+    s-module(l, answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
   end,
 
   method s-program(self, l, _provide, provided-types, provides, imports, body):
@@ -1954,8 +1980,8 @@ default-map-visitor = {
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
   end,
-  method s-provide-complete(self, l, vals, typs, datas):
-    s-provide-complete(l, vals, typs, datas)
+  method s-provide-complete(self, l, modules, vals, typs, datas):
+    s-provide-complete(l, modules, vals, typs, datas)
   end,
   method s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
@@ -2495,7 +2521,9 @@ default-iter-visitor = {
     path.all(_.visit(self)) and self.option(as-name)
   end,
 
-
+  method s-defined-module(self, name, val, uri):
+    val.visit(self)
+  end,
   method s-defined-value(self, name, val):
     val.visit(self)
   end,
@@ -2506,8 +2534,8 @@ default-iter-visitor = {
     typ.visit(self)
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
+  method s-module(self, l, answer, dm, dv, dt, checks):
+    answer.visit(self) and lists.all(_.visit(self), dm) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and checks.visit(self)
   end,
 
   method s-program(self, l, _provide, provided-types, provides, imports, body):
@@ -2559,7 +2587,7 @@ default-iter-visitor = {
   method s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
   end,
-  method s-provide-complete(self, l, vals, typs, datas):
+  method s-provide-complete(self, l, modules, vals, typs, datas):
     true
   end,
   method s-provide(self, l, expr):
@@ -3088,6 +3116,9 @@ dummy-loc-visitor = {
     s-module-ref(dummy-loc, path.map(_.visit(self)), self.option(as-name))
   end,
 
+  method s-defined-module(self, name, val, uri):
+    s-defined-module(name, val.visit(self), uri)
+  end,
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -3098,9 +3129,9 @@ dummy-loc-visitor = {
     s-defined-type(name, typ.visit(self))
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dm, dv, dt, checks):
     s-module(dummy-loc,
-      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+      answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
   end,
 
   method s-program(self, l, _provide, provided-types, provides, imports, body):
@@ -3150,8 +3181,8 @@ dummy-loc-visitor = {
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
   end,
-  method s-provide-complete(self, l, vals, typs, datas):
-    s-provide-complete(dummy-loc, vals, typs, datas)
+  method s-provide-complete(self, l, modules, vals, typs, datas):
+    s-provide-complete(dummy-loc, modules, vals, typs, datas)
   end,
   method s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))

@@ -30,38 +30,6 @@ fun mk-id(loc, base) -> { id :: A.Expr, id-b :: A.Expr, id-e :: A.Expr }:
   { id: t, id-b: mk-bind(loc, t), id-e: A.s-id(loc, t) }
 end
 
-fun resolve-provide(p :: A.Provide, b :: A.Expr) -> A.Provide:
-  cases(A.Provide) p:
-    | s-provide-all(l) =>
-#      s-provide-all(l)
-      ids = A.block-ids(b)
-      obj = A.s-obj(l, for map(id from ids): A.s-data-field(l, id.tosourcestring(), A.s-id(l, id)) end)
-      A.s-provide(l, obj)
-    | s-provide-none(l) =>
-      A.s-provide(l, A.s-obj(l, [list: ]))
-    | else =>
-      p
-  end
-end
-
-fun resolve-type-provide(p :: A.ProvideTypes, b :: A.Expr) -> A.ProvideTypes:
-  cases(A.ProvideTypes) p:
-    | s-provide-types-none(l) =>
-      A.s-provide-types(l, [list:])
-    | s-provide-types-all(l) =>
-      ids = A.block-type-ids(b)
-      type-fields = for map(id from ids):
-        if id.bind-type == "data":
-          A.a-field(l, id.name.toname(), A.a-name(l, id.name))
-        else:
-          A.a-field(l, id.name.toname(), A.a-name(l, id.name))
-        end
-      end
-      A.s-provide-types(l, type-fields)
-    | else => p
-  end
-end
-
 is-s-import-complete = A.is-s-import-complete
 
 fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
@@ -637,26 +605,14 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
     | s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, body) =>
       imports = imports-raw.map(lam(i): expand-import(i, env) end)
       str = A.s-str(l, _)
-      resolved-provides = resolve-provide(_provide-raw, body)
-      prov = cases(A.Provide) resolved-provides:
-        | s-provide-none(_) => A.s-obj(l, [list: ])
-        | s-provide(_, block) => block
-        | else => raise("Should have been resolved away")
-      end
-      resolved-type-provides = resolve-type-provide(provide-types-raw, body)
-      provt = cases(A.ProvideTypes) resolved-type-provides:
-        | s-provide-types-none(_) => [list: ]
-        | s-provide-types(_, anns) => anns
-        | else => raise("Should have been resolve-typed away" + torepr(resolved-type-provides))
-      end
-      # TODO: Need to resolve provide-types here
+
       with-imports = cases(A.Expr) body:
         | s-block(l2, stmts) =>
           A.s-block(l2, desugar-toplevel-types(stmts))
         | else => A.s-block(l, desugar-toplevel-types([list: body]))
       end
       fun transform-toplevel-last(l2, last):
-        A.s-module(l2, last, empty, empty, prov, provt, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
+        A.s-module(l2, last, empty, empty, empty, A.s-app(l2, A.s-dot(l2, U.checkers(l2), "results"), empty))
       end
       with-provides = cases(A.Expr) with-imports:
         | s-block(l2, stmts) =>
@@ -695,25 +651,9 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
       end
       recombined = A.s-block(with-provides.l, remaining + stmts)
       visited = recombined.visit(desugar-scope-visitor)
-      C.resolved-scope(A.s-program(l, resolved-provides, resolved-type-provides, provides, imports, visited), errors)
+      C.resolved-scope(A.s-program(l, _provide-raw, provide-types-raw, provides, imports, visited), errors)
   end
 
-where:
-  d = A.dummy-loc
-  b = lam(s): A.s-bind(d, false, A.s-name(d, s), A.a-blank) end
-  id = lam(s): A.s-id(d, A.s-name(d, s)) end
-  checks = A.s-app(d, A.s-dot(d, U.checkers(d), "results"), [list: ])
-  str = A.s-str(d, _)
-  ds = lam(prog): desugar-scope(prog, C.no-builtins).ast.visit(A.dummy-loc-visitor) end
-  compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list:], [list: ],
-        A.s-let-expr(d, [list:
-            A.s-let-bind(d, b("x"), A.s-num(d, 10))
-          ],
-          A.s-module(d, id("nothing"), empty, empty, id("x"), [list:], checks), false)
-      )
-  # NOTE(joe): Explicit nothing here because we expect to have
-  # had append-nothing-if-necessary called
-  ds(PP.surface-parse("provide x end x = 10 nothing", "test")) #is compare1
 end
 
 
@@ -970,7 +910,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
     module-env: module-env-from-env(initial-env),
-    method s-module(self, l, answer, _, _, provided-vals, provided-types, checks):
+    method s-module(self, l, answer, _, _, _, checks):
+
       non-globals =
         for filter(k from self.env.keys-list()):
           vb = self.env.get-value(k)
@@ -985,6 +926,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | vb-var => A.s-defined-var(key, atom)
         end
       end
+
       non-global-types =
         for filter(k from self.type-env.keys-list()):
           tb = self.type-env.get-value(k)
@@ -994,46 +936,108 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         atom = self.type-env.get-value(key).atom
         A.s-defined-type(key, A.a-name(l, atom))
       end
-      A.s-module(l, answer.visit(self), defined-vals, defined-types, provided-vals.visit(self), provided-types.map(_.visit(self)), checks.visit(self))
+
+      non-global-modules = 
+        for filter(k from self.module-env.keys-list()):
+          mb = self.module-env.get-value(k)
+          mb.origin.new-definition
+        end
+      defined-modules = for map(key from non-global-modules):
+        bind = self.module-env.get-value(key)
+        A.s-defined-module(key, bind.atom, bind.uri)
+      end
+
+      A.s-module(l, answer.visit(self), defined-modules, defined-vals, defined-types, checks.visit(self))
     end,
     method s-program(self, l, _provide, _provide-types, provides, imports, body) block:
       {imp-e; imp-te; imp-me; imp-imps} = resolve-import-names(self, imports)
       
       visit-body = body.visit(self.{env: imp-e, type-env: imp-te, module-env: imp-me})
 
+      var mods = nothing
       var vals = nothing
       var typs = nothing
       visit-body.visit(A.default-iter-visitor.{
-        method s-module(_, _, _, dv, dt, _, _, _) block:
+        method s-module(_, _, _, dm, dv, dt, _) block:
+          mods := dm
           vals := dv
           typs := dt
           true
         end
       })
-      provides-dict = cases(A.Provide) _provide block:
+
+      provided-modules-names = [SD.mutable-string-dict:]
+      provided-vals-names = [SD.mutable-string-dict:]
+      provided-types-names = [SD.mutable-string-dict:]
+
+      # NOTE(joe): for now assume one ProvideBlock, and only hunt down modules
+      # This is a first cut that will get expanded more and more as more of
+      # ProvideSpec is implemented and used
+      when not(is-empty(provides)):
+        cases(A.ProvideBlock) provides.first:
+          | provide-block(_, specs) =>
+            modules = specs.filter(A.is-s-provide-module)
+            for each(m from modules):
+              # NOTE(joe): big assumption here -- just expecting a
+              # s-module-path with one name
+              provided-modules-names.set-now(m.name-spec.path.first.toname(), true)
+            end
+        end
+      end
+
+      cases(A.Provide) _provide block:
+        | s-provide-complete(_, _, _, _) => raise("Shouldn't happen -- s-provide-complete pre-scope resolution")
         | s-provide(_, obj) =>
           when not(A.is-s-obj(obj)): raise("Provides didn't look like an object" + torepr(_provide)) end
-          for fold(pd from [SD.string-dict:], f from obj.fields):
-            pd.set(f.name, true)
+          for each(f from obj.fields): provided-vals-names.set-now(f.name, true) end
+        | s-provide-all(_) =>
+          for each(dv from vals) block:
+            v-binding = cases(A.DefinedValue) dv:
+              | s-defined-value(name, value) =>
+                bindings.get-value-now(value.id.key())
+              | s-defined-var(name, id) =>
+                bindings.get-value-now(id.key())
+            end
+            when dv.name == "list":
+              spy: bind: v-binding end
+            end
+            when v-binding.origin.new-definition:
+              provided-vals-names.set-now(dv.name, true)
+            end
           end
-        | else => raise("Should have been resolved: " + torepr(_provide))
+        | s-provide-none(_) => nothing
       end
-      provide-types-dict = cases(A.ProvideTypes) _provide-types block:
+
+      cases(A.ProvideTypes) _provide-types:
         | s-provide-types(_, fields) =>
-          for fold(pd from [SD.string-dict:], f from fields):
-            pd.set(f.name, true)
+          for each(f from fields): provided-types-names.set-now(f.name, true) end
+        | s-provide-types-all(_) =>
+          for each(dt from typs):
+            t-binding = type-bindings.get-value-now(dt.typ.id.key())
+            when t-binding.origin.new-definition:
+              provided-types-names.set-now(dt.name, true)
+            end
           end
-        | else => raise("Should have been resolved: " + torepr(_provide-types))
+        | s-provide-types-none(_) => nothing
       end
+
       get-dv-key = lam(dv):
         cases(A.DefinedValue) dv:
           | s-defined-value(n, v) => v.id.key()
           | s-defined-var(n, id) => id.key()
         end
       end
+      mod-defs = for lists.filter-map(dm from mods) block:
+        m-binding = module-bindings.get-value-now(dm.value.key())
+        if provided-modules-names.has-key-now(dm.name):
+          some(A.p-module(l, dm.name, dm.value, dm.uri))
+        else:
+          none
+        end
+      end
       val-defs = for lists.filter-map(dv from vals) block:
         v-binding = bindings.get-value-now(get-dv-key(dv))
-        if provides-dict.has-key(dv.name):
+        if provided-vals-names.has-key-now(dv.name):
           some(A.p-value(l, v-binding.atom, v-binding.ann))
         else:
           none
@@ -1041,7 +1045,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       alias-defs = for lists.filter-map(td from typs):
         t-binding = type-bindings.get-value-now(td.typ.id.key())
-        if provide-types-dict.has-key(td.name):
+        if provided-types-names.has-key-now(td.name):
           some(A.p-alias(l, t-binding.atom, t-binding.atom, none))
         else:
           none
@@ -1049,7 +1053,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       data-defs = for lists.filter-map(ddk from datatypes.keys-list-now()):
         dd = datatypes.get-value-now(ddk) 
-        if provide-types-dict.has-key(dd.name):
+        if provided-types-names.has-key-now(dd.name):
           some(A.p-data(dd.l, dd.namet, none))
         else:
           none
@@ -1057,6 +1061,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       one-true-provide = A.s-provide-complete(
         l,
+        mod-defs,
         val-defs,
         alias-defs,
         data-defs

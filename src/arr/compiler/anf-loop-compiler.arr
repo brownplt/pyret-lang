@@ -1455,16 +1455,46 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body
 end
 
 compiler-visitor = {
-  method a-module(self, l, answer, dvs, dts, provides, types, checks):
-    types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
-      compiled = compile-ann(ann.ann, self)
+  method a-module(self, l, answer, dms, dvs, dts, checks):
+    
+    {alias-fields; alias-stmts} = for fold(acc from {cl-empty; cl-empty}, pv from self.prog-provides.aliases):
+      compiled = compile-ann(A.a-name(l, pv.in-name), self)
       {
-        fields: cl-snoc(acc.fields, j-field(ann.name, compiled.exp)),
-        others: cl-append(acc.others, compiled.other-stmts)
+        cl-snoc(acc.{0}, j-field(pv.out-name.toname(), compiled.exp));
+        cl-append(acc.{1}, compiled.other-stmts)
       }
     end
 
-    compiled-provides = provides.visit(self)
+#|
+    {data-fields; data-stmts} = for fold(acc from {cl-empty; cl-empty}, pd from self.prog-provides.data-definitions):
+      compiled = compile-ann(A.a-name(l, pd.d), self)
+      {
+        cl-snoc(acc.{0}, j-field(pd.d.toname(), compiled.exp));
+        cl-append(acc.{1}, compiled.other-stmts)
+      }
+    end
+|#
+
+    {types-fields; types-stmts} = {
+      alias-fields; #+ data-fields;
+      alias-stmts; #+ data-stmts
+    }
+
+    compiled-provides = for CL.map_list(pv from self.prog-provides.values):
+      val-bind = self.bindings.get-value-now(pv.v.key())
+      val-exp = cases(CS.ValueBinder) val-bind.binder:
+        | vb-letrec => j-dot(j-id(js-id-of(pv.v)), "$var")
+        | vb-var => j-dot(j-id(js-id-of(pv.v)), "$var")
+        | vb-let => j-id(js-id-of(pv.v))
+      end
+      j-field(pv.v.toname(), val-exp)
+    end
+
+    compiled-module-provides = for CL.map_list(pm from self.prog-provides.modules):
+      compiled = j-id(js-id-of(pm.v))
+      j-field(pm.name, compiled)
+    end
+
     compiled-answer = answer.visit(self)
     compiled-checks = checks.visit(self)
     c-exp(
@@ -1473,6 +1503,11 @@ compiler-visitor = {
               j-field("answer", compiled-answer.exp),
               j-field("namespace", NAMESPACE),
               j-field("locations", j-id(const-id("L"))),
+              j-field("defined-modules",
+                j-obj(
+                  for CL.map_list(dm from dms):
+                    j-field(dm.name, j-id(js-id-of(dm.value)))
+                  end)),
               j-field("defined-values",
                 j-obj(
                   for CL.map_list(dv from dvs):
@@ -1492,13 +1527,13 @@ compiler-visitor = {
                   end)),
               j-field("provide-plus-types",
                 rt-method("makeObject", [clist: j-obj([clist:
-                        j-field("values", compiled-provides.exp),
-                        j-field("types", j-obj(types-obj-fields.fields))
+                        j-field("values", rt-method("makeObject", [clist: j-obj(compiled-provides)])),
+                        j-field("types", j-obj(types-fields)),
+                        j-field("modules", j-obj(compiled-module-provides))
                     ])])),
               j-field("checks", compiled-checks.exp)])]),
 
-      types-obj-fields.others ^
-      cl-append(_, compiled-provides.other-stmts) ^
+      types-stmts ^
       cl-append(_, compiled-answer.other-stmts) ^
       cl-append(_, compiled-checks.other-stmts))
   end,
@@ -2069,7 +2104,7 @@ fun compile-provides(provides):
   end
 end
 
-fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
+fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides, env) block:
   js-names.reset()
   shadow freevars = freevars.unfreeze()
   fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]) end
@@ -2273,7 +2308,15 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env) block:
   apploc = fresh-id(compiler-name("al"))
   resumer = compiler-name("resumer")
   resumer-bind = N.a-bind(l, resumer, A.a-blank)
-  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false, dispatches: cases-dispatches}
+  body-compiler = self.{
+    prog-provides: prog-provides,
+    get-loc: get-loc,
+    get-loc-id: get-loc-id,
+    cur-apploc: apploc,
+    resumer: resumer,
+    allow-tco: false,
+    dispatches: cases-dispatches
+  }
   visited-body = compile-fun-body(l, step, toplevel-name,
     body-compiler, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true, false, false)
@@ -2290,21 +2333,22 @@ end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
-fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, options):
+fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, bindings, options):
   compiler-visitor.{
     uri: provides.from-uri,
     add-phase: add-phase,
     options: options,
     flatness-env: flatness-env,
     type-flatness-env: type-flatness-env,
-    method a-program(self, l, _, imports, body) block:
+    bindings: bindings,
+    method a-program(self, l, prog-provides, imports, body) block:
       total-time := 0
       # This achieves nothing with our current code-gen, so it's a waste of time
       # simplified = body.visit(remove-useless-if-visitor)
       # add-phase("Remove useless ifs", simplified)
       freevars = N.freevars-e(body)
       add-phase("Freevars-e", freevars)
-      ans = compile-module(self, l, imports, body, freevars, provides, env)
+      ans = compile-module(self, l, prog-provides, imports, body, freevars, provides, env)
       add-phase(string-append("Total simplification: ", tostring(total-time)), nothing)
       ans
     end

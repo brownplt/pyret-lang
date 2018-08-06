@@ -692,15 +692,14 @@ end
 set-tail-visitor = A.default-map-visitor.{
   is-tail: false,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dm, dv, dt, checks):
     no-tail = self.{is-tail: false}
     A.s-module(
       l,
       answer.visit(no-tail),
+      dm.map(_.visit(no-tail)),
       dv.map(_.visit(no-tail)),
       dt.map(_.visit(no-tail)),
-      provides.visit(no-tail),
-      types.map(_.visit(no-tail)),
       checks.visit(no-tail))
   end,
 
@@ -1097,7 +1096,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
   cases(A.Program) resolved.ast:
     | s-program(l, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, values, aliases, datas) =>
+        | s-provide-complete(_, modules, values, aliases, datas) =>
           val-typs = SD.make-mutable-string-dict()
           for each(v from values) block:
             binding = resolved.bindings.get-value-now(v.v.key())

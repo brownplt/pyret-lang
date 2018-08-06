@@ -173,7 +173,7 @@ fun make-lettable-data-env(
     alias-to-type-name :: SD.MutableStringDict<String>):
   default-ret = none
   cases(AA.ALettable) lettable:
-    | a-module(_, answer, dv, dt, provides, types, checks) =>
+    | a-module(_, _, _, _, _, _) =>
       default-ret
     | a-if(_, c, t, e) =>
       block:
@@ -315,7 +315,7 @@ end
 fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv) -> Flatness:
   default-ret = some(0)
   cases(AA.ALettable) lettable:
-    | a-module(_, answer, dv, dt, provides, types, checks) =>
+    | a-module(_, answer, dm, dv, dt, checks) =>
       default-ret
     | a-if(_, c, t, e) =>
       flatness-max(make-expr-flatness-env(t, sd, ad), make-expr-flatness-env(e, sd, ad))
@@ -402,7 +402,9 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
         end
       else:
         cases(Option) env.value-by-uri(vb.origin.uri-of-definition, vb.atom.toname()):
-          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri-of-definition)
+          | none =>
+            spy: loc: anfed.l, all-modules: env.all-modules.get-value-now(vb.origin.uri-of-definition) end
+            raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri-of-definition)
           | some(value-export) =>
             cases(C.ValueExport) value-export:
               | v-fun(_, _, flatness) =>
