@@ -10,6 +10,20 @@ check "numbers":
   equal-now(1, 1) is true
   equal-now(1, 2) is false
   equal-always3(~3, ~3) satisfies E.is-Unknown
+  roughly-equal(~3, ~3) is true
+  roughly-equal(~3, ~3.000003) is true
+  roughly-equal(~3, ~4) is false
+  roughly-equal(~3, ~3.00004) is false
+  roughly-equal(3, 3) is true
+  roughly-equal(3, 3.000003) is true
+  roughly-equal-now(3, 3.000003) is true
+  roughly-equal-now(3, 3.000004) is false
+  roughly-equal-now3(3, 3.000003) satisfies E.is-Equal
+  roughly-equal-now3(3, 3.000004) satisfies E.is-NotEqual
+  roughly-equal-always(3, 3.000003) is true
+  roughly-equal-always(3, 3.000004) is false
+  roughly-equal-always3(3, 3.000003) satisfies E.is-Equal
+  roughly-equal-always3(3, 3.000004) satisfies E.is-NotEqual
 end
 
 data Nat:

@@ -124,9 +124,14 @@
 
       // Equality functions
 
+      "roughly-equal-always3": "EqualityPred",
+      "roughly-equal-now3":    "EqualityPred",
       "equal-always3": "EqualityPred",
       "equal-now3":    "EqualityPred",
       "identical3":    "EqualityPred",
+      "roughly-equal-always": "AnyPred2",
+      "roughly-equal-now": "AnyPred2",
+      "roughly-equal": "AnyPred2",
       "equal-always": "AnyPred2",
       "equal-now": "AnyPred2",
       "identical": "AnyPred2",
