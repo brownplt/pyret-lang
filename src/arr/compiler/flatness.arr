@@ -506,8 +506,7 @@ end
 fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
-      # MARK(joe/ben): modules
-    | provides(uri, _, values, aliases, datatypes) =>
+    | provides(uri, modules, values, aliases, datatypes) =>
       new-values = for SD.fold-keys(s from [SD.string-dict:], k from values):
         maybe-flatness = flatness-env.get-now(dvs-dict.get-value(k))
         existing-val = values.get-value(k)
@@ -518,8 +517,7 @@ fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
         end
         s.set(k, new-val)
       end
-      # MARK(joe/ben): provides
-      C.provides(uri, [SD.string-dict:], new-values, aliases, datatypes)
+      C.provides(uri, modules, new-values, aliases, datatypes)
   end
 end
 

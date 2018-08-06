@@ -963,7 +963,9 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
     | a-id(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
-    | a-id-modref(_, id, uri, name) => seen-so-far
+    | a-id-modref(_, id, uri, name) =>
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
     | a-id-var(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far

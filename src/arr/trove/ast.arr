@@ -142,6 +142,14 @@ data Name:
     method toname(self): self.s end,
     method key(self): "global#" + self.s end
 
+  | s-module-global(s :: String) with:
+    method to-compiled-source(self): PP.str(self.to-compiled()) end,
+    method to-compiled(self): "$module$" + self.s end,
+    method tosource(self): PP.str(self.s) end,
+    method tosourcestring(self): "$module$" + self.s end,
+    method toname(self): self.s end,
+    method key(self): "mglobal#" + self.s end
+
   | s-type-global(s :: String) with:
     method to-compiled-source(self): PP.str(self.to-compiled()) end,
     method to-compiled(self): "$type$" + self.s end,
@@ -180,11 +188,13 @@ fun MakeName(start):
     s-underscore: s-underscore,
     s-name: s-name,
     s-global: s-global,
+    s-module-global: s-module-global,
     s-type-global: s-type-global,
     make-atom: atom,
     is-s-underscore: is-s-underscore,
     is-s-name: is-s-name,
     is-s-global: is-s-global,
+    is-s-module-global: is-s-module-global,
     is-s-atom: is-s-atom,
   }
 end
@@ -1902,6 +1912,10 @@ default-map-visitor = {
     s-type-global(s)
   end,
 
+  method s-module-global(self, s):
+    s-module-global(s)
+  end,
+
   method s-global(self, s):
     s-global(s)
   end,
@@ -2510,6 +2524,9 @@ default-iter-visitor = {
   method s-type-global(self, s):
     true
   end,
+  method s-module-global(self, s):
+    true
+  end,
   method s-atom(self, base, serial):
     true
   end,
@@ -3104,6 +3121,9 @@ dummy-loc-visitor = {
   end,
   method s-type-global(self, s):
     s-type-global(s)
+  end,
+  method s-module-global(self, s):
+    s-module-global(s)
   end,
   method s-atom(self, base, serial):
     s-atom(base, serial)

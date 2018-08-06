@@ -2072,8 +2072,10 @@ end
 
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-      # MARK(joe/ben): modules below
-    | provides(thismod-uri, _, values, aliases, data-defs) =>
+    | provides(thismod-uri, modules, values, aliases, data-defs) =>
+      module-fields = for cl-map-sd(m from modules):
+        j-field(m, j-obj([clist: j-field("uri", j-str(modules.get-value(m)))]))
+      end
       value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
           | v-just-type(t) => j-field(v, compile-provided-type(t))
@@ -2097,6 +2099,7 @@ fun compile-provides(provides):
         j-field(a, compile-provided-type(aliases.get-value(a)))
       end
       j-obj([clist:
+          j-field("modules", j-obj(module-fields)),
           j-field("values", j-obj(value-fields)),
           j-field("datatypes", j-obj(data-fields)),
           j-field("aliases", j-obj(alias-fields))
@@ -2133,34 +2136,39 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,
     # because shared compiled files didn't agree on globals
-    cases(A.Name) n:
-      | s-global(s) =>
-        uri = cases(Option) env.uri-by-value-name(n.toname()):
-          | some(global-uri) => global-uri
-          | none => raise(n.toname() + " not found")
-        end
-        j-var(js-id-of(n),
-          j-bracket(
-             rt-method("getField", [clist:
-                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                  j-str("defined-values")
-                ]),
-              j-str(n.toname())))
-      | s-type-global(_) =>
-        uri = cases(Option) env.uri-by-type-name(n.toname()):
-          | some(type-uri) => type-uri
-          | none => raise(n.toname() + " not found")
-        end
-        j-var(js-id-of(n),
-          j-bracket(
-              rt-method("getField", [clist:
-                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                j-str("defined-types")]),
-              j-str(n.toname())))
-    end
+    { uri; which } =
+      cases(A.Name) n:
+        | s-module-global(s) =>
+          uri = cases(Option) env.uri-by-module-name(n.toname()):
+            | some(global-uri) => global-uri
+            | none => raise(n.toname() + " not found")
+          end
+          {uri; "defined-modules"}
+        | s-global(s) =>
+          uri = cases(Option) env.uri-by-value-name(n.toname()):
+            | some(global-uri) => global-uri
+            | none => raise(n.toname() + " not found")
+          end
+          {uri; "defined-values"}
+        | s-type-global(_) =>
+          uri = cases(Option) env.uri-by-type-name(n.toname()):
+            | some(global-uri) => global-uri
+            | none => raise(n.toname() + " not found")
+          end
+          {uri; "defined-types"}
+      end
 
+    j-var(js-id-of(n),
+      j-bracket(
+         rt-method("getField", [clist:
+              j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
+              j-str(which)
+            ]),
+          j-str(n.toname())))
 #    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
   end
+  # MARK(joe): need to do something below for modules that come from
+  # a context like "include"
   module-binds = for CL.map_list(n from module-and-global-binds.is-true):
     bind-name = cases(A.Name) n:
       | s-atom(_, _) =>

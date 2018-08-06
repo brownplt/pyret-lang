@@ -253,6 +253,10 @@ sharing:
     uri = self.my-modules.get-value(dep-key)
     self.type-by-uri(uri, name)
   end,
+  method uri-by-module-name(self, name):
+    self.globals.modules.get(name)
+      .and-then(self.uri-by-dep-key(_))
+  end,
   method uri-by-value-name(self, name):
     self.globals.values.get(name)
       .and-then(self.uri-by-dep-key(_))
@@ -386,6 +390,10 @@ fun datatype-from-raw(uri, datatyp):
 end
 
 fun provides-from-raw-provides(uri, raw):
+  mods = raw.modules
+  mdict = for fold(mdict from SD.make-string-dict(), v from raw.modules):
+    mdict.set(v.name, v.uri)
+  end
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
@@ -417,8 +425,7 @@ fun provides-from-raw-provides(uri, raw):
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  # MARK(joe/ben): modules
-  provides(uri, [SD.string-dict:], vdict, adict, ddict)
+  provides(uri, mdict, vdict, adict, ddict)
 end
 
 

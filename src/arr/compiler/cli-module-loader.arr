@@ -125,6 +125,7 @@ fun get-cached-if-available(basedir, loc) block:
       method get-compiled(self):
         provs = CS.provides-from-raw-provides(self.uri(), {
             uri: self.uri(),
+            modules: raw-array-to-list(raw.get-raw-module-provides()),
             values: raw-array-to-list(raw.get-raw-value-provides()),
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
             datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
@@ -167,6 +168,7 @@ fun get-loadable(basedir, l) -> Option<Loadable>:
     raw-static = B.builtin-raw-locator(saved-path + "-static")
     provs = CS.provides-from-raw-provides(locuri, {
       uri: locuri,
+      modules: raw-array-to-list(raw-static.get-raw-module-provides()),
       values: raw-array-to-list(raw-static.get-raw-value-provides()),
       aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
       datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())

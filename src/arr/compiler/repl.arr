@@ -29,29 +29,22 @@ end
 
 fun get-defined-ids(p, imports, body):
   ids = A.toplevel-ids(p)
-  import-names = for fold(names from empty, imp from imports):
+  import-ids = for filter(imp from imports): A.is-s-import(imp) end
+  shadow import-ids = import-ids.map(_.name)
+  value-names = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
-      | s-import(_, _, name) => link(name, names)
+      | s-import(_, _, _) => names
       | s-import-fields(_, imp-names, _) => names + imp-names
       | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
-  ids-plus-import-names = import-names + ids
-  type-ids = A.block-type-ids(body)
-  import-type-names = for fold(names from empty, imp from imports):
-    cases(A.Import) imp:
-      | s-import(_, _, name) => link(name, names)
-      | s-import-fields(_, imp-names, _) => names
-      | s-include(_, _) => names
-      | else => raise("Unknown import type: " + torepr(imp))
-    end
-  end
-  type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
+  ids-plus-imported-names = value-names + ids
+  type-ids = A.block-type-ids(body).map(_.name)
   {
-    imports: imports,
-    ids: ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end),
-    type-ids: type-ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end)
+    import-ids: import-ids.filter(lam(id): not(A.is-s-underscore(id)) end),
+    ids: ids-plus-imported-names.filter(lam(id): not(A.is-s-underscore(id)) end),
+    type-ids: type-ids.filter(lam(id): not(A.is-s-underscore(id)) end)
   }
 end
 
@@ -69,11 +62,14 @@ fun make-provide-for-repl(p :: A.Program):
       defined-ids = get-defined-ids(p, imports, body)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
+      repl-mod-provide = for map(i from defined-ids.import-ids):
+        A.s-provide-module(l, A.s-module-ref(l, [list: i], none))
+      end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
-          [list:],
-          defined-ids.imports,
+          [list: A.s-provide-block(l, repl-mod-provide) ],
+          imports,
           body)
   end
 end
@@ -95,11 +91,14 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
       env-type-provide = for SD.fold-keys(flds from repl-type-provide, name from globals.types):
         link(af(l, A.s-name(l, name)), flds)
       end
+      repl-mod-provide = for map(i from defined-ids.import-ids):
+        A.s-provide-module(l, A.s-module-ref(l, [list: i], none))
+      end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, env-provide)),
           A.s-provide-types(l, env-type-provide),
-          [list:],
-          defined-ids.imports,
+          [list: A.s-provide-block(l, repl-mod-provide)],
+          imports,
           body)
   end
 end
@@ -135,9 +134,13 @@ fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: 
             new-types = for fold(ts from g.types, k from types.map(_.toname())):
               ts.set(k, depname)
             end
-            # MARK(joe/ben): modules
+            new-modules = if not(A.is-s-underscore(mod-name)):
+              g.modules.set(mod-name.toname(), dep)
+            else:
+              g.modules
+            end
             ng = CS.globals(
-              g.modules.set(mod-name.toname(), dep),
+              new-modules,
               new-vals,
               new-types)
             ne = link(CS.extra-import(AU.import-to-dep(file), mod-name.toname(), empty, empty), res.new-extras)
@@ -191,8 +194,8 @@ fun make-repl<a>(
     new-types = for SD.fold-keys(ts from globals.types, provided-name from cr.provides.aliases):
       ts.set(provided-name, dep.key())
     end
-    # MARK(joe/ben): modules
-    globals := CS.globals([SD.string-dict:], new-vals, new-types)
+    # MARK(joe): also include the user's provided modules
+    globals := CS.globals(globals.modules, new-vals, new-types)
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)

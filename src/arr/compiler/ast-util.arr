@@ -1011,7 +1011,6 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           | s-type-global(name) =>
             cases(Option<String>) compile-env.globals.types.get(name):
               | none =>
-                spy: globals: compile-env.globals end
                 raise("Name not found in globals.types: " + name)
               | some(key) =>
                 cases(Option<URI>) compile-env.my-modules.get(key):
@@ -1097,6 +1096,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     | s-program(l, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
         | s-provide-complete(_, modules, values, aliases, datas) =>
+          mod-provides = SD.make-mutable-string-dict()
+          for each(m from modules) block:
+            mod-provides.set-now(m.name, m.uri)
+          end
           val-typs = SD.make-mutable-string-dict()
           for each(v from values) block:
             binding = resolved.bindings.get-value-now(v.v.key())
@@ -1110,6 +1113,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           for each(a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
             target-binding = resolved.type-bindings.get-value-now(a.in-name.key())
+
+
             typ = cases(Option) target-binding.ann:
               | none => T.t-top(l, false)
               | some(target-ann) => ann-to-typ(target-ann)
@@ -1123,7 +1128,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           end
           provs = CS.provides(
               uri,
-              SD.make-string-dict(), # MARK(joe/ben): fill with module info
+              mod-provides.freeze(),
               val-typs.freeze(),
               alias-typs.freeze(),
               data-typs.freeze()
@@ -1213,13 +1218,11 @@ transform-data-dict = transform-dict-helper(canonicalize-data-type)
 
 fun transform-provides(provides, compile-env, transformer):
   cases(CS.Provides) provides:
-    # MARK(joe/ben): modules
-  | provides(from-uri, _, values, aliases, data-definitions) =>
+  | provides(from-uri, modules, values, aliases, data-definitions) =>
     new-vals = transform-value-dict(values, from-uri, transformer)
     new-aliases = transform-dict(aliases, from-uri, transformer)
     new-data-definitions = transform-data-dict(data-definitions, from-uri, transformer)
-    # MARK(joe/ben): fill in the string-dict below with module info
-    CS.provides(from-uri, [SD.string-dict:], new-vals, new-aliases, new-data-definitions)
+    CS.provides(from-uri, modules, new-vals, new-aliases, new-data-definitions)
   end
 end
 
@@ -1317,7 +1320,11 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   cases(A.Program) typed.ast block:
     | s-program(_, provide-complete, _, _, _, _) =>
       cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, values, aliases, datas) =>
+        | s-provide-complete(_, modules, values, aliases, datas) =>
+          mod-provides = SD.make-mutable-string-dict()
+          for each(m from modules) block:
+            mod-provides.set-now(m.name, m.uri)
+          end
           val-typs = SD.make-mutable-string-dict()
           for each(v from values):
             # TODO(joe): This function needs to take a NameResolution to figure
@@ -1352,7 +1359,7 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
           end
           CS.provides(
               uri,
-              [SD.string-dict:], # MARK(joe/ben): fill with real module provides
+              mod-provides.freeze(),
               val-typs.freeze(),
               alias-typs.freeze(),
               data-typs.freeze()

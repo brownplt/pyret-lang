@@ -254,7 +254,6 @@ all-pyret-test: tests/pyret/all.jarr parse-test
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 	$(TEST_BUILD) \
-    -no-module-eval \
 		--outfile tests/pyret/main2.jarr \
 		--build-runnable tests/pyret/main2.arr \
 		-check-all # NOTE(joe): check-all doesn't yet do anything

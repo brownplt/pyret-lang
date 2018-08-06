@@ -769,8 +769,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     for SD.each-key(name from initial.globals.modules) block:
       mod-info = initial.provides-by-module-name-value(name)
       # MARK(joe/ben): Should this be a new s-module-global below
-      b = C.module-bind(C.bo-global(mod-info.from-uri), names.s-global(name), mod-info.modules.get-value(name))
-      module-bindings.set-now(names.s-global(name).key(), b)
+      b = C.module-bind(C.bo-global(mod-info.from-uri), names.s-module-global(name), mod-info.modules.get-value(name))
+      module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
     end
     acc.freeze()
@@ -975,7 +975,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # ProvideSpec is implemented and used
       when not(is-empty(provides)):
         cases(A.ProvideBlock) provides.first:
-          | provide-block(_, specs) =>
+          | s-provide-block(_, specs) =>
             modules = specs.filter(A.is-s-provide-module)
             for each(m from modules):
               # NOTE(joe): big assumption here -- just expecting a
@@ -997,9 +997,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 bindings.get-value-now(value.id.key())
               | s-defined-var(name, id) =>
                 bindings.get-value-now(id.key())
-            end
-            when dv.name == "list":
-              spy: bind: v-binding end
             end
             when v-binding.origin.new-definition:
               provided-vals-names.set-now(dv.name, true)
@@ -1289,7 +1286,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method s-dot(self, l, obj, name):
       cases(A.Expr) obj:
         | s-id(_, id) =>
-          cases(A.Name) id:
+          cases(A.Name) id block:
             | s-name(_, s) => 
               # Is this name _not_ a known value _and_ a known module?
               if not(self.env.has-key(s)) and self.module-env.has-key(s):
@@ -1360,7 +1357,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       cases(A.Name) obj block:
         | s-name(nameloc, s) =>
           cases(Option) self.module-env.get(s):
-            | none => A.a-dot(l, obj, field)
+            | none => A.a-dot(l, obj, field) # NOTE(joe): Should this be error?
             | some(mb) =>
               A.a-dot(l, mb.atom, field)
           end

@@ -399,7 +399,7 @@ check "raw-provide-syntax":
 
   provs = CM.provides-from-raw-provides("test-raw-provides", {
     uri: "test-raw-provides",
-    # MARK(joe/ben): modules
+    modules: raw-array-to-list(raw.get-raw-module-provides()),
     values: raw-array-to-list(raw.get-raw-value-provides()),
     aliases: raw-array-to-list(raw.get-raw-alias-provides()),
     datatypes: raw-array-to-list(raw.get-raw-datatype-provides())

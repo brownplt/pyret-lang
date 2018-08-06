@@ -80,6 +80,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
     method get-compiled(self):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
+        modules: raw-array-to-list(raw.get-raw-module-provides()),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
