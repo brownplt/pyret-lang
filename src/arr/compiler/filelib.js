@@ -160,7 +160,11 @@
           var dir = RUNTIME.unwrap(directory);
           var contents = fs.readdirSync(dir)
           return RUNTIME.ffi.makeList(contents.map(RUNTIME.makeString))
-      }, "list-files")
+      }, "list-files"),
+      "symlink": RUNTIME.makeFunction(function(target, path, fileOrDir) {
+          fs.symlinkSync(target, path, fileOrDir);
+          return true;
+      })
     };
 
     return RUNTIME.makeModuleReturn(vals, {});
