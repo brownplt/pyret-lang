@@ -61,6 +61,8 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
       C.flag(C.once, "Skip checks"),
+    "no-spies",
+      C.flag(C.once, "Disable printing of all `spy` statements"),
     "allow-shadow",
       C.flag(C.once, "Run without checking for shadowed variables"),
     "improper-tail-calls",
@@ -91,6 +93,7 @@ fun main(args :: List<String>) -> Number block:
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
       check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
+      enable-spies = not(r.has-key("no-spies"))
       allow-shadowed = r.has-key("allow-shadow")
       libs =
         if r.has-key("library"): CS.minimal-imports
@@ -138,6 +141,7 @@ fun main(args :: List<String>) -> Number block:
                 standalone-file: standalone-file,
                 check-mode : check-mode,
                 type-check : type-check,
+                enable-spies: enable-spies,
                 allow-shadowed : allow-shadowed,
                 add-profiling : add-profiling,
                 collect-all: false,
