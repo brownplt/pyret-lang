@@ -4,6 +4,9 @@ module.exports = {
       return list;
     }
   },
+  'at': function( list, index ) {
+    return list[index];
+  },
   'length': function( list ) {
     return list.length;
   },
@@ -20,16 +23,31 @@ module.exports = {
     list.push( elm );
     return list;
   },
-  'split': function( str, separator ) {
-    return str.split( separator );
-  },
-  'split-pattern': function( str, pattern ) {
-    return str.split( RegExp( pattern ) );
-  },
   'filter': function( list, fun ) {
     return list.filter( fun );
   },
   'reduce': function( list, fun, val ) {
     return list.reduce( fun, val );
+  },
+  'sum': function( list ) {
+    return list.reduce( ( x, y ) => x + y, 0 );
+  },
+  'max': function( list ) {
+    return list.reduce( ( x, y ) => Math.max( x, y ), list[0] )
+  },
+  'range': function( start, end ) {
+    list = [];
+
+    for ( var i = start; i < end; i++ ) {
+      list.push( i );
+    }
+
+    return list;
+  },
+  'empty-list': function() {
+    return [];
+  },
+  'concat': function( listA, listB ) {
+    return listA.concat( listB );
   }
 };

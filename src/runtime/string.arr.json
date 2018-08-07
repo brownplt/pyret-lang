@@ -2,7 +2,13 @@
   "requires": [],
   "provides": {
     "values": {
-      "string-to-lower": ["arrow", ["String"], "String"]
+      "length": ["arrow", ["String"], "Number"],
+      "string-to-lower": ["arrow", ["String"], "String"],
+      "concat": ["arrow", ["String", "String"], "String"],
+      "substring": ["arrow", ["String", "Number", "Number"], "String"],
+      "charAt": ["arrow", ["String", "Number"], "String"],
+      "split": ["arrow", ["String", "String"], "tany"],
+      "split-pattern": ["arrow", ["String", "String"], "tany"]
     }
   }
 }

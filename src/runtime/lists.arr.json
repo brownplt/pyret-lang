@@ -6,15 +6,19 @@
     },
     "values": {
       "list": "tany",
+      "at": ["arrow", ["tany", "Number"], "tany"],
       "length": ["arrow", ["tany"], "Number"],
       "contains": ["arrow", ["tany", "tany"], "Boolean"],
       "map": ["arrow", ["tany", "tany"], "tany"],
       "slice": ["arrow", ["tany", "Number", "Number"], "tany"],
       "push": ["arrow", ["tany", "tany"], "tany"],
-      "split": ["arrow", ["String", "String"], "tany"],
-      "split-pattern": ["arrow", ["String", "String"], "tany"],
       "filter": ["arrow", ["tany", "tany"], "tany"],
-      "reduce": ["arrow", ["tany", "tany", "tany"], "tany"]
+      "reduce": ["arrow", ["tany", "tany", "tany"], "tany"],
+      "sum": ["arrow", ["tany"], "Number"],
+      "max": ["arrow", ["tany"], "Number"],
+      "range": ["arrow", ["Number", "Number"], "tany"],
+      "empty-list": ["arrow", [], "tany"],
+      "concat": ["arrow", ["tany", "tany"], "tany"]
     }
   }
 }

@@ -5,7 +5,10 @@
       "tva": ["tid", "a"]
     },
     "values": {
+      "list": "tany",
       "count": ["arrow", ["tany"], "tany"],
+      "apply": ["arrow", ["tany", "tany"], "tany"],
+      "insert": ["arrow", ["tany", "tany", "tany"], "tany"],
       "size": ["arrow", ["tany"], "Number"],
       "get": ["arrow", ["tany", "tany"], "tany"],
       "has-key": ["arrow", ["tany", "tany"], "Boolean"],
