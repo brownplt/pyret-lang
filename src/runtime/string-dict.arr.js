@@ -1,7 +1,7 @@
 module.exports = {
   'string-dict': {
-    'make': function( list ) {
-      return list;
+    'make': function( dict ) {
+      return dict[0];
     }
   },
   'count': function( list ) {
@@ -44,5 +44,8 @@ module.exports = {
   },
   'values': function( dict ) {
     return Object.values( dict );
+  },
+  'is-dict': function( dict ) {
+    return dict.constructor === 'object';
   }
 };

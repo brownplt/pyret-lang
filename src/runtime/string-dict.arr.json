@@ -5,7 +5,7 @@
       "tva": ["tid", "a"]
     },
     "values": {
-      "list": "tany",
+      "string-dict": "tany",
       "count": ["arrow", ["tany"], "tany"],
       "apply": ["arrow", ["tany", "tany"], "tany"],
       "insert": ["arrow", ["tany", "tany", "tany"], "tany"],
@@ -13,7 +13,8 @@
       "get": ["arrow", ["tany", "tany"], "tany"],
       "has-key": ["arrow", ["tany", "tany"], "Boolean"],
       "keys": ["arrow", ["tany"], "tany"],
-      "values": ["arrow", ["tany"], "tany"]
+      "values": ["arrow", ["tany"], "tany"],
+      "is-dict": ["arrow", ["tany"], "Boolean"]
     }
   }
 }

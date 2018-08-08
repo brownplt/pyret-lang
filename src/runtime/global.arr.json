@@ -9,7 +9,8 @@
       "num-to-str": ["arrow", ["Number"], "String"],
       "raw-array": "tany",
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
-      "nothing": "Nothing"
+      "nothing": "Nothing",
+      "time-now": ["arrow", ["tany"], "tany"]
     },
     "aliases": {
     },

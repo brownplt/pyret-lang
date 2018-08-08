@@ -15,6 +15,7 @@
       "filter": ["arrow", ["tany", "tany"], "tany"],
       "reduce": ["arrow", ["tany", "tany", "tany"], "tany"],
       "sum": ["arrow", ["tany"], "Number"],
+      "min": ["arrow", ["tany"], "Number"],
       "max": ["arrow", ["tany"], "Number"],
       "range": ["arrow", ["Number", "Number"], "tany"],
       "empty-list": ["arrow", [], "tany"],

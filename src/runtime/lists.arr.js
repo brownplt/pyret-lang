@@ -32,6 +32,9 @@ module.exports = {
   'sum': function( list ) {
     return list.reduce( ( x, y ) => x + y, 0 );
   },
+  'min': function( list ) {
+    return list.reduce( ( x, y ) => Math.min( x, y ), list[0] )
+  },
   'max': function( list ) {
     return list.reduce( ( x, y ) => Math.max( x, y ), list[0] )
   },
@@ -48,6 +51,10 @@ module.exports = {
     return [];
   },
   'concat': function( listA, listB ) {
-    return listA.concat( listB );
+    for ( var index = 0; index < listB.length; index++ ) {
+      listA.push( listB[index] );
+    }
+    
+    return listA;
   }
 };
