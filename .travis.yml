@@ -7,11 +7,9 @@ node_js:
 - 8.11.3
 install:
 - npm install
-- npm install -g heroku
 before_script:
 - npm run build
 script:
-- if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/; fi
 - npm test
 notifications:
   slack:

@@ -463,8 +463,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           checking-cases(l, typ, val, branches, none, expect-type, context)
         | s-cases-else(l, typ, val, branches, _else, b) =>
           checking-cases(l, typ, val, branches, some(_else), expect-type, context)
-        | s-op(loc, op, l, r) =>
-          raise("checking for s-op not implemented")
+        | s-op(loc, op, op-loc, l, r) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-check-test(loc, op, refinement, l, r) =>
           if is-some(test-inference-data):
             collect-example(e, context).typing-bind(lam(_, shadow context):
@@ -727,8 +727,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       synthesis-cases(l, typ, val, branches, none, context)
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
       synthesis-cases(l, typ, val, branches, some(_else), context)
-    | s-op(loc, op, l, r) =>
-      raise("synthesis for s-op not implemented")
+    | s-op(loc, op-l, op, l, r) =>
+      synthesis-op(loc, op, op-l, l, r, context)
     | s-check-test(loc, op, refinement, l, r) =>
       if is-some(test-inference-data):
         collect-example(e, context).typing-bind(lam(_, shadow context):
@@ -1492,6 +1492,30 @@ fun synthesis-field(access-loc :: Loc, obj :: Expr, obj-type :: Type, field-name
         end)
     end
   end)
+end
+
+fun synthesis-op(app-loc, op, op-loc, left, right, context):
+  fun choose-type(method-name :: String) -> FoldResult<Type>:
+    obj-exists = new-existential(left.l, false)
+    other-type = new-existential(right.l, false)
+    ret-type = new-existential(app-loc, false)
+    arrow-type = t-arrow([list: obj-exists, other-type], ret-type, app-loc, false)
+    shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc, false))
+    fold-result(arrow-type, context)
+  end
+  opname = if op == "op+": "_plus"
+    else if op == "op-": "_minus"
+    else if op == "op*": "_times"
+    else if op == "op/": "_divide"
+    else if op == "op<": "_lessthan"
+    else if op == "op>": "_greaterthan"
+    else if op == "op>=": "_greaterequal"
+    else if op == "op<=": "_lessequal"
+    end
+  choose-type(opname)
+    .typing-bind(lam(fun-type, shadow context):
+      synthesis-spine(fun-type, A.s-app(app-loc, A.s-id(op-loc, A.s-global(opname)), _), [list: left, right], app-loc, context)
+    end)
 end
 
 fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<Type>:

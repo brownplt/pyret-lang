@@ -2699,6 +2699,14 @@ runtime-provides = provides("builtin://global",
   [string-dict:],
   [string-dict:
     "nothing", t-top,
+    '_plus', t-top,
+    '_minus', t-top,
+    '_times', t-top,
+    '_divide', t-top,
+    '_lessthan', t-top,
+    '_greaterthan', t-top,
+    '_lessequal', t-top,
+    '_greaterequal', t-top,
     "print", t-forall1(lam(a): t-arrow([list: a], a) end)
   ],
   [string-dict:
