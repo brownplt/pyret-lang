@@ -195,6 +195,12 @@ sharing:
     self.all-modules.get-now(uri)
       .and-then(_.provides)
   end,
+  method provides-by-uri-value(self, uri):
+    cases(Option) self.provides-by-uri(uri):
+      | none => raise("Could not find module with uri: " + uri)
+      | some(shadow provides) => provides
+    end
+  end,
   method provides-by-dep-key(self, dep-key):
     self.my-modules.get(dep-key)
       .and-then(self.all-modules.get-value-now(_))

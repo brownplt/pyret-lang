@@ -333,7 +333,6 @@
                                'flatness': 0,
                                'name': 'string-to-code-points',
                                'typ': ['arrow', ['String'], ['List', 'Number']]},
-
       "_plus":   {'bind': 'fun',
                   'flatness': false,
                   'name': '_plus',
