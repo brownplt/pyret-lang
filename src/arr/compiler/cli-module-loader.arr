@@ -11,7 +11,6 @@ import sha as crypto
 import string-dict as SD
 import render-error-display as RED
 import file as F
-import filelib as FS
 import error as ERR
 import system as SYS
 import file("js-ast.arr") as J
@@ -23,6 +22,7 @@ import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
 import js-file("dependency-tree") as DT
+import js-file("filelib") as FS
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -260,6 +260,10 @@ fun setup-compiled-dirs( options ) block:
 	mkdirp( compiled-dir )
 	mkdirp( project-dir )
 	mkdirp( builtin-dir )
+
+  when not(FS.exists(P.join(compiled-dir, "node_modules"))):
+    FS.symlink(P.join(options.this-pyret-dir, "../../node_modules"), P.join(compiled-dir, "node_modules"), "dir")
+  end
 
   {base-dir; project-dir; builtin-dir}
 end
