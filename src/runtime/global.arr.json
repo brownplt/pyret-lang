@@ -10,7 +10,8 @@
       "raw-array": "tany",
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
-      "time-now": ["arrow", ["tany"], "tany"]
+      "time-now": ["arrow", ["tany"], "tany"],
+      "console-log": ["arrow", ["tany"], "Nothing"]
     },
     "aliases": {
     },
