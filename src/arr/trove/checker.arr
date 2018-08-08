@@ -13,23 +13,8 @@ include equality
 import ffi as _
 
 import either as either
-import lists as lists
-import option as option
-
-type Either = either.Either
-
-type List = lists.List
-link = lists.link
-empty = lists.empty
-list = lists.list
-is-empty = lists.is-empty
-fold = lists.fold
-each = lists.each
-
-type Option = option.Option
-is-some = option.is-some
-some = option.some
-none = option.none
+include lists
+include option
 
 type Loc = SL.Srcloc
 
@@ -42,9 +27,6 @@ fun get-op-fun-name(opname):
     | otherwise: raise("Unknown op: " + opname)
   end
 end
-
-is-right = either.is-right
-is-left = either.is-left
 
 data CheckOperand:
   | on-left with:
@@ -721,13 +703,13 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
   fun left-right-check(loc):
     lam(with-vals, left, right):
       lv = run-task(if is-function(left): left else: left.v end)
-      if is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))
+      if either.is-right(lv):  add-result(failure-exn(loc, lv.v,  on-left))
       else:
         rv = run-task(if is-function(right): right else: right.v end)
-        if is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right))
+        if either.is-right(rv):  add-result(failure-exn(loc, rv.v,  on-right))
         else:
           res = run-task(lam(): with-vals(lv.v, rv.v) end)
-          if is-right(res): add-result(failure-exn(loc, res.v, on-refinement))
+          if either.is-right(res): add-result(failure-exn(loc, res.v, on-refinement))
           else: res.v
           end
         end
@@ -769,7 +751,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           results-before = current-results
           reset-results()
           result = run-task(c.run)
-          cases(Either) result:
+          cases(either.Either) result:
             | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
             | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
           end
@@ -1092,7 +1074,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-str(self, thunk, str, loc) block:
       result = run-task(thunk)
-      cases(Either) result:
+      cases(either.Either) result:
         | left(_) => add-result(failure-no-exn(loc, some(str), on-left, true))
         | right(lv) =>
           if not(string-contains(torepr(exn-unwrap(lv)), str)):
@@ -1180,7 +1162,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-satisfies(self, thunk, pred, loc) block:
       add-result(
-        cases(Either) run-task(thunk):
+        cases(either.Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none, on-left, true)
           | right(exn) =>
             exn-val =
@@ -1189,7 +1171,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
               else:
                 exn-unwrap(exn)
               end
-            cases(Either) run-task(lam(): pred(exn-val) end):
+            cases(either.Either) run-task(lam(): pred(exn-val) end):
               | right(shadow exn) =>
                 exn-v = exn-unwrap(exn)
                 if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): error-not-pred(loc, pred, 1)
@@ -1207,7 +1189,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-satisfies-cause(self, thunk, pred, cause, loc) block:
       add-result(
-        cases(Either) run-task(cause):
+        cases(either.Either) run-task(cause):
           | left(v)    => failure-no-exn(loc, none, on-cause, true)
           | right(exn) =>
             exn-cause-val =
@@ -1257,7 +1239,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-raises-violates(self, thunk, pred, loc) block:
       add-result(
-        cases(Either) run-task(thunk):
+        cases(either.Either) run-task(thunk):
           | left(v)    => failure-no-exn(loc, none, on-left, true)
           | right(exn) =>
             exn-val =
@@ -1381,7 +1363,7 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
         stack = get-stack(err)
         "\n  " + block-type + " block ended in the following error (not all tests may have run): \n\n  "
           + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
-          + RED.display-to-string(ED.v-sequence(lists.map(ED.loc, stack)), torepr, empty)
+          + RED.display-to-string(ED.v-sequence(map(ED.loc, stack)), torepr, empty)
           + "\n\n"
     end
     message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"

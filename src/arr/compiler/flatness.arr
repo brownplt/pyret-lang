@@ -389,7 +389,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
   sd = SD.make-mutable-string-dict()
   for SD.each-key-now(k from bindings):
     vb = bindings.get-value-now(k)
-    when not(vb.origin.new-definition):
+    when C.is-bo-module(vb.origin):
       if A.is-s-global(vb.atom) block:
         name = vb.atom.toname()
         cases (Option) env.global-value(name):
@@ -401,8 +401,8 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
             end
         end
       else:
-        cases(Option) env.value-by-uri(vb.origin.uri-of-definition, vb.atom.toname()):
-          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri-of-definition)
+        cases(Option) env.value-by-uri(vb.origin.uri, vb.atom.toname()):
+          | none => raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri)
           | some(value-export) =>
             cases(C.ValueExport) value-export:
               | v-fun(_, _, flatness) =>
@@ -439,7 +439,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
   end
   for SD.each-key-now(k from type-bindings):
     tb = type-bindings.get-value-now(k)
-    when not(tb.origin.new-definition):
+    when C.is-bo-module(tb.origin):
       if A.is-s-type-global(tb.atom):
         name = tb.atom.toname()
         provides-opt = env.provides-by-type-name(name)
@@ -449,8 +449,8 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
             init-type-provides(provides, tb)
         end
       else:
-        cases(Option) env.provides-by-uri(tb.origin.uri-of-definition):
-          | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + tb.origin.uri-of-definition)
+        cases(Option) env.provides-by-uri(tb.origin.uri):
+          | none => raise("There is a type binding whose module is not in the compile env: " + to-repr(k) + " " + tb.origin.uri)
           | some(mod-provides) =>
             init-type-provides(mod-provides, tb)
         end
@@ -504,8 +504,7 @@ end
 fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
-      # MARK(joe/ben): modules
-    | provides(uri, _, values, aliases, datatypes) =>
+    | provides(uri, values, aliases, datatypes) =>
       new-values = for SD.fold-keys(s from [SD.string-dict:], k from values):
         maybe-flatness = flatness-env.get-now(dvs-dict.get-value(k))
         existing-val = values.get-value(k)
@@ -516,8 +515,7 @@ fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
         end
         s.set(k, new-val)
       end
-      # MARK(joe/ben): provides
-      C.provides(uri, [SD.string-dict:], new-values, aliases, datatypes)
+      C.provides(uri, new-values, aliases, datatypes)
   end
 end
 
