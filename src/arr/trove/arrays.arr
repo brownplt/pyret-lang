@@ -14,9 +14,8 @@ provide {
 provide-types *
 
 import global as _
-import lists as lists
+include lists
 import valueskeleton as VS
-type List = lists.List
 
 newtype Array as ArrayT
 
@@ -57,7 +56,7 @@ end
 
 fun array-from-list(l) block:
   arr = raw-array-of(0, l.length())
-  for lists.each_n(n from 0, elt from l):
+  for each_n(n from 0, elt from l):
     raw-array-set(arr, n, elt)
   end
   make(arr)
