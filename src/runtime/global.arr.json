@@ -11,7 +11,41 @@
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
       "time-now": ["arrow", ["tany"], "tany"],
-      "console-log": ["arrow", ["tany"], "Nothing"]
+      "console-log": ["arrow", ["tany"], "Nothing"],
+      "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
+      "_plus":   {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_minus":  {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_times":  {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_divide": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_lessthan": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "_lessequal": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "_greaterthan": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "_greaterequal": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]}
+
     },
     "aliases": {
     },
@@ -26,7 +60,9 @@
         "_greaterthan": ["arrow", ["Number"], "Boolean"],
         "_greaterequal": ["arrow", ["Number"], "Boolean"]
       }],
-      "String": ["data", "String", [], [], {}],
+      "String": ["data", "String", [], [], {
+        "_plus": ["arrow", ["String"], "String"]
+      }],
       "Boolean": ["data", "Boolean", [], [], {}],
       "Nothing": ["data", "Nothing", [], [], {}],
       "RawArray": ["data", "RawArray", ["a"], [], {

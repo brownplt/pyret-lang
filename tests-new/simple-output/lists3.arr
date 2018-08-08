@@ -1,5 +1,5 @@
 ### [ 1, 3, 5, 7 ]
-import lists as L
+import list as L
 import global as G
 
 list = [L.list: 11, 33, 55]
