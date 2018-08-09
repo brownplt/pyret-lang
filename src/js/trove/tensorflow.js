@@ -2536,9 +2536,9 @@
         "tanh"
       ];
       // Check that possibleActivation is a known activation function:
-      if (VALID_ACTIVATION_FUNCTIONS.indexOf(possibleActivation) < 0) {
-        runtime.ffi.throwMessageException(possibleActivation + " is not a " +
-          "valid activation function.")
+      if (!VALID_ACTIVATION_FUNCTIONS.includes(possibleActivation)) {
+        runtime.ffi.throwMessageException("\"" + possibleActivation + "\" is " +
+          "not a valid activation function.")
       }
       return possibleActivation;
     }
@@ -2572,9 +2572,9 @@
         "zeros"
       ];
       // Check that possibleInitializer is a known initializer function:
-      if (VALID_INITIALIZER_FUNCTIONS.indexOf(possibleInitializer) < 0) {
-        runtime.ffi.throwMessageException(possibleInitializer + " is not a " +
-          "valid initializer function.")
+      if (!VALID_INITIALIZER_FUNCTIONS.includes(possibleInitializer)) {
+        runtime.ffi.throwMessageException("\"" + possibleInitializer + "\" is " +
+          "not a valid initializer function.")
       }
       return possibleInitializer;
     }
