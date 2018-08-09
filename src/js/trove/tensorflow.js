@@ -2599,11 +2599,61 @@
         "unitNorm"
       ];
       // Check that possibleConstraint is a known constraint function:
-      if (VALID_CONSTRAINT_FUNCTIONS.indexOf(possibleConstraint) < 0) {
-        runtime.ffi.throwMessageException(possibleConstraint + " is not a valid " +
-          "constraint function.")
+      if (!VALID_CONSTRAINT_FUNCTIONS.includes(possibleConstraint)) {
+        runtime.ffi.throwMessageException("\"" + possibleConstraint + "\" is " +
+          "not a valid constraint function.")
       }
       return possibleConstraint;
+    }
+
+    /**
+     * Checks if the input corresponds to a valid, TensorFlow.js
+     * regularizer. If so, it returns the value that should be passed to
+     * a TensorFlow.js function for the given input; otherwise, it raises
+     * a Pyret runtime error.
+     * @param {Any} possibleRegularizer The name of the regularizer.
+     *  (This parameter is typed as Any because in some cases a given
+     *  TensorFlow.js parameter has multiple possible types, so we can
+     *  easily extend this function if necessary.)
+     * @returns {Any} The value that should be passed to TensorFlow.js
+     *  corresponding to the given input
+     */
+    function checkAndConvertRegularizer(possibleRegularizer) {
+      const VALID_REGULARIZERS = [
+        "l1l2"
+      ];
+      // Check that possibleRegularizer is a known regularizer function:
+      if (!VALID_REGULARIZERS.includes(possibleRegularizer)) {
+        runtime.ffi.throwMessageException("\"" + possibleRegularizer + "\" is " +
+          "not a valid regularizer.")
+      }
+      return possibleRegularizer;
+    }
+
+    /**
+     * Checks if the input corresponds to a valid, TensorFlow.js
+     * data format (mainly for use in type checking the "data-format" option
+     * passed to many convolution layers). If so, it returns the value that
+     * should be passed to a TensorFlow.js function for the given input;
+     * otherwise, it raises a Pyret runtime error.
+     * @param {Any} possibleDataFormat The name of the data format.
+     *  (This parameter is typed as Any because in some cases a given
+     *  TensorFlow.js parameter has multiple possible types, so we can
+     *  easily extend this function if necessary.)
+     * @returns {Any} The value that should be passed to TensorFlow.js
+     *  corresponding to the given input
+     */
+    function checkAndConvertDataFormat(possibleDataFormat) {
+      const VALID_DATA_FORMATS = [
+        "channelsFirst",
+        "channelsLast"
+      ];
+      // Check that possibleDataFormat is a known data format:
+      if (!VALID_DATA_FORMATS.includes(possibleDataFormat)) {
+        runtime.ffi.throwMessageException("\"" + possibleDataFormat + "\" " +
+          "is not a valid data format.");
+      }
+      return possibleDataFormat;
     }
 
     /**
