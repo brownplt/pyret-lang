@@ -655,11 +655,11 @@
     function createTensorFromArray(array) {
       arity(1, arguments, "tensor", false);
       runtime.checkArray(array);
-      var fixnums = array.map((x) => {
+      const fixnums = array.map((x) => {
         runtime.checkNumber(x);
         return runtime.num_to_fixnum(x);
       });
-      var underlyingTensor = tf.tensor(fixnums, null, null);
+      const underlyingTensor = tf.tensor(fixnums, null, null);
       return buildTensorObject(underlyingTensor);
     }
 
@@ -756,8 +756,8 @@
       arity(1, arguments, "list-to-tensor", false);
       // A tensor can be rank 0 (just a number); otherwise, it is a List :(
       runtime.checkList(values);
-      values = runtime.ffi.toArray(values);
-      return createTensorFromArray(values);
+      const array = runtime.ffi.toArray(values);
+      return createTensorFromArray(array);
     }
 
     /**
@@ -768,8 +768,8 @@
     function makeScalar(value) {
       arity(1, arguments, "make-scalar", false);
       runtime.checkNumber(value);
-      var fixnum = runtime.num_to_fixnum(value);
-      var newScalar = tf.scalar(fixnum);
+      const fixnum    = runtime.num_to_fixnum(value);
+      const newScalar = tf.scalar(fixnum);
       return buildTensorObject(newScalar);
     }
 
@@ -784,12 +784,12 @@
       arity(2, arguments, "fill", false);
       runtime.checkList(shape);
       runtime.checkNumber(value);
-      var s = runtime.ffi.toArray(shape).map((x) => {
+      const jsShape = runtime.ffi.toArray(shape).map((x) => {
         runtime.checkNumInteger(x);
         return runtime.num_to_fixnum(x);
       });
-      var v = runtime.num_to_fixnum(value);
-      return buildTensorObject(tf.fill(s, v));
+      const jsValue = runtime.num_to_fixnum(value);
+      return buildTensorObject(tf.fill(jsShape, jsValue));
     }
 
     /**
@@ -806,9 +806,9 @@
       runtime.checkNumber(startRange);
       runtime.checkNumber(stopRange);
       runtime.checkNumber(numValues);
-      var start = runtime.num_to_fixnum(startRange);
-      var stop  = runtime.num_to_fixnum(stopRange);
-      var nums  = runtime.num_to_fixnum(numValues);
+      const start = runtime.num_to_fixnum(startRange);
+      const stop  = runtime.num_to_fixnum(stopRange);
+      const nums  = runtime.num_to_fixnum(numValues);
       return buildTensorObject(tf.linspace(start, stop, nums));
     }
 
@@ -820,11 +820,11 @@
     function ones(shape) {
       arity(1, arguments, "ones", false);
       runtime.checkList(shape);
-      var s = runtime.ffi.toArray(shape).map((x) => {
+      const jsShape = runtime.ffi.toArray(shape).map((x) => {
         runtime.checkNumInteger(x);
         return runtime.num_to_fixnum(x);
       });
-      return buildTensorObject(tf.ones(s));
+      return buildTensorObject(tf.ones(jsShape));
     }
 
     /**
@@ -835,11 +835,11 @@
     function zeros(shape) {
       arity(1, arguments, "zeros", false);
       runtime.checkList(shape);
-      var s = runtime.ffi.toArray(shape).map((x) => {
+      const jsShape = runtime.ffi.toArray(shape).map((x) => {
         runtime.checkNumInteger(x);
         return runtime.num_to_fixnum(x);
       });
-      return buildTensorObject(tf.zeros(s));
+      return buildTensorObject(tf.zeros(jsShape));
     }
 
     /**
@@ -860,23 +860,22 @@
       checkTensor(logits);
       runtime.checkNumPositive(numSamples);
       runtime.checkBoolean(normalized);
-      var tensor  = unwrapTensor(logits);
-      var samples = runtime.num_to_fixnum(numSamples);
-      var seed    = unwrapFixnumOption(randomSeed);
-      var norm    = runtime.isPyretTrue(normalized);
+      const tensor  = unwrapTensor(logits);
+      const samples = runtime.num_to_fixnum(numSamples);
+      const seed    = unwrapFixnumOption(randomSeed);
+      const norm    = runtime.isPyretTrue(normalized);
       // Check if `logits` is 1D or 2D, as required by the `multinomial`
       // function:
-      var dimensions = tensor.shape.length;
+      const dimensions = tensor.shape.length;
       if (dimensions !== 1 && dimensions !== 2) {
         runtime.ffi.throwMessageException("The `logits` argument must be a " +
           "one-dimensional or two-dimensional Tensor (had " + dimensions + " " +
           "dimensions).");
       }
       // The multinomial distribution needs at least two possible outcomes:
-      var size = tensor.size;
-      if (size < 2) {
+      if (tensor.size < 2) {
         runtime.ffi.throwMessageException("The `logits` argument must have " +
-          "at least two possible outcomes (had " + size + ").");
+          "at least two possible outcomes (had " + tensor.size + ").");
       }
       return buildTensorObject(tf.multinomial(tensor, samples, seed, norm));
     }
@@ -893,11 +892,13 @@
     function randomNormal(shape, mean, standardDeviation) {
       arity(3, arguments, "random-normal", false);
       runtime.checkList(shape);
-      var s = runtime.ffi.toArray(shape);
-      s.forEach((x) => { runtime.checkNumInteger(x); });
-      var m = unwrapFixnumOption(mean);
-      var d = unwrapFixnumOption(standardDeviation);
-      return buildTensorObject(tf.randomNormal(s, m, d));
+      const jsShape = runtime.ffi.toArray(shape).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      const jsMean = unwrapFixnumOption(mean);
+      const jsStdDev = unwrapFixnumOption(standardDeviation);
+      return buildTensorObject(tf.randomNormal(jsShape, jsMean, jsStdDev));
     }
 
     /**
@@ -913,11 +914,13 @@
     function randomUniform(shape, minVal, maxVal) {
       arity(3, arguments, "random-uniform", false);
       runtime.checkList(shape);
-      var s = runtime.ffi.toArray(shape);
-      s.forEach((x) => { runtime.checkNumInteger(x); });
-      var min = unwrapFixnumOption(minVal);
-      var max = unwrapFixnumOption(maxVal)
-      return buildTensorObject(tf.randomUniform(s, min, max));
+      const jsShape = runtime.ffi.toArray(shape).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      const jsMinVal = unwrapFixnumOption(minVal);
+      const jsMaxVal = unwrapFixnumOption(maxVal)
+      return buildTensorObject(tf.randomUniform(jsShape, jsMinVal, jsMaxVal));
     }
 
     /**
@@ -1052,16 +1055,16 @@
      */
     function assertEqualShapes(a, b) {
       // Get the underlying array representation of Tensor shapes:
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
-      var aShape  = aTensor.shape;
-      var bShape  = bTensor.shape;
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
+      const aShape  = aTensor.shape;
+      const bShape  = bTensor.shape;
 
       // Check if the shapes are the same length:
       if (aShape.length != bShape.length) { return false; }
 
       // Check element-wise equality:
-      for (var i = 0; i < aShape.length; i++) {
+      for (let i = 0; i < aShape.length; i++) {
         if (aShape[i] != bShape[i]) {
           runtime.ffi.throwMessageException("The first tensor does not have " +
           "the same shape as the second tensor");
@@ -1080,8 +1083,8 @@
       arity(2, arguments, "add-tensors", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.add(aTensor, bTensor));
     }
 
@@ -1097,8 +1100,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.add(aTensor, bTensor));
     }
 
@@ -1112,8 +1115,8 @@
       arity(2, arguments, "subtract-tensors", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.sub(aTensor, bTensor));
     }
 
@@ -1129,8 +1132,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.sub(aTensor, bTensor));
     }
 
@@ -1144,8 +1147,8 @@
       arity(2, arguments, "multiply-tensors", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.mul(aTensor, bTensor));
     }
 
@@ -1161,8 +1164,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.mul(aTensor, bTensor));
     }
 
@@ -1176,8 +1179,8 @@
       arity(2, arguments, "divide-tensors", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.div(aTensor, bTensor));
     }
 
@@ -1193,8 +1196,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.div(aTensor, bTensor));
     }
 
@@ -1209,8 +1212,8 @@
       arity(2, arguments, "floor-divide-tensors", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.floorDiv(aTensor, bTensor));
     }
 
@@ -1224,8 +1227,8 @@
       arity(2, arguments, "tensor-max", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.maximum(aTensor, bTensor));
     }
 
@@ -1241,8 +1244,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.maximum(aTensor, bTensor));
     }
 
@@ -1256,8 +1259,8 @@
       arity(2, arguments, "tensor-min", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.minimum(aTensor, bTensor));
     }
 
@@ -1273,8 +1276,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.minimum(aTensor, bTensor));
     }
 
@@ -1288,8 +1291,8 @@
       arity(2, arguments, "tensor-modulo", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.mod(aTensor, bTensor));
     }
 
@@ -1305,8 +1308,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.mod(aTensor, bTensor));
     }
 
@@ -1320,8 +1323,8 @@
       arity(2, arguments, "tensor-expt", false);
       checkTensor(base);
       checkTensor(exp);
-      var baseTensor = unwrapTensor(base);
-      var expTensor  = unwrapTensor(exp);
+      const baseTensor = unwrapTensor(base);
+      const expTensor  = unwrapTensor(exp);
       return buildTensorObject(tf.pow(baseTensor, expTensor));
     }
 
@@ -1337,8 +1340,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.pow(aTensor, bTensor));
     }
 
@@ -1352,8 +1355,8 @@
       arity(2, arguments, "squared-difference", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
     }
 
@@ -1369,8 +1372,8 @@
       checkTensor(a);
       checkTensor(b);
       assertEqualShapes(a, b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
     }
 
@@ -1386,7 +1389,7 @@
     function abs(x) {
       arity(1, arguments, "tensor-abs", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.abs(tensor));
     }
 
@@ -1398,7 +1401,7 @@
     function acos(x) {
       arity(1, arguments, "tensor-acos", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.acos(tensor));
     }
 
@@ -1410,7 +1413,7 @@
     function acosh(x) {
       arity(1, arguments, "tensor-acosh", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.acosh(tensor));
     }
 
@@ -1422,7 +1425,7 @@
     function asin(x) {
       arity(1, arguments, "tensor-asin", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.asin(tensor));
     }
 
@@ -1434,7 +1437,7 @@
     function asinh(x) {
       arity(1, arguments, "tensor-asinh", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.asinh(tensor));
     }
 
@@ -1446,7 +1449,7 @@
     function atan(x) {
       arity(1, arguments, "tensor-atan", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.atan(tensor));
     }
 
@@ -1460,8 +1463,8 @@
       arity(2, arguments, "tensor-atan2", false);
       checkTensor(a);
       checkTensor(b);
-      var aTensor = unwrapTensor(a);
-      var bTensor = unwrapTensor(b);
+      const aTensor = unwrapTensor(a);
+      const bTensor = unwrapTensor(b);
       return buildTensorObject(tf.atan2(aTensor, bTensor));
     }
 
@@ -1473,7 +1476,7 @@
     function atanh(x) {
       arity(1, arguments, "tensor-atanh", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.atanh(tensor));
     }
 
@@ -1485,7 +1488,7 @@
     function ceil(x) {
       arity(1, arguments, "tensor-ceil", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.atan(tensor));
     }
 
@@ -1502,10 +1505,10 @@
       checkTensor(x);
       runtime.checkNumber(min);
       runtime.checkNumber(max);
-      var tensor = unwrapTensor(x);
-      var mi     = unwrap(min);
-      var ma     = unwrap(max);
-      return buildTensorObject(tf.clipByValue(tensor, mi, ma));
+      const tensor = unwrapTensor(x);
+      const jsMin  = runtime.num_to_fixnum(min);
+      const jsMax  = runtime.num_to_fixnum(max);
+      return buildTensorObject(tf.clipByValue(tensor, jsMin, jsMax));
     }
 
     /**
@@ -1516,7 +1519,7 @@
     function cos(x) {
       arity(1, arguments, "tensor-cos", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.cos(tensor));
     }
 
@@ -1528,7 +1531,7 @@
     function cosh(x) {
       arity(1, arguments, "tensor-cosh", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.cosh(tensor));
     }
 
@@ -1550,7 +1553,7 @@
     function exponentialLinearUnits(x) {
       arity(1, arguments, "exponential-linear-units", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.elu(tensor));
     }
 
@@ -1572,7 +1575,7 @@
     function gaussError(x) {
       arity(1, arguments, "gauss-error", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.erf(tensor));
     }
 
@@ -1584,7 +1587,7 @@
     function exp(x) {
       arity(1, arguments, "tensor-exp", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.exp(tensor));
     }
 
@@ -1596,7 +1599,7 @@
     function expm1(x) {
       arity(1, arguments, "tensor-exp-min1", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.expm1(tensor));
     }
 
@@ -1608,7 +1611,7 @@
     function floor(x) {
       arity(1, arguments, "tensor-floor", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.floor(tensor));
     }
 
@@ -1623,9 +1626,9 @@
       arity(2, arguments, "leaky-relu", false);
       checkTensor(x);
       runtime.checkNumber(alpha);
-      var tensor = unwrapTensor(x);
-      var a = unwrap(alpha);
-      return buildTensorObject(tf.leakyRelu(tensor, a));
+      const tensor = unwrapTensor(x);
+      const jsAlpha = unwrap(alpha);
+      return buildTensorObject(tf.leakyRelu(tensor, jsAlpha));
     }
 
     /**
@@ -1636,7 +1639,7 @@
     function log(x) {
       arity(1, arguments, "tensor-log", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.log(tensor));
     }
 
@@ -1648,7 +1651,7 @@
     function log1p(x) {
       arity(1, arguments, "tensor-log-plus1", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.log1p(tensor));
     }
 
@@ -1660,7 +1663,7 @@
     function logSigmoid(x) {
       arity(1, arguments, "log-sigmoid", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.logSigmoid(tensor));
     }
 
@@ -1672,7 +1675,7 @@
     function neg(x) {
       arity(1, arguments, "tensor-negate", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.neg(tensor));
     }
 
@@ -1687,9 +1690,9 @@
       arity(2, arguments, "parametric-relu", false);
       checkTensor(x);
       runtime.checkNumber(alpha);
-      var tensor = unwrapTensor(x);
-      var a = runtime.num_to_fixnum(alpha);
-      return buildTensorObject(tf.prelu(tensor, a));
+      const tensor = unwrapTensor(x);
+      const jsAlpha = runtime.num_to_fixnum(alpha);
+      return buildTensorObject(tf.prelu(tensor, jsAlpha));
     }
 
     /**
@@ -1700,7 +1703,7 @@
     function reciprocal(x) {
       arity(1, arguments, "tensor-reciprocal", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.reciprocal(tensor));
     }
 
@@ -1712,7 +1715,7 @@
     function relu(x) {
       arity(1, arguments, "relu", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.relu(tensor));
     }
 
@@ -1724,7 +1727,7 @@
     function round(x) {
       arity(1, arguments, "tensor-round", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.round(tensor));
     }
 
@@ -1736,7 +1739,7 @@
     function rsqrt(x) {
       arity(1, arguments, "reciprocal-sqrt", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.rsqrt(tensor));
     }
 
@@ -1749,7 +1752,7 @@
     function selu(x) {
       arity(1, arguments, "scaled-elu", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.selu(tensor));
     }
 
@@ -1761,7 +1764,7 @@
     function sigmoid(x) {
       arity(1, arguments, "sigmoid", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.sigmoid(tensor));
     }
 
@@ -1776,7 +1779,7 @@
     function sign(x) {
       arity(1, arguments, "signed-ones", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.sign(tensor));
     }
 
@@ -1788,7 +1791,7 @@
     function sin(x) {
       arity(1, arguments, "tensor-sin", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.sin(tensor));
     }
 
@@ -1800,7 +1803,7 @@
     function sinh(x) {
       arity(1, arguments, "tensor-sinh", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.sinh(tensor));
     }
 
@@ -1812,7 +1815,7 @@
     function softplus(x) {
       arity(1, arguments, "softplus", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.softplus(tensor));
     }
 
@@ -1824,7 +1827,7 @@
     function sqrt(x) {
       arity(1, arguments, "tensor-sqrt", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.sqrt(tensor));
     }
 
@@ -1836,7 +1839,7 @@
     function square(x) {
       arity(1, arguments, "tensor-square", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.square(tensor));
     }
 
@@ -1851,7 +1854,7 @@
     function step(x) {
       arity(1, arguments, "step", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.step(tensor));
     }
 
@@ -1863,7 +1866,7 @@
     function tan(x) {
       arity(1, arguments, "tensor-tan", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.tan(tensor));
     }
 
@@ -1875,7 +1878,7 @@
     function tanh(x) {
       arity(1, arguments, "tensor-tanh", false);
       checkTensor(x);
-      var tensor = unwrapTensor(x);
+      const tensor = unwrapTensor(x);
       return buildTensorObject(tf.tanh(tensor));
     }
 
