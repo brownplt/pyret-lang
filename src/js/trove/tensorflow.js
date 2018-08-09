@@ -1887,6 +1887,27 @@
      */
 
     /**
+     * Applies the specified reduction function to the given tensor along the
+     * specified axis. Used as a helper function for reduction operations
+     * since the format is equivalent for all reduction operations.
+     * @param {Function} reductionOp The TensorFlow.js function to use as
+     *  the reduction operation
+     * @param {PyretTensor} pyretTensor The tensor to reduce
+     * @param {Option<Number>} axis The axis to reduce along
+     * @returns {PyretTensor} The result
+     */
+    function applyReductionToTensor(reductionOp, pyretTensor, axis) {
+      // Unwrap Pyret values to JavaScript equivalents so TensorFlow.js can
+      // recognize them:
+      checkTensor(pyretTensor);
+      const jsTensor = unwrapTensor(pyretTensor);
+      const jsAxis   = unwrapFixnumOption(axis);
+      // Apply reduction operation:
+      const jsReducedTensor = reductionOp(jsTensor, jsAxis);
+      return buildTensorObject(jsReducedTensor);
+    }
+
+    /**
      * Reduces the input Tensor across the input axis by computing the logical
      * "and" of its elements. The input must be of type "bool"; otherwise, the
      * function raises an error. If axis is none, reduces the tensor across
@@ -1897,10 +1918,7 @@
      */
     function all(x, axis) {
       arity(2, arguments, "reduce-all", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.all(tensor, a));
+      return applyReductionToTensor(tf.all, x, axis);
     }
 
     /**
@@ -1914,10 +1932,7 @@
      */
     function any(x, axis) {
       arity(2, arguments, "reduce-any", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.any(tensor, a));
+      return applyReductionToTensor(tf.any, x, axis);
     }
 
     /**
@@ -1930,10 +1945,7 @@
      */
     function argMax(x, axis) {
       arity(2, arguments, "arg-max", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.argMax(tensor, a));
+      return applyReductionToTensor(tf.argMax, x, axis);
     }
 
     /**
@@ -1946,10 +1958,7 @@
      */
     function argMin(x, axis) {
       arity(2, arguments, "arg-min", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.argMin(tensor, a));
+      return applyReductionToTensor(tf.argMin, x, axis);
     }
 
     /**
@@ -1962,10 +1971,7 @@
      */
     function logSumExp(x, axis) {
       arity(2, arguments, "log-sum-exp", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.logSumExp(tensor, a));
+      return applyReductionToTensor(tf.logSumExp, x, axis);
     }
 
     /**
@@ -1978,10 +1984,7 @@
      */
     function max(x, axis) {
       arity(2, arguments, "reduce-max", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.max(tensor, a));
+      return applyReductionToTensor(tf.max, x, axis);
     }
 
     /**
@@ -1994,10 +1997,7 @@
      */
     function mean(x, axis) {
       arity(1, arguments, "reduce-mean", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.mean(tensor, a));
+      return applyReductionToTensor(tf.mean, x, axis);
     }
 
     /**
@@ -2010,10 +2010,7 @@
      */
     function min(x, axis) {
       arity(1, arguments, "reduce-min", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.min(tensor, a));
+      return applyReductionToTensor(tf.min, x, axis);
     }
 
     /**
