@@ -51,8 +51,6 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Skip printing the \"Compiling X/Y\" progress indicator"),
     "compiled-dir",
       C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to"),
-    "library",
-      C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
       C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
     "profile",
@@ -92,12 +90,9 @@ fun main(args :: List<String>) -> Number block:
 
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
-      check-mode = not(r.has-key("no-check-mode") or r.has-key("library"))
+      check-mode = not(r.has-key("no-check-mode"))
       enable-spies = not(r.has-key("no-spies"))
       allow-shadowed = r.has-key("allow-shadow")
-      libs =
-        if r.has-key("library"): CS.minimal-imports
-        else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
       inline-case-body-limit = r.get-value("inline-case-body-limit")
       check-all = r.has-key("check-all")

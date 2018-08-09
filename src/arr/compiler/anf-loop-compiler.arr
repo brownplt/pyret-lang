@@ -2136,27 +2136,20 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,
     # because shared compiled files didn't agree on globals
-    { uri; which } =
+    { maybe-uri; which } =
       cases(A.Name) n:
         | s-module-global(s) =>
-          uri = cases(Option) env.uri-by-module-name(n.toname()):
-            | some(global-uri) => global-uri
-            | none => raise(n.toname() + " not found")
-          end
-          {uri; "defined-modules"}
+          { env.uri-by-module-name(n.toname()); "defined-modules"}
         | s-global(s) =>
-          uri = cases(Option) env.uri-by-value-name(n.toname()):
-            | some(global-uri) => global-uri
-            | none => raise(n.toname() + " not found")
-          end
-          {uri; "defined-values"}
-        | s-type-global(_) =>
-          uri = cases(Option) env.uri-by-type-name(n.toname()):
-            | some(global-uri) => global-uri
-            | none => raise(n.toname() + " not found")
-          end
-          {uri; "defined-types"}
+          {env.uri-by-value-name(n.toname()); "defined-values"}
+        | s-type-global(s) =>
+          {env.uri-by-type-name(n.toname()); "defined-types"}
       end
+
+    uri = cases(Option) maybe-uri:
+      | some(global-uri) => global-uri
+      | none => raise(n.toname() + " not found")
+    end
 
     j-var(js-id-of(n),
       j-bracket(
@@ -2165,7 +2158,6 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
               j-str(which)
             ]),
           j-str(n.toname())))
-#    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
   end
   # MARK(joe): need to do something below for modules that come from
   # a context like "include"

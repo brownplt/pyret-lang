@@ -712,8 +712,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # it or do any more work.
       | s-atom(_, _) =>
         binding = make-binding(name)
-        # THIS LINE DOES NOTHING??
-        # env.set(name.key(), binding)
         bindings.set-now(name.key(), binding)
         { atom: name, env: env }
       | else => raise("Unexpected atom type: " + torepr(name))
@@ -725,17 +723,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     for SD.each-key(name from initial.globals.values):
       mod-info = initial.provides-by-value-name-value(name)
       val-info = mod-info.values.get(name)
-      # TODO(joe): I am a little confused about how many times we are asserting
-      # that something is bound here, in bindings vs. in the environment
       cases(Option) val-info block:
-        | none =>
-          # TODO(joe): hack hack hack
-          when not(name == "_"):
-            raise("The value is a global that doesn't exist in any module: " + name)
-          end
-          # b = global-bind(S.builtin(mod-info.from-uri), names.s-global(name), none)
-          # bindings.set-now(names.s-global(name).key(), b)
-          # acc.set-now(name, b)
+        | none => raise("The value is a global that doesn't exist in any module: " + name)
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
             | v-var(t) =>
@@ -768,7 +757,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.modules) block:
       mod-info = initial.provides-by-module-name-value(name)
-      # MARK(joe/ben): Should this be a new s-module-global below
       b = C.module-bind(C.bo-global(mod-info.from-uri), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
@@ -1276,7 +1264,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             # This used to examine bind in more detail, and raise an error if it wasn't a var-bind
             # but that's better suited for a later pass
           else:
-            A.s-assign(l, id, expr.visit(self)) # TODO: Should this be a s-global after all?
+            A.s-assign(l, id, expr.visit(self))
           end
         | s-underscore(_) =>
           A.s-assign(l, id, expr.visit(self))
@@ -1288,7 +1276,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-id(_, id) =>
           cases(A.Name) id block:
             | s-name(_, s) => 
-              # Is this name _not_ a known value _and_ a known module?
+              # NOTE(joe): This gives an ordering to names. If somehow we end up with
+              # import foo as C
+              #
+              # C = 5
+              # C.x
+              #
+              # and we _don't_ count it as a shadowing error, then the above
+              # would be field-not-found
               if not(self.env.has-key(s)) and self.module-env.has-key(s):
                 mod-bind = self.module-env.get-value(s)
                 A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
@@ -1440,8 +1435,6 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         if bindings.has-key-now(id-k):
           binding = bindings.get-value-now(id-k)
           when not(C.is-vb-var(binding.binder)) block:
-            #print("The resolution was: " + torepr(resolved))
-            #print("\n\nThe environment was: " + torepr(initial-env))
             var-loc = get-origin-loc(binding.origin)
             add-error(C.bad-assignment(A.s-assign(loc, id, value), var-loc))
           end
@@ -1458,9 +1451,6 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         else if type-bindings.has-key-now(id.key()):
           nothing
         else:
-          #print-error("Cannot find " + id.key() + " at " + loc.format(true) + " in:\n")
-          #print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          #print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
           add-error(C.unbound-type-id(A.a-name(loc, id)))
           nothing
         end
@@ -1470,15 +1460,10 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
         if A.is-s-underscore(name) block:
           add-error(C.underscore-as-ann(name.l))
         else if A.is-s-type-global(name) and initial-env.globals.types.has-key(name.toname()):
-          # need to figure out how to read through the imports here, I think
           nothing
-        else if type-bindings.has-key-now(name.key()) or module-bindings.has-key-now(name.key()):
+        else if module-bindings.has-key-now(name.key()):
           nothing
         else:
-          # need to figure out how to read through the imports here, I think
-          #print-error("Cannot find " + name.key() + " at " + loc.format(true) + " in:\n")
-          #print-error("Type-bindings: " + torepr(type-bindings.keys-list-now()) + "\n")
-          #print-error("Global types: " + torepr(initial-env.globals.types.keys-list()) + "\n")
           add-error(C.unbound-type-id(A.a-name(loc, name)))
           nothing
         end
