@@ -2729,8 +2729,7 @@
 
     function makeActivationLayer(config) {
       arity(1, arguments, "activation-layer", false);
-      config = pyretLayerConfigToJsLayerConfig(config, ACTIVATION_LAYER_CONFIG);
-      return buildLayerObject(tf.layers.activation(config));
+      return makeLayerWith(tf.layers.activation, config, ACTIVATION_LAYER_CONFIG);
     }
 
     const DENSE_LAYER_CONFIG = {
@@ -2789,113 +2788,82 @@
 
     function makeDenseLayer(config) {
       arity(1, arguments, "dense-layer", false);
-      config = pyretLayerConfigToJsLayerConfig(config, DENSE_LAYER_CONFIG);
-      return buildLayerObject(tf.layers.dense(config));
+      return makeLayerWith(tf.layers.dense, config, DENSE_LAYER_CONFIG);
     }
 
     function makeDropoutLayer(config) {
       arity(1, arguments, "dropout-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.dropout(c));
+      return makeLayerWith(tf.layers.dropout, config, DROPOUT_LAYER_CONFIG);
     }
 
     function makeEmbeddingLayer(config) {
       arity(1, arguments, "embedding-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.embedding(c));
+      return makeLayerWith(tf.layers.embedding, config, EMBEDDING_LAYER_CONFIG);
     }
 
     function makeFlattenLayer(config) {
       arity(1, arguments, "flatten-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.flatten(c));
+      return makeLayerWith(tf.layers.flatten, config, FLATTEN_LAYER_CONFIG);
     }
 
     function makeRepeatVectorLayer(config) {
       arity(1, arguments, "repeat-vector-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.repeatVector(c));
+      return makeLayerWith(tf.layers.repeatVector, config, REPEAT_VECTOR_LAYER_CONFIG);
     }
 
     function makeReshapeLayer(config) {
       arity(1, arguments, "reshape-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.reshape(c));
+      return makeLayerWith(tf.layers.reshape, config, RESHAPE_LAYER_CONFIG);
     }
 
     function makeConv1dLayer(config) {
       arity(1, arguments, "conv-1d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.conv1d(c));
+      return makeLayerWith(tf.layers.conv1d, config, CONV1D_LAYER_CONFIG);
     }
 
     function makeConv2dLayer(config) {
       arity(1, arguments, "conv-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.conv2d(c));
+      return makeLayerWith(tf.layers.conv2d, config, CONV2D_LAYER_CONFIG);
     }
 
     function makeConv2dTransposeLayer(config) {
       arity(1, arguments, "conv-2d-transpose-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.conv2dTranspose(c));
+      return makeLayerWith(tf.layers.conv2dTranspose, config, CONV2D_TRANSPOSE_LAYER_CONFIG);
     }
 
     function makeCropping2dLayer(config) {
       arity(1, arguments, "cropping-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.cropping2D(c));
+      return makeLayerWith(tf.layers.cropping2D, config, CROPPING_2D_LAYER_CONFIG);
     }
 
     function makeDepthwiseConv2dLayer(config) {
       arity(1, arguments, "depthwise-conv-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.depthwiseConv2d(c));
+      return makeLayerWith(tf.layers.depthwiseConv2d, config, DEPTHWISE_CONV_2D_LAYER_CONFIG);
     }
 
     function makeSeparableConv2dLayer(config) {
       arity(1, arguments, "separable-conv-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.separableConv2d(c));
+      return makeLayerWith(tf.layers.separableConv2d, config, SEPARABLE_CONV_2D_LAYER_CONFIG);
     }
 
     function makeUpSampling2dLayer(config) {
       arity(1, arguments, "up-sampling-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.upSampling2d(c));
+      return makeLayerWith(tf.layers.upSampling2d, config, UPSAMPLING_2D_LAYER_CONFIG);
     }
 
     function makeAddLayer(config) {
       arity(1, arguments, "add-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.add(c));
+      return makeLayerWith(tf.layers.add, config, ADD_LAYER_CONFIG);
     }
 
     function makeAverageLayer(config) {
       arity(1, arguments, "average-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.average(c));
+      return makeLayerWith(tf.layers.average, config, AVERAGE_LAYER_CONFIG);
     }
 
     function makeConcatenateLayer(config) {
       arity(1, arguments, "concatenate-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.concatenate(c));
+      return makeLayerWith(tf.layers.concatenate, config, CONCATENATE_LAYER_CONFIG);
     }
 
     function makeMaximumLayer(config) {
