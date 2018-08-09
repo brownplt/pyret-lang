@@ -522,7 +522,8 @@
           checkMethodArity(2, arguments, "reshape");
           var selfTensor = unwrapTensor(self);
           runtime.checkList(newShape);
-          var ns = runtime.toArray(newShape);
+          var ns = runtime.ffi.toArray(newShape);
+          newShape.forEach((x) => { runtime.checkNumInteger(x); });
           var product = ns.reduce((a, b) => { return a * b; }, 1);
           if (selfTensor.size !== product) {
             runtime.ffi.throwMessageException("Cannot reshape because the number " +
