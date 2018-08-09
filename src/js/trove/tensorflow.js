@@ -2510,6 +2510,30 @@
     }
 
     /**
+     * Tiny helper function used for listing the possible options for a
+     * given Layer parameter in error messages.
+     * @param {String[]} optionsArray An array of the possible strings
+     *  to choose from
+     * @returns {String} A comma-delimited list of the input options
+     */
+    function optionsToSentence(optionsArray) {
+      let base = "";
+      for (let i = 0; i < optionsArray.length; i++) {
+        const nextOption = optionsArray[i];
+        base += "\"" + optionsArray "\"";
+        // If not the last element, add a comma:
+        if ((i + 1) !== optionsArray.length) {
+          base += ", ";
+        }
+        // If we're at the second-to-last element, add an "and":
+        if ((i + 2) === optionsArray.length) {
+          base += "and ";
+        }
+      }
+      return base;
+    }
+
+    /**
      * Checks if the input corresponds to a valid, TensorFlow.js
      * activation function. If so, it returns the value that should be
      * passed to a TensorFlow.js function for the given input; otherwise,
@@ -2538,7 +2562,8 @@
       // Check that possibleActivation is a known activation function:
       if (!VALID_ACTIVATION_FUNCTIONS.includes(possibleActivation)) {
         runtime.ffi.throwMessageException("\"" + possibleActivation + "\" is " +
-          "not a valid activation function.")
+          "not a valid activation function. The possible activation functions " +
+          " are: " + optionsToSentence(VALID_ACTIVATION_FUNCTIONS) + ".");
       }
       return possibleActivation;
     }
@@ -2574,7 +2599,8 @@
       // Check that possibleInitializer is a known initializer function:
       if (!VALID_INITIALIZER_FUNCTIONS.includes(possibleInitializer)) {
         runtime.ffi.throwMessageException("\"" + possibleInitializer + "\" is " +
-          "not a valid initializer function.")
+          "not a valid initializer function. The possible initializer functions " +
+          " are: " + optionsToSentence(VALID_INITIALIZER_FUNCTIONS) + ".");
       }
       return possibleInitializer;
     }
@@ -2601,7 +2627,8 @@
       // Check that possibleConstraint is a known constraint function:
       if (!VALID_CONSTRAINT_FUNCTIONS.includes(possibleConstraint)) {
         runtime.ffi.throwMessageException("\"" + possibleConstraint + "\" is " +
-          "not a valid constraint function.")
+          "not a valid constraint function. The possible constraint functions " +
+          " are: " + optionsToSentence(VALID_CONSTRAINT_FUNCTIONS) + ".");
       }
       return possibleConstraint;
     }
@@ -2625,7 +2652,8 @@
       // Check that possibleRegularizer is a known regularizer function:
       if (!VALID_REGULARIZERS.includes(possibleRegularizer)) {
         runtime.ffi.throwMessageException("\"" + possibleRegularizer + "\" is " +
-          "not a valid regularizer.")
+          "not a valid regularizer. The possible regularizers are: " +
+          optionsToSentence(VALID_REGULARIZERS) + ".");
       }
       return possibleRegularizer;
     }
@@ -2651,7 +2679,8 @@
       // Check that possibleDataFormat is a known data format:
       if (!VALID_DATA_FORMATS.includes(possibleDataFormat)) {
         runtime.ffi.throwMessageException("\"" + possibleDataFormat + "\" " +
-          "is not a valid data format.");
+          "is not a valid data format. The possible data formats are: " +
+          optionsToSentence(VALID_DATA_FORMATS) + ".");
       }
       return possibleDataFormat;
     }
