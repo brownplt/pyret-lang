@@ -63,7 +63,7 @@ fun sample-on-probabilities(
   sum-preds = TF.reduce-sum(exp-preds, some(2))
   new-preds = exp-preds.divide(sum-preds)
 
-  TF.multinomial(new-preds, 1, none, true).data-sync()
+  TF.multinomial(new-preds, 1, none, true).data-now()
 end
 
 fun spellcheck(word :: String, spellchecker :: Spellchecker, max-length :: Number) -> String:
@@ -363,7 +363,7 @@ fun parse-output(result-tensor :: Tensor, max-length :: Number, char-dict :: Str
     end
   end
 
-  result = result-tensor.data-sync()
+  result = result-tensor.data-now()
   word-ints = result.map(num-exact)
 
   for fold(word from "", range-index from range(0, max-length)):

@@ -46,7 +46,7 @@ fun recommend(query-book :: Book, users :: List<User>, books :: List<Book>) -> L
   query-tensor  = get-query-tensor(matrix-buffer, query-book, users.length())
   matrix        = matrix-buffer.to-tensor()
 
-  dot-distances = TF.reduce-sum(matrix.multiply(query-tensor), some(1)).data-sync()
+  dot-distances = TF.reduce-sum(matrix.multiply(query-tensor), some(1)).data-now()
   get-recommendations(books, dot-distances)
 end
 

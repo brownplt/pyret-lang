@@ -167,7 +167,7 @@ fun sample-on-probabilities(
   sum-preds = TF.reduce-sum(exp-preds)
   new-preds = exp-preds.divide(sum-preds)
 
-  TF.multinomial(new-preds, 1, none, true).data-sync().first
+  TF.multinomial(new-preds, 1, none, true).data-now().first
 end
 
 fun generate-text(

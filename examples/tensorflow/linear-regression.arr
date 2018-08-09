@@ -20,8 +20,8 @@ C.from-list.scatter-plot(train-x, train-y)
 m = TF.random-normal([list: 1, 1]).as-scalar().to-variable()
 b = TF.random-normal([list: 1, 1]).as-scalar().to-variable()
 
-m.data-sync().first
-b.data-sync().first
+m.data-now().first
+b.data-now().first
 
 learning-rate = 0.01
 optimizer = TF.train-sgd(learning-rate)
