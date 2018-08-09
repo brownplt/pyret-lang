@@ -1957,8 +1957,8 @@
       const jsTensor  = unwrapTensor(tensor);
       const jsIndices = unwrapTensor(indices);
       if (jsIndices.shape.length !== 1) {
-        runtime.ffi.throwMessageException("The `indices` argument to `gather` " +
-          "must be a one-dimensional Tensor");
+        runtime.ffi.throwMessageException("The `indices` argument to " +
+          "`gather` must be a one-dimensional Tensor");
       }
       const jsAxis = unwrapFixnumOption(axis);
       return buildTensorObject(tf.gather(jsTensor, jsIndices, jsAxis));
@@ -1975,13 +1975,17 @@
       arity(2, arguments, "reverse", false);
       checkTensor(x);
       const jsTensor = unwrapTensor(tensor);
-      const jsAxes = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
-        some: (v) => {
-          runtime.checkList(v);
-          return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
-        },
-        none: () => { return undefined; }
-      });
+      const jsAxes   =
+        runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
+          some: (v) => {
+            runtime.checkList(v);
+            return runtime.ffi.toArray(v).map((x) => {
+              runtime.checkNumber(x);
+              return runtime.num_to_fixnum(x);
+            });
+          },
+          none: () => { return undefined; }
+        });
       return buildTensorObject(tf.reverse(jsTensor, jsAxes));
     }
 
@@ -2004,13 +2008,17 @@
       runtime.checkList(begin);
       const jsTensor = unwrapTensor(tensor);
       const jsBegin  = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
-      const jsSize   = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
-        some: (v) => {
-          runtime.checkList(v);
-          return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
-        },
-        none: () => { return undefined; }
-      });
+      const jsSize   =
+        runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
+          some: (v) => {
+            runtime.checkList(v);
+            return runtime.ffi.toArray(v).map((x) => {
+              runtime.checkNumber(x);
+              return runtime.num_to_fixnum(x);
+            });
+          },
+          none: () => { return undefined; }
+        });
       return buildTensorObject(tf.slice(jsTensor, jsBegin, jsSize));
     }
 
@@ -2047,29 +2055,116 @@
       return buildTensorObject(tf.split(jsTensor, jsSplits, jsAxis));
     }
 
-    function stack(tensors, axis) {
-      // NTI(ZacharyEspiritu)
+    /**
+     * Stacks a list of rank-R Tensors into one rank-(R+1) Tensor.
+     * @param {List<PyretTensor>} tensorList A List of PyretTensors with the
+     *  same shape and data type.
+     * @param {Option<Number>} axis The axis to stack along; defaults to 0.
+     * @returns {PyretTensor} The result
+     */
+    function stack(tensorList, axis) {
+      arity(2, arguments, "stack", false);
+
+      runtime.checkList(tensorList);
+      const jsTensorArray = runtime.ffi.toArray(tensorList).map((x) => {
+        checkTensor(x);
+        return unwrapTensor(x);
+      });
+      const jsAxis = unwrapFixnumOption(axis);
+
+      if (jsTensorArray.length <= 0) {
+        runtime.ffi.throwMessageException("At least one Tensor must be " +
+          "supplied in the List<Tensor> passed to `stack`");
+      }
+
+      const rank  = jsTensorArray[0].rank;
+      const shape = jsTensorArray[0].shape;
+      const dtype = jsTensorArray[0].dtype;
+
+      if (jsAxis > rank) {
+        runtime.ffi.throwMessageException("Axis must be <= rank of the " +
+          "tensor");
+      }
+      jsTensorArray.forEach((t) => {
+        if (t.shape !== shape) {
+          runtime.ffi.throwMessageException("All tensors passed to `stack` " +
+            "must have matching shapes");
+        }
+        if (t.dtype !== dtype) {
+          runtime.ffi.throwMessageException("All tensors passed to `stack` " +
+            "must have matching data types");
+        }
+      });
+      return buildTensorObject(tf.stack(jsTensorArray, jsAxis));
     }
 
+    /**
+     * Constructs a Tensor by repeating it the number of times given by
+     * `repetitions`.
+     * @param {PyretTensor} tensor The input tensor to repeat
+     * @param {List<Number>} repetitions The number of replications per
+     *  dimension (eg: the first element in the list represents the number of
+     *  replications along the first dimension, etc.)
+     * @returns {PyretTensor} The result
+     */
     function tile(tensor, repetitions) {
       // NTI(ZacharyEspiritu)
+      arity(2, arguments, "tile", false);
+      runtime.ffi.throwMessageException("Not yet implemented");
     }
 
-    function unstack(tensors, axis) {
-      // NTI(ZacharyEspiritu)
+    /**
+     * Unstacks a Tensor of rank-R into a list of rank-(R-1) Tensors.
+     * @param {PyretTensor} tensor The input tensor to unstack
+     * @param {Option<Number>} axis The dimension along which to unstack;
+     *  defaults to zero
+     * @returns {List<PyretTensor>} The resulting tensors
+     */
+    function unstack(tensor, axis) {
+      arity(2, arguments, "unstack", false);
+      checkTensor(tensor);
+      const jsTensor  = unwrapTensor(tensor);
+      const jsAxis    = unwrapFixnumOption(axis);
+      // Apply function and convert result to a List<PyretTensor>:
+      const jsResults    = tf.unstack(jsTensor, jsAxis);
+      const pyretResults = jsResults.map(buildTensorObject);
+      return runtime.ffi.makeList(pyretResults);
     }
 
-    // PyretTensor List<Number> List<Number> List<Number> -> PyretTensor
+    /**
+     * Extracts a strided slice of a Tensor.
+     *
+     * Roughly speaking, this operations extracts a slice of size
+     * `(end - begin) / stride` from `tensor`. Starting at the location
+     * specified by `begin`, the slice continues by adding stride to the
+     * index until all dimensions are not less than `end`. Note that a
+     * stride can be negative, which causes a reverse slice.
+     *
+     * @param {PyretTensor} tensor The input tensor to repeat
+     * @param {List<NumInteger>} begin The coordinates to start the slice from
+     * @param {List<NumInteger>} end The coordinates to end the slice at
+     * @param {List<Number>} strides The size of the slice
+     * @returns {PyretTensor} The result
+     */
     function stridedSlice(tensor, begin, end, strides) {
       arity(4, arguments, "strided-slice", false);
       checkTensor(tensor);
       runtime.checkList(begin);
       runtime.checkList(end);
       runtime.checkList(strides);
-      const jsTensor  = unwrapTensor(tensor);
-      const jsBegin   = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
-      const jsEnd     = runtime.ffi.toArray(end).map((x) => { return runtime.num_to_fixnum(x); });
-      const jsStrides = runtime.ffi.toArray(strides).map((x) => { return runtime.num_to_fixnum(x); });
+      const jsTensor = unwrapTensor(tensor);
+      const jsBegin  = runtime.ffi.toArray(begin).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      const jsEnd = runtime.ffi.toArray(end).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      const jsStrides = runtime.ffi.toArray(strides).map((x) => {
+        runtime.checkNumber(x);
+        return runtime.num_to_fixnum(x);
+      });
       return buildTensorObject(tf.stridedSlice(jsTensor, jsBegin, jsEnd, jsStrides));
     }
 
