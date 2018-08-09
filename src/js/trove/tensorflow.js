@@ -3435,25 +3435,67 @@
       return makeLayerWith(tf.layers.concatenate, config, CONCATENATE_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for maximum layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const MAXIMUM_LAYER_CONFIG = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js maximum layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeMaximumLayer(config) {
       arity(1, arguments, "maximum-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.maximum(c));
+      return makeLayerWith(tf.layers.maximum, config, MAXIMUM_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for minimum layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const MINIMUM_LAYER_CONFIG = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js minimum layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeMinimumLayer(config) {
       arity(1, arguments, "minimum-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.minimum(c));
+      return makeLayerWith(tf.layers.minimum, config, MINIMUM_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for multiply layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const MULTIPLY_LAYER_CONFIG = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js multiply layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeMultiplyLayer(config) {
       arity(1, arguments, "multiply-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.multiply(c));
+      return makeLayerWith(tf.layers.multiply, config, MULTIPLY_LAYER_CONFIG);
     }
 
     function makeBatchNormalizationLayer(config) {
