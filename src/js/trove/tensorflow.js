@@ -3498,11 +3498,106 @@
       return makeLayerWith(tf.layers.multiply, config, MULTIPLY_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for batch normalization layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const BATCH_NORMALIZATION_LAYER_CONFIG = {
+      "axis": {
+        // NumInteger
+        jsName: "axis",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "momentum": {
+        // Number
+        jsName: "momentum",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "epsilon": {
+        // Number
+        jsName: "epsilon",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "center": {
+        // Boolean
+        jsName: "center",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "scale": {
+        // Boolean
+        jsName: "scale",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "beta-initalizer": {
+        // Initializer (String)
+        jsName: "betaInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "gamma-initalizer": {
+        // Initializer (String)
+        jsName: "gammaInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "moving-mean-initalizer": {
+        // Initializer (String)
+        jsName: "movingMeanInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "moving-variance-initalizer": {
+        // Initializer (String)
+        jsName: "movingVarianceInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "beta-constraint": {
+        // Constraint (String)
+        jsName: "betaConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "gamma-constraint": {
+        // Constraint (String)
+        jsName: "gammaConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "beta-regularizer": {
+        // Regularizer (String)
+        jsName: "betaRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "gamma-regularizer": {
+        // Regularizer (String)
+        jsName: "gammaRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js batch normalization layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeBatchNormalizationLayer(config) {
       arity(1, arguments, "batch-normalization-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.batchNormalization(c));
+      return makeLayerWith(tf.layers.batchNormalization, config, BATCH_NORMALIZATION_LAYER_CONFIG);
     }
 
     function makeAveragePooling1dLayer(config) {
