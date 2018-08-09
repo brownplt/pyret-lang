@@ -3893,8 +3893,8 @@
       "tensor-tanh": F(tanh, "tensor-tanh"),
 
       // Operations (Reduction)
-      "all": F(all, "all"),
-      "any": F(any, "any"),
+      "reduce-all": F(all, "reduce-all"),
+      "reduce-any": F(any, "reduce-any"),
       "arg-max": F(argMax, "arg-max"),
       "arg-min": F(argMin, "arg-min"),
       "log-sum-exp": F(logSumExp, "log-sum-exp"),
