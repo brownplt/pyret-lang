@@ -2382,7 +2382,7 @@
      * @constant
      * @type {Object}
      */
-    const DEFAULT_LAYER_CONFIG_MAPPINGS = {
+    const DEFAULT_LAYER_OPTIONS_MAPPINGS = {
       "input-shape": {
         // List<NumInteger>
         jsName: "inputShape",
@@ -2454,7 +2454,7 @@
      *
      * @param {PyretLayerConfig} pyretLayerConfig
      * @param {Object} mapExtension An extension to the default layer config
-     *  mappings (DEFAULT_LAYER_CONFIG_MAPPINGS) for when certain layers have
+     *  mappings (DEFAULT_LAYER_OPTIONS_MAPPINGS) for when certain layers have
      *  parameters specifically for the given Layer variant
      * @returns {Object} The same layer configuration, but with the keys
      *  properly named for use in a TensorFlow.js Layer constructor
@@ -2465,7 +2465,7 @@
       const pyretKeys   = Object.keys(pyretConfig);
       // Extend the default layer configuration mappings with per-layer
       // options:
-      const mappings = Object.assign(DEFAULT_LAYER_CONFIG_MAPPINGS, mapExtension);
+      const mappings = Object.assign(DEFAULT_LAYER_OPTIONS_MAPPINGS, mapExtension);
       // Some keys prevent other keys from being added, so we'll keep track
       // of when a key is no longer allowed to be added due to the presence
       // of another (and which key was the culprit of that restriction):
@@ -2694,7 +2694,7 @@
      * @param {PyretLayerConfig} pyretConfig The configuration to use when
      *  constructing the new layer
      * @param {Object} mappingExtension An object to extend the default
-     *  `DEFAULT_LAYER_CONFIG_MAPPINGS` configuration to allow for
+     *  `DEFAULT_LAYER_OPTIONS_MAPPINGS` configuration to allow for
      *  layer-specific Pyret to TensorFlow conversions
      * @returns {PyretLayer} The newly constructed layer
      */
@@ -2750,12 +2750,12 @@
 
     /**
      * Additional valid configuration options for activation layers. See
-     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const ACTIVATION_LAYER_CONFIG = {
+    const ACTIVATION_LAYER_OPTIONS = {
       "activation": {
         // ActivationIdentifier (String)
         jsName: "activation",
@@ -2773,17 +2773,17 @@
      */
     function makeActivationLayer(config) {
       arity(1, arguments, "activation-layer", false);
-      return makeLayerWith(tf.layers.activation, config, ACTIVATION_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.activation, config, ACTIVATION_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for dense layers. See
-     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const DENSE_LAYER_CONFIG = {
+    const DENSE_LAYER_OPTIONS = {
       "units": {
         // NumInteger
         jsName: "units",
@@ -2860,17 +2860,17 @@
      */
     function makeDenseLayer(config) {
       arity(1, arguments, "dense-layer", false);
-      return makeLayerWith(tf.layers.dense, config, DENSE_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.dense, config, DENSE_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for dropout layers. See
-     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const DROPOUT_LAYER_CONFIG = {
+    const DROPOUT_LAYER_OPTIONS = {
       "rate": {
         // Number (must be between zero and one)
         jsName: "rate",
@@ -2916,17 +2916,17 @@
      */
     function makeDropoutLayer(config) {
       arity(1, arguments, "dropout-layer", false);
-      return makeLayerWith(tf.layers.dropout, config, DROPOUT_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.dropout, config, DROPOUT_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for embedding layers. See
-     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const EMBEDDING_LAYER_CONFIG = {
+    const EMBEDDING_LAYER_OPTIONS = {
       "input-dim": {
         // NumPositive
         jsName: "inputDim",
@@ -2996,17 +2996,17 @@
      */
     function makeEmbeddingLayer(config) {
       arity(1, arguments, "embedding-layer", false);
-      return makeLayerWith(tf.layers.embedding, config, EMBEDDING_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.embedding, config, EMBEDDING_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for flatten layers. See
-     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const FLATTEN_LAYER_CONFIG = {};
+    const FLATTEN_LAYER_OPTIONS = {};
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
@@ -3017,17 +3017,17 @@
      */
     function makeFlattenLayer(config) {
       arity(1, arguments, "flatten-layer", false);
-      return makeLayerWith(tf.layers.flatten, config, FLATTEN_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.flatten, config, FLATTEN_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for repeat vector layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const REPEAT_VECTOR_LAYER_CONFIG = {
+    const REPEAT_VECTOR_LAYER_OPTIONS = {
       "num-repeats": {
         // NumInteger%(is-num-positive)
         jsName: "n",
@@ -3049,17 +3049,17 @@
      */
     function makeRepeatVectorLayer(config) {
       arity(1, arguments, "repeat-vector-layer", false);
-      return makeLayerWith(tf.layers.repeatVector, config, REPEAT_VECTOR_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.repeatVector, config, REPEAT_VECTOR_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for repeat vector layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const RESHAPE_LAYER_CONFIG = {
+    const RESHAPE_LAYER_OPTIONS = {
       "target-shape": {
         // List<NumInteger>
         jsName: "targetShape",
@@ -3084,17 +3084,17 @@
      */
     function makeReshapeLayer(config) {
       arity(1, arguments, "reshape-layer", false);
-      return makeLayerWith(tf.layers.reshape, config, RESHAPE_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.reshape, config, RESHAPE_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for one-dimensional,
-     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * convolution layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
      * specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const CONV1D_LAYER_CONFIG = {
+    const CONV1D_LAYER_OPTIONS = {
       "filters": {
         // NumInteger
         jsName: "filters",
@@ -3115,17 +3115,17 @@
      */
     function makeConv1dLayer(config) {
       arity(1, arguments, "conv-1d-layer", false);
-      return makeLayerWith(tf.layers.conv1d, config, CONV1D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.conv1d, config, CONV1D_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for two-dimensional,
-     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * convolution layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
      * specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const CONV2D_LAYER_CONFIG = {
+    const CONV2D_LAYER_OPTIONS = {
       "filters": {
         // NumInteger
         jsName: "filters",
@@ -3146,17 +3146,17 @@
      */
     function makeConv2dLayer(config) {
       arity(1, arguments, "conv-2d-layer", false);
-      return makeLayerWith(tf.layers.conv2d, config, CONV2D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.conv2d, config, CONV2D_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for "deconvolution" layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const CONV2D_TRANSPOSE_LAYER_CONFIG = {
+    const CONV2D_TRANSPOSE_LAYER_OPTIONS = {
       "filters": {
         // NumInteger
         jsName: "filters",
@@ -3178,17 +3178,17 @@
      */
     function makeConv2dTransposeLayer(config) {
       arity(1, arguments, "conv-2d-transpose-layer", false);
-      return makeLayerWith(tf.layers.conv2dTranspose, config, CONV2D_TRANSPOSE_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.conv2dTranspose, config, CONV2D_TRANSPOSE_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for cropping layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const CROPPING_2D_LAYER_CONFIG = {
+    const CROPPING_2D_LAYER_OPTIONS = {
       "cropping": {
         // Object
         jsName: "cropping",
@@ -3227,17 +3227,17 @@
      */
     function makeCropping2dLayer(config) {
       arity(1, arguments, "cropping-2d-layer", false);
-      return makeLayerWith(tf.layers.cropping2D, config, CROPPING_2D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.cropping2D, config, CROPPING_2D_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for depthwise, separable,
-     * two-dimensional, convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS`
+     * two-dimensional, convolution layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
      * for the specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const DEPTHWISE_CONV_2D_LAYER_CONFIG = {
+    const DEPTHWISE_CONV_2D_LAYER_OPTIONS = {
       "kernel-size": {
         // Object
         jsName: "kernelSize",
@@ -3290,17 +3290,17 @@
      */
     function makeDepthwiseConv2dLayer(config) {
       arity(1, arguments, "depthwise-conv-2d-layer", false);
-      return makeLayerWith(tf.layers.depthwiseConv2d, config, DEPTHWISE_CONV_2D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.depthwiseConv2d, config, DEPTHWISE_CONV_2D_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for separable, two-dimensional,
-     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * convolution layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
      * specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const SEPARABLE_CONV_2D_LAYER_CONFIG = {
+    const SEPARABLE_CONV_2D_LAYER_OPTIONS = {
       "depth-multiplier": {
         // NumInteger
         jsName: "depthMultiplier",
@@ -3350,17 +3350,17 @@
      */
     function makeSeparableConv2dLayer(config) {
       arity(1, arguments, "separable-conv-2d-layer", false);
-      return makeLayerWith(tf.layers.separableConv2d, config, SEPARABLE_CONV_2D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.separableConv2d, config, SEPARABLE_CONV_2D_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for upsampling layers for
-     * two-dimensional inputs. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * two-dimensional inputs. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
      * specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const UPSAMPLING_2D_LAYER_CONFIG = {
+    const UPSAMPLING_2D_LAYER_OPTIONS = {
       "size": {
         // List<Number>
         jsName: "size",
@@ -3389,17 +3389,17 @@
      */
     function makeUpSampling2dLayer(config) {
       arity(1, arguments, "up-sampling-2d-layer", false);
-      return makeLayerWith(tf.layers.upSampling2d, config, UPSAMPLING_2D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.upSampling2d, config, UPSAMPLING_2D_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for separable, two-dimensional,
-     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * convolution layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
      * specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const ADD_LAYER_CONFIG = {};
+    const ADD_LAYER_OPTIONS = {};
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
@@ -3410,17 +3410,17 @@
      */
     function makeAddLayer(config) {
       arity(1, arguments, "add-layer", false);
-      return makeLayerWith(tf.layers.add, config, ADD_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.add, config, ADD_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for separable, two-dimensional,
-     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * convolution layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
      * specification used to construct this object.
      * @constant
      * @type {Object}
      */
-    const AVERAGE_LAYER_CONFIG = {};
+    const AVERAGE_LAYER_OPTIONS = {};
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
@@ -3431,17 +3431,17 @@
      */
     function makeAverageLayer(config) {
       arity(1, arguments, "average-layer", false);
-      return makeLayerWith(tf.layers.average, config, AVERAGE_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.average, config, AVERAGE_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for concatenation layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const CONCATENATE_LAYER_CONFIG = {
+    const CONCATENATE_LAYER_OPTIONS = {
       "axis": {
         // NumInteger
         jsName: "axis",
@@ -3461,17 +3461,17 @@
      */
     function makeConcatenateLayer(config) {
       arity(1, arguments, "concatenate-layer", false);
-      return makeLayerWith(tf.layers.concatenate, config, CONCATENATE_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.concatenate, config, CONCATENATE_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for maximum layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const MAXIMUM_LAYER_CONFIG = {};
+    const MAXIMUM_LAYER_OPTIONS = {};
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
@@ -3482,17 +3482,17 @@
      */
     function makeMaximumLayer(config) {
       arity(1, arguments, "maximum-layer", false);
-      return makeLayerWith(tf.layers.maximum, config, MAXIMUM_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.maximum, config, MAXIMUM_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for minimum layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const MINIMUM_LAYER_CONFIG = {};
+    const MINIMUM_LAYER_OPTIONS = {};
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
@@ -3503,17 +3503,17 @@
      */
     function makeMinimumLayer(config) {
       arity(1, arguments, "minimum-layer", false);
-      return makeLayerWith(tf.layers.minimum, config, MINIMUM_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.minimum, config, MINIMUM_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for multiply layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const MULTIPLY_LAYER_CONFIG = {};
+    const MULTIPLY_LAYER_OPTIONS = {};
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
@@ -3524,17 +3524,17 @@
      */
     function makeMultiplyLayer(config) {
       arity(1, arguments, "multiply-layer", false);
-      return makeLayerWith(tf.layers.multiply, config, MULTIPLY_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.multiply, config, MULTIPLY_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for batch normalization layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const BATCH_NORMALIZATION_LAYER_CONFIG = {
+    const BATCH_NORMALIZATION_LAYER_OPTIONS = {
       "axis": {
         // NumInteger
         jsName: "axis",
@@ -3626,17 +3626,17 @@
      */
     function makeBatchNormalizationLayer(config) {
       arity(1, arguments, "batch-normalization-layer", false);
-      return makeLayerWith(tf.layers.batchNormalization, config, BATCH_NORMALIZATION_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.batchNormalization, config, BATCH_NORMALIZATION_LAYER_OPTIONS);
     }
 
     /**
      * Additional valid configuration options for batch normalization layers.
-     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
      * construct this object.
      * @constant
      * @type {Object}
      */
-    const AVERAGE_POOLING_1D_LAYER_CONFIG = {
+    const AVERAGE_POOLING_1D_LAYER_OPTIONS = {
       "pool-size": {
         // NumInteger
         jsName: "poolSize",
@@ -3678,7 +3678,7 @@
      */
     function makeAveragePooling1dLayer(config) {
       arity(1, arguments, "average-pooling-1d-layer", false);
-      return makeLayerWith(tf.layers.averagePooling1d, config, AVERAGE_POOLING_1D_LAYER_CONFIG);
+      return makeLayerWith(tf.layers.averagePooling1d, config, AVERAGE_POOLING_1D_LAYER_OPTIONS);
     }
 
     function makeAveragePooling2dLayer(config) {
