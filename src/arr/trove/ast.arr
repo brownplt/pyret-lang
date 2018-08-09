@@ -23,6 +23,7 @@ str-arrow = PP.str("->")
 str-arrowspace = PP.str("-> ")
 str-as = PP.str("as")
 str-blank = PP.str("")
+str-because = PP.str("because")
 str-let = PP.str("let")
 str-type-let = PP.str("type-let")
 str-letrec = PP.str("letrec")
@@ -743,7 +744,7 @@ data Expr:
           end
       end
     end
-  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>) with:
+  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>) with:
     # Only 's-op-is' and 's-op-is-not' can have a refinement. (Checked in wf)
     # Only 's-op-raises-not' can lack a RHS. (Guaranteed by parsing; maintain this invariant!)
     method label(self): "s-check-test" end,
@@ -754,13 +755,15 @@ data Expr:
           | some(ast) => ast.tosource()
         end
       end
-      cases(Option) self.refinement:
-        | none =>
-          PP.infix(INDENT, 1, self.op.tosource(), self.left.tosource(), option-tosource(self.right))
-        | some(refinement) =>
-          PP.infix(INDENT, 1,
-            PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(refinement.tosource())),
-            self.left.tosource(), option-tosource(self.right))
+      left = self.left.tosource()
+      op = cases(Option) self.refinement:
+        | none => self.op.tosource()
+        | some(r) => PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(r.tosource()))
+      end
+      main = PP.infix(INDENT, 1, op, left, option-tosource(self.right))
+      cases(Option) self.cause:
+        | none => main
+        | some(cause) => PP.infix(INDENT, 1, str-because, main, cause.tosource())
       end
     end
   | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
@@ -1572,9 +1575,9 @@ end
 
 fun get-op-fun-name(opname):
   ask:
-    | opname == "op==" then: "equal-always"
-    | opname == "op=~" then: "equal-now"
-    | opname == "op<=>" then: "identical"
+    | opname == "op==" then: "equal-always3"
+    | opname == "op=~" then: "equal-now3"
+    | opname == "op<=>" then: "identical3"
     | otherwise: raise("Unknown op: " + opname)
   end
 end
@@ -2022,8 +2025,8 @@ default-map-visitor = {
     s-op(l, op-l, op, left.visit(self), right.visit(self))
   end,
 
-  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
-    s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>):
+    s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right), self.option(cause))
   end,
 
   method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
@@ -2584,8 +2587,8 @@ default-iter-visitor = {
     left.visit(self) and right.visit(self)
   end,
 
-  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
-    self.option(refinement) and left.visit(self) and self.option(right)
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>):
+    self.option(refinement) and left.visit(self) and self.option(right) and self.option(cause)
   end,
 
   method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
@@ -3132,8 +3135,8 @@ dummy-loc-visitor = {
     s-op(dummy-loc, dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
-  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
-    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), self.option(right))
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>):
+    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), self.option(right), self.option(cause))
   end,
 
   method s-paren(self, l :: Loc, expr :: Expr):
