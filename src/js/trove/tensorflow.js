@@ -823,7 +823,7 @@
      * multinomial distribution.
      * @param {PyretTensor} logits An one-dimensional Tensor representing
      *  unnormalized log-probabilities
-     * @param {Number} numSamples The number of samples to draw for each row
+     * @param {NumPositive} numSamples The number of samples to draw for each row
      *  slice
      * @param {Option<Number>} seed The randomization seed to use; if none,
      *  uses TensorFlow.js defaults
@@ -834,7 +834,7 @@
     function multinomial(logits, numSamples, randomSeed, normalized) {
       arity(4, arguments, "multinomial", false);
       checkTensor(logits);
-      runtime.checkNumber(numSamples);
+      runtime.checkNumPositive(numSamples);
       runtime.checkBoolean(normalized);
       var tensor  = unwrapTensor(logits);
       var samples = runtime.num_to_fixnum(numSamples);
@@ -845,7 +845,14 @@
       var dimensions = tensor.shape.length;
       if (dimensions !== 1 && dimensions !== 2) {
         runtime.ffi.throwMessageException("The `logits` argument must be a " +
-          "one-dimensional or two-dimensional Tensor");
+          "one-dimensional or two-dimensional Tensor (had " + dimensions + " " +
+          "dimensions).");
+      }
+      // The multinomial distribution needs at least two possible outcomes:
+      var size = tensor.size;
+      if (size < 2) {
+        runtime.ffi.throwMessageException("The `logits` argument must have " +
+          "at least two possible outcomes (had " + size + ").");
       }
       return buildTensorObject(tf.multinomial(tensor, samples, seed, norm));
     }
