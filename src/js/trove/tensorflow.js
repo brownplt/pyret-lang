@@ -376,36 +376,42 @@
       var obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
-          var selfTensor = unwrapTensor(self);
-          var elts = [];
-          var tensorData = Array.from(selfTensor.dataSync());
-          var vsValue = get(VS, "vs-value");
-          for (var i = 0; i < tensorData.length; i++) {
-            var wrappedNum = runtime.num_to_roughnum(tensorData[i]);
-            elts.push(vsValue.app(wrappedNum));
+          // value-skeleton functions:
+          const vsValue      = get(VS, "vs-value");
+          const vsCollection = get(VS, "vs-collection");
+          // Extract tensor information:
+          const selfTensor = unwrapTensor(self);
+          const tensorData = Array.from(selfTensor.dataSync());
+          // Create an array of value-skeleton values for each data point in
+          // this tensor:
+          let tensorElts = [];
+          for (let i = 0; i < tensorData.length; i++) {
+            const pyretNum = runtime.num_to_roughnum(tensorData[i]);
+            tensorElts.push(vsValue.app(pyretNum));
           }
-          return get(VS, "vs-collection").app(
-            runtime.makeString("tensor"),
-            runtime.ffi.makeList(elts));
+          // Output value-skeleton collection:
+          const tensorName = runtime.makeString("tensor");
+          const eltList    = runtime.ffi.makeList(tensorElts);
+          return vsCollection.app(tensorName, eltList);
         }),
         "size": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "size");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return runtime.makeNumber(selfTensor.size);
         }),
         "shape": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "shape");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return runtime.ffi.makeList(selfTensor.shape);
         }),
         "flatten": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "flatten");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.flatten());
         }),
         "as-scalar": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "as-scalar");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           if (selfTensor.size !== 1) {
             runtime.ffi.throwMessageException("Tensor was size-" +
               selfTensor.size + " but `as-scalar` requires the " +
@@ -415,40 +421,44 @@
         }),
         "as-1d": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "as-1d");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.as1D());
         }),
         "as-2d": runtime.makeMethod2(function(self, rows, columns) {
           checkMethodArity(3, arguments, "as-2d");
           runtime.checkNumInteger(rows);
           runtime.checkNumInteger(columns);
-          var r = runtime.num_to_fixnum(rows);
-          var c = runtime.num_to_fixnum(columns);
-
-          var selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== (r * c)) {
-            runtime.ffi.throwMessageException("Cannot reshape because the number " +
-              "of entry spaces in the new shape must be equal to the number of " +
-              "existing entries");
+          const jsRows     = runtime.num_to_fixnum(rows);
+          const jsColumns  = runtime.num_to_fixnum(columns);
+          // Check that the number of entries in the tensor is equal to the
+          // number of spaces in the new shape:
+          const selfTensor = unwrapTensor(self);
+          if (selfTensor.size !== (jsRows * jsColumns)) {
+            runtime.ffi.throwMessageException("Cannot reshape because the " +
+              "number of entry spaces in the new shape must be equal to the " +
+              "number of existing entries");
           }
-          return buildTensorObject(selfTensor.as2D(r, c));
+          const reshaped = selfTensor.as2D(jsRows, jsColumns);
+          return buildTensorObject(reshaped);
         }),
         "as-3d": runtime.makeMethod3(function(self, rows, columns, depth) {
           checkMethodArity(4, arguments, "as-3d");
           runtime.checkNumInteger(rows);
           runtime.checkNumInteger(columns);
           runtime.checkNumInteger(depth);
-          var r = runtime.num_to_fixnum(rows);
-          var c = runtime.num_to_fixnum(columns);
-          var d = runtime.num_to_fixnum(depth);
-
-          var selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== (r * c * d)) {
-            runtime.ffi.throwMessageException("Cannot reshape because the number " +
-              "of entry spaces in the new shape must be equal to the number of " +
-              "existing entries");
+          const jsRows    = runtime.num_to_fixnum(rows);
+          const jsColumns = runtime.num_to_fixnum(columns);
+          const jsDepth   = runtime.num_to_fixnum(depth);
+          // Check that the number of entries in the tensor is equal to the
+          // number of spaces in the new shape:
+          const selfTensor = unwrapTensor(self);
+          if (selfTensor.size !== (jsRows * jsColumns * jsDepth)) {
+            runtime.ffi.throwMessageException("Cannot reshape because the " +
+              "number of entry spaces in the new shape must be equal to the " +
+              "number of existing entries");
           }
-          return buildTensorObject(selfTensor.as3D(r, c, d));
+          const reshaped = selfTensor.as3D(jsRows, jsColumns, jsDepth);
+          return buildTensorObject(reshaped);
         }),
         "as-4d": runtime.makeMethod4(function(self, rows, columns, depth1, depth2) {
           checkMethodArity(5, arguments, "as-4d");
@@ -456,62 +466,63 @@
           runtime.checkNumInteger(columns);
           runtime.checkNumInteger(depth1);
           runtime.checkNumInteger(depth2);
-          var r = runtime.num_to_fixnum(rows);
-          var c = runtime.num_to_fixnum(columns);
-          var d1 = runtime.num_to_fixnum(depth1);
-          var d2 = runtime.num_to_fixnum(depth2);
-
-          var selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== (r * c * d1 * d2)) {
-            runtime.ffi.throwMessageException("Cannot reshape because the number " +
-              "of entry spaces in the new shape must be equal to the number of " +
-              "existing entries");
+          const jsRows    = runtime.num_to_fixnum(rows);
+          const jsColumns = runtime.num_to_fixnum(columns);
+          const jsDepth1  = runtime.num_to_fixnum(depth1);
+          const jsDepth2  = runtime.num_to_fixnum(depth2);
+          // Check that the number of entries in the tensor is equal to the
+          // number of spaces in the new shape:
+          const selfTensor = unwrapTensor(self);
+          if (selfTensor.size !== (jsRows * jsColumns * jsDepth1 * jsDepth2)) {
+            runtime.ffi.throwMessageException("Cannot reshape because the " +
+              "number of entry spaces in the new shape must be equal to the " +
+              "number of existing entries");
           }
-          return buildTensorObject(selfTensor.as4D(r, c, d1, d2));
+          const reshaped = selfTensor.as4D(jsRows, jsColumns, jsDepth1, jsDepth2);
+          return buildTensorObject(reshaped);
         }),
         "as-type": runtime.makeMethod1(function(self, datatype) {
           checkMethodArity(2, arguments, "as-type");
-          var selfTensor = unwrapTensor(self);
           runtime.checkString(datatype);
-          var type = unwrap(datatype);
+          const type = unwrap(datatype);
           if (type !== "float32" || type !== "int32" || type !== "bool") {
             runtime.ffi.throwMessageException("Attempted to cast tensor to " +
-              "invalid type (" + type + "); valid types are 'float32', 'int32', " +
+              "invalid type ('" + type + "'); valid types are 'float32', 'int32', " +
               "or 'bool'");
           }
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.asType(type));
         }),
         "to-buffer": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-buffer");
-          var selfTensor = unwrapTensor(self);
-          var newBuffer = selfTensor.buffer();
+          const selfTensor = unwrapTensor(self);
+          const newBuffer  = selfTensor.buffer();
           return buildTensorBufferObject(newBuffer);
         }),
         "data-sync": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "data-sync");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           // .dataSync returns a TypedArray, so convert it to a normal JSArray
           // so we can then convert it to a Pyret List:
-          var typedArrayData = selfTensor.dataSync();
-          var arrayData = Array.from(typedArrayData);
+          const tensorData = Array.from(selfTensor.dataSync());
           // Convert to Roughnums, since the numbers returned from a Tensor are
           // floating point:
-          arrayData = arrayData.map((x) => { return runtime.num_to_roughnum(x); });
-          return runtime.ffi.makeList(arrayData);
+          const roughnumData = tensorData.map((x) => { return runtime.num_to_roughnum(x); });
+          return runtime.ffi.makeList(roughnumData);
         }),
         "to-float": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-float");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.toFloat());
         }),
         "to-int": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-int");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.toInt());
         }),
         "to-bool": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-bool");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.toBool());
         }),
         "to-variable": runtime.makeMethod0(function(self) {
@@ -520,39 +531,50 @@
         }),
         "reshape": runtime.makeMethod0(function(self, newShape) {
           checkMethodArity(2, arguments, "reshape");
-          var selfTensor = unwrapTensor(self);
           runtime.checkList(newShape);
-          var ns = runtime.ffi.toArray(newShape);
-          newShape.forEach((x) => { runtime.checkNumInteger(x); });
-          var product = ns.reduce((a, b) => { return a * b; }, 1);
+          const shapeArray   = runtime.ffi.toArray(newShape);
+          const jsShapeArray = shapeArray.map((x) => {
+            runtime.checkNumInteger(x);
+            return runtime.num_to_fixnum(x);
+          });
+          // Calculate the number of entry spaces in the new shape by
+          // multiplying each dimension together:
+          const product = jsShapeArray.reduce((a, b) => { return a * b; }, 1);
+          // Check that the number of entries in the tensor is equal to the
+          // number of spaces in the new shape:
+          const selfTensor = unwrapTensor(self);
           if (selfTensor.size !== product) {
-            runtime.ffi.throwMessageException("Cannot reshape because the number " +
-              "of entry spaces in the new shape must be equal to the number of " +
-              "existing entries");
+            runtime.ffi.throwMessageException("Cannot reshape because the " +
+              "number of entry spaces in the new shape must be equal to the " +
+              "number of existing entries");
           }
-          return buildTensorObject(selfTensor.reshape(ns));
+          return buildTensorObject(selfTensor.reshape(jsShapeArray));
         }),
         "expand-dims": runtime.makeMethod1(function(self, axis) {
           checkMethodArity(2, arguments, "expand-dims");
-          var selfTensor = unwrapTensor(self);
-          var a = unwrapFixnumOption(axis);
-          return buildTensorObject(selfTensor.expandDims(a));
+          const selfTensor = unwrapTensor(self);
+          const jsAxis     = unwrapFixnumOption(axis);
+          return buildTensorObject(selfTensor.expandDims(jsAxis));
         }),
         "squeeze": runtime.makeMethod1(function(self, axes) {
           checkMethodArity(2, arguments, "squeeze");
-          var selfTensor = unwrapTensor(self);
-          var a = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
-            some: (v) => {
-              runtime.checkList(v);
-              return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
-            },
-            none: () => { return undefined; }
-          });
-          return buildTensorObject(selfTensor.squeeze(a));
+          const selfTensor = unwrapTensor(self);
+          const jsAxes =
+            runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
+              some: (v) => {
+                runtime.checkList(v);
+                return runtime.ffi.toArray(v).map((x) => {
+                  runtime.checkNumInteger(x);
+                  return runtime.num_to_fixnum(x);
+                });
+              },
+              none: () => { return undefined; }
+            });
+          return buildTensorObject(selfTensor.squeeze(jsAxes));
         }),
         "clone": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "clone");
-          var selfTensor = unwrapTensor(self);
+          const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.clone());
         }),
         "add": runtime.makeMethod1(function(self, b) {
