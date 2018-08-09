@@ -2686,6 +2686,30 @@
     }
 
     /**
+     * Checks if the input corresponds to a valid, TensorFlow.js
+     * padding method (mainly for use in type checking the "padding" option
+     * in pooling layers). If so, it returns the value that should be passed
+     * to a TensorFlow.js function for the given input; otherwise, it raises
+     * a Pyret runtime error.
+     * @param {Any} possiblePaddingMethod The name of the padding method.
+     *  (This parameter is typed as Any because in some cases a given
+     *  TensorFlow.js parameter has multiple possible types, so we can
+     *  easily extend this function if necessary.)
+     * @returns {Any} The value that should be passed to TensorFlow.js
+     *  corresponding to the given input
+     */
+    function checkAndConvertPaddingMethod(possiblePaddingMethod) {
+      const VALID_PADDINGS = ["valid", "same", "casual"];
+      // Check that possiblePaddingMethod is a known padding method:
+      if (!VALID_PADDINGS.includes(possiblePaddingMethod)) {
+        runtime.ffi.throwMessageException("\"" + possiblePaddingMethod + "\" " +
+          "is not a valid padding method. The possible padding methods " +
+          "are: " + optionsToSentence(VALID_PADDINGS) + ".");
+      }
+      return possiblePaddingMethod;
+    }
+
+    /**
      * Creates a new PyretLayer using the given TensorFlow.js factory
      * function and the Pyret Object representing the layer configuration.
      * @param {Function} tfLayerFn A TensorFlow.js layer function
@@ -3204,9 +3228,11 @@
           runtime.checkNumInteger(bottomCrop);
           runtime.checkNumInteger(leftCrop);
           runtime.checkNumInteger(rightCrop);
-          // tf.layers.cropping2D needs the info in this nested format (see
-          // https://js.tensorflow.org/api/0.12.0/#layers.cropping2D):
-          return [[topCrop, bottomCrop], [leftCrop, rightCrop]];
+          // tf.layers.cropping2D needs the crop info in a nested array format
+          // (see https://js.tensorflow.org/api/0.12.0/#layers.cropping2D):
+          const verticalCrops = [topCrop, bottomCrop].map(runtime.num_to_fixnum);
+          const horizontalCrops = [leftCrop, rightCrop].map(runtime.num_to_fixnum);
+          return [verticalCrops, horizontalCrops];
         },
         required: true,
       },
@@ -3251,7 +3277,7 @@
           runtime.checkNumInteger(height);
           // tf.layers.depthwiseConv2d needs the info in this format (see
           // https://js.tensorflow.org/api/0.12.0/#layers.depthwiseConv2d):
-          return [width, height];
+          return [width, height].map(runtime.num_to_fixnum);;
         },
         required: true,
       },
@@ -3630,9 +3656,9 @@
     }
 
     /**
-     * Additional valid configuration options for batch normalization layers.
-     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
-     * construct this object.
+     * Additional valid configuration options for one-dimensional, average
+     * pooling layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
+     * specification used to construct this object.
      * @constant
      * @type {Object}
      */
@@ -3654,24 +3680,15 @@
         },
       },
       "padding": {
-        // String
+        // PaddingMethod (String)
         jsName: "padding",
-        typeCheckAndConvert: (possiblePadding) => {
-          const VALID_PADDINGS = ["valid", "same", "casual"];
-          // Check that possiblePadding is a known padding method:
-          if (!VALID_PADDINGS.includes(possiblePadding)) {
-            runtime.ffi.throwMessageException("\"" + possiblePadding + "\" " +
-              "is not a valid padding method. The possible padding methods " +
-              "are: " + optionsToSentence(VALID_PADDINGS) + ".");
-          }
-          return possiblePadding;
-        },
+        typeCheckAndConvert: checkAndConvertPaddingMethod,
       },
     };
 
     /**
      * Consumes a PyretLayerConfig and returns a PyretLayer representing
-     * a TensorFlow.js average pooling operation layer.
+     * a TensorFlow.js one-dimensional, average pooling operation layer.
      * @param {PyretLayerConfig} config The configuration to build the
      *  object with
      * @returns {PyretLayer} The newly constructed layer
@@ -3681,141 +3698,872 @@
       return makeLayerWith(tf.layers.averagePooling1d, config, AVERAGE_POOLING_1D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for two-dimensional, average
+     * pooling layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const AVERAGE_POOLING_2D_LAYER_OPTIONS = {
+      "pool-size": {
+        // Object
+        jsName: "poolSize",
+        typeCheckAndConvert: (v) => {
+          runtime.checkObject(v);
+          // Unwrap individual dimensions from object:
+          const vertical   = runtime.getField(v, "vertical");
+          const horizontal = runtime.getField(v, "horizontal");
+          // Typecheck individual dimensions:
+          runtime.checkNumInteger(vertical);
+          runtime.checkNumInteger(horizontal);
+          // tf.layers.averagePooling1d needs the info in this format (see
+          // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
+          return [vertical, horizontal].map(runtime.num_to_fixnum);
+        },
+      },
+      "strides": {
+        // Object
+        jsName: "strides",
+        typeCheckAndConvert: (v) => {
+          runtime.checkObject(v);
+          // Unwrap individual dimensions from object:
+          const vertical   = runtime.getField(v, "vertical");
+          const horizontal = runtime.getField(v, "horizontal");
+          // Typecheck individual dimensions:
+          runtime.checkNumInteger(vertical);
+          runtime.checkNumInteger(horizontal);
+          // tf.layers.averagePooling1d needs the info in this format (see
+          // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
+          return [vertical, horizontal].map(runtime.num_to_fixnum);
+        },
+      },
+      "padding": {
+        // PaddingMethod (String)
+        jsName: "padding",
+        typeCheckAndConvert: checkAndConvertPaddingMethod,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js two-dimensional, average pooling operation layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeAveragePooling2dLayer(config) {
       arity(1, arguments, "average-pooling-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.averagePooling2d(c));
+      return makeLayerWith(tf.layers.averagePooling2d, config, AVERAGE_POOLING_2D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for global average pooling
+     * operation layers for temporal data. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const GLOBAL_AVERAGE_POOLING_1D_LAYER_OPTIONS = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js global average pooling operation layer for temporal
+     * data.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeGlobalAveragePooling1dLayer(config) {
       arity(1, arguments, "global-average-pooling-1d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.globalAveragePooling1d(c));
+      return makeLayerWith(tf.layers.globalAveragePooling1d, config, GLOBAL_AVERAGE_POOLING_1D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for global average pooling
+     * operation layers for spatial data. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const GLOBAL_AVERAGE_POOLING_2D_LAYER_OPTIONS = {
+      "data-format": {
+        // String
+        jsName: "dataFormat",
+        typeCheckAndConvert: checkAndConvertDataFormat,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js global average pooling operation layer for spatial
+     * data.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeGlobalAveragePooling2dLayer(config) {
       arity(1, arguments, "global-average-pooling-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.globalAveragePooling2d(c));
+      return makeLayerWith(tf.layers.globalAveragePooling2d, config, GLOBAL_AVERAGE_POOLING_2D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for global max pooling
+     * operation layers for temporal data. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const GLOBAL_MAX_POOLING_1D_LAYER_OPTIONS = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js global max pooling operation layer for temporal data.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeGlobalMaxPooling1dLayer(config) {
       arity(1, arguments, "global-max-pooling-1d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.globalMaxPooling1d(c));
+      return makeLayerWith(tf.layers.globalMaxPooling1d, config, GLOBAL_MAX_POOLING_1D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for global max pooling
+     * operation layers for spatial data. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const GLOBAL_MAX_POOLING_2D_LAYER_OPTIONS = {
+      "data-format": {
+        // String
+        jsName: "dataFormat",
+        typeCheckAndConvert: checkAndConvertDataFormat,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js global max pooling operation layer for spatial data.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeGlobalMaxPooling2dLayer(config) {
       arity(1, arguments, "global-max-pooling-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.globalMaxPooling2d(c));
+      return makeLayerWith(tf.layers.globalMaxPooling2d, config, GLOBAL_MAX_POOLING_2D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for max pooling operation
+     * layers for temporal data. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const MAX_POOLING_1D_LAYER_OPTIONS = {
+      "pool-size": {
+        // NumInteger
+        jsName: "poolSize",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "strides": {
+        // Number
+        jsName: "strides",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "padding": {
+        // PaddingMethod (String)
+        jsName: "padding",
+        typeCheckAndConvert: checkAndConvertPaddingMethod,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js max pooling operation layer for temporal data.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeMaxPooling1dLayer(config) {
       arity(1, arguments, "max-pooling-1d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.maxPooling1d(c));
+      return makeLayerWith(tf.layers.maxPooling1d, config, MAX_POOLING_1D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for max pooling operation
+     * layers for spatial data. See `DEFAULT_LAYER_OPTIONS_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const MAX_POOLING_2D_LAYER_OPTIONS = {
+      "pool-size": {
+        // Object
+        jsName: "poolSize",
+        typeCheckAndConvert: (v) => {
+          runtime.checkObject(v);
+          // Unwrap individual dimensions from object:
+          const vertical   = runtime.getField(v, "vertical");
+          const horizontal = runtime.getField(v, "horizontal");
+          // Typecheck individual dimensions:
+          runtime.checkNumInteger(vertical);
+          runtime.checkNumInteger(horizontal);
+          // tf.layers.averagePooling1d needs the info in this format (see
+          // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
+          return [vertical, horizontal].map(runtime.num_to_fixnum);
+        },
+      },
+      "strides": {
+        // Object
+        jsName: "strides",
+        typeCheckAndConvert: (v) => {
+          runtime.checkObject(v);
+          // Unwrap individual dimensions from object:
+          const vertical   = runtime.getField(v, "vertical");
+          const horizontal = runtime.getField(v, "horizontal");
+          // Typecheck individual dimensions:
+          runtime.checkNumInteger(vertical);
+          runtime.checkNumInteger(horizontal);
+          // tf.layers.averagePooling1d needs the info in this format (see
+          // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
+          return [vertical, horizontal].map(runtime.num_to_fixnum);
+        },
+      },
+      "padding": {
+        // PaddingMethod (String)
+        jsName: "padding",
+        typeCheckAndConvert: checkAndConvertPaddingMethod,
+      },
+      "data-format": {
+        // DataFormat (String)
+        jsName: "dataFormat",
+        typeCheckAndConvert: checkAndConvertDataFormat,
+      }
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js max pooling operation layer for spatial data.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeMaxPooling2dLayer(config) {
       arity(1, arguments, "max-pooling-2d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.maxPooling2d(c));
+      return makeLayerWith(tf.layers.maxPooling2d, config, MAX_POOLING_2D_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for gated recurrent unit
+     * layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification
+     * used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const GRU_LAYER_OPTIONS = {
+      "recurrent-activation": {
+        // Activation (String)
+        jsName: "recurrentActivation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "implementation-mode": {
+        // Number
+        jsName: "implementation",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          const mode = runtime.num_to_fixnum(v);
+          if (mode !== 1 || mode !== 2) {
+            runtime.throwMessageException("The implementation mode for a " +
+              "GRU layer must be either 1 or 2, but was specified to " +
+              "be " + mode + ".");
+          }
+          return mode;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js gated recurrent unit layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeGruLayer(config) {
       arity(1, arguments, "gru-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.gru(c));
+      return makeLayerWith(tf.layers.gru, config, GRU_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for gated recurrent unit cell
+     * layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification
+     * used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const GRU_CELL_LAYER_OPTIONS = {
+      "recurrent-activation": {
+        // Activation (String)
+        jsName: "recurrentActivation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "implementation-mode": {
+        // Number
+        jsName: "implementation",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          const mode = runtime.num_to_fixnum(v);
+          if (mode !== 1 || mode !== 2) {
+            runtime.throwMessageException("The implementation mode for a " +
+              "GRU cell layer must be either 1 or 2, but was specified to " +
+              "be " + mode + ".");
+          }
+          return mode;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js gated recurrent unit cell layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeGruCellLayer(config) {
       arity(1, arguments, "gru-cell-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.gruCell(c));
+      return makeLayerWith(tf.layers.gruCell, config, GRU_CELL_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for "long-short term memory"
+     * layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification
+     * used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const LSTM_LAYER_OPTIONS = {
+      "recurrent-activation": {
+        // Activation (String)
+        jsName: "recurrentActivation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "unit-forget-bias": {
+        // Boolean
+        jsName: "unitForgetBias",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "implementation-mode": {
+        // Number
+        jsName: "implementation",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          const mode = runtime.num_to_fixnum(v);
+          if (mode !== 1 || mode !== 2) {
+            runtime.throwMessageException("The implementation mode for a " +
+              "GRU cell layer must be either 1 or 2, but was specified to " +
+              "be " + mode + ".");
+          }
+          return mode;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js "long-short term memory" layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeLstmLayer(config) {
       arity(1, arguments, "lstm-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      // If there's an Layer defined, we have to unwrap it since
-      // Tensorflow.js doesn't recognize PyretLayers:
-      if ("batchInputShape" in c) {
-        runtime.checkList(c["batchInputShape"]);
-        var batchInputs = runtime.ffi.toArray(c["batchInputShape"]);
-        var unwrapped = batchInputs.map((input) => {
-          return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", input, {
-            some: (v) => { return runtime.num_to_fixnum(v); },
-            none: () => { return null; }
-          });
-        })
-        c["batchInputShape"] = unwrapped;
-      }
-      return buildLayerObject(tf.layers.lstm(c));
+      return makeLayerWith(tf.layers.lstm, config, LSTM_LAYER_OPTIONS);
+      // runtime.checkObject(config);
+      // var c = unwrapObject(config);
+      // // If there's an Layer defined, we have to unwrap it since
+      // // Tensorflow.js doesn't recognize PyretLayers:
+      // if ("batchInputShape" in c) {
+      //   runtime.checkList(c["batchInputShape"]);
+      //   var batchInputs = runtime.ffi.toArray(c["batchInputShape"]);
+      //   var unwrapped = batchInputs.map((input) => {
+      //     return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", input, {
+      //       some: (v) => { return runtime.num_to_fixnum(v); },
+      //       none: () => { return null; }
+      //     });
+      //   })
+      //   c["batchInputShape"] = unwrapped;
+      // }
+      // return buildLayerObject(tf.layers.lstm(c));
     }
 
+    /**
+     * Additional valid configuration options for "long-short term memory"
+     * cell layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const LSTM_CELL_LAYER_OPTIONS = {
+      "recurrent-activation": {
+        // Activation (String)
+        jsName: "recurrentActivation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "unit-forget-bias": {
+        // Boolean
+        jsName: "unitForgetBias",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "implementation-mode": {
+        // Number
+        jsName: "implementation",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          const mode = runtime.num_to_fixnum(v);
+          if (mode !== 1 || mode !== 2) {
+            runtime.throwMessageException("The implementation mode for a " +
+              "GRU cell layer must be either 1 or 2, but was specified to " +
+              "be " + mode + ".");
+          }
+          return mode;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js "long-short term memory" cell layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeLstmCellLayer(config) {
       arity(1, arguments, "lstm-cell-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.lstmCell(c));
+      return makeLayerWith(tf.layers.lstmCell, config, LSTM_CELL_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for recurrent layers. See
+     * `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const RNN_LAYER_OPTIONS = {
+      "cells": {
+        // List<Layer> [where each Layer is an RNN cell Layer]
+        jsName: "cell",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const cells = runtime.ffi.toArray(v);
+          return cells.map((cell) => {
+            // TODO(ZacharyEspiritu): Check that these are specifically
+            // RNN cell layers. For now, we're just hoping for the best
+            // and doing a naive general Layer check.
+            checkLayer(cell);
+            return unwrapLayer(cell);
+          });
+        },
+      },
+      "stateful": {
+        // Boolean
+        jsName: "stateful",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js recurrent layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeRNNLayer(config) {
       arity(1, arguments, "rnn-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.rnn(c));
+      return makeLayerWith(tf.layers.rnn, config, RNN_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for simple recurrent layers.
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const SIMPLE_RNN_LAYER_OPTIONS = {
+      "units": {
+        // NumInteger
+        jsName: "units",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+      "activation": {
+        // ActivationIdentifier (String)
+        jsName: "activation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "use-bias": {
+        // Boolean
+        jsName: "useBias",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "kernel-initializer": {
+        // Initializer (String)
+        jsName: "kernelInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "recurrent-initializer": {
+        // Initializer (String)
+        jsName: "recurrentInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "bias-initializer": {
+        // Initializer (String)
+        jsName: "biasInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "kernel-regularizer": {
+        // Regularizer (String)
+        jsName: "kernelRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "recurrent-regularizer": {
+        // Regularizer (String)
+        jsName: "recurrentRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "bias-regularizer": {
+        // Regularizer (String)
+        jsName: "biasRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "kernel-constraint": {
+        // Constraint (String)
+        jsName: "kernelConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "recurrent-constraint": {
+        // Constraint (String)
+        jsName: "recurrentConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "bias-constraint": {
+        // Constraint (String)
+        jsName: "biasConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "dropout": {
+        // Number
+        jsName: "dropout",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          const dropout = runtime.num_to_fixnum(v);
+          if (dropout < 0 || dropout > 1) {
+            runtime.throwMessageException("The dropout for simple RNN layers " +
+              "must be between 0 and 1 (exclusive), but was specified to be " +
+              dropout + ".");
+          }
+          return dropout;
+        },
+      },
+      "recurrent-dropout": {
+        // Number
+        jsName: "recurrentDropout",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          const dropout = runtime.num_to_fixnum(v);
+          if (dropout < 0 || dropout > 1) {
+            runtime.throwMessageException("The recurrent dropout for simple " +
+              "RNN layers must be between 0 and 1 (exclusive), but was " +
+              "specified to be " + dropout + ".");
+          }
+          return dropout;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js simple recurrent layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeSimpleRNNLayer(config) {
       arity(1, arguments, "simple-rnn-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.simpleRNN(c));
+      return makeLayerWith(tf.layers.simpleRNN, config, SIMPLE_RNN_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for simple recurrent cell
+     * layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification
+     * used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const SIMPLE_RNN_CELL_LAYER_OPTIONS = {
+      "units": {
+        // NumInteger
+        jsName: "units",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+      "activation": {
+        // ActivationIdentifier (String)
+        jsName: "activation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "use-bias": {
+        // Boolean
+        jsName: "useBias",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "kernel-initializer": {
+        // Initializer (String)
+        jsName: "kernelInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "recurrent-initializer": {
+        // Initializer (String)
+        jsName: "recurrentInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "bias-initializer": {
+        // Initializer (String)
+        jsName: "biasInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "kernel-regularizer": {
+        // Regularizer (String)
+        jsName: "kernelRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "recurrent-regularizer": {
+        // Regularizer (String)
+        jsName: "recurrentRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "bias-regularizer": {
+        // Regularizer (String)
+        jsName: "biasRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "kernel-constraint": {
+        // Constraint (String)
+        jsName: "kernelConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "recurrent-constraint": {
+        // Constraint (String)
+        jsName: "recurrentConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "bias-constraint": {
+        // Constraint (String)
+        jsName: "biasConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "dropout": {
+        // Number
+        jsName: "dropout",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          const dropout = runtime.num_to_fixnum(v);
+          if (dropout < 0 || dropout > 1) {
+            runtime.throwMessageException("The dropout for simple RNN cell " +
+              "layers must be between 0 and 1 (exclusive), but was specified " +
+              "to be " + dropout + ".");
+          }
+          return dropout;
+        },
+      },
+      "recurrent-dropout": {
+        // Number
+        jsName: "recurrentDropout",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          const dropout = runtime.num_to_fixnum(v);
+          if (dropout < 0 || dropout > 1) {
+            runtime.throwMessageException("The recurrent dropout for simple " +
+              "RNN cell layers must be between 0 and 1 (exclusive), but was " +
+              "specified to be " + dropout + ".");
+          }
+          return dropout;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js simple recurrent cell layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeSimpleRNNCellLayer(config) {
       arity(1, arguments, "simple-rnn-cell-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.simpleRNNCell(c));
+      return makeLayerWith(tf.layers.simpleRNNCell, config, SIMPLE_RNN_CELL_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for stacked, recurrent cell
+     * layers. See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification
+     * used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const STACKED_RNN_CELLS_LAYER_OPTIONS = {
+      "cells": {
+        // List<Layer> [where each Layer is an RNN cell Layer]
+        jsName: "cell",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const cells = runtime.ffi.toArray(v);
+          return cells.map((cell) => {
+            // TODO(ZacharyEspiritu): Check that these are specifically
+            // RNN cell layers. For now, we're just hoping for the best
+            // and doing a naive general Layer check.
+            checkLayer(cell);
+            return unwrapLayer(cell);
+          });
+        },
+      },
+      "stateful": {
+        // Boolean
+        jsName: "stateful",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js stacked, recurrent cell layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeStackedRNNCellsLayer(config) {
       arity(1, arguments, "stacked-rnn-cells-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.stackedRNNCells(c));
+      return makeLayerWith(tf.layers.stackedRNNCells, config, STACKED_RNN_CELLS_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for bidirectional layers.
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const BIDIRECTIONAL_LAYER_OPTIONS = {
+      "layer": {
+        // Layer [should be an RNN layer]
+        jsName: "layer",
+        typeCheckAndConvert: (v) => {
+          // TODO(ZacharyEspiritu): Check that these are specifically
+          // RNN cell layers. For now, we're just hoping for the best
+          // and doing a naive general Layer check.
+          checkLayer(v);
+          return unwrapLayer(v);
+        },
+        required: true,
+      },
+      "merge-mode": {
+        // BidirectionalMergeMode (String)
+        jsName: "mergeMode",
+        typeCheckAndConvert: (possibleMergeMode) => {
+          const VALID_MERGE_MODES = [
+            "sum",
+            "mul",
+            "concat",
+            "ave"
+          ];
+          // Check that possibleActivation is a known activation function:
+          if (!VALID_MERGE_MODES.includes(possibleMergeMode)) {
+            runtime.ffi.throwMessageException("\"" + possibleMergeMode + "\" is " +
+              "not a valid merge mode. The possible merge modes are " +
+              optionsToSentence(VALID_MERGE_MODES) + ".");
+          }
+          return possibleMergeMode;
+        }
+      }
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js bidirectional layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeBidirectionalLayer(config) {
       arity(1, arguments, "bidirectional-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.bidirectional(c));
+      return makeLayerWith(tf.layers.bidirectional, config, BIDIRECTIONAL_LAYER_OPTIONS);
     }
 
+    /**
+     * Additional valid configuration options for bidirectional layers.
+     * See `DEFAULT_LAYER_OPTIONS_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const TIME_DISTRIBUTED_LAYER_OPTIONS = {
+      "layer": {
+        // Layer
+        jsName: "layer",
+        typeCheckAndConvert: (v) => {
+          checkLayer(v);
+          return unwrapLayer(v);
+        },
+        required: true,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js time distributed layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeTimeDistributedLayer(config) {
       arity(1, arguments, "time-distributed-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      // If there's an Layer defined, we have to unwrap it since
-      // Tensorflow.js doesn't recognize PyretLayers:
-      if ("layer" in c) {
-        c["layer"] = c["layer"].$underlyingLayer;
-      }
-      return buildLayerObject(tf.layers.timeDistributed(c));
+      return makeLayerWith(tf.layers.timeDistributed, config, TIME_DISTRIBUTED_LAYER_OPTIONS);
     }
 
     /**
