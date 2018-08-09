@@ -2724,6 +2724,7 @@
         // ActivationIdentifier (String)
         jsName: "activation",
         typeCheckAndConvert: checkAndConvertActivationFunction,
+        required: true,
       },
     };
 
@@ -2740,6 +2741,7 @@
           runtime.checkNumInteger(v);
           return runtime.num_to_fixnum(v);
         },
+        required: true,
       },
       "activation": {
         // ActivationIdentifier (String)
