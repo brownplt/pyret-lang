@@ -554,18 +554,42 @@
           checkMethodArity(2, arguments, "expand-dims");
           const selfTensor = unwrapTensor(self);
           const jsAxis     = unwrapFixnumOption(axis);
+          // The rank of the tensor is equal to its dimensions:
+          const tensorRank = selfTensor.shape.length;
+          // Check that, if the axis was specified, that the input axis is less
+          // than or equal to the dimensions of the current tensor:
+          if (jsAxis && jsAxis > tensorRank) {
+            runtime.ffi.throwMessageException("Cannot expand dimensions " +
+              "because the input axis must be less than or equal to the rank " +
+              "of the tensor (tensor was rank-" + tensorRank + " but the " +
+              "input axis was " + jsAxis + ")");
+          }
           return buildTensorObject(selfTensor.expandDims(jsAxis));
         }),
         "squeeze": runtime.makeMethod1(function(self, axes) {
           checkMethodArity(2, arguments, "squeeze");
-          const selfTensor = unwrapTensor(self);
+          const selfTensor  = unwrapTensor(self);
+          const tensorShape = selfTensor.shape.length;
+          const tensorRank  = tensorShape.length;
           const jsAxes =
             runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
               some: (v) => {
                 runtime.checkList(v);
                 return runtime.ffi.toArray(v).map((x) => {
                   runtime.checkNumInteger(x);
-                  return runtime.num_to_fixnum(x);
+                  const axis = runtime.num_to_fixnum(x);
+                  // Axes are zero-indexed, so offset by 1:
+                  if ((axis + 1) > tensorRank) {
+                    runtime.ffi.throwMessageException("Cannot squeeze axis " +
+                      axis + " since the axis does not exist in a tensor of " +
+                      "rank " + tensorRank);
+                  }
+                  else if (tensorShape[axis] !== 1) {
+                    runtime.ffi.throwMessageException("Cannot squeeze axis " +
+                      axis + " since the dimension of that axis is " +
+                      tensorShape[axis] + ", not 1");
+                  }
+                  return ;
                 });
               },
               none: () => { return undefined; }
