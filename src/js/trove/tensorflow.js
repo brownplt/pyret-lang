@@ -3242,7 +3242,7 @@
       "depthwise-constraint": {
         // Constraint (String)
         jsName: "depthwiseConstraint",
-        typeCheckAndConvert: checkAndConvertConstraintFunction
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
       },
       "depthwise-regularizer": {
         // Regularizer (String)
@@ -3303,12 +3303,12 @@
       "depthwise-constraint": {
         // Constraint (String)
         jsName: "depthwiseConstraint",
-        typeCheckAndConvert: checkAndConvertConstraintFunction
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
       },
       "pointwise-constraint": {
         // Constraint (String)
         jsName: "pointwiseConstraint",
-        typeCheckAndConvert: checkAndConvertConstraintFunction
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
       },
     };
 
