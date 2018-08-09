@@ -3629,11 +3629,56 @@
       return makeLayerWith(tf.layers.batchNormalization, config, BATCH_NORMALIZATION_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for batch normalization layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const AVERAGE_POOLING_1D_LAYER_CONFIG = {
+      "pool-size": {
+        // NumInteger
+        jsName: "poolSize",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "strides": {
+        // Number
+        jsName: "strides",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "padding": {
+        // String
+        jsName: "padding",
+        typeCheckAndConvert: (possiblePadding) => {
+          const VALID_PADDINGS = ["valid", "same", "casual"];
+          // Check that possiblePadding is a known padding method:
+          if (!VALID_PADDINGS.includes(possiblePadding)) {
+            runtime.ffi.throwMessageException("\"" + possiblePadding + "\" " +
+              "is not a valid padding method. The possible padding methods " +
+              "are: " + optionsToSentence(VALID_PADDINGS) + ".");
+          }
+          return possiblePadding;
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js average pooling operation layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeAveragePooling1dLayer(config) {
       arity(1, arguments, "average-pooling-1d-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.averagePooling1d(c));
+      return makeLayerWith(tf.layers.averagePooling1d, config, AVERAGE_POOLING_1D_LAYER_CONFIG);
     }
 
     function makeAveragePooling2dLayer(config) {
