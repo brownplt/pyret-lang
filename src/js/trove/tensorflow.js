@@ -2433,6 +2433,8 @@
           return runtime.isPyretTrue(v);
         },
       },
+      // TODO(ZacharyEspiritu): "weights" option unimplemented for now; kind of
+      // complicated to implement and haven't seen use-cases for it yet.
     };
 
     /**
