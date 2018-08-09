@@ -2438,7 +2438,7 @@
     };
 
     /**
-     * Converts a Pyret LayerConfig to a Javascript layer config object
+     * Converts a PyretLayerConfig to a Javascript layer config object
      * that can be passed into a layer constructor.
      *
      * This is used to allow for the Pyret naming convention of "kebob
