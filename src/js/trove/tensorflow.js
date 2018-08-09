@@ -2389,8 +2389,10 @@
         typeCheckAndConvert: (v) => {
           runtime.checkList(v);
           const array = runtime.ffi.toArray(v);
-          array.forEach((x) => { runtime.checkNumInteger(x); });
-          return array.map((x) => { runtime.num_to_fixnum(x); });
+          return array.map((x) => {
+            runtime.checkNumInteger(x);
+            return runtime.num_to_fixnum(x);
+          });
         },
       },
       "batch-input-shape": {
@@ -2399,8 +2401,10 @@
         typeCheckAndConvert: (v) => {
           runtime.checkList(v);
           const array = runtime.ffi.toArray(v);
-          array.forEach((x) => { runtime.checkNumInteger(x); });
-          return array.map((x) => { runtime.num_to_fixnum(x); });
+          return array.map((x) => {
+            runtime.checkNumInteger(x);
+            return runtime.num_to_fixnum(x);
+          });
         },
       },
       "batch-size": {
