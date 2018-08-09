@@ -485,7 +485,7 @@
           checkMethodArity(2, arguments, "as-type");
           runtime.checkString(datatype);
           const type = unwrap(datatype);
-          if (type !== "float32" || type !== "int32" || type !== "bool") {
+          if (type !== "float32" && type !== "int32" && type !== "bool") {
             runtime.ffi.throwMessageException("Attempted to cast tensor to " +
               "invalid type ('" + type + "'); valid types are 'float32', 'int32', " +
               "or 'bool'");
