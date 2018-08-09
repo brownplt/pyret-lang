@@ -2359,6 +2359,204 @@
     }
 
     /**
+     * The Pyret version of a TensorFlow.js Layer configuration.
+     * @typedef {Object} PyretLayerConfig
+     */
+
+    const DEFAULT_LAYER_CONFIG_MAPPINGS = {
+      "input-shape": {
+        // List<NumInteger>
+        jsName: "inputShape",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const array = runtime.ffi.toArray(v);
+          array.forEach((x) => { runtime.checkNumInteger(x); });
+          return array.map((x) => { runtime.num_to_fixnum(x); });
+        },
+      },
+      "batch-input-shape": {
+        // List<NumInteger>
+        jsName: "batchInputShape",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const array = runtime.ffi.toArray(v);
+          array.forEach((x) => { runtime.checkNumInteger(x); });
+          return array.map((x) => { runtime.num_to_fixnum(x); });
+        },
+      },
+      "batch-size": {
+        // NumInteger
+        jsName: "batchSize",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "trainable": {
+        // Boolean
+        jsName: "trainable",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "updatable": {
+        // Boolean
+        jsName: "updatable",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+    };
+
+    /**
+     * Converts a Pyret LayerConfig to a Javascript layer config object
+     * that can be passed into a layer constructor.
+     *
+     * This is used to allow for the Pyret naming convention of "kebob
+     * case" but to handle TensorFlow.js's requirement of camel case
+     * for configuration objects. Additionally, sometimes TensorFlow.js
+     * needs an actual TensorFlow.js object, like a Model or a Layer, as
+     * one of the parameters, so we use this to unwrap the Pyret
+     * equivalents accordingly.
+     *
+     * This function raises an Pyret error if any key in pyretLayerConfig
+     * does not have a valid mapping in either the default layer config
+     * mappings or the input mapExtension.
+     *
+     * @param {PyretLayerConfig} pyretLayerConfig
+     * @param {Object} mapExtension An extension to the default layer config
+     *  mappings (DEFAULT_LAYER_CONFIG_MAPPINGS) for when certain layers have
+     *  parameters specifically for the given Layer variant
+     * @returns {Object} The same layer configuration, but with the keys
+     *  properly named for use in a TensorFlow.js Layer constructor
+     */
+    function pyretLayerConfigToJsLayerConfig(pyretLayerConfig, mapExtension) {
+      runtime.checkObject(pyretLayerConfig);
+      const pyretConfig = unwrapObject(pyretLayerConfig);
+      const pyretKeys   = Object.keys(pyretConfig);
+      const mappings    = Object.assign(DEFAULT_LAYER_CONFIG_MAPPINGS, mapExtension);
+      // Iterate over every key in pyretLayerConfig and use the associated
+      // mapping for each key to get the TensorFlow.js name for that key and
+      // the unwrapped, Javascript value for the value at that position:
+      return pyretKeys.reduce((accumulator, pyretKey) => {
+        const keyMapping = mappings[pyretKey];
+        // Check to make sure that we have a mapping for pyretKey:
+        if (keyMapping) {
+          const pyretValue   = pyretConfig[pyretKey];
+          const jsKey        = keyMapping.jsName;
+          const jsValue      = keyMapping.typeCheckAndConvert(pyretValue);
+          accumulator[jsKey] = jsValue;
+          return accumulator;
+        }
+        else {
+          runtime.ffi.throwMessageException("Layer configuration object " +
+            "contained " + pyretKey + ", which was not a valid configuration " +
+            "option.");
+          return accumulator;
+        }
+      }, {});
+    }
+
+    /**
+     * Checks if the input corresponds to a valid, TensorFlow.js
+     * activation function. If so, it returns the value that should be
+     * passed to a TensorFlow.js function for the given input; otherwise,
+     * it raises a Pyret runtime error.
+     * @param {Any} possibleActivation The name of the activation function.
+     *  (This parameter is typed as Any because in some cases a given
+     *  TensorFlow.js parameter has multiple possible types, so we can
+     *  easily extend this function if necessary.)
+     * @returns {Any} The value that should be passed to TensorFlow.js
+     *  corresponding to the given input
+     */
+    function checkAndConvertActivationFunction(possibleActivation) {
+      const VALID_ACTIVATION_FUNCTIONS = [
+        "elu",
+        "hardSigmoid",
+        "linear",
+        "relu",
+        "relu6",
+        "selu",
+        "sigmoid",
+        "softmax",
+        "softplus",
+        "softsign",
+        "tanh"
+      ];
+      // Check that possibleActivation is a known activation function:
+      if (VALID_ACTIVATION_FUNCTIONS.indexOf(possibleActivation) < 0) {
+        runtime.ffi.throwMessageException(possibleActivation + " is not a " +
+          "valid activation function.")
+      }
+      return possibleActivation;
+    }
+
+    /**
+     * Checks if the input corresponds to a valid, TensorFlow.js
+     * initializer function. If so, it returns the value that should be
+     * passed to a TensorFlow.js function for the given input; otherwise,
+     * it raises a Pyret runtime error.
+     * @param {Any} possibleInitializer The name of the initializer
+     *  function. (This parameter is typed as Any because in some cases
+     *  a given TensorFlow.js parameter has multiple possible types, so
+     *  we can easily extend this function if necessary.)
+     * @returns {Any} The value that should be passed to TensorFlow.js
+     *  corresponding to the given input
+     */
+    function checkAndConvertInitializerFunction(possibleInitializer) {
+      const VALID_INITIALIZER_FUNCTIONS = [
+        "constant",
+        "glorotNormal",
+        "glorotUniform",
+        "heNormal",
+        "identity",
+        "leCunNormal",
+        "ones",
+        "orthogonal",
+        "randomNormal",
+        "randomUniform",
+        "truncatedNormal",
+        "varianceScaling",
+        "zeros"
+      ];
+      // Check that possibleInitializer is a known initializer function:
+      if (VALID_INITIALIZER_FUNCTIONS.indexOf(possibleInitializer) < 0) {
+        runtime.ffi.throwMessageException(possibleInitializer + " is not a " +
+          "valid initializer function.")
+      }
+      return possibleInitializer;
+    }
+
+    /**
+     * Checks if the input corresponds to a valid, TensorFlow.js
+     * constraint function. If so, it returns the value that should be
+     * passed to a TensorFlow.js function for the given input; otherwise,
+     * it raises a Pyret runtime error.
+     * @param {Any} possibleConstraint The name of the constraint function.
+     *  (This parameter is typed as Any because in some cases a given
+     *  TensorFlow.js parameter has multiple possible types, so we can
+     *  easily extend this function if necessary.)
+     * @returns {Any} The value that should be passed to TensorFlow.js
+     *  corresponding to the given input
+     */
+    function checkAndConvertConstraintFunction(possibleConstraint) {
+      const VALID_CONSTRAINT_FUNCTIONS = [
+        "maxNorm",
+        "minMaxNorm",
+        "nonNeg",
+        "unitNorm"
+      ];
+      // Check that possibleConstraint is a known constraint function:
+      if (VALID_CONSTRAINT_FUNCTIONS.indexOf(possibleConstraint) < 0) {
+        runtime.ffi.throwMessageException(possibleConstraint + " is not a valid " +
+          "constraint function.")
+      }
+      return possibleConstraint;
+    }
+
+    /**
      * Consumes a TFLayer and wraps it in a PyretObject to make it a
      * PyretLayer.
      * @param {TFLayer} underlyingLayer A TensorFlow.js Layer
@@ -2403,18 +2601,78 @@
       return obj;
     }
 
+    const ACTIVATION_LAYER_CONFIG = {
+      "activation": {
+        // ActivationIdentifier (String)
+        jsName: "activation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+    };
+
     function makeActivationLayer(config) {
       arity(1, arguments, "activation-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.activation(c));
+      config = pyretLayerConfigToJsLayerConfig(config, ACTIVATION_LAYER_CONFIG);
+      return buildLayerObject(tf.layers.activation(config));
     }
+
+    const DENSE_LAYER_CONFIG = {
+      "units": {
+        // NumInteger
+        jsName: "units",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "activation": {
+        // ActivationIdentifier (String)
+        jsName: "activation",
+        typeCheckAndConvert: checkAndConvertActivationFunction,
+      },
+      "use-bias": {
+        // Boolean
+        jsName: "useBias",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "kernel-initializer": {
+        // Initializer (String)
+        jsName: "kernelInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "bias-initializer": {
+        // Initializer (String)
+        jsName: "biasInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "input-dim": {
+        // NumInteger
+        jsName: "inputDim",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "kernel-constraint": {
+        // Constraint (String)
+        jsName: "kernelConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "bias-constraint": {
+        // Constraint (String)
+        jsName: "biasConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      // TODO(ZacharyEspiritu): still unimplemented keys - kernelRegularlizer,
+      // biasRegularizer, activityRegularizer
+    };
 
     function makeDenseLayer(config) {
       arity(1, arguments, "dense-layer", false);
-      runtime.checkObject(config);
-      var c = unwrapObject(config);
-      return buildLayerObject(tf.layers.dense(c));
+      config = pyretLayerConfigToJsLayerConfig(config, DENSE_LAYER_CONFIG);
+      return buildLayerObject(tf.layers.dense(config));
     }
 
     function makeDropoutLayer(config) {
