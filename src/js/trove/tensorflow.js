@@ -2023,89 +2023,147 @@
      */
     function sum(x, axis) {
       arity(2, arguments, "reduce-sum", false);
-      checkTensor(x);
-      var tensor = unwrapTensor(x);
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.sum(tensor, a));
+      return applyReductionToTensor(tf.sum, x, axis);
     }
 
     /**
      * Operations (Slicing and Joining)
      */
 
-    // List<Tensor> Option<Number> -> Tensor
+    /**
+     * Concatenates a list of tf.Tensors along a given axis. The tensors'
+     * ranks and types must match, and their sizes must match in all
+     * dimensions except axis.
+     * @param {List<Tensor>} tensors The tensors to concatenate
+     * @param {Option<Number>} axis The axis to reduce along
+     * @returns {PyretTensor} The result
+     */
     function concatenate(tensors, axis) {
       arity(2, arguments, "concatenate", false);
       runtime.checkList(tensors);
-      var ts = runtime.ffi.toArray(tensors).map((x) => {
+      const jsTensors = runtime.ffi.toArray(tensors).map((x) => {
         checkTensor(x);
         return unwrapTensor(x);
       });
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.concat(ts, a));
+      const jsAxis = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.concat(jsTensors, jsAxis));
     }
 
-    // Tensor Tensor Option<Number> -> Tensor
+    /**
+     * Gathers slices from the input tensor's axis along the specified axis
+     * at the specified indices.
+     * @param {PyretTensor} tensor The input tensor on which to gather slices
+     * @param {PyretTensor} indices The indices of the values to extract
+     * @param {Option<Number>} axis The axis to reduce along
+     * @returns {PyretTensor} The result
+     */
     function gather(tensor, indices, axis) {
       arity(3, arguments, "gather", false);
       checkTensor(x);
       checkTensor(indices);
-      var t = unwrapTensor(tensor);
-      var i = unwrapTensor(indices);
-      if (i.shape.length !== 1) {
+      const jsTensor  = unwrapTensor(tensor);
+      const jsIndices = unwrapTensor(indices);
+      if (jsIndices.shape.length !== 1) {
         runtime.ffi.throwMessageException("The `indices` argument to `gather` " +
           "must be a one-dimensional Tensor");
       }
-      var a = unwrapFixnumOption(axis);
-      return buildTensorObject(tf.gather(t, i, a));
+      const jsAxis = unwrapFixnumOption(axis);
+      return buildTensorObject(tf.gather(jsTensor, jsIndices, jsAxis));
     }
 
-    // Tensor Option<List<Number>> -> Tensor
+    /**
+     * Reverses a Tensor along the specified axes.
+     * @param {PyretTensor} tensor The input tensor on which to run reverse
+     *  operations
+     * @param {Option<List<Number>>} axes The set of dimensions to reverse
+     * @returns {PyretTensor} The result
+     */
     function reverse(tensor, axes) {
       arity(2, arguments, "reverse", false);
       checkTensor(x);
-      var t = unwrapTensor(tensor);
-      var a = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
+      const jsTensor = unwrapTensor(tensor);
+      const jsAxes = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
         some: (v) => {
           runtime.checkList(v);
           return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
         },
         none: () => { return undefined; }
       });
-      return buildTensorObject(tf.reverse(t, a));
+      return buildTensorObject(tf.reverse(jsTensor, jsAxes));
     }
 
-    // Tensor List<Number> Option<List<Number>> -> Tensor
+    /**
+     * Extracts a slice from a Tensor starting at coordinates `begin` and
+     * of size `size`.
+     * @param {PyretTensor} tensor The input tensor to slice from
+     * @param {List<Number>} begin The coordinates to start the slice from;
+     *  if the length of this list is less than the rank of x, the rest of
+     *  the axes will have implicit 0 as the starting coordinates
+     * @param {Option<List<Number>>} size The size of the slice; if the
+     *  length of this list is less than the rank of x, the rest of
+     *  the axes will have implicit -1 as the size (a value of -1 in an
+     *  axis requests the rest of the dimensions in that axis)
+     * @returns {PyretTensor} The result
+     */
     function slice(tensor, begin, size) {
       arity(3, arguments, "slice", false);
       checkTensor(tensor);
       runtime.checkList(begin);
-      var t = unwrapTensor(tensor);
-      var b = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
-      var s = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
+      const jsTensor = unwrapTensor(tensor);
+      const jsBegin  = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
+      const jsSize   = runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
         some: (v) => {
           runtime.checkList(v);
           return runtime.ffi.toArray(v).map((x) => { return runtime.num_to_fixnum(x); });
         },
         none: () => { return undefined; }
       });
-      return buildTensorObject(tf.slice(t, b, s));
+      return buildTensorObject(tf.slice(jsTensor, jsBegin, jsSize));
     }
 
-    function split() {
-
+    /**
+     * Splits a Tensor into sub-tensors.
+     * @param {PyretTensor} tensor The input tensor to split
+     * @param {List<NumInteger>} splitSizes A list of integers containing
+     *  the sizes of each output tensor along the axis; the sum of sizes
+     *  must match `tensor.shape().get-value(axis)`
+     * @param {Option<Number>} axis The dimension along which to
+     *  split; defaults to zero
+     * @returns {PyretTensor} The result
+     */
+    function split(tensor, splitSizes, axis) {
+      arity(3, arguments, "split", false);
+      checkTensor(tensor);
+      runtime.checkList(splitSizes);
+      const jsTensor = unwrapTensor(tensor);
+      const jsSplits = runtime.ffi.toArray(splitSizes).map((x) => {
+        runtime.checkNumInteger(x);
+        return runtime.num_to_fixnum(x);
+      });
+      const jsAxis = unwrapFixnumOption(axis);
+      // Check that the sum of split sizes matches the size of the dimension
+      // at jsAxis:
+      const sumOfSplits   = jsSplits.reduce((acc, x) => { return acc + x; }, 0);
+      const dimensionSize = jsTensor.shape[jsAxis];
+      if (sumOfSplits !== dimensionSize) {
+        runtime.ffi.throwMessageException("The sum of split sizes must match " +
+          "the size of the dimension at the specified axis, but the size of " +
+          "the dimension at axis " + jsAxis + " was " + dimensionSize + " " +
+          "and the sum of the split sizes was " + sumOfSplits + ".");
+      }
+      return buildTensorObject(tf.split(jsTensor, jsSplits, jsAxis));
     }
 
-    function stack() {
-
+    function stack(tensors, axis) {
+      // NTI(ZacharyEspiritu)
     }
 
-    function tile() {
-
+    function tile(tensor, repetitions) {
+      // NTI(ZacharyEspiritu)
     }
 
-    function unstack() {
-
+    function unstack(tensors, axis) {
+      // NTI(ZacharyEspiritu)
     }
 
     // PyretTensor List<Number> List<Number> List<Number> -> PyretTensor
@@ -2115,12 +2173,11 @@
       runtime.checkList(begin);
       runtime.checkList(end);
       runtime.checkList(strides);
-      var t = unwrapTensor(tensor);
-      var b = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
-      var e = runtime.ffi.toArray(end).map((x) => { return runtime.num_to_fixnum(x); });
-      var s = runtime.ffi.toArray(strides).map((x) => { return runtime.num_to_fixnum(x); });
-      var result = tf.stridedSlice(t, b, e, s);
-      return buildTensorObject(result);
+      const jsTensor  = unwrapTensor(tensor);
+      const jsBegin   = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
+      const jsEnd     = runtime.ffi.toArray(end).map((x) => { return runtime.num_to_fixnum(x); });
+      const jsStrides = runtime.ffi.toArray(strides).map((x) => { return runtime.num_to_fixnum(x); });
+      return buildTensorObject(tf.stridedSlice(jsTensor, jsBegin, jsEnd, jsStrides));
     }
 
     /**
