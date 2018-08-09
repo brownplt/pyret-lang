@@ -1044,6 +1044,28 @@
      */
 
     /**
+     * Applies the specified binary function to the given tensor. Used as a
+     * helper function for math operations on Tensors since the format is
+     * equivalent for many math operators.
+     * @param {Function(TFTensor TFTensor -> TFTensor)} binaryOp The
+     *  TensorFlow.js function to use as the binary operation
+     * @param {PyretTensor} pyretTensorA The first tensor
+     * @param {PyretTensor} pyretTensorB The second tensor
+     * @returns {PyretTensor} The result
+     */
+    function applyBinaryOpToTensors(binaryOp, pyretTensorA, pyretTensorB) {
+      // Unwrap Pyret values to JavaScript equivalents so TensorFlow.js can
+      // recognize them:
+      checkTensor(pyretTensorA);
+      checkTensor(pyretTensorB);
+      const jsTensorA = unwrapTensor(pyretTensorA);
+      const jsTensorB = unwrapTensor(pyretTensorB);
+      // Apply the binary function to the two tensors:
+      const jsResult = binaryOp(jsTensorA, jsTensorB);
+      return buildTensorObject(jsResult);
+    }
+
+    /**
      * Returns true if the PyretTensors `a` and `b` have the same shape;
      * otherwise, throws a Pyret runtime exception.
      *
@@ -1054,20 +1076,21 @@
      * @returns {JSBoolean} Always returns true if no exception was thrown
      */
     function assertEqualShapes(a, b) {
+      // Check that we actually got tensors:
+      checkTensor(a);
+      checkTensor(b);
       // Get the underlying array representation of Tensor shapes:
       const aTensor = unwrapTensor(a);
       const bTensor = unwrapTensor(b);
       const aShape  = aTensor.shape;
       const bShape  = bTensor.shape;
-
       // Check if the shapes are the same length:
       if (aShape.length != bShape.length) { return false; }
-
       // Check element-wise equality:
       for (let i = 0; i < aShape.length; i++) {
         if (aShape[i] != bShape[i]) {
           runtime.ffi.throwMessageException("The first tensor does not have " +
-          "the same shape as the second tensor");
+            "the same shape as the second tensor");
         }
       }
       return true;
@@ -1081,11 +1104,7 @@
      */
     function addTensors(a, b) {
       arity(2, arguments, "add-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.add(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.add, a, b);
     }
 
     /**
@@ -1097,12 +1116,8 @@
      */
     function addStrict(a, b) {
       arity(2, arguments, "strict-add-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.add(aTensor, bTensor));
+      return addTensors(a, b);
     }
 
     /**
@@ -1113,11 +1128,7 @@
      */
     function subtractTensors(a, b) {
       arity(2, arguments, "subtract-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.sub(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.sub, a, b);
     }
 
     /**
@@ -1129,12 +1140,8 @@
      */
     function subtractStrict(a, b) {
       arity(2, arguments, "strict-subtract-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.sub(aTensor, bTensor));
+      return subtractTensors(a, b);
     }
 
     /**
@@ -1145,11 +1152,7 @@
      */
     function multiplyTensors(a, b) {
       arity(2, arguments, "multiply-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.mul(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.mul, a, b);
     }
 
     /**
@@ -1161,12 +1164,8 @@
      */
     function multiplyStrict(a, b) {
       arity(2, arguments, "strict-multiply-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.mul(aTensor, bTensor));
+      return multiplyTensors(a, b);
     }
 
     /**
@@ -1177,11 +1176,7 @@
      */
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.div(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.div, a, b);
     }
 
     /**
@@ -1193,12 +1188,8 @@
      */
     function divideStrict(a, b) {
       arity(2, arguments, "strict-divide-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.div(aTensor, bTensor));
+      return divideTensors(a, b);
     }
 
     /**
@@ -1210,11 +1201,7 @@
      */
     function floorDivideTensors(a, b) {
       arity(2, arguments, "floor-divide-tensors", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.floorDiv(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.floorDiv, a, b);
     }
 
     /**
@@ -1225,11 +1212,7 @@
      */
     function maxTensor(a, b) {
       arity(2, arguments, "tensor-max", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.maximum(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.maximum, a, b);
     }
 
     /**
@@ -1241,12 +1224,8 @@
      */
     function maxStrict(a, b) {
       arity(2, arguments, "strict-tensor-max", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.maximum(aTensor, bTensor));
+      return maxTensor(a, b);
     }
 
     /**
@@ -1257,11 +1236,7 @@
      */
     function minTensor(a, b) {
       arity(2, arguments, "tensor-min", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.minimum(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.minimum, a, b);
     }
 
     /**
@@ -1273,12 +1248,8 @@
      */
     function minStrict(a, b) {
       arity(2, arguments, "strict-tensor-min", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.minimum(aTensor, bTensor));
+      return minTensor(a, b);
     }
 
     /**
@@ -1289,11 +1260,7 @@
      */
     function moduloTensor(a, b) {
       arity(2, arguments, "tensor-modulo", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.mod(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.mod, a, b);
     }
 
     /**
@@ -1305,12 +1272,8 @@
      */
     function moduloStrict(a, b) {
       arity(2, arguments, "strict-tensor-modulo", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.mod(aTensor, bTensor));
+      return moduloTensor(a, b);
     }
 
     /**
@@ -1321,11 +1284,7 @@
      */
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
-      checkTensor(base);
-      checkTensor(exp);
-      const baseTensor = unwrapTensor(base);
-      const expTensor  = unwrapTensor(exp);
-      return buildTensorObject(tf.pow(baseTensor, expTensor));
+      return applyBinaryOpToTensors(tf.pow, a, b);
     }
 
     /**
@@ -1337,12 +1296,8 @@
      */
     function exptStrict(a, b) {
       arity(2, arguments, "strict-tensor-modulo", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.pow(aTensor, bTensor));
+      return exptTensor(a, b);
     }
 
     /**
@@ -1353,11 +1308,7 @@
      */
     function tensorSquaredDifference(a, b) {
       arity(2, arguments, "squared-difference", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.squaredDifference, a, b);
     }
 
     /**
@@ -1369,12 +1320,8 @@
      */
     function strictSquaredDifference(a, b) {
       arity(2, arguments, "strict-squared-difference", false);
-      checkTensor(a);
-      checkTensor(b);
       assertEqualShapes(a, b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.squaredDifference(aTensor, bTensor));
+      return tensorSquaredDifference(a, b);
     }
 
     /**
