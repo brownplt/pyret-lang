@@ -12,8 +12,8 @@ check "is-tensor":
 end
 
 check "list-to-tensor":
-  is-tensor(list-to-tensor(empty)) is true
-  is-tensor(list-to-tensor([list: 5, 3, 4, 7])) is true
+  list-to-tensor(empty) satisfies is-tensor
+  list-to-tensor([list: 5, 3, 4, 7]) satisfies is-tensor
 
   list-to-tensor(empty).data-now() is empty
   list-to-tensor([list: 9, 3, 2, 3]).data-now() is-roughly [list: 9, 3, 2, 3]
@@ -244,7 +244,15 @@ check "Tensor .as-type":
     raises "Attempted to cast tensor to invalid type"
 end
 
+check "Tensor .data-now":
+  [tensor: ].data-now() is-roughly [list: ]
+  [tensor: 1].data-now() is-roughly [list: 1]
+  [tensor: 1.43].data-now() is-roughly [list: 1.43]
+  [tensor: -3.21, 9.4, 0.32].data-now() is-roughly [list: -3.21, 9.4, 0.32]
+end
+
 check "Tensor .to-float":
+  [tensor: ].to-float().data-now() is-roughly [list: ]
   [tensor: 0].to-float().data-now() is-roughly [list: 0]
   [tensor: 1].to-float().data-now() is-roughly [list: 1]
   [tensor: 0.42].to-float().data-now() is-roughly [list: 0.42]
@@ -256,6 +264,10 @@ check "Tensor .to-float":
 end
 
 check "Tensor .to-int":
+  # NOTE(ZacharyEspiritu): The below test doesn't work since TensorFlow.js
+  # raises a bizzare error due to what I think is a TensorFlow.js issue.
+  # Leaving commented out for now.
+  # [tensor: ].to-int().data-now() is-roughly [list: ]
   [tensor: 0].to-int().data-now() is-roughly [list: 0]
   [tensor: 1].to-int().data-now() is-roughly [list: 1]
   [tensor: 0.42].to-int().data-now() is-roughly [list: 0]
@@ -267,6 +279,10 @@ check "Tensor .to-int":
 end
 
 check "Tensor .to-bool":
+  # NOTE(ZacharyEspiritu): The below test doesn't work since TensorFlow.js
+  # raises a bizzare error due to what I think is a TensorFlow.js issue.
+  # Leaving commented out for now.
+  # [tensor: ].to-bool().data-now() is-roughly [list: ]
   [tensor: 0].to-bool().data-now() is-roughly [list: 0]
   [tensor: 1].to-bool().data-now() is-roughly [list: 1]
   [tensor: 0.42].to-bool().data-now() is-roughly [list: 1]
@@ -278,49 +294,66 @@ check "Tensor .to-bool":
 end
 
 check "Tensor .to-buffer":
+  empty-buffer = [tensor: ].to-buffer()
+  empty-buffer satisfies is-tensor-buffer
+  empty-buffer.get-all-now() is-roughly [list: ]
+
+  some-shape  = [list: 2, 2]
+  some-values = [list: 4, 5, 9, 3]
+  some-tensor = list-to-tensor(some-values).reshape(some-shape)
+  some-buffer = some-tensor.to-buffer()
+  some-buffer satisfies is-tensor-buffer
+  some-buffer.get-all-now() is-roughly some-values
+  some-buffer.to-tensor().shape() is some-shape
 end
 
 check "Tensor .to-variable":
+  [tensor: ].to-variable() does-not-raise
+  [tensor: 4, 5, 1].to-variable() does-not-raise
+  [tensor: 0, 5, 1, 9, 8, 4].as-2d(3, 2).to-variable() does-not-raise
 end
 
 check "Tensor .reshape":
+  [tensor: ].reshape([list: ]) raises "Cannot reshape"
+  [tensor: 3, 2].reshape([list: ]) raises "Cannot reshape"
+  [tensor: 3, 2].reshape([list: 6]) raises "Cannot reshape"
+  [tensor: 3, 2, 1].reshape([list: 2, 4]) raises "Cannot reshape"
+
+  [tensor: 1].reshape([list: 1]).shape() is [list: 1]
+  [tensor: 1].reshape([list: 1, 1, 1]).shape() is [list: 1, 1, 1]
+  [tensor: 1].reshape([list: 1, 1, 1, 1, 1]).shape() is [list: 1, 1, 1, 1, 1]
+  [tensor: 1, 4].reshape([list: 2, 1]).shape() is [list: 2, 1]
+  [tensor: 1, 4, 4, 5, 9, 3].reshape([list: 3, 2]).shape() is [list: 3, 2]
 end
 
 check "Tensor .expand-dims":
+  one-dim = [tensor: 1, 2, 3, 4]
+  one-dim.shape() is [list: 4]
+  one-dim.expand-dims(none).shape() is [list: 1, 4]
+  one-dim.expand-dims(some(1)).shape() is [list: 4, 1]
+
+  one-dim.expand-dims(some(2))
+    raises "input axis must be less than or equal to the rank of the tensor"
 end
 
 check "Tensor .squeeze":
+  multi-dim = [tensor: 1, 2, 3, 4].reshape([list: 1, 1, 1, 4, 1])
+  multi-dim.shape() is [list: 1, 1, 1, 4, 1]
+  multi-dim.squeeze(none).shape() is [list: 4]
+  multi-dim.squeeze(some([list: 0])).shape() is [list: 1, 1, 4, 1]
+  multi-dim.squeeze(some([list: 4])).shape() is [list: 1, 1, 1, 4]
+  multi-dim.squeeze(some([list: 1, 2])).shape() is [list: 1, 4, 1]
+
+  multi-dim.squeeze(some([list: 7]))
+    raises "Cannot squeeze axis 7 since the axis does not exist"
+  multi-dim.squeeze(some([list: 3]))
+    raises "Cannot squeeze axis 3 since the dimension of that axis is 4, not 1"
 end
 
 check "Tensor .clone":
-end
-
-check "Tensor .add":
-end
-
-check "Tensor .subtract":
-end
-
-check "Tensor .multiply":
-end
-
-check "Tensor .divide":
-end
-
-check "Tensor .floor-divide":
-end
-
-check "Tensor .max":
-end
-
-check "Tensor .min":
-end
-
-check "Tensor .modulo":
-end
-
-check "Tensor .expt":
-end
-
-check "Tensor .squared-difference":
+  some-tensor = [tensor: 1, 2, 3, 4]
+  new-tensor  = some-tensor.clone()
+  new-tensor.size() is some-tensor.size()
+  new-tensor.shape() is some-tensor.shape()
+  new-tensor.data-now() is-roughly some-tensor.data-now()
 end
