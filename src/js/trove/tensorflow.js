@@ -2520,7 +2520,7 @@
       let base = "";
       for (let i = 0; i < optionsArray.length; i++) {
         const nextOption = optionsArray[i];
-        base += "\"" + optionsArray "\"";
+        base += "\"" + optionsArray + "\"";
         // If not the last element, add a comma:
         if ((i + 1) !== optionsArray.length) {
           base += ", ";
