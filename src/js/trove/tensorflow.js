@@ -2363,6 +2363,25 @@
      * @typedef {Object} PyretLayerConfig
      */
 
+    /**
+     * A mapping between Pyret keys in a PyretLayerConfig to the
+     * TensorFlow.js keys that should be used when passing the layer
+     * configuration to the TensorFlow.js layer constructors. It is
+     * used to allow for the "kebob case" naming convention in Pyret
+     * but to provide the proper conversions necessary for the Pyret
+     * configurations to work with TensorFlow.js.
+     *
+     * Each top-level key is a configuration option named according
+     * to Pyret style conventions, and the value of each key is an object
+     * containing the `jsName` that TensorFlow.js will recognize and
+     * `typeCheckAndConvert`, a function taking a single parameter that
+     * should check that the value at the given key is the correct type
+     * and return a version of that value that TensorFlow.js will
+     * recognize.
+     *
+     * @constant
+     * @type {Object}
+     */
     const DEFAULT_LAYER_CONFIG_MAPPINGS = {
       "input-shape": {
         // List<NumInteger>
