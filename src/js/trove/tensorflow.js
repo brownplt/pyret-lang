@@ -2394,6 +2394,7 @@
             return runtime.num_to_fixnum(x);
           });
         },
+        prevents: ["batch-input-shape"],
       },
       "batch-input-shape": {
         // List<NumInteger>
@@ -2406,6 +2407,7 @@
             return runtime.num_to_fixnum(x);
           });
         },
+        prevents: ["input-shape"],
       },
       "batch-size": {
         // NumInteger
@@ -2459,26 +2461,49 @@
       runtime.checkObject(pyretLayerConfig);
       const pyretConfig = unwrapObject(pyretLayerConfig);
       const pyretKeys   = Object.keys(pyretConfig);
-      const mappings    = Object.assign(DEFAULT_LAYER_CONFIG_MAPPINGS, mapExtension);
+      // Extend the default layer configuration mappings with per-layer
+      // options:
+      const mappings = Object.assign(DEFAULT_LAYER_CONFIG_MAPPINGS, mapExtension);
+      // Some keys prevent other keys from being added, so we'll keep track
+      // of when a key is no longer allowed to be added due to the presence
+      // of another (and which key was the culprit of that restriction):
+      let preventedKeys = {};
       // Iterate over every key in pyretLayerConfig and use the associated
       // mapping for each key to get the TensorFlow.js name for that key and
       // the unwrapped, Javascript value for the value at that position:
       return pyretKeys.reduce((accumulator, pyretKey) => {
         const keyMapping = mappings[pyretKey];
         // Check to make sure that we have a mapping for pyretKey:
-        if (keyMapping) {
+        if (!keyMapping) {
+          // Raise an error if we don't:
+          runtime.ffi.throwMessageException("Layer configuration object " +
+            "contained \"" + pyretKey + "\" as a key, which was not a valid " +
+            "configuration option for this layer.");
+        }
+        else if (pyretKey in preventedKeys) {
+          // Raise an error if a previous key prevents the addition of the
+          // current key due to TensorFlow.js restrictions:
+          const culprit = preventedKeys[pyretKey];
+          runtime.ffi.throwMessageException("Both \"" + pyretKey + "\" and \"" +
+            culprit + "\" were present in the same Layer configuration object, " +
+            "but only one of these options may be present in a single Layer " +
+            "configuration.");
+        }
+        else {
+          // Otherwise, we're good to go, and we can update the accumulator:
           const pyretValue   = pyretConfig[pyretKey];
           const jsKey        = keyMapping.jsName;
           const jsValue      = keyMapping.typeCheckAndConvert(pyretValue);
           accumulator[jsKey] = jsValue;
-          return accumulator;
+          // Check if this key prevents other keys from being added; if so,
+          // add it to our running list of restricted keys:
+          const blockedKeys = keyMapping.prevents;
+          if (blockedKeys) {
+            const restictions = blockedKeys.reduce((o, key) => Object.assign(o, {[key]: pyretKey}), {})
+            preventedKeys     = Object.assign(preventedKeys, restictions)
+          }
         }
-        else {
-          runtime.ffi.throwMessageException("Layer configuration object " +
-            "contained " + pyretKey + ", which was not a valid configuration " +
-            "option.");
-          return accumulator;
-        }
+        return accumulator;
       }, {});
     }
 
