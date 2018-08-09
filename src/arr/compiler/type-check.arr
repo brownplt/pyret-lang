@@ -1858,8 +1858,8 @@ end
 
 fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
-    instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
-      cases(Type) obj-type:
+    instantiate-object-type(obj-type, context).typing-bind(lam(instantiated-obj-type, shadow context):
+      cases(Type) instantiated-obj-type:
         | t-record(t-fields, _, inferred) =>
           final-fields = new-members.fold-keys(lam(key, final-fields):
             final-fields.set(key, new-members.get-value(key))
@@ -1868,7 +1868,10 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
         | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
-          typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+          shadow context = new-members.fold-keys(lam(key, shadow context):
+            context.add-field-constraint(instantiated-obj-type, key, new-members.get-value(key))
+          end, context)
+          typing-result(A.s-extend(update-loc, obj, fields), obj-type, context)
       end
     end)
   end)
@@ -1876,13 +1879,13 @@ end
 
 fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
-    instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
+    instantiate-object-type(obj-type, context).typing-bind(lam(instantiated-obj-type, shadow context):
       cases(Type) obj-type:
         | t-record(t-fields, _, inferred) =>
           foldr-fold-result(lam(key, shadow context, final-fields):
             cases(Option<Type>) t-fields.get(key):
               | none =>
-                fold-errors([list: C.object-missing-field(key, tostring(obj-type), obj-type.l, update-loc)])
+                fold-errors([list: C.object-missing-field(key, tostring(instantiated-obj-type), instantiated-obj-type.l, update-loc)])
               | some(old-type) =>
                 cases(Type) old-type:
                   | t-ref(onto, l, ref-inferred) =>
@@ -1898,7 +1901,11 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
         | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
-          typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+          shadow context = new-members.fold-keys(lam(key, shadow context):
+            member-type = new-members.get-value(key)
+            context.add-field-constraint(instantiated-obj-type, key, t-ref(member-type, member-type.l, false))
+          end, context)
+          typing-result(A.s-update(update-loc, obj, fields), obj-type, context)
       end
     end)
   end)
