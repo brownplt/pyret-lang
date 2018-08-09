@@ -904,7 +904,7 @@
     function makeVariable(tensor) {
       arity(1, arguments, "make-variable", false);
       checkTensor(tensor);
-      var newVariable = tf.variable(unwrapTensor(tensor));
+      const newVariable = tf.variable(unwrapTensor(tensor));
       return buildTensorObject(newVariable);
     }
 
@@ -913,7 +913,7 @@
      */
 
     /**
-     * Returns PyretTrue if the input `obj` is a P; otherwise,
+     * Returns PyretTrue if the input `obj` is a TensorBuffer; otherwise,
      * returns PyretFalse.
      * @param {Any} obj Some Pyret value
      * @returns {PBoolean} A Pyret object representing true or false
