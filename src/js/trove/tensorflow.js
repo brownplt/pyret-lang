@@ -4642,8 +4642,8 @@
     function trainSgd(learningRate) {
       arity(1, arguments, "train-sgd", false);
       runtime.checkNumber(learningRate);
-      var rate = runtime.num_to_fixnum(learningRate);
-      return buildOptimizerObject(tf.train.sgd(rate));
+      const jsRate = runtime.num_to_fixnum(learningRate);
+      return buildOptimizerObject(tf.train.sgd(jsRate));
     }
 
     /**
@@ -4657,9 +4657,9 @@
       arity(2, arguments, "train-momentum", false);
       runtime.checkNumber(learningRate);
       runtime.checkNumber(momentum);
-      var rate   = runtime.num_to_fixnum(learningRate);
-      var moment = runtime.num_to_fixnum(momentum);
-      return buildOptimizerObject(tf.train.momentum(rate, moment));
+      const jsRate     = runtime.num_to_fixnum(learningRate);
+      const jsMomentum = runtime.num_to_fixnum(momentum);
+      return buildOptimizerObject(tf.train.momentum(jsRate, jsMomentum));
     }
 
     /**
@@ -4672,13 +4672,13 @@
     function trainAdagrad(learningRate, initialAccumulatorValue) {
       arity(2, arguments, "train-adagrad", false);
       runtime.checkNumber(learningRate);
-      var rate    = runtime.num_to_fixnum(learningRate);
-      var initial = unwrapFixnumOption(initialAccumulatorValue);
-      if ((initial !== null) && (initial <= 0)) {
+      const jsRate    = runtime.num_to_fixnum(learningRate);
+      const jsInitial = unwrapFixnumOption(initialAccumulatorValue);
+      if (jsInitial && (jsInitial <= 0)) {
         runtime.ffi.throwMessageException("The initial accumulator value " +
-          "passed to `train-adagrad` must be positive");
+          "passed to `train-adagrad` must be positive.");
       }
-      return buildOptimizerObject(tf.train.adagrad(rate, initial));
+      return buildOptimizerObject(tf.train.adagrad(jsRate, jsInitial));
     }
 
     /**
@@ -4691,10 +4691,10 @@
      */
     function trainAdadelta(learningRate, rho, epsilon) {
       arity(3, arguments, "train-adadelta", false);
-      var l = unwrapFixnumOption(learningRate);
-      var r = unwrapFixnumOption(rho);
-      var e = unwrapFixnumOption(epsilon);
-      return buildOptimizerObject(tf.train.adadelta(l, r, e));
+      const jsRate    = unwrapFixnumOption(learningRate);
+      const jsRho     = unwrapFixnumOption(rho);
+      const jsEpsilon = unwrapFixnumOption(epsilon);
+      return buildOptimizerObject(tf.train.adadelta(jsRate, jsRho, jsEpsilon));
     }
 
     /**
@@ -4709,11 +4709,11 @@
      */
     function trainAdam(learningRate, beta1, beta2, epsilon) {
       arity(4, arguments, "train-adam", false);
-      var l  = unwrapFixnumOption(learningRate);
-      var b1 = unwrapFixnumOption(beta1);
-      var b2 = unwrapFixnumOption(beta2);
-      var e  = unwrapFixnumOption(epsilon);
-      return buildOptimizerObject(tf.train.adam(l, b1, b2, e));
+      const jsRate    = unwrapFixnumOption(learningRate);
+      const jsBeta1   = unwrapFixnumOption(beta1);
+      const jsBeta2   = unwrapFixnumOption(beta2);
+      const jsEpsilon = unwrapFixnumOption(epsilon);
+      return buildOptimizerObject(tf.train.adam(jsRate, jsBeta1, jsBeta2, jsEpsilon));
     }
 
     /**
@@ -4729,12 +4729,12 @@
      */
     function trainAdamax(learningRate, beta1, beta2, epsilon, decay) {
       arity(5, arguments, "train-adamax", false);
-      var l  = unwrapFixnumOption(learningRate);
-      var b1 = unwrapFixnumOption(beta1);
-      var b2 = unwrapFixnumOption(beta2);
-      var e  = unwrapFixnumOption(epsilon);
-      var d  = unwrapFixnumOption(decay);
-      return buildOptimizerObject(tf.train.adam(l, b1, b2, e, d));
+      const jsRate    = unwrapFixnumOption(learningRate);
+      const jsBeta1   = unwrapFixnumOption(beta1);
+      const jsBeta2   = unwrapFixnumOption(beta2);
+      const jsEpsilon = unwrapFixnumOption(epsilon);
+      const jsDecay   = unwrapFixnumOption(decay);
+      return buildOptimizerObject(tf.train.adamax(jsRate, jsBeta1, jsBeta2, jsEpsilon, jsDecay));
     }
 
     /**
@@ -4753,12 +4753,12 @@
       arity(5, arguments, "train-rmsprop", false);
       runtime.checkNumber(learningRate);
       runtime.checkBoolean(centered);
-      var rate = runtime.num_to_fixnum(learningRate);
-      var d    = unwrapFixnumOption(decay);
-      var m    = unwrapFixnumOption(momentum);
-      var e    = unwrapFixnumOption(epsilon);
-      var c    = runtime.isPyretTrue(centered);
-      return buildOptimizerObject(tf.train.rmsprop(rate, d, m, e, c));
+      const jsRate     = runtime.num_to_fixnum(learningRate);
+      const jsDecay    = unwrapFixnumOption(decay);
+      const jsMomentum = unwrapFixnumOption(momentum);
+      const jsEpsilon  = unwrapFixnumOption(epsilon);
+      const jsCentered = runtime.isPyretTrue(centered);
+      return buildOptimizerObject(tf.train.rmsprop(jsRate, jsDecay, jsMomentum, jsEpsilon, jsCentered));
     }
 
     var values = {
