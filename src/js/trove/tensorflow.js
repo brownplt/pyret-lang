@@ -181,7 +181,7 @@
         "as-3d": ["arrow", ["NumInteger", "NumInteger", "NumInteger"], "Tensor"],
         "as-4d": ["arrow", ["NumInteger", "NumInteger", "NumInteger", "NumInteger"], "Tensor"],
         "as-type": ["arrow", ["String"], "Tensor"],
-        "data-sync": ["arrow", [], ["List", "Roughnum"]],
+        "data-now": ["arrow", [], ["List", "Roughnum"]],
         "to-float": ["arrow", [], "Tensor"],
         "to-int": ["arrow", [], "Tensor"],
         "to-bool": ["arrow", [], "Tensor"],
@@ -499,8 +499,8 @@
           const newBuffer  = selfTensor.buffer();
           return buildTensorBufferObject(newBuffer);
         }),
-        "data-sync": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "data-sync");
+        "data-now": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "data-now");
           const selfTensor = unwrapTensor(self);
           // .dataSync returns a TypedArray, so convert it to a normal JSArray
           // so we can then convert it to a Pyret List:
