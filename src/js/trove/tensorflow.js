@@ -2719,6 +2719,13 @@
       return obj;
     }
 
+    /**
+     * Additional valid configuration options for activation layers. See
+     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
     const ACTIVATION_LAYER_CONFIG = {
       "activation": {
         // ActivationIdentifier (String)
@@ -2728,11 +2735,25 @@
       },
     };
 
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js activation layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeActivationLayer(config) {
       arity(1, arguments, "activation-layer", false);
       return makeLayerWith(tf.layers.activation, config, ACTIVATION_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for dense layers. See
+     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
     const DENSE_LAYER_CONFIG = {
       "units": {
         // NumInteger
@@ -2784,85 +2805,631 @@
         jsName: "biasConstraint",
         typeCheckAndConvert: checkAndConvertConstraintFunction,
       },
-      // TODO(ZacharyEspiritu): still unimplemented keys - kernelRegularlizer,
-      // biasRegularizer, activityRegularizer
+      "kernel-regularizer": {
+        // Regularizer (String)
+        jsName: "kernelRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "bias-regularizer": {
+        // Regularizer (String)
+        jsName: "biasRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "activity-regularizer": {
+        // Regularizer (String)
+        jsName: "activityRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
     };
 
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js dense layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeDenseLayer(config) {
       arity(1, arguments, "dense-layer", false);
       return makeLayerWith(tf.layers.dense, config, DENSE_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for dropout layers. See
+     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const DROPOUT_LAYER_CONFIG = {
+      "rate": {
+        // Number (must be between zero and one)
+        jsName: "rate",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumber(v);
+          const unwrappedNum = runtime.num_to_fixnum(v);
+          if (unwrappedNum < 0 || unwrappedNum > 1) {
+            runtime.throwMessageException("A dropout layer's rate must be " +
+              "between 0 and 1, but the input rate was " + unwrappedNum);
+          }
+          return unwrappedNum;
+        },
+        required: true,
+      },
+      "noise-shape": {
+        // List<NumInteger>
+        jsName: "noiseShape",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const array = runtime.ffi.toArray(v);
+          return array.map((x) => {
+            runtime.checkNumInteger(x);
+            return runtime.num_to_fixnum(x);
+          });
+        },
+      },
+      "seed": {
+        // NumInteger
+        jsName: "seed",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js dropout layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeDropoutLayer(config) {
       arity(1, arguments, "dropout-layer", false);
       return makeLayerWith(tf.layers.dropout, config, DROPOUT_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for embedding layers. See
+     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const EMBEDDING_LAYER_CONFIG = {
+      "input-dim": {
+        // NumPositive
+        jsName: "inputDim",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumPositive(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+      "output-dim": {
+        // NumNonNegative
+        jsName: "outputDim",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumNonNegative(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+      "embeddings-initializer": {
+        // Initializer (String)
+        jsName: "embeddingsInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "embeddings-regularizer": {
+        // Regularizer (String)
+        jsName: "embeddingsRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "activity-regularizer": {
+        // Regularizer (String)
+        jsName: "activityRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "embeddings-constraint": {
+        // Constraint (String)
+        jsName: "embeddingsConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction,
+      },
+      "mask-zero": {
+        // Boolean
+        jsName: "maskZero",
+        typeCheckAndConvert: (v) => {
+          runtime.checkBoolean(v);
+          return runtime.isPyretTrue(v);
+        },
+      },
+      "input-length": {
+        // List<Number>
+        jsName: "inputLength",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const array = runtime.ffi.toArray(v);
+          return array.map((x) => {
+            runtime.checkNumber(x);
+            return runtime.num_to_fixnum(x);
+          });
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js embedding layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeEmbeddingLayer(config) {
       arity(1, arguments, "embedding-layer", false);
       return makeLayerWith(tf.layers.embedding, config, EMBEDDING_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for flatten layers. See
+     * `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const FLATTEN_LAYER_CONFIG = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js flatten layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeFlattenLayer(config) {
       arity(1, arguments, "flatten-layer", false);
       return makeLayerWith(tf.layers.flatten, config, FLATTEN_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for repeat vector layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const REPEAT_VECTOR_LAYER_CONFIG = {
+      "num-repeats": {
+        // NumInteger%(is-num-positive)
+        jsName: "n",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          runtime.checkNumPositive(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js repeat vector layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeRepeatVectorLayer(config) {
       arity(1, arguments, "repeat-vector-layer", false);
       return makeLayerWith(tf.layers.repeatVector, config, REPEAT_VECTOR_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for repeat vector layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const RESHAPE_LAYER_CONFIG = {
+      "target-shape": {
+        // List<NumInteger>
+        jsName: "targetShape",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const array = runtime.ffi.toArray(v);
+          return array.map((x) => {
+            runtime.checkNumInteger(x);
+            return runtime.num_to_fixnum(x);
+          });
+        },
+        required: true,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js reshape layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeReshapeLayer(config) {
       arity(1, arguments, "reshape-layer", false);
       return makeLayerWith(tf.layers.reshape, config, RESHAPE_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for one-dimensional,
+     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const CONV1D_LAYER_CONFIG = {
+      "filters": {
+        // NumInteger
+        jsName: "filters",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js one-dimensional, convolution layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeConv1dLayer(config) {
       arity(1, arguments, "conv-1d-layer", false);
       return makeLayerWith(tf.layers.conv1d, config, CONV1D_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for two-dimensional,
+     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const CONV2D_LAYER_CONFIG = {
+      "filters": {
+        // NumInteger
+        jsName: "filters",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js two-dimensional, convolution layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeConv2dLayer(config) {
       arity(1, arguments, "conv-2d-layer", false);
       return makeLayerWith(tf.layers.conv2d, config, CONV2D_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for "deconvolution" layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const CONV2D_TRANSPOSE_LAYER_CONFIG = {
+      "filters": {
+        // NumInteger
+        jsName: "filters",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+        required: true,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js transposed, two-dimensional, convolution layer
+     * (also known as a "deconvolution" layer).
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeConv2dTransposeLayer(config) {
       arity(1, arguments, "conv-2d-transpose-layer", false);
       return makeLayerWith(tf.layers.conv2dTranspose, config, CONV2D_TRANSPOSE_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for cropping layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const CROPPING_2D_LAYER_CONFIG = {
+      "cropping": {
+        // Object
+        jsName: "cropping",
+        typeCheckAndConvert: (v) => {
+          runtime.checkObject(v);
+          // Unwrap individual cropping dimensions from object:
+          const topCrop    = runtime.getField(v, "top-crop");
+          const bottomCrop = runtime.getField(v, "bottom-crop");
+          const leftCrop   = runtime.getField(v, "left-crop");
+          const rightCrop  = runtime.getField(v, "right-crop");
+          // Typecheck individual cropping dimensions:
+          runtime.checkNumInteger(topCrop);
+          runtime.checkNumInteger(bottomCrop);
+          runtime.checkNumInteger(leftCrop);
+          runtime.checkNumInteger(rightCrop);
+          // tf.layers.cropping2D needs the info in this nested format (see
+          // https://js.tensorflow.org/api/0.12.0/#layers.cropping2D):
+          return [[topCrop, bottomCrop], [leftCrop, rightCrop]];
+        },
+        required: true,
+      },
+      "data-format": {
+        // String
+        jsName: "dataFormat",
+        typeCheckAndConvert: checkAndConvertDataFormat,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js cropping layer for a two-dimensional input (for
+     * example, the pixels of an image).
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeCropping2dLayer(config) {
       arity(1, arguments, "cropping-2d-layer", false);
       return makeLayerWith(tf.layers.cropping2D, config, CROPPING_2D_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for depthwise, separable,
+     * two-dimensional, convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS`
+     * for the specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const DEPTHWISE_CONV_2D_LAYER_CONFIG = {
+      "kernel-size": {
+        // Object
+        jsName: "kernelSize",
+        typeCheckAndConvert: (v) => {
+          runtime.checkObject(v);
+          // Unwrap individual dimensions from object:
+          const width  = runtime.getField(v, "width");
+          const height = runtime.getField(v, "height");
+          // Typecheck individual dimensions:
+          runtime.checkNumInteger(width);
+          runtime.checkNumInteger(height);
+          // tf.layers.depthwiseConv2d needs the info in this format (see
+          // https://js.tensorflow.org/api/0.12.0/#layers.depthwiseConv2d):
+          return [width, height];
+        },
+        required: true,
+      },
+      "depth-multiplier": {
+        // NumInteger
+        jsName: "depthMultiplier",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "depthwise-initalizer": {
+        // Initializer (String)
+        jsName: "depthwiseInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "depthwise-constraint": {
+        // Constraint (String)
+        jsName: "depthwiseConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction
+      },
+      "depthwise-regularizer": {
+        // Regularizer (String)
+        jsName: "depthwiseRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js depthwise, separable, two-dimensional, convolution
+     * layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeDepthwiseConv2dLayer(config) {
       arity(1, arguments, "depthwise-conv-2d-layer", false);
       return makeLayerWith(tf.layers.depthwiseConv2d, config, DEPTHWISE_CONV_2D_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for separable, two-dimensional,
+     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const SEPARABLE_CONV_2D_LAYER_CONFIG = {
+      "depth-multiplier": {
+        // NumInteger
+        jsName: "depthMultiplier",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+      "depthwise-initalizer": {
+        // Initializer (String)
+        jsName: "depthwiseInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "pointwise-initalizer": {
+        // Initializer (String)
+        jsName: "pointwiseInitializer",
+        typeCheckAndConvert: checkAndConvertInitializerFunction,
+      },
+      "depthwise-regularizer": {
+        // Regularizer (String)
+        jsName: "depthwiseRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "pointwise-regularizer": {
+        // Regularizer (String)
+        jsName: "pointwiseRegularizer",
+        typeCheckAndConvert: checkAndConvertRegularizer,
+      },
+      "depthwise-constraint": {
+        // Constraint (String)
+        jsName: "depthwiseConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction
+      },
+      "pointwise-constraint": {
+        // Constraint (String)
+        jsName: "pointwiseConstraint",
+        typeCheckAndConvert: checkAndConvertConstraintFunction
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js separable, two-dimensional, convolution layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeSeparableConv2dLayer(config) {
       arity(1, arguments, "separable-conv-2d-layer", false);
       return makeLayerWith(tf.layers.separableConv2d, config, SEPARABLE_CONV_2D_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for upsampling layers for
+     * two-dimensional inputs. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const UPSAMPLING_2D_LAYER_CONFIG = {
+      "size": {
+        // List<Number>
+        jsName: "size",
+        typeCheckAndConvert: (v) => {
+          runtime.checkList(v);
+          const array = runtime.ffi.toArray(v);
+          return array.map((x) => {
+            runtime.checkNumber(x);
+            return runtime.num_to_fixnum(x);
+          });
+        },
+      },
+      "data-format": {
+        // String
+        jsName: "dataFormat",
+        typeCheckAndConvert: checkAndConvertDataFormat,
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js upsampling layer for two-dimensional inputs
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeUpSampling2dLayer(config) {
       arity(1, arguments, "up-sampling-2d-layer", false);
       return makeLayerWith(tf.layers.upSampling2d, config, UPSAMPLING_2D_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for separable, two-dimensional,
+     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const ADD_LAYER_CONFIG = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js separable, two-dimensional, convolution layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeAddLayer(config) {
       arity(1, arguments, "add-layer", false);
       return makeLayerWith(tf.layers.add, config, ADD_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for separable, two-dimensional,
+     * convolution layers. See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the
+     * specification used to construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const AVERAGE_LAYER_CONFIG = {};
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js separable, two-dimensional, convolution layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeAverageLayer(config) {
       arity(1, arguments, "average-layer", false);
       return makeLayerWith(tf.layers.average, config, AVERAGE_LAYER_CONFIG);
     }
 
+    /**
+     * Additional valid configuration options for concatenation layers.
+     * See `DEFAULT_LAYER_CONFIG_MAPPINGS` for the specification used to
+     * construct this object.
+     * @constant
+     * @type {Object}
+     */
+    const CONCATENATE_LAYER_CONFIG = {
+      "axis": {
+        // NumInteger
+        jsName: "axis",
+        typeCheckAndConvert: (v) => {
+          runtime.checkNumInteger(v);
+          return runtime.num_to_fixnum(v);
+        },
+      },
+    };
+
+    /**
+     * Consumes a PyretLayerConfig and returns a PyretLayer representing
+     * a TensorFlow.js concatenation layer.
+     * @param {PyretLayerConfig} config The configuration to build the
+     *  object with
+     * @returns {PyretLayer} The newly constructed layer
+     */
     function makeConcatenateLayer(config) {
       arity(1, arguments, "concatenate-layer", false);
       return makeLayerWith(tf.layers.concatenate, config, CONCATENATE_LAYER_CONFIG);
