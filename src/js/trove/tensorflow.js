@@ -122,8 +122,8 @@
       "tensor-tanh": "TensorUnOp",
 
       // // Operations (Reduction)
-      "all": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
-      "any": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
+      "reduce-all": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
+      "reduce-any": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
       "arg-max": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
       "arg-min": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
       "log-sum-exp": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
@@ -1840,7 +1840,7 @@
      * @returns {PyretTensor} The result
      */
     function all(x, axis) {
-      arity(2, arguments, "all", false);
+      arity(2, arguments, "reduce-all", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
       var a = unwrapFixnumOption(axis);
@@ -1857,7 +1857,7 @@
      * @returns {PyretTensor} The result
      */
     function any(x, axis) {
-      arity(2, arguments, "any", false);
+      arity(2, arguments, "reduce-any", false);
       checkTensor(x);
       var tensor = unwrapTensor(x);
       var a = unwrapFixnumOption(axis);
