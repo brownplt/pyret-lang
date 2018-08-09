@@ -2657,6 +2657,24 @@
     }
 
     /**
+     * Creates a new PyretLayer using the given TensorFlow.js factory
+     * function and the Pyret Object representing the layer configuration.
+     * @param {Function} tfLayerFn A TensorFlow.js layer function
+     *  which consumes a JavaScript layer configuration and returns
+     *  a new TensorFlow.js layer
+     * @param {PyretLayerConfig} pyretConfig The configuration to use when
+     *  constructing the new layer
+     * @param {Object} mappingExtension An object to extend the default
+     *  `DEFAULT_LAYER_CONFIG_MAPPINGS` configuration to allow for
+     *  layer-specific Pyret to TensorFlow conversions
+     * @returns {PyretLayer} The newly constructed layer
+     */
+    function makeLayerWith(tfLayerFn, pyretConfig, mappingExtension) {
+      const jsConfig = pyretLayerConfigToJsConfig(pyretConfig, mappingExtension);
+      return buildLayerObject(tfLayerFn(jsConfig));
+    }
+
+    /**
      * Consumes a TFLayer and wraps it in a PyretObject to make it a
      * PyretLayer.
      * @param {TFLayer} underlyingLayer A TensorFlow.js Layer
