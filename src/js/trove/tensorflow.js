@@ -2333,7 +2333,7 @@
     }
 
     /**
-     * Dense Layer
+     * Layers
      */
 
     /**
