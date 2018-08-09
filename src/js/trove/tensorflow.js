@@ -569,7 +569,7 @@
         "squeeze": runtime.makeMethod1(function(self, axes) {
           checkMethodArity(2, arguments, "squeeze");
           const selfTensor  = unwrapTensor(self);
-          const tensorShape = selfTensor.shape.length;
+          const tensorShape = selfTensor.shape;
           const tensorRank  = tensorShape.length;
           const jsAxes =
             runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
@@ -589,7 +589,7 @@
                       axis + " since the dimension of that axis is " +
                       tensorShape[axis] + ", not 1");
                   }
-                  return ;
+                  return axis;
                 });
               },
               none: () => { return undefined; }
