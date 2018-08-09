@@ -2459,7 +2459,7 @@
      * @returns {Object} The same layer configuration, but with the keys
      *  properly named for use in a TensorFlow.js Layer constructor
      */
-    function pyretLayerConfigToJsLayerConfig(pyretLayerConfig, mapExtension) {
+    function pyretLayerConfigToJsConfig(pyretLayerConfig, mapExtension) {
       runtime.checkObject(pyretLayerConfig);
       const pyretConfig = unwrapObject(pyretLayerConfig);
       const pyretKeys   = Object.keys(pyretConfig);
