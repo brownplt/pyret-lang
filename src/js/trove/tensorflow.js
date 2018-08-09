@@ -1329,15 +1329,31 @@
      */
 
     /**
+     * Applies the specified unary function to the given tensor. Used as a
+     * helper function for math operations on Tensors since the format is
+     * equivalent for almost all math operators.
+     * @param {Function(TFTensor -> TFTensor)} unaryOp The TensorFlow.js
+     *  function to use as the unary operation
+     * @param {PyretTensor} pyretTensor The tensor to reduce
+     * @returns {PyretTensor} The result
+     */
+    function applyUnaryOpToTensor(unaryOp, pyretTensor) {
+      // Unwrap Pyret values to JavaScript equivalents so TensorFlow.js can
+      // recognize them:
+      checkTensor(pyretTensor);
+      const jsTensor = unwrapTensor(pyretTensor);
+      const jsResult = unaryOp(jsTensor);
+      return buildTensorObject(jsResult);
+    }
+
+    /**
      * Computes the absolute value of the Tensor, element-wise.
      * @param {PyretTensor} x
      * @returns {PyretTensor} The result
      */
     function abs(x) {
       arity(1, arguments, "tensor-abs", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.abs(tensor));
+      return applyUnaryOpToTensor(tf.abs, x);
     }
 
     /**
@@ -1347,9 +1363,7 @@
      */
     function acos(x) {
       arity(1, arguments, "tensor-acos", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.acos(tensor));
+      return applyUnaryOpToTensor(tf.acos, x);
     }
 
     /**
@@ -1359,9 +1373,7 @@
      */
     function acosh(x) {
       arity(1, arguments, "tensor-acosh", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.acosh(tensor));
+      return applyUnaryOpToTensor(tf.acosh, x);
     }
 
     /**
@@ -1371,9 +1383,7 @@
      */
     function asin(x) {
       arity(1, arguments, "tensor-asin", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.asin(tensor));
+      return applyUnaryOpToTensor(tf.asin, x);
     }
 
     /**
@@ -1383,9 +1393,7 @@
      */
     function asinh(x) {
       arity(1, arguments, "tensor-asinh", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.asinh(tensor));
+      return applyUnaryOpToTensor(tf.asinh, x);
     }
 
     /**
@@ -1395,9 +1403,7 @@
      */
     function atan(x) {
       arity(1, arguments, "tensor-atan", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.atan(tensor));
+      return applyUnaryOpToTensor(tf.atan, x);
     }
 
     /**
@@ -1408,11 +1414,7 @@
      */
     function atan2(a, b) {
       arity(2, arguments, "tensor-atan2", false);
-      checkTensor(a);
-      checkTensor(b);
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
-      return buildTensorObject(tf.atan2(aTensor, bTensor));
+      return applyBinaryOpToTensors(tf.atan2, a, b);
     }
 
     /**
@@ -1422,9 +1424,7 @@
      */
     function atanh(x) {
       arity(1, arguments, "tensor-atanh", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.atanh(tensor));
+      return applyUnaryOpToTensor(tf.atanh, x);
     }
 
     /**
@@ -1434,9 +1434,7 @@
      */
     function ceil(x) {
       arity(1, arguments, "tensor-ceil", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.atan(tensor));
+      return applyUnaryOpToTensor(tf.ceil, x);
     }
 
     /**
@@ -1465,9 +1463,7 @@
      */
     function cos(x) {
       arity(1, arguments, "tensor-cos", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.cos(tensor));
+      return applyUnaryOpToTensor(tf.cos, x);
     }
 
     /**
@@ -1477,9 +1473,7 @@
      */
     function cosh(x) {
       arity(1, arguments, "tensor-cosh", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.cosh(tensor));
+      return applyUnaryOpToTensor(tf.cosh, x);
     }
 
     /**
@@ -1499,9 +1493,7 @@
      */
     function exponentialLinearUnits(x) {
       arity(1, arguments, "exponential-linear-units", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.elu(tensor));
+      return applyUnaryOpToTensor(tf.elu, x);
     }
 
     /**
@@ -1521,9 +1513,7 @@
      */
     function gaussError(x) {
       arity(1, arguments, "gauss-error", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.erf(tensor));
+      return applyUnaryOpToTensor(tf.erf, x);
     }
 
     /**
@@ -1533,9 +1523,7 @@
      */
     function exp(x) {
       arity(1, arguments, "tensor-exp", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.exp(tensor));
+      return applyUnaryOpToTensor(tf.exp, x);
     }
 
     /**
@@ -1545,9 +1533,7 @@
      */
     function expm1(x) {
       arity(1, arguments, "tensor-exp-min1", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.expm1(tensor));
+      return applyUnaryOpToTensor(tf.expm1, x);
     }
 
     /**
@@ -1557,9 +1543,7 @@
      */
     function floor(x) {
       arity(1, arguments, "tensor-floor", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.floor(tensor));
+      return applyUnaryOpToTensor(tf.floor, x);
     }
 
     /**
@@ -1573,8 +1557,8 @@
       arity(2, arguments, "leaky-relu", false);
       checkTensor(x);
       runtime.checkNumber(alpha);
-      const tensor = unwrapTensor(x);
-      const jsAlpha = unwrap(alpha);
+      const tensor  = unwrapTensor(x);
+      const jsAlpha = runtime.num_to_fixnum(alpha);
       return buildTensorObject(tf.leakyRelu(tensor, jsAlpha));
     }
 
@@ -1585,9 +1569,7 @@
      */
     function log(x) {
       arity(1, arguments, "tensor-log", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.log(tensor));
+      return applyUnaryOpToTensor(tf.log, x);
     }
 
     /**
@@ -1597,9 +1579,7 @@
      */
     function log1p(x) {
       arity(1, arguments, "tensor-log-plus1", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.log1p(tensor));
+      return applyUnaryOpToTensor(tf.log1p, x);
     }
 
     /**
@@ -1609,9 +1589,7 @@
      */
     function logSigmoid(x) {
       arity(1, arguments, "log-sigmoid", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.logSigmoid(tensor));
+      return applyUnaryOpToTensor(tf.logSigmoid, x);
     }
 
     /**
@@ -1621,9 +1599,7 @@
      */
     function neg(x) {
       arity(1, arguments, "tensor-negate", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.neg(tensor));
+      return applyUnaryOpToTensor(tf.neg, x);
     }
 
     /**
@@ -1649,9 +1625,7 @@
      */
     function reciprocal(x) {
       arity(1, arguments, "tensor-reciprocal", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.reciprocal(tensor));
+      return applyUnaryOpToTensor(tf.reciprocal, x);
     }
 
     /**
@@ -1661,9 +1635,7 @@
      */
     function relu(x) {
       arity(1, arguments, "relu", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.relu(tensor));
+      return applyUnaryOpToTensor(tf.relu, x);
     }
 
     /**
@@ -1673,9 +1645,7 @@
      */
     function round(x) {
       arity(1, arguments, "tensor-round", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.round(tensor));
+      return applyUnaryOpToTensor(tf.round, x);
     }
 
     /**
@@ -1685,9 +1655,7 @@
      */
     function rsqrt(x) {
       arity(1, arguments, "reciprocal-sqrt", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.rsqrt(tensor));
+      return applyUnaryOpToTensor(tf.rsqrt, x);
     }
 
     /**
@@ -1698,9 +1666,7 @@
      */
     function selu(x) {
       arity(1, arguments, "scaled-elu", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.selu(tensor));
+      return applyUnaryOpToTensor(tf.selu, x);
     }
 
     /**
@@ -1710,9 +1676,7 @@
      */
     function sigmoid(x) {
       arity(1, arguments, "sigmoid", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.sigmoid(tensor));
+      return applyUnaryOpToTensor(tf.sigmoid, x);
     }
 
     /**
@@ -1725,9 +1689,7 @@
      */
     function sign(x) {
       arity(1, arguments, "signed-ones", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.sign(tensor));
+      return applyUnaryOpToTensor(tf.sign, x);
     }
 
     /**
@@ -1737,9 +1699,7 @@
      */
     function sin(x) {
       arity(1, arguments, "tensor-sin", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.sin(tensor));
+      return applyUnaryOpToTensor(tf.sin, x);
     }
 
     /**
@@ -1749,9 +1709,7 @@
      */
     function sinh(x) {
       arity(1, arguments, "tensor-sinh", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.sinh(tensor));
+      return applyUnaryOpToTensor(tf.sinh, x);
     }
 
     /**
@@ -1761,9 +1719,7 @@
      */
     function softplus(x) {
       arity(1, arguments, "softplus", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.softplus(tensor));
+      return applyUnaryOpToTensor(tf.softplus, x);
     }
 
     /**
@@ -1773,9 +1729,7 @@
      */
     function sqrt(x) {
       arity(1, arguments, "tensor-sqrt", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.sqrt(tensor));
+      return applyUnaryOpToTensor(tf.sqrt, x);
     }
 
     /**
@@ -1785,9 +1739,7 @@
      */
     function square(x) {
       arity(1, arguments, "tensor-square", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.square(tensor));
+      return applyUnaryOpToTensor(tf.square, x);
     }
 
     /**
@@ -1800,9 +1752,7 @@
      */
     function step(x) {
       arity(1, arguments, "step", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.step(tensor));
+      return applyUnaryOpToTensor(tf.step, x);
     }
 
     /**
@@ -1812,9 +1762,7 @@
      */
     function tan(x) {
       arity(1, arguments, "tensor-tan", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.tan(tensor));
+      return applyUnaryOpToTensor(tf.tan, x);
     }
 
     /**
@@ -1824,9 +1772,7 @@
      */
     function tanh(x) {
       arity(1, arguments, "tensor-tanh", false);
-      checkTensor(x);
-      const tensor = unwrapTensor(x);
-      return buildTensorObject(tf.tanh(tensor));
+      return applyUnaryOpToTensor(tf.tanh, x);
     }
 
     /**
