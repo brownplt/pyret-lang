@@ -120,46 +120,58 @@
       "raises-violates":   makeCheckop1("s-op-raises-violates")
     }
 
+    // Walk the JS representation of the AST, and find all of the constructors
+    let nodes = {};
+    const astValues = RUNTIME.getField(astLib, "defined-values");
+    for (let i in astValues) {
+      let value = astValues[i];
+      if (value["$constructor"] !== undefined && value["$name"] === i) {
+        // It's a singleton.
+        // If there's a better way to tell, please change the conditional.
+        let name = value["$name"];
+        nodes[name] = function() { return value; }
+      }
+      else if (value["$constrFor"] !== undefined) {
+        // It's a normal constructor
+        let name = value["name"];
+        nodes[name] = value.app;
+      }
+    }
+
+    const constructors = {
+      "nodes": nodes,
+      "binops": binops,
+      "checkops": checkops,
+      "makeLink": function(head, tail) {
+        return RUNTIME.getField(lists, "link").app(head, tail);
+      },
+      "makeEmpty": function() {
+        return RUNTIME.getField(lists, "empty");
+      },
+      "makeString": function(str) {
+        return RUNTIME.makeString(str);
+      },
+      "makeNumberFromString": function(str) {
+        return RUNTIME.makeNumberFromString(str);
+      },
+      "makeBoolean": function(bool) {
+        return RUNTIME.makeBoolean(bool);
+      },
+      "makeNone": function() {
+        return RUNTIME.ffi.makeNone();
+      },
+      "makeSome": function(val) {
+        return RUNTIME.ffi.makeSome(val);
+      },
+      "getRecordFields": function(record) {
+        return RUNTIME.getField(record, 'fields');
+      },
+      "makeSrcloc": makePyretPos,
+      "combineSrcloc": combinePyretPos,
+      "detectAndComplainAboutOperatorWhitespace": detectAndComplainAboutOperatorWhitespace
+    };
+
     function translate(node, fileName) {
-      let constructors = {
-        "makeNode": function(con) {
-          let args = Array.prototype.slice.call(arguments, 1);
-          if (args.length === 0) {
-            return RUNTIME.getField(ast, con);
-          } else {
-            return RUNTIME.getField(ast, con).app.apply(this, args);
-          }
-        },
-        "binops": binops,
-        "checkops": checkops,
-        "makeLink": function(head, tail) {
-          return RUNTIME.getField(lists, "link").app(head, tail);
-        },
-        "makeEmpty": function() {
-          return RUNTIME.getField(lists, "empty");
-        },
-        "makeString": function(str) {
-          return RUNTIME.makeString(str);
-        },
-        "makeNumberFromString": function(str) {
-          return RUNTIME.makeNumberFromString(str);
-        },
-        "makeBoolean": function(bool) {
-          return RUNTIME.makeBoolean(bool);
-        },
-        "makeNone": function() {
-          return RUNTIME.ffi.makeNone();
-        },
-        "makeSome": function(val) {
-          return RUNTIME.ffi.makeSome(val);
-        },
-        "getRecordFields": function(record) {
-          return RUNTIME.getField(record, 'fields');
-        },
-        "makeSrcloc": makePyretPos,
-        "combineSrcloc": combinePyretPos,
-        "detectAndComplainAboutOperatorWhitespace": detectAndComplainAboutOperatorWhitespace
-      };
       return translator.translate(node, fileName, constructors);
     }
 

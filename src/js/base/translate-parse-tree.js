@@ -1,8 +1,7 @@
 define("pyret-base/js/translate-parse-tree", [], function() {
   
   function translate(ast, fileName, constructors) {
-    // makeNode will be called on the node name, followed by the node args
-    let makeNode             = constructors.makeNode;
+    let nodes                = constructors.nodes;
     let binops               = constructors.binops;
     let checkops             = constructors.checkops;
     let makeLink             = constructors.makeLink;
@@ -64,9 +63,9 @@ define("pyret-base/js/translate-parse-tree", [], function() {
     }
     function name(tok) {
       if (tok.value === "_")
-        return makeNode('s-underscore', pos(tok.pos));
+        return nodes['s-underscore'](pos(tok.pos));
       else
-        return makeNode('s-name', pos(tok.pos), makeString(tok.value));
+        return nodes['s-name'](pos(tok.pos), makeString(tok.value));
     }
     function symbol(tok) {
       return makeString(tok.value);
@@ -82,8 +81,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'program': function(node) {
         var prelude = tr(node.kids[0]);
         var body = tr(node.kids[1]);
-        return makeNode('s-program',
-                    pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+        return nodes['s-program'](
+          pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
       },
       'prelude': function(node) {
         var provide;
@@ -92,12 +91,12 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         if (kids.length > 0 && kids[0].name === "provide-stmt") {
           provide = tr(kids.shift());
         } else {
-          provide = makeNode('s-provide-none', pos(node.pos));
+          provide = nodes['s-provide-none'](pos(node.pos));
         }
         if (kids.length > 0 && kids[0].name === "provide-types-stmt") {
           provideTypes = tr(kids.shift());
         } else {
-          provideTypes = makeNode('s-provide-types-none', pos(node.pos));
+          provideTypes = nodes['s-provide-types-none'](pos(node.pos));
         }
         return {
           provide : provide,
@@ -108,41 +107,41 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'provide-stmt': function(node) {
         if (node.kids.length === 2) {
           // (provide-stmt PROVIDE STAR)
-          return makeNode('s-provide-all', pos(node.pos));
+          return nodes['s-provide-all'](pos(node.pos));
         } else {
           // (provide-stmt PROVIDE stmt END)
-          return makeNode('s-provide', pos(node.pos), tr(node.kids[1]));
+          return nodes['s-provide'](pos(node.pos), tr(node.kids[1]));
         }
       },
       'provide-types-stmt': function(node) {
         if (node.kids[1].name === "STAR") {
-          return makeNode('s-provide-types-all', pos(node.pos));
+          return nodes['s-provide-types-all'](pos(node.pos));
         } else {
           // will produce record-ann
           var rec = tr(node.kids[1]);
           // Get the fields out of it
-          return makeNode('s-provide-types',
-                      pos(node.pos), getRecordFields(rec));
+          return nodes['s-provide-types'](
+            pos(node.pos), getRecordFields(rec));
         }
       },
       'import-stmt': function(node) {
         if (node.kids[node.kids.length - 2].name === "AS") {
           if (node.kids.length == 4) {
             // (import-stmt IMPORT import-source AS NAME)
-            return makeNode('s-import',
-                        pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
+            return nodes['s-import'](
+              pos(node.pos), tr(node.kids[1]), name(node.kids[3]));
           } else {
             // (import-stmt IMPORT import-source AS NAME, TYPES)
-            return makeNode('s-import-types',
-                        pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
+            return nodes['s-import-types'](
+              pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
           }
         } else if (node.kids[0].name === "INCLUDE") {
           // (import-stmt INCLUDE import-source)
-          return makeNode('s-include', pos(node.pos), tr(node.kids[1]));
+          return nodes['s-include'](pos(node.pos), tr(node.kids[1]));
         } else {
           // (import-stmt IMPORT comma-names FROM mod)
-          return makeNode('s-import-fields',
-                      pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          return nodes['s-import-fields'](
+            pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         }
       },
       'import-source': function(node) {
@@ -150,20 +149,20 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       // (import-special NAME LPAREN STRING (COMMA STRING)* RPAREN)
       'import-special': function(node) {
-        return makeNode('s-special-import',
-                    pos(node.pos), symbol(node.kids[0]),
-                    makeListComma(node.kids, 2, node.kids.length - 1, string))
+        return nodes['s-special-import'](
+          pos(node.pos), symbol(node.kids[0]),
+          makeListComma(node.kids, 2, node.kids.length - 1, string))
       },
       'import-name': function(node) {
         // (import-name NAME)
-        return makeNode('s-const-import',
-                    pos(node.pos), symbol(node.kids[0]))
+        return nodes['s-const-import'](
+          pos(node.pos), symbol(node.kids[0]))
       },
       'block': function(node) {
         // (block stmts ...)
         detectAndComplainAboutOperatorWhitespace(node.kids, fileName);
-        return makeNode('s-block',
-                    pos(node.pos), makeListTr(node.kids));
+        return nodes['s-block'](
+          pos(node.pos), makeListTr(node.kids));
       },
       'stmt': function(node) {
         // (stmt s)
@@ -182,19 +181,19 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         } else {
           contents = tr(node.kids[node.kids.length - 2]);
         }
-        return makeNode('s-spy-block',
-                    pos(node.pos), label, contents);
+        return nodes['s-spy-block'](
+          pos(node.pos), label, contents);
       },
       'spy-contents': function(node) {
         return makeListComma(node.kids);
       },
       'spy-field': function(node) {
         if (node.kids.length === 1) {
-          return makeNode('s-spy-expr',
-                      pos(node.pos), symbol(node.kids[0].kids[0]), tr(node.kids[0]), makeBoolean(true));
+          return nodes['s-spy-expr'](
+            pos(node.pos), symbol(node.kids[0].kids[0]), tr(node.kids[0]), makeBoolean(true));
         } else {
-          return makeNode('s-spy-expr',
-                      pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]), makeBoolean(false));
+          return nodes['s-spy-expr'](
+            pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]), makeBoolean(false));
         }
       },
       'data-with': function(node) {
@@ -217,25 +216,25 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'data-variant': function(node) {
         if (node.kids[1].value !== undefined) {
           // (data-variant PIPE NAME with)
-          return makeNode('s-singleton-variant',
-                      pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
+          return nodes['s-singleton-variant'](
+            pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]));
         } else {
           // (data-variant PIPE variant-constructor with)
           var constr = tr(node.kids[1])
-          return makeNode('s-variant',
-                      pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
+          return nodes['s-variant'](
+            pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[2]));
         }
       },
       'first-data-variant': function(node) {
         if (node.kids[0].value !== undefined) {
           // (first-data-variant NAME with)
-          return makeNode('s-singleton-variant',
-                      pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
+          return nodes['s-singleton-variant'](
+            pos(node.pos), symbol(node.kids[0]), tr(node.kids[1]));
         } else {
           // (first-data-variant variant-constructor with)
           var constr = tr(node.kids[0])
-          return makeNode('s-variant',
-                      pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
+          return nodes['s-variant'](
+            pos(node.pos), constr.pos, constr.name, constr.args, tr(node.kids[1]));
         }
       },
       'data-sharing': function(node) {
@@ -248,47 +247,47 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         }
       },
       'type-expr': function(node) {
-        return makeNode('s-type',
-                    pos(node.pos),
-                    name(node.kids[1]),
-                    tr(node.kids[2]),
-                    tr(node.kids[4]));
+        return nodes['s-type'](
+          pos(node.pos),
+          name(node.kids[1]),
+          tr(node.kids[2]),
+          tr(node.kids[4]));
       },
       'newtype-expr': function(node) {
-        return makeNode('s-newtype',
-                    pos(node.pos), name(node.kids[1]), name(node.kids[3]));
+        return nodes['s-newtype'](
+          pos(node.pos), name(node.kids[1]), name(node.kids[3]));
       },
       'var-expr': function(node) {
         // (var-expr VAR bind EQUALS e)
-        return makeNode('s-var',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+        return nodes['s-var'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
       },
       'rec-expr': function(node) {
         // (rec-expr REC bind EQUALS e)
-        return makeNode('s-rec',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+        return nodes['s-rec'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
       },
       'let-expr': function(node) {
         if (node.kids.length === 3) {
           // (let-expr bind EQUALS e)
-          return makeNode('s-let',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), makeBoolean(false));
+          return nodes['s-let'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[2]), makeBoolean(false));
         } else {
           // (let-expr VAL bind EQUALS e)
-          return makeNode('s-let',
-                      pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), makeBoolean(true));
+          return nodes['s-let'](
+            pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), makeBoolean(true));
         }
       },
       'newtype-bind': function(node) {
-        return makeNode('s-newtype-bind',
-                    pos(node.pos), name(node.kids[1]), name(node.kids[3]));
+        return nodes['s-newtype-bind'](
+          pos(node.pos), name(node.kids[1]), name(node.kids[3]));
       },
       'type-bind': function(node) {
-        return makeNode('s-type-bind',
-                    pos(node.pos),
-                    name(node.kids[0]),
-                    tr(node.kids[1]),
-                    tr(node.kids[3]));
+        return nodes['s-type-bind'](
+          pos(node.pos),
+          name(node.kids[0]),
+          tr(node.kids[1]),
+          tr(node.kids[3]));
       },
       'type-let-bind': function(node) {
         return tr(node.kids[0]);
@@ -300,30 +299,30 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'type-let-expr': function(node) {
         // (type-let-expr TYPE-LET type-let-bind (COMMA type-let-bind)* (BLOCK|COLON) block end
         var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-        return makeNode('s-type-let-expr',
-                    pos(node.pos),
-                    makeListComma(node.kids, 1, node.kids.length - 3),
-                    tr(node.kids[node.kids.length - 2]), isBlock);
+        return nodes['s-type-let-expr'](
+          pos(node.pos),
+          makeListComma(node.kids, 1, node.kids.length - 3),
+          tr(node.kids[node.kids.length - 2]), isBlock);
       },
       'multi-let-expr': function(node) {
         // (multi-let-expr LET let-binding (COMMA let-binding)* COLON block END)
         // Note that we override the normal name dispatch here, because we don't want
         // to create the default let-expr or var-expr constructions
         var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-        return makeNode('s-let-expr',
-                    pos(node.pos),
-                    makeListComma(node.kids, 1, node.kids.length - 3, translators["let-binding"]),
-                    tr(node.kids[node.kids.length - 2]), isBlock);
+        return nodes['s-let-expr'](
+          pos(node.pos),
+          makeListComma(node.kids, 1, node.kids.length - 3, translators["let-binding"]),
+          tr(node.kids[node.kids.length - 2]), isBlock);
       },
       'letrec-expr': function(node) {
         // (letrec-expr LETREC let-expr (COMMA let-expr)* (BLOCK|COLON0 block END)
         // Note that we override the normal name dispatch here, because we don't want
         // to create the default let-expr constructions
         var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-        return makeNode('s-letrec',
-                    pos(node.pos),
-                    makeListComma(node.kids, 1, node.kids.length - 3, translators["letrec-binding"]),
-                    tr(node.kids[node.kids.length - 2]), isBlock);
+        return nodes['s-letrec'](
+          pos(node.pos),
+          makeListComma(node.kids, 1, node.kids.length - 3, translators["letrec-binding"]),
+          tr(node.kids[node.kids.length - 2]), isBlock);
       },
       'let-binding': function(node) {
         if (node.name === "let-binding") {
@@ -332,23 +331,23 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         }
         if (node.name === "let-expr") {
           // (let-expr binding EQUALS binop-expr)
-          return makeNode('s-let-bind',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          return nodes['s-let-bind'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         } else if (node.name === "var-expr") {
           // (var-expr VAR binding EQUALS binop-expr)
-          return makeNode('s-var-bind',
-                      pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+          return nodes['s-var-bind'](
+            pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
         }
       },
       'letrec-binding': function(node) {
         // (let-expr binding EQUALS binop-expr)
-        return makeNode('s-letrec-bind',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        return nodes['s-letrec-bind'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
       },
       'contract-stmt': function(node) {
         // (contract-stmt NAME COLONCOLON ty-params ann)
-        return makeNode('s-contract',
-                    pos(node.pos), name(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
+        return nodes['s-contract'](
+          pos(node.pos), name(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
       },
       'fun-header': function(node) {
         // (fun-header ty-params args return-ann)
@@ -363,47 +362,47 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         var isBlock = (node.kids[3].name === "BLOCK");
         var header = tr(node.kids[2]);
         var checkRes = tr(node.kids[6]);
-        return makeNode('s-fun',
-                    pos(node.pos), symbol(node.kids[1]),
-                    header.tyParams,
-                    header.args,
-                    header.returnAnn,
-                    tr(node.kids[4]),
-                    tr(node.kids[5]),
-                    checkRes[0], checkRes[1],
-                    isBlock);
+        return nodes['s-fun'](
+          pos(node.pos), symbol(node.kids[1]),
+          header.tyParams,
+          header.args,
+          header.returnAnn,
+          tr(node.kids[4]),
+          tr(node.kids[5]),
+          checkRes[0], checkRes[1],
+          isBlock);
       },
       'data-expr': function(node) {
         // (data-expr DATA NAME params COLON variant ... sharing-part check END)
         var checkRes = tr(node.kids[node.kids.length - 2]);
-        return makeNode('s-data',
-                    pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), makeEmpty(),
-                    makeListTr(node.kids, 4, node.kids.length - 3),
-                    tr(node.kids[node.kids.length - 3]),
-                    checkRes[0], checkRes[1]);
+        return nodes['s-data'](
+          pos(node.pos), symbol(node.kids[1]), tr(node.kids[2]), makeEmpty(),
+          makeListTr(node.kids, 4, node.kids.length - 3),
+          tr(node.kids[node.kids.length - 3]),
+          checkRes[0], checkRes[1]);
       },
       'assign-expr': function(node) {
         // (assign-expr id COLONEQUAL e)
-        return makeNode('s-assign',
-                    pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+        return nodes['s-assign'](
+          pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
       },
       'when-expr': function(node) {
         // (when-expr WHEN test COLON body END)
         var isBlock = (node.kids[2].name === "BLOCK");
-        return makeNode('s-when',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), isBlock);
+        return nodes['s-when'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), isBlock);
       },
       'check-expr': function(node) {
         if (node.kids.length === 3) {
           // (check-expr CHECKCOLON body END)
-          return makeNode('s-check',
-                      pos(node.pos), makeNone(), tr(node.kids[1]),
-                      makeBoolean(node.kids[0].name === "CHECKCOLON"));
+          return nodes['s-check'](
+            pos(node.pos), makeNone(), tr(node.kids[1]),
+            makeBoolean(node.kids[0].name === "CHECKCOLON"));
         } else {
           // (check-expr CHECK STRING COLON body END)
-          return makeNode('s-check',
-                      pos(node.pos), makeSome(string(node.kids[1])), tr(node.kids[3]),
-                      makeBoolean(node.kids[0].name === "CHECK"));
+          return nodes['s-check'](
+            pos(node.pos), makeSome(string(node.kids[1])), tr(node.kids[3]),
+            makeBoolean(node.kids[0].name === "CHECK"));
         }
       },
       'check-test': function(node) {
@@ -414,19 +413,19 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         } else if (kids.length === 2) {
           // (check-test left op)
           //             0    1
-          return makeNode('s-check-test',
-                      pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeNone());
+          return nodes['s-check-test'](
+            pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeNone());
         } else if (kids.length === 3) {
           // (check-test left op right)
           //             0    1  2
-          return makeNode('s-check-test',
-                      pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeSome(tr(kids[2])));
+          return nodes['s-check-test'](
+            pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeSome(tr(kids[2])));
         }
         else {
           // (check-test left op PERCENT LPAREN refinement RPAREN right)
           //             0    1                 4                 6
-          return makeNode('s-check-test',
-                      pos(node.pos), tr(kids[1]), makeSome(tr(kids[4])), tr(kids[0]), makeSome(tr(kids[6])));
+          return nodes['s-check-test'](
+            pos(node.pos), tr(kids[1]), makeSome(tr(kids[4])), tr(kids[0]), makeSome(tr(kids[6])));
         }
       },
       'binop-expr': function(node) {
@@ -434,19 +433,19 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           // (binop-expr e)
           return tr(node.kids[0]);
         } else {
-          var expr = makeNode('s-op',
-                              pos2(node.kids[0].pos, node.kids[2].pos),
-                              pos(node.kids[1].pos),
-                              tr(node.kids[1]),
-                              tr(node.kids[0]),
-                              tr(node.kids[2]));
+          var expr = nodes['s-op'](
+            pos2(node.kids[0].pos, node.kids[2].pos),
+            pos(node.kids[1].pos),
+            tr(node.kids[1]),
+            tr(node.kids[0]),
+            tr(node.kids[2]));
           for(var i = 4; i < node.kids.length; i += 2) {
-            expr = makeNode('s-op',
-                            pos2(node.kids[0].pos, node.kids[i].pos),
-                            pos(node.kids[i - 1].pos),
-                            tr(node.kids[i - 1]),
-                            expr,
-                            tr(node.kids[i]));
+            expr = nodes['s-op'](
+              pos2(node.kids[0].pos, node.kids[i].pos),
+              pos(node.kids[i - 1].pos),
+              tr(node.kids[i - 1]),
+              expr,
+              tr(node.kids[i]));
           }
           return expr;
         }
@@ -495,13 +494,13 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         return tr(node.kids[0]);
       },
       'template-expr': function(node) {
-        return makeNode('s-template', pos(node.pos));
+        return nodes['s-template'](pos(node.pos));
       },
       'binop-expr-paren': function(node) {
         if (node.kids[0].name === "paren-nospace-expr") {
           // (binop-expr-paren (paren-nospace-expr _ e _))
-          return makeNode('s-paren',
-                      pos(node.pos), tr(node.kids[0].kids[1]));
+          return nodes['s-paren'](
+            pos(node.pos), tr(node.kids[0].kids[1]));
         } else {
           // (binop-expr-paren e)
           return tr(node.kids[0]);
@@ -520,7 +519,7 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'return-ann': function(node) {
         if (node.kids.length === 0) {
           // (return-ann)
-          return makeNode('a-blank');
+          return nodes['a-blank']();
         } else {
           // (return-ann THINARROW ann)
           return tr(node.kids[1]);
@@ -543,29 +542,29 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         if (node.kids[lastBinding - 1].name === "SEMI") {
           lastBinding--;
         }
-        return makeNode('s-tuple-bind',
-                    pos(node.pos), makeListComma(node.kids, 1, lastBinding), optAsBinding);
+        return nodes['s-tuple-bind'](
+          pos(node.pos), makeListComma(node.kids, 1, lastBinding), optAsBinding);
       },
 
       'name-binding': function(node) {
         if (node.kids.length === 1) {
           // (binding name)
-          return makeNode('s-bind',
-                      pos(node.pos), makeBoolean(false), name(node.kids[0]),
-                      makeNode('a-blank'));
+          return nodes['s-bind'](
+            pos(node.pos), makeBoolean(false), name(node.kids[0]),
+            nodes['a-blank']());
         } else if (node.kids.length === 3) {
           // (binding name COLONCOLON ann)
-          return makeNode('s-bind',
-                      pos(node.pos), makeBoolean(false), name(node.kids[0]), tr(node.kids[2]));
+          return nodes['s-bind'](
+            pos(node.pos), makeBoolean(false), name(node.kids[0]), tr(node.kids[2]));
         } else if (node.kids.length === 2) {
           // (binding SHADOW name)
-          return makeNode('s-bind',
-                      pos(node.pos), makeBoolean(true), name(node.kids[1]),
-                      makeNode('a-blank'));
+          return nodes['s-bind'](
+            pos(node.pos), makeBoolean(true), name(node.kids[1]),
+            nodes['a-blank']());
         } else {
           // (binding SHADOW name COLONCOLON ann)
-          return makeNode('s-bind',
-                      pos(node.pos), makeBoolean(true), name(node.kids[1]), tr(node.kids[3]));
+          return nodes['s-bind'](
+            pos(node.pos), makeBoolean(true), name(node.kids[1]), tr(node.kids[3]));
         }
       },
       'toplevel-binding': function(node) {
@@ -574,12 +573,12 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           return tr(node.kids[0]);
         } else if (node.kids.length === 4) {
           // (toplevel-binding SHADOW NAME COLONCOLON noparen-arrow-ann)
-          return makeNode('s-bind',
-                      pos(node.pos), makeBoolean(true), name(node.kids[1]), tr(node.kids[3]));
+          return nodes['s-bind'](
+            pos(node.pos), makeBoolean(true), name(node.kids[1]), tr(node.kids[3]));
         } else {
           // (toplevel-binding NAME COLONCOLON noparen-arrow-ann)
-          return makeNode('s-bind',
-                      pos(node.pos), makeBoolean(false), name(node.kids[0]), tr(node.kids[2]));
+          return nodes['s-bind'](
+            pos(node.pos), makeBoolean(false), name(node.kids[0]), tr(node.kids[2]));
         }
       },
       'args': function(node) {
@@ -594,11 +593,11 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'variant-member': function(node) {
         if (node.kids.length === 1) {
           // (variant-member b)
-          return makeNode('s-variant-member',
-                      pos(node.pos), makeNode("s-normal"), tr(node.kids[0]));
+          return nodes['s-variant-member'](
+            pos(node.pos), nodes["s-normal"](), tr(node.kids[0]));
         } else {
-          return makeNode('s-variant-member',
-                      pos(node.pos), makeNode("s-mutable"), tr(node.kids[1]));
+          return nodes['s-variant-member'](
+            pos(node.pos), nodes["s-mutable"](), tr(node.kids[1]));
         }
       },
       'variant-members': function(node) {
@@ -622,24 +621,24 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'obj-field': function(node) {
         if (node.kids.length === 4) {
           // (obj-field MUTABLE key COLON value)
-          return makeNode('s-mutable-field',
-                      pos(node.pos), tr(node.kids[1]), makeNode('a-blank'), tr(node.kids[3]));
+          return nodes['s-mutable-field'](
+            pos(node.pos), tr(node.kids[1]), nodes['a-blank'](), tr(node.kids[3]));
         } else if (node.kids.length === 6) {
           // (obj-field MUTABLE key COLONCOLON ann COLON value)
-          return makeNode('s-mutable-field',
-                      pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
+          return nodes['s-mutable-field'](
+            pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
         } else if (node.kids.length === 3) {
           // (obj-field key COLON value)
-          return makeNode('s-data-field',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          return nodes['s-data-field'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         } else {
           // (obj-field METHOD key fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
           var checkRes = tr(node.kids[6])
-          return makeNode('s-method-field',
-                      pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
-                      tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
+          return nodes['s-method-field'](
+            pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+            tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
         }
       },
       'tuple-name-list' : function(node) {
@@ -662,20 +661,20 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       'reactor-expr': function(node) {
         // (REACTOR COLON fields END)
-        return makeNode('s-reactor',
-                    pos(node.pos), tr(node.kids[2]));
+        return nodes['s-reactor'](
+          pos(node.pos), tr(node.kids[2]));
       },
       'table-expr': function(node) {
         // (TABLE table-headers table-rows end)
-        return makeNode('s-table',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
+        return nodes['s-table'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
       },
       'load-table-expr': function(node) {
         // (LOAD-TABLE COLON table-headers load-table-specs END)
-        return makeNode('s-load-table',
-                    pos(node.pos), tr(node.kids[2]),
-                    ((node.kids[3].name === "END")
-                     ? makeList([]) : tr(node.kids[3])));
+        return nodes['s-load-table'](
+          pos(node.pos), tr(node.kids[2]),
+          ((node.kids[3].name === "END")
+           ? makeList([]) : tr(node.kids[3])));
       },
       'table-headers': function(node) {
         // [list-table-header* table-header]
@@ -688,11 +687,11 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'table-header': function(node) {
         // NAME [:: ann]
         if (node.kids.length === 3) {
-          return makeNode('s-field-name',
-                      pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]))
+          return nodes['s-field-name'](
+            pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]))
         } else {
-          return makeNode('s-field-name',
-                      pos(node.pos), symbol(node.kids[0]), makeNode('a-blank'))
+          return nodes['s-field-name'](
+            pos(node.pos), symbol(node.kids[0]), nodes['a-blank']())
         }
       },
       'table-rows': function(node) {
@@ -701,8 +700,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       'table-row': function(node) {
         // (ROW table-items)
-        return makeNode('s-table-row',
-                    pos(node.pos), tr(node.kids[1]));
+        return nodes['s-table-row'](
+          pos(node.pos), tr(node.kids[1]));
       },
       'table-items': function(node) {
         // [list-table-item* binop-expr]
@@ -727,25 +726,25 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'table-extend-field': function(node) {
         if (node.kids.length === 3) {
           // (key COLON binop-expr)
-          return makeNode('s-table-extend-field',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
-                      makeNode('a-blank'));
+          return nodes['s-table-extend-field'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+            nodes['a-blank']());
         } else if ((node.kids.length === 5)
                    && (node.kids[1].name === "COLONCOLON")){
           // (key COLONCOLON ann COLON binop-expr)
-          return makeNode('s-table-extend-field',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
-                      tr(node.kids[2]));
+          return nodes['s-table-extend-field'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+            tr(node.kids[2]));
         } else if (node.kids.length === 5) {
           // (key COLON expr OF NAME)
-          return makeNode('s-table-extend-reducer',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
-                      name(node.kids[4]), makeNode('a-blank'));
+          return nodes['s-table-extend-reducer'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[2]),
+            name(node.kids[4]), nodes['a-blank']());
         } else if (node.kids.length === 7) {
           // (key COLONCOLON ann COLON expr OF NAME)
-          return makeNode('s-table-extend-reducer',
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
-                      name(node.kids[6]), tr(node.kids[2]));
+          return nodes['s-table-extend-reducer'](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[4]),
+            name(node.kids[6]), tr(node.kids[2]));
         }
       },
       'load-table-specs': function(node) {
@@ -759,12 +758,12 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'load-table-spec': function(node) {
         if (node.kids[0].name === "SANITIZE") {
           // (SANITIZE NAME USING expr)
-          return makeNode('s-sanitize',
-                      pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
+          return nodes['s-sanitize'](
+            pos(node.pos), name(node.kids[1]), tr(node.kids[3]));
         } else {
           // (SOURCECOLON expr)
-          return makeNode('s-table-src',
-                      pos(node.pos), tr(node.kids[1]));
+          return nodes['s-table-src'](
+            pos(node.pos), tr(node.kids[1]));
         }
       },
       'sql-expr': function(node) {
@@ -773,26 +772,26 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           ? makeNone()
           : makeSome(tr(node.kids[3]));
         var project = tr(node.kids[node.kids.length - 2]);
-        return makeNode('s-sql',
-                    pos(node.pos),
-                    inspect, // from
-                    where, // where
-                    project); // project
+        return nodes['s-sql'](
+          pos(node.pos),
+          inspect, // from
+          where, // where
+          project); // project
       },
       'do-expr': function(node) {
         // (do FOR iter binds ... return COLON body END)
-        return makeNode('s-do',
-                    pos(node.pos),
-                    tr(node.kids[1]),                         // iterator
-                    makeList(node.kids.slice(3, -4).map(tr)), // bindings
-                    tr(node.kids[node.kids.length - 3]),      // return-ann
-                    tr(node.kids[node.kids.length - 1]));     // body
+        return nodes['s-do'](
+          pos(node.pos),
+          tr(node.kids[1]),                         // iterator
+          makeList(node.kids.slice(3, -4).map(tr)), // bindings
+          tr(node.kids[node.kids.length - 3]),      // return-ann
+          tr(node.kids[node.kids.length - 1]));     // body
       },
       'for-then': function(node) {
         // (for-then FOR iter LPAREN binds ... RPAREN return COLON body)
-        return makeNode('s-for',
-                    pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -4).map(tr)),
-                    tr(node.kids[node.kids.length - 3]), tr(node.kids[node.kids.length - 1]));
+        return nodes['s-for'](
+          pos(node.pos), tr(node.kids[1]), makeList(node.kids.slice(3, -4).map(tr)),
+          tr(node.kids[node.kids.length - 3]), tr(node.kids[node.kids.length - 1]));
       },
       'for-bind-elt': function(node) {
         // (for-bind-elt b COMMA)
@@ -810,16 +809,16 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'field': function(node) {
         if (node.kids.length === 3) {
           // (field key COLON value)
-          return makeNode("s-data-field",
-                      pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+          return nodes["s-data-field"](
+            pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         } else {
           // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
           var checkRes = tr(node.kids[6])
-          return makeNode("s-method-field",
-                      pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
-                      tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
+          return nodes["s-method-field"](
+            pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
+            tr(node.kids[4]), tr(node.kids[5]), checkRes[0], checkRes[1], isBlock);
         }
       },
       'fields': function(node) {
@@ -872,40 +871,40 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       'cases-binding': function(node) {
         if(node.kids.length === 2) {
-          return makeNode('s-cases-bind',
-                      pos(node.pos), makeNode('s-cases-bind-ref'), tr(node.kids[1]));
+          return nodes['s-cases-bind'](
+            pos(node.pos), nodes['s-cases-bind-ref'](), tr(node.kids[1]));
         }
         else {
-          return makeNode('s-cases-bind',
-                      pos(node.pos), makeNode('s-cases-bind-normal'), tr(node.kids[0]));
+          return nodes['s-cases-bind'](
+            pos(node.pos), nodes['s-cases-bind-normal'](), tr(node.kids[0]));
         }
       },
       'cases-branch': function(node) {
         if (node.kids.length === 4) {
           // (singleton-cases-branch PIPE NAME THICKARROW body)
-          return makeNode('s-singleton-cases-branch',
-                      pos(node.pos), pos(node.kids[1].pos), symbol(node.kids[1]), tr(node.kids[3]));
+          return nodes['s-singleton-cases-branch'](
+            pos(node.pos), pos(node.kids[1].pos), symbol(node.kids[1]), tr(node.kids[3]));
         } else {
           // (cases-branch PIPE NAME args THICKARROW body)
-          return makeNode('s-cases-branch',
-                      pos(node.pos), pos(node.kids[1].pos.combine(node.kids[2].pos)),
-                      symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
+          return nodes['s-cases-branch'](
+            pos(node.pos), pos(node.kids[1].pos.combine(node.kids[2].pos)),
+            symbol(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
         }
       },
       'if-pipe-branch': function(node) {
         // (if-pipe-branch BAR binop-expr THENCOLON block)
-        return makeNode('s-if-pipe-branch',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+        return nodes['s-if-pipe-branch'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
       },
       'else-if': function(node) {
         // (else-if ELSEIF test COLON body)
-        return makeNode('s-if-branch',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
+        return nodes['s-if-branch'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[3]));
       },
       'else': function(node) {
         // (else ELSECOLON body)
-        return makeNode('s-else',
-                    pos(node.pos), tr(node.kids[1]));
+        return nodes['s-else'](
+          pos(node.pos), tr(node.kids[1]));
       },
       'ty-params': function(node) {
         if (node.kids.length === 0) {
@@ -918,215 +917,215 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       'for-bind': function(node) {
         // (for-bind name FROM e)
-        return makeNode('s-for-bind',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        return nodes['s-for-bind'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
       },
       'prim-expr': function(node) {
         // (prim-expr e)
         return tr(node.kids[0]);
       },
       'tuple-expr': function(node) {
-        return makeNode('s-tuple',
-                    pos(node.pos), tr(node.kids[1]))
+        return nodes['s-tuple'](
+          pos(node.pos), tr(node.kids[1]))
       },
       'tuple-get': function(node) {
-        return makeNode('s-tuple-get',
-                    pos(node.pos), tr(node.kids[0]), number(node.kids[3]), pos(node.kids[3].pos))
+        return nodes['s-tuple-get'](
+          pos(node.pos), tr(node.kids[0]), number(node.kids[3]), pos(node.kids[3].pos))
       },
       'obj-expr': function(node) {
         if (node.kids.length === 2) {
           // (obj-expr LBRACE RBRACE)
-          return makeNode('s-obj',
-                      pos(node.pos), makeList([]));
+          return nodes['s-obj'](
+            pos(node.pos), makeList([]));
         } else {
           // (obj-expr LBRACE obj-fields RBRACE)
-          return makeNode('s-obj',
-                      pos(node.pos), tr(node.kids[1]));
+          return nodes['s-obj'](
+            pos(node.pos), tr(node.kids[1]));
         }
       },
       'construct-expr': function(node) {
         // LBRACK construct-modifier binop-expr COLON trailing-opt-comma-binops RBRACK
-        return makeNode('s-construct',
-                    pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
+        return nodes['s-construct'](
+          pos(node.pos), tr(node.kids[1]), tr(node.kids[2]), tr(node.kids[4]));
       },
       'construct-modifier': function(node) {
         if (node.kids.length === 0) {
-          return makeNode('s-construct-normal');
+          return nodes['s-construct-normal']();
         } else if (node.kids.length === 1) {
           if (node.kids[0].name === "LAZY") {
-            return makeNode('s-construct-lazy');
+            return nodes['s-construct-lazy']();
           }
         }
       },
       'app-expr': function(node) {
         // (app-expr f args)
-        return makeNode('s-app',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+        return nodes['s-app'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
       },
       'id-expr': function(node) {
         // (id-expr x)
-        return makeNode('s-id',
-                    pos(node.pos), name(node.kids[0]));
+        return nodes['s-id'](
+          pos(node.pos), name(node.kids[0]));
       },
       'dot-expr': function(node) {
         // (dot-expr obj PERIOD field)
-        return makeNode('s-dot',
-                    pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
+        return nodes['s-dot'](
+          pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
       },
       'get-bang-expr': function(node) {
         // (get-bang-expr obj BANG field)
-        return makeNode('s-get-bang',
-                    pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
+        return nodes['s-get-bang'](
+          pos(node.pos), tr(node.kids[0]), symbol(node.kids[2]));
       },
       'bracket-expr': function(node) {
         // (bracket-expr obj LBRACK field RBRACK)
-        return makeNode('s-bracket',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        return nodes['s-bracket'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
       },
       'cases-expr': function(node) {
         var isBlock = (node.kids[5].name === "BLOCK");
         if (node.kids[node.kids.length - 4].name === "ELSE") {
           // (cases-expr CASES LPAREN type RPAREN val COLON branch ... PIPE ELSE THICKARROW elseblock END)
-          return makeNode('s-cases-else',
-                      pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
-                      makeListTr(node.kids, 6, node.kids.length - 5), tr(node.kids[node.kids.length - 2]), isBlock);
+          return nodes['s-cases-else'](
+            pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
+            makeListTr(node.kids, 6, node.kids.length - 5), tr(node.kids[node.kids.length - 2]), isBlock);
         } else {
           // (cases-expr CASES LPAREN type RPAREN val COLON branch ... END)
-          return makeNode('s-cases',
-                      pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
-                      makeListTr(node.kids, 6, node.kids.length - 1), isBlock);
+          return nodes['s-cases'](
+            pos(node.pos), tr(node.kids[2]), tr(node.kids[4]),
+            makeListTr(node.kids, 6, node.kids.length - 1), isBlock);
         }
       },
       'if-pipe-expr': function(node) {
         var isBlock = (node.kids[1].name === "BLOCK");
         if (node.kids[node.kids.length - 3].name === "OTHERWISECOLON") {
           // (if-pipe-expr ASK (BLOCK|COLON) branch ... BAR OTHERWISECOLON else END)
-          return makeNode('s-if-pipe-else',
-                      pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 4),
-                      tr(node.kids[node.kids.length - 2]), isBlock);
+          return nodes['s-if-pipe-else'](
+            pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 4),
+            tr(node.kids[node.kids.length - 2]), isBlock);
         } else {
           // (if-pipe-expr ASK (BLOCK|COLON) branch ... END)
-          return makeNode('s-if-pipe',
-                      pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 1), isBlock);
+          return nodes['s-if-pipe'](
+            pos(node.pos), makeListTr(node.kids, 2, node.kids.length - 1), isBlock);
         }
       },
       'if-expr': function(node) {
         var isBlock = (node.kids[2].name === "BLOCK");
         if (node.kids[node.kids.length - 3].name === "ELSECOLON") {
           // (if-expr IF test (BLOCK|COLON) body branch ... ELSECOLON else END)
-          return makeNode('s-if-else',
-                      pos(node.pos),
-                      makeList([makeNode('s-if-branch',
-                                     pos2(node.kids[1].pos, node.kids[3].pos), tr(node.kids[1]), tr(node.kids[3]))],
-                               0, 1,
-                               makeListTr(node.kids, 4, node.kids.length - 3)),
-                      tr(node.kids[node.kids.length - 2]), isBlock);
+          return nodes['s-if-else'](
+            pos(node.pos),
+            makeList([nodes['s-if-branch'](
+              pos2(node.kids[1].pos, node.kids[3].pos), tr(node.kids[1]), tr(node.kids[3]))],
+                     0, 1,
+                     makeListTr(node.kids, 4, node.kids.length - 3)),
+            tr(node.kids[node.kids.length - 2]), isBlock);
         } else {
           // (if-expr IF test (BLOCK|COLON) body branch ... END)
-          return makeNode('s-if',
-                      pos(node.pos),
-                      makeList([makeNode('s-if-branch',
-                                     pos2(node.kids[1].pos, node.kids[3].pos), tr(node.kids[1]), tr(node.kids[3]))],
-                               0, 1,
-                               makeListTr(node.kids, 4, node.kids.length - 1)), isBlock);
+          return nodes['s-if'](
+            pos(node.pos),
+            makeList([nodes['s-if-branch'](
+              pos2(node.kids[1].pos, node.kids[3].pos), tr(node.kids[1]), tr(node.kids[3]))],
+                     0, 1,
+                     makeListTr(node.kids, 4, node.kids.length - 1)), isBlock);
         }
       },
       'for-expr': function(node) {
         // (for-expr FOR iter LPAREN for-bind (COMMA for-bind)* RPAREN return (BLOCK|COLON) body END)
         var isBlock = (node.kids[node.kids.length - 3].name === "BLOCK");
-        return makeNode('s-for',
-                    pos(node.pos), tr(node.kids[1]), makeListComma(node.kids, 3, node.kids.length - 5),
-                    tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]), isBlock);
+        return nodes['s-for'](
+          pos(node.pos), tr(node.kids[1]), makeListComma(node.kids, 3, node.kids.length - 5),
+          tr(node.kids[node.kids.length - 4]), tr(node.kids[node.kids.length - 2]), isBlock);
       },
       'user-block-expr': function(node) {
         // (user-block-expr BLOCK body END)
-        return makeNode('s-user-block',
-                    pos(node.pos), tr(node.kids[1]));
+        return nodes['s-user-block'](
+          pos(node.pos), tr(node.kids[1]));
       },
       'lambda-expr': function(node) {
         // (lambda-expr LAM fun-header COLON doc body check END)
         var isBlock = (node.kids[2].name === "BLOCK");
         var header = tr(node.kids[1]);
         var checkRes = tr(node.kids[5]);
-        return makeNode('s-lam',
-                    pos(node.pos), makeString(""), header.tyParams, header.args, header.returnAnn,
-                    tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
+        return nodes['s-lam'](
+          pos(node.pos), makeString(""), header.tyParams, header.args, header.returnAnn,
+          tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
       },
       'method-expr': function(node) {
         // (method-expr METHOD fun-header COLON doc body check END)
         var isBlock = (node.kids[2].name === "BLOCK");
         var header = tr(node.kids[1]);
         var checkRes = tr(node.kids[5]);
-        return makeNode('s-method',
-                    pos(node.pos), makeString(""), header.tyParams, header.args, header.returnAnn,
-                    tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
+        return nodes['s-method'](
+          pos(node.pos), makeString(""), header.tyParams, header.args, header.returnAnn,
+          tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
       },
       'extend-expr': function(node) {
         // (extend-expr e PERIOD LBRACE fields RBRACE)
-        return makeNode('s-extend',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+        return nodes['s-extend'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
       },
       'update-expr': function(node) {
         // (update-expr e BANG LBRACE fields RBRACE)
-        return makeNode('s-update',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+        return nodes['s-update'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
       },
       'paren-expr': function(node) {
         // (paren-expr LPAREN e RPAREN)
-        return makeNode('s-paren',
-                    pos(node.pos), tr(node.kids[1]));
+        return nodes['s-paren'](
+          pos(node.pos), tr(node.kids[1]));
       },
       'paren-nospace-expr': function(node) {
         // (paren-nospace-expr LPAREN e RPAREN)
-        return makeNode('s-paren',
-                    pos(node.pos), tr(node.kids[1]));
+        return nodes['s-paren'](
+          pos(node.pos), tr(node.kids[1]));
       },
       'inst-expr': function(node) {
         // (inst-expr e LANGLE ann (COMMA ann)* RANGLE)
-        return makeNode('s-instantiate',
-                    pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
+        return nodes['s-instantiate'](
+          pos(node.pos), tr(node.kids[0]), makeListComma(node.kids, 2, node.kids.length - 1));
       },
       'bool-expr': function(node) {
         if (node.kids[0].name === "TRUE") {
-          return makeNode('s-bool',
-                      pos(node.pos), makeBoolean(true));
+          return nodes['s-bool'](
+            pos(node.pos), makeBoolean(true));
         } else {
-          return makeNode('s-bool',
-                      pos(node.pos), makeBoolean(false));
+          return nodes['s-bool'](
+            pos(node.pos), makeBoolean(false));
         }
       },
       'num-expr': function(node) {
         // (num-expr n)
-        return makeNode('s-num',
-                    pos(node.pos), number(node.kids[0]));
+        return nodes['s-num'](
+          pos(node.pos), number(node.kids[0]));
       },
       'frac-expr': function(node) {
         // (frac-expr n)
         var numden = node.kids[0].value.split("/");
-        return makeNode('s-frac',
-                    pos(node.pos), makeNumberFromString(numden[0]), makeNumberFromString(numden[1]));
+        return nodes['s-frac'](
+          pos(node.pos), makeNumberFromString(numden[0]), makeNumberFromString(numden[1]));
       },
       'rfrac-expr': function(node) {
         // (rfrac-expr n)
         var numden = node.kids[0].value.substring(1).split("/");
-        return makeNode('s-rfrac',
-                    pos(node.pos), makeNumberFromString(numden[0]), makeNumberFromString(numden[1]));
+        return nodes['s-rfrac'](
+          pos(node.pos), makeNumberFromString(numden[0]), makeNumberFromString(numden[1]));
       },
       'string-expr': function(node) {
-        return makeNode('s-str',
-                    pos(node.pos), string(node.kids[0]));
+        return nodes['s-str'](
+          pos(node.pos), string(node.kids[0]));
       },
       'ann-field': function(node) {
         // (ann-field n COLON ann) or (ann-field n COLONCOLON ann)
-        return makeNode('a-field',
-                    pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
+        return nodes['a-field'](
+          pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
       },
       'name-ann': function(node) {
         if (node.kids[0].value === "Any") {
-          return makeNode('a-any', pos(node.pos));
+          return nodes['a-any']( pos(node.pos));
         } else {
-          return makeNode('a-name',
-                      pos(node.pos), name(node.kids[0]));
+          return nodes['a-name'](
+            pos(node.pos), name(node.kids[0]));
         }
       },
       'comma-ann-field': function(node) {
@@ -1141,35 +1140,35 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       'record-ann': function(node) {
         // (record-ann LBRACE ann-field (COMMA ann-field)* RBRACE)
-        return makeNode('a-record',
-                    pos(node.pos), tr(node.kids[1]));
+        return nodes['a-record'](
+          pos(node.pos), tr(node.kids[1]));
       },
       'tuple-ann': function(node) {
         // (tuple LBRACE ann (SEMI ann)* [SEMI] RBRACE
         if (node.kids[node.kids.length - 2].name === "SEMI") {
-          return makeNode('a-tuple',
-                      pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2));
+          return nodes['a-tuple'](
+            pos(node.pos), makeListComma(node.kids, 1, node.kids.length - 2));
         } else {
-          return makeNode('a-tuple',
-                      pos(node.pos), makeListComma(node.kids, 0, node.kids.length - 1));
+          return nodes['a-tuple'](
+            pos(node.pos), makeListComma(node.kids, 0, node.kids.length - 1));
         }
       },
       'noparen-arrow-ann': function(node) {
         if (node.kids.length === 2) {
           // (noparen-arrow-ann THINARROW result)
-          return makeNode('a-arrow',
-                      pos(node.pos),
-                      makeEmpty(), tr(node.kids[1]),
-                      makeBoolean(false));
+          return nodes['a-arrow'](
+            pos(node.pos),
+            makeEmpty(), tr(node.kids[1]),
+            makeBoolean(false));
         } else {
           // (noparen-arrow-ann arrow-ann-args THINARROW result)
           var trArgs = tr(node.kids[0]);
           if (trArgs.named) {
-            return makeNode('a-arrow-argnames',
-                        pos(node.pos), trArgs.args, tr(node.kids[2]), makeBoolean(false));
+            return nodes['a-arrow-argnames'](
+              pos(node.pos), trArgs.args, tr(node.kids[2]), makeBoolean(false));
           } else {
-            return makeNode('a-arrow',
-                        pos(node.pos), trArgs.args, tr(node.kids[2]), makeBoolean(false));
+            return nodes['a-arrow'](
+              pos(node.pos), trArgs.args, tr(node.kids[2]), makeBoolean(false));
           }
         }
       },
@@ -1190,12 +1189,12 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           columns.push(tr(node.kids[i]));
         var table = tr(node.kids[1]);
         var extensions = tr(node.kids[node.kids.length - 2]);
-        return makeNode('s-table-extend', pos(node.pos),
-                    makeNode('s-column-binds', 
-                         combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
-                         makeList(columns),
-                         table),
-                    extensions);
+        return nodes['s-table-extend']( pos(node.pos),
+                                        nodes['s-column-binds']( 
+                                          combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                          makeList(columns),
+                                          table),
+                                        extensions);
       },
       'table-update': function(node) {
         var columns = new Array();
@@ -1203,12 +1202,12 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           columns.push(tr(node.kids[i]));
         var table = tr(node.kids[1]);
         var extensions = tr(node.kids[node.kids.length - 2]);
-        return makeNode('s-table-update', pos(node.pos),
-                    makeNode('s-column-binds', 
-                         combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
-                         makeList(columns),
-                         table),
-                    extensions);
+        return nodes['s-table-update']( pos(node.pos),
+                                        nodes['s-column-binds']( 
+                                          combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                          makeList(columns),
+                                          table),
+                                        extensions);
       },
       //TABLE-SELECT NAME (COMMA NAME)* FROM expr end
       'table-select': function(node) {
@@ -1216,25 +1215,25 @@ define("pyret-base/js/translate-parse-tree", [], function() {
         for (var i = 1; i < node.kids.length - 3; i+=2)
           columns.push(name(node.kids[i]));
         var table = tr(node.kids[node.kids.length - 2]);
-        return makeNode('s-table-select', 
-                    pos(node.pos), makeList(columns), table);
+        return nodes['s-table-select'](
+          pos(node.pos), makeList(columns), table);
       },
       'column-order': function(node) {
         var column = name(node.kids[0]);
-        var direction = node.kids[1].name == "ASCENDING"  ? makeNode('ASCENDING')
-          : node.kids[1].name == "DESCENDING" ? makeNode('DESCENDING')
+        var direction = node.kids[1].name == "ASCENDING"  ? nodes['ASCENDING']()
+          : node.kids[1].name == "DESCENDING" ? nodes['DESCENDING']()
           : undefined;
-        return makeNode('s-column-sort',
-                    pos(node.pos),
-                    column,
-                    direction);
+        return nodes['s-column-sort'](
+          pos(node.pos),
+          column,
+          direction);
       },
       'table-order': function(node) {
         // TABLE-ORDER NAME COLON column-orderings end
-        return makeNode('s-table-order',
-                    pos(node.pos),
-                    tr(node.kids[1]),
-                    makeListComma(node.kids, 3, node.kids.length - 1, tr));
+        return nodes['s-table-order'](
+          pos(node.pos),
+          tr(node.kids[1]),
+          makeListComma(node.kids, 3, node.kids.length - 1, tr));
       },
       'table-filter': function(node) {
         var columns = new Array();
@@ -1242,41 +1241,41 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           columns.push(tr(node.kids[i]));
         var table = tr(node.kids[1]);
         var predicate = tr(node.kids[node.kids.length - 2]);
-        return makeNode('s-table-filter', pos(node.pos),
-                    makeNode('s-column-binds', 
-                         combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
-                         makeList(columns),
-                         table),
-                    predicate);
+        return nodes['s-table-filter']( pos(node.pos),
+                                        nodes['s-column-binds']( 
+                                          combineSrcloc(fileName, node.kids[1].pos, node.kids[node.kids.length - 4].pos),
+                                          makeList(columns),
+                                          table),
+                                        predicate);
       },
       'table-extract': function(node) {
-        return makeNode('s-table-extract', pos(node.pos),
-                    name(node.kids[1]), tr(node.kids[3]));
+        return nodes['s-table-extract']( pos(node.pos),
+                                         name(node.kids[1]), tr(node.kids[3]));
       },
       'arrow-ann': function(node) {
         if (node.kids.length === 4) {
           // (arrow-ann LPAREN THINARROW result RPAREN)
-          return makeNode('a-arrow',
-                      pos(node.pos), makeEmpty(),
-                      tr(node.kids[2]),
-                      makeBoolean(true));
+          return nodes['a-arrow'](
+            pos(node.pos), makeEmpty(),
+            tr(node.kids[2]),
+            makeBoolean(true));
         } else {
           // (arrow-ann LPAREN arrow-ann-args THINARROW result RPAREN)
           // (noparen-arrow-ann arrow-ann-args THINARROW result)
           var trArgs = tr(node.kids[1]);
           if (trArgs.named) {
-            return makeNode('a-arrow-argnames',
-                        pos(node.pos), trArgs.args, tr(node.kids[3]), makeBoolean(true));
+            return nodes['a-arrow-argnames'](
+              pos(node.pos), trArgs.args, tr(node.kids[3]), makeBoolean(true));
           } else {
-            return makeNode('a-arrow',
-                        pos(node.pos), trArgs.args, tr(node.kids[3]), makeBoolean(true));
+            return nodes['a-arrow'](
+              pos(node.pos), trArgs.args, tr(node.kids[3]), makeBoolean(true));
           }
         }
       },
       'app-ann': function(node) {
         // (app-ann ann LANGLE comma-anns RANGLE)
-        return makeNode('a-app',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        return nodes['a-app'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
       },
       'comma-anns': function(node) {
         return makeListComma(node.kids);
@@ -1289,13 +1288,13 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       },
       'pred-ann': function(node) {
         // (pred-ann ann PERCENT LPAREN exp RPAREN)
-        return makeNode('a-pred',
-                    pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+        return nodes['a-pred'](
+          pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
       },
       'dot-ann': function(node) {
         // (dot-ann n1 PERIOD n2)
-        return makeNode('a-dot',
-                    pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
+        return nodes['a-dot'](
+          pos(node.pos), name(node.kids[0]), symbol(node.kids[2]));
       },
       'ann': function(node) {
         // (ann a)
