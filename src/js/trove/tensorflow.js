@@ -114,6 +114,7 @@
       "sigmoid": "TensorUnOp",
       "signed-ones": "TensorUnOp",
       "tensor-sin": "TensorUnOp",
+      "tensor-sinh": "TensorUnOp",
       "softplus": "TensorUnOp",
       "tensor-sqrt": "TensorUnOp",
       "tensor-square": "TensorUnOp",
@@ -1644,6 +1645,12 @@
       const tensor = checkAndUnwrapTensor(x);
       const jsMin  = runtime.num_to_fixnum(min);
       const jsMax  = runtime.num_to_fixnum(max);
+      if (jsMin > jsMax) {
+        runtime.ffi.throwMessageException("The minimum value to clip to must " +
+          "be less than or equal to the maximum value to clip to, but the " +
+          "input minimum value was " + jsMin + " and the input maximum value " +
+          "was " + jsMax + ".");
+      }
       return buildTensorObject(tf.clipByValue(tensor, jsMin, jsMax));
     }
 
@@ -5020,6 +5027,7 @@
       "sigmoid": F(sigmoid, "sigmoid"),
       "signed-ones": F(sign, "signed-ones"),
       "tensor-sin": F(sin, "tensor-sin"),
+      "tensor-sinh": F(sinh, "tensor-sinh"),
       "softplus": F(softplus, "softplus"),
       "tensor-sqrt": F(sqrt, "tensor-sqrt"),
       "tensor-square": F(square, "tensor-square"),
