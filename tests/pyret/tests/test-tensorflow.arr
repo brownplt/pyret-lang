@@ -22,7 +22,7 @@ end
 
 check "make-scalar":
   make-scalar(1).size() is 1
-  make-scalar(~12.3).shape() is empty
+  make-scalar(12.3).shape() is empty
   make-scalar(2.34).data-now() is-roughly [list: 2.34]
 end
 
@@ -94,7 +94,7 @@ check "multinomial":
 
   # Testing with a set random seed (the third argument):
   multinomial([tensor: 0.3, 0.4, 0.2], 4, some(1), false).data-now()
-    is-roughly [list: ~1, ~1, ~0, ~2]
+    is-roughly [list: 1, 1, 0, 2]
 end
 
 check "random-normal":
@@ -357,3 +357,927 @@ check "Tensor .clone":
   new-tensor.shape() is some-tensor.shape()
   new-tensor.data-now() is-roughly some-tensor.data-now()
 end
+
+###########################
+## Arithmetic Operations ##
+###########################
+
+check "add-tensors":
+  # Check one-dimensional usages:
+  add-tensors([tensor: 1], [tensor: 1]).data-now()
+    is-roughly [list: 2]
+  add-tensors([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 2, 4]
+  add-tensors([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 6, 4]
+  add-tensors([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  add-tensors(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 6, 2, 8, 4, 9, 5]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  add-tensors(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 6, 2, 5, 8, 4, 7, 9, 5, 8]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  add-tensors(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "subtract-tensors":
+  # Check one-dimensional usages:
+  subtract-tensors([tensor: 1], [tensor: 1]).data-now()
+    is-roughly [list: 0]
+  subtract-tensors([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 0, 2]
+  subtract-tensors([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: -4, 2]
+  subtract-tensors([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check not commutative:
+  subtract-tensors([tensor: 2], [tensor: 1]).data-now()
+    is-roughly [list: 1]
+  subtract-tensors([tensor: 1], [tensor: 2]).data-now()
+    is-roughly [list: -1]
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  subtract-tensors(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: -4, 0, -2, 2, -1, 3]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  subtract-tensors(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: -4, 0, -3, -2, 2, -1, -1, 3, 0]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  subtract-tensors(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "multiply-tensors":
+  # Check one-dimensional usages:
+  multiply-tensors([tensor: 1], [tensor: 1]).data-now()
+    is-roughly [list: 1]
+  multiply-tensors([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  multiply-tensors([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 5, 3]
+  multiply-tensors([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  multiply-tensors(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 5, 1, 15, 3, 20, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  multiply-tensors(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 5, 1, 4, 15, 3, 12, 20, 4, 16]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  multiply-tensors(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "divide-tensors":
+  # Check one-dimensional usages:
+  divide-tensors([tensor: 1], [tensor: 1]).data-now()
+    is-roughly [list: 1]
+  divide-tensors([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  divide-tensors([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 0.2, 3]
+  divide-tensors([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  divide-tensors(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 0.2, 1, 0.6, 3, 0.8, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  divide-tensors(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 0.2, 1, 0.25, 0.6, 3, 0.75, 0.8, 4, 1]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  divide-tensors(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check for divide-by-zero errors:
+  divide-tensors([tensor: 1], [tensor: 0])
+    raises "The second input Tensor cannot contain 0"
+  divide-tensors([tensor: 1], [tensor: 1, 0])
+    raises "The second input Tensor cannot contain 0"
+  divide-tensors([tensor: 4.23], [tensor: 7.65, 1.43, 0, 2.31])
+    raises "The second input Tensor cannot contain 0"
+end
+
+check "floor-divide-tensors":
+  # Check one-dimensional usages:
+  floor-divide-tensors([tensor: 1], [tensor: 1]).data-now()
+    is-roughly [list: 1]
+  floor-divide-tensors([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  floor-divide-tensors([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 0, 3]
+  floor-divide-tensors([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  floor-divide-tensors(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 0, 1, 0, 3, 0, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  floor-divide-tensors(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 0, 1, 0, 0, 3, 0, 0, 4, 1]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  floor-divide-tensors(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check for divide-by-zero errors:
+  floor-divide-tensors([tensor: 1], [tensor: 0])
+    raises "The second input Tensor cannot contain 0"
+  floor-divide-tensors([tensor: 1], [tensor: 1, 0])
+    raises "The second input Tensor cannot contain 0"
+  floor-divide-tensors([tensor: 4.23], [tensor: 7.65, 1.43, 0])
+    raises "The second input Tensor cannot contain 0"
+end
+
+check "tensor-max":
+  # Check one-dimensional usages:
+  tensor-max([tensor: 0], [tensor: 1]).data-now()
+    is-roughly [list: 1]
+  tensor-max([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  tensor-max([tensor: 1, 3], [tensor: 200]).data-now()
+    is-roughly [list: 200, 200]
+  tensor-max([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 5, 3]
+  tensor-max([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  tensor-max(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 5, 1, 5, 3, 5, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  tensor-max(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 5, 1, 4, 5, 3, 4, 5, 4, 4]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  tensor-max(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "tensor-min":
+  # Check one-dimensional usages:
+  tensor-min([tensor: 0], [tensor: 1]).data-now()
+    is-roughly [list: 0]
+  tensor-min([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 1, 1]
+  tensor-min([tensor: 1, 3], [tensor: 200]).data-now()
+    is-roughly [list: 1, 3]
+  tensor-min([tensor: 1, 3], [tensor: 0]).data-now()
+    is-roughly [list: 0, 0]
+  tensor-min([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 1, 1]
+  tensor-min([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  tensor-min(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 1, 0, 3, 0, 4, 0]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  tensor-min(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 1, 1, 1, 3, 1, 3, 4, 1, 4]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  tensor-min(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "tensor-modulo":
+  # Check one-dimensional usages:
+  tensor-modulo([tensor: 0], [tensor: 1]).data-now()
+    is-roughly [list: 0]
+  tensor-modulo([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 0, 0]
+  tensor-modulo([tensor: 1, 3], [tensor: 200]).data-now()
+    is-roughly [list: 1, 3]
+  tensor-modulo([tensor: 1, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 1, 0]
+  tensor-modulo([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  tensor-modulo(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 1, 0, 3, 0, 4, 0]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  tensor-modulo(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 1, 0, 1, 3, 0, 3, 4, 0, 0]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  tensor-modulo(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check for division-by-zero errors:
+  tensor-modulo([tensor: 1], [tensor: 0])
+    raises "The second input Tensor cannot contain 0"
+  tensor-modulo([tensor: 1], [tensor: 1, 0])
+    raises "The second input Tensor cannot contain 0"
+  tensor-modulo([tensor: 4.23], [tensor: 7.65, 1.43, 0, 2.31])
+    raises "The second input Tensor cannot contain 0"
+end
+
+check "tensor-expt":
+  # Check one-dimensional usages:
+  tensor-expt([tensor: 0], [tensor: 1]).data-now()
+    is-roughly [list: 0]
+  tensor-expt([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  tensor-expt([tensor: 1, 3], [tensor: 4]).data-now()
+    is-roughly [list: 1, 81]
+  tensor-expt([tensor: 3, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 243, 3]
+  tensor-expt([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  tensor-expt(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 1, 1, 243, 1, 1024, 1]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  tensor-expt(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 1, 1, 1, 243, 3, 81, 1024, 4, 256]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  tensor-expt(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check raising to negative exponents:
+  tensor-expt([tensor: 3], [tensor: -3]).data-now()
+    is-roughly [list: 0.03703703]
+end
+
+check "squared-difference":
+  # Check one-dimensional usages:
+  squared-difference([tensor: 0], [tensor: 1]).data-now()
+    is-roughly [list: 1]
+  squared-difference([tensor: 3], [tensor: -3]).data-now()
+    is-roughly [list: 36]
+  squared-difference([tensor: 1, 3], [tensor: 1]).data-now()
+    is-roughly [list: 0, 4]
+  squared-difference([tensor: 1, 3], [tensor: 4]).data-now()
+    is-roughly [list: 9, 1]
+  squared-difference([tensor: 3, 3], [tensor: 5, 1]).data-now()
+    is-roughly [list: 4, 4]
+  squared-difference([tensor: 1, 3, 4], [tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  squared-difference(two-dim-1, one-dim-1).data-now()
+    is-roughly [list: 16, 1, 4, 9, 1, 16]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  squared-difference(two-dim-1, two-dim-2).data-now()
+    is-roughly [list: 16, 0, 9, 4, 4, 1, 1, 9, 0]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  squared-difference(two-dim-3, two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+##################################
+## Strict Arithmetic Operations ##
+##################################
+
+check "strict-add-tensors":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-add-tensors` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `add-tensors` to the same Tensors.
+         ```
+    strict-result     = strict-add-tensors(tensor-1, tensor-2)
+    non-strict-result = add-tensors(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 0, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-add-tensors(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-add-tensors(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-add-tensors(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-subtract-tensors":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-subtract-tensors` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `subtract-tensors` to the same Tensors.
+         ```
+    strict-result     = strict-subtract-tensors(tensor-1, tensor-2)
+    non-strict-result = subtract-tensors(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 0, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-subtract-tensors(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-subtract-tensors(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-subtract-tensors(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-multiply-tensors":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-multiply-tensors` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `multiply-tensors` to the same Tensors.
+         ```
+    strict-result     = strict-multiply-tensors(tensor-1, tensor-2)
+    non-strict-result = multiply-tensors(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 0, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-multiply-tensors(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-multiply-tensors(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-multiply-tensors(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-divide-tensors":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-divide-tensors` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `divide-tensors` to the same Tensors.
+         ```
+    strict-result     = strict-divide-tensors(tensor-1, tensor-2)
+    non-strict-result = divide-tensors(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 1, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for divide-by-zero errors:
+  strict-divide-tensors([tensor: 1], [tensor: 0])
+    raises "The second input Tensor cannot contain 0"
+  strict-divide-tensors([tensor: 1, 1], [tensor: 1, 0])
+    raises "The second input Tensor cannot contain 0"
+  strict-divide-tensors([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+    raises "The second input Tensor cannot contain 0"
+
+  # Check for shape strictness:
+  strict-divide-tensors(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-divide-tensors(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-divide-tensors(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-tensor-max":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-tensor-max` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `tensor-max` to the same Tensors.
+         ```
+    strict-result     = strict-tensor-max(tensor-1, tensor-2)
+    non-strict-result = tensor-max(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 0, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-tensor-max(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-max(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-max(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-tensor-min":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-tensor-min` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `tensor-min` to the same Tensors.
+         ```
+    strict-result     = strict-tensor-min(tensor-1, tensor-2)
+    non-strict-result = tensor-min(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 0, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-tensor-min(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-min(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-min(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-tensor-modulo":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-tensor-modulo` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `tensor-modulo` to the same Tensors.
+         ```
+    strict-result     = strict-tensor-modulo(tensor-1, tensor-2)
+    non-strict-result = tensor-modulo(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 1, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for divide-by-zero errors:
+  strict-tensor-modulo([tensor: 1], [tensor: 0])
+    raises "The second input Tensor cannot contain 0"
+  strict-tensor-modulo([tensor: 1, 1], [tensor: 1, 0])
+    raises "The second input Tensor cannot contain 0"
+  strict-tensor-modulo([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+    raises "The second input Tensor cannot contain 0"
+
+  # Check for shape strictness:
+  strict-tensor-modulo(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-modulo(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-modulo(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-tensor-expt":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-tensor-expt` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `tensor-expt` to the same Tensors.
+         ```
+    strict-result     = strict-tensor-expt(tensor-1, tensor-2)
+    non-strict-result = tensor-expt(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 1, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-tensor-expt(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-expt(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-tensor-expt(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+check "strict-squared-difference":
+  fun check-strict-equals-non-strict(tensor-1 :: Tensor, tensor-2 :: Tensor):
+    doc: ```
+         Helper function to test if applying `strict-squared-difference` to
+         tensor-1 and tensor-2 produces the same result as applying
+         `squared-difference` to the same Tensors.
+         ```
+    strict-result     = strict-squared-difference(tensor-1, tensor-2)
+    non-strict-result = squared-difference(tensor-1, tensor-2)
+    strict-result.data-now() is-roughly non-strict-result.data-now()
+  end
+
+  # Check one-dimensional usages:
+  check-strict-equals-non-strict([tensor: 1], [tensor: 1])
+  check-strict-equals-non-strict([tensor: 1], [tensor: 0])
+  check-strict-equals-non-strict([tensor: 1, 1], [tensor: 1, 0])
+  check-strict-equals-non-strict([tensor: 1, 5], [tensor: 9, 8])
+  check-strict-equals-non-strict([tensor: -4, -1], [tensor: -8, -2])
+  check-strict-equals-non-strict([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 9, 8, 7, 6].as-2d(2, 2)
+  two-dim-2 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-3 = [tensor: 1, 2, 4, 6, 8, 10].as-2d(3, 2)
+  check-strict-equals-non-strict(two-dim-1, two-dim-2)
+  check-strict-equals-non-strict(two-dim-3, two-dim-3)
+
+  # Check for shape strictness:
+  strict-squared-difference(two-dim-1, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-squared-difference(two-dim-2, two-dim-3)
+    raises "The first tensor does not have the same shape as the second tensor"
+  strict-squared-difference(two-dim-3, two-dim-1)
+    raises "The first tensor does not have the same shape as the second tensor"
+end
+
+###########################
+## Basic Math Operations ##
+###########################
+
+#|
+check "tensor-abs":
+
+end
+
+check "tensor-acos":
+
+end
+
+check "tensor-acosh":
+
+end
+
+check "tensor-asin":
+
+end
+
+check "tensor-asinh":
+
+end
+
+check "tensor-atan":
+
+end
+
+check "tensor-atan2":
+
+end
+
+check "tensor-atanh":
+
+end
+
+check "tensor-ceil":
+
+end
+
+check "clip-by-value":
+
+end
+
+check "tensor-cos":
+
+end
+
+check "tensor-cosh":
+
+end
+
+check "exponential-linear-units":
+
+end
+
+check "elu":
+
+end
+
+check "gauss-error":
+
+end
+
+check "erf":
+
+end
+
+check "tensor-exp":
+
+end
+
+check "tensor-exp-min1":
+
+end
+
+check "tensor-floor":
+
+end
+
+check "leaky-relu":
+
+end
+
+check "tensor-log":
+
+end
+
+check "tensor-log-plus1":
+
+end
+
+check "log-sigmoid":
+
+end
+
+check "tensor-negate":
+
+end
+
+check "parametric-relu":
+
+end
+
+check "tensor-reciprocal":
+
+end
+
+check "relu":
+
+end
+
+check "tensor-round":
+
+end
+
+check "reciprocal-sqrt":
+
+end
+
+check "scaled-elu":
+
+end
+
+check "sigmoid":
+
+end
+
+check "signed-ones":
+
+end
+
+check "tensor-sin":
+
+end
+
+check "tensor-sinh":
+
+end
+
+check "softplus":
+
+end
+
+check "tensor-sqrt":
+
+end
+
+check "tensor-square":
+
+end
+
+check "step":
+
+end
+
+check "tensor-tan":
+
+end
+
+check "tensor-tanh":
+
+end
+|#
+
+##########################
+## Reduction Operations ##
+##########################
+
+#|
+check "all":
+
+end
+
+check "any":
+
+end
+
+check "arg-max":
+
+end
+
+check "arg-min":
+
+end
+
+check "log-sum-exp":
+
+end
+
+check "reduce-max":
+
+end
+
+check "reduce-min":
+
+end
+
+check "reduce-mean":
+
+end
+
+check "reduce-sum":
+
+end
+|#
+
+####################################
+## Slicing and Joining Operations ##
+####################################
+
+#|
+check "concatenate":
+
+end
+|#
+
+check "gather":
+  input-1   = [tensor: 1, 2, 3, 4]
+  indices-1 = [tensor: 1, 3, 3].to-int()
+  gather(input-1, indices-1, none).data-now()
+    is-roughly [list: 2, 4, 4]
+
+  input-2   = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  indices-2 = [tensor: 1, 1, 0].to-int()
+  gather(input-2, indices-2, none).data-now()
+    is-roughly [list: 3, 4, 3, 4, 1, 2]
+
+  float-indices = [tensor: 1, 1, 0].to-float()
+  gather(input-2, float-indices, none).data-now()
+    raises "The `indices` argument to `gather` must have a data type of 'int32'"
+end
+
+#|
+check "reverse":
+
+end
+
+check "slice":
+
+end
+
+check "split":
+
+end
+
+check "stack":
+
+end
+
+check "tile":
+
+end
+
+check "unstack":
+
+end
+
+check "strided-slice":
+
+end
+|#
