@@ -1138,7 +1138,7 @@
     }
 
     /**
-     * Returns true if the PyretTensors `a` and `b` have the same shape;
+     * Returns nothing if the PyretTensors `a` and `b` have the same shape;
      * otherwise, throws a Pyret runtime exception.
      *
      * This is intended to be a helper function for the "strict" arithmetic
@@ -1165,7 +1165,7 @@
     }
 
     /**
-     * Returns true if the PyretTensors `a` and `b` have a combination of
+     * Returns nothing if the PyretTensors `a` and `b` have a combination of
      * shapes that a TensorFlow.js binary operation will successfully
      * process; otherwise, throws a Pyret runtime exception.
      *
@@ -1196,6 +1196,27 @@
             bShape + ".");
         }
       }
+    }
+
+    /**
+     * Returns nothing if the input PyretTensor does not contain the value
+     * zero (as determined by a call to .dataSync); otherwise, throws a Pyret
+     * runtime exception.
+     *
+     * This should be used to check for potential division-by-zero errors in
+     * `divide-tensors` and `floor-divide-tensors`.
+     *
+     * @param {PyretTensor} pyretTensor
+     */
+    function assertDoesNotContainZero(pyretTensor) {
+      const jsTensor = checkAndUnwrapTensor(pyretTensor);
+      const jsData   = jsTensor.dataSync();
+      jsData.forEach(x => {
+        if (x === 0) {
+          runtime.ffi.throwMessageException("The second input Tensor " +
+            "cannot contain 0 (to avoid division-by-zero errors).");
+        }
+      });
     }
 
     /**
@@ -1281,6 +1302,7 @@
      */
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
+      assertDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.div, a, b);
     }
@@ -1303,10 +1325,11 @@
      * floor function.
      * @param {PyretTensor} a The first PyretTensor
      * @param {PyretTensor} b The second PyretTensor
-     * @returns {PyretTensor} The result of a / b
+     * @returns {PyretTensor} The result of floor(a / b)
      */
     function floorDivideTensors(a, b) {
       arity(2, arguments, "floor-divide-tensors", false);
+      assertDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.floorDiv, a, b);
     }
@@ -1369,6 +1392,7 @@
      */
     function moduloTensor(a, b) {
       arity(2, arguments, "tensor-modulo", false);
+      assertDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.mod, a, b);
     }
