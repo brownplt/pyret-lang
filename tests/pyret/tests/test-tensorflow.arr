@@ -1149,7 +1149,8 @@ check "tensor-atan":
 end
 
 check "tensor-atan2":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-atanh":
@@ -1216,7 +1217,28 @@ check "tensor-ceil":
 end
 
 check "clip-by-value":
-  ...
+  # Check one-dimensional usages:
+  clip-by-value([tensor: 0], 0, 0).data-now() is-roughly [list: 0]
+  clip-by-value([tensor: 0], -1, 1).data-now() is-roughly [list: 0]
+  clip-by-value([tensor: 0], 1, 4).data-now() is-roughly [list: 1]
+  clip-by-value([tensor: 0], -10, -5).data-now() is-roughly [list: -5]
+  clip-by-value([tensor: 21, 0, 32, 2], 4, 9).data-now()
+    is-roughly [list: 9, 4, 9, 4]
+  clip-by-value([tensor: 3, 9, 10, 3.24], 4.5, 9.4).data-now()
+    is-roughly [list: 4.5, 9, 9.4, 4.5]
+  clip-by-value([tensor: 4, 9, 300, 21, 100, 78], 100, 100).data-now()
+    is-roughly [list: 100, 100, 100, 100, 100, 100]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim = [tensor: -4, 5, -6, 8].as-2d(2, 2)
+  clip-by-value(two-dim, 3, 6).shape() is [list: 2, 2]
+  clip-by-value(two-dim, 3, 6).data-now() is-roughly [list: 3, 5, 3, 6]
+
+  # Check error handling when min is greater than max:
+  clip-by-value([tensor: 1], 10, 0)
+    raises "minimum value to clip to must be less than or equal to the maximum"
+  clip-by-value([tensor: 1], -10, -45)
+    raises "minimum value to clip to must be less than or equal to the maximum"
 end
 
 check "tensor-cos":
@@ -1256,27 +1278,33 @@ check "tensor-cosh":
 end
 
 check "exponential-linear-units":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "elu":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "gauss-error":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "erf":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-exp":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-exp-min1":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-floor":
@@ -1313,35 +1341,58 @@ check "tensor-floor":
 end
 
 check "leaky-relu":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-log":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-log-plus1":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "log-sigmoid":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-negate":
-  ...
+  # Check one-dimensional usages on integer tensors:
+  tensor-negate([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-negate([tensor: 1]).data-now() is-roughly [list: -1]
+  tensor-negate([tensor: -1]).data-now() is-roughly [list: 1]
+  tensor-negate([tensor: -1, 2, 3, -4, 5]).data-now()
+    is-roughly [list: 1, -2, -3, 4, -5]
+  tensor-negate([tensor: -1, -2, -3, -4, -5]).data-now()
+    is-roughly [list: 1, 2, 3, 4, 5]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-negate = tensor-negate([tensor: 0.2, -4.3, 9.3, -10.1].as-2d(2, 2))
+  two-dim-negate.shape() is [list: 2, 2]
+  two-dim-negate.data-now() is-roughly [list: -0.2, 4.3, -9.3, 10.1]
+
+  three-dim-negate = tensor-negate([tensor: 0, 8, -7, 6, -5, -4, 3, 2].as-3d(2, 2, 2))
+  three-dim-negate.shape() is [list: 2, 2, 2]
+  three-dim-negate.data-now() is-roughly [list: -0, -8, 7, -6, 5, 4, -3, -2]
 end
 
 check "parametric-relu":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-reciprocal":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "relu":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-round":
@@ -1351,9 +1402,9 @@ check "tensor-round":
   tensor-round([tensor: -1]).data-now() is-roughly [list: -1]
   tensor-round([tensor: -1, -2, -3]).data-now() is-roughly [list: -1, -2, -3]
 
-  # Check weird behavior with rounding on Roughnums:
-  tensor-round([tensor: 0.5]).data-now() is-roughly [list: 0] # rounds down
-  tensor-round([tensor: 3.5]).data-now() is-roughly [list: 4] # rounds up
+  # Check weird behavior with rounding on Roughnums (TensorFlow.js bug?):
+  tensor-round([tensor: 0.5]).data-now() is-roughly [list: 0] # rounds down?
+  tensor-round([tensor: 3.5]).data-now() is-roughly [list: 4] # rounds up?
 
   # Check one-dimensional usages on float tensors:
   tensor-round([tensor: 0.1]).data-now() is-roughly [list: 0]
@@ -1380,104 +1431,148 @@ check "tensor-round":
 end
 
 check "reciprocal-sqrt":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "scaled-elu":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "sigmoid":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "signed-ones":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-sin":
-  ...
+  # Check one-dimensional usages:
+  tensor-sin([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-sin([tensor: 1]).data-now() is-roughly [list: ~0.8414709]
+  tensor-sin([tensor: -1]).data-now() is-roughly [list: ~-0.8415220]
+  tensor-sin([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-0.8415220, ~-0.9092977, ~-0.1411204]
+  tensor-sin([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~-0.2794162, ~0.9092976, ~0.7568427]
+  tensor-sin([tensor: 21, 0, 32, 2]).data-now()
+    is-roughly [list: ~0.8366656, ~0, ~0.5514304, ~0.9092976]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-sin = tensor-sin([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-sin.shape() is [list: 2, 2]
+  two-dim-sin.data-now()
+    is-roughly [list: ~0.7568427, ~-0.9589251, ~0.2794161, ~-0.6570168]
 end
 
 check "tensor-sinh":
-  ...
+  # Check one-dimensional usages:
+  tensor-sinh([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-sinh([tensor: 1]).data-now() is-roughly [list: ~1.1752011]
+  tensor-sinh([tensor: -1]).data-now() is-roughly [list: ~-1.1752011]
+  tensor-sinh([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-1.1752011, ~-3.6268603, ~-10.0178737]
+  tensor-sinh([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~201.7131195, ~3.6268601, ~-27.2899169]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-sinh = tensor-sinh([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-sinh.shape() is [list: 2, 2]
+  two-dim-sinh.data-now()
+    is-roughly [list: ~-27.2899169, ~74.2032089, ~-201.7131195, ~-548.3162231]
 end
 
 check "softplus":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-sqrt":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-square":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "step":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-tan":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tensor-tanh":
-  ...
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 ##########################
 ## Reduction Operations ##
 ##########################
 
-#|
 check "all":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "any":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "arg-max":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "arg-min":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "log-sum-exp":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "reduce-max":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "reduce-min":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "reduce-mean":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "reduce-sum":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
-|#
 
 ####################################
 ## Slicing and Joining Operations ##
 ####################################
 
-#|
 check "concatenate":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
-|#
 
 check "gather":
   input-1   = [tensor: 1, 2, 3, 4]
@@ -1495,32 +1590,37 @@ check "gather":
     raises "The `indices` argument to `gather` must have a data type of 'int32'"
 end
 
-#|
 check "reverse":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "slice":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "split":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "stack":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "tile":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "unstack":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
 
 check "strided-slice":
-
+  # TODO(ZacharyEspiritu): Add tests for this function
+  nothing
 end
-|#
