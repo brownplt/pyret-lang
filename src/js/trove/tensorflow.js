@@ -615,7 +615,7 @@
           const tensorData = Array.from(selfTensor.dataSync());
           // Convert to Roughnums, since the numbers returned from a Tensor are
           // floating point:
-          const roughnumData = tensorData.map(runtime.num_to_roughnum);
+          const roughnumData = tensorData.map(x => runtime.num_to_roughnum(x));
           return runtime.ffi.makeList(roughnumData);
         }),
         "to-float": runtime.makeMethod0(function(self) {
@@ -1087,7 +1087,7 @@
           checkMethodArity(1, arguments, "get-all-now");
           var selfBuffer = unwrapTensorBuffer(self);
           var bufferData = Array.from(selfBuffer.values);
-          var roughnums  = bufferData.map(runtime.num_to_roughnum);
+          var roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
           return runtime.ffi.makeList(roughnums);
         }),
         "to-tensor": runtime.makeMethod0(function(self) {
@@ -1168,6 +1168,11 @@
      * Returns true if the PyretTensors `a` and `b` have a combination of
      * shapes that a TensorFlow.js binary operation will successfully
      * process; otherwise, throws a Pyret runtime exception.
+     *
+     * This calculation is based on the `assertAndGetBroadcastShape` method
+     * from TensorFlow.js (see https://github.com/tensorflow/tfjs-core/
+     * blob/master/src/ops/broadcast_util.ts).
+     *
      * @param {PyretTensor} a The first PyretTensor
      * @param {PyretTensor} b The second PyretTensor
      */
@@ -1179,9 +1184,8 @@
       const bShape  = bTensor.shape;
       const aRank   = aShape.length;
       const bRank   = bShape.length;
-      // This calculation is taken from the `assertAndGetBroadcastShape` method
-      // in TensorFlow.js. If at any axis, the size of that axis in both A and
-      // B are greater than 1, they must be the same size:
+      // If at any axis, the size of that axis in both A and B are greater
+      // than 1, they must be the same size:
       const maxLength = Math.max(aRank, bRank);
       for (let i = 0; i < maxLength; i++) {
         const a = aShape[aRank - i - 1] || 1;
@@ -3331,8 +3335,8 @@
           runtime.checkNumInteger(rightCrop);
           // tf.layers.cropping2D needs the crop info in a nested array format
           // (see https://js.tensorflow.org/api/0.12.0/#layers.cropping2D):
-          const verticalCrops = [topCrop, bottomCrop].map(runtime.num_to_fixnum);
-          const horizontalCrops = [leftCrop, rightCrop].map(runtime.num_to_fixnum);
+          const verticalCrops = [topCrop, bottomCrop].map(x => runtime.num_to_fixnum(x));
+          const horizontalCrops = [leftCrop, rightCrop].map(x => runtime.num_to_fixnum(x));
           return [verticalCrops, horizontalCrops];
         },
         required: true,
@@ -3378,7 +3382,7 @@
           runtime.checkNumInteger(height);
           // tf.layers.depthwiseConv2d needs the info in this format (see
           // https://js.tensorflow.org/api/0.12.0/#layers.depthwiseConv2d):
-          return [width, height].map(runtime.num_to_fixnum);;
+          return [width, height].map(x => runtime.num_to_fixnum(x));
         },
         required: true,
       },
@@ -3813,7 +3817,7 @@
           runtime.checkNumInteger(horizontal);
           // tf.layers.averagePooling1d needs the info in this format (see
           // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
-          return [vertical, horizontal].map(runtime.num_to_fixnum);
+          return [vertical, horizontal].map(x => runtime.num_to_fixnum(x));
         },
       },
       "strides": {
@@ -3829,7 +3833,7 @@
           runtime.checkNumInteger(horizontal);
           // tf.layers.averagePooling1d needs the info in this format (see
           // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
-          return [vertical, horizontal].map(runtime.num_to_fixnum);
+          return [vertical, horizontal].map(x => runtime.num_to_fixnum(x));
         },
       },
       "padding": {
@@ -4013,7 +4017,7 @@
           runtime.checkNumInteger(horizontal);
           // tf.layers.averagePooling1d needs the info in this format (see
           // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
-          return [vertical, horizontal].map(runtime.num_to_fixnum);
+          return [vertical, horizontal].map(x => runtime.num_to_fixnum(x));
         },
       },
       "strides": {
@@ -4029,7 +4033,7 @@
           runtime.checkNumInteger(horizontal);
           // tf.layers.averagePooling1d needs the info in this format (see
           // https://js.tensorflow.org/api/0.12.0/#layers.averagePooling2d):
-          return [vertical, horizontal].map(runtime.num_to_fixnum);
+          return [vertical, horizontal].map(x => runtime.num_to_fixnum(x));
         },
       },
       "padding": {
