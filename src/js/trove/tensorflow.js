@@ -1141,11 +1141,11 @@
      * Returns true if the PyretTensors `a` and `b` have the same shape;
      * otherwise, throws a Pyret runtime exception.
      *
-     * This is not intended to be a Pyret function, but instead a helper JS
-     * function for the "strict" operation methods.
+     * This is intended to be a helper function for the "strict" arithmetic
+     * operation methods.
+     *
      * @param {PyretTensor} a The first PyretTensor
      * @param {PyretTensor} b The second PyretTensor
-     * @returns {JSBoolean} Always returns true if no exception was thrown
      */
     function assertEqualShapes(a, b) {
       // Get the underlying TensorFlow.js representation of Tensor shapes:
@@ -1162,7 +1162,36 @@
             "the same shape as the second tensor");
         }
       }
-      return true;
+    }
+
+    /**
+     * Returns true if the PyretTensors `a` and `b` have a combination of
+     * shapes that a TensorFlow.js binary operation will successfully
+     * process; otherwise, throws a Pyret runtime exception.
+     * @param {PyretTensor} a The first PyretTensor
+     * @param {PyretTensor} b The second PyretTensor
+     */
+    function assertValidShapeCombination(a, b) {
+      // Get the underlying TensorFlow.js representation of Tensor shapes:
+      const aTensor = checkAndUnwrapTensor(a);
+      const bTensor = checkAndUnwrapTensor(b);
+      const aShape  = aTensor.shape;
+      const bShape  = bTensor.shape;
+      const aRank   = aShape.length;
+      const bRank   = bShape.length;
+      // This calculation is taken from the `assertAndGetBroadcastShape` method
+      // in TensorFlow.js. If at any axis, the size of that axis in both A and
+      // B are greater than 1, they must be the same size:
+      const maxLength = Math.max(aRank, bRank);
+      for (let i = 0; i < maxLength; i++) {
+        const a = aShape[aRank - i - 1] || 1;
+        const b = bShape[bRank - i - 1] || 1;
+        if ((a > 1) && (b > 1) && (a !== b)) {
+          runtime.ffi.throwMessageException("Tensors could not be applied " +
+            "as binary operation arguments with shapes " + aShape + " and " +
+            bShape + ".");
+        }
+      }
     }
 
     /**
@@ -1173,6 +1202,7 @@
      */
     function addTensors(a, b) {
       arity(2, arguments, "add-tensors", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.add, a, b);
     }
 
@@ -1197,6 +1227,7 @@
      */
     function subtractTensors(a, b) {
       arity(2, arguments, "subtract-tensors", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.sub, a, b);
     }
 
@@ -1221,6 +1252,7 @@
      */
     function multiplyTensors(a, b) {
       arity(2, arguments, "multiply-tensors", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.mul, a, b);
     }
 
@@ -1245,6 +1277,7 @@
      */
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.div, a, b);
     }
 
@@ -1270,6 +1303,7 @@
      */
     function floorDivideTensors(a, b) {
       arity(2, arguments, "floor-divide-tensors", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.floorDiv, a, b);
     }
 
@@ -1281,6 +1315,7 @@
      */
     function maxTensor(a, b) {
       arity(2, arguments, "tensor-max", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.maximum, a, b);
     }
 
@@ -1305,6 +1340,7 @@
      */
     function minTensor(a, b) {
       arity(2, arguments, "tensor-min", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.minimum, a, b);
     }
 
@@ -1329,6 +1365,7 @@
      */
     function moduloTensor(a, b) {
       arity(2, arguments, "tensor-modulo", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.mod, a, b);
     }
 
@@ -1353,6 +1390,7 @@
      */
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.pow, a, b);
     }
 
@@ -1377,6 +1415,7 @@
      */
     function tensorSquaredDifference(a, b) {
       arity(2, arguments, "squared-difference", false);
+      assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.squaredDifference, a, b);
     }
 
