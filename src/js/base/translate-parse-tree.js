@@ -414,18 +414,33 @@ define("pyret-base/js/translate-parse-tree", [], function() {
           // (check-test left op)
           //             0    1
           return nodes['s-check-test'](
-            pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeNone());
-        } else if (kids.length === 3) {
-          // (check-test left op right)
-          //             0    1  2
+            pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeNone(), makeNone());
+        } else {
+          var refinement, right, because;
+          if (kids[2].name === "PERCENT") {
+            // (check-test left op PERCENT LPAREN refinement RPAREN right ...)
+            //             0    1                 4                 6
+            refinement = makeSome(tr(kids[4]));
+            right = makeSome(tr(kids[6]));
+          } else if (kids[2].name === "BECAUSE") {
+            // (check-test left does-not-raise because ...)
+            refinement = makeNone();
+            right = makeNone();
+          } else {
+            // (check-test left op right ...)
+            //             0    1  2
+            refinement = makeNone();
+            right = makeSome(tr(kids[2]));
+          }
+          if (kids[kids.length - 2].name === "BECAUSE") {
+            // (check-test ... right BECAUSE cause)
+            //                       len-2   len-1
+            because = makeSome(tr(kids[kids.length - 1]));
+          } else {
+            because = makeNone();
+          }
           return nodes['s-check-test'](
-            pos(node.pos), tr(kids[1]), makeNone(), tr(kids[0]), makeSome(tr(kids[2])));
-        }
-        else {
-          // (check-test left op PERCENT LPAREN refinement RPAREN right)
-          //             0    1                 4                 6
-          return nodes['s-check-test'](
-            pos(node.pos), tr(kids[1]), makeSome(tr(kids[4])), tr(kids[0]), makeSome(tr(kids[6])));
+            pos(node.pos), tr(kids[1]), refinement, tr(kids[0]), right, because);
         }
       },
       'binop-expr': function(node) {

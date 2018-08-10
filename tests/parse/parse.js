@@ -401,6 +401,12 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("a :: List<A, B> = a")).not.toBe(false);
     });
 
+    it("should parse angle brackets with trailing whitespace in annotations", function() {
+      expect(parse("a :: List#|comment|#<A> = a")).not.toBe(false);
+      expect(parse("a :: List<A > = a")).not.toBe(false);
+      expect(parse("a :: List<A, B#|comment|#> = a")).not.toBe(false);
+    });
+
     it("should parse angle brackets with whitespace as gt/lt", function() {
       expect(parse("1\n<\n2 or false\n B > (id)")).not.toBe(false);
       expect(parse("1<\n2 or false, B > (id)")).toBe(false);

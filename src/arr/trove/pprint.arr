@@ -49,13 +49,7 @@ provide-types *
 import global as _
 import base as _
 import valueskeleton as VS
-import lists as lists
-
-link = lists.link
-empty = lists.empty
-type List = lists.List
-list = lists.list
-is-empty = lists.is-empty
+include lists
 
 data PPrintDoc:
   | mt-doc(flat-width :: Number, has-hardline :: Boolean)
@@ -152,8 +146,8 @@ fun format(width, doc :: PPrintDoc) block:
   end
   fun gen-output() block:
     output := link(cur-line, output)
-    for lists.fold(lines from empty, line from output):
-      l = for lists.fold(acc from "", piece from line):
+    for fold(lines from empty, line from output):
+      l = for fold(acc from "", piece from line):
         piece + acc
       end
       link(l, lines)
@@ -237,7 +231,7 @@ commabreak = comma + sbreak(1)
 semibreak = semi + sbreak(1)
 
 fun flow-map(sep, f, items):
-  for lists.fold(acc from mt-doc, shadow item from items):
+  for fold(acc from mt-doc, shadow item from items):
     if is-mt-doc(acc): f(item)
     else: acc + group(sep + f(item))
     end
@@ -272,16 +266,16 @@ fun soft-surround(n :: Number, b :: Number, open :: PPrintDoc, contents :: PPrin
   end
 end
 
-fun separate(sep :: PPrintDoc, docs :: lists.List):
-  for lists.fold(acc from mt-doc, d from docs):
+fun separate(sep :: PPrintDoc, docs :: List):
+  for fold(acc from mt-doc, d from docs):
     if is-mt-doc(d): acc
     else if is-mt-doc(acc): d
     else: acc + sep + d
     end
   end
 end
-fun surround-separate(n :: Number, b :: Number, void :: PPrintDoc, open :: PPrintDoc, sep :: PPrintDoc, close :: PPrintDoc, docs :: lists.List):
-  if lists.is-empty(docs): void
+fun surround-separate(n :: Number, b :: Number, void :: PPrintDoc, open :: PPrintDoc, sep :: PPrintDoc, close :: PPrintDoc, docs :: List):
+  if is-empty(docs): void
   else: surround(n, b, open, separate(sep, docs), close)
   end
 end
