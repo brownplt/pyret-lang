@@ -4,6 +4,16 @@ include tensorflow
 ## Tensor Functions ##
 ######################
 
+check "[tensor: ...] convenience constructor":
+  [tensor: ] raises "A tensor must contain at least 1 value"
+
+  [tensor: 1] does-not-raise
+  [tensor: 1.32] does-not-raise
+  [tensor: ~9.21] does-not-raise
+  [tensor: -43] does-not-raise
+  [tensor: ~9.21, 4, 0.12, -43] does-not-raise
+end
+
 check "is-tensor":
   is-tensor([tensor: 1, 2, 3]) is true
   is-tensor(true) is false
@@ -12,10 +22,12 @@ check "is-tensor":
 end
 
 check "list-to-tensor":
-  list-to-tensor(empty) satisfies is-tensor
+  list-to-tensor(empty) raises "A tensor must contain at least 1 value"
+
+  list-to-tensor([list: 1]) satisfies is-tensor
+  list-to-tensor([list: 4, 5, 6]) satisfies is-tensor
   list-to-tensor([list: 5, 3, 4, 7]) satisfies is-tensor
 
-  list-to-tensor(empty).data-now() is empty
   list-to-tensor([list: 9, 3, 2, 3]).data-now() is-roughly [list: 9, 3, 2, 3]
   list-to-tensor([list: 3, 2, 1, 0, 4, 9]).as-2d(2, 3).shape() is [list: 2, 3]
 end
@@ -74,10 +86,6 @@ check "multinomial":
     raises "must be a one-dimensional or two-dimensional Tensor"
 
   # Check that it raises an error if the input Tensor's size is too small:
-  multinomial([tensor: ], 1, none, false)
-    raises "must have at least two possible outcomes"
-  multinomial([tensor: ], 3, none, false)
-    raises "must have at least two possible outcomes"
   multinomial([tensor: 0.4], 1, none, false)
     raises "must have at least two possible outcomes"
   multinomial([tensor: 0.8], 7, none, false)
@@ -123,7 +131,6 @@ end
 ###############################
 
 check "make-variable":
-  make-variable([tensor: ]).data-now() is-roughly empty
   make-variable([tensor: 1]).data-now() is-roughly [list: 1]
 
   # Check that we can perform normal Tensor operations on mutable Tensors:
@@ -245,14 +252,12 @@ check "Tensor .as-type":
 end
 
 check "Tensor .data-now":
-  [tensor: ].data-now() is-roughly [list: ]
   [tensor: 1].data-now() is-roughly [list: 1]
   [tensor: 1.43].data-now() is-roughly [list: 1.43]
   [tensor: -3.21, 9.4, 0.32].data-now() is-roughly [list: -3.21, 9.4, 0.32]
 end
 
 check "Tensor .to-float":
-  [tensor: ].to-float().data-now() is-roughly [list: ]
   [tensor: 0].to-float().data-now() is-roughly [list: 0]
   [tensor: 1].to-float().data-now() is-roughly [list: 1]
   [tensor: 0.42].to-float().data-now() is-roughly [list: 0.42]
@@ -264,10 +269,6 @@ check "Tensor .to-float":
 end
 
 check "Tensor .to-int":
-  # NOTE(ZacharyEspiritu): The below test doesn't work since TensorFlow.js
-  # raises a bizzare error due to what I think is a TensorFlow.js issue.
-  # Leaving commented out for now.
-  # [tensor: ].to-int().data-now() is-roughly [list: ]
   [tensor: 0].to-int().data-now() is-roughly [list: 0]
   [tensor: 1].to-int().data-now() is-roughly [list: 1]
   [tensor: 0.42].to-int().data-now() is-roughly [list: 0]
@@ -279,10 +280,6 @@ check "Tensor .to-int":
 end
 
 check "Tensor .to-bool":
-  # NOTE(ZacharyEspiritu): The below test doesn't work since TensorFlow.js
-  # raises a bizzare error due to what I think is a TensorFlow.js issue.
-  # Leaving commented out for now.
-  # [tensor: ].to-bool().data-now() is-roughly [list: ]
   [tensor: 0].to-bool().data-now() is-roughly [list: 0]
   [tensor: 1].to-bool().data-now() is-roughly [list: 1]
   [tensor: 0.42].to-bool().data-now() is-roughly [list: 1]
@@ -294,10 +291,6 @@ check "Tensor .to-bool":
 end
 
 check "Tensor .to-buffer":
-  empty-buffer = [tensor: ].to-buffer()
-  empty-buffer satisfies is-tensor-buffer
-  empty-buffer.get-all-now() is-roughly [list: ]
-
   some-shape  = [list: 2, 2]
   some-values = [list: 4, 5, 9, 3]
   some-tensor = list-to-tensor(some-values).reshape(some-shape)
@@ -308,13 +301,11 @@ check "Tensor .to-buffer":
 end
 
 check "Tensor .to-variable":
-  [tensor: ].to-variable() does-not-raise
   [tensor: 4, 5, 1].to-variable() does-not-raise
   [tensor: 0, 5, 1, 9, 8, 4].as-2d(3, 2).to-variable() does-not-raise
 end
 
 check "Tensor .reshape":
-  [tensor: ].reshape([list: ]) raises "Cannot reshape"
   [tensor: 3, 2].reshape([list: ]) raises "Cannot reshape"
   [tensor: 3, 2].reshape([list: 6]) raises "Cannot reshape"
   [tensor: 3, 2, 1].reshape([list: 2, 4]) raises "Cannot reshape"
