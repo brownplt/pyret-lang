@@ -1245,7 +1245,7 @@
      *
      * @param {PyretTensor} pyretTensor
      */
-    function assertDoesNotContainZero(pyretTensor) {
+    function assertTensorDoesNotContainZero(pyretTensor) {
       const jsTensor = checkAndUnwrapTensor(pyretTensor);
       const jsData   = jsTensor.dataSync();
       jsData.forEach(x => {
@@ -1364,7 +1364,7 @@
       arity(2, arguments, "divide-tensors", false);
       assertTensorNonEmpty(a);
       assertTensorNonEmpty(b);
-      assertDoesNotContainZero(b);
+      assertTensorDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.div, a, b);
     }
@@ -1393,7 +1393,7 @@
       arity(2, arguments, "floor-divide-tensors", false);
       assertTensorNonEmpty(a);
       assertTensorNonEmpty(b);
-      assertDoesNotContainZero(b);
+      assertTensorDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.floorDiv, a, b);
     }
@@ -1462,7 +1462,7 @@
       arity(2, arguments, "tensor-modulo", false);
       assertTensorNonEmpty(a);
       assertTensorNonEmpty(b);
-      assertDoesNotContainZero(b);
+      assertTensorDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.mod, a, b);
     }
