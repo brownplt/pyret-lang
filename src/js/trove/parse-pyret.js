@@ -71,7 +71,7 @@
       }
     }
 
-    const opLookup = {
+    const binops = {
       "+":   RUNTIME.makeString("op+"),
       "-":   RUNTIME.makeString("op-"),
       "*":   RUNTIME.makeString("op*"),
@@ -87,24 +87,37 @@
       "<=>": RUNTIME.makeString("op<=>"),
       "<>":  RUNTIME.makeString("op<>"),
       "and": RUNTIME.makeString("opand"),
-      "or":  RUNTIME.makeString("opor"),
+      "or":  RUNTIME.makeString("opor")
+    };
 
-      "is":                function(l){return RUNTIME.getField(ast, "s-op-is").app(l);},
-      "is-roughly":        function(l){return RUNTIME.getField(ast, "s-op-is-roughly").app(l);},
-      "is==":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op==");},
-      "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
-      "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
-      "is-not":            function(l){return RUNTIME.getField(ast, "s-op-is-not").app(l);},
-      "is-not==":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op==");},
-      "is-not=~":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op=~");},
-      "is-not<=>":         function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op<=>");},
-      "satisfies":         function(l){return RUNTIME.getField(ast, "s-op-satisfies").app(l);},
-      "violates":          function(l){return RUNTIME.getField(ast, "s-op-satisfies-not").app(l);},
-      "raises":            function(l){return RUNTIME.getField(ast, "s-op-raises").app(l);},
-      "raises-other-than": function(l){return RUNTIME.getField(ast, "s-op-raises-other").app(l);},
-      "does-not-raise":    function(l){return RUNTIME.getField(ast, "s-op-raises-not").app(l);},
-      "raises-satisfies":  function(l){return RUNTIME.getField(ast, "s-op-raises-satisfies").app(l);},
-      "raises-violates":   function(l){return RUNTIME.getField(ast, "s-op-raises-violates").app(l);},
+    function makeCheckop1(opname) {
+      return function(l) {
+        return RUNTIME.getField(ast, opname).app(l);
+      }
+    }
+    function makeCheckop2(opname, eqname) {
+      return function(l) {
+        return RUNTIME.getField(ast, opname).app(l, eqname);
+      }
+    }
+    const checkops = {
+      "is":                makeCheckop1("s-op-is"),
+      "is":                makeCheckop1("s-op-is"),
+      "is-roughly":        makeCheckop1("s-op-is-roughly"),
+      "is==":              makeCheckop2("s-op-is-op", "op=="),
+      "is=~":              makeCheckop2("s-op-is-op", "op=~"),
+      "is<=>":             makeCheckop2("s-op-is-op", "op<=>"),
+      "is-not":            makeCheckop1("s-op-is-not"),
+      "is-not==":          makeCheckop2("s-op-is-not-op", "op=="),
+      "is-not=~":          makeCheckop2("s-op-is-not-op", "op=~"),
+      "is-not<=>":         makeCheckop2("s-op-is-not-op", "op<=>"),
+      "satisfies":         makeCheckop1("s-op-satisfies"),
+      "violates":          makeCheckop1("s-op-satisfies-not"),
+      "raises":            makeCheckop1("s-op-raises"),
+      "raises-other-than": makeCheckop1("s-op-raises-other"),
+      "does-not-raise":    makeCheckop1("s-op-raises-not"),
+      "raises-satisfies":  makeCheckop1("s-op-raises-satisfies"),
+      "raises-violates":   makeCheckop1("s-op-raises-violates")
     }
 
     function translate(node, fileName) {
@@ -117,7 +130,8 @@
             return RUNTIME.getField(ast, con).app.apply(this, args);
           }
         },
-        "opLookup": opLookup,
+        "binops": binops,
+        "checkops": checkops,
         "makeLink": function(head, tail) {
           return RUNTIME.getField(lists, "link").app(head, tail);
         },
@@ -175,7 +189,7 @@
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "COLONCOLON")
             RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));
-          else if (typeof opLookup[String(nextTok.value).trim()] === "function")
+          else if (typeof checkops[String(nextTok.value).trim()] === "function")
             RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
           else
             RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));

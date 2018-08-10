@@ -3,9 +3,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
   function translate(ast, fileName, constructors) {
     // makeNode will be called on the node name, followed by the node args
     let makeNode             = constructors.makeNode;
-    // opLookup should be a dictionary that
-    // maps bin-ops to strings and check-ops to (srcloc -> ast) functions.
-    let opLookup             = constructors.opLookup;
+    let binops               = constructors.binops;
+    let checkops             = constructors.checkops;
     let makeLink             = constructors.makeLink;
     let makeEmpty            = constructors.makeEmpty;
     let makeString           = constructors.makeString;
@@ -474,8 +473,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'check-op': function(node) {
         // (check-op str)
         var opname = String(node.kids[0].value).trim();
-        if (opLookup[opname]) {
-          return opLookup[opname](pos(node.pos));
+        if (checkops[opname]) {
+          return checkops[opname](pos(node.pos));
         }
         else {
           throw "Unknown operator: " + opname;
@@ -484,8 +483,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'check-op-postfix': function(node) {
         // (check-op-postfix str)
         var opname = String(node.kids[0].value).trim();
-        if (opLookup[opname]) {
-          return opLookup[opname](pos(node.pos));
+        if (checkops[opname]) {
+          return checkops[opname](pos(node.pos));
         }
         else {
           throw "Unknown operator: " + opname;
@@ -511,8 +510,8 @@ define("pyret-base/js/translate-parse-tree", [], function() {
       'binop': function(node) {
         // (binop str)
         var opname = String(node.kids[0].value).trim();
-        if(opLookup[opname]) {
-          return opLookup[opname];
+        if(binops[opname]) {
+          return binops[opname];
         }
         else {
           throw "Unknown operator: " + opname;
