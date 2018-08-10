@@ -169,6 +169,43 @@
       "train-adamax": ["arrow", [["Option", "Number"], ["Option", "Number"], ["Option", "Number"], ["Option", "Number"], ["Option", "Number"]], "Optimizer"],
       "train-rmsprop": ["arrow", ["Number", ["Option", "Number"], ["Option", "Number"], ["Option", "Number"], "Boolean"], "Optimizer"],
     },
+    aliases: {
+      "Tensor": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "Tensor"
+      },
+      "TensorBuffer": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "TensorBuffer"
+      },
+      "Model": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "Model"
+      },
+      "Sequential": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "Sequential"
+      },
+      "SymbolicTensor": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "SymbolicTensor"
+      },
+      "Layer": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "Layer"
+      },
+      "Optimizer": {
+        tag: "name",
+        origin: { "import-type": "$ELF" },
+        name: "Optimizer"
+      },
+    },
     datatype: {
       "Tensor": ["data", "Tensor", [], [], {
         "_output": ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
