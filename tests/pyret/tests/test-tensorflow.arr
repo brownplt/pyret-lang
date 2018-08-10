@@ -1013,167 +1013,419 @@ end
 ## Basic Math Operations ##
 ###########################
 
-#|
 check "tensor-abs":
+  # Check one-dimensional usages:
+  tensor-abs([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-abs([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-abs([tensor: -1]).data-now() is-roughly [list: 1]
+  tensor-abs([tensor: -1, -2, -3]).data-now() is-roughly [list: 1, 2, 3]
+  tensor-abs([tensor: 6, 2, -4]).data-now() is-roughly [list: 6, 2, 4]
+  tensor-abs([tensor: 21, 0, 32, 2]).data-now() is-roughly [list: 21, 0, 32, 2]
+  tensor-abs([tensor: -1, 0, 16, -4]).data-now() is-roughly [list: 1, 0, 16, 4]
 
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-abs = tensor-abs([tensor: -4, 5, -6, -7, -8, 9].as-2d(3, 2))
+  two-dim-abs.shape() is [list: 3, 2]
+  two-dim-abs.data-now() is-roughly [list: 4, 5, 6, 7, 8, 9]
+
+  three-dim-abs = tensor-abs([tensor: 0, 8, -7, 6, -5, -4, 3, 2].as-3d(2, 2, 2))
+  three-dim-abs.shape() is [list: 2, 2, 2]
+  three-dim-abs.data-now() is-roughly [list: 0, 8, 7, 6, 5, 4, 3, 2]
 end
 
 check "tensor-acos":
+  # Check one-dimensional usages:
+  tensor-acos([tensor: 1]).data-now() is-roughly [list: 0]
+  tensor-acos([tensor: 0]).data-now() is-roughly [list: ~1.5707963]
+  tensor-acos([tensor: -1]).data-now() is-roughly [list: ~3.1415927]
+  tensor-acos([tensor: 0.5, 0.2, 0.6]).data-now()
+    is-roughly [list: ~1.0471975, ~1.3694384, ~0.9272952]
 
+  # Check bounding values:
+  tensor-acos([tensor: 10])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+  tensor-acos([tensor: -1, -2, -3])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+  tensor-acos([tensor: 6, 2, -4])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+  tensor-acos([tensor: -1, 0, 16, 1])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-acos = tensor-acos([tensor: 0.5, 0.2, 0.6, 0.6].as-2d(2, 2))
+  two-dim-acos.shape() is [list: 2, 2]
+  two-dim-acos.data-now()
+    is-roughly [list: ~1.0471975, ~1.3694384, ~0.9272952, ~0.9272952]
 end
 
 check "tensor-acosh":
+  # Check one-dimensional usages:
+  tensor-acosh([tensor: 1]).data-now() is-roughly [list: 0]
+  tensor-acosh([tensor: 2]).data-now() is-roughly [list: ~1.3169579]
+  tensor-acosh([tensor: 4]).data-now() is-roughly [list: ~2.0634369]
+  tensor-acosh([tensor: 1, 5, 10, 200]).data-now()
+    is-roughly [list: ~0, ~2.2924315, ~2.9932229, ~5.9914584]
+  tensor-acosh([tensor: 443, 20, 12, 34, 50]).data-now()
+    is-roughly [list: ~6.7867159, ~3.6882536, ~3.1763131, ~4.2192912, ~4.6050701]
 
+  # Check bounding values:
+  tensor-acosh([tensor: 0])
+    raises "Values in the input Tensor must be at least 1"
+  tensor-acosh([tensor: -10])
+    raises "Values in the input Tensor must be at least 1"
+  tensor-acosh([tensor: 4, 1, 10, 32, -2, 82])
+    raises "Values in the input Tensor must be at least 1"
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-acosh = tensor-acosh([tensor: 1, 2, 3, 4, 5, 6].as-2d(2, 3))
+  two-dim-acosh.shape() is [list: 2, 3]
+  two-dim-acosh.data-now()
+    is-roughly [list: ~0, ~1.3169579, ~1.7627471, ~2.0634369, ~2.2924315, ~2.4778885]
 end
 
 check "tensor-asin":
+  # Check one-dimensional usages:
+  tensor-asin([tensor: 1]).data-now() is-roughly [list: ~1.5707963]
+  tensor-asin([tensor: 0.5]).data-now() is-roughly [list: ~0.5235987]
+  tensor-asin([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-asin([tensor: -0.5]).data-now() is-roughly [list: ~-0.5235987]
+  tensor-asin([tensor: -1]).data-now() is-roughly [list: ~-1.5707963]
+  tensor-asin([tensor: 0.5, 0.2, 0.6]).data-now()
+    is-roughly [list: ~0.5235987, ~0.2013579, ~0.6435011]
 
+  # Check bounding values:
+  tensor-asin([tensor: 10])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+  tensor-asin([tensor: -1, -2, -3])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+  tensor-asin([tensor: 6, 2, -4])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+  tensor-asin([tensor: -1, 0, 16, 1])
+    raises "Values in the input Tensor must be between -1 and 1, inclusive"
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-asin = tensor-asin([tensor: 0.5, 0.2, 0.6, 0.6].as-2d(2, 2))
+  two-dim-asin.shape() is [list: 2, 2]
+  two-dim-asin.data-now()
+    is-roughly [list: ~0.5235987, ~0.2013579, ~0.6435011, ~0.6435011]
 end
 
 check "tensor-asinh":
+  # Check one-dimensional usages:
+  tensor-asinh([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-asinh([tensor: 1]).data-now() is-roughly [list: ~0.8813736]
+  tensor-asinh([tensor: -1]).data-now() is-roughly [list: ~-0.8813736]
+  tensor-asinh([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-0.8813736, ~-1.4436353, ~-1.8184462]
+  tensor-asinh([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~2.4917798, ~1.4436354, ~-2.0947132]
+  tensor-asinh([tensor: 21, 0, 32, 2]).data-now()
+    is-roughly [list: ~3.7382359, ~0, ~4.1591272, ~1.4436354]
 
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-asinh = tensor-asinh([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-asinh.shape() is [list: 2, 2]
+  two-dim-asinh.data-now()
+    is-roughly [list: ~-2.0947132, ~2.3124384, ~-2.4917776, ~-2.6441206]
 end
 
 check "tensor-atan":
+  # Check one-dimensional usages:
+  tensor-atan([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-atan([tensor: 1]).data-now() is-roughly [list: ~0.7853981]
+  tensor-atan([tensor: -1]).data-now() is-roughly [list: ~-0.7853981]
+  tensor-atan([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-0.7853981, ~-1.1071487, ~-1.2490458]
+  tensor-atan([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~1.4056477, ~1.1071487, ~-1.3258177]
+  tensor-atan([tensor: 21, 0, 32, 2]).data-now()
+    is-roughly [list: ~1.5232132, ~0, ~1.5395565, ~1.1071487]
 
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-atan = tensor-atan([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-atan.shape() is [list: 2, 2]
+  two-dim-atan.data-now()
+    is-roughly [list: ~-1.3258177, ~1.3734008, ~-1.40564775, ~-1.4288992]
 end
 
 check "tensor-atan2":
-
+  ...
 end
 
 check "tensor-atanh":
+  # Check one-dimensional usages:
+  tensor-atanh([tensor: 0.5]).data-now() is-roughly [list: ~0.5493061]
+  tensor-atanh([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-atanh([tensor: -0.5]).data-now() is-roughly [list: ~-0.5493061]
+  tensor-atanh([tensor: -0.9]).data-now() is-roughly [list: ~-1.4722193]
+  tensor-atanh([tensor: 0.5, 0.2, 0.6]).data-now()
+    is-roughly [list: ~0.5493061, ~0.2027325, ~0.6931471]
 
+  # Check bounding values:
+  tensor-atanh([tensor: 1])
+    raises "Values in the input Tensor must be between -1 and 1, exclusive"
+  tensor-atanh([tensor: -1])
+    raises "Values in the input Tensor must be between -1 and 1, exclusive"
+  tensor-atanh([tensor: 10])
+    raises "Values in the input Tensor must be between -1 and 1, exclusive"
+  tensor-atanh([tensor: -1, -2, -3])
+    raises "Values in the input Tensor must be between -1 and 1, exclusive"
+  tensor-atanh([tensor: 6, 2, -4])
+    raises "Values in the input Tensor must be between -1 and 1, exclusive"
+  tensor-atanh([tensor: 0, 16, -1, 9, 1])
+    raises "Values in the input Tensor must be between -1 and 1, exclusive"
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-atanh = tensor-atanh([tensor: 0.5, 0.2, 0.6, 0.6].as-2d(2, 2))
+  two-dim-atanh.shape() is [list: 2, 2]
+  two-dim-atanh.data-now()
+    is-roughly [list:  ~0.5493061, ~0.2027325, ~0.6931471, ~0.6931471]
 end
 
 check "tensor-ceil":
+  # Check one-dimensional usages on integer tensors:
+  tensor-ceil([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-ceil([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-ceil([tensor: -1]).data-now() is-roughly [list: -1]
+  tensor-ceil([tensor: -1, -2, -3]).data-now() is-roughly [list: -1, -2, -3]
 
+  # Check one-dimensional usages on float tensors:
+  tensor-ceil([tensor: 0.1]).data-now() is-roughly [list: 1]
+  tensor-ceil([tensor: 0.3]).data-now() is-roughly [list: 1]
+  tensor-ceil([tensor: 0.5]).data-now() is-roughly [list: 1]
+  tensor-ceil([tensor: 0.8]).data-now() is-roughly [list: 1]
+  tensor-ceil([tensor: 0.999]).data-now() is-roughly [list: 1]
+  tensor-ceil([tensor: 1.1]).data-now() is-roughly [list: 2]
+  tensor-ceil([tensor: -0.2]).data-now() is-roughly [list: 0]
+  tensor-ceil([tensor: -0.5]).data-now() is-roughly [list: 0]
+  tensor-ceil([tensor: -0.9]).data-now() is-roughly [list: 0]
+  tensor-ceil([tensor: 3.5, 5.2, 1.6]).data-now() is-roughly [list: 4, 6, 2]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-ceil-1 = tensor-ceil([tensor: 0.2, 4.3, 9.3, 10.1].as-2d(2, 2))
+  two-dim-ceil-1.shape() is [list: 2, 2]
+  two-dim-ceil-1.data-now() is-roughly [list: 1, 5, 10, 11]
+
+  two-dim-ceil-2 = tensor-ceil([tensor: -4, 5, -6, -7, -8, 9].as-2d(3, 2))
+  two-dim-ceil-2.shape() is [list: 3, 2]
+  two-dim-ceil-2.data-now() is-roughly [list: -4, 5, -6, -7, -8, 9]
+
+  three-dim-ceil = tensor-ceil([tensor: 0, 8, -7, 6, -5, -4, 3, 2].as-3d(2, 2, 2))
+  three-dim-ceil.shape() is [list: 2, 2, 2]
+  three-dim-ceil.data-now() is-roughly [list: 0, 8, -7, 6, -5, -4, 3, 2]
 end
 
 check "clip-by-value":
-
+  ...
 end
 
 check "tensor-cos":
+  # Check one-dimensional usages:
+  tensor-cos([tensor: 0]).data-now() is-roughly [list: 1]
+  tensor-cos([tensor: 1]).data-now() is-roughly [list: ~0.5403115]
+  tensor-cos([tensor: -1]).data-now() is-roughly [list: ~0.5403116]
+  tensor-cos([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~0.5403116, ~-0.4161522, ~-0.9900057]
+  tensor-cos([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~0.9601798, ~-0.4161523, ~-0.6536576]
+  tensor-cos([tensor: 21, 0, 32, 2]).data-now()
+    is-roughly [list: ~-0.5477288, ~1, ~0.8342252, ~-0.4161523]
 
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-cos = tensor-cos([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-cos.shape() is [list: 2, 2]
+  two-dim-cos.data-now()
+    is-roughly [list: ~-0.6536576, ~0.2836650, ~0.9601799, ~0.7539221]
 end
 
 check "tensor-cosh":
+  # Check one-dimensional usages:
+  tensor-cosh([tensor: 0]).data-now() is-roughly [list: 1]
+  tensor-cosh([tensor: 1]).data-now() is-roughly [list: ~1.5430805]
+  tensor-cosh([tensor: -1]).data-now() is-roughly [list: ~1.5430805]
+  tensor-cosh([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~1.5430805, ~3.7621955, ~10.0676612]
+  tensor-cosh([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~201.7155914, ~3.7621958, ~27.3082313]
 
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-cosh = tensor-cosh([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-cosh.shape() is [list: 2, 2]
+  two-dim-cosh.data-now()
+    is-roughly [list: ~27.3082313, ~74.2099533, ~201.7155914, ~548.3170776]
 end
 
 check "exponential-linear-units":
-
+  ...
 end
 
 check "elu":
-
+  ...
 end
 
 check "gauss-error":
-
+  ...
 end
 
 check "erf":
-
+  ...
 end
 
 check "tensor-exp":
-
+  ...
 end
 
 check "tensor-exp-min1":
-
+  ...
 end
 
 check "tensor-floor":
+  # Check one-dimensional usages on integer tensors:
+  tensor-floor([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-floor([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-floor([tensor: -1]).data-now() is-roughly [list: -1]
+  tensor-floor([tensor: -1, -2, -3]).data-now() is-roughly [list: -1, -2, -3]
 
+  # Check one-dimensional usages on float tensors:
+  tensor-floor([tensor: 0.1]).data-now() is-roughly [list: 0]
+  tensor-floor([tensor: 0.3]).data-now() is-roughly [list: 0]
+  tensor-floor([tensor: 0.5]).data-now() is-roughly [list: 0]
+  tensor-floor([tensor: 0.8]).data-now() is-roughly [list: 0]
+  tensor-floor([tensor: 0.999]).data-now() is-roughly [list: 0]
+  tensor-floor([tensor: 1.1]).data-now() is-roughly [list: 1]
+  tensor-floor([tensor: -0.2]).data-now() is-roughly [list: -1]
+  tensor-floor([tensor: -0.5]).data-now() is-roughly [list: -1]
+  tensor-floor([tensor: -0.9]).data-now() is-roughly [list: -1]
+  tensor-floor([tensor: 3.5, 5.2, 1.6]).data-now() is-roughly [list: 3, 5, 1]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-floor-1 = tensor-floor([tensor: 0.2, 4.3, 9.3, 10.1].as-2d(2, 2))
+  two-dim-floor-1.shape() is [list: 2, 2]
+  two-dim-floor-1.data-now() is-roughly [list: 0, 4, 9, 10]
+
+  two-dim-floor-2 = tensor-floor([tensor: -4, 5, -6, -7, -8, 9].as-2d(3, 2))
+  two-dim-floor-2.shape() is [list: 3, 2]
+  two-dim-floor-2.data-now() is-roughly [list: -4, 5, -6, -7, -8, 9]
+
+  three-dim-floor = tensor-floor([tensor: 0, 8, -7, 6, -5, -4, 3, 2].as-3d(2, 2, 2))
+  three-dim-floor.shape() is [list: 2, 2, 2]
+  three-dim-floor.data-now() is-roughly [list: 0, 8, -7, 6, -5, -4, 3, 2]
 end
 
 check "leaky-relu":
-
+  ...
 end
 
 check "tensor-log":
-
+  ...
 end
 
 check "tensor-log-plus1":
-
+  ...
 end
 
 check "log-sigmoid":
-
+  ...
 end
 
 check "tensor-negate":
-
+  ...
 end
 
 check "parametric-relu":
-
+  ...
 end
 
 check "tensor-reciprocal":
-
+  ...
 end
 
 check "relu":
-
+  ...
 end
 
 check "tensor-round":
+  # Check one-dimensional usages on integer tensors:
+  tensor-round([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-round([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-round([tensor: -1]).data-now() is-roughly [list: -1]
+  tensor-round([tensor: -1, -2, -3]).data-now() is-roughly [list: -1, -2, -3]
 
+  # Check weird behavior with rounding on Roughnums:
+  tensor-round([tensor: 0.5]).data-now() is-roughly [list: 0] # rounds down
+  tensor-round([tensor: 3.5]).data-now() is-roughly [list: 4] # rounds up
+
+  # Check one-dimensional usages on float tensors:
+  tensor-round([tensor: 0.1]).data-now() is-roughly [list: 0]
+  tensor-round([tensor: 0.3]).data-now() is-roughly [list: 0]
+  tensor-round([tensor: 0.8]).data-now() is-roughly [list: 1]
+  tensor-round([tensor: 0.999]).data-now() is-roughly [list: 1]
+  tensor-round([tensor: 1.1]).data-now() is-roughly [list: 1]
+  tensor-round([tensor: -0.2]).data-now() is-roughly [list: 0]
+  tensor-round([tensor: -0.7]).data-now() is-roughly [list: -1]
+  tensor-round([tensor: 3.5, 5.2, 1.6]).data-now() is-roughly [list: 4, 5, 2]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-round-1 = tensor-round([tensor: 0.2, 4.3, 9.3, 10.1].as-2d(2, 2))
+  two-dim-round-1.shape() is [list: 2, 2]
+  two-dim-round-1.data-now() is-roughly [list: 0, 4, 9, 10]
+
+  two-dim-round-2 = tensor-round([tensor: -4, 5, -6, -7, -8, 9].as-2d(3, 2))
+  two-dim-round-2.shape() is [list: 3, 2]
+  two-dim-round-2.data-now() is-roughly [list: -4, 5, -6, -7, -8, 9]
+
+  three-dim-round = tensor-round([tensor: 0, 8, -7, 6, -5, -4, 3, 2].as-3d(2, 2, 2))
+  three-dim-round.shape() is [list: 2, 2, 2]
+  three-dim-round.data-now() is-roughly [list: 0, 8, -7, 6, -5, -4, 3, 2]
 end
 
 check "reciprocal-sqrt":
-
+  ...
 end
 
 check "scaled-elu":
-
+  ...
 end
 
 check "sigmoid":
-
+  ...
 end
 
 check "signed-ones":
-
+  ...
 end
 
 check "tensor-sin":
-
+  ...
 end
 
 check "tensor-sinh":
-
+  ...
 end
 
 check "softplus":
-
+  ...
 end
 
 check "tensor-sqrt":
-
+  ...
 end
 
 check "tensor-square":
-
+  ...
 end
 
 check "step":
-
+  ...
 end
 
 check "tensor-tan":
-
+  ...
 end
 
 check "tensor-tanh":
-
+  ...
 end
-|#
 
 ##########################
 ## Reduction Operations ##
