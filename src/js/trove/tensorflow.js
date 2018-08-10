@@ -782,8 +782,8 @@
      */
     function createTensor1(a) {
       arity(1, arguments, "tensor1", false);
-      arguments.forEach(runtime.checkNumber);
-      return createTensorFromArray(arguments);
+      runtime.checkNumber(a);
+      return createTensorFromArray([a]);
     }
 
     /**
@@ -794,8 +794,9 @@
      */
     function createTensor2(a, b) {
       arity(2, arguments, "tensor2", false);
-      arguments.forEach(runtime.checkNumber);
-      return createTensorFromArray(arguments);
+      runtime.checkNumber(a);
+      runtime.checkNumber(b);
+      return createTensorFromArray([a, b]);
     }
 
     /**
@@ -807,8 +808,10 @@
      */
     function createTensor3(a, b, c) {
       arity(3, arguments, "tensor3", false);
-      arguments.forEach(runtime.checkNumber);
-      return createTensorFromArray(arguments);
+      runtime.checkNumber(a);
+      runtime.checkNumber(b);
+      runtime.checkNumber(c);
+      return createTensorFromArray([a, b, c]);
     }
 
     /**
@@ -821,8 +824,11 @@
      */
     function createTensor4(a, b, c, d) {
       arity(4, arguments, "tensor4", false);
-      arguments.forEach(runtime.checkNumber);
-      return createTensorFromArray(arguments);
+      runtime.checkNumber(a);
+      runtime.checkNumber(b);
+      runtime.checkNumber(c);
+      runtime.checkNumber(d);
+      return createTensorFromArray([a, b, c, d]);
     }
 
     /**
@@ -836,8 +842,12 @@
      */
     function createTensor5(a, b, c, d, e) {
       arity(5, arguments, "tensor5", false);
-      arguments.forEach(runtime.checkNumber);
-      return createTensorFromArray(arguments);
+      runtime.checkNumber(a);
+      runtime.checkNumber(b);
+      runtime.checkNumber(c);
+      runtime.checkNumber(d);
+      runtime.checkNumber(e);
+      return createTensorFromArray([a, b, c, d, e]);
     }
 
     /**
