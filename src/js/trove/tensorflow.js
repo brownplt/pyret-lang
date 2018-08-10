@@ -1479,6 +1479,55 @@
     }
 
     /**
+     * Raises a Pyret runtime exception if any value in the input Tensor is
+     * less than `min` or greater than `max`; otherwise, returns nothing.
+     *
+     * If `isInclusive` is true, then uses "less than or equal to" and "greater
+     * than or equal to" to check for bound acceptance.
+     *
+     * @param {PyretTensor} tensor The tensor whose values to check
+     * @param {Number} min The lower bound; if `null`, no lower bound is
+     *  enforced
+     * @param {Number} max The upper bound; if `null`, no upper bound is
+     *  enforced
+     * @param {Boolean} isInclusive If true, uses "less than or equal to" and
+     *  "greater than or equal to" when checking against bounds
+     * @returns {PyretTensor} The result
+     */
+    function assertTensorValuesBetween(tensor, min, max, isInclusive) {
+      const jsTensor   = checkAndUnwrapTensor(tensor);
+      const tensorData = jsTensor.dataSync();
+      tensorData.forEach(x => {
+        // We're using this (min && x < min) pattern to allow for the setting
+        // of no lower or upper bound; that is, if min = null, then no lower
+        // bound is enforced, etc:
+        const inclusiveCond = ((min && x < min) || (max && x > max));
+        const exclusiveCond = ((min && x <= min) || (max && x >= max));
+        if (isInclusive ? inclusiveCond : exclusiveCond) {
+          if (min && max) {
+            const boundDesignation = isInclusive ? "inclusive" : "exclusive";
+            // Exception for when both lower and upper bound is specified:
+            runtime.ffi.throwMessageException("Values in the input " +
+              "Tensor must be between " + min + " and " + max + ", " +
+              boundDesignation + ".");
+          }
+          else if (max) {
+            const boundDesignation = isInclusive ? "at most" : "less than";
+            // Exception for when only upper bound is specified:
+            runtime.ffi.throwMessageException("Values in the input " +
+              "Tensor must be " + boundDesignation + " " + max + ".");
+          }
+          else if (min) {
+            const boundDesignation = isInclusive ? "at least" : "greater than";
+            // Exception for when only lower bound is specified:
+            runtime.ffi.throwMessageException("Values in the input " +
+              "Tensor must be " + boundDesignation + " " + min + ".");
+          }
+        }
+      });
+    }
+
+    /**
      * Computes the absolute value of the Tensor, element-wise.
      * @param {PyretTensor} x
      * @returns {PyretTensor} The result
@@ -1495,6 +1544,9 @@
      */
     function acos(x) {
       arity(1, arguments, "tensor-acos", false);
+      const lowerBound = -1;
+      const upperBound = 1;
+      assertTensorValuesBetween(x, -1, 1, true);
       return applyUnaryOpToTensor(tf.acos, x);
     }
 
@@ -1505,6 +1557,8 @@
      */
     function acosh(x) {
       arity(1, arguments, "tensor-acosh", false);
+      const lowerBound = 1;
+      assertTensorValuesBetween(x, lowerBound, null, true);
       return applyUnaryOpToTensor(tf.acosh, x);
     }
 
@@ -1515,6 +1569,9 @@
      */
     function asin(x) {
       arity(1, arguments, "tensor-asin", false);
+      const lowerBound = -1;
+      const upperBound = 1;
+      assertTensorValuesBetween(x, -1, 1, true);
       return applyUnaryOpToTensor(tf.asin, x);
     }
 
@@ -1556,6 +1613,9 @@
      */
     function atanh(x) {
       arity(1, arguments, "tensor-atanh", false);
+      const lowerBound = -1;
+      const upperBound = 1;
+      assertTensorValuesBetween(x, -1, 1, false);
       return applyUnaryOpToTensor(tf.atanh, x);
     }
 
