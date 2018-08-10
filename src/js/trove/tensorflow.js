@@ -328,9 +328,9 @@
 
     function checkMethodArity(arity, args, methodName) {
       if (args.length !== arity) {
-        var $a=new Array(args.length);
-        for (var $i=0;$i<args.length;$i++) {
-          $a[$i]=args[$i];
+        var $a = new Array(args.length);
+        for (var $i = 0; $i < args.length; $i++) {
+          $a[$i] = args[$i];
         }
         throw runtime.ffi.throwArityErrorC([methodName], arity, $a, true);
       }
@@ -782,8 +782,8 @@
      */
     function createTensor1(a) {
       arity(1, arguments, "tensor1", false);
-      runtime.checkNumber(a);
-      return createTensorFromArray([a]);
+      arguments.forEach(runtime.checkNumber);
+      return createTensorFromArray(arguments);
     }
 
     /**
@@ -794,9 +794,8 @@
      */
     function createTensor2(a, b) {
       arity(2, arguments, "tensor2", false);
-      runtime.checkNumber(a);
-      runtime.checkNumber(b);
-      return createTensorFromArray([a, b]);
+      arguments.forEach(runtime.checkNumber);
+      return createTensorFromArray(arguments);
     }
 
     /**
@@ -808,10 +807,8 @@
      */
     function createTensor3(a, b, c) {
       arity(3, arguments, "tensor3", false);
-      runtime.checkNumber(a);
-      runtime.checkNumber(b);
-      runtime.checkNumber(c);
-      return createTensorFromArray([a, b, c]);
+      arguments.forEach(runtime.checkNumber);
+      return createTensorFromArray(arguments);
     }
 
     /**
@@ -824,11 +821,8 @@
      */
     function createTensor4(a, b, c, d) {
       arity(4, arguments, "tensor4", false);
-      runtime.checkNumber(a);
-      runtime.checkNumber(b);
-      runtime.checkNumber(c);
-      runtime.checkNumber(d);
-      return createTensorFromArray([a, b, c, d]);
+      arguments.forEach(runtime.checkNumber);
+      return createTensorFromArray(arguments);
     }
 
     /**
@@ -842,12 +836,8 @@
      */
     function createTensor5(a, b, c, d, e) {
       arity(5, arguments, "tensor5", false);
-      runtime.checkNumber(a);
-      runtime.checkNumber(b);
-      runtime.checkNumber(c);
-      runtime.checkNumber(d);
-      runtime.checkNumber(e);
-      return createTensorFromArray([a, b, c, d, e]);
+      arguments.forEach(runtime.checkNumber);
+      return createTensorFromArray(arguments);
     }
 
     /**
