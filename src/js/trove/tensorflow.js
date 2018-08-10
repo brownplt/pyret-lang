@@ -1449,14 +1449,14 @@
 
     /**
      * Computes `a` raised to `b`, element-wise.
-     * @param {PyretTensor} a The first PyretTensor
-     * @param {PyretTensor} b The second PyretTensor
+     * @param {PyretTensor} base The first PyretTensor
+     * @param {PyretTensor} exp The second PyretTensor
      * @returns {PyretTensor} The result
      */
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
-      assertValidShapeCombination(a, b);
-      return applyBinaryOpToTensors(tf.pow, a, b);
+      assertValidShapeCombination(base, exp);
+      return applyBinaryOpToTensors(tf.pow, base, exp);
     }
 
     /**
