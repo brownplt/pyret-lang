@@ -136,12 +136,12 @@
       "concatenate": ["arrow", [["List", "Tensor"], ["Option", "Number"]], "Tensor"],
       "gather": ["arrow", ["Tensor", "Tensor", ["Option", "Number"]], "Tensor"],
       "reverse": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
-      "slice": ["arrow", ["Tensor", ["List", "Number"], ["List", ["Option", "Number"]]], "Tensor"],
-      "split": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
-      "stack": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
-      "tile": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
+      "slice": ["arrow", ["Tensor", ["List", "Number"], ["Option", ["List", "Number"]]], "Tensor"],
+      "split": ["arrow", ["Tensor", ["List", "Number"], ["Option", "Number"]], "Tensor"],
+      "stack": ["arrow", [["List", "Tensor"], ["Option", ["List", "Number"]]], "Tensor"],
+      "tile": ["arrow", ["Tensor", ["List", "Number"]], "Tensor"],
       "unstack": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
-      "strided-slice": ["arrow", ["Tensor", ["List", "Number"], ["List", "Number"], ["List", "Number"]], "Tensor"],
+      "strided-slice": ["arrow", ["Tensor", ["List", "NumInteger"], ["List", "NumInteger"], ["List", "Number"]], "Tensor"],
 
       // Models (Generic)
       "is-model": ["arrow", ["Any"], "Boolean"],
@@ -312,6 +312,10 @@
       }
     }
 
+    /**
+     * Helpers
+     */
+
     var unwrapObject = (obj) => { return unwrap(obj).dict; };
 
     var checkTensor = (val) => { runtime._checkAnn(["tensor"], annTensor, val); };
@@ -332,10 +336,102 @@
       }
     }
 
+    /**
+     * Helper function to unwrap a Option<Number>. If `some`, then returns a
+     * fixnum variant of the value of the Option. If `none`, returns undefined.
+     * The undefined return value is required for certain TensorFlow.js
+     * functions.
+     * @param {Option<Number>} option The Option to unwrap
+     * @returns {Number|undefined} The fixnum variant of the Option's value
+     *  or undefined
+     */
     function unwrapFixnumOption(option) {
       return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", option, {
         some: (v) => { return runtime.num_to_fixnum(v); },
         none: () => { return undefined; }
+      });
+    }
+
+    /**
+     * Helper function to convert a List<PyretTensor> to an Array[TFTensor].
+     * Raises an error if any element in the input list is not a PyretTensor,
+     * or if the input is not a List.
+     * @param {List<PyretTensor>} listOfTensors The tensors to unwrap
+     * @returns {Array[TFTensor]} The underlying TensorFlow.js representations
+     *  of each of the input Tensors
+     */
+    function checkAndUnwrapListToArray(pyretList, checkType, converter) {
+      runtime.checkList(pyretList);
+      const array = runtime.ffi.toArray(pyretList);
+      return array.map(x => {
+        checkType(x);
+        return converter(x);
+      });
+    }
+
+    /**
+     * Helper function to convert a List<PyretTensor> to an Array[TFTensor].
+     * Raises an error if any element in the input list is not a PyretTensor,
+     * or if the input is not a List.
+     * @param {List<PyretTensor>} listOfTensors The tensors to unwrap
+     * @returns {Array[TFTensor]} The underlying TensorFlow.js representations
+     *  of each of the input Tensors
+     */
+    function unwrapListOfTensorsToArray(listOfTensors) {
+      const typeChecker = checkTensor;
+      const converter   = unwrapTensor;
+      return checkAndUnwrapListToArray(listOfTensors, checkTensor, unwrapTensor);
+    }
+
+    /**
+     * Helper function to convert a List<PyretLayer> to an Array[TFLayer].
+     * Raises an error if any element in the input list is not a PyretLayer,
+     * or if the input is not a List.
+     * @param {List<PyretLayer>} listOfTensors The tensors to unwrap
+     * @returns {Array[TFLayer]} The underlying TensorFlow.js representations
+     *  of each of the input Layers
+     */
+    function unwrapListOfLayersToArray(listOfLayers) {
+      const typeChecker = checkLayer;
+      const converter   = unwrapLayer;
+      return checkAndUnwrapListToArray(v, checkLayer, unwrapLayer);
+    }
+
+    /**
+     * Helper function to convert a List<NumInteger> to an Array[Number].
+     * Raises an error if any element in the input list is not a NumInteger,
+     * or if the input is not a List.
+     * @param {List<PyretTensor>} listOfIntegers The integers to unwrap
+     * @param {Function(PyretNumber):JSNumber} [typeChecker=runtime.checkNumber]
+     *  Optional parameter to specify which type checking function should be
+     *  called on every element of the input list
+     * @returns {Array[Number]} An array of numbers
+     */
+    function unwrapListOfNumbersToArray(listOfIntegers, typeChecker) {
+      if (!typeChecker) {
+        typeChecker = runtime.checkNumber;
+      }
+      const converter = runtime.num_to_fixnum;
+      return checkAndUnwrapListToArray(listOfIntegers, typeChecker, converter);
+    }
+
+    /**
+     * Helper function to convert a List<Option<Number>> to an Array. Raises
+     * an error if any element in the input list is not an Option, or if the
+     * input is not a List.
+     * @param {List<PyretTensor>} listOfOptions The Options to unwrap
+     * @param {Any} noneValue The value to include in the final array when an
+     *  Option is of the `none` variant
+     * @returns {Array[Number|Any]} An array of numbers (and possibly
+     *  `noneValue`s)
+     */
+    function checkAndUnwrapListOfOptionNumbers(listOfOptions, noneValue) {
+      return checkAndUnwrapListToArray(listOfOptions, _ => {}, option => {
+        let num = unwrapFixnumOption(option);
+        if (num === undefined) {
+          num = noneValue;
+        }
+        return num;
       });
     }
 
@@ -363,6 +459,18 @@
      */
     function unwrapTensor(pyretTensor) {
       return pyretTensor.$underlyingTensor;
+    }
+
+    /**
+     * Helper function to type-check and unwrap a PyretTensor to a
+     * TFTensor. Raises an error if the input is not a PyretTensor.
+     * @param {PyretTensor} pyretTensor
+     * @returns {TFTensor} The underlying TensorFlow.js Tensor of the
+     *  input PyretTensor
+     */
+    function checkAndUnwrapTensor(pyretTensor) {
+      checkTensor(pyretTensor);
+      return unwrapTensor(pyretTensor);
     }
 
     /**
@@ -507,7 +615,7 @@
           const tensorData = Array.from(selfTensor.dataSync());
           // Convert to Roughnums, since the numbers returned from a Tensor are
           // floating point:
-          const roughnumData = tensorData.map((x) => { return runtime.num_to_roughnum(x); });
+          const roughnumData = tensorData.map(runtime.num_to_roughnum);
           return runtime.ffi.makeList(roughnumData);
         }),
         "to-float": runtime.makeMethod0(function(self) {
@@ -531,12 +639,7 @@
         }),
         "reshape": runtime.makeMethod0(function(self, newShape) {
           checkMethodArity(2, arguments, "reshape");
-          runtime.checkList(newShape);
-          const shapeArray   = runtime.ffi.toArray(newShape);
-          const jsShapeArray = shapeArray.map((x) => {
-            runtime.checkNumInteger(x);
-            return runtime.num_to_fixnum(x);
-          });
+          const jsShapeArray = unwrapListOfNumbersToArray(newShape, runtime.checkNumInteger);
           // Calculate the number of entry spaces in the new shape by
           // multiplying each dimension together:
           const product = jsShapeArray.reduce((a, b) => { return a * b; }, 1);
@@ -649,7 +752,7 @@
 
     /**
      * Creates a PyretTensor with the given values.
-     * @param {JSArray<Number>} array An array of types
+     * @param {JSArray<PyretNumber>} array An array of types
      * @returns {PyretTensor} A Tensor
      */
     function createTensorFromArray(array) {
@@ -754,7 +857,6 @@
      */
     function listToTensor(values) {
       arity(1, arguments, "list-to-tensor", false);
-      // A tensor can be rank 0 (just a number); otherwise, it is a List :(
       runtime.checkList(values);
       const array = runtime.ffi.toArray(values);
       return createTensorFromArray(array);
@@ -782,12 +884,8 @@
      */
     function fill(shape, value) {
       arity(2, arguments, "fill", false);
-      runtime.checkList(shape);
       runtime.checkNumber(value);
-      const jsShape = runtime.ffi.toArray(shape).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
+      const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
       const jsValue = runtime.num_to_fixnum(value);
       return buildTensorObject(tf.fill(jsShape, jsValue));
     }
@@ -819,11 +917,7 @@
      */
     function ones(shape) {
       arity(1, arguments, "ones", false);
-      runtime.checkList(shape);
-      const jsShape = runtime.ffi.toArray(shape).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
+      const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
       return buildTensorObject(tf.ones(jsShape));
     }
 
@@ -834,11 +928,7 @@
      */
     function zeros(shape) {
       arity(1, arguments, "zeros", false);
-      runtime.checkList(shape);
-      const jsShape = runtime.ffi.toArray(shape).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
+      const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
       return buildTensorObject(tf.zeros(jsShape));
     }
 
@@ -857,10 +947,9 @@
      */
     function multinomial(logits, numSamples, randomSeed, normalized) {
       arity(4, arguments, "multinomial", false);
-      checkTensor(logits);
       runtime.checkNumPositive(numSamples);
       runtime.checkBoolean(normalized);
-      const tensor  = unwrapTensor(logits);
+      const tensor  = checkAndUnwrapTensor(logits);
       const samples = runtime.num_to_fixnum(numSamples);
       const seed    = unwrapFixnumOption(randomSeed);
       const norm    = runtime.isPyretTrue(normalized);
@@ -891,12 +980,8 @@
      */
     function randomNormal(shape, mean, standardDeviation) {
       arity(3, arguments, "random-normal", false);
-      runtime.checkList(shape);
-      const jsShape = runtime.ffi.toArray(shape).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
-      const jsMean = unwrapFixnumOption(mean);
+      const jsShape  = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
+      const jsMean   = unwrapFixnumOption(mean);
       const jsStdDev = unwrapFixnumOption(standardDeviation);
       return buildTensorObject(tf.randomNormal(jsShape, jsMean, jsStdDev));
     }
@@ -913,11 +998,7 @@
      */
     function randomUniform(shape, minVal, maxVal) {
       arity(3, arguments, "random-uniform", false);
-      runtime.checkList(shape);
-      const jsShape = runtime.ffi.toArray(shape).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
+      const jsShape  = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
       const jsMinVal = unwrapFixnumOption(minVal);
       const jsMaxVal = unwrapFixnumOption(maxVal)
       return buildTensorObject(tf.randomUniform(jsShape, jsMinVal, jsMaxVal));
@@ -930,8 +1011,8 @@
      */
     function makeVariable(tensor) {
       arity(1, arguments, "make-variable", false);
-      checkTensor(tensor);
-      const newVariable = tf.variable(unwrapTensor(tensor));
+      const jsTensor    = checkAndUnwrapTensor(tensor);
+      const newVariable = tf.variable(jsTensor);
       return buildTensorObject(newVariable);
     }
 
@@ -987,24 +1068,18 @@
         "set-now": runtime.makeMethod2(function(self, value, locs) {
           checkMethodArity(3, arguments, "set-now");
           runtime.checkNumber(value);
-          runtime.checkList(locs);
-          var val       = runtime.num_to_fixnum(value);
-          var locations = runtime.ffi.toArray(locs).map((x) => {
-            runtime.checkNumber(x);
-            return runtime.num_to_fixnum(x);
-          });
+          var val        = runtime.num_to_fixnum(value);
+          var locations  = unwrapListOfNumbersToArray(locs);
           var selfBuffer = unwrapTensorBuffer(self);
           selfBuffer.set(val, ...locations);
           return runtime.makeNothing();
         }),
         "get-now": runtime.makeMethod1(function(self, locs) {
           checkMethodArity(2, arguments, "get-now");
-          runtime.checkList(locs);
-          var locations = runtime.ffi.toArray(locs).map((x) => {
-            runtime.checkNumber(x);
-            return runtime.num_to_fixnum(x);
-          });
+          var locations  = unwrapListOfNumbersToArray(locs);
           var selfBuffer = unwrapTensorBuffer(self);
+          // The ... spread/splat syntax is required as .get requires the
+          // indices to be entered as separate arguments to the function:
           var result     = selfBuffer.get(...locations);
           return runtime.makeNumber(result);
         }),
@@ -1012,7 +1087,7 @@
           checkMethodArity(1, arguments, "get-all-now");
           var selfBuffer = unwrapTensorBuffer(self);
           var bufferData = Array.from(selfBuffer.values);
-          var roughnums  = bufferData.map((x) => { return runtime.num_to_roughnum(x); });
+          var roughnums  = bufferData.map(runtime.num_to_roughnum);
           return runtime.ffi.makeList(roughnums);
         }),
         "to-tensor": runtime.makeMethod0(function(self) {
@@ -1034,9 +1109,8 @@
     function makeBuffer(shape) {
       arity(1, arguments, "make-buffer", false);
       runtime.checkList(shape);
-      var s = runtime.ffi.toArray(shape);
-      s.forEach((x) => { runtime.checkNumInteger(x); });
-      return buildTensorBufferObject(tf.buffer(s));
+      const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
+      return buildTensorBufferObject(tf.buffer(jsShape));
     }
 
     /**
@@ -1047,7 +1121,7 @@
      * Applies the specified binary function to the given tensor. Used as a
      * helper function for math operations on Tensors since the format is
      * equivalent for many math operators.
-     * @param {Function(TFTensor TFTensor -> TFTensor)} binaryOp The
+     * @param {Function(TFTensor TFTensor):TFTensor} binaryOp The
      *  TensorFlow.js function to use as the binary operation
      * @param {PyretTensor} pyretTensorA The first tensor
      * @param {PyretTensor} pyretTensorB The second tensor
@@ -1056,10 +1130,8 @@
     function applyBinaryOpToTensors(binaryOp, pyretTensorA, pyretTensorB) {
       // Unwrap Pyret values to JavaScript equivalents so TensorFlow.js can
       // recognize them:
-      checkTensor(pyretTensorA);
-      checkTensor(pyretTensorB);
-      const jsTensorA = unwrapTensor(pyretTensorA);
-      const jsTensorB = unwrapTensor(pyretTensorB);
+      const jsTensorA = checkAndUnwrapTensor(pyretTensorA);
+      const jsTensorB = checkAndUnwrapTensor(pyretTensorB);
       // Apply the binary function to the two tensors:
       const jsResult = binaryOp(jsTensorA, jsTensorB);
       return buildTensorObject(jsResult);
@@ -1076,12 +1148,9 @@
      * @returns {JSBoolean} Always returns true if no exception was thrown
      */
     function assertEqualShapes(a, b) {
-      // Check that we actually got tensors:
-      checkTensor(a);
-      checkTensor(b);
-      // Get the underlying array representation of Tensor shapes:
-      const aTensor = unwrapTensor(a);
-      const bTensor = unwrapTensor(b);
+      // Get the underlying TensorFlow.js representation of Tensor shapes:
+      const aTensor = checkAndUnwrapTensor(a);
+      const bTensor = checkAndUnwrapTensor(b);
       const aShape  = aTensor.shape;
       const bShape  = bTensor.shape;
       // Check if the shapes are the same length:
@@ -1332,7 +1401,7 @@
      * Applies the specified unary function to the given tensor. Used as a
      * helper function for math operations on Tensors since the format is
      * equivalent for almost all math operators.
-     * @param {Function(TFTensor -> TFTensor)} unaryOp The TensorFlow.js
+     * @param {Function(TFTensor):TFTensor} unaryOp The TensorFlow.js
      *  function to use as the unary operation
      * @param {PyretTensor} pyretTensor The tensor to reduce
      * @returns {PyretTensor} The result
@@ -1340,8 +1409,7 @@
     function applyUnaryOpToTensor(unaryOp, pyretTensor) {
       // Unwrap Pyret values to JavaScript equivalents so TensorFlow.js can
       // recognize them:
-      checkTensor(pyretTensor);
-      const jsTensor = unwrapTensor(pyretTensor);
+      const jsTensor = checkAndUnwrapTensor(pyretTensor);
       const jsResult = unaryOp(jsTensor);
       return buildTensorObject(jsResult);
     }
@@ -1447,10 +1515,9 @@
      */
     function clipByValue(x, min, max) {
       arity(3, arguments, "clip-by-value", false);
-      checkTensor(x);
       runtime.checkNumber(min);
       runtime.checkNumber(max);
-      const tensor = unwrapTensor(x);
+      const tensor = checkAndUnwrapTensor(x);
       const jsMin  = runtime.num_to_fixnum(min);
       const jsMax  = runtime.num_to_fixnum(max);
       return buildTensorObject(tf.clipByValue(tensor, jsMin, jsMax));
@@ -1555,9 +1622,8 @@
      */
     function leakyRelu(x, alpha) {
       arity(2, arguments, "leaky-relu", false);
-      checkTensor(x);
       runtime.checkNumber(alpha);
-      const tensor  = unwrapTensor(x);
+      const tensor  = checkAndUnwrapTensor(x);
       const jsAlpha = runtime.num_to_fixnum(alpha);
       return buildTensorObject(tf.leakyRelu(tensor, jsAlpha));
     }
@@ -1611,9 +1677,8 @@
      */
     function prelu(x, alpha) {
       arity(2, arguments, "parametric-relu", false);
-      checkTensor(x);
       runtime.checkNumber(alpha);
-      const tensor = unwrapTensor(x);
+      const tensor = checkAndUnwrapTensor(x);
       const jsAlpha = runtime.num_to_fixnum(alpha);
       return buildTensorObject(tf.prelu(tensor, jsAlpha));
     }
@@ -1792,8 +1857,7 @@
     function applyReductionToTensor(reductionOp, pyretTensor, axis) {
       // Unwrap Pyret values to JavaScript equivalents so TensorFlow.js can
       // recognize them:
-      checkTensor(pyretTensor);
-      const jsTensor = unwrapTensor(pyretTensor);
+      const jsTensor = checkAndUnwrapTensor(pyretTensor);
       const jsAxis   = unwrapFixnumOption(axis);
       // Apply reduction operation:
       const jsReducedTensor = reductionOp(jsTensor, jsAxis);
@@ -1927,18 +1991,14 @@
      * Concatenates a list of tf.Tensors along a given axis. The tensors'
      * ranks and types must match, and their sizes must match in all
      * dimensions except axis.
-     * @param {List<Tensor>} tensors The tensors to concatenate
+     * @param {List<PyretTensor>} tensors The tensors to concatenate
      * @param {Option<Number>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function concatenate(tensors, axis) {
       arity(2, arguments, "concatenate", false);
-      runtime.checkList(tensors);
-      const jsTensors = runtime.ffi.toArray(tensors).map((x) => {
-        checkTensor(x);
-        return unwrapTensor(x);
-      });
-      const jsAxis = unwrapFixnumOption(axis);
+      const jsTensors = unwrapListOfTensorsToArray(tensors);
+      const jsAxis    = unwrapFixnumOption(axis);
       return buildTensorObject(tf.concat(jsTensors, jsAxis));
     }
 
@@ -1952,13 +2012,16 @@
      */
     function gather(tensor, indices, axis) {
       arity(3, arguments, "gather", false);
-      checkTensor(x);
-      checkTensor(indices);
-      const jsTensor  = unwrapTensor(tensor);
-      const jsIndices = unwrapTensor(indices);
+      const jsTensor  = checkAndUnwrapTensor(tensor);
+      const jsIndices = checkAndUnwrapTensor(indices);
       if (jsIndices.shape.length !== 1) {
         runtime.ffi.throwMessageException("The `indices` argument to " +
           "`gather` must be a one-dimensional Tensor");
+      }
+      if (jsIndices.dtype !== "int32") {
+        runtime.ffi.throwMessageException("The `indices` argument to " +
+          "`gather` must have a data type of 'int32'. Try using `.to-int()` " +
+          "on the `indices` tensor to convert the data type to 'int32'.");
       }
       const jsAxis = unwrapFixnumOption(axis);
       return buildTensorObject(tf.gather(jsTensor, jsIndices, jsAxis));
@@ -1973,17 +2036,10 @@
      */
     function reverse(tensor, axes) {
       arity(2, arguments, "reverse", false);
-      checkTensor(x);
-      const jsTensor = unwrapTensor(tensor);
+      const jsTensor = checkAndUnwrapTensor(tensor);
       const jsAxes   =
         runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
-          some: (v) => {
-            runtime.checkList(v);
-            return runtime.ffi.toArray(v).map((x) => {
-              runtime.checkNumber(x);
-              return runtime.num_to_fixnum(x);
-            });
-          },
+          some: unwrapListOfNumbersToArray,
           none: () => { return undefined; }
         });
       return buildTensorObject(tf.reverse(jsTensor, jsAxes));
@@ -2004,19 +2060,11 @@
      */
     function slice(tensor, begin, size) {
       arity(3, arguments, "slice", false);
-      checkTensor(tensor);
-      runtime.checkList(begin);
-      const jsTensor = unwrapTensor(tensor);
-      const jsBegin  = runtime.ffi.toArray(begin).map((x) => { return runtime.num_to_fixnum(x); });
+      const jsTensor = checkAndUnwrapTensor(tensor);
+      const jsBegin  = unwrapListOfNumbersToArray(begin);
       const jsSize   =
         runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
-          some: (v) => {
-            runtime.checkList(v);
-            return runtime.ffi.toArray(v).map((x) => {
-              runtime.checkNumber(x);
-              return runtime.num_to_fixnum(x);
-            });
-          },
+          some: unwrapListOfNumbersToArray,
           none: () => { return undefined; }
         });
       return buildTensorObject(tf.slice(jsTensor, jsBegin, jsSize));
@@ -2034,14 +2082,9 @@
      */
     function split(tensor, splitSizes, axis) {
       arity(3, arguments, "split", false);
-      checkTensor(tensor);
-      runtime.checkList(splitSizes);
-      const jsTensor = unwrapTensor(tensor);
-      const jsSplits = runtime.ffi.toArray(splitSizes).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
-      const jsAxis = unwrapFixnumOption(axis);
+      const jsTensor = checkAndUnwrapTensor(tensor);
+      const jsSplits = unwrapListOfNumbersToArray(splitSizes, runtime.checkNumInteger);
+      const jsAxis   = unwrapFixnumOption(axis);
       // Check that the sum of split sizes matches the size of the dimension
       // at jsAxis:
       const sumOfSplits   = jsSplits.reduce((acc, x) => { return acc + x; }, 0);
@@ -2065,21 +2108,18 @@
     function stack(tensorList, axis) {
       arity(2, arguments, "stack", false);
 
-      runtime.checkList(tensorList);
-      const jsTensorArray = runtime.ffi.toArray(tensorList).map((x) => {
-        checkTensor(x);
-        return unwrapTensor(x);
-      });
-      const jsAxis = unwrapFixnumOption(axis);
+      const jsTensorArray = unwrapListOfTensorsToArray(tensorList);
+      const jsAxis        = unwrapFixnumOption(axis);
 
       if (jsTensorArray.length <= 0) {
         runtime.ffi.throwMessageException("At least one Tensor must be " +
           "supplied in the List<Tensor> passed to `stack`");
       }
 
-      const rank  = jsTensorArray[0].rank;
-      const shape = jsTensorArray[0].shape;
-      const dtype = jsTensorArray[0].dtype;
+      const firstTensor = jsTensorArray[0];
+      const rank  = firstTensor.rank;
+      const shape = firstTensor.shape;
+      const dtype = firstTensor.dtype;
 
       if (jsAxis > rank) {
         runtime.ffi.throwMessageException("Axis must be <= rank of the " +
@@ -2148,23 +2188,10 @@
      */
     function stridedSlice(tensor, begin, end, strides) {
       arity(4, arguments, "strided-slice", false);
-      checkTensor(tensor);
-      runtime.checkList(begin);
-      runtime.checkList(end);
-      runtime.checkList(strides);
-      const jsTensor = unwrapTensor(tensor);
-      const jsBegin  = runtime.ffi.toArray(begin).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
-      const jsEnd = runtime.ffi.toArray(end).map((x) => {
-        runtime.checkNumInteger(x);
-        return runtime.num_to_fixnum(x);
-      });
-      const jsStrides = runtime.ffi.toArray(strides).map((x) => {
-        runtime.checkNumber(x);
-        return runtime.num_to_fixnum(x);
-      });
+      const jsTensor  = checkAndUnwrapTensor(tensor);
+      const jsBegin   = unwrapListOfNumbersToArray(begin, runtime.checkNumInteger);
+      const jsEnd     = unwrapListOfNumbersToArray(end, runtime.checkNumInteger);
+      const jsStrides = unwrapListOfNumbersToArray(strides);
       return buildTensorObject(tf.stridedSlice(jsTensor, jsBegin, jsEnd, jsStrides));
     }
 
@@ -2215,9 +2242,8 @@
     function makeModel(config) {
       arity(1, arguments, "make-model", false);
       runtime.checkObject(config);
-      var c     = unwrapObject(config);
-      var model = tf.model(c);
-      return buildModelObject(model);
+      const jsConfig = unwrapObject(config);
+      return buildModelObject(tf.model(jsConfig));
     }
 
     /**
@@ -2258,76 +2284,72 @@
         "add": runtime.makeMethod1(function(self, layer) {
           checkMethodArity(2, arguments, "add");
           checkLayer(layer);
-          var selfSequential = unwrapSequential(self);
-          var unwrappedLayer = unwrapLayer(layer);
+          const selfSequential = unwrapSequential(self);
+          const unwrappedLayer = unwrapLayer(layer);
           selfSequential.add(unwrappedLayer);
           return runtime.makeNothing();
         }),
         "compile": runtime.makeMethod1(function(self, config) {
           checkMethodArity(2, arguments, "compile");
           runtime.checkObject(config);
-          var c = unwrapObject(config);
+          let jsConfig = unwrapObject(config);
           // If there's an Optimizer defined, we have to unwrap it since
           // Tensorflow.js doesn't recognize PyretOptimizers:
-          if ("optimizer" in c) {
+          if ("optimizer" in jsConfig) {
             // But it could also be a string key that maps to a predefined
             // TF.js optimizer:
-            if (typeof c["optimizer"] !== "string") {
-              c["optimizer"] = c["optimizer"].$underlyingOptimizer;
+            if (typeof jsConfig["optimizer"] !== "string") {
+              jsConfig["optimizer"] = jsConfig["optimizer"].$underlyingOptimizer;
             }
           }
-          var selfSequential = unwrapSequential(self);
-          selfSequential.compile(c);
+          const selfSequential = unwrapSequential(self);
+          selfSequential.compile(jsConfig);
           return runtime.makeNothing();
         }),
         "evaluate": runtime.makeMethod3(function(self, x, y, config) {
           checkMethodArity(4, arguments, "evaluate");
-          checkTensor(x);
-          checkTensor(y);
           runtime.checkObject(config);
-          var selfSequential = unwrapSequential(self);
-          var xTensor        = unwrapTensor(x);
-          var yTensor        = unwrapTensor(y);
-          var c              = unwrapObject(config);
-          var result         = selfSequential.evaluate(xTensor, yTensor, c);
+          const selfSequential = unwrapSequential(self);
+          const xTensor        = checkAndUnwrapTensor(x);
+          const yTensor        = checkAndUnwrapTensor(y);
+          const jsConfig       = unwrapObject(config);
+          const result         = selfSequential.evaluate(xTensor, yTensor, jsConfig);
           return buildTensorObject(result);
         }),
         "predict": runtime.makeMethod2(function(self, x, config) {
           checkMethodArity(3, arguments, "predict");
-          checkTensor(x);
           runtime.checkObject(config);
-          var selfSequential = unwrapSequential(self);
-          var xTensor        = unwrapTensor(x);
-          var c              = unwrapObject(config);
-          var result         = selfSequential.predict(xTensor, c);
+          const selfSequential = unwrapSequential(self);
+          const xTensor        = checkAndUnwrapTensor(x);
+          const jsConfig       = unwrapObject(config);
+          const result         = selfSequential.predict(xTensor, jsConfig);
           return buildTensorObject(result);
         }),
         "predict-on-batch": runtime.makeMethod1(function(self, x) {
           checkMethodArity(2, arguments, "predict-on-batch");
-          checkTensor(x);
-          var selfSequential = unwrapSequential(self);
-          var xTensor        = unwrapTensor(x);
-          var result         = selfSequential.predictOnBatch(xTensor, c);
+          const selfSequential = unwrapSequential(self);
+          const xTensor        = checkAndUnwrapTensor(x);
+          const result         = selfSequential.predictOnBatch(xTensor);
           return buildTensorObject(result);
         }),
         "fit": runtime.makeMethod3(function(self, x, y, config, callback) {
           checkMethodArity(5, arguments, "fit");
-          checkTensor(x);
-          checkTensor(y);
           runtime.checkObject(config);
-          var xTensor = unwrapTensor(x);
-          var yTensor = unwrapTensor(y);
-          var c       = unwrapObject(config);
+          const xTensor = checkAndUnwrapTensor(x);
+          const yTensor = checkAndUnwrapTensor(y);
+          let jsConfig  = unwrapObject(config);
           // TODO(Zachary): Generalize across multiple callback types
-          c.callbacks = {onEpochEnd: async (epoch, log) => {
-            runtime.safeCall(() => {
-              callback.app(runtime.makeNumber(epoch), runtime.makeObject(log));
-            }, (_) => {}); // handler purposely blank
-          }};
-          var selfSequential = unwrapSequential(self);
-          selfSequential.fit(xTensor, yTensor, c);
+          jsConfig.callbacks = {
+            onEpochEnd: async (epoch, log) => {
+              runtime.safeCall(() => {
+                callback.app(runtime.makeNumber(epoch), runtime.makeObject(log));
+              }, (_) => {}); // handler purposely blank
+            },
+          };
+          const selfSequential = unwrapSequential(self);
+          selfSequential.fit(xTensor, yTensor, jsConfig);
           return runtime.makeNothing();
-        })
+        }),
       });
       obj = applyBrand(brandSequential, obj);
       obj.$underlyingSequential = underlyingSequential;
@@ -2337,9 +2359,8 @@
     function makeSequential(config) {
       arity(1, arguments, "make-sequential", false);
       runtime.checkObject(config);
-      var c = unwrapObject(config);
-      var model = tf.sequential(c);
-      return buildSequentialObject(model);
+      const jsConfig = unwrapObject(config);
+      return buildSequentialObject(tf.sequential(jsConfig));
     }
 
     /**
@@ -2372,8 +2393,8 @@
         }),
         "shape": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "shape");
-          var selfSymbolic = unwrapSymbolicTensor(self);
-          var optionValues = selfSymbolic.shape.map((x) => {
+          const selfSymbolic = unwrapSymbolicTensor(self);
+          const optionValues = selfSymbolic.shape.map(x => {
             if (x) {
               return runtime.ffi.makeSome(x);
             }
@@ -2396,16 +2417,8 @@
      */
     function makeInput(shape) {
       arity(1, arguments, "make-input", false);
-      runtime.checkList(shape);
-      var array = runtime.ffi.toArray(shape);
-      var s = array.map((x) => {
-        var num = unwrapFixnumOption(x);
-        if (num === undefined) {
-          num = null;
-        }
-        return num;
-      });
-      var input = tf.input({ shape: s });
+      const jsShape = checkAndUnwrapListOfOptionNumbers(shape, null);
+      const input   = tf.input({ shape: jsShape });
       return buildSymbolicTensorObject(input);
     }
 
@@ -2417,16 +2430,8 @@
      */
     function makeBatchInput(batchShape) {
       arity(1, arguments, "make-batch-input", false);
-      runtime.checkList(shape);
-      var array = runtime.ffi.toArray(shape);
-      var s = array.map((x) => {
-        var num = unwrapFixnumOption(x);
-        if (num === undefined) {
-          num = null;
-        }
-        return num;
-      });
-      var input = tf.input({ batchShape: s });
+      const jsShape = checkAndUnwrapListOfOptionNumbers(batchShape, null);
+      const input   = tf.input({ batchShape: jsShape });
       return buildSymbolicTensorObject(input);
     }
 
@@ -2484,27 +2489,13 @@
       "input-shape": {
         // List<NumInteger>
         jsName: "inputShape",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const array = runtime.ffi.toArray(v);
-          return array.map((x) => {
-            runtime.checkNumInteger(x);
-            return runtime.num_to_fixnum(x);
-          });
-        },
+        typeCheckAndConvert: (v) => unwrapListOfNumbersToArray(v, runtime.checkNumInteger),
         prevents: ["batch-input-shape"],
       },
       "batch-input-shape": {
         // List<NumInteger>
         jsName: "batchInputShape",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const array = runtime.ffi.toArray(v);
-          return array.map((x) => {
-            runtime.checkNumInteger(x);
-            return runtime.num_to_fixnum(x);
-          });
-        },
+        typeCheckAndConvert: (v) => unwrapListOfNumbersToArray(v, runtime.checkNumInteger),
         prevents: ["input-shape"],
       },
       "batch-size": {
@@ -2599,8 +2590,10 @@
           // add it to our running list of restricted keys:
           const blockedKeys = keyMapping.prevents;
           if (blockedKeys) {
-            const restictions = blockedKeys.reduce((o, key) => Object.assign(o, {[key]: pyretKey}), {})
-            preventedKeys     = Object.assign(preventedKeys, restictions)
+            const restictions = blockedKeys.reduce((o, key) => {
+              return Object.assign(o, {[key]: pyretKey});
+            }, {});
+            preventedKeys = Object.assign(preventedKeys, restictions)
           }
         }
         return accumulator;
@@ -2840,28 +2833,20 @@
         }),
         "apply-tensors": runtime.makeMethod1(function(self, tensors) {
           checkMethodArity(2, arguments, "apply-tensors");
-          runtime.checkList(tensors);
-          var inputs = runtime.ffi.toArray(tensors).map((x) => {
-            checkTensor(x);
-            return unwrapTensor(x);
-          });
-          var selfLayer = unwrapLayer(self);
-          var outputs = selfLayer.apply(inputs).map((x) => {
-            buildTensorObject(x);
-          });
+          const inputs    = unwrapListOfTensorsToArray(tensors);
+          const selfLayer = unwrapLayer(self);
+          const outputs   = selfLayer.apply(inputs).map(buildTensorObject);
           return runtime.ffi.makeList(outputs);
         }),
         "apply-symbolic-tensors": runtime.makeMethod1(function(self, symbolics) {
           checkMethodArity(2, arguments, "apply-symbolic-tensors");
           runtime.checkList(symbolics);
-          var inputs = runtime.ffi.toArray(symbolics).map((x) => {
+          const inputs = runtime.ffi.toArray(symbolics).map((x) => {
             checkTensor(x);
             return unwrapSymbolicTensor(x);
           });
-          var selfLayer = unwrapLayer(self);
-          var outputs = selfLayer.apply(inputs).map((x) => {
-            return buildTensorObject(x);
-          });
+          const selfLayer = unwrapLayer(self);
+          const outputs   = selfLayer.apply(inputs).map(buildTensorObject);
           return runtime.ffi.makeList(outputs);
         })
       });
@@ -3010,14 +2995,7 @@
       "noise-shape": {
         // List<NumInteger>
         jsName: "noiseShape",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const array = runtime.ffi.toArray(v);
-          return array.map((x) => {
-            runtime.checkNumInteger(x);
-            return runtime.num_to_fixnum(x);
-          });
-        },
+        typeCheckAndConvert: (v) => unwrapListOfNumbersToArray(v, runtime.checkNumInteger),
       },
       "seed": {
         // NumInteger
@@ -3098,14 +3076,7 @@
       "input-length": {
         // List<Number>
         jsName: "inputLength",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const array = runtime.ffi.toArray(v);
-          return array.map((x) => {
-            runtime.checkNumber(x);
-            return runtime.num_to_fixnum(x);
-          });
-        },
+        typeCheckAndConvert: unwrapListOfNumbersToArray,
       },
     };
 
@@ -3185,14 +3156,7 @@
       "target-shape": {
         // List<NumInteger>
         jsName: "targetShape",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const array = runtime.ffi.toArray(v);
-          return array.map((x) => {
-            runtime.checkNumInteger(x);
-            return runtime.num_to_fixnum(x);
-          });
-        },
+        typeCheckAndConvert: (v) => unwrapListOfNumbersToArray(v, runtime.checkNumInteger),
         required: true,
       },
     };
@@ -3488,14 +3452,7 @@
       "size": {
         // List<Number>
         jsName: "size",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const array = runtime.ffi.toArray(v);
-          return array.map((x) => {
-            runtime.checkNumber(x);
-            return runtime.num_to_fixnum(x);
-          });
-        },
+        typeCheckAndConvert: unwrapListOfNumbersToArray,
       },
       "data-format": {
         // String
@@ -4189,22 +4146,6 @@
     function makeLstmLayer(config) {
       arity(1, arguments, "lstm-layer", false);
       return makeLayerWith(tf.layers.lstm, config, LSTM_LAYER_OPTIONS);
-      // runtime.checkObject(config);
-      // var c = unwrapObject(config);
-      // // If there's an Layer defined, we have to unwrap it since
-      // // Tensorflow.js doesn't recognize PyretLayers:
-      // if ("batchInputShape" in c) {
-      //   runtime.checkList(c["batchInputShape"]);
-      //   var batchInputs = runtime.ffi.toArray(c["batchInputShape"]);
-      //   var unwrapped = batchInputs.map((input) => {
-      //     return runtime.ffi.cases(runtime.ffi.isOption, "is-Option", input, {
-      //       some: (v) => { return runtime.num_to_fixnum(v); },
-      //       none: () => { return null; }
-      //     });
-      //   })
-      //   c["batchInputShape"] = unwrapped;
-      // }
-      // return buildLayerObject(tf.layers.lstm(c));
     }
 
     /**
@@ -4266,18 +4207,11 @@
     const RNN_LAYER_OPTIONS = {
       "cells": {
         // List<Layer> [where each Layer is an RNN cell Layer]
+        // TODO(ZacharyEspiritu): Check that these are specifically
+        // RNN cell layers. For now, we're just hoping for the best
+        // and doing a naive general Layer check.
         jsName: "cell",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const cells = runtime.ffi.toArray(v);
-          return cells.map((cell) => {
-            // TODO(ZacharyEspiritu): Check that these are specifically
-            // RNN cell layers. For now, we're just hoping for the best
-            // and doing a naive general Layer check.
-            checkLayer(cell);
-            return unwrapLayer(cell);
-          });
-        },
+        typeCheckAndConvert: unwrapListOfLayersToArray,
       },
       "stateful": {
         // Boolean
@@ -4545,18 +4479,11 @@
     const STACKED_RNN_CELLS_LAYER_OPTIONS = {
       "cells": {
         // List<Layer> [where each Layer is an RNN cell Layer]
+        // TODO(ZacharyEspiritu): Check that these are specifically
+        // RNN cell layers. For now, we're just hoping for the best
+        // and doing a naive general Layer check.
         jsName: "cell",
-        typeCheckAndConvert: (v) => {
-          runtime.checkList(v);
-          const cells = runtime.ffi.toArray(v);
-          return cells.map((cell) => {
-            // TODO(ZacharyEspiritu): Check that these are specifically
-            // RNN cell layers. For now, we're just hoping for the best
-            // and doing a naive general Layer check.
-            checkLayer(cell);
-            return unwrapLayer(cell);
-          });
-        },
+        typeCheckAndConvert: unwrapListOfLayersToArray,
       },
       "stateful": {
         // Boolean
@@ -4592,8 +4519,8 @@
         // Layer [should be an RNN layer]
         jsName: "layer",
         typeCheckAndConvert: (v) => {
-          // TODO(ZacharyEspiritu): Check that these are specifically
-          // RNN cell layers. For now, we're just hoping for the best
+          // TODO(ZacharyEspiritu): Check that this is specifically a
+          // RNN cell layer. For now, we're just hoping for the best
           // and doing a naive general Layer check.
           checkLayer(v);
           return unwrapLayer(v);
@@ -4708,21 +4635,19 @@
           // varList is a list of mutable tensors for the Optimizer to edit. If
           // it is empty, it should be set to `undefined` so TensorFlow.js
           // knows to modify all available mutable tensors in the space:
-          runtime.checkList(varList);
-          var variables = runtime.ffi.toArray(varList).map((v) => { return unwrapTensor(v); });
+          // TODO(ZacharyEspiritu): Check that these are actually mutable;
+          // currently only verifies that they are Tensors, not Variables
+          const variables = unwrapListOfTensorsToArray(varList);
           if (variables.length === 0) { variables = undefined; }
 
           // Run minimization thunk. The thunk should return a scalar Tensor.
-          // TODO(Zachary): We don't have good checks for scalars yet, but for
-          // now just check that the return type of the function is a scalar:
+          // TODO(ZacharyEspiritu): Check that this returns a scalar;
+          // currently only verifies that it returns a Tensor, not a scalar
           var selfOptimizer = unwrapOptimizer(self);
           var result = selfOptimizer.minimize(() => {
             return runtime.safeCall(() => {
               return functionToMinimize.app();
-            }, (scalar) => {
-              checkTensor(scalar);
-              return unwrapTensor(scalar);
-            });
+            }, checkAndUnwrapTensor);
           }, true, variables);
           return buildTensorObject(result);
         })
