@@ -1257,6 +1257,23 @@
     }
 
     /**
+     * Returns nothing if the input PyretTensor contains at least one entry;
+     * otherwise, throws a Pyret runtime exception.
+     *
+     * Arithmetic operations in TensorFlow cannot operate on empty Tensors,
+     * so this function should be used to check for the presence of any value.
+     *
+     * @param {PyretTensor} pyretTensor
+     */
+    function assertTensorNonEmpty(pyretTensor) {
+      const jsTensor = checkAndUnwrapTensor(pyretTensor);
+      if (jsTensor.size < 1) {
+        runtime.ffi.throwMessageException("Expected a non-empty Tensor, but " +
+          "an input Tensor was size-0.");
+      }
+    }
+
+    /**
      * Adds `a` and `b`, element-wise.
      * @param {PyretTensor} a The first PyretTensor
      * @param {PyretTensor} b The second PyretTensor
@@ -1264,6 +1281,8 @@
      */
     function addTensors(a, b) {
       arity(2, arguments, "add-tensors", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.add, a, b);
     }
@@ -1289,6 +1308,8 @@
      */
     function subtractTensors(a, b) {
       arity(2, arguments, "subtract-tensors", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.sub, a, b);
     }
@@ -1314,6 +1335,8 @@
      */
     function multiplyTensors(a, b) {
       arity(2, arguments, "multiply-tensors", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.mul, a, b);
     }
@@ -1339,6 +1362,8 @@
      */
     function divideTensors(a, b) {
       arity(2, arguments, "divide-tensors", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.div, a, b);
@@ -1366,6 +1391,8 @@
      */
     function floorDivideTensors(a, b) {
       arity(2, arguments, "floor-divide-tensors", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.floorDiv, a, b);
@@ -1379,6 +1406,8 @@
      */
     function maxTensor(a, b) {
       arity(2, arguments, "tensor-max", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.maximum, a, b);
     }
@@ -1404,6 +1433,8 @@
      */
     function minTensor(a, b) {
       arity(2, arguments, "tensor-min", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.minimum, a, b);
     }
@@ -1429,6 +1460,8 @@
      */
     function moduloTensor(a, b) {
       arity(2, arguments, "tensor-modulo", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertDoesNotContainZero(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.mod, a, b);
@@ -1455,6 +1488,8 @@
      */
     function exptTensor(base, exp) {
       arity(2, arguments, "tensor-expt", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(base, exp);
       return applyBinaryOpToTensors(tf.pow, base, exp);
     }
@@ -1480,6 +1515,8 @@
      */
     function tensorSquaredDifference(a, b) {
       arity(2, arguments, "squared-difference", false);
+      assertTensorNonEmpty(a);
+      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(tf.squaredDifference, a, b);
     }
