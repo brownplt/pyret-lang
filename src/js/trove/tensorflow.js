@@ -121,7 +121,7 @@
       "tensor-tan": "TensorUnOp",
       "tensor-tanh": "TensorUnOp",
 
-      // // Operations (Reduction)
+      // Operations (Reduction)
       "reduce-all": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
       "reduce-any": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
       "arg-max": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
@@ -133,6 +133,7 @@
       "reduce-sum": ["arrow", ["Tensor", ["Option", "Number"]], "Tensor"],
 
       // Operations (Slicing and Joining)
+      "reshape": ["arrow", ["Tensor", ["List", "NumInteger"]], "Tensor"],
       "concatenate": ["arrow", [["List", "Tensor"], ["Option", "Number"]], "Tensor"],
       "gather": ["arrow", ["Tensor", "Tensor", ["Option", "Number"]], "Tensor"],
       "reverse": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
@@ -571,60 +572,18 @@
         }),
         "as-2d": runtime.makeMethod2(function(self, rows, columns) {
           checkMethodArity(3, arguments, "as-2d");
-          runtime.checkNumInteger(rows);
-          runtime.checkNumInteger(columns);
-          const jsRows     = runtime.num_to_fixnum(rows);
-          const jsColumns  = runtime.num_to_fixnum(columns);
-          // Check that the number of entries in the tensor is equal to the
-          // number of spaces in the new shape:
-          const selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== (jsRows * jsColumns)) {
-            runtime.ffi.throwMessageException("Cannot reshape because the " +
-              "number of entry spaces in the new shape must be equal to the " +
-              "number of existing entries");
-          }
-          const reshaped = selfTensor.as2D(jsRows, jsColumns);
-          return buildTensorObject(reshaped);
+          const shapeList = runtime.ffi.makeList([rows, columns]);
+          return reshapeTensor(self, shapeList);
         }),
         "as-3d": runtime.makeMethod3(function(self, rows, columns, depth) {
           checkMethodArity(4, arguments, "as-3d");
-          runtime.checkNumInteger(rows);
-          runtime.checkNumInteger(columns);
-          runtime.checkNumInteger(depth);
-          const jsRows    = runtime.num_to_fixnum(rows);
-          const jsColumns = runtime.num_to_fixnum(columns);
-          const jsDepth   = runtime.num_to_fixnum(depth);
-          // Check that the number of entries in the tensor is equal to the
-          // number of spaces in the new shape:
-          const selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== (jsRows * jsColumns * jsDepth)) {
-            runtime.ffi.throwMessageException("Cannot reshape because the " +
-              "number of entry spaces in the new shape must be equal to the " +
-              "number of existing entries");
-          }
-          const reshaped = selfTensor.as3D(jsRows, jsColumns, jsDepth);
-          return buildTensorObject(reshaped);
+          const shapeList = runtime.ffi.makeList([rows, columns, depth]);
+          return reshapeTensor(self, shapeList);
         }),
         "as-4d": runtime.makeMethod4(function(self, rows, columns, depth1, depth2) {
           checkMethodArity(5, arguments, "as-4d");
-          runtime.checkNumInteger(rows);
-          runtime.checkNumInteger(columns);
-          runtime.checkNumInteger(depth1);
-          runtime.checkNumInteger(depth2);
-          const jsRows    = runtime.num_to_fixnum(rows);
-          const jsColumns = runtime.num_to_fixnum(columns);
-          const jsDepth1  = runtime.num_to_fixnum(depth1);
-          const jsDepth2  = runtime.num_to_fixnum(depth2);
-          // Check that the number of entries in the tensor is equal to the
-          // number of spaces in the new shape:
-          const selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== (jsRows * jsColumns * jsDepth1 * jsDepth2)) {
-            runtime.ffi.throwMessageException("Cannot reshape because the " +
-              "number of entry spaces in the new shape must be equal to the " +
-              "number of existing entries");
-          }
-          const reshaped = selfTensor.as4D(jsRows, jsColumns, jsDepth1, jsDepth2);
-          return buildTensorObject(reshaped);
+          const shapeList = runtime.ffi.makeList([rows, columns, depth1, depth2]);
+          return reshapeTensor(self, shapeList);
         }),
         "as-type": runtime.makeMethod1(function(self, datatype) {
           checkMethodArity(2, arguments, "as-type");
@@ -676,19 +635,7 @@
         }),
         "reshape": runtime.makeMethod0(function(self, newShape) {
           checkMethodArity(2, arguments, "reshape");
-          const jsShapeArray = unwrapListOfNumbersToArray(newShape, runtime.checkNumInteger);
-          // Calculate the number of entry spaces in the new shape by
-          // multiplying each dimension together:
-          const product = jsShapeArray.reduce((a, b) => { return a * b; }, 1);
-          // Check that the number of entries in the tensor is equal to the
-          // number of spaces in the new shape:
-          const selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== product) {
-            runtime.ffi.throwMessageException("Cannot reshape because the " +
-              "number of entry spaces in the new shape must be equal to the " +
-              "number of existing entries");
-          }
-          return buildTensorObject(selfTensor.reshape(jsShapeArray));
+          return reshapeTensor(self, newShape);
         }),
         "expand-dims": runtime.makeMethod1(function(self, axis) {
           checkMethodArity(2, arguments, "expand-dims");
@@ -795,6 +742,11 @@
     function createTensorFromArray(array) {
       arity(1, arguments, "tensor", false);
       runtime.checkArray(array);
+      if (array.length < 1) {
+        runtime.throwMessageException("A tensor must contain at least 1 value");
+      }
+      // Verify that each element is a Number and convert it to its JavaScript
+      // equivalent:
       const fixnums = array.map((x) => {
         runtime.checkNumber(x);
         return runtime.num_to_fixnum(x);
@@ -1257,23 +1209,6 @@
     }
 
     /**
-     * Returns nothing if the input PyretTensor contains at least one entry;
-     * otherwise, throws a Pyret runtime exception.
-     *
-     * Arithmetic operations in TensorFlow.js cannot operate on empty Tensors,
-     * so this function should be used to check for the presence of any value.
-     *
-     * @param {PyretTensor} pyretTensor
-     */
-    function assertTensorNonEmpty(pyretTensor) {
-      const jsTensor = checkAndUnwrapTensor(pyretTensor);
-      if (jsTensor.size < 1) {
-        runtime.ffi.throwMessageException("Expected a non-empty Tensor, but " +
-          "an input Tensor was size-0.");
-      }
-    }
-
-    /**
      * Applies the input TensorFlow.js arithmetic operation to the input
      * Tensors a and b.
      *
@@ -1284,10 +1219,9 @@
      *  arithmetic operation to apply
      * @param {PyretTensor} a The first argument to supply to arithmeticOp
      * @param {PyretTensor} b The second argument to supply to arithmeticOp
+     * @returns {PyretTensor} The result of applying arithmeticOp to a and b
      */
     function applyArithmeticOpToTensors(arithmeticOp, a, b) {
-      assertTensorNonEmpty(a);
-      assertTensorNonEmpty(b);
       assertValidShapeCombination(a, b);
       return applyBinaryOpToTensors(arithmeticOp, a, b);
     }
@@ -2116,6 +2050,35 @@
     /**
      * Operations (Slicing and Joining)
      */
+
+    /**
+     * Reshapes the given Tensor to the new shape specified by `newShape`.
+     * @param {PyretTensor} tensor A PyretTensor
+     * @param {List<NumInteger>} newShape The new shape of the Tensor
+     * @returns {PyretTensor} A PyretTensor with the specified shape
+     */
+    function reshapeTensor(tensor, newShape) {
+      arity(2, arguments, "reshape", true);
+      const jsTensor     = checkAndUnwrapTensor(tensor);
+      const jsShapeArray = unwrapListOfNumbersToArray(newShape, runtime.checkNumInteger);
+      // Check that no dimension in the new shape is less than or equal to zero:
+      jsShapeArray.forEach((dimensionSize, dimensionNum) => {
+        if (dimensionSize <= 0) {
+          runtime.ffi.throwMessageException("Cannot reshape because the " +
+            "size at dimension " + dimensionNum + " was less than or equal " +
+            "to zero.");
+        }
+      });
+      // Check that the number of entries in the tensor is equal to the
+      // number of spaces in the new shape:
+      const spacesInNewShape = jsShapeArray.reduce((a, b) => (a * b), 1);
+      if (jsTensor.size !== spacesInNewShape) {
+        runtime.ffi.throwMessageException("Cannot reshape because the " +
+          "number of entry spaces in the new shape must be equal to the " +
+          "number of existing entries");
+      }
+      return buildTensorObject(jsTensor.reshape(jsShapeArray));
+    }
 
     /**
      * Concatenates a list of tf.Tensors along a given axis. The tensors'
@@ -5016,6 +4979,7 @@
       "reduce-sum": F(sum, "reduce-sum"),
 
       // Operations (Slicing and Joining)
+      "reshape": F(reshapeTensor, "reshape"),
       "concatenate": F(concatenate, "concatenate"),
       "gather": F(gather, "gather"),
       "reverse": F(reverse, "reverse"),
