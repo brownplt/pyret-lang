@@ -243,6 +243,8 @@
       }],
       "TensorBuffer": ["data", "TensorBuffer", [], [], {
         "_output": ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
+        "size": ["arrow", [], "Number"],
+        "shape": ["arrow", [], ["List", "NumInteger"]],
         "set-now": ["arrow", ["Number", ["List", "NumInteger"]], "TensorBuffer"],
         "get-now": ["arrow", [["List", "NumInteger"]], "TensorBuffer"],
         "get-all-now": ["arrow", [], ["List", "Roughnum"]],
@@ -283,61 +285,69 @@
      * The Pyret version of a TensorFlow.js Tensor.
      * @typedef {Object} PyretTensor
      */
-    var brandTensor = runtime.namedBrander("tensor", ["tensor: tensor brander"]);
-    var annTensor = runtime.makeBranderAnn(brandTensor, "Tensor");
+    const brandTensor = runtime.namedBrander("tensor", ["tensor: tensor brander"]);
+    const annTensor = runtime.makeBranderAnn(brandTensor, "Tensor");
 
     /**
      * The Pyret version of a TensorFlow.js TensorBuffer.
      * @typedef {Object} PyretTensorBuffer
      */
-    var brandTensorBuffer = runtime.namedBrander("tensor-buffer", ["tensor-buffer: tensor-buffer brander"]);
-    var annTensorBuffer = runtime.makeBranderAnn(brandTensorBuffer, "TensorBuffer");
+    const brandTensorBuffer = runtime.namedBrander(
+      "tensor-buffer",
+      ["tensor-buffer: tensor-buffer brander"]);
+    const annTensorBuffer = runtime.makeBranderAnn(brandTensorBuffer, "TensorBuffer");
 
     /**
      * The Pyret version of a TensorFlow.js Model.
      * @typedef {Object} PyretModel
      */
-    var brandModel = runtime.namedBrander("model", ["model: model brander"]);
-    var annModel = runtime.makeBranderAnn(brandModel, "Model");
+    const brandModel = runtime.namedBrander("model", ["model: model brander"]);
+    const annModel = runtime.makeBranderAnn(brandModel, "Model");
 
     /**
      * The Pyret version of a TensorFlow.js Sequential.
      * @typedef {Object} PyretSequential
      */
-    var brandSequential = runtime.namedBrander("sequential", ["sequential: sequential brander"]);
-    var annSequential = runtime.makeBranderAnn(brandSequential, "Sequential");
+    const brandSequential = runtime.namedBrander(
+      "sequential",
+      ["sequential: sequential brander"]);
+    const annSequential = runtime.makeBranderAnn(brandSequential, "Sequential");
 
     /**
      * The Pyret version of a TensorFlow.js SymbolicTensor.
      * @typedef {Object} PyretSymbolicTensor
      */
-    var brandSymbolicTensor = runtime.namedBrander("symbolic-tensor", ["symbolic-tensor: symbolic-tensor brander"]);
-    var annSymbolicTensor = runtime.makeBranderAnn(brandSymbolicTensor, "SymbolicTensor");
+    const brandSymbolicTensor = runtime.namedBrander(
+      "symbolic-tensor",
+      ["symbolic-tensor: symbolic-tensor brander"]);
+    const annSymbolicTensor = runtime.makeBranderAnn(brandSymbolicTensor, "SymbolicTensor");
 
     /**
      * The Pyret version of a TensorFlow.js Layer.
      * @typedef {Object} PyretLayer
      */
-    var brandLayer = runtime.namedBrander("layer", ["layer: layer brander"]);
-    var annLayer = runtime.makeBranderAnn(brandLayer, "Layer");
+    const brandLayer = runtime.namedBrander("layer", ["layer: layer brander"]);
+    const annLayer = runtime.makeBranderAnn(brandLayer, "Layer");
 
     /**
      * The Pyret version of a TensorFlow.js Optimizer.
      * @typedef {Object} PyretOptimizer
      */
-    var brandOptimizer = runtime.namedBrander("optimizer", ["optimizer: optimizer brander"]);
-    var annOptimizer = runtime.makeBranderAnn(brandOptimizer, "Optimizer");
+    const brandOptimizer = runtime.namedBrander(
+      "optimizer",
+      ["optimizer: optimizer brander"]);
+    const annOptimizer = runtime.makeBranderAnn(brandOptimizer, "Optimizer");
 
     /**
      * Runtime Helpers
      */
-    var O = runtime.makeObject;
-    var F = runtime.makeFunction;
-    var arity = runtime.checkArity;
-    var get = runtime.getField;
-    var unwrap = runtime.unwrap;
+    const O = runtime.makeObject;
+    const F = runtime.makeFunction;
+    const arity = runtime.checkArity;
+    const get = runtime.getField;
+    const unwrap = runtime.unwrap;
 
-    var VS = get(VSlib, "values");
+    const VS = get(VSlib, "values");
 
     function applyBrand(brand, val) {
       return get(brand, "brand").app(val);
@@ -355,20 +365,20 @@
      * Helpers
      */
 
-    var unwrapObject = (obj) => { return unwrap(obj).dict; };
+    const unwrapObject = (obj) => { return unwrap(obj).dict; };
 
-    var checkTensor = (val) => { runtime._checkAnn(["tensor"], annTensor, val); };
-    var checkTensorBuffer = (val) => { runtime._checkAnn(["tensor-buffer"], annTensorBuffer, val); };
-    var checkSequential = (val) => { runtime._checkAnn(["sequential"], annSequential, val); };
-    var checkModel = (val) => { runtime._checkAnn(["model"], annModel, val); };
-    var checkSymbolicTensor = (val) => { runtime._checkAnn(["symbolic-tensor"], annSymbolicTensor, val); };
-    var checkLayer = (val) => { runtime._checkAnn(["layer"], annLayer, val); };
-    var checkOptimizer = (val) => { runtime._checkAnn(["optimizer"], annOptimizer, val); };
+    const checkTensor = (val) => { runtime._checkAnn(["tensor"], annTensor, val); };
+    const checkTensorBuffer = (val) => { runtime._checkAnn(["tensor-buffer"], annTensorBuffer, val); };
+    const checkSequential = (val) => { runtime._checkAnn(["sequential"], annSequential, val); };
+    const checkModel = (val) => { runtime._checkAnn(["model"], annModel, val); };
+    const checkSymbolicTensor = (val) => { runtime._checkAnn(["symbolic-tensor"], annSymbolicTensor, val); };
+    const checkLayer = (val) => { runtime._checkAnn(["layer"], annLayer, val); };
+    const checkOptimizer = (val) => { runtime._checkAnn(["optimizer"], annOptimizer, val); };
 
     function checkMethodArity(arity, args, methodName) {
       if (args.length !== arity) {
-        var $a = new Array(args.length);
-        for (var $i = 0; $i < args.length; $i++) {
+        let $a = new Array(args.length);
+        for (let $i = 0; $i < args.length; $i++) {
           $a[$i] = args[$i];
         }
         throw runtime.ffi.throwArityErrorC([methodName], arity, $a, true);
@@ -520,7 +530,7 @@
      *  underlying TFTensor
      */
     function buildTensorObject(underlyingTensor) {
-      var obj = O({
+      let obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
           // value-skeleton functions:
@@ -592,8 +602,8 @@
           const type = unwrap(datatype);
           if (type !== "float32" && type !== "int32" && type !== "bool") {
             runtime.ffi.throwMessageException("Attempted to cast tensor to " +
-              "invalid type ('" + type + "'); valid types are 'float32', 'int32', " +
-              "or 'bool'");
+              "invalid type ('" + type + "'); valid types are 'float32', " +
+              "'int32', or 'bool'");
           }
           const selfTensor = unwrapTensor(self);
           return buildTensorObject(selfTensor.asType(type));
@@ -1040,49 +1050,105 @@
      *  as its underlying TFTensorBuffer
      */
     function buildTensorBufferObject(underlyingBuffer) {
-      var obj = O({
+      let obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
-          var selfBuffer = unwrapTensorBuffer(self);
-          var elts       = [];
-          var bufferData = Array.from(selfBuffer.values);
-          var vsValue    = get(VS, "vs-value");
-          for (var i = 0; i < bufferData.length; i++) {
-            var wrappedNum = runtime.num_to_roughnum(bufferData[i]);
+          const selfBuffer   = unwrapTensorBuffer(self);
+          const bufferData   = Array.from(selfBuffer.values);
+          const vsValue      = get(VS, "vs-value");
+          const vsCollection = get(VS, "vs-collection");
+          let elts = [];
+          for (let i = 0; i < bufferData.length; i++) {
+            const wrappedNum = runtime.num_to_roughnum(bufferData[i]);
             elts.push(vsValue.app(wrappedNum));
           }
-          return get(VS, "vs-collection").app(
+          return vsCollection.app(
             runtime.makeString("tensor-buffer"),
             runtime.ffi.makeList(elts));
+        }),
+        "size": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "size");
+          const selfBuffer = unwrapTensorBuffer(self);
+          return runtime.makeNumber(selfBuffer.size);
+        }),
+        "shape": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "shape");
+          const selfBuffer = unwrapTensorBuffer(self);
+          return runtime.ffi.makeList(selfBuffer.shape);
         }),
         "set-now": runtime.makeMethod2(function(self, value, locs) {
           checkMethodArity(3, arguments, "set-now");
           runtime.checkNumber(value);
-          var val        = runtime.num_to_fixnum(value);
-          var locations  = unwrapListOfNumbersToArray(locs);
-          var selfBuffer = unwrapTensorBuffer(self);
+          const val         = runtime.num_to_fixnum(value);
+          const locations   = unwrapListOfNumbersToArray(locs);
+          const selfBuffer  = unwrapTensorBuffer(self);
+          const bufferShape = selfBuffer.shape;
+          const bufferRank  = bufferShape.length;
+          // Check that the correct number of coordinates was supplied:
+          if (bufferRank !== locations.length) {
+            runtime.ffi.throwMessageException("The number of supplied " +
+              "coordinates must match the rank of the TensorBuffer, but " +
+              locations.length + " coordinates were specified and the number " +
+              "of dimensions in the TensorBuffer was " + bufferRank + ".");
+          }
+          // Check that each coordinate in `locations` is within the bounds of
+          // the buffer shape:
+          for (let axis = 0; axis < bufferRank; axis++) {
+            const locationIndex = locations[axis];
+            const dimensionSize = bufferShape[axis];
+            if (locationIndex < 0 || locationIndex >= dimensionSize) {
+              runtime.ffi.throwMessageException("The coordinate at axis " +
+                axis + " was " + locationIndex + ", but the size of that " +
+                "dimension in the TensorBuffer was " + dimensionSize + ". " +
+                "Coordinates must be within the bounds of the TensorBuffer's " +
+                "shape.");
+            }
+          }
+          // Actually set the values in the buffer:
           selfBuffer.set(val, ...locations);
           return runtime.makeNothing();
         }),
         "get-now": runtime.makeMethod1(function(self, locs) {
           checkMethodArity(2, arguments, "get-now");
-          var locations  = unwrapListOfNumbersToArray(locs);
-          var selfBuffer = unwrapTensorBuffer(self);
+          const locations   = unwrapListOfNumbersToArray(locs);
+          const selfBuffer  = unwrapTensorBuffer(self);
+          const bufferShape = selfBuffer.shape;
+          const bufferRank  = bufferShape.length;
+          // Check that the correct number of coordinates was supplied:
+          if (bufferRank !== locations.length) {
+            runtime.ffi.throwMessageException("The number of supplied " +
+              "coordinates must match the rank of the TensorBuffer, but " +
+              locations.length + " coordinates were specified and the number " +
+              "of dimensions in the TensorBuffer was " + bufferRank + ".");
+          }
+          // Check that each coordinate in `locations` is within the bounds of
+          // the buffer shape:
+          for (let axis = 0; axis < bufferRank; axis++) {
+            const locationIndex = locations[axis];
+            const dimensionSize = bufferShape[axis];
+            if (locationIndex < 0 || locationIndex >= dimensionSize) {
+              runtime.ffi.throwMessageException("The coordinate at axis " +
+                axis + " was " + locationIndex + ", but the size of that " +
+                "dimension in the TensorBuffer was " + dimensionSize + ". " +
+                "Coordinates must be within the bounds of the TensorBuffer's " +
+                "shape.");
+            }
+          }
           // The ... spread/splat syntax is required as .get requires the
           // indices to be entered as separate arguments to the function:
-          var result     = selfBuffer.get(...locations);
+          const result = selfBuffer.get(...locations);
           return runtime.makeNumber(result);
         }),
         "get-all-now": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "get-all-now");
-          var selfBuffer = unwrapTensorBuffer(self);
-          var bufferData = Array.from(selfBuffer.values);
-          var roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
+          const selfBuffer = unwrapTensorBuffer(self);
+          const bufferData = Array.from(selfBuffer.values);
+          const roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
           return runtime.ffi.makeList(roughnums);
         }),
         "to-tensor": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "to-tensor");
-          var selfBuffer = unwrapTensorBuffer(self);
+          const selfBuffer = unwrapTensorBuffer(self);
           return buildTensorObject(selfBuffer.toTensor());
         })
       });
@@ -1100,6 +1166,17 @@
       arity(1, arguments, "make-buffer", false);
       runtime.checkList(shape);
       const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
+      if (jsShape.length <= 0) {
+        runtime.ffi.throwMessageException("A TensorBuffer's shape needs at " +
+          "least 1 dimension, but the input shape List had zero elements.");
+      }
+      jsShape.forEach((dimensionSize, dimensionNum) => {
+        if (dimensionSize <= 0) {
+          runtime.ffi.throwMessageException("Cannot create TensorBuffer " +
+            "since the size at dimension " + dimensionNum + " was less than  " +
+            "or equal to zero; all dimensions must be at least 1.");
+        }
+      });
       return buildTensorBufferObject(tf.buffer(jsShape));
     }
 
@@ -2388,7 +2465,7 @@
      *  as its underlying TFModel
      */
     function buildModelObject(underlyingModel) {
-      var obj = O({
+      let obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
           return get(VS, "vs-str").app("<model>");
@@ -2440,7 +2517,7 @@
      *  as its underlying TFSequential
      */
     function buildSequentialObject(underlyingSequential) {
-      var obj = O({
+      let obj = O({
         "add": runtime.makeMethod1(function(self, layer) {
           checkMethodArity(2, arguments, "add");
           checkLayer(layer);
@@ -2546,7 +2623,7 @@
      *  as its underlying TFSymbolicTensor
      */
     function buildSymbolicTensorObject(underlyingSymbolic) {
-      var obj = O({
+      let obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
           return get(VS, "vs-str").app("<symbolic-tensor>");
@@ -2986,7 +3063,7 @@
      *  underlying TFLayer
      */
     function buildLayerObject(underlyingLayer) {
-      var obj = O({
+      let obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
           return get(VS, "vs-str").app("<layer>");
@@ -4785,7 +4862,7 @@
      *  as its underlying TFOptimizer
      */
     function buildOptimizerObject(underlyingOptimizer) {
-      var obj = O({
+      let obj = O({
         "_output": runtime.makeMethod0(function(self) {
           checkMethodArity(1, arguments, "_output");
           return get(VS, "vs-str").app("<optimizer>");
