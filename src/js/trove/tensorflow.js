@@ -1280,8 +1280,8 @@
       const jsData   = jsTensor.dataSync();
       jsData.forEach(x => {
         if (x === 0) {
-          runtime.ffi.throwMessageException("The second input Tensor " +
-            "cannot contain 0 (to avoid division-by-zero errors).");
+          runtime.ffi.throwMessageException("The argument Tensor " +
+            "cannot contain 0 to avoid division-by-zero errors.");
         }
       });
     }
@@ -1578,24 +1578,29 @@
       tensorData.forEach(x => {
         // We're using this (min && x < min) pattern to allow for the setting
         // of no lower or upper bound; that is, if min = null, then no lower
-        // bound is enforced, etc:
-        const inclusiveCond = ((min && x < min) || (max && x > max));
-        const exclusiveCond = ((min && x <= min) || (max && x >= max));
-        if (isInclusive ? inclusiveCond : exclusiveCond) {
-          if (min && max) {
+        // bound is enforced, etc. We have to explicitly check min !== null
+        // and max !== null because otherwise lower / upper bounds of 0 will
+        // not be checked correctly, since 0 is a falsey value:
+        const isMinSet        = (min !== null && min !== undefined);
+        const isMaxSet        = (max !== null && max !== undefined);
+        const isBelowMinBound = (isMinSet && (isInclusive ? (x < min) : (x <= min)));
+        const isAboveMaxBound = (isMaxSet && (isInclusive ? (x < max) : (x <= max)));
+        // Check if we're within both bounds:
+        if (isBelowMinBound || isAboveMaxBound) {
+          if (isMinSet && isMaxSet) {
             const boundDesignation = isInclusive ? "inclusive" : "exclusive";
             // Exception for when both lower and upper bound is specified:
             runtime.ffi.throwMessageException("Values in the input " +
               "Tensor must be between " + min + " and " + max + ", " +
               boundDesignation + ".");
           }
-          else if (max) {
+          else if (isMaxSet) {
             const boundDesignation = isInclusive ? "at most" : "less than";
             // Exception for when only upper bound is specified:
             runtime.ffi.throwMessageException("Values in the input " +
               "Tensor must be " + boundDesignation + " " + max + ".");
           }
-          else if (min) {
+          else if (isMinSet) {
             const boundDesignation = isInclusive ? "at least" : "greater than";
             // Exception for when only lower bound is specified:
             runtime.ffi.throwMessageException("Values in the input " +
@@ -1624,7 +1629,7 @@
       arity(1, arguments, "tensor-acos", false);
       const lowerBound = -1;
       const upperBound = 1;
-      assertTensorValuesBetween(x, -1, 1, true);
+      assertTensorValuesBetween(x, lowerBound, upperBound, true);
       return applyUnaryOpToTensor(tf.acos, x);
     }
 
@@ -1649,7 +1654,7 @@
       arity(1, arguments, "tensor-asin", false);
       const lowerBound = -1;
       const upperBound = 1;
-      assertTensorValuesBetween(x, -1, 1, true);
+      assertTensorValuesBetween(x, lowerBound, upperBound, true);
       return applyUnaryOpToTensor(tf.asin, x);
     }
 
@@ -1693,7 +1698,7 @@
       arity(1, arguments, "tensor-atanh", false);
       const lowerBound = -1;
       const upperBound = 1;
-      assertTensorValuesBetween(x, -1, 1, false);
+      assertTensorValuesBetween(x, lowerBound, upperBound, true);
       return applyUnaryOpToTensor(tf.atanh, x);
     }
 
@@ -1898,6 +1903,7 @@
      */
     function reciprocal(x) {
       arity(1, arguments, "tensor-reciprocal", false);
+      assertTensorDoesNotContainZero(x);
       return applyUnaryOpToTensor(tf.reciprocal, x);
     }
 
@@ -1928,6 +1934,7 @@
      */
     function rsqrt(x) {
       arity(1, arguments, "reciprocal-sqrt", false);
+      assertTensorDoesNotContainZero(x);
       return applyUnaryOpToTensor(tf.rsqrt, x);
     }
 
@@ -2002,6 +2009,8 @@
      */
     function sqrt(x) {
       arity(1, arguments, "tensor-sqrt", false);
+      const lowerBound = 0;
+      assertTensorValuesBetween(x, lowerBound, null, true);
       return applyUnaryOpToTensor(tf.sqrt, x);
     }
 
@@ -3040,8 +3049,8 @@
     /**
      * Creates a new PyretLayer using the given TensorFlow.js factory
      * function and the Pyret Object representing the layer configuration.
-     * @param {Function} tfLayerFn A TensorFlow.js layer function
-     *  which consumes a JavaScript layer configuration and returns
+     * @param {Function(TFLayer):TFLayer} tfLayerFn A TensorFlow.js layer
+     *  function which consumes a JavaScript layer configuration and returns
      *  a new TensorFlow.js layer
      * @param {PyretLayerConfig} pyretConfig The configuration to use when
      *  constructing the new layer
@@ -3052,7 +3061,8 @@
      */
     function makeLayerWith(tfLayerFn, pyretConfig, mappingExtension) {
       const jsConfig = pyretLayerConfigToJsConfig(pyretConfig, mappingExtension);
-      return buildLayerObject(tfLayerFn(jsConfig));
+      const tfResult = tfLayerFn(jsConfig);
+      return buildLayerObject(tfResult);
     }
 
     /**
