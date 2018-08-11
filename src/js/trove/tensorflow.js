@@ -1017,170 +1017,6 @@
     }
 
     /**
-     * TensorBuffers
-     */
-
-    /**
-     * Returns PyretTrue if the input `obj` is a TensorBuffer; otherwise,
-     * returns PyretFalse.
-     * @param {Any} obj Some Pyret value
-     * @returns {PBoolean} A Pyret object representing true or false
-     */
-    function isTensorBuffer(obj) {
-      arity(1, arguments, "is-tensor-buffer", false);
-      return runtime.makeBoolean(hasBrand(brandTensorBuffer, obj));
-    }
-
-    /**
-     * Consumes a PyretTensorBuffer and returns its underlying TensorFlow.js
-     * TensorBuffer.
-     * @param {PyretTensorBuffer} pyretTensorBuffer
-     * @returns {TFTensorBuffer} The underlying TensorFlow.js TensorBuffer
-     *  of the input PyretTensorBuffer
-     */
-    function unwrapTensorBuffer(pyretTensorBuffer) {
-      return pyretTensorBuffer.$underlyingBuffer;
-    }
-
-    /**
-     * Consumes a TFTensorBuffer and wraps it in a PyretObject to make it a
-     * PyretTensorBuffer.
-     * @param {TFTensorBuffer} underlyingBuffer A TensorFlow.js TensorBuffer
-     * @returns {PyretTensorBuffer} A new PyretTensorBuffer with the input
-     *  as its underlying TFTensorBuffer
-     */
-    function buildTensorBufferObject(underlyingBuffer) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          const selfBuffer   = unwrapTensorBuffer(self);
-          const bufferData   = Array.from(selfBuffer.values);
-          const vsValue      = get(VS, "vs-value");
-          const vsCollection = get(VS, "vs-collection");
-          let elts = [];
-          for (let i = 0; i < bufferData.length; i++) {
-            const wrappedNum = runtime.num_to_roughnum(bufferData[i]);
-            elts.push(vsValue.app(wrappedNum));
-          }
-          return vsCollection.app(
-            runtime.makeString("tensor-buffer"),
-            runtime.ffi.makeList(elts));
-        }),
-        "size": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "size");
-          const selfBuffer = unwrapTensorBuffer(self);
-          return runtime.makeNumber(selfBuffer.size);
-        }),
-        "shape": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "shape");
-          const selfBuffer = unwrapTensorBuffer(self);
-          return runtime.ffi.makeList(selfBuffer.shape);
-        }),
-        "set-now": runtime.makeMethod2(function(self, value, locs) {
-          checkMethodArity(3, arguments, "set-now");
-          runtime.checkNumber(value);
-          const val         = runtime.num_to_fixnum(value);
-          const locations   = unwrapListOfNumbersToArray(locs);
-          const selfBuffer  = unwrapTensorBuffer(self);
-          const bufferShape = selfBuffer.shape;
-          const bufferRank  = bufferShape.length;
-          // Check that the correct number of coordinates was supplied:
-          if (bufferRank !== locations.length) {
-            runtime.ffi.throwMessageException("The number of supplied " +
-              "coordinates must match the rank of the TensorBuffer, but " +
-              locations.length + " coordinates were specified and the number " +
-              "of dimensions in the TensorBuffer was " + bufferRank + ".");
-          }
-          // Check that each coordinate in `locations` is within the bounds of
-          // the buffer shape:
-          for (let axis = 0; axis < bufferRank; axis++) {
-            const locationIndex = locations[axis];
-            const dimensionSize = bufferShape[axis];
-            if (locationIndex < 0 || locationIndex >= dimensionSize) {
-              runtime.ffi.throwMessageException("The coordinate at axis " +
-                axis + " was " + locationIndex + ", but the size of that " +
-                "dimension in the TensorBuffer was " + dimensionSize + ". " +
-                "Coordinates must be within the bounds of the TensorBuffer's " +
-                "shape.");
-            }
-          }
-          // Actually set the values in the buffer:
-          selfBuffer.set(val, ...locations);
-          return runtime.makeNothing();
-        }),
-        "get-now": runtime.makeMethod1(function(self, locs) {
-          checkMethodArity(2, arguments, "get-now");
-          const locations   = unwrapListOfNumbersToArray(locs);
-          const selfBuffer  = unwrapTensorBuffer(self);
-          const bufferShape = selfBuffer.shape;
-          const bufferRank  = bufferShape.length;
-          // Check that the correct number of coordinates was supplied:
-          if (bufferRank !== locations.length) {
-            runtime.ffi.throwMessageException("The number of supplied " +
-              "coordinates must match the rank of the TensorBuffer, but " +
-              locations.length + " coordinates were specified and the number " +
-              "of dimensions in the TensorBuffer was " + bufferRank + ".");
-          }
-          // Check that each coordinate in `locations` is within the bounds of
-          // the buffer shape:
-          for (let axis = 0; axis < bufferRank; axis++) {
-            const locationIndex = locations[axis];
-            const dimensionSize = bufferShape[axis];
-            if (locationIndex < 0 || locationIndex >= dimensionSize) {
-              runtime.ffi.throwMessageException("The coordinate at axis " +
-                axis + " was " + locationIndex + ", but the size of that " +
-                "dimension in the TensorBuffer was " + dimensionSize + ". " +
-                "Coordinates must be within the bounds of the TensorBuffer's " +
-                "shape.");
-            }
-          }
-          // The ... spread/splat syntax is required as .get requires the
-          // indices to be entered as separate arguments to the function:
-          const result = selfBuffer.get(...locations);
-          return runtime.makeNumber(result);
-        }),
-        "get-all-now": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "get-all-now");
-          const selfBuffer = unwrapTensorBuffer(self);
-          const bufferData = Array.from(selfBuffer.values);
-          const roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
-          return runtime.ffi.makeList(roughnums);
-        }),
-        "to-tensor": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-tensor");
-          const selfBuffer = unwrapTensorBuffer(self);
-          return buildTensorObject(selfBuffer.toTensor());
-        })
-      });
-      obj = applyBrand(brandTensorBuffer, obj);
-      obj.$underlyingBuffer = underlyingBuffer;
-      return obj;
-    }
-
-    /**
-     * Returns a new PyretTensorBuffer with the input shape.
-     * @param {List<NumInteger>} shape The dimensions for the new TensorBuffer
-     * @returns {PyretTensorBuffer}
-     */
-    function makeBuffer(shape) {
-      arity(1, arguments, "make-buffer", false);
-      runtime.checkList(shape);
-      const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
-      if (jsShape.length <= 0) {
-        runtime.ffi.throwMessageException("A TensorBuffer's shape needs at " +
-          "least 1 dimension, but the input shape List had zero elements.");
-      }
-      jsShape.forEach((dimensionSize, dimensionNum) => {
-        if (dimensionSize <= 0) {
-          runtime.ffi.throwMessageException("Cannot create TensorBuffer " +
-            "since the size at dimension " + dimensionNum + " was less than  " +
-            "or equal to zero; all dimensions must be at least 1.");
-        }
-      });
-      return buildTensorBufferObject(tf.buffer(jsShape));
-    }
-
-    /**
      * Operations (Arithmetic)
      */
 
@@ -2439,6 +2275,170 @@
       const jsEnd     = unwrapListOfNumbersToArray(end, runtime.checkNumInteger);
       const jsStrides = unwrapListOfNumbersToArray(strides);
       return buildTensorObject(tf.stridedSlice(jsTensor, jsBegin, jsEnd, jsStrides));
+    }
+
+    /**
+     * TensorBuffers
+     */
+
+    /**
+     * Returns PyretTrue if the input `obj` is a TensorBuffer; otherwise,
+     * returns PyretFalse.
+     * @param {Any} obj Some Pyret value
+     * @returns {PBoolean} A Pyret object representing true or false
+     */
+    function isTensorBuffer(obj) {
+      arity(1, arguments, "is-tensor-buffer", false);
+      return runtime.makeBoolean(hasBrand(brandTensorBuffer, obj));
+    }
+
+    /**
+     * Consumes a PyretTensorBuffer and returns its underlying TensorFlow.js
+     * TensorBuffer.
+     * @param {PyretTensorBuffer} pyretTensorBuffer
+     * @returns {TFTensorBuffer} The underlying TensorFlow.js TensorBuffer
+     *  of the input PyretTensorBuffer
+     */
+    function unwrapTensorBuffer(pyretTensorBuffer) {
+      return pyretTensorBuffer.$underlyingBuffer;
+    }
+
+    /**
+     * Consumes a TFTensorBuffer and wraps it in a PyretObject to make it a
+     * PyretTensorBuffer.
+     * @param {TFTensorBuffer} underlyingBuffer A TensorFlow.js TensorBuffer
+     * @returns {PyretTensorBuffer} A new PyretTensorBuffer with the input
+     *  as its underlying TFTensorBuffer
+     */
+    function buildTensorBufferObject(underlyingBuffer) {
+      let obj = O({
+        "_output": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "_output");
+          const selfBuffer   = unwrapTensorBuffer(self);
+          const bufferData   = Array.from(selfBuffer.values);
+          const vsValue      = get(VS, "vs-value");
+          const vsCollection = get(VS, "vs-collection");
+          let elts = [];
+          for (let i = 0; i < bufferData.length; i++) {
+            const wrappedNum = runtime.num_to_roughnum(bufferData[i]);
+            elts.push(vsValue.app(wrappedNum));
+          }
+          return vsCollection.app(
+            runtime.makeString("tensor-buffer"),
+            runtime.ffi.makeList(elts));
+        }),
+        "size": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "size");
+          const selfBuffer = unwrapTensorBuffer(self);
+          return runtime.makeNumber(selfBuffer.size);
+        }),
+        "shape": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "shape");
+          const selfBuffer = unwrapTensorBuffer(self);
+          return runtime.ffi.makeList(selfBuffer.shape);
+        }),
+        "set-now": runtime.makeMethod2(function(self, value, locs) {
+          checkMethodArity(3, arguments, "set-now");
+          runtime.checkNumber(value);
+          const val         = runtime.num_to_fixnum(value);
+          const locations   = unwrapListOfNumbersToArray(locs);
+          const selfBuffer  = unwrapTensorBuffer(self);
+          const bufferShape = selfBuffer.shape;
+          const bufferRank  = bufferShape.length;
+          // Check that the correct number of coordinates was supplied:
+          if (bufferRank !== locations.length) {
+            runtime.ffi.throwMessageException("The number of supplied " +
+              "coordinates must match the rank of the TensorBuffer, but " +
+              locations.length + " coordinates were specified and the number " +
+              "of dimensions in the TensorBuffer was " + bufferRank + ".");
+          }
+          // Check that each coordinate in `locations` is within the bounds of
+          // the buffer shape:
+          for (let axis = 0; axis < bufferRank; axis++) {
+            const locationIndex = locations[axis];
+            const dimensionSize = bufferShape[axis];
+            if (locationIndex < 0 || locationIndex >= dimensionSize) {
+              runtime.ffi.throwMessageException("The coordinate at axis " +
+                axis + " was " + locationIndex + ", but the size of that " +
+                "dimension in the TensorBuffer was " + dimensionSize + ". " +
+                "Coordinates must be within the bounds of the TensorBuffer's " +
+                "shape.");
+            }
+          }
+          // Actually set the values in the buffer:
+          selfBuffer.set(val, ...locations);
+          return runtime.makeNothing();
+        }),
+        "get-now": runtime.makeMethod1(function(self, locs) {
+          checkMethodArity(2, arguments, "get-now");
+          const locations   = unwrapListOfNumbersToArray(locs);
+          const selfBuffer  = unwrapTensorBuffer(self);
+          const bufferShape = selfBuffer.shape;
+          const bufferRank  = bufferShape.length;
+          // Check that the correct number of coordinates was supplied:
+          if (bufferRank !== locations.length) {
+            runtime.ffi.throwMessageException("The number of supplied " +
+              "coordinates must match the rank of the TensorBuffer, but " +
+              locations.length + " coordinates were specified and the number " +
+              "of dimensions in the TensorBuffer was " + bufferRank + ".");
+          }
+          // Check that each coordinate in `locations` is within the bounds of
+          // the buffer shape:
+          for (let axis = 0; axis < bufferRank; axis++) {
+            const locationIndex = locations[axis];
+            const dimensionSize = bufferShape[axis];
+            if (locationIndex < 0 || locationIndex >= dimensionSize) {
+              runtime.ffi.throwMessageException("The coordinate at axis " +
+                axis + " was " + locationIndex + ", but the size of that " +
+                "dimension in the TensorBuffer was " + dimensionSize + ". " +
+                "Coordinates must be within the bounds of the TensorBuffer's " +
+                "shape.");
+            }
+          }
+          // The ... spread/splat syntax is required as .get requires the
+          // indices to be entered as separate arguments to the function:
+          const result = selfBuffer.get(...locations);
+          return runtime.makeNumber(result);
+        }),
+        "get-all-now": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "get-all-now");
+          const selfBuffer = unwrapTensorBuffer(self);
+          const bufferData = Array.from(selfBuffer.values);
+          const roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
+          return runtime.ffi.makeList(roughnums);
+        }),
+        "to-tensor": runtime.makeMethod0(function(self) {
+          checkMethodArity(1, arguments, "to-tensor");
+          const selfBuffer = unwrapTensorBuffer(self);
+          return buildTensorObject(selfBuffer.toTensor());
+        })
+      });
+      obj = applyBrand(brandTensorBuffer, obj);
+      obj.$underlyingBuffer = underlyingBuffer;
+      return obj;
+    }
+
+    /**
+     * Returns a new PyretTensorBuffer with the input shape.
+     * @param {List<NumInteger>} shape The dimensions for the new TensorBuffer
+     * @returns {PyretTensorBuffer}
+     */
+    function makeBuffer(shape) {
+      arity(1, arguments, "make-buffer", false);
+      runtime.checkList(shape);
+      const jsShape = unwrapListOfNumbersToArray(shape, runtime.checkNumInteger);
+      if (jsShape.length <= 0) {
+        runtime.ffi.throwMessageException("A TensorBuffer's shape needs at " +
+          "least 1 dimension, but the input shape List had zero elements.");
+      }
+      jsShape.forEach((dimensionSize, dimensionNum) => {
+        if (dimensionSize <= 0) {
+          runtime.ffi.throwMessageException("Cannot create TensorBuffer " +
+            "since the size at dimension " + dimensionNum + " was less than  " +
+            "or equal to zero; all dimensions must be at least 1.");
+        }
+      });
+      return buildTensorBufferObject(tf.buffer(jsShape));
     }
 
     /**
@@ -5054,10 +5054,6 @@
       "random-uniform": F(randomUniform, "random-uniform"),
       "make-variable": F(makeVariable, "make-variable"),
 
-      // TensorBuffers
-      "is-tensor-buffer": F(isTensorBuffer, "is-tensor-buffer"),
-      "make-buffer": F(makeBuffer, "make-buffer"),
-
       // Operations (Arithmetic)
       "add-tensors": F(addTensors, "add-tensors"),
       "subtract-tensors": F(subtractTensors, "subtract-tensors"),
@@ -5144,6 +5140,10 @@
       "tile": F(tile, "tile"),
       "unstack": F(unstack, "unstack"),
       "strided-slice": F(stridedSlice, "strided-slice"),
+
+      // TensorBuffers
+      "is-tensor-buffer": F(isTensorBuffer, "is-tensor-buffer"),
+      "make-buffer": F(makeBuffer, "make-buffer"),
 
       // Models (Generic)
       "is-model": F(isModel, "is-model"),
