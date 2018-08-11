@@ -669,11 +669,11 @@ check "divide-tensors":
 
   # Check for divide-by-zero errors:
   divide-tensors([tensor: 1], [tensor: 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   divide-tensors([tensor: 1], [tensor: 1, 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   divide-tensors([tensor: 4.23], [tensor: 7.65, 1.43, 0, 2.31])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
 end
 
 check "floor-divide-tensors":
@@ -704,11 +704,11 @@ check "floor-divide-tensors":
 
   # Check for divide-by-zero errors:
   floor-divide-tensors([tensor: 1], [tensor: 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   floor-divide-tensors([tensor: 1], [tensor: 1, 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   floor-divide-tensors([tensor: 4.23], [tensor: 7.65, 1.43, 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
 end
 
 check "tensor-max":
@@ -801,11 +801,11 @@ check "tensor-modulo":
 
   # Check for division-by-zero errors:
   tensor-modulo([tensor: 1], [tensor: 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   tensor-modulo([tensor: 1], [tensor: 1, 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   tensor-modulo([tensor: 4.23], [tensor: 7.65, 1.43, 0, 2.31])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
 end
 
 check "tensor-expt":
@@ -1010,11 +1010,11 @@ check "strict-divide-tensors":
 
   # Check for divide-by-zero errors:
   strict-divide-tensors([tensor: 1], [tensor: 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   strict-divide-tensors([tensor: 1, 1], [tensor: 1, 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   strict-divide-tensors([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
 
   # Check for shape strictness:
   strict-divide-tensors(two-dim-1, two-dim-3)
@@ -1123,11 +1123,11 @@ check "strict-tensor-modulo":
 
   # Check for divide-by-zero errors:
   strict-tensor-modulo([tensor: 1], [tensor: 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   strict-tensor-modulo([tensor: 1, 1], [tensor: 1, 0])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
   strict-tensor-modulo([tensor: 4.23, 8.29, 1.01], [tensor: 7.65, 0, 1.43])
-    raises "The second input Tensor cannot contain 0"
+    raises "The argument Tensor cannot contain 0"
 
   # Check for shape strictness:
   strict-tensor-modulo(two-dim-1, two-dim-3)
@@ -1587,8 +1587,27 @@ check "parametric-relu":
 end
 
 check "tensor-reciprocal":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages on integer tensors:
+  tensor-reciprocal([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-reciprocal([tensor: -1]).data-now() is-roughly [list: -1]
+  tensor-reciprocal([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-1, ~-0.5, ~-0.3333333]
+  tensor-reciprocal([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~0.1666666, ~0.5, ~-0.25]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-reciprocal = tensor-reciprocal([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-reciprocal.shape() is [list: 2, 2]
+  two-dim-reciprocal.data-now()
+    is-roughly [list: ~-0.25, ~0.2, ~-0.1666666, ~-0.1428571]
+
+  # Check for division-by-zero errors:
+  tensor-reciprocal([tensor: 0])
+    raises "The argument Tensor cannot contain 0"
+  tensor-reciprocal([tensor: 1, 0])
+    raises "The argument Tensor cannot contain 0"
+  tensor-reciprocal([tensor: 7.65, 0, 1.43])
+    raises "The argument Tensor cannot contain 0"
 end
 
 check "relu":
@@ -1632,8 +1651,27 @@ check "tensor-round":
 end
 
 check "reciprocal-sqrt":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages on integer tensors:
+  reciprocal-sqrt([tensor: 1]).data-now() is-roughly [list: 1]
+  reciprocal-sqrt([tensor: -1]).data-now() is-roughly [list: 1]
+  reciprocal-sqrt([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~1, ~0.7071067, ~0.5773502]
+  reciprocal-sqrt([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~0.4082482, ~0.7071067, ~0.5]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-reciprocal = reciprocal-sqrt([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-reciprocal.shape() is [list: 2, 2]
+  two-dim-reciprocal.data-now()
+    is-roughly [list: ~0.5, ~0.4472135, ~0.4082482, ~0.3779644]
+
+  # Check for division-by-zero errors:
+  reciprocal-sqrt([tensor: 0])
+    raises "The argument Tensor cannot contain 0"
+  reciprocal-sqrt([tensor: 1, 0])
+    raises "The argument Tensor cannot contain 0"
+  reciprocal-sqrt([tensor: 7.65, 0, 1.43])
+    raises "The argument Tensor cannot contain 0"
 end
 
 check "scaled-elu":
@@ -1647,8 +1685,22 @@ check "sigmoid":
 end
 
 check "signed-ones":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  signed-ones([tensor: 0]).data-now() is-roughly [list: 0]
+  signed-ones([tensor: 1]).data-now() is-roughly [list: 1]
+  signed-ones([tensor: 3]).data-now() is-roughly [list: 1]
+  signed-ones([tensor: 5]).data-now() is-roughly [list: 1]
+  signed-ones([tensor: -1]).data-now() is-roughly [list: -1]
+  signed-ones([tensor: -3]).data-now() is-roughly [list: -1]
+  signed-ones([tensor: -5]).data-now() is-roughly [list: -1]
+  signed-ones([tensor: 9, -7, 5, -3, -1, 0]).data-now()
+    is-roughly [list: 1, -1, 1, -1, -1, 0]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-signed = signed-ones([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-signed.shape() is [list: 2, 2]
+  two-dim-signed.data-now()
+    is-roughly [list: -1, 1, -1, -1]
 end
 
 check "tensor-sin":
@@ -1693,28 +1745,106 @@ check "softplus":
 end
 
 check "tensor-sqrt":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  tensor-sqrt([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-sqrt([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-sqrt([tensor: 4]).data-now() is-roughly [list: 2]
+  tensor-sqrt([tensor: 9]).data-now() is-roughly [list: 3]
+  tensor-sqrt([tensor: 25]).data-now() is-roughly [list: 5]
+
+  # Check handling of negative values:
+  tensor-sqrt([tensor: -1]).data-now()
+    raises "Values in the input Tensor must be at least 0"
+  tensor-sqrt([tensor: -3]).data-now()
+    raises "Values in the input Tensor must be at least 0"
+  tensor-sqrt([tensor: -5]).data-now()
+    raises "Values in the input Tensor must be at least 0"
+  tensor-sqrt([tensor: 9, -7, 5, -3, -1, 0, 0.5]).data-now()
+    raises "Values in the input Tensor must be at least 0"
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-sqrt = tensor-sqrt([tensor: 4, 16, 25, 0].as-2d(2, 2))
+  two-dim-sqrt.shape() is [list: 2, 2]
+  two-dim-sqrt.data-now()
+    is-roughly [list: 2, 4, 5, 0]
 end
 
 check "tensor-square":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  tensor-square([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-square([tensor: 1]).data-now() is-roughly [list: 1]
+  tensor-square([tensor: 3]).data-now() is-roughly [list: 9]
+  tensor-square([tensor: 5]).data-now() is-roughly [list: 25]
+  tensor-square([tensor: -1]).data-now() is-roughly [list: 1]
+  tensor-square([tensor: -3]).data-now() is-roughly [list: 9]
+  tensor-square([tensor: -5]).data-now() is-roughly [list: 25]
+  tensor-square([tensor: 9, -7, 5, -3, -1, 0, 0.5]).data-now()
+    is-roughly [list: 81, 49, 25, 9, 1, 0, 0.25]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-squared = tensor-square([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-squared.shape() is [list: 2, 2]
+  two-dim-squared.data-now()
+    is-roughly [list: 16, 25, 36, 49]
 end
 
 check "step":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  step([tensor: 0]).data-now() is-roughly [list: 0]
+  step([tensor: 1]).data-now() is-roughly [list: 1]
+  step([tensor: 3]).data-now() is-roughly [list: 1]
+  step([tensor: 5]).data-now() is-roughly [list: 1]
+  step([tensor: -1]).data-now() is-roughly [list: 0]
+  step([tensor: -3]).data-now() is-roughly [list: 0]
+  step([tensor: -5]).data-now() is-roughly [list: 0]
+  step([tensor: 9, -7, 5, -3, -1, 0]).data-now()
+    is-roughly [list: 1, 0, 1, 0, 0, 0]
+  step([tensor: -1, 4, 0, 0, 15, -43, 0]).data-now()
+    is-roughly [list: 0, 1, 0, 0, 1, 0, 0]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-stepped = step([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-stepped.shape() is [list: 2, 2]
+  two-dim-stepped.data-now()
+    is-roughly [list: 0, 1, 0, 0]
 end
 
 check "tensor-tan":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  tensor-tan([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-tan([tensor: 1]).data-now() is-roughly [list: ~1.5573809]
+  tensor-tan([tensor: -1]).data-now() is-roughly [list: ~-1.5573809]
+  tensor-tan([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-1.5573809, ~2.1850113, ~0.1425446]
+  tensor-tan([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~-0.2910035, ~-2.1850113, ~-1.1578584]
+  tensor-tan([tensor: 21, 0, 32, 2]).data-now()
+    is-roughly [list: ~-1.5275151, ~0, ~0.6610110, ~-2.1850113]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-tan = tensor-tan([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-tan.shape() is [list: 2, 2]
+  two-dim-tan.data-now()
+    is-roughly [list: ~-1.1578584, ~-3.3804838, ~0.2910035, ~-0.8714656]
 end
 
 check "tensor-tanh":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  tensor-tanh([tensor: 0]).data-now() is-roughly [list: 0]
+  tensor-tanh([tensor: 1]).data-now() is-roughly [list: ~0.7615941]
+  tensor-tanh([tensor: -1]).data-now() is-roughly [list: ~-0.7615941]
+  tensor-tanh([tensor: -1, -2, -3]).data-now()
+    is-roughly [list: ~-0.7615941, ~-0.9640275, ~-0.9950547]
+  tensor-tanh([tensor: 6, 2, -4]).data-now()
+    is-roughly [list: ~0.9999876, ~0.9640275, ~-0.9993293]
+  tensor-tanh([tensor: 21, 0, 32, 2]).data-now()
+    is-roughly [list: ~1, ~0, ~1, ~0.9640275]
+
+  # Check operation preserves shape of multi-dimensional tensors:
+  two-dim-tanh = tensor-tanh([tensor: -4, 5, -6, -7].as-2d(2, 2))
+  two-dim-tanh.shape() is [list: 2, 2]
+  two-dim-tanh.data-now()
+    is-roughly [list: ~-0.9993293, ~0.9999091, ~-0.9999876, ~-0.9999983]
 end
 
 ##########################
