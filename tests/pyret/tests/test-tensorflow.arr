@@ -141,9 +141,9 @@ check "make-variable":
   make-variable(two-dim).as-3d(4, 1, 1).shape() is [list: 4, 1, 1]
 end
 
-####################
-## Tensor Methods ##
-####################
+###################
+## TensorBuffers ##
+###################
 
 check "Tensor .size":
   make-scalar(4.21).size() is 1
@@ -347,6 +347,207 @@ check "Tensor .clone":
   new-tensor.size() is some-tensor.size()
   new-tensor.shape() is some-tensor.shape()
   new-tensor.data-now() is-roughly some-tensor.data-now()
+end
+
+############################
+## TensorBuffer Functions ##
+############################
+
+check "is-tensor-buffer":
+  is-tensor-buffer(make-buffer([list: 1])) is true
+  is-tensor-buffer(make-buffer([list: 9, 4])) is true
+  is-tensor-buffer(make-buffer([list: 8, 4, 10])) is true
+  is-tensor-buffer(43) is false
+  is-tensor-buffer("not a buffer") is false
+  is-tensor-buffer({some: "thing"}) is false
+end
+
+check "make-buffer":
+  make-buffer([list: 1]).to-tensor().size() is 1
+  make-buffer([list: 1]).to-tensor().shape() is [list: 1]
+  make-buffer([list: 9, 5]).to-tensor().size() is 45
+  make-buffer([list: 9, 5]).to-tensor().shape() is [list: 9, 5]
+
+  # Check for error handling of rank-0 shapes:
+  make-buffer(empty) raises "input shape List had zero elements"
+
+  # Check for error handling of less than zero dimension sizes:
+  make-buffer([list: 0]) raises "Cannot create TensorBuffer"
+  make-buffer([list: -1]) raises "Cannot create TensorBuffer"
+  make-buffer([list: 1, 0]) raises "Cannot create TensorBuffer"
+  make-buffer([list: 4, 5, 0, 3]) raises "Cannot create TensorBuffer"
+  make-buffer([list: 2, -5, -1, 4]) raises "Cannot create TensorBuffer"
+  make-buffer([list: 4, 5, 0, 3, 0]) raises "Cannot create TensorBuffer"
+end
+
+##########################
+## TensorBuffer Methods ##
+##########################
+
+check "TensorBuffer .size":
+  make-buffer([list: 1]).size() is 1
+  make-buffer([list: 4]).size() is 4
+  make-buffer([list: 3, 2]).size() is 6
+  make-buffer([list: 4, 4]).size() is 16
+  make-buffer([list: 4, 3, 5]).size() is 60
+end
+
+check "TensorBuffer .shape":
+  make-buffer([list: 1]).shape() is [list: 1]
+  make-buffer([list: 4, 3]).shape() is [list: 4, 3]
+  make-buffer([list: 2, 4, 1]).shape() is [list: 2, 4, 1]
+  make-buffer([list: 4, 3, 5]).shape() is [list: 4, 3, 5]
+end
+
+check "TensorBuffer .set-now":
+  # Check size-1 buffer usage:
+  buffer-1 = make-buffer([list: 1])
+  buffer-1.set-now(3, [list: 0])
+  buffer-1.get-all-now() is-roughly [list: 3]
+
+  # Check long, one-dimensional buffer usage:
+  buffer-2 = make-buffer([list: 7])
+  buffer-2.set-now(-45, [list: 0])
+  buffer-2.set-now(9, [list: 2])
+  buffer-2.set-now(0, [list: 4])
+  buffer-2.set-now(-3.42, [list: 6])
+
+  buffer-2.get-all-now() is-roughly [list: -45, 0, 9, 0, 0, 0, -3.42]
+  buffer-2.to-tensor().shape() is [list: 7]
+  buffer-2.to-tensor().data-now() is-roughly [list: -45, 0, 9, 0, 0, 0, -3.42]
+
+  # Check out-of-bounds coordinates:
+  buffer-2.set-now(10, [list: -1])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+  buffer-2.set-now(10, [list: 8])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+  buffer-2.set-now(10, [list: 10])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+
+  # Check too little coordinates:
+  buffer-2.set-now(10, [list:])
+    raises "number of supplied coordinates must match the rank"
+
+  # Check too many coordinates:
+  buffer-2.set-now(10, [list: 9, 5])
+    raises "number of supplied coordinates must match the rank"
+  buffer-2.set-now(10, [list: 9, 5, 20])
+    raises "number of supplied coordinates must match the rank"
+
+  # Check multi-dimensional buffer usage:
+  buffer-3 = make-buffer([list: 2, 2])
+  buffer-3.set-now(4, [list: 0, 0])
+  buffer-3.set-now(3, [list: 0, 1])
+  buffer-3.set-now(2, [list: 1, 0])
+  buffer-3.set-now(1, [list: 1, 1])
+
+  buffer-3.get-all-now() is-roughly [list: 4, 3, 2, 1]
+  buffer-3.to-tensor().shape() is [list: 2, 2]
+  buffer-3.to-tensor().data-now() is-roughly [list: 4, 3, 2, 1]
+
+  # Check out-of-bounds coordinates:
+  buffer-3.set-now(10, [list: -1, 0])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+  buffer-3.set-now(10, [list: 2, 2])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+
+  # Check too many coordinates:
+  buffer-3.set-now(10, [list: 1, 2, 3])
+    raises "number of supplied coordinates must match the rank"
+end
+
+check "TensorBuffer .get-now":
+  # Check one-dimensional buffer usage:
+  one-dim-buffer = make-buffer([list: 7])
+  one-dim-buffer.set-now(-45, [list: 0])
+  one-dim-buffer.set-now(9, [list: 2])
+  one-dim-buffer.set-now(0, [list: 4])
+  one-dim-buffer.set-now((4 / 3), [list: 5])
+  one-dim-buffer.set-now(-3.42, [list: 6])
+
+  one-dim-buffer.get-now([list: 0]) is-roughly -45
+  one-dim-buffer.get-now([list: 1]) is-roughly 0
+  one-dim-buffer.get-now([list: 2]) is-roughly 9
+  one-dim-buffer.get-now([list: 3]) is-roughly 0
+  one-dim-buffer.get-now([list: 4]) is-roughly 0
+  one-dim-buffer.get-now([list: 5]) is-roughly (4 / 3)
+  one-dim-buffer.get-now([list: 6]) is-roughly -3.42
+
+  # Check multi-dimensional buffer usage:
+  two-dim-buffer = make-buffer([list: 2, 2])
+  two-dim-buffer.set-now(4, [list: 0, 0])
+  two-dim-buffer.set-now(3, [list: 0, 1])
+  two-dim-buffer.set-now(2, [list: 1, 0])
+  two-dim-buffer.set-now(1, [list: 1, 1])
+
+  two-dim-buffer.get-now([list: 0, 0]) is-roughly 4
+  two-dim-buffer.get-now([list: 0, 1]) is-roughly 3
+  two-dim-buffer.get-now([list: 1, 0]) is-roughly 2
+  two-dim-buffer.get-now([list: 1, 1]) is-roughly 1
+
+  # Check out-of-bounds coordinates:
+  two-dim-buffer.set-now(10, [list: -1, 0])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+  two-dim-buffer.set-now(10, [list: 2, 2])
+    raises "Coordinates must be within the bounds of the TensorBuffer's shape"
+
+  # Check too many coordinates:
+  two-dim-buffer.set-now(10, [list: 1, 2, 3])
+    raises "number of supplied coordinates must match the rank"
+end
+
+check "TensorBuffer .get-all-now":
+  # Check works on newly initialized buffer with no set values:
+  no-set-buffer = make-buffer([list: 2, 4])
+  no-set-buffer.get-all-now() is-roughly [list: 0, 0, 0, 0, 0, 0, 0, 0]
+
+  # Check one-dimensional buffer usage:
+  one-dim-buffer = make-buffer([list: 7])
+  one-dim-buffer.set-now(-45, [list: 0])
+  one-dim-buffer.set-now(9, [list: 2])
+  one-dim-buffer.set-now(0, [list: 4])
+  one-dim-buffer.set-now((4 / 3), [list: 5])
+  one-dim-buffer.set-now(-3.42, [list: 6])
+
+  one-dim-buffer.get-all-now() is-roughly [list: -45, 0, 9, 0, 0, (4 / 3), -3.42]
+
+  # Check multi-dimensional buffer usage:
+  two-dim-buffer = make-buffer([list: 2, 2])
+  two-dim-buffer.set-now(4, [list: 0, 0])
+  two-dim-buffer.set-now(3, [list: 0, 1])
+  two-dim-buffer.set-now(2, [list: 1, 0])
+  two-dim-buffer.set-now(1, [list: 1, 1])
+
+  two-dim-buffer.get-all-now() is-roughly [list: 4, 3, 2, 1]
+end
+
+check "TensorBuffer .to-tensor":
+  # Check size-1 buffer usage:
+  buffer-1 = make-buffer([list: 1])
+  buffer-1.set-now(3, [list: 0])
+
+  buffer-1.to-tensor().shape() is [list: 1]
+  buffer-1.to-tensor().data-now() is-roughly [list: 3]
+
+  # Check one-dimensional buffer usage:
+  buffer-2 = make-buffer([list: 7])
+  buffer-2.set-now(-45, [list: 0])
+  buffer-2.set-now(9, [list: 2])
+  buffer-2.set-now(0, [list: 4])
+  buffer-2.set-now(-3.42, [list: 6])
+
+  buffer-2.to-tensor().shape() is [list: 7]
+  buffer-2.to-tensor().data-now() is-roughly [list: -45, 0, 9, 0, 0, 0, -3.42]
+
+  # Check multi-dimensional buffer usage:
+  buffer-3 = make-buffer([list: 2, 2])
+  buffer-3.set-now(4, [list: 0, 0])
+  buffer-3.set-now(3, [list: 0, 1])
+  buffer-3.set-now(2, [list: 1, 0])
+  buffer-3.set-now(1, [list: 1, 1])
+
+  buffer-3.to-tensor().shape() is [list: 2, 2]
+  buffer-3.to-tensor().data-now() is-roughly [list: 4, 3, 2, 1]
 end
 
 ###########################
@@ -1150,7 +1351,7 @@ end
 
 check "tensor-atan2":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-atanh":
@@ -1279,32 +1480,32 @@ end
 
 check "exponential-linear-units":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "elu":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "gauss-error":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "erf":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-exp":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-exp-min1":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-floor":
@@ -1342,22 +1543,22 @@ end
 
 check "leaky-relu":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-log":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-log-plus1":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "log-sigmoid":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-negate":
@@ -1382,17 +1583,17 @@ end
 
 check "parametric-relu":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-reciprocal":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "relu":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-round":
@@ -1432,22 +1633,22 @@ end
 
 check "reciprocal-sqrt":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "scaled-elu":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "sigmoid":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "signed-ones":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-sin":
@@ -1488,32 +1689,32 @@ end
 
 check "softplus":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-sqrt":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-square":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "step":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-tan":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tensor-tanh":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 ##########################
@@ -1522,47 +1723,47 @@ end
 
 check "all":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "any":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "arg-max":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "arg-min":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "log-sum-exp":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "reduce-max":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "reduce-min":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "reduce-mean":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "reduce-sum":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 ####################################
@@ -1571,7 +1772,7 @@ end
 
 check "concatenate":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "gather":
@@ -1592,35 +1793,35 @@ end
 
 check "reverse":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "slice":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "split":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "stack":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "tile":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "unstack":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
 
 check "strided-slice":
   # TODO(ZacharyEspiritu): Add tests for this function
-  nothing
+  true is true
 end
