@@ -2584,7 +2584,7 @@
           const xTensor = checkAndUnwrapTensor(x);
           const yTensor = checkAndUnwrapTensor(y);
           let jsConfig  = unwrapObject(config);
-          // TODO(Zachary): Generalize across multiple callback types
+          // TODO(ZacharyEspiritu): Generalize across multiple callback types
           jsConfig.callbacks = {
             onEpochEnd: async (epoch, log) => {
               runtime.safeCall(() => {
