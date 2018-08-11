@@ -1409,6 +1409,8 @@
      * @returns {PyretTensor} The result
      */
     function assertTensorValuesBetween(tensor, min, max, isInclusive) {
+      const isMinSet   = (min !== null && min !== undefined);
+      const isMaxSet   = (max !== null && max !== undefined);
       const jsTensor   = checkAndUnwrapTensor(tensor);
       const tensorData = jsTensor.dataSync();
       tensorData.forEach(x => {
@@ -1417,10 +1419,8 @@
         // bound is enforced, etc. We have to explicitly check min !== null
         // and max !== null because otherwise lower / upper bounds of 0 will
         // not be checked correctly, since 0 is a falsey value:
-        const isMinSet        = (min !== null && min !== undefined);
-        const isMaxSet        = (max !== null && max !== undefined);
         const isBelowMinBound = (isMinSet && (isInclusive ? (x < min) : (x <= min)));
-        const isAboveMaxBound = (isMaxSet && (isInclusive ? (x < max) : (x <= max)));
+        const isAboveMaxBound = (isMaxSet && (isInclusive ? (x > max) : (x >= max)));
         // Check if we're within both bounds:
         if (isBelowMinBound || isAboveMaxBound) {
           if (isMinSet && isMaxSet) {
@@ -1534,7 +1534,7 @@
       arity(1, arguments, "tensor-atanh", false);
       const lowerBound = -1;
       const upperBound = 1;
-      assertTensorValuesBetween(x, lowerBound, upperBound, true);
+      assertTensorValuesBetween(x, lowerBound, upperBound, false);
       return applyUnaryOpToTensor(tf.atanh, x);
     }
 
