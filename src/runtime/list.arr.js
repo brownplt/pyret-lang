@@ -56,5 +56,7 @@ module.exports = {
     }
     
     return listA;
+    
+    /* return listA.concat( listB ); */
   }
 };
