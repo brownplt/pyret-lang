@@ -2006,7 +2006,7 @@
      * @returns {PyretTensor} The result
      */
     function mean(x, axis) {
-      arity(1, arguments, "reduce-mean", false);
+      arity(2, arguments, "reduce-mean", false);
       return applyReductionToTensor(tf.mean, x, axis);
     }
 
@@ -2019,7 +2019,7 @@
      * @returns {PyretTensor} The result
      */
     function min(x, axis) {
-      arity(1, arguments, "reduce-min", false);
+      arity(2, arguments, "reduce-min", false);
       return applyReductionToTensor(tf.min, x, axis);
     }
 
@@ -2230,7 +2230,9 @@
      * @returns {PyretTensor} The result
      */
     function tile(tensor, repetitions) {
-      // NTI(ZacharyEspiritu)
+      // NTI(ZacharyEspiritu): There are a bunch of weird edge case checks
+      // that TensorFlow.js does on this function that make it difficult to
+      // implement at this time.
       arity(2, arguments, "tile", false);
       runtime.ffi.throwMessageException("Not yet implemented");
     }
@@ -2744,7 +2746,7 @@
         typeCheckAndConvert: (v) => unwrapListOfNumbersToArray(v, runtime.checkNumInteger),
         prevents: ["input-shape"],
       },
-      "batch-size": {
+      "   ": {
         // NumInteger
         jsName: "batchSize",
         typeCheckAndConvert: (v) => {
@@ -3111,7 +3113,7 @@
      */
     const ACTIVATION_LAYER_OPTIONS = {
       "activation": {
-        // ActivationIdentifier (String)
+        // Activation (String)
         jsName: "activation",
         typeCheckAndConvert: checkAndConvertActivationFunction,
         required: true,
@@ -3142,13 +3144,14 @@
         // NumInteger
         jsName: "units",
         typeCheckAndConvert: (v) => {
+          runtime.checkNumPositive(v);
           runtime.checkNumInteger(v);
           return runtime.num_to_fixnum(v);
         },
         required: true,
       },
       "activation": {
-        // ActivationIdentifier (String)
+        // Activation (String)
         jsName: "activation",
         typeCheckAndConvert: checkAndConvertActivationFunction,
       },
@@ -3275,19 +3278,21 @@
      */
     const EMBEDDING_LAYER_OPTIONS = {
       "input-dim": {
-        // NumPositive
+        // NumPositive | NumInteger
         jsName: "inputDim",
         typeCheckAndConvert: (v) => {
           runtime.checkNumPositive(v);
+          runtime.checkNumInteger(v);
           return runtime.num_to_fixnum(v);
         },
         required: true,
       },
       "output-dim": {
-        // NumNonNegative
+        // NumNonNegative | NumInteger
         jsName: "outputDim",
         typeCheckAndConvert: (v) => {
           runtime.checkNumNonNegative(v);
+          runtime.checkNumInteger(v);
           return runtime.num_to_fixnum(v);
         },
         required: true,
@@ -4500,7 +4505,7 @@
         required: true,
       },
       "activation": {
-        // ActivationIdentifier (String)
+        // Activation (String)
         jsName: "activation",
         typeCheckAndConvert: checkAndConvertActivationFunction,
       },
@@ -4617,7 +4622,7 @@
         required: true,
       },
       "activation": {
-        // ActivationIdentifier (String)
+        // Activation (String)
         jsName: "activation",
         typeCheckAndConvert: checkAndConvertActivationFunction,
       },
@@ -4884,14 +4889,14 @@
           // knows to modify all available mutable tensors in the space:
           // TODO(ZacharyEspiritu): Check that these are actually mutable;
           // currently only verifies that they are Tensors, not Variables
-          const variables = unwrapListOfTensorsToArray(varList);
+          let variables = unwrapListOfTensorsToArray(varList);
           if (variables.length === 0) { variables = undefined; }
 
           // Run minimization thunk. The thunk should return a scalar Tensor.
           // TODO(ZacharyEspiritu): Check that this returns a scalar;
           // currently only verifies that it returns a Tensor, not a scalar
-          var selfOptimizer = unwrapOptimizer(self);
-          var result = selfOptimizer.minimize(() => {
+          const selfOptimizer = unwrapOptimizer(self);
+          const result = selfOptimizer.minimize(() => {
             return runtime.safeCall(() => {
               return functionToMinimize.app();
             }, checkAndUnwrapTensor);
