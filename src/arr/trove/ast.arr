@@ -297,21 +297,6 @@ data Import:
           PP.flow-map(PP.commabreak, _.tosource(), self.fields),
           str-from, self.file.tosource()])
     end
-  | s-import-complete(
-      l :: Loc,
-      values :: List<Name>,
-      types :: List<Name>,
-      import-type :: ImportType,
-      mod-name :: Name) with:
-    method label(self): "s-import-complete" end,
-    method tosource(self):
-      PP.flow([list: str-import,
-          PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
-          str-from,
-          self.import-type.tosource(),
-          str-as,
-          self.local-name.tosource()])
-    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -1973,14 +1958,6 @@ default-map-visitor = {
   method s-import(self, l, import-type, name):
     s-import(l, import-type.visit(self), name.visit(self))
   end,
-  method s-import-complete(self, l, values, types, mod, mod-name):
-    s-import-complete(
-      l,
-      values.map(_.visit(self)),
-      types.map(_.visit(self)),
-      mod.visit(self),
-      mod-name.visit(self))
-  end,
   method s-const-import(self, l, mod):
     s-const-import(l, mod)
   end,
@@ -2564,12 +2541,6 @@ default-iter-visitor = {
 
   method s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
-  end,
-  method s-import-complete(self, l, values, types, mod, mod-name):
-    lists.all(_.visit(self), values) and
-      lists.all(_.visit(self), types) and
-      mod.visit(self) and
-      mod-name.visit(self)
   end,
   method s-include(self, l, import-type):
     import-type.visit(self)
@@ -3166,15 +3137,6 @@ dummy-loc-visitor = {
   method s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type.visit(self), name.visit(self))
   end,
-  method s-import-complete(self, l, values, types, mod, mod-name):
-    s-import-complete(
-      dummy-loc,
-      values.map(_.visit(self)),
-      types.map(_.visit(self)),
-      mod.visit(self),
-      mod-name.visit(self))
-  end,
-
   method s-include-from(self, l, mod, specs):
     s-include-from(dummy-loc, mod.map(_.visit(self)), specs.map(_.visit(self)))
   end,

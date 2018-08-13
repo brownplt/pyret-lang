@@ -60,39 +60,6 @@ sharing:
   end
 end
 
-data AImportType:
-  | a-import-builtin(l :: Loc, lib :: String) with:
-    method tosource(self): PP.str(self.lib) end
-  | a-import-special(l :: Loc, kind :: String, args :: List<String>) with:
-    method tosource(self):
-      PP.group(PP.str(self.kind)
-          + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(PP.str)))))
-    end
-end
-
-data AImport:
-  | a-import-complete(
-      l :: Loc,
-      values :: List<A.Name>,
-      types :: List<A.Name>,
-      import-type :: AImportType,
-      mod-name :: A.Name) with:
-    method label(self): "a-import-complete" end,
-    method tosource(self):
-      PP.flow([list: str-import,
-          PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
-          str-from,
-          self.import-type.tosource(),
-          str-as,
-          self.mod-name.tosource()])
-    end
-sharing:
-  method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
 data ATypeBind:
   | a-type-bind(l :: Loc, name :: A.Name, ann :: A.Ann) with:
     method label(self): "a-type-bind" end,
@@ -493,20 +460,7 @@ end
 fun strip-loc-prog(p :: AProg):
   cases(AProg) p:
     | a-program(_, prov, imports, body) =>
-      a-program(dummy-loc, prov, imports.map(strip-loc-import), body ^ strip-loc-expr)
-  end
-end
-
-fun strip-loc-import(i :: AImport):
-  cases(AImport) i:
-    | a-import-complete(_, vns, tns, imp, mn) =>
-      a-import-complete(dummy-loc, vns, tns, imp, mn)
-  end
-end
-
-fun strip-loc-import-type(i :: AImportType):
-  cases(AImportType) i:
-    | a-import-builtin(_, name, id) => a-import-builtin(dummy-loc, name, id)
+      a-program(dummy-loc, prov, imports, body ^ strip-loc-expr)
   end
 end
 
@@ -594,11 +548,8 @@ default-map-visitor = {
   method a-module(self, l :: Loc, answer :: AVal, dm, dv, dt, checks):
     a-module(l, answer.visit(self), dm, dv, dt, checks.visit(self))
   end,
-  method a-program(self, l :: Loc, p, imports :: List<AImport>, body :: AExpr):
+  method a-program(self, l :: Loc, p, imports :: List<A.Import>, body :: AExpr):
     a-program(l, p, imports.map(_.visit(self)), body.visit(self))
-  end,
-  method a-import-builtin(self, l :: Loc, lib :: String, name :: A.Name):
-    a-import-builtin(l, lib, name)
   end,
   method a-type-bind(self, l, name, ann):
     a-type-bind(l, name, ann)

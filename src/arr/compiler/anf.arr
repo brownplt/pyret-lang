@@ -105,24 +105,6 @@ fun anf-program(e :: A.Program):
   end
 end
 
-fun anf-import-type(it :: A.ImportType):
-  cases(A.ImportType) it:
-    | s-const-import(l, mod) => N.a-import-builtin(l, mod)
-    | s-special-import(l, kind, args) => N.a-import-special(l, kind, args)
-  end
-end
-
-fun anf-import(i :: A.Import):
-  cases(A.Import) i:
-    | s-import-complete(l, vals, types, f, mod-name) =>
-      itype = cases(A.ImportType) f:
-        | s-const-import(_, mod) => N.a-import-builtin(l, mod)
-        | s-special-import(_, kind, args) => N.a-import-special(l, kind, args)
-      end
-      N.a-import-complete(l, vals, types, itype, mod-name)
-  end
-end
-
 fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
   fun anf-block-help(es):
     cases (List<A.Expr>) es:

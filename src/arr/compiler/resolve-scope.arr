@@ -30,8 +30,6 @@ fun mk-id(loc, base) -> { id :: A.Expr, id-b :: A.Expr, id-e :: A.Expr }:
   { id: t, id-b: mk-bind(loc, t), id-e: A.s-id(loc, t) }
 end
 
-is-s-import-complete = A.is-s-import-complete
-
 fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr> block:
   doc: ```
        Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
