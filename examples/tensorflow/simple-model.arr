@@ -1,3 +1,8 @@
+# simple-model:
+# Example of training a `Sequential` model to learn how certain X values
+# correspond to Y values and learning an equation to predict another X value.
+# This program is translated from https://js.tensorflow.org/#getting-started.
+
 import tensorflow as TF
 
 # Define a simple model
