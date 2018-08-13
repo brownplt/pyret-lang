@@ -877,25 +877,23 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
   cases(CS.ExtraImports) env:
     | extra-imports(imports) =>
-      full-imports = p.imports + for map(i from imports):
+      l = p.l
+      full-imports = p.imports + for fold(lst from empty, i from imports):
           name-to-use = if i.as-name == "_": A.s-underscore(p.l) else: A.s-name(p.l, i.as-name) end
-          cases(CS.Dependency) i.dependency:
-            | builtin(name) =>
-              loc = SL.builtin(i.as-name)
-              A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(loc, _)),
-                i.types.map(A.s-name(loc, _)),
-                A.s-const-import(p.l, name),
-                name-to-use)
-            | dependency(protocol, args) =>
-              A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(p.l, _)),
-                i.types.map(A.s-name(p.l, _)),
-                A.s-special-import(p.l, protocol, args),
-                name-to-use)
+          ast-dep = cases(CS.Dependency) i.dependency:
+            | builtin(name) => A.s-const-import(p.l, name)
+            | dependency(protocol, args) => A.s-special-import(p.l, protocol, args)
           end
+          import-line = A.s-import(p.l, ast-dep, name-to-use)
+          include-line = 
+            A.s-include-from(p.l, [list: name-to-use],
+              i.values.map(lam(v):
+                A.s-include-name(l, A.s-module-ref(l, [list: A.s-name(l, v)], none))
+              end) +
+              i.types.map(lam(t):
+                A.s-include-type(l, A.s-module-ref(l, [list: A.s-name(l, t)], none))
+              end))
+          lst + link(import-line, link(include-line, empty))
         end
       A.s-program(p.l, p._provide, p.provided-types, p.provides, full-imports, p.block)
   end
@@ -906,13 +904,6 @@ fun import-to-dep(imp):
     # crossover compatibility
     | s-const-import(_, modname) => CS.builtin(modname)
     | s-special-import(_, protocol, args) => CS.dependency(protocol, args)
-  end
-end
-
-fun import-to-dep-anf(imp):
-  cases(N.AImportType) imp:
-    | a-import-builtin(_, name) => CS.builtin(name)
-    | a-import-special(_, kind, args) => CS.dependency(kind, args)
   end
 end
 

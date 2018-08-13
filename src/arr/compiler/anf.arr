@@ -101,7 +101,7 @@ fun anf-program(e :: A.Program):
       # Note: provides have been desugared to a structure with no expressions, just
       # names and Ann information
       # MARK(joe/ben): provides
-      N.a-program(l, p, imports.map(anf-import), anf-term(block))
+      N.a-program(l, p, imports, anf-term(block))
   end
 end
 

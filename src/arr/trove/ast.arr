@@ -171,7 +171,6 @@ sharing:
   method _greaterthan(self, other): self.key() > other.key() end,
   method _greaterequal(self, other): self.key() >= other.key() end,
   method _equals(self, other, eq): eq(self.key(), other.key()) end,
-  method _output(self): VS.vs-str(self.tosourcestring()) end,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -1952,8 +1951,8 @@ default-map-visitor = {
     s-program(l, _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
   end,
 
-  method s-include-from(self, l, specs):
-    s-include-from(l, specs.map(_.visit(self)))
+  method s-include-from(self, l, mod, specs):
+    s-include-from(l, mod.map(_.visit(self)), specs.map(_.visit(self)))
   end,
   method s-include-name(self, l, name-spec):
     s-include-name(l, name-spec.visit(self))
@@ -2577,7 +2576,7 @@ default-iter-visitor = {
   end,
 
   method s-include-from(self, l, mod, specs):
-    mod.visit(self) and specs.all(_.visit(self))
+    mod.all(_.visit(self)) and specs.all(_.visit(self))
   end,
   method s-include-name(self, l, name-spec):
     name-spec.visit(self)
@@ -3176,8 +3175,8 @@ dummy-loc-visitor = {
       mod-name.visit(self))
   end,
 
-  method s-include-from(self, l, specs):
-    s-include-from(dummy-loc, specs.map(_.visit(self)))
+  method s-include-from(self, l, mod, specs):
+    s-include-from(dummy-loc, mod.map(_.visit(self)), specs.map(_.visit(self)))
   end,
   method s-include-name(self, l, name-spec):
     s-include-name(dummy-loc, name-spec.visit(self))

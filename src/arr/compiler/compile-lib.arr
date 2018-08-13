@@ -184,17 +184,18 @@ end
 
 fun get-import-type(i):
   cases(A.Import) i:
-    | s-import(_, f, _) => f
-    | s-import-types(_, f, _, _) => f
-    | s-include(_, f) => f
-    | s-import-complete(_, _, _, f, _) => f
-    | s-import-fields(_, _, f) => f
+    | s-import(_, f, _) => some(f)
+    | s-import-types(_, f, _, _) => some(f)
+    | s-include(_, f) => some(f)
+    | s-import-complete(_, _, _, f, _) => some(f)
+    | s-import-fields(_, _, f) => some(f)
+    | s-include-from(_, _, _) => none
   end
 end
 
 fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   parsed = get-ast(p, uri)
-  for map(s from parsed.imports.map(get-import-type)):
+  for map(s from lists.filter-map(get-import-type, parsed.imports)):
     AU.import-to-dep(s)
   end
 end
@@ -427,10 +428,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                             .visit(AU.set-tail-visitor)
                 add-phase("Cleaned AST", cleaned)
                 {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result, provides, options)
                 else:
                   if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)
+                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result, provides, options)
                   else:
                     {provides; add-phase("Result", CS.err(unique(any-errors)))}
                   end

@@ -1984,7 +1984,7 @@ fun mk-abbrevs(l):
   ]
 end
 
-fun import-key(i): AU.import-to-dep-anf(i).key() end
+fun import-key(i): AU.import-to-dep(i).key() end
 
 fun compile-type-variant(variant):
   # TODO -- support with-members
@@ -2110,32 +2110,23 @@ end
 fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides, env) block:
   js-names.reset()
   shadow freevars = freevars.unfreeze()
-  fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]) end
-  imports = imports-in.sort-by(
-      lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
-      lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
+
+  imports = imports-in.filter(A.is-s-import).sort-by(
+      lam(i1, i2): import-key(i1.file) < import-key(i2.file)  end,
+      lam(i1, i2): import-key(i1.file) == import-key(i2.file) end
     )
 
   for each(i from imports) block:
-    freevars.remove-now(i.mod-name.key())
-  end
-
-  import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
-
-  for each(i from imports) block:
-    for each(v from i.values):
-      import-keys.vs.set-now(v.key(), v)
-    end
-    for each(t from i.types):
-      import-keys.ts.set-now(t.key(), t)
+    cases(A.Import) i:
+      | s-import(_, _, mod-name) =>
+        freevars.remove-now(mod-name.key())
+      | else => nothing
     end
   end
 
   free-ids = freevars.map-keys-now(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
-    # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,
-    # because shared compiled files didn't agree on globals
     { maybe-uri; which } =
       cases(A.Name) n:
         | s-module-global(s) =>
@@ -2162,34 +2153,38 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
   # MARK(joe): need to do something below for modules that come from
   # a context like "include"
   module-binds = for CL.map_list(n from module-and-global-binds.is-true):
-    bind-name = cases(A.Name) n:
-      | s-atom(_, _) =>
-        if import-keys.vs.has-key-now(n.key()):
-          n.toname()
-        else if import-keys.ts.has-key-now(n.key()):
-          type-name(n.toname())
-        else:
-          raise("Unaware of imported name: " + n.key())
-        end
+    { which; uri } = ask:
+      | self.bindings.has-key-now(n.key()) then:
+        val-bind = self.bindings.get-value-now(n.key())
+        { "defined-values"; val-bind.origin.uri-of-definition }
+      | self.type-bindings.has-key-now(n.key()) then:
+        typ-bind = self.type-bindings.get-value-now(n.key())
+        { "defined-types"; typ-bind.origin.uri-of-definition }
+      | self.module-bindings.has-key-now(n.key()) then:
+        mod-bind = self.module-bindings.get-value-now(n.key())
+        { "defined-types"; mod-bind.origin.uri-of-definition }
     end
-    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
+    j-var(js-id-of(n),
+      j-bracket(
+         rt-method("getField", [clist:
+              j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
+              j-str(which)
+            ]),
+          j-str(n.toname())))
   end
   fun clean-import-name(name):
     if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
     else: js-id-of(name)
     end
   end
-  mod-ids = imports.map(lam(i): clean-import-name(i.mod-name) end)
+  mod-ids = imports.map(lam(i): clean-import-name(i.name) end)
   module-locators = imports.map(lam(i):
-    cases(N.AImportType) i.import-type:
-      | a-import-builtin(_, name) => CS.builtin(name)
-      | a-import-special(_, typ, args) => CS.dependency(typ, args)
-    end
+    AU.import-to-dep(i.file)
   end)
   filenames = imports.map(lam(i):
-      cases(N.AImportType) i.import-type:
-        | a-import-builtin(_, name) => "trove/" + name
-        | a-import-special(_, typ, args) =>
+      cases(A.ImportType) i.file:
+        | s-const-import(_, name) => "trove/" + name
+        | s-special-import(_, typ, args) =>
           if typ == "my-gdrive":
             "@my-gdrive/" + args.first
           else if typ == "shared-gdrive":
@@ -2224,14 +2219,6 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
     j-block(
       for CL.map_list(m from modules):
         j-var(m.id, j-id(m.input-id))
-      end +
-      for CL.map_list(m from modules):
-        j-expr(j-assign(NAMESPACE.id, rt-method("addModuleToNamespace",
-          [clist:
-            NAMESPACE,
-            j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.values)),
-            j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
-            j-id(m.input-id)])))
       end +
       cases-dispatches!dispatches +
       module-binds +
@@ -2333,14 +2320,16 @@ end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
-fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, bindings, options):
+fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, named-result, options):
   compiler-visitor.{
     uri: provides.from-uri,
     add-phase: add-phase,
     options: options,
     flatness-env: flatness-env,
     type-flatness-env: type-flatness-env,
-    bindings: bindings,
+    bindings: named-result.bindings,
+    type-bindings: named-result.type-bindings,
+    module-bindings: named-result.module-bindings,
     method a-program(self, l, prog-provides, imports, body) block:
       total-time := 0
       # This achieves nothing with our current code-gen, so it's a waste of time

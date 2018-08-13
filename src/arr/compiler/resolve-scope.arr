@@ -32,29 +32,6 @@ end
 
 is-s-import-complete = A.is-s-import-complete
 
-fun expand-import(imp :: A.Import, env :: C.CompileEnvironment) -> A.Import % (is-s-import-complete):
-  cases(A.Import) imp:
-    | s-import(l, shadow imp, name) =>
-      A.s-import-complete(l, empty, empty, imp, name)
-    | s-import-fields(l, fields, shadow imp) =>
-      imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-      A.s-import-complete(l, fields, empty, imp, A.s-underscore(l))
-    | s-include(l, shadow imp) =>
-      imp-str = if A.is-s-const-import(imp): imp.mod else: "mod-import" end
-      imp-name = A.s-underscore(l)
-      info-key = U.import-to-dep(imp).key()
-      mod-info = env.provides-by-dep-key(info-key)
-      cases(Option<C.Provides>) mod-info:
-        | none => raise("No compile-time information provided for module " + info-key)
-        | some(provides) =>
-          val-names = provides.values.map-keys(A.s-name(l, _))
-          type-names = provides.aliases.map-keys(A.s-name(l, _))
-          A.s-import-complete(l, val-names, type-names, imp, imp-name)
-      end
-    | s-import-complete(_, _, _, _, _) => imp
-  end
-end
-
 fun desugar-toplevel-types(stmts :: List<A.Expr>) -> List<A.Expr> block:
   doc: ```
        Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
@@ -603,7 +580,6 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
        ```
   cases(A.Program) prog block:
     | s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, body) =>
-      imports = imports-raw.map(lam(i): expand-import(i, env) end)
       str = A.s-str(l, _)
 
       with-imports = cases(A.Expr) body:
@@ -633,6 +609,8 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
       end
       
       errors := empty
+
+      #| TODO(joe): bring this back, probably below after new resolution
       {initial-contracts; stmts} = L.take-while(A.is-s-contract, with-provides.stmts)
       all-imported-names = [SD.mutable-string-dict: ]
       for each(im from imports):
@@ -649,9 +627,10 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
             false
         end
       end
-      recombined = A.s-block(with-provides.l, remaining + stmts)
+      |#
+      recombined = A.s-block(with-provides.l, #| remaining + |# with-provides.stmts)
       visited = recombined.visit(desugar-scope-visitor)
-      C.resolved-scope(A.s-program(l, _provide-raw, provide-types-raw, provides, imports, visited), errors)
+      C.resolved-scope(A.s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, visited), errors)
   end
 
 end
@@ -829,68 +808,133 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                env: env-and-binds.env }
   end
 
+  var include-counter = 0
+  fun include-name() block:
+    include-counter := include-counter + 1
+    "included-" + to-string(include-counter)
+  end
+
+  fun add-value-name(env, vname, mod-info):
+    maybe-value-export = mod-info.values.get(vname.toname())
+    cases(Option) maybe-value-export:
+      | none => raise("Cannot find name " + vname.toname())
+      | some(value-export) =>
+        vbinder = cases(C.ValueExport) value-export block:
+          | v-var(t) => C.vb-var
+          | else => C.vb-let
+        end
+        atom-env = make-atom-for(vname, false, env, bindings,
+          C.value-bind(C.bo-module(vname.l, mod-info.from-uri), vbinder, _, A.a-any(vname.l)))
+        atom-env.env
+    end
+  end
+
+  fun add-type-name(type-env, tname, mod-info):
+    maybe-type-export = mod-info.aliases.get(tname.toname())
+    cases(Option) maybe-type-export:
+      | none => raise("Cannot find type name " + tname.toname())
+      | some(_) =>
+        atom-env = make-atom-for(tname, false, type-env, type-bindings,
+          C.type-bind(C.bo-module(tname.l, mod-info.from-uri), C.tb-type-let, _, none))
+        atom-env.env
+    end
+  end
+
+  fun add-module-name(module-env, mname, mod-info):
+    maybe-module-export = mod-info.modules.get(mname.toname())
+    cases(Option) maybe-module-export:
+      | none => raise("Cannot find module name " + mname.toname())
+      | some(_) =>
+        atom-env = make-atom-for(mname, false, module-env, module-bindings,
+          C.module-bind(C.bo-module(mname.l, mod-info.from-uri), _, mod-info.from-uri))
+        atom-env.env
+    end
+  end
+
+  fun star-names(shadow names, hiding):
+    for filter(n from names):
+      not(lists.member(hiding.map(_.toname()), n))
+    end
+  end
+
+  fun add-spec({imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
+    fun add-name-spec(name-spec, dict, which-env, adder):
+      cases(A.NameSpec) name-spec block:
+        | s-star(l, hiding) =>          
+          imported-names = star-names(dict.keys-list(), hiding)
+          spy: imported-names end
+          for fold(shadow which-env from which-env, n from imported-names):
+            adder(which-env, A.s-name(l, n), mod-info)
+          end
+        | s-module-ref(l, path, as-name) =>
+          when path.length() <> 1:
+            raise("Dotted module paths not yet supported")
+          end
+          when is-some(as-name):
+            raise("Aliasing on include not yet supported")
+          end
+          adder(which-env, path.first, mod-info)
+      end
+    end
+
+    cases(A.IncludeSpec) spec:
+      | s-include-name(l, name-spec) =>
+        new-env = add-name-spec(name-spec, mod-info.values, imp-e, add-value-name)
+        { new-env; imp-te; imp-me; imp-imps }
+      | s-include-type(l, name-spec) =>
+        new-type-env = add-name-spec(name-spec, mod-info.aliases, imp-te, add-type-name)
+        { imp-e; new-type-env; imp-me; imp-imps }
+      | s-include-module(l, name-spec) =>
+        new-module-env = add-name-spec(name-spec, mod-info.modules, imp-me, add-module-name)
+        { imp-e; imp-te; new-module-env; imp-imps }
+      | s-include-data(l, name-spec, hiding) => acc # MARK(joe): Importing datatypes once provided
+    end
+  end
+
+  fun add-import({imp-e; imp-te; imp-me; imp-imps} as acc, imp):
+    cases(A.Import) imp block:
+      | s-import(l, file, local-name) =>
+        info-key = U.import-to-dep(file).key()
+        mod-uri = initial-env.uri-by-dep-key(info-key)
+        atom-env-m =
+          if A.is-s-underscore(local-name):
+            make-anon-import-for(local-name.l, "$import", imp-me, module-bindings,
+              C.module-bind(C.bo-local(local-name.l), _, mod-uri))
+          else:
+            make-atom-for(local-name, false, imp-me, module-bindings,
+              C.module-bind(C.bo-local(local-name.l), _, mod-uri))
+          end
+        new-header = A.s-import(l, file, atom-env-m.atom)
+        { imp-e; imp-te; atom-env-m.env; link(new-header, imp-imps) }
+      | s-include(l, file) =>
+        synth-include-name = A.s-name(l, include-name())
+        updated = add-import(acc, A.s-import(l, file, synth-include-name))
+        add-import(updated, A.s-include-from(l, [list: synth-include-name],
+          [list:
+            A.s-include-name(l, A.s-star(l, empty)),
+            A.s-include-type(l, A.s-star(l, empty)),
+            A.s-include-module(l, A.s-star(l, empty)),
+            A.s-include-data(l, A.s-star(l, empty), [list:])
+          ]))
+      | s-include-from(l, name, specs) =>
+        when name.length() <> 1:
+          raise("Cannot yet support dotted module refs in include")
+        end
+        cases(Option) imp-me.get(name.first.toname()):
+          | none => raise("Could not find import: " + name.toname())
+          | some(mod-bind) =>
+            mod-info = initial-env.provides-by-uri-value(mod-bind.uri)
+            {specs-e; specs-te; specs-me; _ } = for fold(shadow acc from acc, s from specs):
+              add-spec(acc, mod-info, s)
+            end
+            {specs-e; specs-te; specs-me; link(A.s-include-from(l, [list: mod-bind.atom], specs), imp-imps)}
+        end
+    end
+  end
+
   fun resolve-import-names(self, imports):
     for fold(acc from { self.env; self.type-env; self.module-env; empty }, i from imports):
-      {imp-e; imp-te; imp-me; imp-imps} = acc
-      cases(A.Import) i block:
-        | s-import-complete(l2, vnames, tnames, file, local-name) =>
-          info-key = U.import-to-dep(file).key()
-          mod-info = initial-env.provides-by-dep-key-value(info-key)
-          mod-uri = mod-info.from-uri
-          atom-env-m =
-            if A.is-s-underscore(local-name):
-              make-anon-import-for(local-name.l, "$import", imp-me, module-bindings,
-                C.module-bind(C.bo-local(local-name.l), _, mod-uri))
-            else:
-              make-atom-for(local-name, false, imp-me, module-bindings,
-                C.module-bind(C.bo-local(local-name.l), _, mod-uri))
-            end
-          {e; vn} = for fold(nv-v from {imp-e; empty}, v from vnames):
-            {e; vn} = nv-v
-            maybe-value-export = mod-info.values.get(v.toname())
-            v-atom-env = cases(Option) maybe-value-export block:
-              | some(value-export) =>
-                cases(C.ValueExport) value-export block:
-                  | v-var(t) =>
-                    make-atom-for(v, false, e, bindings,
-                      C.value-bind(C.bo-module(v.l, mod-info.from-uri), C.vb-var, _, A.a-any(l2)))
-                  | else =>
-                    make-atom-for(v, false, e, bindings,
-                      C.value-bind(C.bo-module(v.l, mod-info.from-uri), C.vb-let, _, A.a-any(l2)))
-
-                  #| MARK
-                    is-shadowing = cases(Option) e.get(v.toname()):
-                      | none => 
-                        make-atom-for(v, false, e, bindings,
-                          C.value-bind(C.bo-module(mod-info.from-uri), C.vb-let, _, A.a-any(l2)))
-                      | some(vb) =>
-                        file
-                    end
-                    |#
-
-                end
-              | none =>
-                # NOTE(joe): This seems odd – just trusting a binding from another module that
-                # we don't know about statically?
-                make-atom-for(v, false, e, bindings,
-                  C.value-bind(C.bo-module(v.l, mod-info.from-uri), C.vb-let, _, A.a-any(l2)))
-            end
-            { v-atom-env.env; link(v-atom-env.atom, vn) }
-          end
-          {te; tn} = for fold(nv-t from {imp-te; empty}, t from tnames):
-            {te; tn} = nv-t
-            t-atom-env = make-atom-for(t, false, te, type-bindings,
-              C.type-bind(C.bo-module(t.l, mod-info.from-uri), C.tb-type-let, _, none))
-            { t-atom-env.env; link(t-atom-env.atom, tn) }
-          end
-          new-header = A.s-import-complete(l2,
-            vn,
-            tn,
-            file,
-            atom-env-m.atom)
-          { e; te; atom-env-m.env; link(new-header, imp-imps) }
-        | else => raise("Should only have s-import-complete when checking scope")
-      end
+      add-import(acc, i)
     end
   end
 
