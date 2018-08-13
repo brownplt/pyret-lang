@@ -849,17 +849,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
-  fun star-names(shadow names, hiding):
+  fun star-names(shadow names, hidings):
     for filter(n from names):
-      not(lists.member(hiding.map(_.toname()), n))
+      not(lists.member(hidings.map(_.toname()), n))
     end
   end
 
   fun add-spec({imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
     fun add-name-spec(name-spec, dict, which-env, adder):
       cases(A.NameSpec) name-spec block:
-        | s-star(l, hiding) =>          
-          imported-names = star-names(dict.keys-list(), hiding)
+        | s-star(l, hidings) =>          
+          imported-names = star-names(dict.keys-list(), hidings)
           spy: imported-names end
           for fold(shadow which-env from which-env, n from imported-names):
             adder(which-env, A.s-name(l, n), mod-info)
@@ -885,7 +885,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-include-module(l, name-spec) =>
         new-module-env = add-name-spec(name-spec, mod-info.modules, imp-me, add-module-name)
         { imp-e; imp-te; new-module-env; imp-imps }
-      | s-include-data(l, name-spec, hiding) => acc # MARK(joe): Importing datatypes once provided
+      | s-include-data(l, name-spec, hidings) => acc # MARK(joe): Importing datatypes once provided
     end
   end
 
