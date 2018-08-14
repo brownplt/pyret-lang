@@ -349,6 +349,324 @@ check "Tensor .clone":
   new-tensor.data-now() is-roughly some-tensor.data-now()
 end
 
+check "Tensor .add":
+  # Check one-dimensional usages:
+  [tensor: 1].add([tensor: 1]).data-now()
+    is-roughly [list: 2]
+  [tensor: 1, 3].add([tensor: 1]).data-now()
+    is-roughly [list: 2, 4]
+  [tensor: 1, 3].add([tensor: 5, 1]).data-now()
+    is-roughly [list: 6, 4]
+  [tensor: 1, 3, 4].add([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  two-dim-1.add(one-dim-1).data-now()
+    is-roughly [list: 6, 2, 8, 4, 9, 5]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.add(two-dim-2).data-now()
+    is-roughly [list: 6, 2, 5, 8, 4, 7, 9, 5, 8]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.add(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "Tensor .subtract":
+  # Check one-dimensional usages:
+  [tensor: 1].subtract([tensor: 1]).data-now()
+    is-roughly [list: 0]
+  [tensor: 1, 3].subtract([tensor: 1]).data-now()
+    is-roughly [list: 0, 2]
+  [tensor: 1, 3].subtract([tensor: 5, 1]).data-now()
+    is-roughly [list: -4, 2]
+  [tensor: 1, 3, 4].subtract([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check not commutative:
+  [tensor: 2].subtract([tensor: 1]).data-now()
+    is-roughly [list: 1]
+  [tensor: 1].subtract([tensor: 2]).data-now()
+    is-roughly [list: -1]
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  two-dim-1.subtract(one-dim-1).data-now()
+    is-roughly [list: -4, 0, -2, 2, -1, 3]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.subtract(two-dim-2).data-now()
+    is-roughly [list: -4, 0, -3, -2, 2, -1, -1, 3, 0]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.subtract(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "Tensor .multiply":
+  # Check one-dimensional usages:
+  [tensor: 1].multiply([tensor: 1]).data-now()
+    is-roughly [list: 1]
+  [tensor: 1, 3].multiply([tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].multiply([tensor: 5, 1]).data-now()
+    is-roughly [list: 5, 3]
+  [tensor: 1, 3, 4].multiply([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  two-dim-1.multiply(one-dim-1).data-now()
+    is-roughly [list: 5, 1, 15, 3, 20, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.multiply(two-dim-2).data-now()
+    is-roughly [list: 5, 1, 4, 15, 3, 12, 20, 4, 16]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.multiply(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "Tensor .divide":
+  # Check one-dimensional usages:
+  [tensor: 1].divide([tensor: 1]).data-now()
+    is-roughly [list: 1]
+  [tensor: 1, 3].divide([tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].divide([tensor: 5, 1]).data-now()
+    is-roughly [list: 0.2, 3]
+  [tensor: 1, 3, 4].divide([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  two-dim-1.divide(one-dim-1).data-now()
+    is-roughly [list: 0.2, 1, 0.6, 3, 0.8, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.divide(two-dim-2).data-now()
+    is-roughly [list: 0.2, 1, 0.25, 0.6, 3, 0.75, 0.8, 4, 1]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.divide(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check for divide-by-zero errors:
+  [tensor: 1].divide([tensor: 0])
+    raises "The argument Tensor cannot contain 0"
+  [tensor: 1].divide([tensor: 1, 0])
+    raises "The argument Tensor cannot contain 0"
+  [tensor: 4.23].divide([tensor: 7.65, 1.43, 0, 2.31])
+    raises "The argument Tensor cannot contain 0"
+end
+
+check "Tensor .floor-divide":
+  # Check one-dimensional usages:
+  [tensor: 1].floor-divide([tensor: 1]).data-now()
+    is-roughly [list: 1]
+  [tensor: 1, 3].floor-divide([tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].floor-divide([tensor: 5, 1]).data-now()
+    is-roughly [list: 0, 3]
+  [tensor: 1, 3, 4].floor-divide([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  two-dim-1.floor-divide(one-dim-1).data-now()
+    is-roughly [list: 0, 1, 0, 3, 0, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.floor-divide(two-dim-2).data-now()
+    is-roughly [list: 0, 1, 0, 0, 3, 0, 0, 4, 1]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.floor-divide(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check for divide-by-zero errors:
+  [tensor: 1].floor-divide([tensor: 0])
+    raises "The argument Tensor cannot contain 0"
+  [tensor: 1].floor-divide([tensor: 1, 0])
+    raises "The argument Tensor cannot contain 0"
+  [tensor: 4.23].floor-divide([tensor: 7.65, 1.43, 0])
+    raises "The argument Tensor cannot contain 0"
+end
+
+check "Tensor .max":
+  # Check one-dimensional usages:
+  [tensor: 0].max([tensor: 1]).data-now()
+    is-roughly [list: 1]
+  [tensor: 1, 3].max([tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].max([tensor: 200]).data-now()
+    is-roughly [list: 200, 200]
+  [tensor: 1, 3].max([tensor: 5, 1]).data-now()
+    is-roughly [list: 5, 3]
+  [tensor: 1, 3, 4].max([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  two-dim-1.max(one-dim-1).data-now()
+    is-roughly [list: 5, 1, 5, 3, 5, 4]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.max(two-dim-2).data-now()
+    is-roughly [list: 5, 1, 4, 5, 3, 4, 5, 4, 4]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.max(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "Tensor .min":
+  # Check one-dimensional usages:
+  [tensor: 0].min([tensor: 1]).data-now()
+    is-roughly [list: 0]
+  [tensor: 1, 3].min([tensor: 1]).data-now()
+    is-roughly [list: 1, 1]
+  [tensor: 1, 3].min([tensor: 200]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].min([tensor: 0]).data-now()
+    is-roughly [list: 0, 0]
+  [tensor: 1, 3].min([tensor: 5, 1]).data-now()
+    is-roughly [list: 1, 1]
+  [tensor: 1, 3, 4].min([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  two-dim-1.min(one-dim-1).data-now()
+    is-roughly [list: 1, 0, 3, 0, 4, 0]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.min(two-dim-2).data-now()
+    is-roughly [list: 1, 1, 1, 3, 1, 3, 4, 1, 4]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.min(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
+check "Tensor .modulo":
+  # Check one-dimensional usages:
+  [tensor: 0].modulo([tensor: 1]).data-now()
+    is-roughly [list: 0]
+  [tensor: 1, 3].modulo([tensor: 1]).data-now()
+    is-roughly [list: 0, 0]
+  [tensor: 1, 3].modulo([tensor: 200]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].modulo([tensor: 5, 1]).data-now()
+    is-roughly [list: 1, 0]
+  [tensor: 1, 3, 4].modulo([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 1]
+  two-dim-1.modulo(one-dim-1).data-now()
+    is-roughly [list: 1, 0, 3, 0, 4, 0]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.modulo(two-dim-2).data-now()
+    is-roughly [list: 1, 0, 1, 3, 0, 3, 4, 0, 0]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.modulo(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check for division-by-zero errors:
+  [tensor: 1].modulo([tensor: 0])
+    raises "The argument Tensor cannot contain 0"
+  [tensor: 1].modulo([tensor: 1, 0])
+    raises "The argument Tensor cannot contain 0"
+  [tensor: 4.23].modulo([tensor: 7.65, 1.43, 0, 2.31])
+    raises "The argument Tensor cannot contain 0"
+end
+
+check "Tensor .expt":
+  # Check one-dimensional usages:
+  [tensor: 0].expt([tensor: 1]).data-now()
+    is-roughly [list: 0]
+  [tensor: 1, 3].expt([tensor: 1]).data-now()
+    is-roughly [list: 1, 3]
+  [tensor: 1, 3].expt([tensor: 4]).data-now()
+    is-roughly [list: 1, 81]
+  [tensor: 3, 3].expt([tensor: 5, 1]).data-now()
+    is-roughly [list: 243, 3]
+  [tensor: 1, 3, 4].expt([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  two-dim-1.expt(one-dim-1).data-now()
+    is-roughly [list: 1, 1, 243, 1, 1024, 1]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.expt(two-dim-2).data-now()
+    is-roughly [list: 1, 1, 1, 243, 3, 81, 1024, 4, 256]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.expt(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check raising to negative exponents:
+  [tensor: 3].expt([tensor: -3]).data-now()
+    is-roughly [list: 0.03703703]
+end
+
+check "Tensor .squared-difference":
+  # Check one-dimensional usages:
+  [tensor: 0].squared-difference([tensor: 1]).data-now()
+    is-roughly [list: 1]
+  [tensor: 3].squared-difference([tensor: -3]).data-now()
+    is-roughly [list: 36]
+  [tensor: 1, 3].squared-difference([tensor: 1]).data-now()
+    is-roughly [list: 0, 4]
+  [tensor: 1, 3].squared-difference([tensor: 4]).data-now()
+    is-roughly [list: 9, 1]
+  [tensor: 3, 3].squared-difference([tensor: 5, 1]).data-now()
+    is-roughly [list: 4, 4]
+  [tensor: 1, 3, 4].squared-difference([tensor: 5, 1])
+    raises "Tensors could not be applied as binary operation arguments"
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 3, 4].as-2d(3, 1)
+  one-dim-1 = [tensor: 5, 0]
+  two-dim-1.squared-difference(one-dim-1).data-now()
+    is-roughly [list: 16, 1, 4, 9, 1, 16]
+
+  two-dim-2 = [tensor: 5, 1, 4].as-2d(1, 3)
+  two-dim-1.squared-difference(two-dim-2).data-now()
+    is-roughly [list: 16, 0, 9, 4, 4, 1, 1, 9, 0]
+
+  two-dim-3 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-4 = [tensor: 9, 8, 7, 6].as-2d(4, 1)
+  two-dim-3.squared-difference(two-dim-4).data-now()
+    raises "Tensors could not be applied as binary operation arguments"
+end
+
 ###########################
 ## Arithmetic Operations ##
 ###########################
