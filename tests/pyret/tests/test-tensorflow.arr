@@ -1700,38 +1700,38 @@ end
 ####################################
 
 check "concatenate":
-  concatenate([list: [tensor: 1], [tensor: 2]], none).data-now()
+  concatenate([list: [tensor: 1], [tensor: 2]], 0).data-now()
     is-roughly [list: 1, 2]
-  concatenate([list: [tensor: 1, 2, 3], [tensor: 4, 5, 6]], none).data-now()
+  concatenate([list: [tensor: 1, 2, 3], [tensor: 4, 5, 6]], 0).data-now()
     is-roughly [list: 1, 2, 3, 4, 5, 6]
 
   # Check multi-dimensional usage:
   two-dim-1 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
   two-dim-2 = [tensor: 5, 6, 7, 8].as-2d(2, 2)
 
-  concatenate([list: two-dim-1, two-dim-2], none).data-now()
+  concatenate([list: two-dim-1, two-dim-2], 0).data-now()
     is-roughly [list: 1, 2, 3, 4, 5, 6, 7, 8]
 
   # Check specifying an axis works:
-  concatenate([list: two-dim-1, two-dim-2], some(0)).data-now()
+  concatenate([list: two-dim-1, two-dim-2], 0).data-now()
     is-roughly [list: 1, 2, 3, 4, 5, 6, 7, 8]
-  concatenate([list: two-dim-1, two-dim-2], some(1)).data-now()
+  concatenate([list: two-dim-1, two-dim-2], 1).data-now()
     is-roughly [list: 1, 2, 5, 6, 3, 4, 7, 8]
 end
 
 check "gather":
   input-1   = [tensor: 1, 2, 3, 4]
   indices-1 = [tensor: 1, 3, 3].to-int()
-  gather(input-1, indices-1, none).data-now()
+  gather(input-1, indices-1, 0).data-now()
     is-roughly [list: 2, 4, 4]
 
   input-2   = [tensor: 1, 2, 3, 4].as-2d(2, 2)
   indices-2 = [tensor: 1, 1, 0].to-int()
-  gather(input-2, indices-2, none).data-now()
+  gather(input-2, indices-2, 0).data-now()
     is-roughly [list: 3, 4, 3, 4, 1, 2]
 
   float-indices = [tensor: 1, 1, 0].to-float()
-  gather(input-2, float-indices, none).data-now()
+  gather(input-2, float-indices, 0).data-now()
     raises "The `indices` argument to `gather` must have a data type of 'int32'"
 end
 
@@ -1798,7 +1798,6 @@ check "split":
 
   split([tensor: 1, 2, 3, 4], [list: 1], 0)
     raises "sum of split sizes must match the size of the dimension"
-
   split([tensor: 1, 2, 3, 4], [list: 1, 1, 1, 1, 1], 0)
     raises "sum of split sizes must match the size of the dimension"
 

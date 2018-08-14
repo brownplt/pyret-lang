@@ -135,8 +135,8 @@
 
       // Operations (Slicing and Joining)
       "reshape": ["arrow", ["Tensor", ["List", "NumInteger"]], "Tensor"],
-      "concatenate": ["arrow", [["List", "Tensor"], ["Option", "NumInteger"]], "Tensor"],
-      "gather": ["arrow", ["Tensor", "Tensor", ["Option", "NumInteger"]], "Tensor"],
+      "concatenate": ["arrow", [["List", "Tensor"], "NumInteger"], "Tensor"],
+      "gather": ["arrow", ["Tensor", "Tensor", "NumInteger"], "Tensor"],
       "reverse": ["arrow", ["Tensor", ["Option", ["List", "NumInteger"]]], "Tensor"],
       "slice": ["arrow", ["Tensor", ["List", "NumInteger"], ["Option", ["List", "NumInteger"]]], "Tensor"],
       "split": ["arrow", ["Tensor", ["List", "NumInteger"], "NumInteger"], ["List", "Tensor"]],
@@ -2346,13 +2346,14 @@
      * ranks and types must match, and their sizes must match in all
      * dimensions except axis.
      * @param {List<PyretTensor>} tensors The tensors to concatenate
-     * @param {Option<NumInteger>} axis The axis to reduce along
+     * @param {NumInteger} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function concatenate(tensors, axis) {
       arity(2, arguments, "concatenate", false);
+      runtime.checkNumInteger(axis);
       const jsTensors = unwrapListOfTensorsToArray(tensors);
-      const jsAxis    = unwrapFixnumOption(axis);
+      const jsAxis    = runtime.num_to_fixnum(axis);
       return buildTensorObject(tf.concat(jsTensors, jsAxis));
     }
 
@@ -2361,11 +2362,12 @@
      * at the specified indices.
      * @param {PyretTensor} tensor The input tensor on which to gather slices
      * @param {PyretTensor} indices The indices of the values to extract
-     * @param {Option<NumInteger>} axis The axis to reduce along
+     * @param {NumInteger} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function gather(tensor, indices, axis) {
       arity(3, arguments, "gather", false);
+      runtime.checkNumInteger(axis);
       const jsTensor  = checkAndUnwrapTensor(tensor);
       const jsIndices = checkAndUnwrapTensor(indices);
       if (jsIndices.shape.length !== 1) {
@@ -2377,7 +2379,7 @@
           "`gather` must have a data type of 'int32'. Try using `.to-int()` " +
           "on the `indices` tensor to convert the data type to 'int32'.");
       }
-      const jsAxis = unwrapFixnumOption(axis);
+      const jsAxis = runtime.num_to_fixnum(axis);
       return buildTensorObject(tf.gather(jsTensor, jsIndices, jsAxis));
     }
 
