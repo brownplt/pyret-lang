@@ -135,14 +135,14 @@
 
       // Operations (Slicing and Joining)
       "reshape": ["arrow", ["Tensor", ["List", "NumInteger"]], "Tensor"],
-      "concatenate": ["arrow", [["List", "Tensor"], ["Option", "Number"]], "Tensor"],
-      "gather": ["arrow", ["Tensor", "Tensor", ["Option", "Number"]], "Tensor"],
-      "reverse": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
-      "slice": ["arrow", ["Tensor", ["List", "Number"], ["Option", ["List", "Number"]]], "Tensor"],
-      "split": ["arrow", ["Tensor", ["List", "Number"], ["Option", "Number"]], "Tensor"],
-      "stack": ["arrow", [["List", "Tensor"], ["Option", ["List", "Number"]]], "Tensor"],
+      "concatenate": ["arrow", [["List", "Tensor"], ["Option", "NumInteger"]], "Tensor"],
+      "gather": ["arrow", ["Tensor", "Tensor", ["Option", "NumInteger"]], "Tensor"],
+      "reverse": ["arrow", ["Tensor", ["Option", ["List", "NumInteger"]]], "Tensor"],
+      "slice": ["arrow", ["Tensor", ["List", "NumInteger"], ["Option", ["List", "NumInteger"]]], "Tensor"],
+      "split": ["arrow", ["Tensor", ["List", "NumInteger"], "NumInteger"], ["List", "Tensor"]],
+      "stack": ["arrow", [["List", "Tensor"], "NumInteger"], "Tensor"],
       "tile": ["arrow", ["Tensor", ["List", "Number"]], "Tensor"],
-      "unstack": ["arrow", ["Tensor", ["Option", ["List", "Number"]]], "Tensor"],
+      "unstack": ["arrow", ["Tensor", "NumInteger"], ["List", "Tensor"]],
       "strided-slice": ["arrow", ["Tensor", ["List", "NumInteger"], ["List", "NumInteger"], ["List", "Number"]], "Tensor"],
 
       // Models (Generic)
@@ -2346,7 +2346,7 @@
      * ranks and types must match, and their sizes must match in all
      * dimensions except axis.
      * @param {List<PyretTensor>} tensors The tensors to concatenate
-     * @param {Option<Number>} axis The axis to reduce along
+     * @param {Option<NumInteger>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function concatenate(tensors, axis) {
@@ -2361,7 +2361,7 @@
      * at the specified indices.
      * @param {PyretTensor} tensor The input tensor on which to gather slices
      * @param {PyretTensor} indices The indices of the values to extract
-     * @param {Option<Number>} axis The axis to reduce along
+     * @param {Option<NumInteger>} axis The axis to reduce along
      * @returns {PyretTensor} The result
      */
     function gather(tensor, indices, axis) {
@@ -2385,7 +2385,7 @@
      * Reverses a Tensor along the specified axes.
      * @param {PyretTensor} tensor The input tensor on which to run reverse
      *  operations
-     * @param {Option<List<Number>>} axes The set of dimensions to reverse
+     * @param {Option<List<NumInteger>>} axes The set of dimensions to reverse
      * @returns {PyretTensor} The result
      */
     function reverse(tensor, axes) {
@@ -2393,7 +2393,7 @@
       const jsTensor = checkAndUnwrapTensor(tensor);
       const jsAxes   =
         runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
-          some: unwrapListOfNumbersToArray,
+          some: (x) => unwrapListOfNumbersToArray(x, runtime.checkNumInteger),
           none: () => { return undefined; }
         });
       return buildTensorObject(tf.reverse(jsTensor, jsAxes));
@@ -2403,10 +2403,10 @@
      * Extracts a slice from a Tensor starting at coordinates `begin` and
      * of size `size`.
      * @param {PyretTensor} tensor The input tensor to slice from
-     * @param {List<Number>} begin The coordinates to start the slice from;
+     * @param {List<NumInteger>} begin The coordinates to start the slice from;
      *  if the length of this list is less than the rank of x, the rest of
      *  the axes will have implicit 0 as the starting coordinates
-     * @param {Option<List<Number>>} size The size of the slice; if the
+     * @param {Option<List<NumInteger>>} size The size of the slice; if the
      *  length of this list is less than the rank of x, the rest of
      *  the axes will have implicit -1 as the size (a value of -1 in an
      *  axis requests the rest of the dimensions in that axis)
@@ -2415,12 +2415,50 @@
     function slice(tensor, begin, size) {
       arity(3, arguments, "slice", false);
       const jsTensor = checkAndUnwrapTensor(tensor);
-      const jsBegin  = unwrapListOfNumbersToArray(begin);
+      const jsBegin  = unwrapListOfNumbersToArray(begin, runtime.checkNumInteger);
       const jsSize   =
         runtime.ffi.cases(runtime.ffi.isOption, "is-Option", size, {
-          some: unwrapListOfNumbersToArray,
+          some: (x) => unwrapListOfNumbersToArray(x, runtime.checkNumInteger),
           none: () => { return undefined; }
         });
+      // Check that `begin` has the correct number of coordinates:
+      const jsTensorShape = jsTensor.shape;
+      const jsTensorRank  = jsTensorShape.length;
+      if (jsBegin.length !== jsTensorRank) {
+        runtime.ffi.throwMessageException("The number of coordinates " +
+          "to start the slice at must be equal to the rank of the Tensor, " +
+          "but " + jsBegin.length + " coordinates were given and the " +
+          "Tensor was rank-" + jsTensorRank + ".");
+      }
+      // If `size` supplied, check that it has the correct number of dimensions:
+      if (jsSize && (jsSize.length !== jsTensorRank)) {
+        runtime.ffi.throwMessageException("The number of dimensions for the " +
+          "size of the slice at must be equal to the rank of the Tensor, " +
+          "but " + jsSize.length + " dimensions were given and the " +
+          "Tensor was rank-" + jsTensorRank + ".");
+      }
+      // Check that each coordinate in `begin` is within the bounds of the
+      // Tensor and the slice fits within the bounds:
+      for (let i = 0; i < jsTensorRank; i++) {
+        const dimensionBound  = jsTensorShape[i];
+        const beginCoordinate = jsBegin[i];
+        // Use >= because the shape is given 1-indexed but coordinates are
+        // 0-indexed:
+        if (beginCoordinate >= dimensionBound) {
+          runtime.ffi.throwMessageException("The coordinate at axis " + i +
+            "to start slicing at was outside the bounds of the Tensor.");
+        }
+        // If `size` supplied, check that the slice doesn't go outside the
+        // bounds:
+        if (jsSize) {
+          const sliceEnd = beginCoordinate + jsSize[i];
+          if (sliceEnd > dimensionBound) {
+            runtime.ffi.throwMessageException("The size of the slice at " +
+              "axis " + i + " reaches outside the bounds of the Tensor.");
+          }
+        }
+      }
+
       return buildTensorObject(tf.slice(jsTensor, jsBegin, jsSize));
     }
 
@@ -2430,15 +2468,16 @@
      * @param {List<NumInteger>} splitSizes A list of integers containing
      *  the sizes of each output tensor along the axis; the sum of sizes
      *  must match `tensor.shape().get-value(axis)`
-     * @param {Option<Number>} axis The dimension along which to
+     * @param {NumInteger} axis The dimension along which to
      *  split; defaults to zero
-     * @returns {PyretTensor} The result
+     * @returns {List<PyretTensor>} The result
      */
     function split(tensor, splitSizes, axis) {
       arity(3, arguments, "split", false);
+      runtime.checkNumInteger(axis);
       const jsTensor = checkAndUnwrapTensor(tensor);
       const jsSplits = unwrapListOfNumbersToArray(splitSizes, runtime.checkNumInteger);
-      const jsAxis   = unwrapFixnumOption(axis);
+      const jsAxis   = runtime.num_to_fixnum(axis);
       // Check that the sum of split sizes matches the size of the dimension
       // at jsAxis:
       const sumOfSplits   = jsSplits.reduce((acc, x) => { return acc + x; }, 0);
@@ -2449,7 +2488,9 @@
           "the dimension at axis " + jsAxis + " was " + dimensionSize + " " +
           "and the sum of the split sizes was " + sumOfSplits + ".");
       }
-      return buildTensorObject(tf.split(jsTensor, jsSplits, jsAxis));
+      const jsResults    = tf.split(jsTensor, jsSplits, jsAxis);
+      const pyretResults = jsResults.map(buildTensorObject);
+      return runtime.ffi.makeList(pyretResults);
     }
 
     /**
@@ -2461,30 +2502,30 @@
      */
     function stack(tensorList, axis) {
       arity(2, arguments, "stack", false);
-
+      runtime.checkNumInteger(axis);
       const jsTensorArray = unwrapListOfTensorsToArray(tensorList);
-      const jsAxis        = unwrapFixnumOption(axis);
-
+      const jsAxis        = runtime.num_to_fixnum(axis);
+      // Check that the tensor List isn't empty:
       if (jsTensorArray.length <= 0) {
         runtime.ffi.throwMessageException("At least one Tensor must be " +
           "supplied in the List<Tensor> passed to `stack`");
       }
-
+      // Check that the specified axis is within the bounds of the Tensor:
       const firstTensor = jsTensorArray[0];
-      const rank  = firstTensor.rank;
-      const shape = firstTensor.shape;
-      const dtype = firstTensor.dtype;
-
-      if (jsAxis > rank) {
-        runtime.ffi.throwMessageException("Axis must be <= rank of the " +
-          "tensor");
+      const baseRank    = firstTensor.rank;
+      const baseShape   = firstTensor.shape;
+      const baseDtype   = firstTensor.dtype;
+      if (jsAxis >= baseRank) {
+        runtime.ffi.throwMessageException("Axis must be within the bounds of " +
+          "the Tensor");
       }
+      // Check that each Tensor in `tensorList` has the same shape and dtype:
       jsTensorArray.forEach((t) => {
-        if (t.shape !== shape) {
+        if (JSON.stringify(t.shape) !== JSON.stringify(baseShape)) {
           runtime.ffi.throwMessageException("All tensors passed to `stack` " +
             "must have matching shapes");
         }
-        if (t.dtype !== dtype) {
+        if (t.dtype !== baseDtype) {
           runtime.ffi.throwMessageException("All tensors passed to `stack` " +
             "must have matching data types");
         }
@@ -2512,15 +2553,26 @@
     /**
      * Unstacks a Tensor of rank-R into a list of rank-(R-1) Tensors.
      * @param {PyretTensor} tensor The input tensor to unstack
-     * @param {Option<Number>} axis The dimension along which to unstack;
+     * @param {NumInteger} axis The dimension along which to unstack;
      *  defaults to zero
      * @returns {List<PyretTensor>} The resulting tensors
      */
     function unstack(tensor, axis) {
       arity(2, arguments, "unstack", false);
-      checkTensor(tensor);
-      const jsTensor  = unwrapTensor(tensor);
-      const jsAxis    = unwrapFixnumOption(axis);
+      runtime.checkNumInteger(axis);
+      const jsTensor = checkAndUnwrapTensor(tensor);
+      const jsAxis   = runtime.num_to_fixnum(axis);
+      // Check that Tensor has enough dimensions to be unstacked:
+      const tensorRank = jsTensor.shape.length;
+      if (tensorRank < 1) {
+        runtime.ffi.throwMessageException("The Tensor to be unstacked must " +
+          "be at least rank-1, but was rank-" + tensorRank + ".");
+      }
+      // Check that the specified axis is within the bounds of the Tensor:
+      if (jsAxis >= tensorRank) {
+        runtime.ffi.throwMessageException("The axis at which to unstack the " +
+          "Tensor must be within the bounds of the Tensor.");
+      }
       // Apply function and convert result to a List<PyretTensor>:
       const jsResults    = tf.unstack(jsTensor, jsAxis);
       const pyretResults = jsResults.map(buildTensorObject);

@@ -1700,8 +1700,23 @@ end
 ####################################
 
 check "concatenate":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  concatenate([list: [tensor: 1], [tensor: 2]], none).data-now()
+    is-roughly [list: 1, 2]
+  concatenate([list: [tensor: 1, 2, 3], [tensor: 4, 5, 6]], none).data-now()
+    is-roughly [list: 1, 2, 3, 4, 5, 6]
+
+  # Check multi-dimensional usage:
+  two-dim-1 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-2 = [tensor: 5, 6, 7, 8].as-2d(2, 2)
+
+  concatenate([list: two-dim-1, two-dim-2], none).data-now()
+    is-roughly [list: 1, 2, 3, 4, 5, 6, 7, 8]
+
+  # Check specifying an axis works:
+  concatenate([list: two-dim-1, two-dim-2], some(0)).data-now()
+    is-roughly [list: 1, 2, 3, 4, 5, 6, 7, 8]
+  concatenate([list: two-dim-1, two-dim-2], some(1)).data-now()
+    is-roughly [list: 1, 2, 5, 6, 3, 4, 7, 8]
 end
 
 check "gather":
@@ -1721,24 +1736,123 @@ check "gather":
 end
 
 check "reverse":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  reverse([tensor: 0], none).data-now()
+    is-roughly [list: 0]
+  reverse([tensor: 1, 2], none).data-now()
+    is-roughly [list: 2, 1]
+  reverse([tensor: 1, 2, 3, 4, 5], none).data-now()
+    is-roughly [list: 5, 4, 3, 2, 1]
+
+  # Check multi-dimensional usages:
+  two-dim = [tensor: 1, 2, 3, 4, 5, 6].as-2d(3, 2)
+
+  reverse(two-dim, none).data-now()
+    is-roughly [list: 6, 5, 4, 3, 2, 1]
+  reverse(two-dim, some([list: 0])).data-now()
+    is-roughly [list: 5, 6, 3, 4, 1, 2]
+  reverse(two-dim, some([list: 1])).data-now()
+    is-roughly [list: 2, 1, 4, 3, 6, 5]
 end
 
 check "slice":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  slice([tensor: 1], [list: 0], none).data-now()
+    is-roughly [list: 1]
+  slice([tensor: 1, 2, 3, 4, 5], [list: 2], none).data-now()
+    is-roughly [list: 3, 4, 5]
+
+  # Check multi-dimensional usages:
+  two-dim = [tensor: 1, 2, 3, 4, 5, 6].as-2d(3, 2)
+
+  slice(two-dim, [list: 2, 1], none).data-now()
+    is-roughly [list: 6]
+
+  slice(two-dim, [list: 1, 0], none).shape() is [list: 2, 2]
+  slice(two-dim, [list: 1, 0], none).data-now()
+    is-roughly [list: 3, 4, 5, 6]
+
+  slice(two-dim, [list: 2], none)
+    raises "number of coordinates to start the slice at must be equal to the rank"
+
+  # Check optional size parameter:
+  slice(two-dim, [list: 1, 0], some([list: 1, 1])).data-now()
+    is-roughly [list: 3]
+  slice(two-dim, [list: 1, 0], some([list: 2, 1])).data-now()
+    is-roughly [list: 3, 5]
+  slice(two-dim, [list: 1, 0], some([list: 1, 2])).data-now()
+    is-roughly [list: 3, 4]
+
+  slice(two-dim, [list: 1, 0], some([list: 1]))
+    raises "dimensions for the size of the slice at must be equal to the rank"
 end
 
 check "split":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usages:
+  one-dim = split([tensor: 1, 2, 3, 4], [list: 1, 1, 2], 0)
+
+  one-dim.length() is 3
+  one-dim.get(0).data-now() is-roughly [list: 1]
+  one-dim.get(1).data-now() is-roughly [list: 2]
+  one-dim.get(2).data-now() is-roughly [list: 3, 4]
+
+  split([tensor: 1, 2, 3, 4], [list: 1], 0)
+    raises "sum of split sizes must match the size of the dimension"
+
+  split([tensor: 1, 2, 3, 4], [list: 1, 1, 1, 1, 1], 0)
+    raises "sum of split sizes must match the size of the dimension"
+
+  # Check multi-dimensional usages:
+  two-dim = [tensor: 1, 2, 3, 4, 5, 6].as-2d(2, 3)
+  two-dim-1 = split(two-dim, [list: 1, 1], 0)
+  two-dim-2 = split(two-dim, [list: 2, 1], 1)
+
+  two-dim-1.length() is 2
+  two-dim-1.get(0).data-now() is-roughly [list: 1, 2, 3]
+  two-dim-1.get(1).data-now() is-roughly [list: 4, 5, 6]
+
+  two-dim-2.length() is 2
+  two-dim-2.get(0).data-now() is-roughly [list: 1, 2, 4, 5]
+  two-dim-2.get(1).data-now() is-roughly [list: 3, 6]
+
+  split(two-dim, [list: 2, 1], 0)
+    raises "sum of split sizes must match the size of the dimension"
+  split(two-dim, [list: 1, 1], 1)
+    raises "sum of split sizes must match the size of the dimension"
 end
 
 check "stack":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check empty list:
+  stack(empty, 0).data-now()
+    raises "At least one Tensor must be supplied"
+
+  # Check one-dimensional usages:
+  stack([list: [tensor: 1]], 0).data-now()
+    is-roughly [list: 1]
+  stack([list: [tensor: 1], [tensor: 2]], 0).data-now()
+    is-roughly [list: 1, 2]
+  stack([list: [tensor: 1, 2], [tensor: 3, 4], [tensor: 5, 6]], 0).data-now()
+    is-roughly [list: 1, 2, 3, 4, 5, 6]
+
+  # Check multi-dimensional usages:
+  two-dim-1 = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  two-dim-2 = [tensor: 5, 6, 7, 8].as-2d(2, 2)
+  stack([list: two-dim-1, two-dim-2], 0).data-now()
+    is-roughly [list: 1, 2, 3, 4, 5, 6, 7, 8]
+  stack([list: two-dim-1, two-dim-2], 1).data-now()
+    is-roughly [list: 1, 2, 5, 6, 3, 4, 7, 8]
+
+  # Check out-of-bounds axis errors:
+  stack([list: [tensor: 1]], 1)
+    raises "Axis must be within the bounds of the Tensor"
+
+  # Check shape-mismatch errors:
+  stack([list: [tensor: 1], [tensor: 2, 3]], 0)
+    raises "All tensors passed to `stack` must have matching shapes"
+  stack([list: [tensor: 1], [tensor: 2, 3], [tensor: 4]], 0)
+    raises "All tensors passed to `stack` must have matching shapes"
 end
+
 
 check "tile":
   # TODO(ZacharyEspiritu): Add tests for this function
@@ -1746,8 +1860,28 @@ check "tile":
 end
 
 check "unstack":
-  # TODO(ZacharyEspiritu): Add tests for this function
-  true is true
+  # Check one-dimensional usage:
+  unstack([tensor: 1], 0).map({(x): x.data-now()})
+    is-roughly [list: [list: 1]]
+  unstack([tensor: 1, 2], 0).map({(x): x.data-now()})
+    is-roughly [list: [list: 1], [list: 2]]
+  unstack([tensor: 1, 2, 3, 4], 0).map({(x): x.data-now()})
+    is-roughly [list: [list: 1], [list: 2], [list: 3], [list: 4]]
+
+  # Check multi-dimensional usage:
+  two-dim = [tensor: 1, 2, 3, 4].as-2d(2, 2)
+  unstack(two-dim, 0).map({(x): x.data-now()})
+    is-roughly [list: [list: 1, 2], [list: 3, 4]]
+  unstack(two-dim, 1).map({(x): x.data-now()})
+    is-roughly [list: [list: 1, 3], [list: 2, 4]]
+
+  # Check scalar error handling:
+  unstack([tensor: 1].as-scalar(), 0)
+    raises "Tensor to be unstacked must be at least rank-1, but was rank-0"
+
+  # Check boundary error handling:
+  unstack([tensor: 1, 2, 3, 4], 1)
+    raises "axis at which to unstack the Tensor must be within the bounds"
 end
 
 check "strided-slice":
