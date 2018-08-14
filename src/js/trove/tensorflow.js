@@ -523,6 +523,487 @@
     }
 
     /**
+     * The methods for PyretTensors.
+     * @type {Object}
+     * @constant
+     */
+    const TENSOR_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretTensor} self
+       * @return {ValueSkeleton} A vs-collection of the data currently in the
+       *  PyretTensor
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        // value-skeleton functions:
+        const vsValue      = get(VS, "vs-value");
+        const vsCollection = get(VS, "vs-collection");
+        // Extract tensor information:
+        const selfTensor = unwrapTensor(self);
+        const tensorData = Array.from(selfTensor.dataSync());
+        // Create an array of value-skeleton values for each data point in
+        // this tensor:
+        let tensorElts = [];
+        for (let i = 0; i < tensorData.length; i++) {
+          const pyretNum = runtime.num_to_roughnum(tensorData[i]);
+          tensorElts.push(vsValue.app(pyretNum));
+        }
+        // Output value-skeleton collection:
+        const tensorName = runtime.makeString("tensor");
+        const eltList    = runtime.ffi.makeList(tensorElts);
+        return vsCollection.app(tensorName, eltList);
+      }),
+
+      /**
+       * Returns the size of the PyretTensor.
+       * @param {PyretTensor} self
+       * @return {Number} The size of the Tensor
+       */
+      "size": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "size");
+        const selfTensor = unwrapTensor(self);
+        return runtime.makeNumber(selfTensor.size);
+      }),
+
+      /**
+       * Returns the shape of the PyretTensor.
+       * @param {PyretTensor} self
+       * @return {List<NumInteger>} The shape of the Tensor
+       */
+      "shape": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "shape");
+        const selfTensor = unwrapTensor(self);
+        return runtime.ffi.makeList(selfTensor.shape);
+      }),
+
+      /**
+       * Constructs a new, one-dimensional PyretTensor from the values of
+       * the original PyretTensor.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} The newly constructed PyretTensor
+       */
+      "flatten": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "flatten");
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.flatten());
+      }),
+
+      /**
+       * Constructs a new, zero-dimensional Tensor from the values of the
+       * original, size-1 Tensor. Raises an error if the calling Tensor is
+       * not size-1.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} The newly constructed PyretTensor
+       */
+      "as-scalar": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "as-scalar");
+        const selfTensor = unwrapTensor(self);
+        if (selfTensor.size !== 1) {
+          runtime.ffi.throwMessageException("Tensor was size-" +
+            selfTensor.size + " but `as-scalar` requires the " +
+            "tensor to be size-1");
+        }
+        return buildTensorObject(selfTensor.asScalar());
+      }),
+
+      /**
+       * Constructs a new, one-dimensional PyretTensor from the values of
+       * the original PyretTensor.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} The newly constructed PyretTensor
+       */
+      "as-1d": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "as-1d");
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.as1D());
+      }),
+
+      /**
+       * Constructs a new, rank-2 PyretTensor from the values of the original
+       * PyretTensor. The number of elements implied by the input dimensions
+       * must be the same as the number of elements in the calling Tensor.
+       * Otherwise, the method raises an error.
+       * @param {PyretTensor} self
+       * @param {NumInteger} rows The number of elements in the first dimension
+       * @param {NumInteger} columns The number of elements in the second
+       *  dimension
+       * @return {PyretTensor} The newly constructed PyretTensor
+       */
+      "as-2d": runtime.makeMethod2(function(self, rows, columns) {
+        checkMethodArity(3, arguments, "as-2d");
+        const jsShapeArray   = [rows, columns];
+        const pyretShapeList = runtime.ffi.makeList(jsShapeArray);
+        return reshapeTensor(self, pyretShapeList);
+      }),
+
+      /**
+       * Constructs a new, rank-3 PyretTensor from the values of the original
+       * PyretTensor. The number of elements implied by the input dimensions
+       * must be the same as the number of elements in the calling Tensor.
+       * Otherwise, the method raises an error.
+       * @param {PyretTensor} self
+       * @param {NumInteger} rows The number of elements in the first dimension
+       * @param {NumInteger} columns The number of elements in the second
+       *  dimension
+       * @param {NumInteger} depth The number of elements in the third
+       *  dimension
+       * @return {PyretTensor} The newly constructed PyretTensor
+       */
+      "as-3d": runtime.makeMethod3(function(self, rows, columns, depth) {
+        checkMethodArity(4, arguments, "as-3d");
+        const jsShapeArray   = [rows, columns, depth];
+        const pyretShapeList = runtime.ffi.makeList(jsShapeArray);
+        return reshapeTensor(self, pyretShapeList);
+      }),
+
+      /**
+       * Constructs a new, rank-4 PyretTensor from the values of the original
+       * PyretTensor. The number of elements implied by the input dimensions
+       * must be the same as the number of elements in the calling Tensor.
+       * Otherwise, the method raises an error.
+       * @param {PyretTensor} self
+       * @param {NumInteger} rows The number of elements in the first dimension
+       * @param {NumInteger} columns The number of elements in the second
+       *  dimension
+       * @param {NumInteger} depth1 The number of elements in the third
+       *  dimension
+       * @param {NumInteger} depth2 The number of elements in the fourth
+       *  dimension
+       * @return {PyretTensor} The newly constructed PyretTensor
+       */
+      "as-4d": runtime.makeMethod4(function(self, rows, columns, depth1, depth2) {
+        checkMethodArity(5, arguments, "as-4d");
+        const jsShapeArray   = [rows, columns, depth1, depth2];
+        const pyretShapeList = runtime.ffi.makeList(jsShapeArray);
+        return reshapeTensor(self, pyretShapeList);
+      }),
+
+      /**
+       * Constructs a new Tensor from the values of the original Tensor with
+       * all of the values cast to the input datatype.
+       *
+       * The possible data-types are "float32", "int32", or "bool". Any other
+       * dataType will raise an error.
+       *
+       * @param {PyretTensor} self
+       * @param {String} datatype The name of the data type to cast to
+       * @return {PyretTensor}
+       */
+      "as-type": runtime.makeMethod1(function(self, datatype) {
+        checkMethodArity(2, arguments, "as-type");
+        runtime.checkString(datatype);
+        const type = unwrap(datatype);
+        if (type !== "float32" && type !== "int32" && type !== "bool") {
+          runtime.ffi.throwMessageException("Attempted to cast tensor to " +
+            "invalid type ('" + type + "'); valid types are 'float32', " +
+            "'int32', or 'bool'");
+        }
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.asType(type));
+      }),
+
+      /**
+       * Constructs a new PyretTensorBuffer from the values of the original
+       * Tensor.
+       * @param {PyretTensor} self
+       * @return {PyretTensorBuffer} A TensorBuffer containing all of the
+       *  values in the calling Tensor
+       */
+      "to-buffer": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "to-buffer");
+        const selfTensor = unwrapTensor(self);
+        const newBuffer  = selfTensor.buffer();
+        return buildTensorBufferObject(newBuffer);
+      }),
+
+      /**
+       * Returns a List containing the data in the Tensor.
+       * @param {PyretTensor} self
+       * @return {List<Roughnum>} The data in the Tensor as a one-dimensional
+       *  List
+       */
+      "data-now": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "data-now");
+        const selfTensor = unwrapTensor(self);
+        // .dataSync returns a TypedArray, so convert it to a normal JSArray
+        // so we can then convert it to a Pyret List:
+        const tensorData = Array.from(selfTensor.dataSync());
+        // Convert to Roughnums, since the numbers returned from a Tensor are
+        // floating point:
+        const roughnumData = tensorData.map(x => runtime.num_to_roughnum(x));
+        return runtime.ffi.makeList(roughnumData);
+      }),
+
+      /**
+       * Constructs a new Tensor from the values of the original Tensor with
+       * all of the values cast to the "float32" datatype.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} A newly constructed Tensor cast to the "float32"
+       *  datatype
+       */
+      "to-float": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "to-float");
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.toFloat());
+      }),
+
+      /**
+       * Constructs a new Tensor from the values of the original Tensor with
+       * all of the values cast to the "int32" datatype.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} A newly constructed Tensor cast to the "int32"
+       *  datatype
+       */
+      "to-int": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "to-int");
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.toInt());
+      }),
+
+      /**
+       * Constructs a new Tensor from the values of the original Tensor with
+       * all of the values cast to the "bool" datatype.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} A newly constructed Tensor cast to the "bool"
+       *  datatype
+       */
+      "to-bool": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "to-bool");
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.toBool());
+      }),
+
+      /**
+       * Constructs a new, mutable Tensor from the values of the original
+       * Tensor.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} A mutable Tensor
+       */
+      "to-variable": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "to-variable");
+        return makeVariable(self);
+      }),
+
+      /**
+       * Constructs a new Tensor with the input dimensions `newShape` from
+       * the values of the original Tensor.
+       *
+       * The number of elements implied by `newShape` must be the same as the
+       * number of elements in the calling Tensor. Otherwise, the method raises
+       * an error.
+
+       * @param {PyretTensor} self
+       * @param {List<NumInteger>} newShape The shape to which to attempt to
+       *  reshape the calling Tensor
+       * @return {PyretTensor} The newly constructed Tensor with the given
+       *  shape
+       */
+      "reshape": runtime.makeMethod0(function(self, newShape) {
+        checkMethodArity(2, arguments, "reshape");
+        return reshapeTensor(self, newShape);
+      }),
+
+      /**
+       * Returns a Tensor that has expanded rank, by inserting a dimension into
+       * the Tensor’s shape at the given dimension index `axis`. If `axis` is
+       * `none`, the method inserts a dimension at index 0 by default.
+       * @param {PyretTensor} self
+       * @param {Option<NumInteger>} axis The axis at which to insert a new
+       *  dimension
+       * @return {PyretTensor} A newly constructed Tensor
+       */
+      "expand-dims": runtime.makeMethod1(function(self, axis) {
+        checkMethodArity(2, arguments, "expand-dims");
+        const selfTensor = unwrapTensor(self);
+        const jsAxis     = unwrapFixnumOption(axis);
+        // The rank of the tensor is equal to its dimensions:
+        const tensorRank = selfTensor.shape.length;
+        // Check that, if the axis was specified, that the input axis is less
+        // than or equal to the dimensions of the current tensor:
+        if (jsAxis && jsAxis > tensorRank) {
+          runtime.ffi.throwMessageException("Cannot expand dimensions " +
+            "because the input axis must be less than or equal to the rank " +
+            "of the tensor (tensor was rank-" + tensorRank + " but the " +
+            "input axis was " + jsAxis + ")");
+        }
+        return buildTensorObject(selfTensor.expandDims(jsAxis));
+      }),
+
+      /**
+       * Returns a Tensor with dimensions of size 1 removed from the shape. If
+       * `axes` is not `none`, the method only squeezes the dimensions listed
+       * as indices in `axes`. The method will raise an error if one of the
+       * dimensions specified in `axes` is not of size 1.
+       * @param {PyretTensor} self
+       * @param {Option<List<NumInteger>>} axes The axes at which to squeeze
+       * @return {PyretTensor} A newly constructed Tensor
+       */
+      "squeeze": runtime.makeMethod1(function(self, axes) {
+        checkMethodArity(2, arguments, "squeeze");
+        const selfTensor  = unwrapTensor(self);
+        const tensorShape = selfTensor.shape;
+        const tensorRank  = tensorShape.length;
+        const jsAxes =
+          runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
+            some: (v) => {
+              runtime.checkList(v);
+              return runtime.ffi.toArray(v).map((x) => {
+                runtime.checkNumInteger(x);
+                const axis = runtime.num_to_fixnum(x);
+                // Axes are zero-indexed, so offset by 1:
+                if ((axis + 1) > tensorRank) {
+                  runtime.ffi.throwMessageException("Cannot squeeze axis " +
+                    axis + " since the axis does not exist in a tensor of " +
+                    "rank " + tensorRank);
+                }
+                else if (tensorShape[axis] !== 1) {
+                  runtime.ffi.throwMessageException("Cannot squeeze axis " +
+                    axis + " since the dimension of that axis is " +
+                    tensorShape[axis] + ", not 1");
+                }
+                return axis;
+              });
+            },
+            none: () => { return undefined; }
+          });
+        return buildTensorObject(selfTensor.squeeze(jsAxes));
+      }),
+
+      /**
+       * Constructs a new Tensor that is a copy of the original Tensor.
+       * @param {PyretTensor} self
+       * @return {PyretTensor} A copy of the calling Tensor
+       */
+      "clone": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "clone");
+        const selfTensor = unwrapTensor(self);
+        return buildTensorObject(selfTensor.clone());
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of the calling Tensor
+       * added to b.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to add to self
+       * @return {PyretTensor} The result
+       */
+      "add": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "add");
+        return addTensors(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of the calling Tensor
+       * minus b.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to subtract from self
+       * @return {PyretTensor} The result
+       */
+      "subtract": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "subtract");
+        return subtractTensors(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of the calling Tensor
+       * multiplied by b.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to multiply with self
+       * @return {PyretTensor} The result
+       */
+      "multiply": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "multiply");
+        return multiplyTensors(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of the calling Tensor
+       * divided by b.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to divide self by
+       * @return {PyretTensor} The result
+       */
+      "divide": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "divide");
+        return divideTensors(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of applying the floor
+       * function to the result of the calling Tensor divided by b.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to divide self by
+       * @return {PyretTensor} The result
+       */
+      "floor-divide": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "floor-divide");
+        return floorDivideTensors(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the maximum of the Tensor and b,
+       * element-wise.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to compare self against
+       * @return {PyretTensor} The result
+       */
+      "max": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "max");
+        return maxTensor(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the minimum of the Tensor and b,
+       * element-wise.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to compare self against
+       * @return {PyretTensor} The result
+       */
+      "min": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "min");
+        return minTensor(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of the modulo of the Tensor
+       * and b.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to mod self with
+       * @return {PyretTensor} The result
+       */
+      "modulo": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "modulo");
+        return moduloTensor(self, b);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of the power of the Tensor
+       * to exp, element-wise.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} exp The Tensor to raise self to
+       * @return {PyretTensor} The result
+       */
+      "expt": runtime.makeMethod1(function(self, exp) {
+        checkMethodArity(2, arguments, "expt");
+        return exptTensor(self, exp);
+      }),
+
+      /**
+       * Constructs a new Tensor that is the result of (self - b) * (self - b),
+       * element-wise.
+       * @param {PyretTensor} self
+       * @param {PyretTensor} b The Tensor to compute the squared difference
+       *  with
+       * @return {PyretTensor} The result
+       */
+      "squared-difference": runtime.makeMethod1(function(self, b) {
+        checkMethodArity(2, arguments, "squared-difference");
+        return tensorSquaredDifference(self, b);
+      }),
+    };
+
+    /**
      * Consumes a TFTensor and wraps it in a PyretObject to make it a
      * PyretTensor.
      * @param {TFTensor} underlyingBuffer A TensorFlow.js Tensor
@@ -530,216 +1011,7 @@
      *  underlying TFTensor
      */
     function buildTensorObject(underlyingTensor) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          // value-skeleton functions:
-          const vsValue      = get(VS, "vs-value");
-          const vsCollection = get(VS, "vs-collection");
-          // Extract tensor information:
-          const selfTensor = unwrapTensor(self);
-          const tensorData = Array.from(selfTensor.dataSync());
-          // Create an array of value-skeleton values for each data point in
-          // this tensor:
-          let tensorElts = [];
-          for (let i = 0; i < tensorData.length; i++) {
-            const pyretNum = runtime.num_to_roughnum(tensorData[i]);
-            tensorElts.push(vsValue.app(pyretNum));
-          }
-          // Output value-skeleton collection:
-          const tensorName = runtime.makeString("tensor");
-          const eltList    = runtime.ffi.makeList(tensorElts);
-          return vsCollection.app(tensorName, eltList);
-        }),
-        "size": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "size");
-          const selfTensor = unwrapTensor(self);
-          return runtime.makeNumber(selfTensor.size);
-        }),
-        "shape": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "shape");
-          const selfTensor = unwrapTensor(self);
-          return runtime.ffi.makeList(selfTensor.shape);
-        }),
-        "flatten": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "flatten");
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.flatten());
-        }),
-        "as-scalar": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "as-scalar");
-          const selfTensor = unwrapTensor(self);
-          if (selfTensor.size !== 1) {
-            runtime.ffi.throwMessageException("Tensor was size-" +
-              selfTensor.size + " but `as-scalar` requires the " +
-              "tensor to be size-1");
-          }
-          return buildTensorObject(selfTensor.asScalar());
-        }),
-        "as-1d": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "as-1d");
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.as1D());
-        }),
-        "as-2d": runtime.makeMethod2(function(self, rows, columns) {
-          checkMethodArity(3, arguments, "as-2d");
-          const shapeList = runtime.ffi.makeList([rows, columns]);
-          return reshapeTensor(self, shapeList);
-        }),
-        "as-3d": runtime.makeMethod3(function(self, rows, columns, depth) {
-          checkMethodArity(4, arguments, "as-3d");
-          const shapeList = runtime.ffi.makeList([rows, columns, depth]);
-          return reshapeTensor(self, shapeList);
-        }),
-        "as-4d": runtime.makeMethod4(function(self, rows, columns, depth1, depth2) {
-          checkMethodArity(5, arguments, "as-4d");
-          const shapeList = runtime.ffi.makeList([rows, columns, depth1, depth2]);
-          return reshapeTensor(self, shapeList);
-        }),
-        "as-type": runtime.makeMethod1(function(self, datatype) {
-          checkMethodArity(2, arguments, "as-type");
-          runtime.checkString(datatype);
-          const type = unwrap(datatype);
-          if (type !== "float32" && type !== "int32" && type !== "bool") {
-            runtime.ffi.throwMessageException("Attempted to cast tensor to " +
-              "invalid type ('" + type + "'); valid types are 'float32', " +
-              "'int32', or 'bool'");
-          }
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.asType(type));
-        }),
-        "to-buffer": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-buffer");
-          const selfTensor = unwrapTensor(self);
-          const newBuffer  = selfTensor.buffer();
-          return buildTensorBufferObject(newBuffer);
-        }),
-        "data-now": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "data-now");
-          const selfTensor = unwrapTensor(self);
-          // .dataSync returns a TypedArray, so convert it to a normal JSArray
-          // so we can then convert it to a Pyret List:
-          const tensorData = Array.from(selfTensor.dataSync());
-          // Convert to Roughnums, since the numbers returned from a Tensor are
-          // floating point:
-          const roughnumData = tensorData.map(x => runtime.num_to_roughnum(x));
-          return runtime.ffi.makeList(roughnumData);
-        }),
-        "to-float": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-float");
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.toFloat());
-        }),
-        "to-int": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-int");
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.toInt());
-        }),
-        "to-bool": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-bool");
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.toBool());
-        }),
-        "to-variable": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-variable");
-          return makeVariable(self);
-        }),
-        "reshape": runtime.makeMethod0(function(self, newShape) {
-          checkMethodArity(2, arguments, "reshape");
-          return reshapeTensor(self, newShape);
-        }),
-        "expand-dims": runtime.makeMethod1(function(self, axis) {
-          checkMethodArity(2, arguments, "expand-dims");
-          const selfTensor = unwrapTensor(self);
-          const jsAxis     = unwrapFixnumOption(axis);
-          // The rank of the tensor is equal to its dimensions:
-          const tensorRank = selfTensor.shape.length;
-          // Check that, if the axis was specified, that the input axis is less
-          // than or equal to the dimensions of the current tensor:
-          if (jsAxis && jsAxis > tensorRank) {
-            runtime.ffi.throwMessageException("Cannot expand dimensions " +
-              "because the input axis must be less than or equal to the rank " +
-              "of the tensor (tensor was rank-" + tensorRank + " but the " +
-              "input axis was " + jsAxis + ")");
-          }
-          return buildTensorObject(selfTensor.expandDims(jsAxis));
-        }),
-        "squeeze": runtime.makeMethod1(function(self, axes) {
-          checkMethodArity(2, arguments, "squeeze");
-          const selfTensor  = unwrapTensor(self);
-          const tensorShape = selfTensor.shape;
-          const tensorRank  = tensorShape.length;
-          const jsAxes =
-            runtime.ffi.cases(runtime.ffi.isOption, "is-Option", axes, {
-              some: (v) => {
-                runtime.checkList(v);
-                return runtime.ffi.toArray(v).map((x) => {
-                  runtime.checkNumInteger(x);
-                  const axis = runtime.num_to_fixnum(x);
-                  // Axes are zero-indexed, so offset by 1:
-                  if ((axis + 1) > tensorRank) {
-                    runtime.ffi.throwMessageException("Cannot squeeze axis " +
-                      axis + " since the axis does not exist in a tensor of " +
-                      "rank " + tensorRank);
-                  }
-                  else if (tensorShape[axis] !== 1) {
-                    runtime.ffi.throwMessageException("Cannot squeeze axis " +
-                      axis + " since the dimension of that axis is " +
-                      tensorShape[axis] + ", not 1");
-                  }
-                  return axis;
-                });
-              },
-              none: () => { return undefined; }
-            });
-          return buildTensorObject(selfTensor.squeeze(jsAxes));
-        }),
-        "clone": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "clone");
-          const selfTensor = unwrapTensor(self);
-          return buildTensorObject(selfTensor.clone());
-        }),
-        "add": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "add");
-          return addTensors(self, b);
-        }),
-        "subtract": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "subtract");
-          return subtractTensors(self, b);
-        }),
-        "multiply": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "multiply");
-          return multiplyTensors(self, b);
-        }),
-        "divide": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "divide");
-          return divideTensors(self, b);
-        }),
-        "floor-divide": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "floor-divide");
-          return floorDivideTensors(self, b);
-        }),
-        "max": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "max");
-          return maxTensor(self, b);
-        }),
-        "min": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "min");
-          return minTensor(self, b);
-        }),
-        "modulo": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "modulo");
-          return moduloTensor(self, b);
-        }),
-        "expt": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "expt");
-          return exptTensor(self, b);
-        }),
-        "squared-difference": runtime.makeMethod1(function(self, b) {
-          checkMethodArity(2, arguments, "squared-difference");
-          return tensorSquaredDifference(self, b);
-        }),
-      });
+      let obj = O(TENSOR_METHODS);
       obj = applyBrand(brandTensor, obj);
       obj.$underlyingTensor = underlyingTensor;
       return obj;
@@ -2306,6 +2578,166 @@
     }
 
     /**
+     * The methods for PyretTensorBuffers.
+     * @type {Object}
+     * @constant
+     */
+    const TENSOR_BUFFER_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretTensorBuffer} self
+       * @return {ValueSkeleton} A vs-collection of the data currently in the
+       *  PyretTensorBuffer
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        const selfBuffer   = unwrapTensorBuffer(self);
+        const bufferData   = Array.from(selfBuffer.values);
+        const vsValue      = get(VS, "vs-value");
+        const vsCollection = get(VS, "vs-collection");
+        let elts = [];
+        for (let i = 0; i < bufferData.length; i++) {
+          const wrappedNum = runtime.num_to_roughnum(bufferData[i]);
+          elts.push(vsValue.app(wrappedNum));
+        }
+        return vsCollection.app(
+          runtime.makeString("tensor-buffer"),
+          runtime.ffi.makeList(elts));
+      }),
+
+      /**
+       * Returns the size of the PyretTensorBuffer.
+       * @param {PyretTensorBuffer} self
+       * @return {Number} The size of the PyretTensorBuffer
+       */
+      "size": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "size");
+        const selfBuffer = unwrapTensorBuffer(self);
+        return runtime.makeNumber(selfBuffer.size);
+      }),
+
+      /**
+       * Returns the shape of the PyretTensorBuffer.
+       * @param {PyretTensorBuffer} self
+       * @return {List<NumInteger>} The shape of the PyretTensorBuffer
+       */
+      "shape": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "shape");
+        const selfBuffer = unwrapTensorBuffer(self);
+        return runtime.ffi.makeList(selfBuffer.shape);
+      }),
+
+      /**
+       * Sets the value in the PyretTensorBuffer at the specified coordinates
+       * (represented by `indices`) to `value`.
+       * @param {PyretTensorBuffer} self
+       * @param {Number} value The value to set at indices
+       * @param {List<NumInteger>} indices The coordinates of the location to
+       *  modify in the PyretTensorBuffer
+       * @return {List<NumInteger>} The shape of the PyretTensorBuffer
+       */
+      "set-now": runtime.makeMethod2(function(self, value, indices) {
+        checkMethodArity(3, arguments, "set-now");
+        runtime.checkNumber(value);
+        const val         = runtime.num_to_fixnum(value);
+        const coordinates = unwrapListOfNumbersToArray(indices);
+        const selfBuffer  = unwrapTensorBuffer(self);
+        const bufferShape = selfBuffer.shape;
+        const bufferRank  = bufferShape.length;
+        // Check that the correct number of coordinates was supplied:
+        if (bufferRank !== coordinates.length) {
+          runtime.ffi.throwMessageException("The number of supplied " +
+            "coordinates must match the rank of the TensorBuffer, but " +
+            coordinates.length + " coordinates were specified and the number " +
+            "of dimensions in the TensorBuffer was " + bufferRank + ".");
+        }
+        // Check that each coordinate in `coordinates` is within the bounds of
+        // the buffer shape:
+        for (let axis = 0; axis < bufferRank; axis++) {
+          const locationIndex = coordinates[axis];
+          const dimensionSize = bufferShape[axis];
+          if (locationIndex < 0 || locationIndex >= dimensionSize) {
+            runtime.ffi.throwMessageException("The coordinate at axis " +
+              axis + " was " + locationIndex + ", but the size of that " +
+              "dimension in the TensorBuffer was " + dimensionSize + ". " +
+              "Coordinates must be within the bounds of the TensorBuffer's " +
+              "shape.");
+          }
+        }
+        // The ... spread/splat syntax is required as .set requires the
+        // indices to be entered as separate arguments to the function:
+        selfBuffer.set(val, ...coordinates);
+        return runtime.makeNothing();
+      }),
+
+      /**
+       * Retrieves the current value in the PyretTensorBuffer at the specified
+       * coordinates (represented by `indices`).
+       * @param {PyretTensorBuffer} self
+       * @param {List<NumInteger>} indices The coordinates of the location to
+       *  retrieve from the PyretTensorBuffer
+       * @return {Roughnum} The current value at `indices`
+       */
+      "get-now": runtime.makeMethod1(function(self, indices) {
+        checkMethodArity(2, arguments, "get-now");
+        const coordinates   = unwrapListOfNumbersToArray(indices);
+        const selfBuffer  = unwrapTensorBuffer(self);
+        const bufferShape = selfBuffer.shape;
+        const bufferRank  = bufferShape.length;
+        // Check that the correct number of coordinates was supplied:
+        if (bufferRank !== coordinates.length) {
+          runtime.ffi.throwMessageException("The number of supplied " +
+            "coordinates must match the rank of the TensorBuffer, but " +
+            coordinates.length + " coordinates were specified and the number " +
+            "of dimensions in the TensorBuffer was " + bufferRank + ".");
+        }
+        // Check that each coordinate in `coordinates` is within the bounds of
+        // the buffer shape:
+        for (let axis = 0; axis < bufferRank; axis++) {
+          const locationIndex = coordinates[axis];
+          const dimensionSize = bufferShape[axis];
+          if (locationIndex < 0 || locationIndex >= dimensionSize) {
+            runtime.ffi.throwMessageException("The coordinate at axis " +
+              axis + " was " + locationIndex + ", but the size of that " +
+              "dimension in the TensorBuffer was " + dimensionSize + ". " +
+              "Coordinates must be within the bounds of the TensorBuffer's " +
+              "shape.");
+          }
+        }
+        // The ... spread/splat syntax is required as .get requires the
+        // indices to be entered as separate arguments to the function:
+        const result = selfBuffer.get(...coordinates);
+        return runtime.num_to_roughnum(result);
+      }),
+
+      /**
+       * Returns all current values in the PyretTensorBuffer.
+       * @param {PyretTensorBuffer} self
+       * @return {List<Roughnum>} A one-dimensional List containing all of the
+       *  values in the PyretTensorBuffer
+       */
+      "get-all-now": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "get-all-now");
+        const selfBuffer = unwrapTensorBuffer(self);
+        const bufferData = Array.from(selfBuffer.values);
+        const roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
+        return runtime.ffi.makeList(roughnums);
+      }),
+
+      /**
+       * Creates an immutable PyretTensor from the PyretTensorBuffer.
+       * @param {PyretTensorBuffer} self
+       * @return {PyretTensor} A PyretTensor containing all of the values in
+       *  the PyretTensorBuffer
+       */
+      "to-tensor": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "to-tensor");
+        const selfBuffer = unwrapTensorBuffer(self);
+        return buildTensorObject(selfBuffer.toTensor());
+      }),
+    };
+
+    /**
      * Consumes a TFTensorBuffer and wraps it in a PyretObject to make it a
      * PyretTensorBuffer.
      * @param {TFTensorBuffer} underlyingBuffer A TensorFlow.js TensorBuffer
@@ -2313,108 +2745,7 @@
      *  as its underlying TFTensorBuffer
      */
     function buildTensorBufferObject(underlyingBuffer) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          const selfBuffer   = unwrapTensorBuffer(self);
-          const bufferData   = Array.from(selfBuffer.values);
-          const vsValue      = get(VS, "vs-value");
-          const vsCollection = get(VS, "vs-collection");
-          let elts = [];
-          for (let i = 0; i < bufferData.length; i++) {
-            const wrappedNum = runtime.num_to_roughnum(bufferData[i]);
-            elts.push(vsValue.app(wrappedNum));
-          }
-          return vsCollection.app(
-            runtime.makeString("tensor-buffer"),
-            runtime.ffi.makeList(elts));
-        }),
-        "size": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "size");
-          const selfBuffer = unwrapTensorBuffer(self);
-          return runtime.makeNumber(selfBuffer.size);
-        }),
-        "shape": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "shape");
-          const selfBuffer = unwrapTensorBuffer(self);
-          return runtime.ffi.makeList(selfBuffer.shape);
-        }),
-        "set-now": runtime.makeMethod2(function(self, value, locs) {
-          checkMethodArity(3, arguments, "set-now");
-          runtime.checkNumber(value);
-          const val         = runtime.num_to_fixnum(value);
-          const locations   = unwrapListOfNumbersToArray(locs);
-          const selfBuffer  = unwrapTensorBuffer(self);
-          const bufferShape = selfBuffer.shape;
-          const bufferRank  = bufferShape.length;
-          // Check that the correct number of coordinates was supplied:
-          if (bufferRank !== locations.length) {
-            runtime.ffi.throwMessageException("The number of supplied " +
-              "coordinates must match the rank of the TensorBuffer, but " +
-              locations.length + " coordinates were specified and the number " +
-              "of dimensions in the TensorBuffer was " + bufferRank + ".");
-          }
-          // Check that each coordinate in `locations` is within the bounds of
-          // the buffer shape:
-          for (let axis = 0; axis < bufferRank; axis++) {
-            const locationIndex = locations[axis];
-            const dimensionSize = bufferShape[axis];
-            if (locationIndex < 0 || locationIndex >= dimensionSize) {
-              runtime.ffi.throwMessageException("The coordinate at axis " +
-                axis + " was " + locationIndex + ", but the size of that " +
-                "dimension in the TensorBuffer was " + dimensionSize + ". " +
-                "Coordinates must be within the bounds of the TensorBuffer's " +
-                "shape.");
-            }
-          }
-          // Actually set the values in the buffer:
-          selfBuffer.set(val, ...locations);
-          return runtime.makeNothing();
-        }),
-        "get-now": runtime.makeMethod1(function(self, locs) {
-          checkMethodArity(2, arguments, "get-now");
-          const locations   = unwrapListOfNumbersToArray(locs);
-          const selfBuffer  = unwrapTensorBuffer(self);
-          const bufferShape = selfBuffer.shape;
-          const bufferRank  = bufferShape.length;
-          // Check that the correct number of coordinates was supplied:
-          if (bufferRank !== locations.length) {
-            runtime.ffi.throwMessageException("The number of supplied " +
-              "coordinates must match the rank of the TensorBuffer, but " +
-              locations.length + " coordinates were specified and the number " +
-              "of dimensions in the TensorBuffer was " + bufferRank + ".");
-          }
-          // Check that each coordinate in `locations` is within the bounds of
-          // the buffer shape:
-          for (let axis = 0; axis < bufferRank; axis++) {
-            const locationIndex = locations[axis];
-            const dimensionSize = bufferShape[axis];
-            if (locationIndex < 0 || locationIndex >= dimensionSize) {
-              runtime.ffi.throwMessageException("The coordinate at axis " +
-                axis + " was " + locationIndex + ", but the size of that " +
-                "dimension in the TensorBuffer was " + dimensionSize + ". " +
-                "Coordinates must be within the bounds of the TensorBuffer's " +
-                "shape.");
-            }
-          }
-          // The ... spread/splat syntax is required as .get requires the
-          // indices to be entered as separate arguments to the function:
-          const result = selfBuffer.get(...locations);
-          return runtime.makeNumber(result);
-        }),
-        "get-all-now": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "get-all-now");
-          const selfBuffer = unwrapTensorBuffer(self);
-          const bufferData = Array.from(selfBuffer.values);
-          const roughnums  = bufferData.map(x => runtime.num_to_roughnum(x));
-          return runtime.ffi.makeList(roughnums);
-        }),
-        "to-tensor": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "to-tensor");
-          const selfBuffer = unwrapTensorBuffer(self);
-          return buildTensorObject(selfBuffer.toTensor());
-        })
-      });
+      let obj = O(TENSOR_BUFFER_METHODS);
       obj = applyBrand(brandTensorBuffer, obj);
       obj.$underlyingBuffer = underlyingBuffer;
       return obj;
@@ -2469,6 +2800,23 @@
     }
 
     /**
+     * The methods for PyretModels.
+     * @type {Object}
+     * @constant
+     */
+    const MODEL_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretModel} self
+       * @return {ValueSkeleton} A vs-str representing the Model
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        return get(VS, "vs-str").app("<model>");
+      }),
+    };
+
+    /**
      * Consumes a TFModel and wraps it in a PyretObject to make it a
      * PyretModel.
      * @param {TFModel} underlyingLayer A TensorFlow.js Layer
@@ -2476,12 +2824,7 @@
      *  as its underlying TFModel
      */
     function buildModelObject(underlyingModel) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          return get(VS, "vs-str").app("<model>");
-        }),
-      });
+      let obj = O(MODEL_METHODS);
       obj = applyBrand(brandModel, obj);
       obj.$underlyingModel = underlyingModel;
       return obj;
@@ -2521,6 +2864,147 @@
     }
 
     /**
+     * The methods for PyretSequentials.
+     * @type {Object}
+     * @constant
+     */
+    const SEQUENTIAL_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretSequential} self
+       * @return {ValueSkeleton} A vs-str representing the Sequential
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        return get(VS, "vs-str").app("<sequential>");
+      }),
+
+      /**
+       * Adds a Layer instance on top of the Layer stack for this Sequential
+       * model.
+       * @param {PyretSequential} self
+       * @param {PyretLayer} layer The Layer to add
+       * @return {Nothing}
+       */
+      "add": runtime.makeMethod1(function(self, layer) {
+        checkMethodArity(2, arguments, "add");
+        checkLayer(layer);
+        const selfSequential = unwrapSequential(self);
+        const unwrappedLayer = unwrapLayer(layer);
+        selfSequential.add(unwrappedLayer);
+        return runtime.makeNothing();
+      }),
+
+      /**
+       * Configures and prepares the model for training and evaluation.
+       * Compiling outfits the model with an optimizer, loss, and/or metrics.
+       * Calling .fit or .evaluate on an un-compiled model will throw an error.
+       * @param {PyretSequential} self
+       * @param {Object} config
+       * @return {Nothing}
+       */
+      "compile": runtime.makeMethod1(function(self, config) {
+        checkMethodArity(2, arguments, "compile");
+        runtime.checkObject(config);
+        let jsConfig = unwrapObject(config);
+        // TODO(ZacharyEspiritu): Replace with derivative of
+        // `pyretLayerConfigToJsConfig`
+        // If there's an Optimizer defined, we have to unwrap it since
+        // Tensorflow.js doesn't recognize PyretOptimizers:
+        if ("optimizer" in jsConfig) {
+          // But it could also be a string key that maps to a predefined
+          // TF.js optimizer:
+          if (typeof jsConfig["optimizer"] !== "string") {
+            jsConfig["optimizer"] = jsConfig["optimizer"].$underlyingOptimizer;
+          }
+        }
+        const selfSequential = unwrapSequential(self);
+        selfSequential.compile(jsConfig);
+        return runtime.makeNothing();
+      }),
+
+      /**
+       * Returns the loss value & metrics values for the model in test mode.
+       * Loss and metrics are specified during .compile, which needs to happen
+       * before calls to .evaluate.
+       * @param {PyretSequential} self
+       * @param {PyretTensor} x
+       * @param {PyretTensor} y
+       * @param {Object} config
+       * @return {PyretTensor}
+       */
+      "evaluate": runtime.makeMethod3(function(self, x, y, config) {
+        checkMethodArity(4, arguments, "evaluate");
+        runtime.checkObject(config);
+        const selfSequential = unwrapSequential(self);
+        const xTensor        = checkAndUnwrapTensor(x);
+        const yTensor        = checkAndUnwrapTensor(y);
+        const jsConfig       = unwrapObject(config);
+        const result         = selfSequential.evaluate(xTensor, yTensor, jsConfig);
+        return buildTensorObject(result);
+      }),
+
+      /**
+       * Generates output predictions for the input samples.
+       * @param {PyretSequential} self
+       * @param {PyretTensor} x
+       * @param {Object} config
+       * @return {PyretTensor}
+       */
+      "predict": runtime.makeMethod2(function(self, x, config) {
+        checkMethodArity(3, arguments, "predict");
+        runtime.checkObject(config);
+        const selfSequential = unwrapSequential(self);
+        const xTensor        = checkAndUnwrapTensor(x);
+        const jsConfig       = unwrapObject(config);
+        const result         = selfSequential.predict(xTensor, jsConfig);
+        return buildTensorObject(result);
+      }),
+
+      /**
+       * Returns predictions for a single batch of samples.
+       * @param {PyretSequential} self
+       * @param {PyretTensor} x
+       * @return {PyretTensor}
+       */
+      "predict-on-batch": runtime.makeMethod1(function(self, x) {
+        checkMethodArity(2, arguments, "predict-on-batch");
+        const selfSequential = unwrapSequential(self);
+        const xTensor        = checkAndUnwrapTensor(x);
+        const result         = selfSequential.predictOnBatch(xTensor);
+        return buildTensorObject(result);
+      }),
+
+      /**
+       * Trains the model for a fixed number of epochs (iterations on a
+       * dataset).
+       * @param {PyretSequential} self
+       * @param {PyretTensor} x
+       * @param {PyretTensor} y
+       * @param {Object} config
+       * @return {PyretTensor}
+       */
+      "fit": runtime.makeMethod3(function(self, x, y, config, callback) {
+        checkMethodArity(5, arguments, "fit");
+        runtime.checkObject(config);
+        const xTensor = checkAndUnwrapTensor(x);
+        const yTensor = checkAndUnwrapTensor(y);
+        let jsConfig  = unwrapObject(config);
+        // TODO(ZacharyEspiritu): Generalize across multiple callback types
+        jsConfig.callbacks = {
+          onEpochEnd: async (epoch, log) => {
+            runtime.safeCall(() => {
+              callback.app(runtime.makeNumber(epoch), runtime.makeObject(log));
+            }, (_) => {}); // handler purposely blank
+          },
+        };
+        const selfSequential = unwrapSequential(self);
+        selfSequential.fit(xTensor, yTensor, jsConfig);
+        return runtime.makeNothing();
+      }),
+    };
+
+    /**
      * Consumes a TFSequential and wraps it in a PyretObject to make it a
      * PyretSequential.
      * @param {TFSequential} underlyingLayer A TensorFlow.js Layer
@@ -2528,82 +3012,19 @@
      *  as its underlying TFSequential
      */
     function buildSequentialObject(underlyingSequential) {
-      let obj = O({
-        "add": runtime.makeMethod1(function(self, layer) {
-          checkMethodArity(2, arguments, "add");
-          checkLayer(layer);
-          const selfSequential = unwrapSequential(self);
-          const unwrappedLayer = unwrapLayer(layer);
-          selfSequential.add(unwrappedLayer);
-          return runtime.makeNothing();
-        }),
-        "compile": runtime.makeMethod1(function(self, config) {
-          checkMethodArity(2, arguments, "compile");
-          runtime.checkObject(config);
-          let jsConfig = unwrapObject(config);
-          // If there's an Optimizer defined, we have to unwrap it since
-          // Tensorflow.js doesn't recognize PyretOptimizers:
-          if ("optimizer" in jsConfig) {
-            // But it could also be a string key that maps to a predefined
-            // TF.js optimizer:
-            if (typeof jsConfig["optimizer"] !== "string") {
-              jsConfig["optimizer"] = jsConfig["optimizer"].$underlyingOptimizer;
-            }
-          }
-          const selfSequential = unwrapSequential(self);
-          selfSequential.compile(jsConfig);
-          return runtime.makeNothing();
-        }),
-        "evaluate": runtime.makeMethod3(function(self, x, y, config) {
-          checkMethodArity(4, arguments, "evaluate");
-          runtime.checkObject(config);
-          const selfSequential = unwrapSequential(self);
-          const xTensor        = checkAndUnwrapTensor(x);
-          const yTensor        = checkAndUnwrapTensor(y);
-          const jsConfig       = unwrapObject(config);
-          const result         = selfSequential.evaluate(xTensor, yTensor, jsConfig);
-          return buildTensorObject(result);
-        }),
-        "predict": runtime.makeMethod2(function(self, x, config) {
-          checkMethodArity(3, arguments, "predict");
-          runtime.checkObject(config);
-          const selfSequential = unwrapSequential(self);
-          const xTensor        = checkAndUnwrapTensor(x);
-          const jsConfig       = unwrapObject(config);
-          const result         = selfSequential.predict(xTensor, jsConfig);
-          return buildTensorObject(result);
-        }),
-        "predict-on-batch": runtime.makeMethod1(function(self, x) {
-          checkMethodArity(2, arguments, "predict-on-batch");
-          const selfSequential = unwrapSequential(self);
-          const xTensor        = checkAndUnwrapTensor(x);
-          const result         = selfSequential.predictOnBatch(xTensor);
-          return buildTensorObject(result);
-        }),
-        "fit": runtime.makeMethod3(function(self, x, y, config, callback) {
-          checkMethodArity(5, arguments, "fit");
-          runtime.checkObject(config);
-          const xTensor = checkAndUnwrapTensor(x);
-          const yTensor = checkAndUnwrapTensor(y);
-          let jsConfig  = unwrapObject(config);
-          // TODO(ZacharyEspiritu): Generalize across multiple callback types
-          jsConfig.callbacks = {
-            onEpochEnd: async (epoch, log) => {
-              runtime.safeCall(() => {
-                callback.app(runtime.makeNumber(epoch), runtime.makeObject(log));
-              }, (_) => {}); // handler purposely blank
-            },
-          };
-          const selfSequential = unwrapSequential(self);
-          selfSequential.fit(xTensor, yTensor, jsConfig);
-          return runtime.makeNothing();
-        }),
-      });
+      let obj = O(SEQUENTIAL_METHODS);
       obj = applyBrand(brandSequential, obj);
       obj.$underlyingSequential = underlyingSequential;
       return obj;
     }
 
+    /**
+     * Instantiates a PyretSequential model with the input configuration
+     * options.
+     * @param {Object} config The configuration options to instantiate the
+     *  Sequential model with
+     * @returns {PyretSequential} The result
+     */
     function makeSequential(config) {
       arity(1, arguments, "make-sequential", false);
       runtime.checkObject(config);
@@ -2627,6 +3048,42 @@
     }
 
     /**
+     * The methods for PyretSymbolicTensors.
+     * @type {Object}
+     * @constant
+     */
+    const SYMBOLIC_TENSOR_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretSymbolicTensor} self
+       * @return {ValueSkeleton} A vs-str representing the SymbolicTensor
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        return get(VS, "vs-str").app("<symbolic-tensor>");
+      }),
+
+      /**
+       * Returns the shape of the calling SymbolicTensor.
+       * @param {PyretSymbolicTensor} self
+       * @return {List<Option<NumInteger>>} The shape of the SymbolicTensor
+       */
+      "shape": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "shape");
+        const selfSymbolic = unwrapSymbolicTensor(self);
+        const optionValues = selfSymbolic.shape.map(x => {
+          if (x) {
+            return runtime.ffi.makeSome(x);
+          }
+          else {
+            return runtime.ffi.makeNone();
+          }
+        });
+        return runtime.ffi.makeList(optionValues);
+      }),
+    };
+
+    /**
      * Consumes a TFSymbolicTensor and wraps it in a PyretObject to make it a
      * PyretSymbolicTensor.
      * @param {TFSymbolicTensor} underlyingLayer A TensorFlow.js Layer
@@ -2634,25 +3091,7 @@
      *  as its underlying TFSymbolicTensor
      */
     function buildSymbolicTensorObject(underlyingSymbolic) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          return get(VS, "vs-str").app("<symbolic-tensor>");
-        }),
-        "shape": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "shape");
-          const selfSymbolic = unwrapSymbolicTensor(self);
-          const optionValues = selfSymbolic.shape.map(x => {
-            if (x) {
-              return runtime.ffi.makeSome(x);
-            }
-            else {
-              return runtime.ffi.makeNone();
-            }
-          });
-          return runtime.ffi.makeList(optionValues);
-        }),
-      });
+      let obj = O(SYMBOLIC_TENSOR_METHODS);
       obj = applyBrand(brandSymbolicTensor, obj);
       obj.$underlyingSymbolic = underlyingSymbolic;
       return obj;
@@ -3068,6 +3507,59 @@
     }
 
     /**
+     * The methods for PyretLayers.
+     * @type {Object}
+     * @constant
+     */
+    const LAYER_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretLayer} self
+       * @return {ValueSkeleton} A vs-str representing the Layer
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        return get(VS, "vs-str").app("<layer>");
+      }),
+
+      /**
+       * Builds or executes a Layer's logic against the input Tensors.
+       * @param {PyretLayer} self
+       * @param {List<PyretTensor>} tensors The Tensors to apply the Layer's
+       *  computation against
+       * @return {List<PyretTensor>} The result of applying the Layer to
+       *  each Tensor in `tensors`
+       */
+      "apply-tensors": runtime.makeMethod1(function(self, tensors) {
+        checkMethodArity(2, arguments, "apply-tensors");
+        const inputs    = unwrapListOfTensorsToArray(tensors);
+        const selfLayer = unwrapLayer(self);
+        const outputs   = selfLayer.apply(inputs).map(buildTensorObject);
+        return runtime.ffi.makeList(outputs);
+      }),
+
+      /**
+       * Builds or executes a Layer's logic against the input SymbolicTensors.
+       * @param {PyretLayer} self
+       * @param {List<PyretSymbolicTensor>} tensors The SymbolicTensors to
+       *  apply the Layer's computation against
+       * @return {List<PyretTensor>} The result of applying the Layer to
+       *  each SymbolicTensor in `tensors`
+       */
+      "apply-symbolic-tensors": runtime.makeMethod1(function(self, symbolics) {
+        checkMethodArity(2, arguments, "apply-symbolic-tensors");
+        runtime.checkList(symbolics);
+        const inputs = runtime.ffi.toArray(symbolics).map((x) => {
+          checkTensor(x);
+          return unwrapSymbolicTensor(x);
+        });
+        const selfLayer = unwrapLayer(self);
+        const outputs   = selfLayer.apply(inputs).map(buildTensorObject);
+        return runtime.ffi.makeList(outputs);
+      }),
+    };
+
+    /**
      * Consumes a TFLayer and wraps it in a PyretObject to make it a
      * PyretLayer.
      * @param {TFLayer} underlyingLayer A TensorFlow.js Layer
@@ -3075,30 +3567,7 @@
      *  underlying TFLayer
      */
     function buildLayerObject(underlyingLayer) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          return get(VS, "vs-str").app("<layer>");
-        }),
-        "apply-tensors": runtime.makeMethod1(function(self, tensors) {
-          checkMethodArity(2, arguments, "apply-tensors");
-          const inputs    = unwrapListOfTensorsToArray(tensors);
-          const selfLayer = unwrapLayer(self);
-          const outputs   = selfLayer.apply(inputs).map(buildTensorObject);
-          return runtime.ffi.makeList(outputs);
-        }),
-        "apply-symbolic-tensors": runtime.makeMethod1(function(self, symbolics) {
-          checkMethodArity(2, arguments, "apply-symbolic-tensors");
-          runtime.checkList(symbolics);
-          const inputs = runtime.ffi.toArray(symbolics).map((x) => {
-            checkTensor(x);
-            return unwrapSymbolicTensor(x);
-          });
-          const selfLayer = unwrapLayer(self);
-          const outputs   = selfLayer.apply(inputs).map(buildTensorObject);
-          return runtime.ffi.makeList(outputs);
-        })
-      });
+      let obj = O(LAYER_METHODS);
       obj = applyBrand(brandLayer, obj);
       obj.$underlyingLayer = underlyingLayer;
       return obj;
@@ -4870,6 +5339,56 @@
     }
 
     /**
+     * The methods for PyretOptimizers.
+     * @type {Object}
+     * @constant
+     */
+    const OPTIMIZER_METHODS = {
+      /**
+       * Returns a ValueSkeleton for printing to the Pyret console.
+       * @param {PyretOptimizer} self
+       * @return {ValueSkeleton} A vs-str representing the Optimizer
+       */
+      "_output": runtime.makeMethod0(function(self) {
+        checkMethodArity(1, arguments, "_output");
+        return get(VS, "vs-str").app("<optimizer>");
+      }),
+
+      /**
+       * Executes `functionToMinimize` and minimizes the scalar output of
+       * `functionToMinimize` by computing gradients of y with respect to the
+       * list of trainable, variable Tensors provided by `varList`. If
+       * `varList` is `empty`, it defaults to all trainable variables.
+       * @param {PyretOptimizer} self
+       * @param {Function():PyretTensor} functionToMinimize A thunk that
+       *  returns a scalar Tensor
+       * @param {List<Tensor>} varList A list of mutable Tensors
+       * @return {PyretTensor} The result of functionToMinimize
+       */
+      "minimize": runtime.makeMethod2(function(self, functionToMinimize, varList) {
+        checkMethodArity(3, arguments, "minimize");
+        // varList is a list of mutable tensors for the Optimizer to edit. If
+        // it is empty, it should be set to `undefined` so TensorFlow.js
+        // knows to modify all available mutable tensors in the space:
+        // TODO(ZacharyEspiritu): Check that these are actually mutable;
+        // currently only verifies that they are Tensors, not Variables
+        let variables = unwrapListOfTensorsToArray(varList);
+        if (variables.length === 0) { variables = undefined; }
+
+        // Run minimization thunk. The thunk should return a scalar Tensor.
+        // TODO(ZacharyEspiritu): Check that this returns a scalar;
+        // currently only verifies that it returns a Tensor, not a scalar
+        const selfOptimizer = unwrapOptimizer(self);
+        const result = selfOptimizer.minimize(() => {
+          return runtime.safeCall(() => {
+            return functionToMinimize.app();
+          }, checkAndUnwrapTensor);
+        }, true, variables);
+        return buildTensorObject(result);
+      }),
+    };
+
+    /**
      * Consumes a TFOptimizer and wraps it in a PyretObject to make it a
      * PyretOptimizer.
      * @param {TFOptimizer} underlyingOptimizer A TensorFlow.js Optimizer
@@ -4877,33 +5396,7 @@
      *  as its underlying TFOptimizer
      */
     function buildOptimizerObject(underlyingOptimizer) {
-      let obj = O({
-        "_output": runtime.makeMethod0(function(self) {
-          checkMethodArity(1, arguments, "_output");
-          return get(VS, "vs-str").app("<optimizer>");
-        }),
-        "minimize": runtime.makeMethod2(function(self, functionToMinimize, varList) {
-          checkMethodArity(3, arguments, "minimize");
-          // varList is a list of mutable tensors for the Optimizer to edit. If
-          // it is empty, it should be set to `undefined` so TensorFlow.js
-          // knows to modify all available mutable tensors in the space:
-          // TODO(ZacharyEspiritu): Check that these are actually mutable;
-          // currently only verifies that they are Tensors, not Variables
-          let variables = unwrapListOfTensorsToArray(varList);
-          if (variables.length === 0) { variables = undefined; }
-
-          // Run minimization thunk. The thunk should return a scalar Tensor.
-          // TODO(ZacharyEspiritu): Check that this returns a scalar;
-          // currently only verifies that it returns a Tensor, not a scalar
-          const selfOptimizer = unwrapOptimizer(self);
-          const result = selfOptimizer.minimize(() => {
-            return runtime.safeCall(() => {
-              return functionToMinimize.app();
-            }, checkAndUnwrapTensor);
-          }, true, variables);
-          return buildTensorObject(result);
-        })
-      });
+      let obj = O(OPTIMIZER_METHODS);
       obj = applyBrand(brandOptimizer, obj);
       obj.$underlyingOptimizer = underlyingOptimizer;
       return obj;
