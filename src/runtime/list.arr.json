@@ -4,6 +4,7 @@
     "shorthands": {
       "lOfA": ["tyapp", ["local", "List"], [["tid", "a"]]],
       "lOfB": ["tyapp", ["local", "List"], [["tid", "b"]]],
+      "lOfInt": ["tyapp", ["local", "List"], ["Number"]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"]
     },
@@ -13,16 +14,16 @@
       "length": ["forall", ["a"], ["arrow", ["lOfA"], "Number"]],
       "contains": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "Boolean"]],
       "map": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "lOfB"]],
-      "slice": ["arrow", ["tany", "Number", "Number"], "tany"],
+      "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "tOfA"]],
       "push": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "lOfA"]],
       "filter": ["forall", ["a"], ["arrow", ["lOfA", ["arrow", ["tva"], "Boolean"]], "lOfA"]],
       "reduce": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tvb", "tva"], "tvb"], "tvb"], "tvb"]],
-      "sum": ["arrow", ["tany"], "Number"],
-      "min": ["arrow", ["tany"], "Number"],
-      "max": ["arrow", ["tany"], "Number"],
-      "range": ["arrow", ["Number", "Number"], "tany"],
+      "sum": ["arrow", ["lOfInt"], "Number"],
+      "min": ["arrow", ["lOfInt"], "Number"],
+      "max": ["arrow", ["lOfInt"], "Number"],
+      "range": ["arrow", ["Number", "Number"], "lOfInt"],
       "empty-list": ["forall", ["a"], ["arrow", [], "lOfA"]],
-      "concat": ["arrow", ["tany", "tany"], "tany"]
+      "concat": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "lOfA"]]
     },
     "datatypes": {
       "List": ["data", "List", ["a"], [], {}]

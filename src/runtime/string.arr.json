@@ -8,7 +8,8 @@
       "substring": ["arrow", ["String", "Number", "Number"], "String"],
       "charAt": ["arrow", ["String", "Number"], "String"],
       "split": ["arrow", ["String", "String"], "tany"],
-      "split-pattern": ["arrow", ["String", "String"], "tany"]
+      "split-pattern": ["arrow", ["String", "String"], "tany"],
+			"match": ["arrow", ["String", "String"], "tany"]
     }
   }
 }

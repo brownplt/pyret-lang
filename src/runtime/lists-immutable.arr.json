@@ -12,6 +12,7 @@
       "contains": ["arrow", ["tany", "tany"], "Boolean"],
       "map": ["arrow", ["tany", "tany"], "tany"],
       "flatMap": ["arrow", ["tany", "tany"], "tany"],
+      "flatten": ["arrow", ["tany"], "tany"],
       "slice": ["arrow", ["tany", "Number", "Number"], "tany"],
       "push": ["arrow", ["tany", "tany"], "tany"],
       "filter": ["arrow", ["tany", "tany"], "tany"],

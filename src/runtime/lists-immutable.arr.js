@@ -24,6 +24,9 @@ module.exports = {
   'flatMap': function( list, fun ) {
     return List( list ).flatMap( fun );
   },
+  'flatten': function( list ) {
+    return list.flatten();
+  },
   'slice': function( list, start, end = list.length ) {
     return list.slice( start, end );
   },
@@ -55,13 +58,14 @@ module.exports = {
     return List( [] );
   },
   'concat': function( listA, listB ) {
-    var newList = List( listA );
+    /* var newList = List( listA );
 
     for ( var index = 0; index < listB.size; index++ ) {
       newList = newList.push( listB.get( index ) );
     }
     
-    return newList;
+    return newList; */
+		return listA.concat( listB );
   },
   'is-list': function( list ) {
     return List.isList( list );

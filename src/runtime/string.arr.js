@@ -20,4 +20,7 @@ module.exports = {
   'split-pattern': function( str, pattern ) {
     return str.split( RegExp( pattern ) );
   },
+	'match': function( str, pattern ) {
+		return str.match( RegExp( pattern ) );
+	}
 };
