@@ -14,7 +14,7 @@
       "length": ["forall", ["a"], ["arrow", ["lOfA"], "Number"]],
       "contains": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "Boolean"]],
       "map": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "lOfB"]],
-      "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "tOfA"]],
+      "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "lOfA"]],
       "push": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "lOfA"]],
       "filter": ["forall", ["a"], ["arrow", ["lOfA", ["arrow", ["tva"], "Boolean"]], "lOfA"]],
       "reduce": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tvb", "tva"], "tvb"], "tvb"], "tvb"]],

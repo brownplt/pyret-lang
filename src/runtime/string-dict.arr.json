@@ -10,11 +10,11 @@
       "tvb": ["tid", "b"]
     },
     "values": {
-      "string-dict": ["forall", ["a"], ["Maker", ["tid", "a"], "dOfA"]],
+      "string-dict": ["forall", ["a"], ["Maker", ["tid", "a"], "dOfAB"]],
       "count": ["forall", ["a"], ["arrow", ["lOfA"], "dOfAI"]],
-      "apply": ["forall", ["a", "b"], ["arrow", ["lofA", ["arrow", ["tva"], "tvb"]], "dOfAB"]],
-      "insert": ["forall", ["a", "b"], ["arrow", ["dOfA", "tva", "tvb"], "dOfAB"]],
-      "size": ["forall", ["a"], ["arrow", ["dOfA"], "Number"]],
+      "apply": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "dOfAB"]],
+      "insert": ["forall", ["a", "b"], ["arrow", ["dOfAB", "tva", "tvb"], "dOfAB"]],
+      "size": ["forall", ["a"], ["arrow", ["dOfAB"], "Number"]],
       "get": ["forall", ["a", "b"], ["arrow", ["dOfAB", "tva"], "tvb"]],
       "has-key": ["forall", ["a"], ["arrow", ["dOfAB", "tva"], "Boolean"]],
       "keys": ["forall", ["a"], ["arrow", ["dOfAB"], "lOfA"]],
@@ -22,8 +22,8 @@
       "is-dict": ["forall", ["a"], ["arrow", ["dOfAB"], "Boolean"]]
     },
     "datatypes": {
-      "StringDict": ["data", "StringDict", ["a"], [], {}],
-      "List": ["data", "List", ["a", "b"], [], {}]
+      "StringDict": ["data", "StringDict", ["a", "b"], [], {}],
+      "List": ["data", "List", ["a"], [], {}]
     }
   }
 }
