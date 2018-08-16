@@ -422,22 +422,17 @@ fun make-prog-flatness-env(anfed :: AA.AProg, bindings :: SD.MutableStringDict<C
   fun init-type-provides(provides, tb) block:
     name = tb.atom.toname()
 
-    # NOTE(joe): Datatypes _must_ just be flat brand checks
-
-    when provides.data-definitions.has-key(name):
+    if provides.data-definitions.has-key(name):
+      # NOTE(joe): Datatypes _must_ just be flat brand checks
       ad.set-now(tb.atom.key(), some(0))
-    end
-
-    # NOTE(joe): Right now we don't trust any cross-module aliases. We need to
-    # get either a representation of flatness for annotations in provides, or
-    # make sure that all provided annotations have a path back to the
-    # underlying annotation in terms of datatypes and simple constructors so we
-    # can use ann-flatness on them
-
-    when provides.aliases.has-key(name):
+    else if provides.aliases.has-key(name):
+      # NOTE(joe): Right now we don't trust any cross-module aliases. We need to
+      # get either a representation of flatness for annotations in provides, or
+      # make sure that all provided annotations have a path back to the
+      # underlying annotation in terms of datatypes and simple constructors so we
+      # can use ann-flatness on them
       ad.set-now(tb.atom.key(), none)
     end
-
   end
   for SD.each-key-now(k from type-bindings):
     tb = type-bindings.get-value-now(k)

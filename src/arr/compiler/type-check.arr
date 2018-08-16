@@ -247,14 +247,10 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           vbind = vbinds.get-value-now(key)
           if vbind.origin.new-definition: global-types
           else:
-            cases(Option) compile-env.provides-by-uri(vbind.origin.uri-of-definition):
-              | none => raise("cannot find binding for " + key)
-              | some(mod-info) =>
-                cases(C.ValueExport) mod-info.values.get-value(vbind.atom.toname()):
-                  | v-just-type(t) => global-types.set(key, t)
-                  | v-fun(t, _, _) => global-types.set(key, t)
-                  | v-var(t) => global-types.set(key, t-ref(t, l, false))
-                end
+            thismod = context.modules.get-value(vbind.origin.uri-of-definition)
+            cases(Option) thismod.provides.fields.get(vbind.atom.toname()):
+              | none => raise("Cannot find binding for " + key)
+              | some(typ) => global-types.set(key, typ)
             end
           end
         end
@@ -264,10 +260,10 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           tbind = tbinds.get-value-now(key)
           if tbind.origin.new-definition: global-aliases
           else:
-            cases(Option) compile-env.provides-by-uri(tbind.origin.uri-of-definition):
+            thismod = context.modules.get-value(tbind.origin.uri-of-definition)
+            cases(Option) thismod.aliases.get(tbind.atom.toname()):
               | none => raise("cannot find binding for " + key)
-              | some(mod-info) =>
-                global-aliases.set(key, mod-info.aliases.get-value(tbind.atom.toname()))
+              | some(typ) => global-aliases.set(key, typ)
             end
           end
         end

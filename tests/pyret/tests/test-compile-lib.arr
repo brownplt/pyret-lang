@@ -455,6 +455,7 @@ check:
             [SD.string-dict:
               "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)]),
           CM.no-builtins,
+          CM.computed-none,
           CM.ok("dummy")
         )
       ],
