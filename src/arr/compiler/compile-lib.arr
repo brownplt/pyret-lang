@@ -187,7 +187,6 @@ fun get-import-type(i):
     | s-import(_, f, _) => some(f)
     | s-import-types(_, f, _, _) => some(f)
     | s-include(_, f) => some(f)
-    | s-import-complete(_, _, _, f, _) => some(f)
     | s-import-fields(_, _, f) => some(f)
     | s-include-from(_, _, _) => none
   end
@@ -402,7 +401,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             add-phase("Fully desugared", desugared.ast)
             var type-checked =
               if options.type-check:
-                type-checked = T.type-check(desugared.ast, env, modules)
+                type-checked = T.type-check(desugared.ast, env, named-result.env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)

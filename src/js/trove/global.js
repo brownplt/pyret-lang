@@ -385,7 +385,20 @@
       "NumRational": "Number",
       "NumInteger": "Number",
       "Roughnum": "Number",
-      "Exactnum": "Number"
+      "Exactnum": "Number",
+      "Boolean": "Boolean",
+      "Number": "Number",
+      "String": "String",
+      "Nothing": "Nothing",
+      "RawArray": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "RawArray" },
+      "Row": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Row" },
+      "Table": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Table" }
     },
     datatypes: {
       "Number": ["data", "Number", [], [], {

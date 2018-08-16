@@ -158,7 +158,7 @@ fun value-export-sd-to-type-sd(sd :: SD.StringDict<C.ValueExport>) -> SD.StringD
 end
 
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, modules) -> C.CompileResult<A.Program>:
+fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program>:
   context = TCS.empty-context()
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
@@ -224,35 +224,55 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
 
   cases(A.Program) program block:
     | s-program(l, _provide, provided-types, provides, imports, body) =>
-      shadow context = imports.foldl(lam(_import, shadow context):
-        cases(A.Import) _import block:
-          | s-import-complete(_, vals, types, file, mname) =>
-            key = import-to-string(file, compile-env)
-            new-module-names = context.module-names.set(mname.key(), key)
-            thismod = cases(Option) context.modules.get(key):
-              | some(m) => m
-              | none => raise(ERR.internal-error("Couldn't find " + key + " (needed for " + mname.key() + ") in context.modules:", [list: context.modules.keys-list-now()]))
-            end
-            thismod-provides = thismod.provides.fields
-            new-global-types = context.global-types.set(mname.key(), thismod.provides)
-            new-aliases = context.aliases.set(mname.key(), t-top(l, false))
-            shadow new-aliases = types.foldl(lam(a, shadow new-aliases):
-              cases(Option) thismod.aliases.get(a.toname()):
-                | none => raise("Alias key " + a.toname() + " not found on " + torepr(thismod))
-                | some(v) =>
-                  new-aliases.set(a.key(), v)
-              end
-            end, new-aliases)
-            shadow new-global-types = vals.foldl(lam(v, shadow new-global-types):
-              cases(Option) thismod-provides.get(v.toname()):
-                | none => raise("Value key " + v.toname() + " not found on " + torepr(thismod-provides))
-                | some(typ) => new-global-types.set(v.key(), typ)
-              end
-            end, new-global-types)
-            typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info, context.misc)
-          | else => raise("type checker received incomplete import")
+
+
+      # NOTE(joe) – we cannot use module-env/type-env/env here because they
+      # represent the environment at the *end* of the module. So if the user
+      # shadows an imported ID, we would pick up that name as the type of the
+      # import. Instead, we filter through all the bindings looking for ones
+      # that came from a module. This is slower, and having Yet Another
+      # Datatype for "bindings after imports" would help here.
+
+      mbinds = post-compile-env.module-bindings
+      vbinds = post-compile-env.bindings
+      tbinds = post-compile-env.type-bindings
+
+      new-module-names =
+        for fold(mnames from context.module-names, key from mbinds.keys-list-now()):
+            mnames.set(key, mbinds.get-value-now(key).uri)
         end
-      end, context)
+
+      new-global-types =
+        for fold(global-types from context.global-types, key from vbinds.keys-list-now()):
+          vbind = vbinds.get-value-now(key)
+          if vbind.origin.new-definition: global-types
+          else:
+            cases(Option) compile-env.provides-by-uri(vbind.origin.uri-of-definition):
+              | none => raise("cannot find binding for " + key)
+              | some(mod-info) =>
+                cases(C.ValueExport) mod-info.values.get-value(vbind.atom.toname()):
+                  | v-just-type(t) => global-types.set(key, t)
+                  | v-fun(t, _, _) => global-types.set(key, t)
+                  | v-var(t) => global-types.set(key, t-ref(t, l, false))
+                end
+            end
+          end
+        end
+
+      new-aliases =
+        for fold(global-aliases from context.aliases, key from tbinds.keys-list-now()):
+          tbind = tbinds.get-value-now(key)
+          if tbind.origin.new-definition: global-aliases
+          else:
+            cases(Option) compile-env.provides-by-uri(tbind.origin.uri-of-definition):
+              | none => raise("cannot find binding for " + key)
+              | some(mod-info) =>
+                global-aliases.set(key, mod-info.aliases.get-value(tbind.atom.toname()))
+            end
+          end
+        end
+
+      shadow context = typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info, context.misc)
 
       # print("\n\n")
       # each(lam(x) block:
