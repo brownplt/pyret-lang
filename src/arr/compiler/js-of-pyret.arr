@@ -77,14 +77,12 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, named-result, provides, options)
+fun trace-make-compiled-pyret(add-phase, program-ast, env, post-env, provides, options)
   -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  bindings = named-result.bindings
-  type-bindings = named-result.type-bindings
   anfed = add-phase("ANFed", N.anf-program(program-ast))
-  flatness-env = add-phase("Build flatness env", FL.make-prog-flatness-env(anfed, bindings, type-bindings, env))
+  flatness-env = add-phase("Build flatness env", FL.make-prog-flatness-env(anfed, post-env.bindings, post-env.type-bindings, env))
   flat-provides = add-phase("Get flat-provides", FL.get-flat-provides(provides, flatness-env, anfed))
-  compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, named-result, options))
+  compiled = anfed.visit(AL.splitting-compiler(env, add-phase, flatness-env, flat-provides, post-env, options))
   {flat-provides; add-phase("Generated JS", C.ok(ccp-dict(compiled)))}
 end
 
@@ -92,15 +90,13 @@ fun println(s) block:
   print(s + "\n")
 end
 
-fun make-compiled-pyret(program-ast, env, named-result, provides, options) -> { C.Provides; CompiledCodePrinter} block:
+fun make-compiled-pyret(program-ast, env, post-env, provides, options) -> { C.Provides; CompiledCodePrinter} block:
 #  each(println, program-ast.tosource().pretty(80))
-  bindings = named-result.bindings
-  type-bindings = named-result.type-bindings
   anfed = N.anf-program(program-ast)
   #each(println, anfed.tosource().pretty(80))
-  flatness-env = FL.make-prog-flatness-env(anfed, bindings, type-bindings, env)
+  flatness-env = FL.make-prog-flatness-env(anfed, post-env.bindings, post-env.type-bindings, env)
   flat-provides = FL.get-flat-provides(provides, flatness-env, anfed)
-  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, options))
+  compiled = anfed.visit(AL.splitting-compiler(env, flatness-env, flat-provides, post-env, options))
   {flat-provides; ccp-dict(compiled)}
 end
 

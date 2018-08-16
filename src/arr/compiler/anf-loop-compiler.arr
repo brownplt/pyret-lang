@@ -2162,7 +2162,7 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
         { "defined-types"; typ-bind.origin.uri-of-definition }
       | self.module-bindings.has-key-now(n.key()) then:
         mod-bind = self.module-bindings.get-value-now(n.key())
-        { "defined-types"; mod-bind.origin.uri-of-definition }
+        { "defined-modules"; mod-bind.origin.uri-of-definition }
     end
     j-var(js-id-of(n),
       j-bracket(
@@ -2173,9 +2173,10 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
           j-str(n.toname())))
   end
   fun clean-import-name(name):
-    if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
+    js-id-of(name)
+    #|if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
     else: js-id-of(name)
-    end
+    end|#
   end
   mod-ids = imports.map(lam(i): clean-import-name(i.name) end)
   module-locators = imports.map(lam(i):
@@ -2320,16 +2321,16 @@ end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
-fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, named-result, options):
+fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, post-env, options):
   compiler-visitor.{
     uri: provides.from-uri,
     add-phase: add-phase,
     options: options,
     flatness-env: flatness-env,
     type-flatness-env: type-flatness-env,
-    bindings: named-result.bindings,
-    type-bindings: named-result.type-bindings,
-    module-bindings: named-result.module-bindings,
+    bindings: post-env.bindings,
+    type-bindings: post-env.type-bindings,
+    module-bindings: post-env.module-bindings,
     method a-program(self, l, prog-provides, imports, body) block:
       total-time := 0
       # This achieves nothing with our current code-gen, so it's a waste of time

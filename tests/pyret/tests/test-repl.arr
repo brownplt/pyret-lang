@@ -32,64 +32,70 @@ fun startswith(hay, needle):
   string-equal(string-substring(hay, 0, needle-len), needle)
 end
 
+r = RT.make-runtime()
+
+repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
+fun restart(src, type-check):
+  i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
+  repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
+end
+fun next-interaction(src):
+  i = repl.make-interaction-locator(lam(): src end)
+  repl.run-interaction(i)
+end
+
 check:
-  r = RT.make-runtime()
+  result = restart("5", false)
+  L.get-result-answer(result.v) is some(5)
+end
 
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
-  fun restart(src, type-check):
-    i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
-    repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
-  end
-  fun next-interaction(src):
-    i = repl.make-interaction-locator(lam(): src end)
-    repl.run-interaction(i)
-  end
+check:
+  result = restart("x = 5", false)
+  L.get-result-answer(result.v) is none
 
-  result1 = restart("5", false)
-  L.get-result-answer(result1.v) is some(5)
+  result2 = next-interaction("y = 10\nx")
+  val(result2) is some(5)
 
-  result2 = restart("x = 5", false)
-  L.get-result-answer(result2.v) is none
+  result3 = next-interaction("y")
+  val(result3) is some(10)
 
-  result3 = next-interaction("y = 10\nx")
-  val(result3) is some(5)
+  result4 = next-interaction("include string-dict")
+  result4.v satisfies L.is-success-result
 
-  result4 = next-interaction("y")
-  val(result4) is some(10)
+  result5 = next-interaction("is-function(make-string-dict)")
+  val(result5) is some(true)
+end
 
-  result5 = next-interaction("include string-dict")
-  result5.v satisfies L.is-success-result
-
-  result6 = next-interaction("is-function(make-string-dict)")
-  val(result6) is some(true)
-
+check:
   importsd = "import string-dict as SD\nstring-dict = SD.string-dict\n55"
-  result7 = restart(importsd, false)
-  result7 satisfies E.is-right
-  val(result7) is some(55)
+  result = restart(importsd, false)
+  result satisfies E.is-right
+  val(result) is some(55)
 
   # should fail because y no longer bound
-  result8 = next-interaction("y")
-  result8 satisfies E.is-left
+  result2 = next-interaction("y")
+  result2 satisfies E.is-left
 
-  result9 = next-interaction("is-function(string-dict.make)")
-  result9 satisfies E.is-right
-  val(result9) is some(true)
+  result3 = next-interaction("is-function(string-dict.make)")
+  result3 satisfies E.is-right
+  val(result3) is some(true)
 
-  result10 = next-interaction("import string-dict as SD2")
-  result10 satisfies E.is-right
+  result4 = next-interaction("import string-dict as SD2")
+  result4 satisfies E.is-right
 
-  result11 = next-interaction(```
+  result5 = next-interaction(```
     sd1 :: SD.StringDict = [SD2.string-dict:]
     sd2 = [SD.string-dict:]
     sd1 == sd2
   ```)
-  val(result11) is some(true)
+  val(result5) is some(true)
 
   # fails because shadows SD above
-  result12 = next-interaction("import string-dict as SD")
-  result12 satisfies E.is-left
+  result6 = next-interaction("import string-dict as SD")
+  result6 satisfies E.is-left
+end
 
+check:
   importbindsd = "import string-dict as SD\nstring-dict = SD.string-dict"
   result13 = restart(importbindsd, false)
   result13 satisfies E.is-right

@@ -608,24 +608,6 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
       
       errors := empty
 
-      #| TODO(joe): bring this back, probably below after new resolution
-      {initial-contracts; stmts} = L.take-while(A.is-s-contract, with-provides.stmts)
-      all-imported-names = [SD.mutable-string-dict: ]
-      for each(im from imports):
-        for each(v from im.values):
-          all-imported-names.set-now(v.toname(), im.import-type)
-        end
-      end
-      remaining = for filter(c from initial-contracts):
-        c-name = c.name.toname()
-        cases(Option) all-imported-names.get-now(c-name) block:
-          | none => true # keep this; it may be needed below
-          | some(im-type) =>
-            errors := link(C.contract-on-import(c.l, c-name, im-type), errors)
-            false
-        end
-      end
-      |#
       recombined = A.s-block(with-provides.l, #| remaining + |# with-provides.stmts)
       visited = recombined.visit(desugar-scope-visitor)
       C.resolved-scope(A.s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, visited), errors)
@@ -734,6 +716,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.modules) block:
       mod-info = initial.provides-by-module-name-value(name)
+      when not(mod-info.modules.has-key(name)):
+        spy: mod-info, initial end
+      end
       b = C.module-bind(C.bo-global(mod-info.from-uri), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
@@ -809,7 +794,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   var include-counter = 0
   fun include-name() block:
     include-counter := include-counter + 1
-    "included-" + to-string(include-counter)
+    "$included-" + to-string(include-counter)
   end
 
   fun add-value-name(env, vname, mod-info):
@@ -860,7 +845,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       cases(A.NameSpec) name-spec block:
         | s-star(l, hidings) =>          
           imported-names = star-names(dict.keys-list(), hidings)
-          spy: imported-names end
           for fold(shadow which-env from which-env, n from imported-names):
             adder(which-env, A.s-name(l, n), mod-info)
           end
@@ -896,14 +880,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         mod-uri = initial-env.uri-by-dep-key(info-key)
         atom-env-m =
           if A.is-s-underscore(local-name):
-            make-anon-import-for(local-name.l, "$import", imp-me, module-bindings,
-              C.module-bind(C.bo-local(local-name.l), _, mod-uri))
+            make-anon-import-for(local-name.l, "$underscore_import", imp-me, module-bindings,
+              C.module-bind(C.bo-local(l), _, mod-uri))
           else:
             make-atom-for(local-name, false, imp-me, module-bindings,
-              C.module-bind(C.bo-local(local-name.l), _, mod-uri))
+              C.module-bind(C.bo-local(l), _, mod-uri))
           end
         new-header = A.s-import(l, file, atom-env-m.atom)
         { imp-e; imp-te; atom-env-m.env; link(new-header, imp-imps) }
+      | s-import-fields(l, fields, file) =>
+        synth-include-name = A.s-name(l, include-name())
+        updated = add-import(acc, A.s-import(l, file, synth-include-name))
+        add-import(updated, A.s-include-from(l, [list: synth-include-name],
+          fields.map(lam(f):
+            A.s-include-name(l, A.s-module-ref(l, [list: f], none))
+          end)))
       | s-include(l, file) =>
         synth-include-name = A.s-name(l, include-name())
         updated = add-import(acc, A.s-import(l, file, synth-include-name))
@@ -918,8 +909,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         when name.length() <> 1:
           raise("Cannot yet support dotted module refs in include")
         end
-        cases(Option) imp-me.get(name.first.toname()):
-          | none => raise("Could not find import: " + name.toname())
+
+        # NOTE(joe): This few lines is a funky little pattern. It may be worth
+        # extracting for generic use for values & types as well. The reason
+        # it's necessary is that it's useful to use atoms to avoid putting
+        # "real" names into the namespace. If this is a more general thing we
+        # do across different pre-resolve-scope desugarings, then this pattern
+        # becomes handy.
+        module-info = if A.is-s-atom(name.first):
+          module-bindings.get-now(name.first.key())
+        else:
+          imp-me.get(name.first.toname())
+        end
+
+        cases(Option) module-info:
+          | none => raise("Could not find import: " + name.first.toname())
           | some(mod-bind) =>
             mod-info = initial-env.provides-by-uri-value(mod-bind.uri)
             {specs-e; specs-te; specs-me; _ } = for fold(shadow acc from acc, s from specs):
@@ -936,11 +940,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
+  var final-visitor = nothing
+
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
     module-env: module-env-from-env(initial-env),
-    method s-module(self, l, answer, _, _, _, checks):
+    method s-module(self, l, answer, _, _, _, checks) block:
 
       non-globals =
         for filter(k from self.env.keys-list()):
@@ -977,11 +983,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         A.s-defined-module(key, bind.atom, bind.uri)
       end
 
+      final-visitor := self
+
       A.s-module(l, answer.visit(self), defined-modules, defined-vals, defined-types, checks.visit(self))
     end,
     method s-program(self, l, _provide, _provide-types, provides, imports, body) block:
       {imp-e; imp-te; imp-me; imp-imps} = resolve-import-names(self, imports)
-      
+
       visit-body = body.visit(self.{env: imp-e, type-env: imp-te, module-env: imp-me})
 
       var mods = nothing
@@ -1429,14 +1437,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       A.s-table-extent(l, column.visit(self), table)
     end,
   }
-  C.resolved-names(p.visit(names-visitor), name-errors, module-bindings, bindings, type-bindings, datatypes)
+  C.resolved-names(p.visit(names-visitor), name-errors, C.computed-env(module-bindings, bindings, type-bindings, datatypes, final-visitor.module-env, final-visitor.env, final-visitor.type-env))
 end
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
   var shadow errors = [list: ] # THE MUTABLE LIST OF ERRORS
-  bindings = resolved.bindings
-  type-bindings = resolved.type-bindings
-  module-bindings = resolved.module-bindings
+  bindings = resolved.env.bindings
+  type-bindings = resolved.env.type-bindings
+  module-bindings = resolved.env.module-bindings
   fun add-error(err): errors := err ^ link(_, errors) end
   fun handle-id(id, loc):
     if A.is-s-underscore(id) block:
@@ -1516,7 +1524,7 @@ fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolu
 where:
   p = PP.surface-parse(_, "test")
   px = p("x")
-  resolved = C.resolved-names(px, empty, [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:])
+  resolved = C.resolved-names(px, empty, C.computed-env([SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.mutable-string-dict:], [SD.string-dict:], [SD.string-dict:], [SD.string-dict:]))
   unbound1 = check-unbound-ids-bad-assignments(px, resolved, C.no-builtins)
   unbound1.length() is 1
 end

@@ -281,8 +281,8 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
       # - One canonicalized for the local cache
       cache.set-now(uri, loadable)
       local-loadable = cases(Loadable) loadable:
-        | module-as-string(provides, env, result) =>
-          module-as-string(AU.localize-provides(provides, env), env, result)
+        | module-as-string(provides, env, post-env, result) =>
+          module-as-string(AU.localize-provides(provides, env), env, post-env, result)
       end
       # allow on-compile to return a new loadable
       options.on-compile(w.locator, local-loadable, trace)
@@ -318,8 +318,8 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
     | some(loadable) =>
       #print("Module is already compiled\n")
       cases(Loadable) loadable:
-        | module-as-string(pvds, ce-unused, m) =>
-          {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m); empty}
+        | module-as-string(pvds, ce-unused, post-env, m) =>
+          {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, post-env, m); empty}
       end
     | none =>
       #print("Module is being freshly compiled\n")
@@ -372,7 +372,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           var any-errors = scoped.errors + named-result.errors
           scoped := nothing
           if is-link(any-errors) block:
-            { module-as-string(dummy-provides(locator.uri()), env, CS.err(unique(any-errors)));
+            { module-as-string(dummy-provides(locator.uri()), env, CS.computed-none, CS.err(unique(any-errors)));
               if options.collect-all or options.collect-times:
                 phase("Result", named-result.ast, time-now(), ret).tolist()
               else:
@@ -396,7 +396,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
               end
             var desugared = D.desugar(spied)
             spied := nothing
-            named-result.bindings.merge-now(desugared.new-binds)
+            named-result.env.bindings.merge-now(desugared.new-binds)
             # ...in order to be checked for bad assignments here
             any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared.ast)
@@ -428,20 +428,20 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                             .visit(AU.set-tail-visitor)
                 add-phase("Cleaned AST", cleaned)
                 {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result, provides, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.env, provides, options)
                 else:
                   if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result, provides, options)
+                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.env, provides, options)
                   else:
                     {provides; add-phase("Result", CS.err(unique(any-errors)))}
                   end
                 end
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
-                mod-result = module-as-string(canonical-provides, env, cr)
+                mod-result = module-as-string(canonical-provides, env, named-result.env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>
-                { module-as-string(dummy-provides(locator.uri()), env, type-checked);
+                { module-as-string(dummy-provides(locator.uri()), env, named-result.env, type-checked);
                   if options.collect-all or options.collect-times:
                     phase("Result", type-checked, time-now(), ret).tolist()
                   else: empty
@@ -449,7 +449,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             end
           end
         | err(_) =>
-          { module-as-string(dummy-provides(locator.uri()), env, wf) ;
+          { module-as-string(dummy-provides(locator.uri()), env, CS.computed-none, wf) ;
             if options.collect-all or options.collect-times:
               phase("Result", wf, time-now(), ret).tolist()
             else: empty
@@ -520,7 +520,7 @@ fun make-standalone(wl, compiled, options):
   static-modules = j-obj(for C.map_list(w from wl):
       loadable = compiled.modules.get-value-now(w.locator.uri())
       cases(Loadable) loadable:
-        | module-as-string(_, _, rp) =>
+        | module-as-string(_, _, _, rp) =>
           cases(CS.CompileResult) rp block:
             | ok(code) =>
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))

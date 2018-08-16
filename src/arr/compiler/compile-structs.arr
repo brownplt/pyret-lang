@@ -117,14 +117,24 @@ data ScopeResolution:
   | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
 end
 
+data ComputedEnvironment:
+  | computed-none
+  | computed-env(
+      module-bindings :: SD.MutableStringDict<ModuleBind>,
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
+      datatypes :: SD.MutableStringDict<A.Expr>,
+      module-env :: SD.StringDict<ModuleBind>,
+      env :: SD.StringDict<ValueBind>,
+      type-env :: SD.StringDict<TypeBind>)
+end
+
 data NameResolution:
   | resolved-names(
       ast :: A.Program,
       errors :: List<CompileError>,
-      module-bindings :: SD.MutableStringDict<ModuleBind>,
-      bindings :: SD.MutableStringDict<ValueBind>,
-      type-bindings :: SD.MutableStringDict<TypeBind>,
-      datatypes :: SD.MutableStringDict<A.Expr>)
+      env :: ComputedEnvironment
+     )
 end
 
 # Used to describe when additional module imports should be added to a
@@ -139,7 +149,7 @@ data ExtraImport:
 end
 
 data Loadable:
-  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, result-printer :: CompileResult<Any>)
+  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, post-compile-env :: ComputedEnvironment, result-printer :: CompileResult<Any>)
     # NOTE(joe): there's a circular dependency between this module and js-of-pyret.arr; hence the Any above
 end
 
@@ -180,12 +190,12 @@ sharing:
   end,
   method global-value(self, name :: String):
     self.globals.values.get(name)
-      .and-then(self.value-by-dep-key(_, name))
+      .and-then(self.value-by-uri(_, name))
       .and-then(_.value)
   end,
   method global-type(self, name :: String):
     self.globals.types.get(name)
-      .and-then(self.type-by-dep-key(_, name))
+      .and-then(self.type-by-uri(_, name))
       .and-then(_.value)
   end,
   method uri-by-dep-key(self, dep-key):
@@ -214,8 +224,7 @@ sharing:
   end,
   method provides-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.provides-by-dep-key(_))
-      .and-then(_.value)
+      .and-then(self.provides-by-uri-value(_))
   end,
   method provides-by-value-name-value(self, name):
     cases(Option) self.provides-by-value-name(name):
@@ -225,7 +234,7 @@ sharing:
   end,
   method provides-by-type-name(self, name):
     self.globals.types.get(name)
-      .and-then(self.provides-by-dep-key(_))
+      .and-then(self.provides-by-uri(_))
       .and-then(_.value)
   end,
   method provides-by-type-name-value(self, name):
@@ -236,7 +245,7 @@ sharing:
   end,
   method provides-by-module-name(self, name):
     self.globals.modules.get(name)
-      .and-then(self.provides-by-dep-key(_))
+      .and-then(self.provides-by-uri(_))
       .and-then(_.value)
   end,
   method provides-by-module-name-value(self, name):
@@ -261,19 +270,16 @@ sharing:
   end,
   method uri-by-module-name(self, name):
     self.globals.modules.get(name)
-      .and-then(self.uri-by-dep-key(_))
   end,
   method uri-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.uri-by-dep-key(_))
   end,
   method uri-by-type-name(self, name):
     self.globals.types.get(name)
-      .and-then(self.uri-by-dep-key(_))
   end
 end
 
-# globals maps from names to the appropriate dependency (e.g. in my-modules)
+# globals maps from names to uri (e.g. in all-modules)
 data Globals:
   | globals(modules :: StringDict<String>, values :: StringDict<String>, types :: StringDict<String>)
 end
@@ -528,15 +534,15 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
     end
-  | contract-on-import(loc :: Loc, name :: String, import-type :: A.ImportType) with:
+  | contract-on-import(loc :: Loc, name :: String, import-loc :: Loc, import-uri :: String) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Contracts for functions can only be defined once, and the contract for "),
           ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
           ED.text(" is already defined in the "),
-          ED.highlight(ED.code(ED.text(self.import-type.tosource().pretty(1000).join-str(""))),
-            [list: self.import-type.l], 1),
+          ED.highlight(ED.code(ED.text(self.import-uri)),
+            [list: self.import-loc], 1),
           ED.text(" library.")],
         ED.cmcode(self.loc)]
     end,
@@ -2875,26 +2881,20 @@ runtime-provides = provides("builtin://global",
   [string-dict:])
 
 runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
-  rb.set(k, "builtin(global)")
+  rb.set(k, "builtin://global")
 end
 
 runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
-  rt.set(k, "builtin(global)")
+  rt.set(k, "builtin://global")
 end
 shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
-  rt.set(k, "builtin(global)")
+  rt.set(k, "builtin://global")
 end
-
-# MARK(joe/ben): modules
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
-
-# MARK(joe/ben): modules
-standard-globals = globals([string-dict:], runtime-values, runtime-types)
-
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
+      extra-import(builtin("file"), "_", [list: "file-to-string"], [list:]),
       extra-import(builtin("global"), "$global", [list:], [list:]),
       extra-import(builtin("base"), "$base", [list:], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
@@ -2968,6 +2968,13 @@ standard-imports = extra-imports(
         ],
         [list: "Set"])
     ])
+
+# MARK(joe/ben): modules
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
+
+# MARK(joe/ben): modules
+standard-globals = globals([string-dict:], runtime-values, runtime-types)
+
 
 reactor-optional-fields = [SD.string-dict:
   "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},

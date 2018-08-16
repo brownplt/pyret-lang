@@ -879,7 +879,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
     | extra-imports(imports) =>
       l = p.l
       full-imports = p.imports + for fold(lst from empty, i from imports):
-          name-to-use = if i.as-name == "_": A.s-underscore(p.l) else: A.s-name(p.l, i.as-name) end
+          name-to-use = if i.as-name == "_": A.global-names.make-atom("$extra-import") else: A.s-name(p.l, i.as-name) end
           ast-dep = cases(CS.Dependency) i.dependency:
             | builtin(name) => A.s-const-import(p.l, name)
             | dependency(protocol, args) => A.s-special-import(p.l, protocol, args)
@@ -893,7 +893,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
               i.types.map(lam(t):
                 A.s-include-type(l, A.s-module-ref(l, [list: A.s-name(l, t)], none))
               end))
-          lst + link(import-line, link(include-line, empty))
+          link(import-line, link(include-line, empty)) + lst
         end
       A.s-program(p.l, p._provide, p.provided-types, p.provides, full-imports, p.block)
   end
@@ -1003,12 +1003,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             cases(Option<String>) compile-env.globals.types.get(name):
               | none =>
                 raise("Name not found in globals.types: " + name)
-              | some(key) =>
-                cases(Option<URI>) compile-env.my-modules.get(key):
-                  | none => raise("Module not found in compile-env.my-modules: " + key
-                        + " (looked up for " + name + " for module " + uri + ")")
-                  | some(mod-uri) => T.t-name(T.module-uri(mod-uri), id, l, false)
-                end
+              | some(mod-uri) =>
+                T.t-name(T.module-uri(mod-uri), id, l, false)
             end
           | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
           | else => raise("Bad name found in ann-to-typ: " + id.key())
@@ -1093,7 +1089,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           end
           val-typs = SD.make-mutable-string-dict()
           for each(v from values) block:
-            binding = resolved.bindings.get-value-now(v.v.key())
+            binding = resolved.env.bindings.get-value-now(v.v.key())
             provided-value = cases(CS.ValueBinder) binding.binder:
               | vb-var => CS.v-var(ann-to-typ(v.ann))
               | else => CS.v-just-type(ann-to-typ(v.ann))
@@ -1103,7 +1099,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           alias-typs = SD.make-mutable-string-dict()
           for each(a from aliases):
             # TODO(joe): recursive lookup here until reaching a non-alias?
-            target-binding = resolved.type-bindings.get-value-now(a.in-name.key())
+            target-binding = resolved.env.type-bindings.get-value-now(a.in-name.key())
 
 
             typ = cases(Option) target-binding.ann:
@@ -1114,7 +1110,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           end
           data-typs = SD.make-mutable-string-dict()
           for each(d from datas):
-            exp = resolved.datatypes.get-value-now(d.d.key())
+            exp = resolved.env.datatypes.get-value-now(d.d.key())
             data-typs.set-now(d.d.key(), data-expr-to-datatype(exp))
           end
           provs = CS.provides(

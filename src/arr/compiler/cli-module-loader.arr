@@ -130,7 +130,7 @@ fun get-cached-if-available(basedir, loc) block:
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
             datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
           })
-        some(CS.module-as-string(provs, CS.no-builtins,
+        some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none,
             CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
       end,
 
@@ -173,7 +173,7 @@ fun get-loadable(basedir, l) -> Option<Loadable>:
       aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
       datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
     })
-    some(CS.module-as-string(provs, CS.no-builtins, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
+    some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
   end
 end
 
@@ -398,8 +398,8 @@ fun build-program(path, options, stats) block:
         loadable
       else:
         cases(CS.Loadable) loadable:
-          | module-as-string(prov, env, rp) =>
-            CS.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
+          | module-as-string(prov, env, post-env, rp) =>
+            CS.module-as-string(prov, env, post-env, CS.ok(JSP.ccp-file(module-path)))
           | else => loadable
         end
       end
