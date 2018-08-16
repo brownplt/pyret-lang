@@ -2894,7 +2894,6 @@ minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
-      extra-import(builtin("file"), "_", [list: "file-to-string"], [list:]),
       extra-import(builtin("global"), "$global", [list:], [list:]),
       extra-import(builtin("base"), "$base", [list:], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
