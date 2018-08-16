@@ -281,7 +281,7 @@ end
 
 # globals maps from names to uri (e.g. in all-modules)
 data Globals:
-  | globals(modules :: StringDict<String>, values :: StringDict<String>, types :: StringDict<String>)
+  | globals(modules :: StringDict<URI>, values :: StringDict<URI>, types :: StringDict<URI>)
 end
 
 data ValueExport:

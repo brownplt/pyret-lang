@@ -1111,7 +1111,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           data-typs = SD.make-mutable-string-dict()
           for each(d from datas):
             exp = resolved.env.datatypes.get-value-now(d.d.key())
-            data-typs.set-now(d.d.key(), data-expr-to-datatype(exp))
+            # NOTE(joe): this used to be d.d.key()... but that seems to
+            # be not what the type-checker does and there's no (current)
+            # ambiguity between type names within the provides of a module
+            data-typs.set-now(d.d.toname(), data-expr-to-datatype(exp))
           end
           provs = CS.provides(
               uri,

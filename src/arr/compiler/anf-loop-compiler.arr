@@ -388,7 +388,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
       end
       compiled-base = compile-ann(base, visitor)
       compiled-exp = expr-to-compile.visit(visitor)
-      is-flat = is-flat-enough(FL.ann-flatness(base, visitor.flatness-env, visitor.type-flatness-env))
+      is-flat = is-flat-enough(FL.ann-flatness(base, visitor.flatness-env, visitor.type-flatness-env, visitor.module-bindings, visitor.env))
         and is-function-flat(visitor.flatness-env, exp.id.key())
       pred-maker = if is-flat: "makeFlatPredAnn" else: "makePredAnn" end
       c-exp(
@@ -799,7 +799,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
             ]))
       cur-target := new-label
       cl-snoc(acc, new-case)
-    else if is-flat-enough(FL.ann-flatness(b.ann, visitor.flatness-env, visitor.type-flatness-env)):
+    else if is-flat-enough(FL.ann-flatness(b.ann, visitor.flatness-env, visitor.type-flatness-env, visitor.module-bindings, visitor.env)):
       compiled-ann = compile-ann(b.ann, visitor)
       new-label = visitor.make-label()
       new-case = j-case(cur-target,
@@ -2331,6 +2331,7 @@ fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provi
     bindings: post-env.bindings,
     type-bindings: post-env.type-bindings,
     module-bindings: post-env.module-bindings,
+    env: env,
     method a-program(self, l, prog-provides, imports, body) block:
       total-time := 0
       # This achieves nothing with our current code-gen, so it's a waste of time

@@ -305,13 +305,17 @@ end
 
 data IncludeSpec:
   | s-include-name(l :: Loc, name-spec :: NameSpec) with:
-    method label(self): "s-include-name" end
+    method label(self): "s-include-name" end,
+    method tosource(self): self.name-spec.tosource() end
   | s-include-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
-    method label(self): "s-include-data" end
+    method label(self): "s-include-data" end,
+    method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
   | s-include-type(l :: Loc, name-spec :: NameSpec) with:
-    method label(self): "s-include-type" end
+    method label(self): "s-include-type" end,
+    method tosource(self): self.name-spec.tosource() end
   | s-include-module(l :: Loc, name-spec :: NameSpec) with:
-    method label(self): "s-include-module" end
+    method label(self): "s-include-module" end,
+    method tosource(self): self.name-spec.tosource() end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -400,7 +404,8 @@ end
 
 data ProvideBlock:
   | s-provide-block(l :: Loc, specs :: List<ProvideSpec>) with:
-    method label(self): "s-provide-block" end
+    method label(self): "s-provide-block" end,
+    method tosource(self): PP.str("provide-block") end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -409,13 +414,17 @@ end
 
 data ProvideSpec:
   | s-provide-name(l :: Loc, name-spec :: NameSpec) with:
-    method label(self): "s-provide-name" end
+    method label(self): "s-provide-name" end,
+    method tosource(self): self.name-spec.tosource() end
   | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
-    method label(self): "s-provide-data" end
+    method label(self): "s-provide-data" end,
+    method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
   | s-provide-type(l :: Loc, name-spec :: NameSpec) with:
-    method label(self): "s-provide-type" end
+    method label(self): "s-provide-type" end,
+    method tosource(self): self.name-spec.tosource() end
   | s-provide-module(l :: Loc, name-spec :: NameSpec) with:
-    method label(self): "s-provide-module" end
+    method label(self): "s-provide-module" end,
+    method tosource(self): self.name-spec.tosource() end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -424,9 +433,18 @@ end
 
 data NameSpec:
   | s-star(l :: Loc, hidden :: List<Name>) with:
-    method label(self): "s-star" end
+    method label(self): "s-star" end,
+    method tosource(self): PP.flow([list: PP.str("*"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
   | s-module-ref(l :: Loc, path :: List<Name>, as-name :: Option<Name>) with:
-    method label(self): "s-module-ref" end
+    method label(self): "s-module-ref" end,
+    method tosource(self):
+      cases(Option) self.as-name:
+        | none => 
+          PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource()))])
+        | some(name) =>
+          PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource()), PP.str("as"), name.tosource())])
+      end
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -590,9 +608,6 @@ data Expr:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
             PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | s-template(l :: Loc) with:
