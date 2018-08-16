@@ -889,14 +889,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         new-header = A.s-import(l, file, atom-env-m.atom)
         { imp-e; imp-te; atom-env-m.env; link(new-header, imp-imps) }
       | s-import-fields(l, fields, file) =>
-        synth-include-name = A.s-name(l, include-name())
+        synth-include-name = names.make-atom(include-name())
         updated = add-import(acc, A.s-import(l, file, synth-include-name))
         add-import(updated, A.s-include-from(l, [list: synth-include-name],
           fields.map(lam(f):
             A.s-include-name(l, A.s-module-ref(l, [list: f], none))
           end)))
       | s-include(l, file) =>
-        synth-include-name = A.s-name(l, include-name())
+        synth-include-name = names.make-atom(include-name())
         updated = add-import(acc, A.s-import(l, file, synth-include-name))
         add-import(updated, A.s-include-from(l, [list: synth-include-name],
           [list:

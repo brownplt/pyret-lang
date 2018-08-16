@@ -172,7 +172,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-dep-key-value(dep-key, g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-uri-value(dep-key, g).t))
       end
     end
   end, context)
@@ -184,7 +184,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.provides-by-dep-key(dep-key):
+        cases(Option<C.Provides>) compile-env.provides-by-uri(dep-key):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>

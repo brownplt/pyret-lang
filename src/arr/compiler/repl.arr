@@ -65,7 +65,9 @@ fun make-provide-for-repl(p :: A.Program, extras):
       defined-ids = get-defined-ids(p, imports, body, CS.extra-imports(empty))
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
-      repl-mod-provide = [list: A.s-provide-module(l, A.s-star(l, empty)) ]
+      repl-mod-provide = for map(n from defined-ids.import-ids):
+        A.s-provide-module(l, A.s-module-ref(l, [list: n], none))
+      end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
