@@ -1314,7 +1314,6 @@ fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: S
     flatness-env.has-key-now(name)
 end
 
-# or maybe here?
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compiler,
     b :: Option<BindType>,
