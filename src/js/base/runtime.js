@@ -5912,6 +5912,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_to_string': num_tostring,
       'num_tostring_digits': num_tostring_digits,
       'num_to_fixnum': num_to_fixnum,
+      'num_to_roughnum': num_to_roughnum,
 
       'string_contains': string_contains,
       'string_append': string_append,
