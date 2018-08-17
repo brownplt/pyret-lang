@@ -369,7 +369,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-prim-app(l, f, args, app-info) =>
       A.s-prim-app(l, f, args.map(desugar-expr), app-info)
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
+      push = "something"
+      pop = "somethign"
+      wrap-func-body = A.s-block(l, [list: push, A.s-let("fresh", desugar-expr(body), blocky), pop, A.s-id("fresh")])
+      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, wrap-func-body, _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       A.s-method(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-type(l, name, params, ann) => A.s-type(l, name, params, desugar-ann(ann))
