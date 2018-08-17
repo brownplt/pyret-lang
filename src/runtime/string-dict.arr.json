@@ -16,7 +16,7 @@
       "apply": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "dOfB"]],
       "insert": ["forall", ["a", "b"], ["arrow", ["dOfB", "tva", "tvb"], "dOfB"]],
       "size": ["forall", ["a"], ["arrow", ["dOfA"], "Number"]],
-      "get": ["forall", ["a", "b"], ["arrow", ["dOfA", "tva"], "tvb"]],
+      "get": ["forall", ["a"], ["arrow", ["dOfA", "tva"], "Number"]],
       "has-key": ["forall", ["a"], ["arrow", ["dOfA", "tva"], "Boolean"]],
       "keys": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
       "values": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
