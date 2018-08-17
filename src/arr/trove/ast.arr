@@ -866,6 +866,7 @@ data Expr:
         PP.surround(INDENT, 0, prefix, PP.separate(PP.commabreak, self.values.map(_.tosource())), PP.rbrack)
       end
     end
+# TODO(Preston): here maybe?
   | s-app(l :: Loc, _fun :: Expr, args :: List<Expr>) with:
     method label(self): "s-app" end,
     method args-loc(self):

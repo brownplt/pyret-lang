@@ -119,6 +119,7 @@ fun desugar(program :: A.Program):
         Preconditions on program:
           - well-formed
           - contains no s-var, s-fun, s-data, s-check, or s-check-test
+            Preston: how do I desugar functions if there are no s-fun's at this point?
           - contains no s-provide in headers
           - all where blocks are none
           - contains no s-name (e.g. call resolve-names first)
@@ -258,6 +259,7 @@ fun ds-curry(l, f, args):
     else:
       ds-f = desugar-expr(f)
       if is-empty(params): A.s-app(l, ds-f, args)
+# maybe here?
       else: A.s-lam(l, "", [list: ], params, A.a-blank, "", A.s-app(l, ds-f, params-and-args.right), none, none, false)
       end
     end
@@ -369,7 +371,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-prim-app(l, f, args) =>
       A.s-prim-app(l, f, args.map(desugar-expr))
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
+      push = "something"
+      pop = "somethign"
+      wrap-func-body = A.s-block(l, [list: push, A.s-let("fresh", desugar-expr(body), blocky), pop, A.s-id("fresh")])
+      A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, wrap-func-body, _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       A.s-method(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-type(l, name, params, ann) => A.s-type(l, name, params, desugar-ann(ann))
