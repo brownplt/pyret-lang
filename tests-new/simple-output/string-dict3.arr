@@ -1,14 +1,14 @@
-### [ 1, 4, 9, 16, 25, 36, 49 ]
+### [ "a", "b", "c", "d", "e" ]
 import list as L
 import string-dict as D
 import global as G
 
-member-list = [L.list: 1, 2, 3, 4, 5, 6]
-dict = D.apply( member-list, lam( x ): x * x end )
+member-list = [L.list: "a", "b", "c", "d"]
+dict = D.apply( member-list, lam( str ): str + "a" end )
 
-G.assert( D.has-key( dict, 7 ), false, "Found impossible key" )
-G.assert( L.at( D.keys( dict ), 2 ), '3', "Non-matching key" )
+G.assert( D.has-key( dict, 'b' ), true, "Missing key" )
+G.assert( L.at( D.values( dict ), 3 ), 'da', "Non-matching value" )
 
-weird-dict = D.insert( dict, 7, 49 )
+fresh-dict = D.insert( dict, "e", 'ea' )
 
-G.console-log( D.values( dict ) )
+G.console-log( D.keys( fresh-dict ) )

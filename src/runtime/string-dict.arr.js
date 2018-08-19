@@ -4,6 +4,9 @@ module.exports = {
       return dict[0];
     }
   },
+  'make-string-dict': function() {
+    return {};
+  },
   'count': function( list ) {
     dict = {};
 

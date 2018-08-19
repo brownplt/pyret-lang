@@ -3,22 +3,22 @@
   "provides": {
     "shorthands": {
       "dOfA": ["tyapp", ["local", "StringDict"], [["tid", "a"]]],
-      "dOfB": ["tyapp", ["local", "StringDict"], [["tid", "b"]]],
       "dOfI": ["tyapp", ["local", "StringDict"], ["Number"]],
       "lOfA": ["tyapp", ["local", "List"], [["tid", "a"]]],
-      "lOfB": ["tyapp", ["local", "List"], [["tid", "b"]]],
+      "lOfS": ["tyapp", ["local", "List"], ["String"]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"]
     },
     "values": {
       "string-dict": ["forall", ["a"], ["Maker", ["tid", "a"], "dOfA"]],
-      "count": ["forall", ["a"], ["arrow", ["lOfA"], "dOfI"]],
-      "apply": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "dOfB"]],
-      "insert": ["forall", ["a", "b"], ["arrow", ["dOfB", "tva", "tvb"], "dOfB"]],
+      "make-string-dict": ["forall", ["a"], ["arrow", [], "dOfA"]],
+      "count": ["arrow", ["lOfS"], "dOfI"],
+      "apply": ["forall", ["a"], ["arrow", ["lOfS", ["arrow", ["String"], "tva"]], "dOfA"]],
+      "insert": ["forall", ["a"], ["arrow", ["dOfA", "String", "tva"], "dOfA"]],
       "size": ["forall", ["a"], ["arrow", ["dOfA"], "Number"]],
-      "get": ["forall", ["a"], ["arrow", ["dOfA", "tva"], "Number"]],
-      "has-key": ["forall", ["a"], ["arrow", ["dOfA", "tva"], "Boolean"]],
-      "keys": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
+      "get": ["forall", ["a"], ["arrow", ["dOfA", "String"], "tva"]],
+      "has-key": ["forall", ["a"], ["arrow", ["dOfA", "String"], "Boolean"]],
+      "keys": ["forall", ["a"], ["arrow", ["dOfA"], "String"]],
       "values": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
       "is-dict": ["arrow", ["tany"], "Boolean"]
     },
