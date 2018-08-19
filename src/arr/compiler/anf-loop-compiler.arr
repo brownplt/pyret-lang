@@ -1109,6 +1109,7 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
   # Generate the code for calling the function
   call-code = [clist:
     j-expr(j-raw-code("// caller optimization")),
+    j-expr(j-raw-code("console.log.println(\"hello from flat app\");")),
     j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args))))
   ]
 
