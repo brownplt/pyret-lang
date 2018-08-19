@@ -1,4 +1,4 @@
-### [ "a", "b", "c", "d", "e" ]
+### [ 'a', 'b', 'c', 'd', 'e' ]
 import list as L
 import string-dict as D
 import global as G
