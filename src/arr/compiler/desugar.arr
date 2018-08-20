@@ -1005,7 +1005,10 @@ end
 
 blacklisted-functions = [list: "_plus", "trace-value", "current-checker", "results",
                           "_times", "_minus", "_divide",
-                          "getMaker1", "check-is", #| "run-checks" |#]
+                          "getMaker1", "check-is", #| "run-checks" |#
+                          "raw-array-to-list",
+                          "p-map",
+                          ]
 
 fun expr-to-name(e :: A.Expr) -> String:
   cases(A.Expr) e:
@@ -1016,6 +1019,7 @@ fun expr-to-name(e :: A.Expr) -> String:
     | s-id-letrec(_, name, _) => name.toname()
     | s-dot(_, _, field) => field
     | s-prim-app(_, name, _, _) => name
+    | s-app(_, f, _) => expr-to-name(f)
     | else => raise("Could not find name for " + torepr(e))
   end
 end
