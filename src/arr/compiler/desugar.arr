@@ -1008,7 +1008,7 @@ instrument-calls-visitor = A.default-map-visitor.{
     f-visit = f.visit(self)
     exps-visit = exps.map(_.visit(self))
     A.s-block(loc, [list:
-        A.s-prim-app(loc, "tracePushCall", [list: f, exps], A.prim-app-info-c(false)),
+        A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, exps)], A.prim-app-info-c(false)),
         A.s-let-expr(loc,
                      [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
                      A.s-block(loc, [list:

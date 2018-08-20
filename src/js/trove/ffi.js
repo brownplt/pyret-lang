@@ -603,8 +603,8 @@
     }
 
     // Function call tracing (enabled with -trace option)
-    function tracePushCall(name, formalArgs, actualArgs) {
-      var packet = {action: "push", funName: name, params: formalArgs, args: actualArgs};
+    function tracePushCall(name, actualArgs) {
+      var packet = {action: "push", funName: name, args: actualArgs};
       if (debugSubscribers) { console.log(packet); }
       // this trace_subs.length is 0! why!?
       for (var i = 0; i < trace_subs.length; i++) {
