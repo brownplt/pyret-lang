@@ -1005,7 +1005,7 @@ end
 
 instrument-calls-visitor = A.default-map-visitor.{
   # TODO(PRESTON): check to see what the name of the function is
-  # if it's something like _plus, trace-value,
+  # if it's something like _plus, trace-value, or current-checker,
   # then don't perform this transformation
   method s-app(self, loc, f, exps):
     temp = mk-id(loc, "tr_") # "Trace Result"
