@@ -546,9 +546,15 @@ inline-lams = A.default-map-visitor.{
 }
 
 instrument-applications-visitor = A.default-map-visitor.{
+  # a-seq(a-app(f, args), body) similar as below
   method a-seq(...):
     ...
   end
+  # `a-let(x, a-app(f, args), body)` =>
+  # `a-seq(a-prim-app(trace-enter, f, args),
+  #        a-let(x, a-app(f, args),
+  #              a-seq(a-flat-app(trace-exit, x),
+  #                    body)))`
   method a-let(...):
     cases(N.AExpr) f:
       | ...
