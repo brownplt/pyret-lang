@@ -412,18 +412,27 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             # ...in order to be checked for bad assignments here
             any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared.ast)
+            # PRESTON: check here for after desugaring before anf-ing
+            var instrumented = 
+              if options.trace:
+                desugared.ast.visit(AU.instrument-applications-visitor)
+              else:
+                desugared.ast
+              end
+            desugared := nothing
+            add-phase("Instrumented functions", instrumented)
             var type-checked =
               if options.type-check:
-                type-checked = T.type-check(desugared.ast, env, modules)
+                type-checked = T.type-check(instrumented, env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)
                 else:
                   type-checked
                 end
-              else: CS.ok(desugared.ast)
+              else: CS.ok(instrumented)
               end
-            desugared := nothing
+            instrumented := nothing
             add-phase("Type Checked", type-checked)
             shadow options = options.{should-profile: options.should-profile(locator)}
             cases(CS.CompileResult) type-checked block:

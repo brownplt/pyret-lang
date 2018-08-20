@@ -545,6 +545,18 @@ inline-lams = A.default-map-visitor.{
   end
 }
 
+instrument-applications-visitor = A.default-map-visitor.{
+  method a-seq(...):
+    ...
+  end
+  method a-let(...):
+    cases(N.AExpr) f:
+      | ...
+      | else => ...
+    end
+  end
+}
+
 data Scope:
   | no-s
 
