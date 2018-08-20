@@ -407,12 +407,16 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             add-phase("Resolved names", named-result)
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
-            var desugared = D.desugar(named-result.ast)
+            var desugared = D.desugar(
+              (if options.trace block:
+                temp = D.instrument-calls(named-result.ast)
+                named-result.bindings.merge-now(temp.new-binds)
+                temp
+              else:
+                named-result
+              end).ast
+            )
             named-result.bindings.merge-now(desugared.new-binds)
-            when options.trace block:
-              desugared := D.instrument-calls(desugared.ast)
-              named-result.bindings.merge-now(desugared.new-binds)
-            end
             # ...in order to be checked for bad assignments here
             any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared.ast)
