@@ -579,6 +579,49 @@
       return contract("failure-at-arg")(loc, index, name, args, reason);
     }
 
+    var trace_subs = [];
+    var lastTok = 0;
+    var debugSubscribers = false;
+
+    function subscribeToFunctionTraces(push_func, pop_func) {
+      trace_subs.push({ token : lastTok, push_func: push_func, pop_func: pop_func});
+      console.log("just handed out " + lastTok + " token");
+      // increment lastTok post returning
+      return lastTok++;
+    }
+
+    function unsubscribeToFunctionTraces(token) {
+      for (var i = 0; i < trace_subs.length; i ++) {
+        if (trace_subs[i].token == token) {
+          // then remove it and return token
+          trace_subs.splice(i, 1);
+          return { found: true, val: token };
+        }
+      }
+      // else, return not found
+      return { found: false };
+    }
+
+    // Function call tracing (enabled with -trace option)
+    function tracePushCall(name, formalArgs, actualArgs) {
+      var packet = {action: "push", funName: name, params: formalArgs, args: actualArgs};
+      if (debugSubscribers) { console.log(packet); }
+      // this trace_subs.length is 0! why!?
+      for (var i = 0; i < trace_subs.length; i++) {
+        // if pyret function, call .app
+        // and runtimme.safeCall to prevent consuming stack
+        trace_subs[i].push_func(packet);
+      }
+    }
+
+    function tracePopCall(return_val) {
+      var packet = {action: "pop", retVal: return_val};
+      if (debugSubscribers) { console.log(packet); }
+      for (var i = 0; i < trace_subs.length; i++) {
+        trace_subs[i].pop_func(packet);
+      }
+    }
+
     var isOk = contract("is-ok");
     var isFail = contract("is-fail");
     var isFailArg = contract("is-fail-arg");
@@ -673,6 +716,13 @@
       makePredicateFailure: makePredicateFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
       makeFailureAtArg: makeFailureAtArg,
+
+      //for subscribing to function call announcements
+      subscribeToFunctionTraces: subscribeToFunctionTraces,
+      unsubscribeToFunctionTraces: unsubscribeToFunctionTraces,
+      tracePushCall: tracePushCall,
+      tracePopCall: tracePopCall,
+
       contractOk: gf(CON, "ok"),
       contractFail: contract("fail"),
       contractFailArg: contract("fail-arg"),
