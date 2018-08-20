@@ -353,25 +353,6 @@ fun desugar-letrec-binds(binds):
   end
 end
 
-instrument-calls-visitor = A.default-map-visitor.{
-  method s-app(self, loc, f, exps):
-    temp = mk-id(loc, "tr_") # "Trace Result"
-    f-visit = f.visit(self)
-    exps-visit = exps.map(_.visit(self))
-    A.s-block(loc, [list:
-        A.s-prim-app(loc, "tracePushCall", [list: f, exps], A.prim-app-info-c(false)),
-        A.s-let-expr(loc, [list: temp.id-b], A.s-app(loc, f-visit, exps-visit),
-          A.s-block(loc, [list:
-              A.s-prim-app(loc, "tracePopCall", [list: temp.id-e], A.prim-app-info-c(false)),
-              temp.id-e]),
-          true)])
-  end
-}
-fun instrument-calls(exp):
-  generated-binds := SD.make-mutable-string-dict()
-  {ast: exp.visit(instrument-calls-visitor), new-binds: generated-binds}
-end
-
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
     | s-module(l, answer, dv, dt, provides, types, checks) =>
@@ -1019,4 +1000,24 @@ where:
   #   lam(): raise('no cases matched') end)")
   # dsed5 is ds(p(compare))
 
+end
+
+instrument-calls-visitor = A.default-map-visitor.{
+  method s-app(self, loc, f, exps):
+    temp = mk-id(loc, "tr_") # "Trace Result"
+    f-visit = f.visit(self)
+    exps-visit = exps.map(_.visit(self))
+    A.s-block(loc, [list:
+        A.s-prim-app(loc, "tracePushCall", [list: f, exps], A.prim-app-info-c(false)),
+        A.s-let-expr(loc,
+                     [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
+                     A.s-block(loc, [list:
+                                      A.s-prim-app(loc, "tracePopCall", [list: temp.id-e], A.prim-app-info-c(false)),
+                                      temp.id-e]),
+                     true)])
+  end
+}
+fun instrument-calls(exp) block:
+  generated-binds := SD.make-mutable-string-dict()
+  {ast: exp.visit(instrument-calls-visitor), new-binds: generated-binds}
 end

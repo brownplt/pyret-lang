@@ -2574,7 +2574,8 @@ type CompileOptions = {
   standalone-file :: String,
   log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
-  before-compile :: Function
+  before-compile :: Function,
+  trace :: Boolean
 }
 
 default-compile-options = {
@@ -2582,6 +2583,7 @@ default-compile-options = {
   check-mode : true,
   check-all : true,
   type-check : false,
+  trace : false,
   allow-shadowed : false,
   collect-all: false,
   collect-times: false,

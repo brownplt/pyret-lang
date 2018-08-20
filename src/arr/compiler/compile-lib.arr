@@ -409,7 +409,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             var desugared = D.desugar(named-result.ast)
             named-result.bindings.merge-now(desugared.new-binds)
-            when options.trace:
+            when options.trace block:
               desugared := D.instrument-calls(desugared.ast)
               named-result.bindings.merge-now(desugared.new-binds)
             end
