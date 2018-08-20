@@ -353,7 +353,7 @@ fun desugar-letrec-binds(binds):
   end
 end
 
-fun instrument-calls-visitor = A.default-map-visitor.{
+instrument-calls-visitor = A.default-map-visitor.{
   method s-app(self, loc, f, exps):
     temp = mk-id(loc, "tr_") # "Trace Result"
     f-visit = f.visit(self)
