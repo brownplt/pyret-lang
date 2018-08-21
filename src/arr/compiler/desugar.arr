@@ -1040,7 +1040,7 @@ instrument-calls-visitor = A.default-map-visitor.{
           A.s-let-expr(loc,
                       [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
                       A.s-block(loc, [list:
-                                        A.s-prim-app(loc, "tracePopCall", [list: temp.id-e], A.prim-app-info-c(false)),
+                                        A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)),
                                         temp.id-e]),
                       true)])
     end
