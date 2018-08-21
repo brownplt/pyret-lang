@@ -33,6 +33,8 @@ cl-options = [SD.string-dict:
     C.flag(C.once, "Compile code with check-mode enabled"),
   "type-check",
     C.flag(C.once, "Type check code"),
+  "trace",
+    C.flag(C.once, "Trace function calls"),
   "inline-case-body-limit",
     C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
 ]
@@ -110,6 +112,7 @@ cases (C.ParsedArguments) parsed-options block:
       end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
+    trace = opts.has-key("trace")
     inline-case-body-limit = opts.get-value("inline-case-body-limit")
     println("Success")
     cases (List) rest block:
@@ -119,6 +122,7 @@ cases (C.ParsedArguments) parsed-options block:
         options = CS.default-compile-options.{
           check-mode: check-mode,
           type-check: type-check,
+          trace: trace,
           proper-tail-calls: true,
           inline-case-body-limit: inline-case-body-limit
         }
