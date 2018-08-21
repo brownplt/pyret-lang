@@ -43,9 +43,8 @@ str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
-is-s-provide-complete = A.is-s-provide-complete
 data AProg:
-  | a-program(l :: Loc, provides :: A.Provide%(is-s-provide-complete), imports :: List<A.Import>, body :: AExpr) with:
+  | a-program(l :: Loc, provides :: A.ProvideBlock, imports :: List<A.Import>, body :: AExpr) with:
     method label(self): "a-program" end,
     method tosource(self):
       PP.group(

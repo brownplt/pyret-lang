@@ -403,7 +403,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
               if options.type-check:
                 type-checked = T.type-check(desugared.ast, env, named-result.env, modules)
                 if CS.is-ok(type-checked) block:
-                  provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
+                  provides := AU.get-typed-provides(named-result, type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)
                 else:
                   type-checked

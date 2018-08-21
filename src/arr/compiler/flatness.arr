@@ -550,17 +550,21 @@ fun get-defined-values(ast):
   dvs-dict
 end
 
-fun get-flat-provides(provides, { flatness-env; _ }, ast) block:
+fun get-flat-provides(provides, post-env, { flatness-env; _ }, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
     | provides(uri, modules, values, aliases, datatypes) =>
       new-values = for SD.fold-keys(s from [SD.string-dict:], k from values):
-        maybe-flatness = flatness-env.get-now(dvs-dict.get-value(k))
-        existing-val = values.get-value(k)
-        new-val = cases(Option) maybe-flatness:
-          | none => existing-val
-          | some(flatness-result) =>
-            C.v-fun(existing-val.t, k, flatness-result)
+        new-val = cases(Option) post-env.env.get(k):
+          | none => values.get-value(k)
+          | some(bind) =>
+            maybe-flatness = flatness-env.get-now(bind.atom.key())
+            existing-val = values.get-value(k)
+            cases(Option) maybe-flatness:
+              | none => existing-val
+              | some(flatness-result) =>
+                C.v-fun(existing-val.t, k, flatness-result)
+            end
         end
         s.set(k, new-val)
       end

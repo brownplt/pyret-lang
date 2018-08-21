@@ -1456,44 +1456,44 @@ end
 
 compiler-visitor = {
   method a-module(self, l, answer, dms, dvs, dts, checks):
-    
-    {alias-fields; alias-stmts} = for fold(acc from {cl-empty; cl-empty}, pv from self.prog-provides.aliases):
-      compiled = compile-ann(A.a-name(l, pv.in-name), self)
+
+    mp-specs = self.prog-provides.specs.filter(A.is-s-provide-module)
+    vp-specs = self.prog-provides.specs.filter(A.is-s-provide-name)
+    tp-specs = self.prog-provides.specs.filter(A.is-s-provide-type)
+    dp-specs = self.prog-provides.specs.filter(A.is-s-provide-data)
+
+    {alias-fields; alias-stmts} = for fold(acc from {cl-empty; cl-empty}, tp from tp-specs):
+      { atom; name } = AU.get-name-spec-atom-and-name(tp.name-spec)
+      compiled = compile-ann(A.a-name(l, atom), self)
       {
-        cl-snoc(acc.{0}, j-field(pv.out-name.toname(), compiled.exp));
+        cl-snoc(acc.{0}, j-field(name, compiled.exp));
         cl-append(acc.{1}, compiled.other-stmts)
       }
     end
 
-#|
-    {data-fields; data-stmts} = for fold(acc from {cl-empty; cl-empty}, pd from self.prog-provides.data-definitions):
-      compiled = compile-ann(A.a-name(l, pd.d), self)
-      {
-        cl-snoc(acc.{0}, j-field(pd.d.toname(), compiled.exp));
-        cl-append(acc.{1}, compiled.other-stmts)
-      }
+
+    compiled-provides = for CL.map_list(pv from vp-specs):
+      { atom; name } = AU.get-name-spec-atom-and-name(pv.name-spec)
+      val-bind = self.bindings.get-value-now(atom.key())
+      val-exp = cases(CS.ValueBinder) val-bind.binder:
+        | vb-letrec => j-dot(j-id(js-id-of(atom)), "$var")
+        | vb-var => j-dot(j-id(js-id-of(atom)), "$var")
+        | vb-let => j-id(js-id-of(atom))
+      end
+      j-field(name, val-exp)
     end
-|#
 
     {types-fields; types-stmts} = {
       alias-fields; #+ data-fields;
       alias-stmts; #+ data-stmts
     }
 
-    compiled-provides = for CL.map_list(pv from self.prog-provides.values):
-      val-bind = self.bindings.get-value-now(pv.v.key())
-      val-exp = cases(CS.ValueBinder) val-bind.binder:
-        | vb-letrec => j-dot(j-id(js-id-of(pv.v)), "$var")
-        | vb-var => j-dot(j-id(js-id-of(pv.v)), "$var")
-        | vb-let => j-id(js-id-of(pv.v))
-      end
-      j-field(pv.v.toname(), val-exp)
+    compiled-module-provides = for CL.map_list(pm from mp-specs):
+      { atom; name } = AU.get-name-spec-atom-and-name(pm.name-spec)
+      compiled = j-id(js-id-of(atom))
+      j-field(name, compiled)
     end
 
-    compiled-module-provides = for CL.map_list(pm from self.prog-provides.modules):
-      compiled = j-id(js-id-of(pm.v))
-      j-field(pm.name, compiled)
-    end
 
     compiled-answer = answer.visit(self)
     compiled-checks = checks.visit(self)

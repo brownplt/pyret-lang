@@ -923,6 +923,32 @@ is-s-data-expr = A.is-s-data-expr
 is-t-name = T.is-t-name
 type NameChanger = (T.Type%(is-t-name) -> T.Type)
 
+fun get-name-spec-key(ns :: A.NameSpec):
+  cases(A.NameSpec) ns block:
+    | s-star(_, _) => raise("Should not get star name-specs in type-checker")
+    | s-module-ref(_, path, _) =>
+      when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
+      path.first.key()
+  end
+end
+fun get-name-spec-key-and-name(ns :: A.NameSpec):
+  cases(A.NameSpec) ns block:
+    | s-star(_, _) => raise("Should not get star name-specs in type-checker")
+    | s-module-ref(_, path, as-name) =>
+      when is-none(as-name): raise("Should always have an as-name post resolve-scope") end
+      when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
+      { path.first.key(); as-name.value.toname() }
+  end
+end
+fun get-name-spec-atom-and-name(ns :: A.NameSpec):
+  cases(A.NameSpec) ns block:
+    | s-star(_, _) => raise("Should not get star name-specs in type-checker")
+    | s-module-ref(_, path, as-name) =>
+      when is-none(as-name): raise("Should always have an as-name post resolve-scope") end
+      when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
+      { path.first; as-name.value.toname() }
+  end
+end
 
 fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
   fun collect-shared-fields(vs :: List<A.Variant>) -> SD.StringDict<T.Type>:
@@ -1080,49 +1106,50 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     end
   end
   cases(A.Program) resolved.ast:
-    | s-program(l, provide-complete, _, _, _, _) =>
-      cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, modules, values, aliases, datas) =>
-          mod-provides = SD.make-mutable-string-dict()
-          for each(m from modules) block:
-            mod-provides.set-now(m.name, m.uri)
+    | s-program(l, _, _, provide-blocks, _, _) =>
+      cases(A.ProvideBlock) provide-blocks.first block:
+        | s-provide-block(_, provide-specs) =>
+          mp-specs = provide-specs.filter(A.is-s-provide-module)
+          mod-provides = for fold(mp from [SD.string-dict:], m from mp-specs):
+            { key; name } = get-name-spec-key-and-name(m.name-spec)
+            mb = resolved.env.module-bindings.get-value-now(key)
+            mp.set(name, mb.uri)
           end
-          val-typs = SD.make-mutable-string-dict()
-          for each(v from values) block:
-            binding = resolved.env.bindings.get-value-now(v.v.key())
-            provided-value = cases(CS.ValueBinder) binding.binder:
-              | vb-var => CS.v-var(ann-to-typ(v.ann))
-              | else => CS.v-just-type(ann-to-typ(v.ann))
+          
+          vp-specs = provide-specs.filter(A.is-s-provide-name)
+          val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
+            { key; name } = get-name-spec-key-and-name(v.name-spec)
+            vb = resolved.env.bindings.get-value-now(key)
+            provided-value = cases(CS.ValueBinder) vb.binder:
+              | vb-var => CS.v-var(ann-to-typ(vb.ann))
+              | else => CS.v-just-type(ann-to-typ(vb.ann))
             end
-            val-typs.set-now(v.v.toname(), provided-value)
+            vp.set(name, provided-value)
           end
-          alias-typs = SD.make-mutable-string-dict()
-          for each(a from aliases):
-            # TODO(joe): recursive lookup here until reaching a non-alias?
-            target-binding = resolved.env.type-bindings.get-value-now(a.in-name.key())
 
-
-            typ = cases(Option) target-binding.ann:
+          tp-specs = provide-specs.filter(A.is-s-provide-type)
+          typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
+            { key; name } = get-name-spec-key-and-name(t.name-spec)
+            tb = resolved.env.type-bindings.get-value-now(key)
+            typ = cases(Option) tb.ann:
               | none => T.t-top(l, false)
               | some(target-ann) => ann-to-typ(target-ann)
             end
-            alias-typs.set-now(a.out-name.toname(), typ)
+            tp.set(name, typ)
           end
-          data-typs = SD.make-mutable-string-dict()
-          for each(d from datas):
-            exp = resolved.env.datatypes.get-value-now(d.d.key())
-            # NOTE(joe): this used to be d.d.key()... but that seems to
-            # be not what the type-checker does and there's no (current)
-            # ambiguity between type names within the provides of a module
-            data-typs.set-now(d.d.toname(), data-expr-to-datatype(exp))
+          
+          dp-specs = provide-specs.filter(A.is-s-provide-data)
+          data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
+            { atom; name } = get-name-spec-atom-and-name(d.name-spec)
+            exp = resolved.env.datatypes.get-value-now(name)
+            dp.set(exp.name, data-expr-to-datatype(exp))
           end
           provs = CS.provides(
               uri,
-              mod-provides.freeze(),
-              val-typs.freeze(),
-              alias-typs.freeze(),
-              data-typs.freeze()
-            )
+              mod-provides,
+              val-provides,
+              typ-provides,
+              data-provides)
           provs
       end
   end
@@ -1298,7 +1325,7 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
 end
 
 # TODO(MATT): this does not actually get the provided module values
-fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
+fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
   transformer = lam(t):
     cases(T.Type) t:
       | t-name(origin, name, l, inferred) =>
@@ -1308,52 +1335,49 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
-    | s-program(_, provide-complete, _, _, _, _) =>
-      cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, modules, values, aliases, datas) =>
-          mod-provides = SD.make-mutable-string-dict()
-          for each(m from modules) block:
-            mod-provides.set-now(m.name, m.uri)
+    | s-program(_, _, _, provide-blocks, _, _) =>
+      cases(A.ProvideBlock) provide-blocks.first block:
+        | s-provide-block(_, provide-specs) =>
+
+          mp-specs = provide-specs.filter(A.is-s-provide-module)
+          mod-provides = for fold(mp from [SD.string-dict:], m from mp-specs):
+            { key; name } = get-name-spec-key-and-name(m.name-spec)
+            mb = resolved.env.module-bindings.get-value-now(key)
+            mp.set(name, mb.uri)
           end
-          val-typs = SD.make-mutable-string-dict()
-          for each(v from values):
+          
+          vp-specs = provide-specs.filter(A.is-s-provide-name)
+          val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
             # TODO(joe): This function needs to take a NameResolution to figure
             # out vars, just like get-named-provides does
-            val-typs.set-now(v.v.toname(), CS.v-just-type(c(typed.info.types.get-value(v.v.key()))))
+            { key; name } = get-name-spec-key-and-name(v.name-spec)
+            vp.set(name, CS.v-just-type(c(typed.info.types.get-value(key))))
           end
-          alias-typs = SD.make-mutable-string-dict()
-          for each(a from aliases):
-            # TODO(joe): recursive lookup here until reaching a non-alias?
-           cases(Option) typed.info.data-types.get(a.in-name.key()):
-              | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
-              | none =>
-                # NOTE(joe): This was commented _in_ on new-horizons.
-                #cases(Option) typed.info.branders.get-now(a.in-name.key()):
-                #  | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
-                #  | else =>
-                #    typ = typed.info.aliases.get-value-now(a.in-name.key())
-                #    alias-typs.set-now(a.out-name.toname(), c(typ))
-                #end
 
-                # NOTE(joe): We look up `typ` by key, and then
-                # canonicalize-names converts all the names to be s-global-type
-                # which removes all gensym information from what's provided
-                # as types.
-                typ = typed.info.aliases.get-value(a.in-name.key())
-                alias-typs.set-now(a.out-name.toname(), c(typ))
+          tp-specs = provide-specs.filter(A.is-s-provide-type)
+          typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
+            { key; name } = get-name-spec-key-and-name(t.name-spec)
+            cases(Option) typed.info.data-types.get(key):
+              | some(typ) => tp.set(name, c(typ))
+              | none =>
+                typ = typed.info.aliases.get-value(key)
+                tp.set(name, c(typ))
             end
           end
-          data-typs = SD.make-mutable-string-dict()
-          for each(d from datas):
-            data-typs.set-now(d.d.toname(), canonicalize-data-type(typed.info.data-types.get-value(d.d.key()), uri, transformer))
+          
+          dp-specs = provide-specs.filter(A.is-s-provide-data)
+          data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
+            {atom; name} = get-name-spec-atom-and-name(d.name-spec)
+            exp = resolved.env.datatypes.get-value-now(name)
+            dp.set(exp.name, canonicalize-data-type(typed.info.data-types.get-value(atom.key()), uri, transformer))
           end
-          CS.provides(
+          provs = CS.provides(
               uri,
-              mod-provides.freeze(),
-              val-typs.freeze(),
-              alias-typs.freeze(),
-              data-typs.freeze()
-            )
+              mod-provides,
+              val-provides,
+              typ-provides,
+              data-provides)
+          provs
       end
   end
 end

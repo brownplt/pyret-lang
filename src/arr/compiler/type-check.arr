@@ -285,7 +285,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
             TCS.misc-test-inference(fun-examples, fun-name)
           end)
 
-          folded-info = gather-provides(_provide, context)
+          folded-info = gather-provides(provides.first, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
               C.ok(TCS.typed(A.s-program(l, _provide, provided-types, provides, imports, new-body), info))
@@ -2166,47 +2166,46 @@ fun meet-fields(a-fields :: TypeMembers, b-fields :: TypeMembers, loc :: Loc, co
   end, SD.make-string-dict())
 end
 
-fun gather-provides(_provide :: A.Provide, context :: Context) -> FoldResult<TCInfo>:
-  cases(A.Provide) _provide:
-    | s-provide-complete(_, modules, values, aliases, data-definitions) =>
+fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResult<TCInfo>:
+  cases(A.ProvideBlock) _provide:
+    | s-provide-block(_, provide-specs) =>
       initial-info = TCS.tc-info([string-dict: ], context.info.aliases, context.info.data-types)
-      fold-values-info = foldr-fold-result(lam(value, shadow context, info):
-        value-key = value.v.key()
-        if info.types.has-key(value-key):
-          fold-result(info, context)
-        else:
-          cases(Option<Type>) context.info.types.get(value-key):
-            | some(typ) =>
-              shadow typ = typ.set-inferred(false)
-              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
-            | none =>
-              typ = context.global-types.get-value(value-key).set-inferred(false)
-              fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
-          end
-        end
-      end, values, context, initial-info)
-      fold-values-info.bind(lam(values-info, shadow context):
-        fold-aliases-info = foldr-fold-result(lam(_alias, shadow context, info):
-          alias-key = _alias.in-name.key()
-          if info.aliases.has-key(alias-key):
-            fold-result(info, context)
-          else:
-            typ = context.aliases.get-value(alias-key)
-            fold-result(TCS.tc-info(info.types, info.aliases.set(alias-key, typ), info.data-types), context)
-          end
-        end, aliases, context, values-info)
-        fold-aliases-info.bind(lam(aliases-info, shadow context):
-          foldr-fold-result(lam(data-type, shadow context, info):
-            data-key = data-type.d.key()
+      foldr-fold-result(lam(spec, shadow context, info):
+        cases(A.ProvideSpec) spec:
+          | s-provide-name(l, name-spec) =>
+            { value-key; name } = AU.get-name-spec-key-and-name(name-spec)
+            if info.types.has-key(value-key): fold-result(info, context)
+            else:
+              # MARK(joe): test as-name here; it appears unused
+              cases(Option) context.info.types.get(value-key):
+                | some(typ) =>
+                  shadow typ = typ.set-inferred(false)
+                  fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+                | none =>
+                  typ = context.global-types.get-value(value-key).set-inferred(false)
+                  fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+              end
+            end
+          | s-provide-type(l, name-spec) =>
+            { alias-key; name } = AU.get-name-spec-key-and-name(name-spec) 
+            if info.aliases.has-key(alias-key):
+              fold-result(info, context)
+            else:
+              typ = context.aliases.get-value(alias-key)
+              fold-result(TCS.tc-info(info.types, info.aliases.set(alias-key, typ), info.data-types), context)
+            end
+          | s-provide-module(l, name-spec) => fold-result(info, context)
+          | s-provide-data(l, name-spec, hidden) =>
+            data-key = AU.get-name-spec-key(name-spec)
             if info.data-types.has-key(data-key):
               fold-result(info, context)
             else:
               typ = context.data-types.get-value(data-key)
               fold-result(TCS.tc-info(info.types, info.aliases, info.data-types.set(data-key, typ)), context)
             end
-          end, data-definitions, context, aliases-info)
-        end)
-      end)
+        end
+      end, provide-specs, context, initial-info)
+      
     | else => raise("Haven't handled anything but s-provide-complete")
   end
 end

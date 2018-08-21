@@ -942,6 +942,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   var final-visitor = nothing
 
+
   names-visitor = A.default-map-visitor.{
     env: scope-env-from-env(initial-env),
     type-env: type-env-from-env(initial-env),
@@ -984,7 +985,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
 
       final-visitor := self
-
       A.s-module(l, answer.visit(self), defined-modules, defined-vals, defined-types, checks.visit(self))
     end,
     method s-program(self, l, _provide, _provide-types, provides, imports, body) block:
@@ -992,117 +992,128 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
       visit-body = body.visit(self.{env: imp-e, type-env: imp-te, module-env: imp-me})
 
-      var mods = nothing
-      var vals = nothing
-      var typs = nothing
-      visit-body.visit(A.default-iter-visitor.{
-        method s-module(_, _, _, dm, dv, dt, _) block:
-          mods := dm
-          vals := dv
-          typs := dt
-          true
-        end
-      })
-
-      provided-modules-names = [SD.mutable-string-dict:]
-      provided-vals-names = [SD.mutable-string-dict:]
-      provided-types-names = [SD.mutable-string-dict:]
-
-      # NOTE(joe): for now assume one ProvideBlock, and only hunt down modules
-      # This is a first cut that will get expanded more and more as more of
-      # ProvideSpec is implemented and used
-      when not(is-empty(provides)):
-        cases(A.ProvideBlock) provides.first:
-          | s-provide-block(_, specs) =>
-            modules = specs.filter(A.is-s-provide-module)
-            for each(m from modules):
-              # NOTE(joe): big assumption here -- just expecting a
-              # s-module-path with one name
-              provided-modules-names.set-now(m.name-spec.path.first.toname(), true)
-            end
-        end
-      end
-
-      cases(A.Provide) _provide block:
+      provide-vals-specs = cases(A.Provide) _provide:
         | s-provide-complete(_, _, _, _) => raise("Shouldn't happen -- s-provide-complete pre-scope resolution")
-        | s-provide(_, obj) =>
-          when not(A.is-s-obj(obj)): raise("Provides didn't look like an object" + torepr(_provide)) end
-          for each(f from obj.fields): provided-vals-names.set-now(f.name, true) end
-        | s-provide-all(_) =>
-          for each(dv from vals) block:
-            v-binding = cases(A.DefinedValue) dv:
-              | s-defined-value(name, value) =>
-                bindings.get-value-now(value.id.key())
-              | s-defined-var(name, id) =>
-                bindings.get-value-now(id.key())
+        | s-provide(shadow l, obj) =>
+          specs = for map(f from obj.fields) block:
+            when not(A.is-s-id(f.value)):
+              raise("The rhs of an object provide was not an id: " + to-repr(f))
             end
-            when v-binding.origin.new-definition:
-              provided-vals-names.set-now(dv.name, true)
-            end
-          end
-        | s-provide-none(_) => nothing
+            A.s-provide-name(f.l, A.s-module-ref(f.l, [list: f.value.id], some(A.s-name(f.l, f.name))))
+          end + [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:])]
+          A.s-provide-block(l, specs)
+        | s-provide-all(shadow l) =>
+          A.s-provide-block(l, [list:
+            A.s-provide-name(l, A.s-star(l, [list:])),
+            A.s-provide-data(l, A.s-star(l, [list:]), [list:])])
+        | s-provide-none(shadow l) =>
+          A.s-provide-block(l, [list:])
       end
 
-      cases(A.ProvideTypes) _provide-types:
-        | s-provide-types(_, fields) =>
-          for each(f from fields): provided-types-names.set-now(f.name, true) end
-        | s-provide-types-all(_) =>
-          for each(dt from typs):
-            t-binding = type-bindings.get-value-now(dt.typ.id.key())
-            when t-binding.origin.new-definition:
-              provided-types-names.set-now(dt.name, true)
+      provide-types-specs = cases(A.ProvideTypes) _provide-types:
+        | s-provide-types(shadow l, anns) =>
+          A.s-provide-block(l, for map(a from anns) block:
+            when not(A.is-a-name(a.ann)): raise("Cannot use a non-name as a provided type") end
+            A.s-provide-type(l, A.s-module-ref(a.ann.l, [list: a.ann.id], some(A.s-name(a.l, a.name))))
+          end +
+          [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:])])
+        | s-provide-types-none(shadow l) =>
+          A.s-provide-block(l, [list:])
+        | s-provide-types-all(shadow l) =>
+          A.s-provide-block(l, [list:
+            A.s-provide-data(l, A.s-star(l, [list:]), [list:]),
+            A.s-provide-type(l, A.s-star(l, [list:]))])
+      end
+      
+      all-provides = [list: provide-vals-specs, provide-types-specs] + provides
+
+      # Each of these dictionaries maps from plain names to atoms, for example
+      #   link => atom("link", 42)
+      # the goal is to create a single s-provide-block with all the necessary
+      # names and atoms that will be exposed. The atoms will be used by code
+      # generation and by the type-checker/cross-module scope resolution to
+      # pick out information about the binding (e.g. flatness, etc)
+      provided-modules = [SD.mutable-string-dict:]
+      provided-values = [SD.mutable-string-dict:]
+      provided-types = [SD.mutable-string-dict:]
+      provided-datatypes = [SD.mutable-string-dict:]
+
+      fun expand-name-spec(which-dict, which-bindings, which-env, spec):
+        cases(A.NameSpec) spec:
+          | s-star(shadow l, hidden) =>
+            for each(shadow k from which-env.keys-list()):
+              bind = which-env.get-value(k)
+              when(bind.origin.new-definition):
+                # TODO(joe): check hiding
+                which-dict.set-now(bind.atom.toname(), {l; bind.atom})
+              end
             end
-          end
-        | s-provide-types-none(_) => nothing
+          | s-module-ref(shadow l, path, as-name) =>
+            # TODO(joe): Assuming that path is length 1
+            bind = which-env.get-value(path.first.toname())
+            cases(Option) as-name:
+              | none => which-dict.set-now(bind.atom.toname(), {l; bind.atom})
+              | some(n) => which-dict.set-now(n.toname(), {l; bind.atom})
+            end
+        end
+      end
+      fun expand-data-spec(spec):
+        cases(A.NameSpec) spec:
+          | s-star(shadow l, hidden) =>
+            for each(k from datatypes.keys-list-now()):
+              data-expr = datatypes.get-value-now(k)
+              # TODO(joe): need to check datatypes from elsewhere with .new-definition?
+              provided-datatypes.set-now(data-expr.name, {l; data-expr.namet})
+            end
+          | s-module-ref(shadow l, path, as-name) =>
+            # TODO(joe): Assuming that path is length 1
+            data-expr = datatypes.get-value-now(path.first.toname())
+            cases(Option) as-name:
+              | none => provided-datatypes.set-now(data-expr.name, {l; data-expr.namet})
+              | some(n) => raise("Cannot rename data using as")
+            end
+        end
+      end
+      fun expand(provide-spec):
+        cases(A.ProvideSpec) provide-spec:
+          | s-provide-name(shadow l, name-spec) =>
+            expand-name-spec(provided-values, bindings, final-visitor.env, name-spec)
+          | s-provide-type(shadow l, name-spec) =>
+            expand-name-spec(provided-types, type-bindings, final-visitor.type-env, name-spec)
+          | s-provide-module(shadow l, name-spec) =>
+            expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, name-spec)
+          | s-provide-data(shadow l, name-spec, hidden) =>
+            expand-data-spec(name-spec)
+          | else => nothing
+        end
       end
 
-      get-dv-key = lam(dv):
-        cases(A.DefinedValue) dv:
-          | s-defined-value(n, v) => v.id.key()
-          | s-defined-var(n, id) => id.key()
+      for each(pb from all-provides):
+        for each(provide-spec from pb.specs):
+          expand(provide-spec)
         end
       end
-      mod-defs = for lists.filter-map(dm from mods) block:
-        m-binding = module-bindings.get-value-now(dm.value.key())
-        if provided-modules-names.has-key-now(dm.name):
-          some(A.p-module(l, dm.name, dm.value, dm.uri))
-        else:
-          none
-        end
-      end
-      val-defs = for lists.filter-map(dv from vals) block:
-        v-binding = bindings.get-value-now(get-dv-key(dv))
-        if provided-vals-names.has-key-now(dv.name):
-          some(A.p-value(l, v-binding.atom, v-binding.ann))
-        else:
-          none
-        end
-      end
-      alias-defs = for lists.filter-map(td from typs):
-        t-binding = type-bindings.get-value-now(td.typ.id.key())
-        if provided-types-names.has-key-now(td.name):
-          some(A.p-alias(l, t-binding.atom, t-binding.atom, none))
-        else:
-          none
-        end
-      end
-      data-defs = for lists.filter-map(ddk from datatypes.keys-list-now()):
-        dd = datatypes.get-value-now(ddk) 
-        if provided-types-names.has-key-now(dd.name):
-          some(A.p-data(dd.l, dd.namet, none))
-        else:
-          none
-        end
-      end
-      one-true-provide = A.s-provide-complete(
-        l,
-        mod-defs,
-        val-defs,
-        alias-defs,
-        data-defs
-      )
 
-      A.s-program(l, one-true-provide, A.s-provide-types-none(l), provides, imp-imps.reverse(), visit-body)
+      final-val-provides = for map(k from provided-values.keys-list-now()):
+        {shadow l; atom} = provided-values.get-value-now(k)
+        A.s-provide-name(l, A.s-module-ref(l, [list: atom], some(A.s-name(l, k))))
+      end
+      final-type-provides = for map(k from provided-types.keys-list-now()):
+        {shadow l; atom} = provided-types.get-value-now(k)
+        A.s-provide-type(l, A.s-module-ref(l, [list: atom], some(A.s-name(l, k))))
+      end
+      final-module-provides = for map(k from provided-modules.keys-list-now()):
+        {shadow l; atom} = provided-modules.get-value-now(k)
+        A.s-provide-module(l, A.s-module-ref(l, [list: atom], some(A.s-name(l, k))))
+      end
+      final-datatype-provides = for map(k from provided-datatypes.keys-list-now()):
+        {shadow l; atom} = provided-datatypes.get-value-now(k)
+        A.s-provide-data(l, A.s-module-ref(l, [list: atom], some(A.s-name(l, atom.toname()))), empty)
+      end
+
+      one-true-provide = [list: A.s-provide-block(l, final-val-provides + final-type-provides + final-module-provides + final-datatype-provides)]
+
+      A.s-program(l, A.s-provide-none(l), A.s-provide-types-none(l), one-true-provide, imp-imps.reverse(), visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):
@@ -1229,7 +1240,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       result = A.s-data-expr(l, name, namet, atoms.reverse(),
         mixins.map(_.visit(with-params)), variants.map(_.visit(with-params)),
         shared-members.map(_.visit(with-params)), _check-loc, with-params.option(_check))
-      datatypes.set-now(namet.key(), result)
+      datatypes.set-now(name, result)
       result
     end,
     method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:

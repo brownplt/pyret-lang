@@ -98,8 +98,8 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals, extras):
         A.s-provide-module(l, A.s-module-ref(l, [list: i], none))
       end
       A.s-program(l,
-          A.s-provide(l, A.s-obj(l, env-provide)),
-          A.s-provide-types(l, env-type-provide),
+          A.s-provide(l, A.s-obj(l, repl-provide)),
+          A.s-provide-types(l, repl-type-provide),
           [list: A.s-provide-block(l, repl-mod-provide)],
           imports,
           body)
