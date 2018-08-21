@@ -614,8 +614,8 @@
       }
     }
 
-    function tracePopCall(name, return_val) {
-      var packet = {action: "pop", funName: name, retVal: return_val};
+    function tracePopCall(return_val) {
+      var packet = {action: "pop", retVal: return_val};
       if (debugSubscribers) { console.log(packet); }
       for (var i = 0; i < trace_subs.length; i++) {
         trace_subs[i].pop_func(packet);
