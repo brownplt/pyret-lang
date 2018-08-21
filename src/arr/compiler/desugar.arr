@@ -1007,7 +1007,7 @@ instrument-calls-visitor = A.default-map-visitor.{
   method s-app(self, loc, f :: A.Expr, exps :: List<A.Expr>):
     temp = mk-id(loc, "tr_") # "Trace Result"
     temp-arg-names = range(0, exps.length()).map(lam(x): "arg" + num-to-string(x) + "_" end).map(mk-id(loc, _))
-    arg-bindings :: List<A.LetBind> = map2(lam(name, exp): A.s-let-bind(loc, name.id-b, exp) end, temp-arg-names, exps)
+    arg-bindings :: List<A.LetBind> = map2(lam(name, exp): A.s-let-bind(loc, name.id-b, exp.visit(self)) end, temp-arg-names, exps)
     f-visit = f.visit(self)
     exps-visit = temp-arg-names.map(lam(x): x.id-e.visit(self) end)
       # these exps in A.s-array shouldn't be used all the time, map over them?
