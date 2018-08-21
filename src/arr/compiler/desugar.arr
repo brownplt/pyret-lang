@@ -1003,47 +1003,24 @@ where:
 
 end
 
-blacklisted-functions = [list: "_plus", "trace-value", "current-checker", "results",
-                          "_times", "_minus", "_divide",
-                          "getMaker1", "check-is", #| "run-checks" |#
-                          "raw-array-to-list",
-                          "p-map",
-                          ]
-
-fun expr-to-name(e :: A.Expr) -> String:
-  cases(A.Expr) e:
-    | s-lam(_, name, _, _, _, _, _, _, _, _) => name
-    | s-method(_, name, _, _, _, _, _, _, _, _) => name
-    | s-id(_, name) => name.toname()
-    | s-id-var(_, name) => name.toname()
-    | s-id-letrec(_, name, _) => name.toname()
-    | s-dot(_, _, field) => field
-    | s-prim-app(_, name, _, _) => name
-    | s-app(_, f, _) => expr-to-name(f)
-    | else => raise("Could not find name for " + torepr(e))
-  end
-end
-
 instrument-calls-visitor = A.default-map-visitor.{
-  # TODO(PRESTON): check to see what the name of the function is
-  # if it's something like _plus, trace-value, or current-checker,
-  # then don't perform this transformation
   method s-app(self, loc, f :: A.Expr, exps :: List<A.Expr>):
     temp = mk-id(loc, "tr_") # "Trace Result"
+    temp-arg-names = range(0, exps.length()).map(lam(x): "arg" + num-to-string(x) + "_" end).map(mk-id(loc, _))
+    arg-bindings :: List<A.LetBind> = map2(lam(name, exp): A.s-let-bind(loc, name.id-b, exp) end, temp-arg-names, exps)
     f-visit = f.visit(self)
-    exps-visit = exps.map(_.visit(self))
-    if blacklisted-functions.member(expr-to-name(f)):
-      A.s-app(loc, f-visit, exps-visit)
-    else:
-      A.s-block(loc, [list:
-          A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, exps)], A.prim-app-info-c(false)),
-          A.s-let-expr(loc,
-                      [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
-                      A.s-block(loc, [list:
-                                        A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)),
-                                        temp.id-e]),
-                      true)])
-    end
+    exps-visit = temp-arg-names.map(lam(x): x.id-e.visit(self) end)
+      # these exps in A.s-array shouldn't be used all the time, map over them?
+    A.s-let-expr(loc,
+                 arg-bindings,
+                 A.s-block(loc, [list:
+        A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)),
+        A.s-let-expr(loc,
+                    [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
+                    A.s-block(loc, [list:
+                                      A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)),
+                                      temp.id-e]),
+                    true)]), false)
   end
 }
 
