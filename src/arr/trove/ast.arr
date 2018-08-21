@@ -373,23 +373,6 @@ data Provide:
       PP.soft-surround(INDENT, 1, str-provide,
         self.block.tosource(), str-end)
     end
-  | s-provide-complete(
-      l :: Loc,
-      modules :: List<ProvidedModule>,
-      values :: List<ProvidedValue>,
-      aliases :: List<ProvidedAlias>,
-      data-definitions :: List<ProvidedDatatype>
-    ) with:
-    method label(self): "s-provide" end,
-    method tosource(self):
-      PP.str("provide-complete") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
-            PP.infix(INDENT, 1, str-colon,PP.str("Values"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.values))),
-            PP.infix(INDENT, 1, str-colon,PP.str("Aliases"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.aliases))),
-            PP.infix(INDENT, 1, str-colon,PP.str("Data"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions)))]))
-    end
   | s-provide-all(l :: Loc) with:
     method label(self): "s-provide-all" end,
     method tosource(self): str-provide-star end
@@ -1985,9 +1968,6 @@ default-map-visitor = {
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
   end,
-  method s-provide-complete(self, l, modules, vals, typs, datas):
-    s-provide-complete(l, modules, vals, typs, datas)
-  end,
   method s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
   end,
@@ -2589,9 +2569,6 @@ default-iter-visitor = {
   method s-import-fields(self, l, fields, import-type):
     lists.all(_.visit(self), fields)
   end,
-  method s-provide-complete(self, l, modules, vals, typs, datas):
-    true
-  end,
   method s-provide(self, l, expr):
     expr.visit(self)
   end,
@@ -3176,9 +3153,6 @@ dummy-loc-visitor = {
   end,
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
-  end,
-  method s-provide-complete(self, l, modules, vals, typs, datas):
-    s-provide-complete(dummy-loc, modules, vals, typs, datas)
   end,
   method s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))

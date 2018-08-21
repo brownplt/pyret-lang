@@ -993,7 +993,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       visit-body = body.visit(self.{env: imp-e, type-env: imp-te, module-env: imp-me})
 
       provide-vals-specs = cases(A.Provide) _provide:
-        | s-provide-complete(_, _, _, _) => raise("Shouldn't happen -- s-provide-complete pre-scope resolution")
         | s-provide(shadow l, obj) =>
           specs = for map(f from obj.fields) block:
             when not(A.is-s-id(f.value)):

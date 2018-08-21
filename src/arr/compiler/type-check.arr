@@ -2206,7 +2206,7 @@ fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResul
         end
       end, provide-specs, context, initial-info)
       
-    | else => raise("Haven't handled anything but s-provide-complete")
+    | else => raise("By type-check time, all provides should be resolved to a provide-block")
   end
 end
 
