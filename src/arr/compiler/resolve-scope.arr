@@ -1333,7 +1333,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     method s-dot(self, l, obj, name):
       cases(A.Expr) obj:
-        | s-id(_, id) =>
+        | s-id(l2, id) =>
           cases(A.Name) id block:
             | s-name(_, s) => 
               # NOTE(joe): This gives an ordering to names. If somehow we end up with
@@ -1346,7 +1346,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               # would be field-not-found
               if not(self.env.has-key(s)) and self.module-env.has-key(s):
                 mod-bind = self.module-env.get-value(s)
-                A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
+                cases(Option) initial-env.value-by-uri(mod-bind.uri, name) block:
+                  | none =>
+                    name-errors := link(C.wf-err-split("The module " + s + "( " + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
+                    A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
+                  | some(ve) =>
+                    cases(C.ValueExport) ve:
+                      | v-var(t) => A.s-id-var-modref(l, mod-bind.atom, mod-bind.uri, name)
+                      | else => A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
+                    end
+                end
               else:
                 A.s-dot(l, obj.visit(self), name)
               end

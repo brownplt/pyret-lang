@@ -1005,6 +1005,9 @@ data Expr:
   | s-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
     method label(self): "s-id-letrec" end,
     method tosource(self): PP.str("~") + self.id.tosource() end
+  | s-id-var-modref(l :: Loc, id :: Name, uri :: String, name :: String) with:
+    method label(self): "s-id-var-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@!") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   # A fully-resolved reference to a module
   | s-id-modref(l :: Loc, id :: Name, uri :: String, name :: String) with:
     method label(self): "s-id-modref" end,
@@ -2245,6 +2248,9 @@ default-map-visitor = {
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(l, id.visit(self), safe)
   end,
+  method s-id-var-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-var-modref(l, id.visit(self), uri, name)
+  end,
   method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     s-id-modref(l, id.visit(self), uri, name)
   end,
@@ -2845,6 +2851,9 @@ default-iter-visitor = {
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     id.visit(self)
   end,
+  method s-id-var-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    id.visit(self)
+  end,
   method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     id.visit(self)
   end,
@@ -3401,6 +3410,9 @@ dummy-loc-visitor = {
   end,
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(dummy-loc, id.visit(self), safe)
+  end,
+  method s-id-var-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-var-modref(dummy-loc, id.visit(self), uri, name)
   end,
   method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     s-id-modref(dummy-loc, id.visit(self), uri, name)

@@ -581,6 +581,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-prim-val not implemented")
         | s-id(l, id) =>
           check-synthesis(e, expect-type, top-level, context)
+        | s-id-var-modref(l, _, uri, name) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-id-modref(l, _, uri, name) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-id-var(l, id) =>
@@ -836,6 +838,16 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         typing-result(e, id-type, context)
       end)
+    | s-id-var-modref(l, _, uri, name) =>
+      mod-typs = context.modules.get-value(uri)
+      provided-types = mod-typs.provides
+      cases(Type) mod-typs.provides:
+        | t-record(fields, _, _) =>
+          cases(Option) fields.get(name):
+            | none => raise("Should be caught in unbound-ids: no such name on module " + uri + ": " + name)
+            | some(t) => typing-result(e, t, context)
+          end
+      end
     | s-id-modref(l, _, uri, name) =>
       mod-typs = context.modules.get-value(uri)
       provided-types = mod-typs.provides

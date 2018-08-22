@@ -294,6 +294,9 @@ data ALettable:
   | a-id-var(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-var" end,
     method tosource(self): PP.str("!" + tostring(self.id)) end
+  | a-id-var-modref(l :: Loc, id :: A.Name, uri :: String, name :: String) with:
+    method label(self): "a-id-var-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@!") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | a-id-letrec(l :: Loc, id :: A.Name, safe :: Boolean) with:
     method label(self): "a-id-letrec" end,
     method tosource(self): PP.str("~!" + tostring(self.id)) end
@@ -445,7 +448,7 @@ data AVal:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
   | a-id-modref(l :: Loc, id :: A.Name, uri :: String, name :: String) with:
-    method label(self): "a-id" end,
+    method label(self): "a-id-modref" end,
     method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-safe-letrec" end,
@@ -518,6 +521,7 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-method(_, name, args, ret, body) =>
       a-method(dummy-loc, name, args, ret, strip-loc-expr(body))
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
+    | a-id-var-modref(_, id, uri, name) => a-id-var-modref(dummy-loc, id, uri, name)
     | a-id-letrec(_, id, safe) => a-id-letrec(dummy-loc, id, safe)
     | a-val(_, v) =>
       a-val(dummy-loc, strip-loc-val(v))
@@ -679,6 +683,9 @@ default-map-visitor = {
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     a-id-var(l, id)
+  end,
+  method a-id-var-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    a-id-var-modref(l, id, uri, name)
   end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     a-id-letrec(l, id, safe)
@@ -896,6 +903,9 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-id-var(_, id) => 
       seen-so-far.set-now(id.key(), id)
       seen-so-far
+    | a-id-var-modref(_, id, _, _) => 
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
     | a-id-letrec(_, id, _) => 
       seen-so-far.set-now(id.key(), id)
       seen-so-far
@@ -938,16 +948,28 @@ fun freevars-v(v :: AVal) -> FrozenNameDict<A.Name>:
   freevars-v-acc(v, empty-dict()).freeze()
 end
 
+fun freevars-provides-acc(provide-block, acc):
+  for each(spec from provide-block.specs):
+    cases(A.ProvideSpec) spec:
+      | s-provide-name(l, name-spec) =>
+        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
+      | s-provide-module(l, name-spec) =>
+        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
+      | s-provide-type(l, name-spec) =>
+        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
+      | s-provide-data(l, name-spec, hidden) =>
+        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
+    end
+  end
+end
+
 fun freevars-prog(p :: AProg) -> FrozenNameDict<A.Name>:
   cases(AProg) p block:
-    | a-program(l, _, imports, body) =>
-      body-vars = freevars-e-acc(body, empty-dict())
-      for each(i from imports):
-        for each(n from i.values + i.types):
-          body-vars.remove-now(n.key())
-        end
-      end
-      body-vars.freeze()
+    | a-program(l, provide-block, imports, body) =>
+      provide-free-vars = empty-dict()
+      freevars-provides-acc(provide-block, provide-free-vars)
+      all-vars = freevars-e-acc(body, provide-free-vars)
+      all-vars.freeze()
   end
 end
 

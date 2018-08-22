@@ -3,7 +3,6 @@ provide *
 provide-types *
 
 import global as _
-import option as O
 include option
 include either
 import equality as equality

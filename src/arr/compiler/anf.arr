@@ -160,6 +160,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k(N.a-val(l, N.a-id(l, id)))
     | s-id-modref(l, id, uri, name) => k(N.a-val(l, N.a-id-modref(l, id, uri, name)))
+    | s-id-var-modref(l, id, uri, name) => k(N.a-id-var-modref(l, id, uri, name))
     | s-srcloc(l, loc) => k(N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:

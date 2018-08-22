@@ -104,8 +104,11 @@ j-raw-code = J.j-raw-code
 is-j-assign = J.is-j-assign
 make-label-sequence = J.make-label-sequence
 
-fun console-log(lst :: CL.ConcatList) -> J.JStmt:
-  j-expr(j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst))
+fun console-log(lst :: CL.ConcatList) -> J.JExpr:
+  j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst)
+end
+fun console-log-stmt(lst :: CL.ConcatList) -> J.JStmt:
+  j-expr(console-log(lst))
 end
 
 is-t-data = T.is-t-data
@@ -283,6 +286,18 @@ fun rt-method(name, args):
   end
 
   j-method(RUNTIME, rt-name, args)
+end
+
+fun log-and(log, ret):
+  j-bracket(j-list(true, [clist: console-log(log), ret]), j-num(1))
+end
+
+fun get-field(obj, field):
+  rt-method("getField", [clist: obj, j-str(field)])
+end
+
+fun get-module-field(uri, which, name):
+  rt-method("getModuleField", [clist: j-str(uri), j-str(which), j-str(name)])
 end
 
 fun app(l, f, args):
@@ -1068,7 +1083,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
         CL.map_list(j-expr, pre + post) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
-        #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
+        #     console-log-stmt([clist: j-str(tostring(arg)), j-id(arg)])
         #   end,
         #   compiled-args.to-list(),
         #   compiler.args) +
@@ -1477,7 +1492,7 @@ compiler-visitor = {
       val-bind = self.bindings.get-value-now(atom.key())
       val-exp = cases(CS.ValueBinder) val-bind.binder:
         | vb-letrec => j-dot(j-id(js-id-of(atom)), "$var")
-        | vb-var => j-dot(j-id(js-id-of(atom)), "$var")
+        | vb-var => j-id(js-id-of(atom))
         | vb-let => j-id(js-id-of(atom))
       end
       j-field(name, val-exp)
@@ -1722,7 +1737,7 @@ compiler-visitor = {
     c-exp(j-id(js-id-of(id)), cl-empty)
   end,
   method a-id-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
-    c-exp(  
+    c-exp(
       j-bracket(
         j-dot(
           j-dot(
@@ -1730,6 +1745,16 @@ compiler-visitor = {
             "values"),
           "dict"),
         j-str(name)), cl-empty)
+  end,
+  method a-id-var-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    c-exp(
+      j-dot(j-bracket(
+        j-dot(
+          j-dot(
+            j-dot(j-id(js-id-of(id)), "dict"),
+            "values"),
+          "dict"),
+        j-str(name)), "$var"), cl-empty)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
@@ -2130,11 +2155,11 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
     { maybe-uri; which } =
       cases(A.Name) n:
         | s-module-global(s) =>
-          { env.uri-by-module-name(n.toname()); "defined-modules"}
+          { env.uri-by-module-name(n.toname()); "modules"}
         | s-global(s) =>
-          {env.uri-by-value-name(n.toname()); "defined-values"}
+          {env.uri-by-value-name(n.toname()); "values"}
         | s-type-global(s) =>
-          {env.uri-by-type-name(n.toname()); "defined-types"}
+          {env.uri-by-type-name(n.toname()); "types"}
       end
 
     uri = cases(Option) maybe-uri:
@@ -2142,13 +2167,7 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
       | none => raise(n.toname() + " not found")
     end
 
-    j-var(js-id-of(n),
-      j-bracket(
-         rt-method("getField", [clist:
-              j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-              j-str(which)
-            ]),
-          j-str(n.toname())))
+    j-var(js-id-of(n), get-module-field(uri, which, n.toname()))
   end
   # MARK(joe): need to do something below for modules that come from
   # a context like "include"
@@ -2156,21 +2175,15 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
     { which; uri } = ask:
       | self.bindings.has-key-now(n.key()) then:
         val-bind = self.bindings.get-value-now(n.key())
-        { "defined-values"; val-bind.origin.uri-of-definition }
+        { "values"; val-bind.origin.uri-of-definition }
       | self.type-bindings.has-key-now(n.key()) then:
         typ-bind = self.type-bindings.get-value-now(n.key())
-        { "defined-types"; typ-bind.origin.uri-of-definition }
+        { "types"; typ-bind.origin.uri-of-definition }
       | self.module-bindings.has-key-now(n.key()) then:
         mod-bind = self.module-bindings.get-value-now(n.key())
-        { "defined-modules"; mod-bind.origin.uri-of-definition }
+        { "modules"; mod-bind.origin.uri-of-definition }
     end
-    j-var(js-id-of(n),
-      j-bracket(
-         rt-method("getField", [clist:
-              j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-              j-str(which)
-            ]),
-          j-str(n.toname())))
+    j-var(js-id-of(n), get-module-field(uri, which, n.toname()))
   end
   fun clean-import-name(name):
     js-id-of(name)
@@ -2337,7 +2350,7 @@ fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provi
       # This achieves nothing with our current code-gen, so it's a waste of time
       # simplified = body.visit(remove-useless-if-visitor)
       # add-phase("Remove useless ifs", simplified)
-      freevars = N.freevars-e(body)
+      freevars = N.freevars-prog(N.a-program(l, prog-provides, imports, body))
       add-phase("Freevars-e", freevars)
       ans = compile-module(self, l, prog-provides, imports, body, freevars, provides, env)
       add-phase(string-append("Total simplification: ", tostring(total-time)), nothing)

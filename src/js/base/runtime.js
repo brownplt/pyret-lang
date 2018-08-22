@@ -5241,7 +5241,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             }
           },
           function(r) {
-            // CONSOLE.log("Result from module: ", r);
+            // CONSOLE.log("Result from module: ", uri, r);
             realm.instantiated[uri] = r;
             if(uri in postLoadHooks) {
               return thisRuntime.safeCall(function() {
@@ -5274,6 +5274,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
           "types": types,
+          "modules": {},
           "internal": internal || {}
         })
       });
@@ -5402,6 +5403,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         args[i] = arguments[i];
       }
       return args;
+    }
+
+    function getModuleField(uri, which, name) {
+      var mod = thisRuntime.modules[uri];
+      var ppt = thisRuntime.getField(mod, "provide-plus-types");
+      var dict = thisRuntime.getField(ppt, which);
+      if(which === "values") {
+        return thisRuntime.getField(dict, name);
+      }
+      else {
+        return dict[name];
+      }
     }
 
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
@@ -6021,6 +6034,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeJSModuleReturn' : makeJSModuleReturn,
       'makeModuleReturn' : makeModuleReturn,
 
+      'getModuleField' : getModuleField,
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
@@ -6028,7 +6042,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
-          "types": runtimeTypeBindings
+          "types": runtimeTypeBindings,
+          "modules": {}
         })
       }),
 

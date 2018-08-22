@@ -238,6 +238,7 @@ fun make-lettable-data-env(
     | a-lam(_, name, args, ret, body) => default-ret
     | a-method(_, name, args, ret, body) => default-ret
     | a-id-var(_, id) => default-ret
+    | a-id-var-modref(_, _, _, _) => default-ret
     | a-id-letrec(_, id, safe) => default-ret
     | a-id-safe-letrec(_, id) => default-ret
     | a-val(_, v) => default-ret
@@ -413,6 +414,7 @@ fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv,
     | a-lam(_, name, args, ret, body) => default-ret
     | a-method(_, name, args, ret, body) => default-ret
     | a-id-var(_, id) => default-ret
+    | a-id-var-modref(_, _, _, _) => default-ret
     | a-id-letrec(_, id, safe) => default-ret
     | a-id-safe-letrec(_, id) => default-ret
     | a-val(_, v) => default-ret
