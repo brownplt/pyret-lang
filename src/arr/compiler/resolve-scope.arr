@@ -827,9 +827,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     maybe-module-export = mod-info.modules.get(mname.toname())
     cases(Option) maybe-module-export:
       | none => raise("Cannot find module name " + mname.toname())
-      | some(_) =>
+      | some(uri) =>
         atom-env = make-atom-for(mname, false, module-env, module-bindings,
-          C.module-bind(C.bo-module(mname.l, mod-info.from-uri), _, mod-info.from-uri))
+          C.module-bind(C.bo-module(mname.l, mod-info.from-uri), _, uri))
         atom-env.env
     end
   end
@@ -1193,21 +1193,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
       A.s-for(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}), blocky)
     end,
-    method s-do(self, l, iter, binds, ann, body) block:
-      {env; fbs} = for fold(acc from { self.env; [list: ] }, fb from binds):
-        cases(A.ForBind) fb block:
-          | s-for-bind(l2, bind, val) =>
-            {env; fbs} = acc
-            atom-env = make-atom-for(bind.id, bind.shadows, env, bindings,
-              C.value-bind(C.bo-local(l2), C.vb-let, _, bind.ann.visit(self)))
-            new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
-            visit-val = val.visit(self)
-            new-fb = A.s-for-bind(l2, new-bind, visit-val)
-            { atom-env.env; link(new-fb, acc.fbs) }
-        end
-      end
-      A.s-do(l, iter.visit(self), fbs.reverse(), ann.visit(self), body.visit(self.{env: env}))
-    end,
     method s-cases-branch(self, l, pat-loc, name, args, body):
       {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
         {env; atoms} = acc
@@ -1348,7 +1333,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 mod-bind = self.module-env.get-value(s)
                 cases(Option) initial-env.value-by-uri(mod-bind.uri, name) block:
                   | none =>
-                    # name-errors := link(C.wf-err-split("The module " + s + "( " + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
+                    name-errors := link(C.wf-err-split("The module " + s + "( " + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
                     A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
                   | some(ve) =>
                     cases(C.ValueExport) ve:
@@ -1451,9 +1436,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end,
     method s-table-order(self, l, table, ordering):
       A.s-table-order(l, table.visit(self), ordering)
-    end,
-    method s-table-extent(self, l, column, table):
-      A.s-table-extent(l, column.visit(self), table)
     end,
   }
   C.resolved-names(p.visit(names-visitor), name-errors, C.computed-env(module-bindings, bindings, type-bindings, datatypes, final-visitor.module-env, final-visitor.env, final-visitor.type-env))

@@ -8,7 +8,19 @@
     "pyret-base/js/pyret-tokenizer",
     "pyret-base/js/pyret-parser"
   ],
-  provides: {},
+  provides: {
+    shorthands: {
+      "Program": {
+          tag: "name",
+          origin: { "import-type": "uri", uri: "builtin://ast" },
+          name: "Program"
+        }
+    },
+    values: {
+      "surface-parse": ["arrow", ["String", "String"], "Program"],
+      "maybe-surface-parse": ["arrow", ["String", "String"], ["Option", "Program"]],
+    }
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizer, parser) {
     var srcloc = RUNTIME.getField(srclocLib, "values");
     var ast = RUNTIME.getField(astLib, "values");

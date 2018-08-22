@@ -371,7 +371,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           var any-errors = scoped.errors + named-result.errors
           scoped := nothing
           if is-link(any-errors) block:
-            { module-as-string(dummy-provides(locator.uri()), env, CS.computed-none, CS.err(unique(any-errors)));
+            { module-as-string(AU.get-named-provides(named-result, locator.uri(), env), env, CS.computed-none, CS.err(unique(any-errors)));
               if options.collect-all or options.collect-times:
                 phase("Result", named-result.ast, time-now(), ret).tolist()
               else:

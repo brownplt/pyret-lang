@@ -553,7 +553,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                       if subtype.has-variable-free(supertype):
                         add-substitution-and-continue(subtype, supertype, system, solution, context)
                       else:
-                        fold-errors([list: C.recursive-type-constraints(supertype, subtype)])
+                        fold-errors([list: C.cant-typecheck("The types " + to-string(supertype) + " and " + to-string(subtype) + " are mutually recursive and their constraints cannot be solved", supertype.l)])
                       end
                     else:
                       solve-helper-constraints(
