@@ -2180,40 +2180,52 @@ end
 
 fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResult<TCInfo>:
   cases(A.ProvideBlock) _provide:
-    | s-provide-block(_, provide-specs) =>
+    | s-provide-block(_, _, provide-specs) =>
       initial-info = TCS.tc-info([string-dict: ], context.info.aliases, context.info.data-types)
       foldr-fold-result(lam(spec, shadow context, info):
         cases(A.ProvideSpec) spec:
           | s-provide-name(l, name-spec) =>
-            { value-key; name } = AU.get-name-spec-key-and-name(name-spec)
-            if info.types.has-key(value-key): fold-result(info, context)
-            else:
-              # MARK(joe): test as-name here; it appears unused
-              cases(Option) context.info.types.get(value-key):
-                | some(typ) =>
-                  shadow typ = typ.set-inferred(false)
-                  fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
-                | none =>
-                  typ = context.global-types.get-value(value-key).set-inferred(false)
-                  fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
-              end
+            cases(A.NameSpec) name-spec:
+              | s-local-ref(_, name, as-name) =>
+                value-key = name.key()
+                if info.types.has-key(value-key): fold-result(info, context)
+                else:
+                  # MARK(joe): test as-name here; it appears unused
+                  cases(Option) context.info.types.get(value-key):
+                    | some(typ) =>
+                      shadow typ = typ.set-inferred(false)
+                      fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+                    | none =>
+                      typ = context.global-types.get-value(value-key).set-inferred(false)
+                      fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
+                  end
+                end
+              | s-module-ref(_, uri, name, as-name) => fold-result(info, context)
             end
           | s-provide-type(l, name-spec) =>
-            { alias-key; name } = AU.get-name-spec-key-and-name(name-spec) 
-            if info.aliases.has-key(alias-key):
-              fold-result(info, context)
-            else:
-              typ = context.aliases.get-value(alias-key)
-              fold-result(TCS.tc-info(info.types, info.aliases.set(alias-key, typ), info.data-types), context)
+            cases(A.NameSpec) name-spec:
+              | s-local-ref(_, name, as-name) =>
+                alias-key = name.key()
+                if info.aliases.has-key(alias-key):
+                  fold-result(info, context)
+                else:
+                  typ = context.aliases.get-value(alias-key)
+                  fold-result(TCS.tc-info(info.types, info.aliases.set(alias-key, typ), info.data-types), context)
+                end
+              | s-module-ref(_, _, _, _) => fold-result(info, context)
             end
           | s-provide-module(l, name-spec) => fold-result(info, context)
           | s-provide-data(l, name-spec, hidden) =>
-            data-key = AU.get-name-spec-key(name-spec)
-            if info.data-types.has-key(data-key):
-              fold-result(info, context)
-            else:
-              typ = context.data-types.get-value(data-key)
-              fold-result(TCS.tc-info(info.types, info.aliases, info.data-types.set(data-key, typ)), context)
+            cases(A.NameSpec) name-spec:
+              | s-local-ref(_, name, as-name) =>
+                data-key = name.key()
+                if info.data-types.has-key(data-key):
+                  fold-result(info, context)
+                else:
+                  typ = context.data-types.get-value(data-key)
+                  fold-result(TCS.tc-info(info.types, info.aliases, info.data-types.set(data-key, typ)), context)
+                end
+              | s-module-ref(_, _, _, _) => fold-result(info, context)
             end
         end
       end, provide-specs, context, initial-info)

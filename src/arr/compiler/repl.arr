@@ -71,7 +71,7 @@ fun make-provide-for-repl(p :: A.Program, extras):
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
-          [list: A.s-provide-block(l, repl-mod-provide) ],
+          [list: A.s-provide-block(l, empty, repl-mod-provide) ],
           imports,
           body)
   end
@@ -100,7 +100,7 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals, extras):
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
-          [list: A.s-provide-block(l, repl-mod-provide)],
+          [list: A.s-provide-block(l, empty, repl-mod-provide)],
           imports,
           body)
   end

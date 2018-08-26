@@ -112,28 +112,59 @@ define("pyret-base/js/type-util", [], function() {
       return runtime.makeObject({ bind: "let", typ: t });
     };
     var typ;
-    if(value.bind) {
-      if(value.bind === "fun") {
-        typ = value.typ;
-        wrapper = function(t) {
-          // Flatness had better be (a) an integer and (b) a non-negative number,
-          // otherwise treat it as an infinitely-deep function
-          var flatnessInt = parseInt(value.flatness);
-          var flatness = flatnessInt === value.flatness && flatnessInt >= 0 ? flatnessInt : false;
-          return runtime.makeObject({ bind: "fun", name: value.name || "", flatness: flatness, typ: t});
-        };
-      }
-      else if(value.bind === "var") {
-        typ = value.typ;
-        wrapper = function(t) {
-          return runtime.makeObject({ bind: "var", typ: t });
-        };
-      }
+    var origin = runtime.makeObject({ provided: false });
+    if(!value.bind) {
+      return runtime.makeObject({
+        origin: origin,
+        bind: "let",
+        typ: toPyretType(runtime, expandType(value))
+      });
     }
     else {
-      typ = value;
+      if(typeof value.origin === "object") {
+        origin = value.origin;
+        origin.provided = true;
+        origin = runtime.makeObject(origin);
+      }
+      if(value.bind === "let") {
+        return runtime.makeObject({
+          origin: origin,
+          typ: toPyretType(runtime, expandType(value.typ)),
+          bind: "let"
+        });
+      }
+      else if(value.bind === "alias") {
+        return runtime.makeObject({
+          origin: origin,
+          bind: "alias",
+          typ: false
+        });
+      }
+      else if(value.bind === "fun") {
+        var flatnessInt = parseInt(value.flatness);
+        // Flatness had better be (a) an integer and (b) a non-negative number,
+        // otherwise treat it as an infinitely-deep function
+        var flatness = flatnessInt === value.flatness && flatnessInt >= 0 ? flatnessInt : false;
+        return runtime.makeObject({
+          origin: origin,
+          bind: "fun",
+          name: value.name || "",
+          flatness: flatness,
+          typ: toPyretType(runtime, expandType(value.typ))
+        });
+      }
+      else if(value.bind === "var") {
+        return runtime.makeObject({
+          origin: origin,
+          bind: "var",
+          typ: toPyretType(runtime, expandType(value.typ))
+        });
+      }
+      else {
+        console.error("Bad value provide format:", value);
+        throw new Error("Bad value provide format");
+      }
     }
-    return wrapper(toPyretType(runtime, expandType(typ)));
   }
 
   function toPyretType(runtime, typ) {

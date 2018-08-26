@@ -526,6 +526,9 @@ check "combined provide syntax":
   does-parse("provide: data Num as N end") is false
   does-parse("provide: data List end") is true
 
+  does-parse("provide from L: is-link end") is true
+  does-parse("provide from L: type List, * end") is true
+
   does-parse(```
 provide:
   data *,

@@ -33,6 +33,7 @@ provide-vals-stmt:  PROVIDE stmt END | PROVIDE (STAR|TIMES)
 provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES (STAR|TIMES)
 
 provide-block: PROVIDECOLON [provide-spec (COMMA provide-spec)* [COMMA]] END
+provide-block: PROVIDE FROM module-ref COLON [provide-spec (COMMA provide-spec)* [COMMA]] END
 
 provide-spec: provide-name-spec
             | provide-type-spec

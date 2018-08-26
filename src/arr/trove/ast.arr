@@ -386,7 +386,7 @@ sharing:
 end
 
 data ProvideBlock:
-  | s-provide-block(l :: Loc, specs :: List<ProvideSpec>) with:
+  | s-provide-block(l :: Loc, path :: List<Name>, specs :: List<ProvideSpec>) with:
     method label(self): "s-provide-block" end,
     method tosource(self): PP.str("provide-block") end
 sharing:
@@ -427,6 +427,16 @@ data NameSpec:
         | some(name) =>
           PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource()), PP.str("as"), name.tosource())])
       end
+    end
+  | s-remote-ref(l :: Loc, uri :: String, name :: Name, as-name :: Name) with:
+    method label(self): "s-remote-ref" end,
+    method tosource(self):
+      PP.flow([list: self.name.tosource(), PP.str("@") + PP.str(self.uri), PP.str("as"), self.as-name.tosource()])
+    end
+  | s-local-ref(l :: Loc, name :: Name, as-name :: Name) with:
+    method label(self): "s-local-ref" end,
+    method tosource(self):
+      PP.flow([list: self.name.tosource(), PP.str("as"), self.as-name.tosource()])
     end
 sharing:
   method visit(self, visitor):
@@ -1915,6 +1925,12 @@ default-map-visitor = {
   method s-module-ref(self, l, path, as-name):
     s-module-ref(l, path.map(_.visit(self)), self.option(as-name))
   end,
+  method s-local-ref(self, l, name, as-name):
+    s-local-ref(l, name.visit(self), as-name.visit(self))
+  end,
+  method s-remote-ref(self, l, uri, name, as-name):
+    s-remote-ref(l, uri, name.visit(self), as-name.visit(self))
+  end,
 
   method s-defined-module(self, name, val, uri):
     s-defined-module(name, val.visit(self), uri)
@@ -1989,8 +2005,8 @@ default-map-visitor = {
   method s-provide-types-none(self, l):
     s-provide-types-none(l)
   end,
-  method s-provide-block(self, l, specs):
-    s-provide-block(l, specs.map(_.visit(self)))
+  method s-provide-block(self, l, path, specs):
+    s-provide-block(l, path.map(_.visit(self)), specs.map(_.visit(self)))
   end,
   method s-provide-name(self, l, name-spec):
     s-provide-name(l, name-spec.visit(self))
@@ -2514,6 +2530,12 @@ default-iter-visitor = {
   method s-module-ref(self, l, path, as-name):
     path.all(_.visit(self)) and self.option(as-name)
   end,
+  method s-local-ref(self, l, name, as-name):
+    name.visit(self) and as-name.visit(self)
+  end,
+  method s-remote-ref(self, l, uri, name, as-name):
+    name.visit(self) and as-name.visit(self)
+  end,
 
   method s-defined-module(self, name, val, uri):
     val.visit(self)
@@ -2593,8 +2615,8 @@ default-iter-visitor = {
   method s-provide-types-none(self, l):
     true
   end,
-  method s-provide-block(self, l, specs):
-    specs.all(_.visit(self))
+  method s-provide-block(self, l, path, specs):
+    path.all(_.visit(self)) and specs.all(_.visit(self))
   end,
 
   method s-provide-name(self, l, name-spec):
@@ -3105,6 +3127,12 @@ dummy-loc-visitor = {
   end,
   method s-module-ref(self, _, path, as-name):
     s-module-ref(dummy-loc, path.map(_.visit(self)), self.option(as-name))
+  end,
+  method s-local-ref(self, _, name, as-name):
+    s-local-ref(dummy-loc, name.visit(self), as-name.visit(self))
+  end,
+  method s-remote-ref(self, _, uri, name, as-name):
+    s-remote-ref(dummy-loc, uri, name.visit(self), as-name.visit(self))
   end,
 
   method s-defined-module(self, name, val, uri):

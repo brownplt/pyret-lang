@@ -349,7 +349,7 @@ fun get-flatness-for-module-fun(id, field, mb, env) -> Flatness:
     | none => none
     | some(value-export) =>
       cases(C.ValueExport) value-export:
-        | v-fun(_, _, flatness) =>
+        | v-fun(_, _, _, flatness) =>
           flatness
         | else => none
       end
@@ -452,7 +452,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, post-env :: C.ComputedEnvironment,
           | none => nothing
           | some(ve) =>
             cases(C.ValueExport) ve:
-              | v-fun(_, _, flatness) => sd.set-now(vb.atom.key(), flatness)
+              | v-fun(_, _, _, flatness) => sd.set-now(vb.atom.key(), flatness)
               | else => nothing
             end
         end
@@ -462,7 +462,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, post-env :: C.ComputedEnvironment,
             raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri-of-definition)
           | some(value-export) =>
             cases(C.ValueExport) value-export:
-              | v-fun(_, _, flatness) =>
+              | v-fun(_, _, _, flatness) =>
                 sd.set-now(k, flatness)
               | else =>
                 nothing
@@ -565,7 +565,7 @@ fun get-flat-provides(provides, post-env, { flatness-env; _ }, ast) block:
             cases(Option) maybe-flatness:
               | none => existing-val
               | some(flatness-result) =>
-                C.v-fun(existing-val.t, k, flatness-result)
+                C.v-fun(existing-val.origin, existing-val.t, k, flatness-result)
             end
         end
         s.set(k, new-val)

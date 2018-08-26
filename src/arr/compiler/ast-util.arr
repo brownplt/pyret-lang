@@ -929,6 +929,8 @@ fun get-name-spec-key(ns :: A.NameSpec):
     | s-module-ref(_, path, _) =>
       when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
       path.first.key()
+    | s-local-ref(l, name, as-name) =>
+      name.key()
   end
 end
 fun get-name-spec-key-and-name(ns :: A.NameSpec):
@@ -1106,43 +1108,64 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     end
   end
   cases(A.Program) resolved.ast:
-    | s-program(l, _, _, provide-blocks, _, _) =>
+    | s-program(_, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
-        | s-provide-block(_, provide-specs) =>
+          # NOTE(joe): assume the provide block is resolved
+        | s-provide-block(_, _, provide-specs) =>
           mp-specs = provide-specs.filter(A.is-s-provide-module)
           mod-provides = for fold(mp from [SD.string-dict:], m from mp-specs):
-            { key; name } = get-name-spec-key-and-name(m.name-spec)
-            mb = resolved.env.module-bindings.get-value-now(key)
-            mp.set(name, mb.uri)
+            cases(A.NameSpec) m.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                mod-info = compile-env.provides-by-uri-value(uri)
+                mod-uri = mod-info.modules.get-value(name.toname())
+                mp.set(as-name.toname(), mod-uri)
+              | s-local-ref(l, name, as-name) =>
+                mb = resolved.env.module-bindings.get-value-now(name.key())
+                mp.set(as-name.toname(), mb.uri)
+              | else => raise("All provides should be resolved to local or remote refs")
+            end
           end
           
           vp-specs = provide-specs.filter(A.is-s-provide-name)
           val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
-            { key; name } = get-name-spec-key-and-name(v.name-spec)
-            vb = resolved.env.bindings.get-value-now(key)
-            provided-value = cases(CS.ValueBinder) vb.binder:
-              | vb-var => CS.v-var(ann-to-typ(vb.ann))
-              | else => CS.v-just-type(ann-to-typ(vb.ann))
+            cases(A.NameSpec) v.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
+                vp.set(as-name.name(), CS.v-alias(val-export.origin, origin-name))
+              | s-local-ref(l, name, as-name) =>
+                vb = resolved.env.bindings.get-value-now(name.key())
+                provided-value = cases(CS.ValueBinder) vb.binder:
+                  | vb-var => CS.v-var(vb.origin, ann-to-typ(vb.ann))
+                  | else => CS.v-just-type(vb.origin, ann-to-typ(vb.ann))
+                end
+                vp.set(as-name.toname(), provided-value)
             end
-            vp.set(name, provided-value)
           end
 
           tp-specs = provide-specs.filter(A.is-s-provide-type)
           typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
-            { key; name } = get-name-spec-key-and-name(t.name-spec)
-            tb = resolved.env.type-bindings.get-value-now(key)
-            typ = cases(Option) tb.ann:
-              | none => T.t-top(l, false)
-              | some(target-ann) => ann-to-typ(target-ann)
+            cases(A.NameSpec) t.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                tp.set(as-name.name(), T.t-name(T.module-uri(uri), name, l, false))
+              | s-local-ref(l, name, as-name) =>
+                tb = resolved.env.type-bindings.get-value-now(name.key())
+                typ = cases(Option) tb.ann:
+                  | none => T.t-top(l, false)
+                  | some(target-ann) => ann-to-typ(target-ann)
+                end
+                tp.set(as-name.toname(), typ)
             end
-            tp.set(name, typ)
           end
           
           dp-specs = provide-specs.filter(A.is-s-provide-data)
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
-            { atom; name } = get-name-spec-atom-and-name(d.name-spec)
-            exp = resolved.env.datatypes.get-value-now(name)
-            dp.set(exp.name, data-expr-to-datatype(exp))
+            cases(A.NameSpec) d.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                raise("Cannot alias data right now")
+              | s-local-ref(l, name, as-name) =>
+                exp = resolved.env.datatypes.get-value-now(name.toname())
+                dp.set(exp.name, data-expr-to-datatype(exp))
+            end
           end
           provs = CS.provides(
               uri,
@@ -1208,9 +1231,10 @@ end
 
 fun canonicalize-value-export(ve :: CS.ValueExport, uri :: URI, tn):
   cases(CS.ValueExport) ve:
-    | v-just-type(t) => CS.v-just-type(canonicalize-names(t, uri, tn))
-    | v-var(t) => CS.v-var(canonicalize-names(t, uri, tn))
-    | v-fun(t, name, flatness) => CS.v-fun(canonicalize-names(t, uri, tn), name, flatness)
+    | v-alias(o, n) => CS.v-alias(o, n)
+    | v-just-type(o, t) => CS.v-just-type(o, canonicalize-names(t, uri, tn))
+    | v-var(o, t) => CS.v-var(o, canonicalize-names(t, uri, tn))
+    | v-fun(o, t, name, flatness) => CS.v-fun(o, canonicalize-names(t, uri, tn), name, flatness)
   end
 end
 
@@ -1337,39 +1361,63 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
   cases(A.Program) typed.ast block:
     | s-program(_, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
-        | s-provide-block(_, provide-specs) =>
+        | s-provide-block(_, _, provide-specs) =>
 
           mp-specs = provide-specs.filter(A.is-s-provide-module)
           mod-provides = for fold(mp from [SD.string-dict:], m from mp-specs):
-            { key; name } = get-name-spec-key-and-name(m.name-spec)
-            mb = resolved.env.module-bindings.get-value-now(key)
-            mp.set(name, mb.uri)
+            cases(A.NameSpec) m.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                mod-info = compile-env.provides-by-uri-value(uri)
+                mod-uri = mod-info.modules.get-value(name.toname())
+                mp.set(as-name.toname(), mod-uri)
+              | s-local-ref(l, name, as-name) =>
+                mb = resolved.env.module-bindings.get-value-now(name.key())
+                mp.set(as-name.toname(), mb.uri)
+              | else => raise("All provides should be resolved to local or remote refs")
+            end
           end
           
           vp-specs = provide-specs.filter(A.is-s-provide-name)
           val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
-            # TODO(joe): This function needs to take a NameResolution to figure
-            # out vars, just like get-named-provides does
-            { key; name } = get-name-spec-key-and-name(v.name-spec)
-            vp.set(name, CS.v-just-type(c(typed.info.types.get-value(key))))
+            cases(A.NameSpec) v.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
+                vp.set(as-name.name(), CS.v-alias(val-export.origin, origin-name))
+              | s-local-ref(l, name, as-name) =>
+                tc-typ = typed.info.types.get-value(name.key())
+                val-bind = resolved.env.bindings.get-value-now(name.key())
+                # TODO(joe): Still have v-var questions here
+                vp.set(as-name.toname(), CS.v-just-type(val-bind.origin, c(tc-typ)))
+            end
           end
 
           tp-specs = provide-specs.filter(A.is-s-provide-type)
           typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
-            { key; name } = get-name-spec-key-and-name(t.name-spec)
-            cases(Option) typed.info.data-types.get(key):
-              | some(typ) => tp.set(name, c(typ))
-              | none =>
-                typ = typed.info.aliases.get-value(key)
-                tp.set(name, c(typ))
+            cases(A.NameSpec) t.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                tp.set(as-name.name(), T.t-name(T.module-uri(uri), name, l, false))
+              | s-local-ref(l, name, as-name) =>
+                key = name.key()
+                cases(Option) typed.info.data-types.get(key):
+                  | some(typ) => tp.set(name, c(typ))
+                  | none =>
+                    typ = typed.info.aliases.get-value(key)
+                    tp.set(as-name.toname(), c(typ))
+                end
             end
+
           end
           
           dp-specs = provide-specs.filter(A.is-s-provide-data)
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
-            {atom; name} = get-name-spec-atom-and-name(d.name-spec)
-            exp = resolved.env.datatypes.get-value-now(name)
-            dp.set(exp.name, canonicalize-data-type(typed.info.data-types.get-value(atom.key()), uri, transformer))
+            cases(A.NameSpec) d.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                raise("Cannot alias data right now")
+              | s-local-ref(l, name, _) =>
+                exp = resolved.env.datatypes.get-value-now(name.toname())
+                dp.set(exp.name, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer))
+                
+            end
           end
           provs = CS.provides(
               uri,

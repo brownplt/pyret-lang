@@ -282,10 +282,19 @@
         },
         'provide-block': function(node) {
           var skippedLast = 1;
-          if (node.kids[node.kids.length - 2].name === "COMMA") skippedLast++;
-          return RUNTIME.getField(ast, "s-provide-block").app(
-            pos(node.pos),
-            makeListComma(node.kids, 1, node.kids.length - skippedLast));
+          if(node.kids[node.kids.length - 2].name === "COMMA") skippedLast = 2;
+          if(node.kids[0].name === "PROVIDECOLON") {
+            return RUNTIME.getField(ast, "s-provide-block").app(
+              pos(node.pos),
+              makeListTr([]),
+              makeListComma(node.kids, 1, node.kids.length - skippedLast));
+          }
+          else {
+            return RUNTIME.getField(ast, "s-provide-block").app(
+              pos(node.pos),
+              makeListTr(node.kids[2]),
+              makeListComma(node.kids, 4, node.kids.length - skippedLast));
+          }
         },
         'provide-vals-stmt': function(node) {
           if (node.kids.length === 2) {

@@ -1478,24 +1478,48 @@ compiler-visitor = {
     dp-specs = self.prog-provides.specs.filter(A.is-s-provide-data)
 
     {alias-fields; alias-stmts} = for fold(acc from {cl-empty; cl-empty}, tp from tp-specs):
-      { atom; name } = AU.get-name-spec-atom-and-name(tp.name-spec)
-      compiled = compile-ann(A.a-name(l, atom), self)
-      {
-        cl-snoc(acc.{0}, j-field(name, compiled.exp));
-        cl-append(acc.{1}, compiled.other-stmts)
-      }
+      cases(A.NameSpec) tp.name-spec:
+        | s-local-ref(_, name, as-name) =>
+          compiled = compile-ann(A.a-name(l, name), self)
+          {
+            cl-snoc(acc.{0}, j-field(as-name.toname(), compiled.exp));
+            cl-append(acc.{1}, compiled.other-stmts)
+          }
+        | s-remote-ref(_, uri, name, as-name) =>
+          {
+            cl-snoc(acc.{0},
+              j-field(as-name.toname(), 
+                  rt-method("getDotAnn", [clist:
+                      self.get-loc(l),
+                      j-str(name.toname()),
+                      j-dot(j-dot(j-bracket(rt-field("modules"), j-str(uri)), "dict"), "types"),
+                      j-str(name.toname())])));
+            acc.{1}
+          }
+      end
     end
 
 
     compiled-provides = for CL.map_list(pv from vp-specs):
-      { atom; name } = AU.get-name-spec-atom-and-name(pv.name-spec)
-      val-bind = self.bindings.get-value-now(atom.key())
-      val-exp = cases(CS.ValueBinder) val-bind.binder:
-        | vb-letrec => j-dot(j-id(js-id-of(atom)), "$var")
-        | vb-var => j-id(js-id-of(atom))
-        | vb-let => j-id(js-id-of(atom))
+      cases(A.NameSpec) pv.name-spec:
+        | s-local-ref(_, name, as-name) =>
+          val-bind = self.bindings.get-value-now(name.key())
+          val-exp = cases(CS.ValueBinder) val-bind.binder:
+            | vb-letrec => j-dot(j-id(js-id-of(name)), "$var")
+            | vb-var => j-id(js-id-of(name))
+            | vb-let => j-id(js-id-of(name))
+          end
+          j-field(as-name.toname(), val-exp)
+        | s-remote-ref(_, uri, name, as-name) =>
+          val-exp = j-bracket(
+            j-dot(
+              j-dot(
+                j-dot(j-bracket(rt-field("modules"), j-str(uri)), "dict"),
+                "values"),
+              "dict"),
+            j-str(name.toname()))
+          j-field(as-name.toname(), val-exp)
       end
-      j-field(name, val-exp)
     end
 
     {types-fields; types-stmts} = {
@@ -1504,9 +1528,13 @@ compiler-visitor = {
     }
 
     compiled-module-provides = for CL.map_list(pm from mp-specs):
-      { atom; name } = AU.get-name-spec-atom-and-name(pm.name-spec)
-      compiled = j-id(js-id-of(atom))
-      j-field(name, compiled)
+      cases(A.NameSpec) pm.name-spec:
+        | s-local-ref(_, name, as-name) =>
+          compiled = j-id(js-id-of(name))
+          j-field(as-name.toname(), compiled)
+        | s-remote-ref(_, uri, name, as-name) =>
+          j-field(as-name.toname(), j-bracket(rt-field("modules"), j-str(uri)))
+      end
     end
 
 
@@ -2095,6 +2123,23 @@ fun compile-provided-type(typ):
   end
 end
 
+fun srcloc-to-raw(l):
+  cases(SL.Srcloc) l:
+    | builtin(uri) => j-list(true, [clist: j-str(uri)])
+    | srcloc(uri, sl, sc, si, el, ec, ei) =>
+      j-list(true, [clist: j-str(uri), j-num(sl), j-num(sc), j-num(si), j-num(el), j-num(ec), j-num(ei)])
+  end
+end
+
+fun compile-origin(bo):
+  j-obj([clist:
+    j-field("local-bind-site", srcloc-to-raw(bo.local-bind-site)),
+    j-field("definition-bind-site", srcloc-to-raw(bo.definition-bind-site)),
+    j-field("new-definition", j-bool(bo.new-definition)),
+    j-field("uri-of-definition", j-str(bo.uri-of-definition))
+  ])
+end
+
 fun compile-provides(provides):
   cases(CS.Provides) provides:
     | provides(thismod-uri, modules, values, aliases, data-defs) =>
@@ -2103,14 +2148,26 @@ fun compile-provides(provides):
       end
       value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
-          | v-just-type(t) => j-field(v, compile-provided-type(t))
-          | v-var(t) => j-field(v, j-obj([clist:
-              j-field("bind", j-str("var")),
+          | v-alias(origin, name) =>
+            j-field(v, j-obj([clist:
+              j-field("bind", j-str("alias")),
+              j-field("origin", compile-origin(origin)),
+              j-field("original-name", j-str(name))
+            ]))
+          | v-just-type(origin, t) => j-field(v, j-obj([clist:
+              j-field("bind", j-str("let")),
+              j-field("origin", compile-origin(origin)),
               j-field("typ", compile-provided-type(t))
             ]))
-          | v-fun(t, name, flatness) =>
+          | v-var(origin, t) => j-field(v, j-obj([clist:
+              j-field("bind", j-str("var")),
+              j-field("origin", compile-origin(origin)),
+              j-field("typ", compile-provided-type(t))
+            ]))
+          | v-fun(origin, t, name, flatness) =>
             j-field(v, j-obj([clist:
               j-field("bind", j-str("fun")),
+              j-field("origin", compile-origin(origin)),
               j-field("flatness", flatness.and-then(j-num).or-else(j-false)),
               j-field("name", j-str(name)),
               j-field("typ", compile-provided-type(t))

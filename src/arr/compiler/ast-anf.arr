@@ -948,18 +948,16 @@ fun freevars-v(v :: AVal) -> FrozenNameDict<A.Name>:
   freevars-v-acc(v, empty-dict()).freeze()
 end
 
+fun freevars-name-spec(ns, acc):
+  cases(A.NameSpec) ns:
+    | s-local-ref(_, name, _) => acc.set-now(name.key(), name)
+    | else => nothing
+  end
+end
+
 fun freevars-provides-acc(provide-block, acc):
   for each(spec from provide-block.specs):
-    cases(A.ProvideSpec) spec:
-      | s-provide-name(l, name-spec) =>
-        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
-      | s-provide-module(l, name-spec) =>
-        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
-      | s-provide-type(l, name-spec) =>
-        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
-      | s-provide-data(l, name-spec, hidden) =>
-        acc.set-now(name-spec.path.first.key(), name-spec.path.first)
-    end
+    freevars-name-spec(spec.name-spec, acc)
   end
 end
 

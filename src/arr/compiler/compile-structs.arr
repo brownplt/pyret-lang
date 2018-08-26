@@ -167,11 +167,35 @@ sharing:
   method value-by-uri(self, uri :: String, name :: String):
     self.all-modules
       .get-value-now(uri)
-      .provides
-      .values.get(name)
+      .provides.values
+      .get(name)
+      .and-then(lam(ve):
+        cases(ValueExport) ve:
+          | v-alias(origin, shadow name) => self.value-by-uri(origin.uri-of-definition, name)
+          | else => ve
+        end
+      end)
   end,
   method value-by-uri-value(self, uri :: String, name :: String):
     cases(Option) self.value-by-uri(uri, name):
+      | none => raise("Could not find value " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method resolve-value-by-uri(self, uri :: String, name :: String):
+    self.all-modules
+      .get-value-now(uri)
+      .provides.values
+      .get(name)
+      .and-then(lam(ve):
+        cases(ValueExport) ve:
+          | v-alias(origin, shadow name) => self.resolve-value-by-uri(origin.uri-of-definition, name)
+          | else => some({name; ve})
+        end
+      end)
+  end,
+  method resolve-value-by-uri-value(self, uri :: String, name :: String):
+    cases(Option) self.resolve-value-by-uri(uri, name):
       | none => raise("Could not find value " + name + " on module " + uri)
       | some(v) => v
     end
@@ -285,9 +309,10 @@ data Globals:
 end
 
 data ValueExport:
-  | v-just-type(t :: T.Type)
-  | v-var(t :: T.Type)
-  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
+  | v-alias(origin :: BindOrigin, original-name :: String)
+  | v-just-type(origin :: BindOrigin, t :: T.Type)
+  | v-var(origin :: BindOrigin, t :: T.Type)
+  | v-fun(origin :: BindOrigin, t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
 data Provides:
@@ -401,6 +426,33 @@ fun datatype-from-raw(uri, datatyp):
   end
 end
 
+fun srcloc-from-raw(raw):
+  if raw-array-length(raw) == 1:
+    SL.builtin(raw-array-get(raw, 0))
+  else:
+    SL.srcloc(
+      raw-array-get(raw, 0),
+      raw-array-get(raw, 1),
+      raw-array-get(raw, 2),
+      raw-array-get(raw, 3),
+      raw-array-get(raw, 4),
+      raw-array-get(raw, 5),
+      raw-array-get(raw, 6))
+  end
+end
+
+fun origin-from-raw(uri, raw):
+  if raw.provided:
+    bind-origin(
+      srcloc-from-raw(raw.local-bind-site),
+      srcloc-from-raw(raw.definition-bind-site),
+      raw.new-definition,
+      raw.uri-of-definition)
+  else:
+    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
+  end
+end
+
 fun provides-from-raw-provides(uri, raw):
   mods = raw.modules
   mdict = for fold(mdict from SD.make-string-dict(), v from raw.modules):
@@ -409,19 +461,22 @@ fun provides-from-raw-provides(uri, raw):
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, v-just-type(t-top))
+      vdict.set(v, v-just-type(origin-from-raw(uri, {provided:false}), t-top))
     else:
-      if v.value.bind == "var":
-        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      origin = origin-from-raw(uri, v.value.origin)
+      if v.value.bind == "alias":
+        vdict.set(v.name, v-alias(origin, v.original-name))
+      else if v.value.bind == "var":
+        vdict.set(v.name, v-var(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       else if v.value.bind == "fun":
         flatness = if is-number(v.value.flatness):
           some(v.value.flatness)
         else:
           none
         end
-        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
+        vdict.set(v.name, v-fun(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
-        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+        vdict.set(v.name, v-just-type(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end
     end
   end

@@ -380,7 +380,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           else:
             add-phase("Resolved names", named-result)
             var provides = AU.get-named-provides(named-result, locator.uri(), env)
-            # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             var spied =
               if options.enable-spies: named-result.ast
               else: named-result.ast.visit(A.default-map-visitor.{
@@ -393,6 +392,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                     end
                   })
               end
+            # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             var desugared = D.desugar(spied)
             spied := nothing
             named-result.env.bindings.merge-now(desugared.new-binds)
