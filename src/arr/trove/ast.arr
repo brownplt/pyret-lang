@@ -2540,40 +2540,21 @@ default-iter-visitor = {
     typ.visit(self)
   end,
 
-<<<<<<< HEAD
   method s-module(self, l, answer, dm, dv, dt, checks):
     answer.visit(self) and lists.all(_.visit(self), dm) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and checks.visit(self)
-=======
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    answer.visit(self) and all(_.visit(self), dv) and all(_.visit(self), dt) and provides.visit(self) and all(_.visit(self), types) and checks.visit(self)
->>>>>>> d2f333d76d133c5efe8d049e5c1f72415be04062
   end,
 
   method s-program(self, l, _provide, provided-types, provides, imports, body):
     _provide.visit(self)
     and provided-types.visit(self)
-<<<<<<< HEAD
     and lists.all(_.visit(self), provides)
     and lists.all(_.visit(self), imports)
-=======
-    and all(_.visit(self), imports)
->>>>>>> d2f333d76d133c5efe8d049e5c1f72415be04062
     and body.visit(self)
   end,
 
   method s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
-<<<<<<< HEAD
-=======
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
-    all(_.visit(self), values) and
-      all(_.visit(self), types) and
-      mod.visit(self) and
-      vals-name.visit(self) and
-      types-name.visit(self)
-  end,
->>>>>>> d2f333d76d133c5efe8d049e5c1f72415be04062
   method s-include(self, l, import-type):
     import-type.visit(self)
   end,
@@ -3159,11 +3140,7 @@ dummy-loc-visitor = {
 
   method s-module(self, l, answer, dm, dv, dt, checks):
     s-module(dummy-loc,
-<<<<<<< HEAD
       answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
-=======
-      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), map(_.visit(self), types), checks.visit(self))
->>>>>>> d2f333d76d133c5efe8d049e5c1f72415be04062
   end,
 
   method s-program(self, l, _provide, provided-types, provides, imports, body):
