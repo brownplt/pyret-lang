@@ -5468,7 +5468,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return getParam("current-checker");
       }, "current-checker"),
       'trace-value': makeFunction(traceValue, "trace-value"),
-      'spy': makeFunction(spy, "spy")
+      'spy': makeFunction(spy, "spy"),
+
+      'within-rel3' : makeFunction(equalWithinRel3, "within-rel3"),
     });
 
 

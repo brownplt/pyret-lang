@@ -40,6 +40,31 @@
       return lst;
     }
 
+    function makePyretPos(fileName, p) {
+      var n = runtime.makeNumber;
+      return runtime.getField(S, "srcloc").app(
+        runtime.makeString(fileName),
+        n(p.startRow),
+        n(p.startCol),
+        n(p.startChar),
+        n(p.endRow),
+        n(p.endCol),
+        n(p.endChar)
+      );
+    }
+    function combinePyretPos(fileName, p1, p2) {
+      var n = runtime.makeNumber;
+      return runtime.getField(S, "srcloc").app(
+        runtime.makeString(fileName),
+        n(p1.startRow),
+        n(p1.startCol),
+        n(p1.startChar),
+        n(p2.endRow),
+        n(p2.endCol),
+        n(p2.endChar)
+      );
+    }
+
     function makeTreeSet(arr) {
       return gf(Se, 'list-to-tree-set').app(makeList(arr));
     }
@@ -579,6 +604,8 @@
     runtime.makePrimAnn("List", isList);
 
     return runtime.makeJSModuleReturn({
+      makePyretPos : makePyretPos,
+      combinePyretPos : combinePyretPos,
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
       throwUpdateNonRef : throwUpdateNonRef,

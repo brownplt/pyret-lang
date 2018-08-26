@@ -35,28 +35,10 @@ import base as _
 import cmdline-lib as CL
 import format as F
 import string-dict as D
-import lists as lists
-import either as E
-import option as O
+include lists
+include either
+include option
 import valueskeleton as VS
-
-type Option = O.Option
-some = O.some
-none = O.none
-
-type Either = E.Either
-right = E.right
-left = E.left
-
-type List = lists.List
-link = lists.link
-empty = lists.empty
-list = lists.list
-is-empty = lists.is-empty
-fold = lists.fold
-
-
-
 
 format = F.format
 string-dict = D.string-dict
@@ -225,7 +207,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
         | else => results
       end
     end
-    required = for lists.filter(key from opts-dict.keys-list()):
+    required = for filter(key from opts-dict.keys-list()):
       repeated = opts-dict.get-value(key).repeated
       (repeated == required-once) or (repeated == required-many)
     end
@@ -376,7 +358,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
             | else => acc
           end
         end
-        missing-args = for lists.filter(key from required):
+        missing-args = for filter(key from required):
           not(filled-missing-defaults.has-key(key))
         end
         if is-empty(missing-args): success(filled-missing-defaults, other)
@@ -397,7 +379,7 @@ end
 
 
 fun dict(l):
-  for fold(d from D.make-string-dict(), i from lists.range(0, l.length() / 2)):
+  for fold(d from D.make-string-dict(), i from range(0, l.length() / 2)):
     d.set(l.get(2 * i), l.get((2 * i) + 1))
   end
 end

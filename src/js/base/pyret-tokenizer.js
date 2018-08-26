@@ -32,6 +32,8 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     return t;
   };
   Tokenizer.prototype.makeWSToken = function makeWSToken(startLine, startCol, startPos) {
+    this.parenIsForExp = true;
+    this.priorWhitespace = true;
     this.addWhitespace(SrcLoc.make(startLine, startCol, startPos, this.line, this.col, this.pos));
     return IGNORED_WS;
     // var t = new E.Token("WS", this.str.slice(startPos, this.pos));
@@ -123,6 +125,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "ISNOTSPACESHIP", val: "is-not<=>", parenIsForExp: true},
     {name: "ISROUGHLY", val: "is-roughly", parenIsForExp: true},
     {name: "ISSPACESHIP", val: "is<=>", parenIsForExp: true},
+    {name: "BECAUSE", val: "because", parenIsForExp: true},
     {name: "LAM", val: "lam"},
     {name: "LAZY", val: "lazy"},
     {name: "LET", val: "let"},
@@ -540,11 +543,10 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
             this.curCol++;
           }
         }
-        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
-        this.addWhitespace(ws_loc);
         if (nestingDepth === 0) {
-          return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, ws_loc, tok_spec);
+          return this.makeWSToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
         } else {
+          var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
           return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
         }
       }},
@@ -555,9 +557,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
           this.pos++;
           this.curCol++;
         }
-        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
-        this.addWhitespace(ws_loc);
-        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, ws_loc, tok_spec);
+        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
       }}
   ]);
   

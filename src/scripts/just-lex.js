@@ -23,6 +23,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-bas
   while (t.hasNext()) {
     var tok = t.next();
     newAns.push(tok);
+    // console.log(tok.toRepr(true) + tok.pos.toString(true));
     if (tokHist[tok.name] === undefined) tokHist[tok.name] = 0;
     tokHist[tok.name]++;
   }
@@ -56,12 +57,19 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-bas
   for (var tok in t.times) {
     var sumNew = t.times[tok].reduce((a, b) => a + b);
     var avgNew = sumNew / t.times[tok].length;
-    var sumOld = toks.times[tok].reduce((a, b) => a + b);
-    var avgOld = sumOld / toks.times[tok].length;
-    stats.push({name: tok,
-                sumNew, numNew: t.times[tok].length, avgNew,
-                sumOld, numOld: toks.times[tok].length, avgOld,
-                ratio: (avgOld / avgNew)});
+    if (toks.times[tok]) {
+      var sumOld = toks.times[tok].reduce((a, b) => a + b);
+      var avgOld = sumOld / toks.times[tok].length;
+      stats.push({name: tok,
+                  sumNew, numNew: t.times[tok].length, avgNew,
+                  sumOld, numOld: toks.times[tok].length, avgOld,
+                  ratio: (avgOld / avgNew)});
+    } else {
+      stats.push({name: tok,
+                  sumNew, numNew: t.times[tok].length, avgNew,
+                  sumOld: 0, numOld: 0, avgOld: 0,
+                  ratio: (avgOld / 0)});
+    }
   }
   stats.sort((a, b) => (a.ratio - b.ratio));
   var maxTokLength = 0;
@@ -87,6 +95,23 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-bas
   // console.log(tokHist);
 
 
+
+  var differences = false;
+  for (var i = 0; i < Math.max(oldAns.length, newAns.length); i++) {
+    if (oldAns[i] === undefined && newAns[i] !== undefined) {
+      differences = true;
+    } else if (oldAns[i] !== undefined && newAns[i] === undefined) {
+      differences = true;
+    } else if (oldAns[i].name !== newAns[i].name ||
+               oldAns[i].pos.toString(true) !== newAns[i].pos.toString(true) ||
+               (""+oldAns[i].value).trim() !== (""+newAns[i].value).trim()) {
+      differences = true;
+    }
+  }
+  if (differences) {
+    console.log("\nDifferences");
+    console.log("Tok# ", ": ", "OLD TOKEN".padEnd(50), "NEW TOKEN");
+  }
   for (var i = 0; i < Math.max(oldAns.length, newAns.length); i++) {
     if (oldAns[i] === undefined && newAns[i] !== undefined) {
       var sOld = "<undefined>";
