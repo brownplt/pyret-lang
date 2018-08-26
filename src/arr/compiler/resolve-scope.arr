@@ -677,6 +677,23 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
+  fun make-import-atom-for(name, from-uri, env, shadow bindings, make-binding):
+    if A.is-s-name(name):
+      cases(Option) env.get(name.toname()) block:
+        | none =>
+          make-atom-for(name, false, env, bindings, make-binding)
+        | some(b) =>
+          spy "Found existing binding": b, from-uri, name end
+          # If they are from the same URI, can import the same name multiple
+          # times
+          shadowing = b.origin.uri-of-definition == from-uri
+          make-atom-for(name, shadowing, env, bindings, make-binding)
+      end
+    else:
+      make-atom-for(name, false, env, bindings, make-binding)
+    end
+  end
+
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.values):
@@ -807,7 +824,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | v-var(_, t) => C.vb-var
           | else => C.vb-let
         end
-        atom-env = make-atom-for(vname, false, env, bindings,
+        atom-env = make-import-atom-for(vname, mod-info.from-uri, env, bindings,
           C.value-bind(C.bo-module(vname.l, mod-info.from-uri), vbinder, _, A.a-any(vname.l)))
         atom-env.env
     end
@@ -818,7 +835,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     cases(Option) maybe-type-export:
       | none => raise("Cannot find type name " + tname.toname())
       | some(_) =>
-        atom-env = make-atom-for(tname, false, type-env, type-bindings,
+        atom-env = make-import-atom-for(tname, mod-info.from-uri, type-env, type-bindings,
           C.type-bind(C.bo-module(tname.l, mod-info.from-uri), C.tb-type-let, _, none))
         atom-env.env
     end
@@ -829,7 +846,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     cases(Option) maybe-module-export:
       | none => raise("Cannot find module name " + mname.toname())
       | some(uri) =>
-        atom-env = make-atom-for(mname, false, module-env, module-bindings,
+        atom-env = make-import-atom-for(mname, mod-info.from-uri, module-env, module-bindings,
           C.module-bind(C.bo-module(mname.l, mod-info.from-uri), _, uri))
         atom-env.env
     end
@@ -1040,7 +1057,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
       fun uri-from(start :: String, path :: List<A.Name>):
         cases(List) path:
-          | empty => start
+          | empty => some(start)
           | link(f, r) =>
             mod-info = initial-env.provides-by-uri-value(start)
             cases(Option) mod-info.modules.get(f.toname()):
@@ -1054,7 +1071,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         cases(List) full-path:
           | empty => none
           | link(f, r) =>
-            cases(Option) module-bindings.get(f.toname()):
+            cases(Option) final-visitor.module-env.get(f.toname()):
               | none => raise("Cannot find a binding for module named " + to-repr(f))
               | some(mod-bind) => uri-from(mod-bind.uri, r)
             end
@@ -1079,7 +1096,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             maybe-uri = path-uri(pre-path, path)
             atom = cases(Option) maybe-uri:
               | none => which-env.get-value(path.first.toname()).atom
-              | some(v) => A.s-name(l, path.last.toname())
+              | some(v) => A.s-name(l, path.last().toname())
             end
             cases(Option) as-name:
               | none => which-dict.set-now(atom.toname(), {l; maybe-uri; atom})
@@ -1102,7 +1119,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 data-expr = datatypes.get-value-now(path.first.toname())
                 { data-expr.name; data-expr.namet }
               | some(v) =>
-                { path.last.toname(); A.s-name(l, path.last.toname()) }
+                { path.last().toname(); A.s-name(l, path.last().toname()) }
             end
             data-expr = datatypes.get-value-now(path.first.toname())
             cases(Option) as-name:

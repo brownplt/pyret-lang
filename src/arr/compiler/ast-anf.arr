@@ -956,8 +956,11 @@ fun freevars-name-spec(ns, acc):
 end
 
 fun freevars-provides-acc(provide-block, acc):
-  for each(spec from provide-block.specs):
+  for each(spec from provide-block.specs) block:
     freevars-name-spec(spec.name-spec, acc)
+    when is-link(provide-block.path):
+      acc.set-now(provide-block.path.first.key(), provide-block.path.first)
+    end
   end
 end
 

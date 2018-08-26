@@ -43,3 +43,5 @@ import file("./tests/test-parse-errors.arr") as _
 import file("./tests/test-flatness.arr") as _
 import file("./tests/test-module-syntax.arr") as _
 import file("./tests/test-import-variable.arr") as _
+import file("./tests/modules/include-shadow-same.arr") as _
+import file("./tests/modules/import-re-provided.arr") as _

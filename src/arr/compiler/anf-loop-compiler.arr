@@ -1489,11 +1489,7 @@ compiler-visitor = {
           {
             cl-snoc(acc.{0},
               j-field(as-name.toname(), 
-                  rt-method("getDotAnn", [clist:
-                      self.get-loc(l),
-                      j-str(name.toname()),
-                      j-dot(j-dot(j-bracket(rt-field("modules"), j-str(uri)), "dict"), "types"),
-                      j-str(name.toname())])));
+                  get-module-field(uri, "types", name.toname())));
             acc.{1}
           }
       end
@@ -1511,13 +1507,8 @@ compiler-visitor = {
           end
           j-field(as-name.toname(), val-exp)
         | s-remote-ref(_, uri, name, as-name) =>
-          val-exp = j-bracket(
-            j-dot(
-              j-dot(
-                j-dot(j-bracket(rt-field("modules"), j-str(uri)), "dict"),
-                "values"),
-              "dict"),
-            j-str(name.toname()))
+          val-exp = get-module-field(uri, "values", name.toname())
+          
           j-field(as-name.toname(), val-exp)
       end
     end
@@ -2152,7 +2143,8 @@ fun compile-provides(provides):
             j-field(v, j-obj([clist:
               j-field("bind", j-str("alias")),
               j-field("origin", compile-origin(origin)),
-              j-field("original-name", j-str(name))
+              j-field("original-name", j-str(name)),
+              j-field("typ", j-bool(false))
             ]))
           | v-just-type(origin, t) => j-field(v, j-obj([clist:
               j-field("bind", j-str("let")),

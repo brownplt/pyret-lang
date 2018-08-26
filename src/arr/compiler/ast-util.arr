@@ -1131,7 +1131,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             cases(A.NameSpec) v.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
                 { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
-                vp.set(as-name.name(), CS.v-alias(val-export.origin, origin-name))
+                vp.set(as-name.toname(), CS.v-alias(val-export.origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 vb = resolved.env.bindings.get-value-now(name.key())
                 provided-value = cases(CS.ValueBinder) vb.binder:

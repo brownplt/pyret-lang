@@ -135,6 +135,7 @@ define("pyret-base/js/type-util", [], function() {
       }
       else if(value.bind === "alias") {
         return runtime.makeObject({
+          'original-name': value["original-name"],
           origin: origin,
           bind: "alias",
           typ: false

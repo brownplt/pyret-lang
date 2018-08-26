@@ -165,16 +165,19 @@ sharing:
   # that fully resolves names (once ValueExport and
   # friends have that information)
   method value-by-uri(self, uri :: String, name :: String):
-    self.all-modules
+    cases(Option) self.all-modules
       .get-value-now(uri)
       .provides.values
-      .get(name)
-      .and-then(lam(ve):
+      .get(name):
+
+      | none => none
+      | some(ve) =>
         cases(ValueExport) ve:
-          | v-alias(origin, shadow name) => self.value-by-uri(origin.uri-of-definition, name)
-          | else => ve
+          | v-alias(origin, shadow name) =>
+            self.value-by-uri(origin.uri-of-definition, name)
+          | else => some(ve)
         end
-      end)
+    end
   end,
   method value-by-uri-value(self, uri :: String, name :: String):
     cases(Option) self.value-by-uri(uri, name):
@@ -183,16 +186,19 @@ sharing:
     end
   end,
   method resolve-value-by-uri(self, uri :: String, name :: String):
-    self.all-modules
+    cases(Option) self.all-modules
       .get-value-now(uri)
       .provides.values
-      .get(name)
-      .and-then(lam(ve):
+      .get(name):
+
+      | none => none
+      | some(ve) =>
         cases(ValueExport) ve:
-          | v-alias(origin, shadow name) => self.resolve-value-by-uri(origin.uri-of-definition, name)
+          | v-alias(origin, shadow name) =>
+            self.resolve-value-by-uri(origin.uri-of-definition, name)
           | else => some({name; ve})
         end
-      end)
+    end
   end,
   method resolve-value-by-uri-value(self, uri :: String, name :: String):
     cases(Option) self.resolve-value-by-uri(uri, name):
@@ -465,7 +471,7 @@ fun provides-from-raw-provides(uri, raw):
     else:
       origin = origin-from-raw(uri, v.value.origin)
       if v.value.bind == "alias":
-        vdict.set(v.name, v-alias(origin, v.original-name))
+        vdict.set(v.name, v-alias(origin, v.value.original-name))
       else if v.value.bind == "var":
         vdict.set(v.name, v-var(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       else if v.value.bind == "fun":
