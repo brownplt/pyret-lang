@@ -713,6 +713,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           # If they are from the same URI, can import the same name multiple
           # times. If not, then they count as shadowing one another (e.g. two
           # values named list coming from two different libs)
+          spy: b, from-uri end
           shadowing = b.origin.uri-of-definition == from-uri
           make-atom-for(name, shadowing, env, bindings, make-binding)
       end
@@ -851,7 +852,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | v-var(_, t) => C.vb-var
           | else => C.vb-let
         end
-        atom-env = make-import-atom-for(vname, mod-info.from-uri, env, bindings,
+        atom-env = make-import-atom-for(vname, value-export.origin.uri-of-definition, env, bindings,
           C.value-bind(C.bo-module(vname.l, mod-info.from-uri), vbinder, _, A.a-any(vname.l)))
         atom-env.env
     end
