@@ -10,10 +10,13 @@
     },
     "values": {
       "list": ["forall", ["a"], ["Maker", ["tid", "a"], "lOfA"]],
+      "to-list": ["forall", ["a"], ["arrow", ["lOfA"], "lOfA"]],
       "at": ["forall", ["a"], ["arrow", ["lOfA", "Number"], "tva"]],
       "length": ["forall", ["a"], ["arrow", ["lOfA"], "Number"]],
       "contains": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "Boolean"]],
       "map": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "lOfB"]],
+      "flat-map": ["forall", ["a", "b"], ["arrow", ["lOfA", ["arrow", ["tva"], "tvb"]], "lOfB"]],
+      "flatten": ["forall", ["a"], ["arrow", ["lOfA"], "lOfA"]],
       "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "lOfA"]],
       "push": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "lOfA"]],
       "filter": ["forall", ["a"], ["arrow", ["lOfA", ["arrow", ["tva"], "Boolean"]], "lOfA"]],
@@ -24,7 +27,7 @@
       "range": ["arrow", ["Number", "Number"], "lOfInt"],
       "empty-list": ["forall", ["a"], ["arrow", [], "lOfA"]],
       "concat": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "lOfA"]],
-      "concat-push": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "lOfA"]]
+      "is-list": ["forall", ["a"], ["arrow", ["lOfA"], "Boolean"]]
     },
     "datatypes": {
       "List": ["data", "List", ["a"], [], {}]

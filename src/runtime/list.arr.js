@@ -51,12 +51,13 @@ module.exports = {
     return [];
   },
   'concat': function( listA, listB ) {
+    return listA.concat( listB );
+  },
+  'concat-push': function( listA, listB ) {
     for ( var index = 0; index < listB.length; index++ ) {
       listA.push( listB[index] );
     }
     
     return listA;
-    
-    /* return listA.concat( listB ); */
   }
 };

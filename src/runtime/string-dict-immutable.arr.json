@@ -2,19 +2,29 @@
   "requires": [],
   "provides": {
     "shorthands": {
-      "tva": ["tid", "a"]
+      "dOfA": ["tyapp", ["local", "StringDict"], [["tid", "a"]]],
+      "dOfI": ["tyapp", ["local", "StringDict"], ["Number"]],
+      "lOfA": ["tyapp", ["local", "List"], [["tid", "a"]]],
+      "lOfS": ["tyapp", ["local", "List"], ["String"]],
+      "tva": ["tid", "a"],
+      "tvb": ["tid", "b"]
     },
     "values": {
-      "string-dict": "tany",
-      "count": ["arrow", ["tany"], "tany"],
-      "apply": ["arrow", ["tany", "tany"], "tany"],
-      "insert": ["arrow", ["tany", "tany", "tany"], "tany"],
-      "size": ["arrow", ["tany"], "Number"],
-      "get": ["arrow", ["tany", "tany"], "tany"],
-      "has-key": ["arrow", ["tany", "tany"], "Boolean"],
-      "keys": ["arrow", ["tany"], "tany"],
-      "values": ["arrow", ["tany"], "tany"],
+      "string-dict": ["forall", ["a"], ["Maker", ["tid", "a"], "dOfA"]],
+      "make-string-dict": ["forall", ["a"], ["arrow", [], "dOfA"]],
+      "count": ["arrow", ["lOfS"], "dOfI"],
+      "apply": ["forall", ["a"], ["arrow", ["lOfS", ["arrow", ["String"], "tva"]], "dOfA"]],
+      "insert": ["forall", ["a"], ["arrow", ["dOfA", "String", "tva"], "dOfA"]],
+      "size": ["forall", ["a"], ["arrow", ["dOfA"], "Number"]],
+      "get": ["forall", ["a"], ["arrow", ["dOfA", "String"], "tva"]],
+      "has-key": ["forall", ["a"], ["arrow", ["dOfA", "String"], "Boolean"]],
+      "keys": ["forall", ["a"], ["arrow", ["dOfA"], "String"]],
+      "values": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
       "is-dict": ["arrow", ["tany"], "Boolean"]
+    },
+    "datatypes": {
+      "StringDict": ["data", "StringDict", ["a"], [], {}],
+      "List": ["data", "List", ["a"], [], {}]
     }
   }
 }

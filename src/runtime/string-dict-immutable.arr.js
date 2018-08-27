@@ -6,6 +6,9 @@ module.exports = {
       return Map( list[0] );
     }
   },
+  'make-string-dict': function() {
+    return Map();
+  },
   'count': function( list ) {
     var dict = Map();
 
@@ -25,7 +28,7 @@ module.exports = {
     var dict = Map();
 
     for ( var index = 0; index < list.size; index++ ) {
-      var elm = list[index];
+      var elm = list.get( index );
 
       dict = dict.set( elm, fun( elm ) );
     }
@@ -39,7 +42,7 @@ module.exports = {
     return dict.size;
   },
   'get': function( dict, elm ) {
-    return dict[elm];
+    return dict.get( elm );
   },
   'has-key': function( dict, elm ) {
     return dict.has( elm );

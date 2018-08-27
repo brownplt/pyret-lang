@@ -21,7 +21,7 @@ module.exports = {
   'map': function( list, fun ) {
     return list.map( fun );
   },
-  'flatMap': function( list, fun ) {
+  'flat-map': function( list, fun ) {
     return List( list ).flatMap( fun );
   },
   'flatten': function( list ) {
@@ -42,8 +42,11 @@ module.exports = {
   'sum': function( list ) {
     return list.reduce( ( x, y ) => x + y, 0 );
   },
+  'min': function( list ) {
+    return list.min();
+  },
   'max': function( list ) {
-    return list.reduce( ( x, y ) => Math.max( x, y ), list[0] )
+    return list.max();
   },
   'range': function( start, end ) {
     list = List( [] );
@@ -58,13 +61,6 @@ module.exports = {
     return List( [] );
   },
   'concat': function( listA, listB ) {
-    /* var newList = List( listA );
-
-    for ( var index = 0; index < listB.size; index++ ) {
-      newList = newList.push( listB.get( index ) );
-    }
-    
-    return newList; */
 		return listA.concat( listB );
   },
   'is-list': function( list ) {

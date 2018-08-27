@@ -297,6 +297,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op==" then: j-binop(lv, J.j-eq, rv)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
+        | op == "opor" then: j-binop(lv, J.j-or, rv)
         | otherwise: nyi(op)
       end
       { val; lstmts + rstmts }
