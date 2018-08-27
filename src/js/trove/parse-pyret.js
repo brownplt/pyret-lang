@@ -270,13 +270,10 @@
               makeListComma(node.kids, 1, node.kids.length - skippedLast));
           }
           else {
-            var ans = RUNTIME.getField(ast, "s-provide-block").app(
+            return RUNTIME.getField(ast, "s-provide-block").app(
               pos(node.pos),
               tr(node.kids[2]),
               makeListComma(node.kids, 4, node.kids.length - skippedLast));
-            console.log(node.kids[2]);
-            console.log(node);
-            return ans;
           }
         },
         'provide-vals-stmt': function(node) {

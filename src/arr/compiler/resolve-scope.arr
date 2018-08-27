@@ -683,9 +683,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | none =>
           make-atom-for(name, false, env, bindings, make-binding)
         | some(b) =>
-          spy "Found existing binding": b, from-uri, name end
           # If they are from the same URI, can import the same name multiple
-          # times
+          # times. If not, then they count as shadowing one another (e.g. two
+          # values named list coming from two different libs)
           shadowing = b.origin.uri-of-definition == from-uri
           make-atom-for(name, shadowing, env, bindings, make-binding)
       end
