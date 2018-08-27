@@ -862,8 +862,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     maybe-type-export = mod-info.aliases.get(tname.toname())
     cases(Option) maybe-type-export:
       | none => raise("Cannot find type name " + tname.toname())
-      | some(_) =>
-        atom-env = make-import-atom-for(tname, mod-info.from-uri, type-env, type-bindings,
+      | some(t) =>
+        uri-of-typ = cases(T.Type) t:
+          | t-name(module-name, id, _, _) =>
+            cases(T.NameOrigin) module-name:
+              | local => mod-info.from-uri
+              | module-uri(shadow uri) => uri
+              | dependency(d) => mod-info.from-uri
+            end
+          | else => mod-info.from-uri
+        end
+        atom-env = make-import-atom-for(tname, uri-of-typ, type-env, type-bindings,
           C.type-bind(C.bo-module(tname.l, mod-info.from-uri), C.tb-type-let, _, none))
         atom-env.env
     end

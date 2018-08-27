@@ -1146,7 +1146,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
             cases(A.NameSpec) t.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                tp.set(as-name.name(), T.t-name(T.module-uri(uri), name, l, false))
+                tp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
               | s-local-ref(l, name, as-name) =>
                 tb = resolved.env.type-bindings.get-value-now(name.key())
                 typ = cases(Option) tb.ann:
@@ -1382,7 +1382,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
             cases(A.NameSpec) v.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
                 { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
-                vp.set(as-name.name(), CS.v-alias(val-export.origin, origin-name))
+                vp.set(as-name.toname(), CS.v-alias(val-export.origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 tc-typ = typed.info.types.get-value(name.key())
                 val-bind = resolved.env.bindings.get-value-now(name.key())
@@ -1395,7 +1395,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
           typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
             cases(A.NameSpec) t.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                tp.set(as-name.name(), T.t-name(T.module-uri(uri), name, l, false))
+                tp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
               | s-local-ref(l, name, as-name) =>
                 key = name.key()
                 cases(Option) typed.info.data-types.get(key):
