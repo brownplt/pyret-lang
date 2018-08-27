@@ -623,6 +623,33 @@ fun get-origin-loc(o):
 end
 
 
+fun uri-from(start :: String, path :: List<A.Name>, compile-env):
+  cases(List) path:
+    | empty => some(start)
+    | link(f, r) =>
+      mod-info = compile-env.provides-by-uri-value(start)
+      cases(Option) mod-info.modules.get(f.toname()):
+        | none => raise("Cannot find a a provided module named  " + to-repr(f) + " on module " + start)
+        | some(uri) => uri-from(uri, r, compile-env)
+      end
+  end
+end
+
+fun maybe-uri-for-path(full-path :: List<A.Name>, compile-env, mod-env):
+  cases(List) full-path:
+    | empty => none
+    | link(f, r) =>
+      cases(Option) mod-env.get(f.toname()):
+        | none => raise("Cannot find a binding for module named " + to-repr(f))
+        | some(mod-bind) => uri-from(mod-bind.uri, r, compile-env)
+      end
+  end
+end
+
+fun path-uri(pre-path, path, compile-env, mod-env):
+  maybe-uri-for-path(pre-path + path.take(path.length() - 1), compile-env, mod-env)
+end
+
 fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   doc: ```
        Turn all s-names into s-atom or s-global
@@ -867,13 +894,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             adder(which-env, A.s-name(l, n), mod-info)
           end
         | s-module-ref(l, path, as-name) =>
-          when path.length() <> 1:
-            raise("Dotted module paths not yet supported")
-          end
           when is-some(as-name):
             raise("Aliasing on include not yet supported")
           end
-          adder(which-env, path.first, mod-info)
+          maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
+          shadow mod-info = cases(Option) maybe-uri:
+            | none => raise("Could not find module " + to-repr(path))
+            | some(p-uri) => initial-env.provides-by-uri-value(p-uri)
+          end
+          adder(which-env, path.last(), mod-info)
       end
     end
 
@@ -924,10 +953,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             A.s-include-data(l, A.s-star(l, empty), [list:])
           ]))
       | s-include-from(l, name, specs) =>
-        when name.length() <> 1:
-          raise("Cannot yet support dotted module refs in include")
-        end
-
         # NOTE(joe): This few lines is a funky little pattern. It may be worth
         # extracting for generic use for values & types as well. The reason
         # it's necessary is that it's useful to use atoms to avoid putting
@@ -939,16 +964,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         else:
           imp-me.get(name.first.toname())
         end
-
-        cases(Option) module-info:
+        { first-mod-uri; atom } = cases(Option) module-info:
           | none => raise("Could not find import: " + name.first.toname())
-          | some(mod-bind) =>
-            mod-info = initial-env.provides-by-uri-value(mod-bind.uri)
-            {specs-e; specs-te; specs-me; _ } = for fold(shadow acc from acc, s from specs):
-              add-spec(acc, mod-info, s)
-            end
-            {specs-e; specs-te; specs-me; link(A.s-include-from(l, [list: mod-bind.atom], specs), imp-imps)}
+          | some(mod-bind) => { mod-bind.uri; mod-bind.atom }
         end
+        dotted-uri = cases(Option) uri-from(first-mod-uri, name.drop(1), initial-env):
+          | none => raise("Could not find module " + to-repr(name))
+          | some(uri) => uri
+        end
+        mod-info = initial-env.provides-by-uri-value(dotted-uri)
+        {specs-e; specs-te; specs-me; _ } = for fold(shadow acc from acc, s from specs):
+          add-spec(acc, mod-info, s)
+        end
+        {specs-e; specs-te; specs-me; link(A.s-include-from(l, [list: atom], specs), imp-imps)}
     end
   end
 
@@ -1055,33 +1083,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       provided-types = [SD.mutable-string-dict:]
       provided-datatypes = [SD.mutable-string-dict:]
 
-      fun uri-from(start :: String, path :: List<A.Name>):
-        cases(List) path:
-          | empty => some(start)
-          | link(f, r) =>
-            mod-info = initial-env.provides-by-uri-value(start)
-            cases(Option) mod-info.modules.get(f.toname()):
-              | none => raise("Cannot find a a provided module named  " + to-repr(f) + " on module " + start)
-              | some(uri) => uri-from(uri, r)
-            end
-        end
-      end
-
-      fun maybe-uri-for-path(full-path :: List<A.Name>):
-        cases(List) full-path:
-          | empty => none
-          | link(f, r) =>
-            cases(Option) final-visitor.module-env.get(f.toname()):
-              | none => raise("Cannot find a binding for module named " + to-repr(f))
-              | some(mod-bind) => uri-from(mod-bind.uri, r)
-            end
-        end
-      end
-
-      fun path-uri(pre-path, path):
-        maybe-uri-for-path(pre-path + path.take(path.length() - 1))
-      end
-
       fun expand-name-spec(which-dict, which-bindings, which-env, spec, pre-path):
         cases(A.NameSpec) spec:
           | s-star(shadow l, hidden) =>
@@ -1089,11 +1090,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               bind = which-env.get-value(k)
               when(bind.origin.new-definition):
                 # TODO(joe): check hiding
-                which-dict.set-now(bind.atom.toname(), {l; maybe-uri-for-path(pre-path); bind.atom})
+                which-dict.set-now(bind.atom.toname(), {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); bind.atom})
               end
             end
           | s-module-ref(shadow l, path, as-name) =>
-            maybe-uri = path-uri(pre-path, path)
+            maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
             atom = cases(Option) maybe-uri:
               | none => which-env.get-value(path.first.toname()).atom
               | some(v) => A.s-name(l, path.last().toname())
@@ -1110,10 +1111,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             for each(k from datatypes.keys-list-now()):
               data-expr = datatypes.get-value-now(k)
               # TODO(joe): need to check datatypes from elsewhere with .new-definition?
-              provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path); data-expr.namet})
+              provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); data-expr.namet})
             end
           | s-module-ref(shadow l, path, as-name) =>
-            maybe-uri = path-uri(pre-path, path)
+            maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
             {name; atom} = cases(Option) maybe-uri:
               | none =>
                 data-expr = datatypes.get-value-now(path.first.toname())
