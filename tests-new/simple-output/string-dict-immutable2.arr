@@ -1,4 +1,4 @@
-### List [ 'a', 'b', 'c' ]
+### List [ "a", "b", "c" ]
 import list-immutable as L
 import string-dict-immutable as D
 import global as G

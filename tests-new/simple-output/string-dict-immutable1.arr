@@ -1,4 +1,4 @@
-### Map { z: 3, y: 2, x: 1 }
+### Map { "z": 3, "y": 2, "x": 1 }
 import string-dict-immutable as D
 import global as G
 
