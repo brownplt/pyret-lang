@@ -2,11 +2,7 @@ provide *
 provide-types *
 
 import global as _
-import lists as lists
-
-type Row = {
-  get-value :: (String -> Any)
-}
+include lists
 
 type Reducer<Acc, InVal, OutVal> = {
   one :: (InVal -> {Acc; OutVal}),
@@ -79,9 +75,9 @@ raw-row = {
 fun table-from-raw-array(arr):
   cols = raw-array-get(arr, 0).get-column-names()
   with-cols =
-    for lists.fold(t from table: ignore end.drop("ignore"), 
+    for fold(t from table: ignore end.drop("ignore"),
             c from cols):
-      t.add-column(c, lists.empty)
+      t.add-column(c, empty)
     end
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
     t.add-row(r)

@@ -40,3 +40,4 @@ import file("./tests/test-reactor.arr") as _
 import file("./tests/test-tail-call.arr") as _
 import file("./tests/test-parse.arr") as _
 import file("./tests/test-parse-errors.arr") as _
+import file("./tests/test-flatness.arr") as _

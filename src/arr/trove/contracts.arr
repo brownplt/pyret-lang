@@ -3,8 +3,8 @@
 provide *
 provide-types *
 import global as _
-import lists as L
-import option as O
+include lists
+include option
 import error-display as ED
 
 fun draw-and-highlight(l):
@@ -55,23 +55,64 @@ data FieldFailure:
 end
 
 data FailureReason:
+  | bad-bracket-target(loc, obj) with:
+    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      obj-loc = if src-available(loc):
+        cases(Option) maybe-ast(loc):
+          | some(ast) =>
+            if ast.label() == "s-bracket": ast.obj.l
+            else: loc
+            end
+          | none => loc
+        end
+      else: loc
+      end
+      [ED.error:
+        [ED.para:
+          ED.text("A "), ED.highlight(ED.text("bracket expression"), [ED.locs: self.loc], 0),
+          ED.text(" only works with "),
+          ED.code(ED.text("Row")), ED.text("s, "),
+          ED.code(ED.text("StringDict")), ED.text("s, or values that define a "),
+          ED.code(ED.text("get-value")), ED.text(" method.")],
+        ED.cmcode(self.loc),
+        [ED.para: ED.text("The bracket expression's "),
+          ED.highlight(ED.text("target"), [ED.locs: obj-loc], 1), ED.text(" was:")],
+        [ED.para: ED.embed(self.obj)]]
+    end,
+    method render-reason(self, loc, from-fail-arg):
+      [ED.error:
+        [ED.para:
+          ED.text("The bracket expression at "), draw-and-highlight(self.loc),
+          ED.text(" only works with "),
+          ED.code(ED.text("Row")), ED.text("s, "),
+          ED.code(ED.text("StringDict")), ED.text("s, or values that define a "),
+          ED.code(ED.text("get-value")), ED.text(" method.  The value was:")],
+        [ED.para: ED.embed(self.obj)]]
+    end
   | failure-at-arg(loc, index, function-name, args, reason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      cases(O.Option) maybe-stack-loc(0, true):
+      cases(Option) maybe-stack-loc(0, true):
         | some(app-loc) =>
           if src-available(app-loc):
-            cases(O.Option) maybe-ast(app-loc):
+            cases(Option) maybe-ast(app-loc):
               | some(ast) =>
+                ast-label = ast.label()
+                {nth-arg; call-type} = ask:
+                  | ast-label == "s-bracket" then:
+                    {if self.index == 0: ast.obj else: ast.key end; "bracket expression"}
+                  | otherwise:
+                    {ast.args.get(self.index); "function application"}
+                end
                 [ED.error:
                   [ED.para:
                     ED.text("The "),
-                    ED.highlight(ED.text("function application"), [ED.locs: app-loc], -1)],
+                    ED.highlight(ED.text(call-type), [ED.locs: app-loc], -1)],
                    ED.cmcode(app-loc),
                   [ED.para:
                     ED.text("failed because the "),
                     ED.highlight(
-                      [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")], 
-                      [ED.locs: ast.args.get(self.index).l], 0),
+                      [ED.sequence: ED.ed-nth(self.index + 1), ED.text(" argument")],
+                      [ED.locs: nth-arg.l], 0),
                     ED.text(" evaluated to an unexpected value.")],
                   self.reason.render-fancy-reason(loc, false, maybe-stack-loc, src-available, maybe-ast)]
               | none      =>
@@ -114,9 +155,8 @@ data FailureReason:
           ED.text(" : The argument at position " + tostring(self.index + 1)),
           ED.text(" was invalid because: ")],
         self.reason.render-reason(loc, from-fail-arg),
-        [ED.para:
-          ED.text("The other arguments were:"),
-          ED.h-sequence(L.map(ED.embed, self.args), " ", O.some(" and "))]]
+        [ED.para: ED.text("The other arguments were:")],
+        [ED.para: ED.h-sequence-sep(map(ED.embed, self.args), " ", " and ")]]
     end
   | ref-init(loc, reason :: FailureReason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast) block:
@@ -161,7 +201,7 @@ data FailureReason:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
         if from-fail-arg:
-          cases(O.Option) maybe-stack-loc(1, true):
+          cases(Option) maybe-stack-loc(1, true):
             | some(sender) =>
               if src-available(sender):
                 [ED.sequence:
@@ -184,7 +224,7 @@ data FailureReason:
         ED.text(" because of the annotation at "), draw-and-highlight(loc),
         ED.text(" but got:")]
       if from-fail-arg:
-        ED.maybe-stack-loc(0, true, 
+        ED.maybe-stack-loc(0, true,
           lam(l):
             [ED.error: message, ED.embed(self.val),
               [ED.para: ED.text("called from around "), draw-and-highlight(l)]]
@@ -222,7 +262,7 @@ data FailureReason:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
         if from-fail-arg:
-          cases(O.Option) maybe-stack-loc(1, true):
+          cases(Option) maybe-stack-loc(1, true):
             | some(sender) =>
               if src-available(sender):
                 [ED.sequence:
@@ -244,7 +284,7 @@ data FailureReason:
         ED.text("The predicate"), ED.code(ED.text(self.name)),
         ED.text("in the annotation at"), draw-and-highlight(loc), ED.text("returned false for this value:")]
       if from-fail-arg:
-        ED.maybe-stack-loc(0, true, 
+        ED.maybe-stack-loc(0, true,
           lam(l):
             [ED.error: message, ED.embed(self.val),
               [ED.para: ED.text("called from around"), draw-and-highlight(l)]]
@@ -254,7 +294,7 @@ data FailureReason:
         [ED.error: message, ED.embed(self.val)]
       end
     end
-  | record-fields-fail(val, field-failures :: L.List<FieldFailure>) with:
+  | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         if loc.is-builtin():
@@ -276,7 +316,7 @@ data FailureReason:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
         if from-fail-arg:
-          cases(O.Option) maybe-stack-loc(1, true):
+          cases(Option) maybe-stack-loc(1, true):
             | some(sender) =>
               if src-available(sender):
                 [ED.sequence:
@@ -294,7 +334,7 @@ data FailureReason:
         else: [ED.sequence:] end,
         [ED.para:
           ED.text("because, "),
-          L.map_n(lam(n, failure):
+          map_n(lam(n, failure):
             cases(FieldFailure) failure block:
               | missing-field(fl, ff) =>
                 if src-available(fl):
@@ -303,7 +343,7 @@ data FailureReason:
                     ED.highlight(ED.text("expected"), [ED.locs: fl], n),
                     ED.text(" to have a field named "),
                     ED.code(ED.text(ff))]
-                else: 
+                else:
                   [ED.sequence:
                     ED.text("The value was expected to have a field named "),
                     ED.code(ED.text(ff)),
@@ -325,7 +365,7 @@ data FailureReason:
         ED.bulleted-sequence(self.field-failures.map(_.render-reason(loc, false)))
       ]
     end
-  | tuple-anns-fail(val, anns-failures :: L.List<FieldFailure>) with:
+  | tuple-anns-fail(val, anns-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         if loc.is-builtin():
@@ -353,7 +393,7 @@ data FailureReason:
           ED.text("was not satisfied by the value")],
         ED.embed(self.val),
         if from-fail-arg:
-          cases(O.Option) maybe-stack-loc(1, true):
+          cases(Option) maybe-stack-loc(1, true):
             | some(sender) =>
               if src-available(sender):
                 [ED.sequence:
@@ -371,7 +411,7 @@ data FailureReason:
         else: [ED.sequence:] end,
         [ED.para:
           ED.text("because, "),
-          L.map_n(lam(n, failure):
+          map_n(lam(n, failure):
             cases(FieldFailure) failure block:
               | missing-field(fl, ff) =>
                 if src-available(fl):
@@ -380,7 +420,7 @@ data FailureReason:
                     ED.highlight(ED.text("expected"), [ED.locs: fl], n),
                     ED.text(" to have a field named "),
                     ED.code(ED.text(ff))]
-                else: 
+                else:
                   [ED.sequence:
                     ED.text("The value was expected to have a field named "),
                     ED.code(ED.text(ff)),
@@ -433,7 +473,7 @@ data FailureReason:
             ED.text(" component tuple:")],
           ED.embed(self.val),
           if from-fail-arg:
-            cases(O.Option) maybe-stack-loc(1, true):
+            cases(Option) maybe-stack-loc(1, true):
               | some(sender) =>
                 if src-available(sender):
                   [ED.sequence:
@@ -460,7 +500,7 @@ data FailureReason:
         [ED.para:
           ED.text("The given tuple had the incorrect length of "),
           ED.embed(self.tupleLength)]
-      ] 
+      ]
     end
   | dot-ann-not-present(name, field) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
@@ -520,9 +560,8 @@ data FailureReason:
     end,
     method render-reason(self, loc, from-fail-arg):
       [ED.error:
-        [ED.para: ED.text("Couldn't find"),
+        [ED.para: ED.text("Couldn't find "),
           ED.loc-display(loc, "error-highlight", ED.text("the annotation named " + self.field)),
-          ED.text("in the annotations from"), ED.code(ED.text(self.name))]]
+          ED.text(" in the annotations from"), ED.code(ED.text(self.name))]]
     end
 end
-

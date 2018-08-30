@@ -30,12 +30,13 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime["checkTable"] = runtime.makeCheckType(table.isTable, "Table");
         runtime["checkRow"] = runtime.makeCheckType(table.isRow, "Row");
         runtime["isTable"] = table.isTable;
-        runtime["isRow"] = table.isTable;
+        runtime["isRow"] = table.isRow;
         runtime["checkWrapTable"] = function(val) {
           runtime.checkTable(val);
           return val;
         };
         runtime.makePrimAnn("Table", table.isTable);
+        runtime.makePrimAnn("Row", table.isRow);
       },
       "builtin://data-source": function(ds) {
         ds = runtime.getField(runtime.getField(ds, "provide-plus-types"), "values");

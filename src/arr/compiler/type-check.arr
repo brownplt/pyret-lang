@@ -126,7 +126,7 @@ fun split<X, Y>(ps :: List<{X;Y}>) -> {List<X>; List<Y>}:
 end
 
 fun import-to-string(i :: A.ImportType, c :: C.CompileEnvironment) -> String:
-  c.mods.get-value(AU.import-to-dep(i).key()).from-uri
+  c.uri-by-dep-key(AU.import-to-dep(i).key())
 end
 
 # if a t-name refers to a polymorphic data type convert it to a t-app with existentials
@@ -166,13 +166,13 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
-      uri = globvs.get-value(g)
+      dep-key = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
 
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.mods.get-value(uri).values.get-value(g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-dep-key-value(dep-key, g).t))
       end
     end
   end, context)
@@ -180,11 +180,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
-      uri = globts.get-value(g)
+      dep-key = globts.get-value(g)
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.mods.get(uri):
+        cases(Option<C.Provides>) compile-env.provides-by-dep-key(dep-key):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -196,7 +196,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, module
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(uri) + " in " + torepr(compile-env.mods) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(dep-key) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end
@@ -427,7 +427,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-let should have already been desugared")
         | s-ref(l, ann) =>
           raise("checking for s-ref not implemented")
-        | s-contract(l, name, ann) =>
+        | s-contract(l, name, params, ann) =>
           raise("checking for s-contract not implemented")
         | s-when(l, test, block) =>
           raise("s-when should have already been desugared")
@@ -465,14 +465,14 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           checking-cases(l, typ, val, branches, some(_else), expect-type, context)
         | s-op(loc, op, l, r) =>
           raise("checking for s-op not implemented")
-        | s-check-test(loc, op, refinement, l, r) =>
+        | s-check-test(loc, op, refinement, l, r, cause) =>
           if is-some(test-inference-data):
             collect-example(e, context).typing-bind(lam(_, shadow context):
               typing-result(e, expect-type, context)
             end)
           else:
             shadow context = misc-collect-example(e, context)
-            synthesis-s-check-test(e, loc, op, refinement, l, r, context)
+            synthesis-s-check-test(e, loc, op, refinement, l, r, cause, context)
           end
         | s-check-expr(l, expr, ann) =>
           synthesis(expr, false, context) # XXX: this should probably use the annotation instead
@@ -552,7 +552,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-prim-app(l, _fun, args) =>
+        | s-prim-app(l, _fun, args, _) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-val(l, name) =>
           raise("checking for s-prim-val not implemented")
@@ -689,7 +689,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-let should have already been desugared")
     | s-ref(l, ann) =>
       raise("synthesis for s-ref not implemented")
-    | s-contract(l, name, ann) =>
+    | s-contract(l, name, params, ann) =>
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block) =>
       raise("s-when should have already been desugared")
@@ -728,7 +728,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       synthesis-cases(l, typ, val, branches, some(_else), context)
     | s-op(loc, op, l, r) =>
       raise("synthesis for s-op not implemented")
-    | s-check-test(loc, op, refinement, l, r) =>
+    | s-check-test(loc, op, refinement, l, r, cause) =>
       if is-some(test-inference-data):
         collect-example(e, context).typing-bind(lam(_, shadow context):
           result-type = new-existential(loc, false)
@@ -737,7 +737,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         end)
       else:
         shadow context = misc-collect-example(e, context)
-        synthesis-s-check-test(e, loc, op, refinement, l, r, context)
+        synthesis-s-check-test(e, loc, op, refinement, l, r, cause, context)
       end
     | s-check-expr(l, expr, ann) =>
       synthesis(expr, false, context) # XXX: this should probably use the annotation instead
@@ -800,9 +800,9 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         .typing-bind(lam(fun-type, shadow context):
           synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
         end)
-    | s-prim-app(l, _fun, args) =>
+    | s-prim-app(l, _fun, args, app-info) =>
       lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, shadow context):
-        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _), args, l, context)
+        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _, app-info), args, l, context)
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>
@@ -1733,11 +1733,7 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
         | none =>
           cases(A.Name) binding.id:
             | s-atom(base, _) =>
-              if base == "$underscore":
-                t-top(binding.l, false)
-              else:
-                new-existential(binding.l, true)
-              end
+              new-existential(binding.l, true)
             | else =>
               new-existential(binding.l, true)
           end
@@ -1757,8 +1753,12 @@ fun lam-to-type(coll :: SD.StringDict<Type>, l :: Loc, params :: List<A.Name>, a
     end
     shadow context = context.add-variable(ret-type)
     fold-arg-types = map-fold-result(lam(arg, shadow context):
+      arg-is-underscore = cases(A.Name) arg.id:
+        | s-atom(base, _) => base == "$underscore"
+        | else => false
+      end
       arg-type = coll.get-value(arg.id.key())
-      if top-level and is-t-existential(arg-type):
+      if top-level and is-t-existential(arg-type) and not(arg-is-underscore):
         fold-errors([list: C.toplevel-unann(arg)])
       else:
         shadow context = context.add-variable(arg-type)
@@ -1875,32 +1875,50 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
 end
 
 fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
-  collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
-    instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
-      cases(Type) obj-type:
-        | t-record(t-fields, _, inferred) =>
-          foldr-fold-result(lam(key, shadow context, final-fields):
-            cases(Option<Type>) t-fields.get(key):
+  instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
+    cases(Type) obj-type:
+      | t-record(t-fields, _, inferred) =>
+        foldr-fold-result(lam(field, shadow context, new-fields):
+          cases(Option<Type>) t-fields.get(field.name):
+            | none =>
+              fold-errors([list: C.object-missing-field(field.name, tostring(obj-type), obj-type.l, update-loc)])
+            | some(old-type) =>
+              cases(Type) old-type:
+                | t-ref(onto, l, ref-inferred) =>
+                  checking(field.value, onto, false, context).fold-bind(lam(new-value, _, shadow context):
+                    fold-result(link(A.s-data-field(field.l, field.name, new-value), fields), context)
+                  end)
+                | else =>
+                  fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
+              end
+          end
+        end, fields, context, empty).typing-bind(lam(final-fields, shadow context):
+          typing-result(A.s-update(update-loc, obj, final-fields), obj-type, context)
+        end)
+      | t-existential(_, l, _) =>
+        typing-error([list: C.unable-to-infer(l)])
+      | else =>
+        instantiate-data-type(obj-type, context).typing-bind(lam(data-type, shadow context):
+          foldr-fold-result(lam(field, shadow context, new-fields):
+            cases(Option<Type>) data-type.fields.get(field.name):
               | none =>
-                fold-errors([list: C.object-missing-field(key, tostring(obj-type), obj-type.l, update-loc)])
+                fold-errors([list: C.object-missing-field(field.name, tostring(obj-type), obj-type.l, update-loc)])
               | some(old-type) =>
                 cases(Type) old-type:
                   | t-ref(onto, l, ref-inferred) =>
-                    new-type = new-members.get-value(key)
-                    fold-result(final-fields.set(key, t-ref(new-type, new-type.l, ref-inferred)), context)
+                    checking(field.value, onto, false, context).fold-bind(lam(new-value, _, shadow context):
+                      fold-result(link(A.s-data-field(field.l, field.name, new-value), fields), context)
+                    end)
                   | else =>
                     fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
                 end
             end
-          end, new-members.keys-list(), context, t-fields).typing-bind(lam(final-fields, shadow context):
-            typing-result(A.s-update(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
+          end, fields, context, empty).typing-bind(lam(final-fields, shadow context):
+            typing-result(A.s-update(update-loc, obj, final-fields), obj-type, context)
           end)
-        | t-existential(_, l, _) =>
-          typing-error([list: C.unable-to-infer(l)])
-        | else =>
-          typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
-      end
-    end)
+        end)
+        # typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+    end
   end)
 end
 
@@ -2341,7 +2359,7 @@ fun ignore-checker(l :: Loc, binds :: List<A.LetBind>, body :: Expr, blocky, con
     handler(l, binds, body, context)
   end
 end
-fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, context :: Context) -> TypingResult:
+fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>, context :: Context) -> TypingResult:
   fun create-result(shadow context :: Context) -> TypingResult:
     result-type = new-existential(loc, false)
     shadow context = context.add-variable(result-type)
@@ -2452,7 +2470,7 @@ fun collect-example(e :: Expr%(is-s-check-test), context :: Context) -> FoldResu
     | none => fold-result(nothing, context)
     | some(inference-data) =>
       cases(A.Expr) e:
-        | s-check-test(l, op, refinement, lhs, rhs) =>
+        | s-check-test(l, op, refinement, lhs, rhs, cause) =>
           cases(A.CheckOp) op:
             | s-op-is(_) =>
               cases(Option<A.Expr>) refinement:
@@ -2517,7 +2535,7 @@ fun misc-collect-example(e :: Expr%(is-s-check-test), context :: Context) -> Con
     | none => context
     | some(fun-name) =>
       cases(A.Expr) e:
-        | s-check-test(l, op, refinement, lhs, rhs) =>
+        | s-check-test(l, op, refinement, lhs, rhs, cause) =>
           cases(A.CheckOp) op:
             | s-op-is(_) =>
               cases(Option<A.Expr>) refinement:

@@ -791,8 +791,8 @@ set-tail-visitor = A.default-map-visitor.{
       A.app-info-c(app-info.is-recursive, self.is-tail))
   end,
 
-  method s-prim-app(self, l, _fun, args):
-    A.s-prim-app(l, _fun, args.map(_.visit(self.{is-tail: false})))
+  method s-prim-app(self, l, _fun, args, app-info):
+    A.s-prim-app(l, _fun, args.map(_.visit(self.{is-tail: false})), app-info)
   end,
 
   # skip s-instantiate because all positions which could have s-app-enriched could be in the tail position
@@ -1013,10 +1013,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             cases(Option<String>) compile-env.globals.types.get(name):
               | none => raise("Name not found in globals.types: " + name)
               | some(key) =>
-                cases(Option<CS.Provides>) compile-env.mods.get(key):
-                  | none => raise("Module not found in compile-env.mods: " + key
+                cases(Option<URI>) compile-env.my-modules.get(key):
+                  | none => raise("Module not found in compile-env.my-modules: " + key
                         + " (looked up for " + name + " for module " + uri + ")")
-                  | some(mod) => T.t-name(T.module-uri(mod.from-uri), id, l, false)
+                  | some(mod-uri) => T.t-name(T.module-uri(mod-uri), id, l, false)
                 end
             end
           | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
@@ -1051,7 +1051,25 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               | tb-module(dot-uri) =>
                 T.t-name(module-uri(dot-uri), A.s-name(l, field), l, false)
               | else =>
-                raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope.")
+
+                # NOTE(joe): This case comes up in the way we expose modules
+                # across repl entries. If one entry does `import string-dict as
+                # SD` others will see it as a type-let bound type (tb-type-let
+                # in compile-structs). If those entries use
+                # `SD.MutableStringDict` as an annotation on a provided value,
+                # then it will look like an a-dot is happening to a type-let
+                # bound type. The fundamental issue is that type-env-from-env
+                # in resolve-names can't distinguish between modules and
+                # aliases coming from globals, so these necessarily get
+                # conflated. Ideally, we'd have more information in Globals to
+                # tell us this, and that would let all of the appropriate setup
+                # happen in resolve scope to make this case truly never happen.
+                # Instead, this is necessary.
+
+                T.t-top(l, false)
+
+                # raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope. " + to-repr(A.a-dot(l, obj, field)) + "\n" + to-repr(b) + "\n")
+
             end
         end
       | a-checked(checked, residual) =>
@@ -1203,8 +1221,8 @@ fun canonicalize-value-export(ve :: CS.ValueExport, uri :: URI, tn):
 end
 
 fun find-mod(compile-env, uri) -> Option<String>:
-  for find(depkey from compile-env.mods.keys-list()):
-    other-uri = compile-env.mods.get-value(depkey).from-uri
+  for find(depkey from compile-env.my-modules.keys-list()):
+    other-uri = compile-env.my-modules.get-value(depkey)
     other-uri == uri
   end
 end
@@ -1259,7 +1277,7 @@ fun canonicalize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvi
           end
         end
       | dependency(d) =>
-        provides-for-d = compile-env.mods.get(d)
+        provides-for-d = compile-env.provides-by-dep-key(d)
         cases(Option<CS.Provides>) provides-for-d:
         | some(p) => T.t-name(module-uri(p.from-uri), name, loc, inferred)
         | none => raise("Unknown module dependency for type: " + torepr(t) + " in provides for " + provides.from-uri)
@@ -1301,7 +1319,7 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
           end
         end
       | dependency(d) =>
-        provides-for-d = compile-env.mods.get(d)
+        provides-for-d = compile-env.my-modules.get(d)
         cases(Option<CS.Provides>) provides-for-d:
         | some(p) => t
         | none => raise("Unknown module dependency for type: " + torepr(t) + " in provides for " + provides.from-uri)

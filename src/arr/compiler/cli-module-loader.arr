@@ -72,7 +72,7 @@ j-for = J.j-for
 
 clist = C.clist
 
-type Loadable = CL.Loadable
+type Loadable = CS.Loadable
 
 
 type Either = E.Either
@@ -129,7 +129,7 @@ fun get-cached-if-available(basedir, loc) block:
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
             datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
           })
-        some(CL.module-as-string(provs, CS.minimal-builtins,
+        some(CS.module-as-string(provs, CS.no-builtins,
             CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
       end,
 
@@ -171,7 +171,7 @@ fun get-loadable(basedir, l) -> Option<Loadable>:
       aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
       datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
     })
-    some(CL.module-as-string(provs, CS.minimal-builtins, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
+    some(CS.module-as-string(provs, CS.no-builtins, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
   end
 end
 
@@ -374,6 +374,9 @@ fun build-program(path, options, stats) block:
   cached-modules = starter-modules.count-now()
   var num-compiled = cached-modules
   shadow options = options.{
+    method should-profile(_, locator):
+      options.add-profiling and (locator.uri() == base.locator.uri())
+    end,
     method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
       clear-and-print("Compiling " + num-to-string(num-compiled) + "/" + num-to-string(total-modules)
@@ -398,9 +401,9 @@ fun build-program(path, options, stats) block:
         # it can be pretty-printed after all
         loadable
       else:
-        cases(CL.Loadable) loadable:
+        cases(CS.Loadable) loadable:
           | module-as-string(prov, env, rp) =>
-            CL.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
+            CS.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
           | else => loadable
         end
       end

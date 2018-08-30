@@ -40,6 +40,31 @@
       return lst;
     }
 
+    function makePyretPos(fileName, p) {
+      var n = runtime.makeNumber;
+      return runtime.getField(S, "srcloc").app(
+        runtime.makeString(fileName),
+        n(p.startRow),
+        n(p.startCol),
+        n(p.startChar),
+        n(p.endRow),
+        n(p.endCol),
+        n(p.endChar)
+      );
+    }
+    function combinePyretPos(fileName, p1, p2) {
+      var n = runtime.makeNumber;
+      return runtime.getField(S, "srcloc").app(
+        runtime.makeString(fileName),
+        n(p1.startRow),
+        n(p1.startCol),
+        n(p1.startChar),
+        n(p2.endRow),
+        n(p2.endCol),
+        n(p2.endChar)
+      );
+    }
+
     function makeTreeSet(arr) {
       return gf(Se, 'list-to-tree-set').app(makeList(arr));
     }
@@ -260,9 +285,10 @@
 
     function throwTypeMismatch(val, typeName) {
       // NOTE(joe): can't use checkPyretVal here, because it will re-enter
-      // this function and blow up... so bottom out at "nothing"
+      // this function and blow up...
       if(!runtime.isPyretVal(val)) {
-        val = runtime.namespace.get("nothing");
+        console.log("Non Pyret value:", val);
+        val = "non-Pyret value; see the console for more details";
       }
       runtime.checkString(typeName);
       raise(err("generic-type-mismatch")(val, typeName));
@@ -479,6 +505,12 @@
       return err("module-load-failure")(namesList);
     }
 
+    function makeBadBracketException(loc, val) {
+      runtime.checkPyretVal(val);
+      return contract("bad-bracket-target")(loc, val);
+    }
+    
+    
     function makeRecordFieldsFail(value, failures) {
       runtime.checkPyretVal(value);
       return contract("record-fields-fail")(value, failures);
@@ -572,6 +604,8 @@
     runtime.makePrimAnn("List", isList);
 
     return runtime.makeJSModuleReturn({
+      makePyretPos : makePyretPos,
+      combinePyretPos : combinePyretPos,
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
       throwUpdateNonRef : throwUpdateNonRef,
@@ -624,6 +658,7 @@
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
+      makeBadBracketException: makeBadBracketException,
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
       makeFieldFailure: makeFieldFailure,

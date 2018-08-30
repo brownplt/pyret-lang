@@ -7,6 +7,7 @@ import load-lib as L
 import parse-pyret as P
 import string-dict as SD
 import runtime-lib as R
+import sets as S
 import file("./ast-util.arr") as U
 import file("./resolve-scope.arr") as RN
 import file("./compile-structs.arr") as CS
@@ -16,33 +17,14 @@ import file("./ast-util.arr") as AU
 
 type Either = E.Either
 
-fun add-global-binding(env :: CS.CompileEnvironment, name :: String):
-  CS.compile-env(
-    CS.globals(env.globals.values.set(name, TS.t-top), env.globals.types),
-    env.mods)
-end
-
-fun add-global-type-binding(env :: CS.CompileEnvironment, name :: String):
-  CS.compile-env(
-    CS.globals(env.globals.values, env.globals.types.set(name, TS.t-top)),
-    env.mods)
-end
-
-fun get-special-imports(program):
-  cases(A.Program) program:
-    | s-program(l, _, _, imports, _) =>
-      special-imps = for filter(i from imports):
-        A.is-s-special-import(i.file)
-      end
-      special-imps.map(_.file)
+standard-import-names = S.list-to-tree-set(
+  for map(ei from CS.standard-imports.imports):
+    ei.as-name
   end
-end
+)
 
-fun get-imp-dependency(imp):
-  cases(A.Import) imp:
-    | s-include(_, mod) => mod
-    | else => imp.file
-  end
+fun is-standard-import(imp :: CS.ExtraImport):
+  standard-import-names.member(imp.as-name)
 end
 
 fun get-defined-ids(p, imports, body):
@@ -163,7 +145,7 @@ end
 
 fun make-repl<a>(
     runtime :: R.Runtime,
-    modules :: SD.MutableStringDict<CL.Loadable>,
+    modules :: SD.MutableStringDict<CS.Loadable>,
     realm :: L.Realm,
     compile-context :: a,
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
@@ -216,11 +198,11 @@ fun make-repl<a>(
     current-compile-options := options
     current-realm := realm
     locator-cache := SD.make-mutable-string-dict()
-    current-modules := SD.make-mutable-string-dict()
+    current-modules := modules.freeze().unfreeze() # Make a copy
     extra-imports := CS.standard-imports
     current-finder := make-finder()
     globals := defs-locator.get-globals()
-    worklist = CL.compile-worklist(finder, defs-locator, compile-context)
+    worklist = CL.compile-worklist-known-modules(finder, defs-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules):
       current-modules.set-now(k, compiled.modules.get-value-now(k))
@@ -238,7 +220,7 @@ fun make-repl<a>(
   end
 
   fun run-interaction(repl-locator :: CL.Locator) block:
-    worklist = CL.compile-worklist(finder, repl-locator, compile-context)
+    worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules) block:
       m = compiled.modules.get-value-now(k)
@@ -271,7 +253,11 @@ fun make-repl<a>(
     end
     # Strip names from these, since they will be provided
     extras-now = CS.extra-imports(for lists.map(ei from extra-imports.imports):
-      CS.extra-import(ei.dependency, "_", ei.values, ei.types)
+      if is-standard-import(ei):
+        ei
+      else:
+        CS.extra-import(ei.dependency, "_", ei.values, ei.types)
+      end
     end)
     globals-now = globals
     {

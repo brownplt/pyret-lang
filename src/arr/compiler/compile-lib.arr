@@ -96,9 +96,6 @@ type Either = E.Either
 
 mtd = [SD.string-dict:]
 
-# for re-export
-standard-builtins = CS.standard-builtins
-
 type URI = String
 
 data PyretCode:
@@ -106,11 +103,10 @@ data PyretCode:
   | pyret-ast(ast :: A.Program)
 end
 
-data Loadable:
-  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
-end
-
 type ModuleResult = Any
+
+type Loadable = CS.Loadable
+module-as-string = CS.module-as-string
 
 type Provides = CS.Provides
 
@@ -250,7 +246,11 @@ end
 
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
-fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile> block:
+fun compile-worklist<a>(dfind, locator, context):
+  compile-worklist-known-modules(dfind, locator, context, SD.make-mutable-string-dict())
+end
+
+fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a, current-modules :: SD.MutableStringDict<Provides>) -> List<ToCompile> block:
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
   fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
@@ -270,8 +270,10 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
           found
         end
         # visit all dependents
-        for map(f from found-mods):
-          visit(f.locator, f.context, link(f.locator, curr-path))
+        for each(f from found-mods):
+          when not(current-modules.has-key-now(f.locator.uri())):
+            visit(f.locator, f.context, link(f.locator, curr-path))
+          end
         end
         # add current locator to head of topo sort
         topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)
@@ -295,7 +297,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
     if not(cache.has-key-now(uri)) block:
       provide-map = dict-map(
           w.dependency-map,
-          lam(_, v): cache.get-value-now(v.uri()).provides end
+          lam(_, v): v.uri() end
       )
       options.before-compile(w.locator)
       {loadable :: Loadable; trace :: List} = compile-module(w.locator, provide-map, cache, options)
@@ -328,11 +330,15 @@ fun unique(lst):
   sets.list-to-list-set(lst).to-list()
 end
 
-fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> {Loadable; List} block:
+fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, modules, options) -> {Loadable; List} block:
+  doc: ```
+    Invariant: provide-map maps dependency keys to URIs
+    which ALL must be keys in modules.
+  ```
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
-  env = CS.compile-env(locator.get-globals(), provide-map)
+  env = CS.compile-env(locator.get-globals(), modules, provide-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
       #print("Module is already compiled\n")
@@ -419,6 +425,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
+            shadow options = options.{should-profile: options.should-profile(locator)}
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
@@ -433,7 +440,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                             .visit(AU.set-tail-visitor)
                 add-phase("Cleaned AST", cleaned)
                 {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, provides, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
                 else:
                   if options.collect-all and options.ignore-unbound:
                     JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)
@@ -467,7 +474,7 @@ type PyretAnswer = Any
 type PyretMod = Any
 
 fun is-error-compilation(cr):
-  is-module-as-string(cr) and CS.is-err(cr.result-printer)
+  CS.is-module-as-string(cr) and CS.is-err(cr.result-printer)
 end
 
 fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):

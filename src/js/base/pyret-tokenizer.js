@@ -1,10 +1,46 @@
 define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
-  const Grammar = E.Grammar
-  const Nonterm = E.Nonterm
-  const Token = E.Token
   const SrcLoc = E.SrcLoc
-  const GenTokenizer = E.Tokenizer;
-  const STICKY_REGEXP = E.STICKY_REGEXP;
+  const GenTokenizer = E.Tokenizer2;
+  const IGNORED_WS = {name: "WS"};
+
+  function Tokenizer(spec) {
+    [spec.keywords, spec.comments, spec.symbols].forEach(function(specs) {
+      for (var first in specs)
+        specs[first].forEach(function(s) {
+          if (s.parenIsForExp === true)
+            s.parenIsForExp = "PARENSPACE";
+          else if (!s.parenIsForExp)
+            s.parenIsForExp = false;
+        });
+    });
+    for (var first in spec.keywords) {
+      spec.keywords[first].forEach(function(s) { s.noFollow = spec.keywordsNoFollow; })
+    }
+    GenTokenizer.call(this, spec);
+    this.parenIsForExp = "PARENSPACE";
+  }
+  Tokenizer.prototype = Object.create(GenTokenizer.prototype);
+  Tokenizer.prototype.tokenizeFrom = function(str) {
+    GenTokenizer.prototype.tokenizeFrom.call(this, str);
+    this.parenIsForExp = "PARENSPACE";
+  }
+  Tokenizer.prototype.makeToken = function makeToken(tok_name, s, pos, tok_spec) { 
+    var t = new E.Token(tok_name, s);
+    t.pos = pos;
+    this.parenIsForExp = tok_spec && tok_spec.parenIsForExp;
+    this.priorWhitespace = false;
+    return t;
+  };
+  Tokenizer.prototype.makeWSToken = function makeWSToken(startLine, startCol, startPos) {
+    this.parenIsForExp = true;
+    this.priorWhitespace = true;
+    this.addWhitespace(SrcLoc.make(startLine, startCol, startPos, this.line, this.col, this.pos));
+    return IGNORED_WS;
+    // var t = new E.Token("WS", this.str.slice(startPos, this.pos));
+    // t.pos = SrcLoc.make(startLine, startCol, startPos, this.line, this.col, this.pos);
+    // // Note: do not change parenIsForExp at all
+    // return t;
+  }
 
   const escapes = new RegExp("^(.*?)\\\\([\\\\\"\'nrt]|u[0-9A-Fa-f]{1,4}|x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|[\r\n]{1,2})");
   function fixEscapes(s) {
@@ -32,342 +68,506 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     ret += s;
     return ret;
   }
-
-  function Tokenizer(ignore_ws, Tokens) {
-    GenTokenizer.call(this, ignore_ws, Tokens);
-    this.parenIsForExp = true; // initialize this at the beginning of file to true
-  }
-  Tokenizer.prototype = Object.create(GenTokenizer.prototype);
-  Tokenizer.prototype.tokenizeFrom = function(str) {
-    GenTokenizer.prototype.tokenizeFrom.call(this, str);
-    this.parenIsForExp = "PARENSPACE";
-  }
-  Tokenizer.prototype.makeToken = function (tok_type, s, pos) {
-    switch(tok_type) {
-    case "STRING": s = fixEscapes(s); break;
-    case "LONG_STRING": tok_type = "STRING"; break;
-    case "PARENSPACE": case "PARENNOSPACE": case "PARENAFTERBRACE":
-    case "PLUS": case "DASH": case "STAR": case "SLASH":
-    case "LT": case "GT": case "CARET":
-      // Trim off whitespace
-      pos = SrcLoc.make(pos.endRow, pos.endCol - 1, pos.endChar - 1, pos.endRow, pos.endCol, pos.endChar);
-      break;
-    case "EQUALEQUAL": case "NEQ": case "LEQ": case "GEQ": // they're longer tokens
-      // Trim off whitespace
-      pos = SrcLoc.make(pos.endRow, pos.endCol - 2, pos.endChar - 2, pos.endRow, pos.endCol, pos.endChar);
-      break;
-    default:
-      break;
-    }
-    return GenTokenizer.prototype.makeToken(tok_type, s, pos);
-  }
-  Tokenizer.prototype.postProcessMatch = function(tok, match, str) {
-    var tok_type = tok.name;
-    if (tok_type === "PAREN?") {
-      for (var j = 0; j < this.Tokens.length; j++) {
-        if (STICKY_REGEXP !== '') {
-          var oldIndex = this.Tokens[j].val.lastIndex;
-          this.Tokens[j].val.lastIndex = 0;
-        }
-        var op = this.Tokens[j].val.exec(match[0]);
-        if (STICKY_REGEXP !== '') {
-          this.Tokens[j].val.lastIndex = oldIndex;
-        }
-        if (op !== null) {
-          tok_type = this.Tokens[j].name;
-          if (tok_type == "LPAREN?")
-            tok_type = this.parenIsForExp || "PARENNOSPACE";
-          break;
-        }
-      }
-    } else if (tok_type === "LPAREN?") {
-      tok_type = this.parenIsForExp || "PARENNOSPACE";
-    } else if (tok_type === "BLOCKCOMMENT") {
-      return this.tokenizeBlockComment(match, str, 1, 2);
-    }
-    this.parenIsForExp = tok.parenIsForExp || "PARENNOSPACE";
-    return tok_type;
-  }
-  Tokenizer.prototype.tokenizeBlockComment = function(match, str, nestingDepth, commentLen) {
-    var strLen = str.length;
-    while (nestingDepth > 0 && commentLen < strLen) {
-      if (str.substr(commentLen, 2) === "#|") {
-        nestingDepth++;
-        commentLen += 2;
-      } else if (str.substr(commentLen, 2) === "|#") {
-        nestingDepth--;
-        commentLen += 2;
-      } else {
-        commentLen++;
-      }
-    }
-    match[0] = str.substr(0, commentLen);
-    return nestingDepth == 0 ? "COMMENT" : "UNTERMINATED-BLOCK-COMMENT";
-  }
-
-  const ws_after = "(?=\\s|$|#)"; // allow actual space, end-of-input, or comments
-
-  function kw(str) { return "^(?:" + str + ")(?![-_a-zA-Z0-9])"; }
-  function colonKw(str) { return "^(?:" + str + ")"; }
-  function anyOf(strs) { return "(?:" + strs.join("|") + ")(?![-_a-zA-Z0-9])"; }
-  function op(str) { return "^\\s+" + str + ws_after; }
-
-  const name = new RegExp("^[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", STICKY_REGEXP);
-
-  const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
-  const unsigned_rational_part = "[0-9]+/[0-9]+"; 
-
-  const number = new RegExp("^[-+]?" + unsigned_decimal_part, STICKY_REGEXP);
-
-  const badNumber = new RegExp("^~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", STICKY_REGEXP);
-
-  const roughnum = new RegExp("^~[-+]?"  + unsigned_decimal_part, STICKY_REGEXP);
-
-  const rational = new RegExp("^[-+]?" + unsigned_rational_part, STICKY_REGEXP);
-
-  const roughrational = new RegExp("^~[-+]?" + unsigned_rational_part, STICKY_REGEXP);
-
-  const parenparen = new RegExp("^\\((?=\\()", STICKY_REGEXP); // NOTE: Don't include the following paren
-  const spaceparen = new RegExp("^\\s+\\(", STICKY_REGEXP);
-  const ws = new RegExp("^\\s+", STICKY_REGEXP);
-  const comment = new RegExp("^(#((?!\\|).*)?(?:\\n|\\r|\\r\\n|\\n\\r|$))", STICKY_REGEXP)
-  const blockcommentstart = new RegExp("^(#\\|)", STICKY_REGEXP);
-  const bar = new RegExp("^\\|", STICKY_REGEXP);
-  const langle = new RegExp("^<(?![>=])", STICKY_REGEXP);
-  const rangle = new RegExp("^>(?!=)", STICKY_REGEXP);
-  const lbrack = new RegExp("^\\[", STICKY_REGEXP);
-  const rbrack = new RegExp("^\\]", STICKY_REGEXP);
-  const lbrace = new RegExp("^\\{", STICKY_REGEXP);
-  const rbrace = new RegExp("^\\}", STICKY_REGEXP);
-  const lparen = new RegExp("^\\(", STICKY_REGEXP);
-  const rparen = new RegExp("^\\)", STICKY_REGEXP);
-  const period = new RegExp("^\\.", STICKY_REGEXP);
-  const dotdotdot = new RegExp("^\\.\\.\\.", STICKY_REGEXP);
-  const bang = new RegExp("^!", STICKY_REGEXP);
-  const percent = new RegExp("^%", STICKY_REGEXP);
-  const comma = new RegExp("^,", STICKY_REGEXP);
-  const thinarrow = new RegExp("^->", STICKY_REGEXP);
-  const thickarrow = new RegExp("^=>" + ws_after, STICKY_REGEXP);
-  const coloncolon = new RegExp("^::" + ws_after, STICKY_REGEXP);
-  const colon = new RegExp("^:", STICKY_REGEXP);
-  const equals = new RegExp("^=(?!~)", STICKY_REGEXP);
-  const colonequals = new RegExp("^:=", STICKY_REGEXP);
-  const semi = new RegExp("^;", STICKY_REGEXP);
-  const backslash = new RegExp("^\\\\", STICKY_REGEXP);
-
-  const oppcaret = new RegExp(op("\\^"), STICKY_REGEXP);
-  const opplus = new RegExp(op("\\+"), STICKY_REGEXP);
-  const opminus = new RegExp(op("-"), STICKY_REGEXP);
-  const optimes = new RegExp(op("\\*"), STICKY_REGEXP);
-  const opdiv = new RegExp(op("/"), STICKY_REGEXP);
-  const opleq = new RegExp(op("<="), STICKY_REGEXP);
-  const opgeq = new RegExp(op(">="), STICKY_REGEXP);
-  const opidentical = new RegExp(op("<=>"), STICKY_REGEXP);
-  const opeq = new RegExp(op("=="), STICKY_REGEXP);
-  const opeqnow = new RegExp(op("=~"), STICKY_REGEXP);
-  const opneq = new RegExp(op("<>"), STICKY_REGEXP);
-  const oplt = new RegExp(op("<"), STICKY_REGEXP);
-  const opgt = new RegExp(op(">"), STICKY_REGEXP);
   
+  function makeTrie(kwds) {
+    var ans = Object.create(null);
+    for (var i = 0; i < kwds.length; i++) {
+      var firsts = kwds[i].firsts || [kwds[i].val[0]];
+      firsts.forEach(function(first) {
+        var byFirst = ans[first];
+        if (byFirst === undefined)
+          byFirst = ans[first] = [];
+        byFirst.push(kwds[i]);
+      })
+    }
+    return ans;
+  }
+  function makeDict(str) {
+    var ans = {};
+    for (var i = 0; i < str.length; i++) {
+      ans[str[i]] = true;
+    }
+    return ans;
+  }
 
-  const opsNoSpace = new RegExp("^(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", STICKY_REGEXP);
+  var keywords = makeTrie([
+    {name: "AND", val: "and", parenIsForExp: true},
+    {name: "AS", val: "as"},
+    {name: "ASCENDING", val: "ascending"},
+    {name: "ASK", val: "ask", parenIsForExp: true},
+    {name: "BY", val: "by"},
+    {name: "CASES", val: "cases"},
+    {name: "CHECK", val: "check"},
+    {name: "DATA", val: "data"},
+    {name: "DESCENDING", val: "descending"},
+    {name: "DO", val: "do"},
+    {name: "RAISESNOT", val: "does-not-raise", parenIsForExp: true},
+    {name: "ELSE", val: "else"},
+    {name: "ELSEIF", val: "else if"},
+    {name: "END", val: "end"},
+    {name: "EXAMPLES", val: "examples", parenIsForExp: true},
+    {name: "TABLE-EXTEND", val: "extend"},
+    {name: "TABLE-EXTRACT", val: "extract"},
+    {name: "FALSE", val: "false"},
+    {name: "FOR", val: "for"},
+    {name: "FROM", val: "from"},
+    {name: "FUN", val: "fun"},
+    {name: "IF", val: "if"},
+    {name: "IMPORT", val: "import"},
+    {name: "INCLUDE", val: "include"},
+    {name: "IS", val: "is", parenIsForExp: true},
+    {name: "ISEQUALEQUAL", val: "is==", parenIsForExp: true},
+    {name: "ISEQUALTILDE", val: "is=~", parenIsForExp: true},
+    {name: "ISNOT", val: "is-not", parenIsForExp: true},
+    {name: "ISNOTEQUALEQUAL", val: "is-not==", parenIsForExp: true},
+    {name: "ISNOTEQUALTILDE", val: "is-not=~", parenIsForExp: true},
+    {name: "ISNOTSPACESHIP", val: "is-not<=>", parenIsForExp: true},
+    {name: "ISROUGHLY", val: "is-roughly", parenIsForExp: true},
+    {name: "ISSPACESHIP", val: "is<=>", parenIsForExp: true},
+    {name: "BECAUSE", val: "because", parenIsForExp: true},
+    {name: "LAM", val: "lam"},
+    {name: "LAZY", val: "lazy"},
+    {name: "LET", val: "let"},
+    {name: "LETREC", val: "letrec"},
+    {name: "LOAD-TABLE", val: "load-table"},
+    {name: "METHOD", val: "method"},
+    {name: "NEWTYPE", val: "newtype"},
+    {name: "OF", val: "of"},
+    {name: "OR", val: "or", parenIsForExp: true},
+    {name: "PROVIDE", val: "provide"},
+    {name: "PROVIDE-TYPES", val: "provide-types"},
+    {name: "RAISES", val: "raises", parenIsForExp: true},
+    {name: "RAISESOTHER", val: "raises-other-than", parenIsForExp: true},
+    {name: "RAISESSATISFIES", val: "raises-satisfies", parenIsForExp: true},
+    {name: "RAISESVIOLATES", val: "raises-violates", parenIsForExp: true},
+    {name: "REACTOR", val: "reactor"},
+    {name: "REC", val: "rec"},
+    {name: "REF", val: "ref"},
+    {name: "SANITIZE", val: "sanitize"},
+    {name: "SATISFIES", val: "satisfies", parenIsForExp: true},
+    {name: "TABLE-SELECT", val: "select"},
+    {name: "SHADOW", val: "shadow"},
+    {name: "TABLE-FILTER", val: "sieve"},
+    {name: "SPY", val: "spy"},
+    {name: "TABLE-ORDER", val: "order"},
+    {name: "TABLE-UPDATE", val: "transform"},
+    {name: "TRUE", val: "true"},
+    {name: "TYPE", val: "type"},
+    {name: "TYPE-LET", val: "type-let"},
+    {name: "USING", val: "using"},
+    {name: "VAR", val: "var"},
+    {name: "SATISFIESNOT", val: "violates", parenIsForExp: true},
+    {name: "WHEN", val: "when", parenIsForExp: true}
+  ]);
+  const keywordsNoFollow = new Set("-_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890");
 
-  // English ops don't require whitespace. That way it is possible to catch them in ID position
-  const opand = new RegExp(kw("and"), STICKY_REGEXP);
-  const opor = new RegExp(kw("or"), STICKY_REGEXP);
-  const opiseq = new RegExp(kw("is=="), STICKY_REGEXP);
-  const opiseqnow = new RegExp(kw("is=~"), STICKY_REGEXP);
-  const opisidentical = new RegExp(kw("is<=>"), STICKY_REGEXP);
-  const opis = new RegExp(kw("is"), STICKY_REGEXP);
-  const opisroughly = new RegExp(kw("is-roughly"), STICKY_REGEXP);
-  const opisnoteq = new RegExp(kw("is-not=="), STICKY_REGEXP);
-  const opisnoteqnow = new RegExp(kw("is-not=~"), STICKY_REGEXP);
-  const opisnotidentical = new RegExp(kw("is-not<=>"), STICKY_REGEXP);
-  const opisnot = new RegExp(kw("is-not"), STICKY_REGEXP);
-  const opsatisfies = new RegExp(kw("satisfies"), STICKY_REGEXP);
-  const opsatisfiesnot = new RegExp(kw("violates"), STICKY_REGEXP);
-  const opraises = new RegExp(kw("raises"), STICKY_REGEXP);
-  const opraisesother = new RegExp(kw("raises-other-than"), STICKY_REGEXP);
-  const opraisesnot = new RegExp(kw("does-not-raise"), STICKY_REGEXP);
-  const opraisessatisfies = new RegExp(kw("raises-satisfies"), STICKY_REGEXP);
-  const opraisesviolates = new RegExp(kw("raises-violates"), STICKY_REGEXP);
+  const wsString = " \f\n\r\t\v\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff";
+  const whitespace = makeDict(wsString);
+
+  const wsMustFollow = new Set(wsString); wsMustFollow.add("#"); wsMustFollow.add(undefined); // EOF
+
+  //const identChars = new RegExp("[_a-zA-Z][_a-zA-Z0-9]*(?:-+[_a-zA-Z0-9]+)*", "g");
+  const identChars = makeDict("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+
+
+  // const unsigned_decimal_part = "[0-9]+(?:\\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
+  // const unsigned_rational_part = "[0-9]+/[0-9]+"; 
+
+  // const number = new RegExp("[-+]?" + unsigned_decimal_part, "g");
+
+  const badNumber = new RegExp("~?[+-]?\\.[0-9]+(?:[eE][-+]?[0-9]+)?", "g");
+
+  // const roughnum = new RegExp("~[-+]?"  + unsigned_decimal_part, "g");
+
+  // const rational = new RegExp("[-+]?" + unsigned_rational_part, "g");
+
+  // const roughrational = new RegExp("~[-+]?" + unsigned_rational_part, "g");
+
+  const badOp = new RegExp("(?:\\^|\\+|-|\\*|/|<=|>=|<=>|>=|==|=~|<>|<|>|<-)", "g");
 
   const tquot_str =
-    new RegExp("^```(?:" +
+    new RegExp("```(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
                "|\\\\u[0-9a-fA-f]{1,4}" +
                "|\\\\[\\\\nrt\"\'`]" +
                "|`{1,2}(?!`)" +
-               "|[^`\\\\])*```", STICKY_REGEXP); // NOTE: Allow unescaped newlines
+               "|[^`\\\\])*```", "g"); // NOTE: Allow unescaped newlines
   const dquot_str =
-    new RegExp("^\"(?:" +
+    new RegExp("\"(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
                "|\\\\u[0-9a-fA-f]{1,4}" +
                "|\\\\[\\\\nrt\"\']" +
-               "|[^\\\\\"\n\r])*\"", STICKY_REGEXP);
+               "|[^\\\\\"\n\r])*\"", "g");
   const squot_str =
-    new RegExp("^\'(?:" +
+    new RegExp("\'(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
                "|\\\\u[0-9a-fA-f]{1,4}" +
                "|\\\\[\\\\nrt\"\']" +
-               "|[^\\\\\'\n\r])*\'", STICKY_REGEXP);
+               "|[^\\\\\'\n\r])*\'", "g");
 
-  const unterminated_string = new RegExp("^(?:[\"\']|```).*", STICKY_REGEXP);
+  const unterminated_string = new RegExp("(?:[\"\']|```).*", "g");
+  const octit = makeDict("01234567");
+  const digit = makeDict("0123456789");
+  const hexit = makeDict("0123456789abcdefABCDEF");
+  
+  var symbols = makeTrie([
+    {name: "BLOCK", val: "block:", parenIsForExp: true},
+    {name: "CHECKCOLON", val: "check:", parenIsForExp: true},
+    {name: "DOC", val: "doc:", parenIsForExp: true},
+    {name: "ELSECOLON", val: "else:", parenIsForExp: true},
+    {name: "EXAMPLESCOLON", val: "examples:", parenIsForExp: true},
+    {name: "OTHERWISECOLON", val: "otherwise:", parenIsForExp: true},
+    {name: "ROW", val: "row:"},
+    {name: "SHARING", val: "sharing:", parenIsForExp: true},
+    {name: "SOURCECOLON", val: "source:"},
+    {name: "TABLE", val: "table:"},
+    {name: "THENCOLON", val: "then:", parenIsForExp: true},
+    {name: "WHERE", val: "where:", parenIsForExp: true},
+    {name: "WITH", val: "with:", parenIsForExp: true},
+    {name: "LBRACK", val: "[", parenIsForExp: true},
+    {name: "RBRACK", val: "]"},
+    {name: "LBRACE", val: "{", parenIsForExp: "PARENAFTERBRACE"},
+    {name: "RBRACE", val: "}"},
+    { name: "LPAREN", val: "(", parenIsForExp: true,
+      process: function processLParen(tok_spec) {
+        var tok_type = this.parenIsForExp || "PARENNOSPACE";
+        if (this.priorWhitespace)
+          tok_type = "PARENSPACE";
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        this.curCol++;
+        this.pos++;
+        return this.makeToken(tok_type, "(",
+                              SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                              tok_spec);
+      }},
+    {name: "RPAREN", val: ")"},
+    {name: "SEMI", val: ";"},
+    {name: "BACKSLASH", val: "\\"},
+    {name: "DOTDOTDOT", val: "..."},
+    {name: "DOT", val: ".", noFollow: new Set("1234567890")},
+    {name: "BANG", val: "!"},
+    {name: "PERCENT", val: "%"},
+    {name: "COMMA", val: ",", parenIsForExp: true},
+    {name: "THINARROW", val: "->"},
+    {name: "COLONEQUALS", val: ":=", parenIsForExp: true},
+    {name: "COLON", val: ":", parenIsForExp: true},
+    {name: "BAR", val: "|", parenIsForExp: true},
+    {name: "EQUALS", val: "=", noFollow: new Set("~"), parenIsForExp: true},
+    {name: "LANGLE", val: "<", noFollow: new Set(">=")},
+    {name: "RANGLE", val: ">", noFollow: new Set("=")},
+    { name: "NUMBER", val: "", firsts: new Set("~-+1234567890"),
+      process: function tokenizeNumber(tok_spec) {
+        var match = undefined;
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        var tok_type = "";
+        var rough = false;
+        if (this.str[this.pos] === "~") {
+          rough = true;
+          this.pos++; this.curCol++;
+        }
+        if (this.str[this.pos] === "-" || this.str[this.pos] === "+") {
+          this.pos++; this.curCol++;
+        }
+        if (this.str[this.pos] === ".") { // BAD-NUMBER
+          this.pos = pos; this.curCol = col;
+          return undefined;
+        }
+        if (digit[this.str[this.pos]]) {
+          // Integer portion, or numerator
+          this.pos++; this.curCol++;
+          while (digit[this.str[this.pos]]) {
+            this.pos++; this.curCol++;
+          }
+          if (this.str[this.pos] === "/") { // fraction
+            this.pos++; this.curCol++;
+            if (digit[this.str[this.pos]]) {
+              this.pos++; this.curCol++;
+              while (digit[this.str[this.pos]]) {
+                this.pos++; this.curCol++;
+              }
+              this.parenIsForExp = false;
+              this.priorWhitespace = false;
+              return this.makeToken(rough ? "ROUGHRATIONAL" : "RATIONAL", this.str.slice(pos, this.pos),
+                                    SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                    tok_spec);
+            } else {
+              this.pos = pos; this.curCol = col;
+              return undefined;
+            }
+          }
+          if (this.str[this.pos] === ".") {
+            this.pos++; this.curCol++;
+            // decimal portion
+            if (digit[this.str[this.pos]]) {
+              this.pos++; this.curCol++;
+              while (digit[this.str[this.pos]]) {
+                this.pos++; this.curCol++;
+              }
+            } else {
+              this.pos--; this.curCol--;
+              this.parenIsForExp = false;
+              this.priorWhitespace = false;
+              return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                    SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                    tok_spec);
+            }
+          }
+          if (this.str[this.pos] === "e" || this.str[this.pos] === "E") {
+            var advance = this.pos + 1;
+            if (this.str[advance] === "+" || this.str[advance] === "-") {
+              advance++;
+            }
+            if (digit[this.str[advance]]) {
+              advance++;
+              while (digit[this.str[advance]]) {
+                advance++;
+              }
+              this.curCol += (advance - this.pos);
+              this.pos = advance;
+              this.parenIsForExp = false;
+              this.priorWhitespace = false;
+              return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                    SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                    tok_spec);
+            }
+          }
+          this.parenIsForExp = false;
+          this.priorWhitespace = false;
+          return this.makeToken("NUMBER", this.str.slice(pos, this.pos),
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        }
+        // BAD-NUMBER
+        this.pos = pos; this.curCol = col;
+        return undefined;
+      }
 
-  const anychar = new RegExp("^[^]", STICKY_REGEXP);
-  const Tokens = [
-    {name: "PAREN?", val: parenparen, parenIsForExp: true},
-    {name: "PARENSPACE", val: spaceparen, parenIsForExp: true},
-    {name: "LPAREN?", val: lparen, parenIsForExp: true},
+      /*function tokenizeNumber(tok_spec) {
+        var match = undefined;
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        var tok_type = "";
+        number.lastIndex = this.pos;
+        roughnum.lastIndex = this.pos;
+        rational.lastIndex = this.pos;
+        roughrational.lastIndex = this.pos;
+        var rough = (this.str[this.pos] === "~")
+        if (rough) {
+          if ((this.str[this.pos + 1] === ".") ||
+              ((this.str[this.pos + 1] === "-" || this.str[this.pos + 1] === "+") && this.str[this.pos + 2] === ".")) {
+            return undefined;
+          } else if ((match = roughrational.exec(this.str)) && match.index === this.pos) {
+            tok_type = "ROUGHRATIONAL";
+          } else if ((match = rational.exec(this.str)) && match.index === this.pos) {
+            tok_type = "RATIONAL";
+          }
+        } else if ((match = roughnum.exec(this.str)) && match.index === this.pos) {
+          tok_type = "NUMBER";
+        } else if ((match = number.exec(this.str)) && match.index === this.pos) {
+          tok_type = "NUMBER";
+        } else {
+          return undefined;
+        }
+        this.pos += match[0].length;
+        this.curCol += match[0].length;
+        return this.makeToken(tok_type, match[0],
+                              SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                              tok_spec);
+                              }*/
+    },
+    { name: "BAD-NUMBER", val: "", firsts: new Set("~-+."),
+      process: function tokenizeNumber(tok_spec) {
+        var match = undefined;
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        var tok_type = "";
+        badNumber.lastIndex = this.pos;
+        if ((match = badNumber.exec(this.str))) {
+          tok_type = "BAD-NUMBER";
+        } else {
+          return undefined;
+        }
+        this.pos += match[0].length;
+        this.curCol += match[0].length;
+        return this.makeToken(tok_type, match[0],
+                              SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                              tok_spec);
+      }},
+    { name: "NAME", val: "", firsts: new Set("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+      process: function tokenizeName(tok_spec) {
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        this.pos++; this.curCol++;
+        while (this.pos < this.len) {
+          if (identChars[this.str[this.pos]]) {
+            this.pos++; this.curCol++;
+          } else if (this.str[this.pos] === "-") {
+            var front = this.pos + 1;
+            while (this.str[front] === "-")
+              front++;
+            if (identChars[this.str[front]]) {
+              this.curCol += (front - this.pos);
+              this.pos = front;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+        return this.makeToken("NAME", this.str.slice(pos, this.pos),
+                              SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                              tok_spec);
+      }},
+    { name: "STRING", val: "\"",
+      process: function tokenizeDQString(tok_spec) {
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        dquot_str.lastIndex = this.pos;
+        unterminated_string.lastIndex = this.pos;
+        if ((match = dquot_str.exec(this.str))) {
+          this.pos += match[0].length;
+          this.curCol += match[0].length;
+          return this.makeToken("STRING", fixEscapes(this.str.slice(pos, this.pos)),
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        } else if ((match = unterminated_string.exec(this.str))) {
+          this.pos += match[0].length;
+          this.curCol += match[0].length;
+          return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        }          
+      }},
+    { name: "STRING", val: "'",
+      process: function tokenizeSQString(tok_spec) {
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        squot_str.lastIndex = this.pos;
+        unterminated_string.lastIndex = this.pos;
+        if ((match = squot_str.exec(this.str))) {
+          this.pos += match[0].length;
+          this.curCol += match[0].length;
+          return this.makeToken("STRING", fixEscapes(this.str.slice(pos, this.pos)),
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos));
+        } else if ((match = unterminated_string.exec(this.str))) {
+          this.pos += match[0].length;
+          this.curCol += match[0].length;
+          return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        }          
+      }},
+    { name: "STRING", val: "```",
+      process: function tokenizeTQString(tok_spec) {
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        tquot_str.lastIndex = this.pos;
+        unterminated_string.lastIndex = this.pos;
+        if ((match = tquot_str.exec(this.str))) {
+          this.pos += match[0].length;
+          var lines = match[0].split("\n"); // From jsPerf, this is UNBELIEVABLY much faster than the prior implementation
+          this.curLine += lines.length - 1;
+          if (lines.length === 1)
+            this.curCol += match[0].length;
+          else
+            this.curCol = lines[lines.length - 1].length;
+          return this.makeToken("STRING", fixEscapes(this.str.slice(pos, this.pos)),
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        } else if ((match = unterminated_string.exec(this.str))) {
+          this.pos += match[0].length;
+          this.curCol += match[0].length;
+          return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        }          
+      }},
+    {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "PLUS", val: "+", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "DASH", val: "-", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "STAR", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "SLASH", val: "/", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "SPACESHIP", val: "<=>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "LEQ", val: "<=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "GEQ", val: ">=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "EQUALEQUAL", val: "==", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "EQUALTILDE", val: "=~", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "NEQ", val: "<>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "LT", val: "<", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "GT", val: ">", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "THICKARROW", val: "=>", mustFollow: wsMustFollow, parenIsForExp: true},
+    {name: "COLONCOLON", val: "::", mustFollow: wsMustFollow, parenIsForExp: true},
+    { name: "BAD-OPER", val: "", firsts: new Set("^+-*/\<>="),
+      process: function tokenizeBadOper(tok_spec) {
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        badOp.lastIndex = this.pos;
+        var match;
+        if ((match = badOp.exec(this.str))) {
+          this.pos += match[0].length;
+          this.curCol += match[0].length;
+          this.parenIsForExp = false;
+          this.priorWhitespace = false;
+          return this.makeToken("BAD-OPER", this.str.slice(pos, this.pos),
+                                SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
+                                tok_spec);
+        } else {
+          return undefined;
+        }
+      }}
+  ]);
+  
+ 
+  const comments = makeTrie([
+    { name: "BLOCKCOMMENT", val: "#|",
+      process: function tokenizeBlockComment(tok_spec) {
+        var nestingDepth = 1;
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        this.pos += 2; this.curCol += 2;
+        while (nestingDepth > 0 && this.pos < this.len) {
+          if (this.str.startsWith("#|", this.pos)) {
+            nestingDepth++;
+            this.pos += 2;
+            this.curCol += 2;
+          } else if (this.str.startsWith("|#", this.pos)) {
+            nestingDepth--;
+            this.pos += 2;
+            this.curCol += 2;
+          } else if (this.str[this.pos] === "\n") {
+            this.curLine++;
+            this.curCol = 0;
+            this.pos++;
+          } else {
+            this.pos++;
+            this.curCol++;
+          }
+        }
+        if (nestingDepth === 0) {
+          return this.makeWSToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
+        } else {
+          var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
+          return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
+        }
+      }},
+    { name: "COMMENT", val: "#",
+      process: function tokenizeLineComment(tok_spec) {
+        var line = this.curLine, col = this.curCol, pos = this.pos;
+        while (this.pos < this.len && this.str[this.pos] !== "\n" && this.str[this.pos] !== "\r") {
+          this.pos++;
+          this.curCol++;
+        }
+        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
+      }}
+  ]);
+  
+  const spec = {
+    keywords,
+    keywordsNoFollow,
+    symbols,
+    whitespace,
+    comments,
+    ignore: new Set(["WS", "COMMENT"])
+  };
 
-    {name: "IMPORT", val: new RegExp(kw("import"), STICKY_REGEXP)},
-    {name: "INCLUDE", val: new RegExp(kw("include"), STICKY_REGEXP)},
-    {name: "PROVIDE-TYPES", val: new RegExp(kw("provide-types"), STICKY_REGEXP)},
-    {name: "PROVIDE", val: new RegExp(kw("provide"), STICKY_REGEXP)},
-    {name: "AS", val: new RegExp(kw("as"), STICKY_REGEXP)},
-    {name: "ASCENDING", val: new RegExp(kw("ascending"), STICKY_REGEXP)},
-    {name: "DESCENDING", val: new RegExp(kw("descending"), STICKY_REGEXP)},
-    {name: "NEWTYPE", val: new RegExp(kw("newtype"), STICKY_REGEXP)},
-    {name: "TYPE-LET", val: new RegExp(kw("type-let"), STICKY_REGEXP)},
-    {name: "TYPE", val: new RegExp(kw("type"), STICKY_REGEXP)},
-    {name: "VAR", val: new RegExp(kw("var"), STICKY_REGEXP)},
-    {name: "REC", val: new RegExp(kw("rec"), STICKY_REGEXP)},
-    {name: "LETREC", val: new RegExp(kw("letrec"), STICKY_REGEXP)},
-    {name: "SPY", val: new RegExp(kw("spy"), STICKY_REGEXP)},
-    {name: "LET", val: new RegExp(kw("let"), STICKY_REGEXP)},
-    {name: "FUN", val: new RegExp(kw("fun"), STICKY_REGEXP)},
-    {name: "LAM", val: new RegExp(kw("lam"), STICKY_REGEXP)},
-    {name: "TRUE", val: new RegExp(kw("true"), STICKY_REGEXP)},
-    {name: "FALSE", val: new RegExp(kw("false"), STICKY_REGEXP)},
-    {name: "METHOD", val: new RegExp(kw("method"), STICKY_REGEXP)},
-    {name: "DOC", val: new RegExp(colonKw("doc:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "WHERE", val: new RegExp(colonKw("where:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "CHECKCOLON", val: new RegExp(colonKw("check:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "EXAMPLESCOLON", val: new RegExp(colonKw("examples:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "CHECK", val: new RegExp(kw("check"), STICKY_REGEXP)},
-    {name: "EXAMPLES", val: new RegExp(colonKw("examples"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "TABLE", val: new RegExp(colonKw("table:"), STICKY_REGEXP)},
-    {name: "ROW", val: new RegExp(colonKw("row:"), STICKY_REGEXP)},
-    {name: "USING", val: new RegExp(colonKw("using"), STICKY_REGEXP)},
-    {name: "TABLE-EXTEND", val: new RegExp(kw("extend"), STICKY_REGEXP)},
-    {name: "TABLE-UPDATE", val: new RegExp(kw("transform"), STICKY_REGEXP)},
-    {name: "TABLE-SELECT", val: new RegExp(kw("select"), STICKY_REGEXP)},
-    {name: "TABLE-FILTER", val: new RegExp(kw("sieve"), STICKY_REGEXP)},
-    {name: "TABLE-ORDER",  val: new RegExp(kw("order"), STICKY_REGEXP)},
-    {name: "TABLE-EXTRACT",  val: new RegExp(kw("extract"), STICKY_REGEXP)},
-    {name: "LOAD-TABLE", val: new RegExp(kw("load-table"), STICKY_REGEXP)},
-    {name: "SANITIZE", val: new RegExp(kw("sanitize"), STICKY_REGEXP)},
-    {name: "SOURCECOLON", val: new RegExp(kw("source:"), STICKY_REGEXP)},
-    {name: "REACTOR", val: new RegExp(kw("reactor"), STICKY_REGEXP)},
-    {name: "CASES", val: new RegExp(kw("cases"), STICKY_REGEXP)},
-    {name: "WHEN", val: new RegExp(kw("when"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "ASK", val: new RegExp(kw("ask"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "OTHERWISECOLON", val: new RegExp(colonKw("otherwise:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "IF", val: new RegExp(kw("if"), STICKY_REGEXP)},
-    {name: "OF", val: new RegExp(kw("of"), STICKY_REGEXP)},
-    {name: "THENCOLON", val: new RegExp(colonKw("then:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "ELSECOLON", val: new RegExp(colonKw("else:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "ELSEIF", val: new RegExp(kw("else if"), STICKY_REGEXP)},
-    {name: "ELSE", val: new RegExp(kw("else"), STICKY_REGEXP)},
-    {name: "DATA", val: new RegExp(kw("data"), STICKY_REGEXP)},
-    {name: "WITH", val: new RegExp(colonKw("with:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "SHARING", val: new RegExp(colonKw("sharing:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "SHADOW", val: new RegExp(kw("shadow"), STICKY_REGEXP)},
-    {name: "REF", val: new RegExp(kw("ref"), STICKY_REGEXP)},
-    {name: "BLOCK", val: new RegExp(colonKw("block:"), STICKY_REGEXP), parenIsForExp: true},
-    {name: "FOR", val: new RegExp(kw("for"), STICKY_REGEXP)},
-    {name: "FROM", val: new RegExp(kw("from"), STICKY_REGEXP)},
-    {name: "DO", val: new RegExp(kw("do"), STICKY_REGEXP)},
-    {name: "END", val: new RegExp(kw("end"), STICKY_REGEXP)},
-    {name: "LAZY", val: new RegExp(kw("lazy"), STICKY_REGEXP)},
-    {name: "BY", val: new RegExp(kw("by"), STICKY_REGEXP)},
-
-    {name: "BAD-NUMBER", val: badNumber},
-    {name: "DOTDOTDOT", val: dotdotdot},
-    {name: "DOT", val: period},
-    {name: "BANG", val: bang},
-    {name: "PERCENT", val: percent},
-    {name: "COMMA", val: comma, parenIsForExp: true},
-    {name: "THINARROW", val: thinarrow},
-    {name: "THICKARROW", val: thickarrow, parenIsForExp: true},
-    {name: "COLONEQUALS", val: colonequals, parenIsForExp: true},
-    {name: "COLONCOLON", val: coloncolon, parenIsForExp: true},
-    {name: "COLON", val: colon, parenIsForExp: true},
-    {name: "BAR", val: bar, parenIsForExp: true},
-
-    {name: "RATIONAL", val: rational},
-    {name: "ROUGHRATIONAL", val: roughrational},
-    {name: "NUMBER", val: number},
-    {name: "NUMBER", val: roughnum},
-    {name: "LONG_STRING", val: tquot_str},
-    {name: "STRING", val: dquot_str},
-    {name: "STRING", val: squot_str},
-
-    {name: "CARET", val: oppcaret, parenIsForExp: true},
-    {name: "PLUS", val: opplus, parenIsForExp: true},
-    {name: "DASH", val: opminus, parenIsForExp: true},
-    {name: "STAR", val: optimes, parenIsForExp: true},
-    {name: "SLASH", val: opdiv, parenIsForExp: true},
-    {name: "SPACESHIP", val: opidentical, parenIsForExp: true},
-    {name: "LEQ", val: opleq, parenIsForExp: true},
-    {name: "GEQ", val: opgeq, parenIsForExp: true},
-    {name: "EQUALEQUAL", val: opeq, parenIsForExp: true},
-    {name: "EQUALTILDE", val: opeqnow, parenIsForExp: true},
-    {name: "NEQ", val: opneq, parenIsForExp: true},
-    {name: "LT", val: oplt, parenIsForExp: true},
-    {name: "GT", val: opgt, parenIsForExp: true},
-    {name: "AND", val: opand, parenIsForExp: true},
-    {name: "OR", val: opor, parenIsForExp: true},
-    {name: "ISNOTEQUALEQUAL", val: opisnoteq, parenIsForExp: true},
-    {name: "ISNOTEQUALTILDE", val: opisnoteqnow, parenIsForExp: true},
-    {name: "ISNOTSPACESHIP", val: opisnotidentical, parenIsForExp: true},
-    {name: "ISNOT", val: opisnot, parenIsForExp: true},
-    {name: "ISEQUALEQUAL", val: opiseq, parenIsForExp: true},
-    {name: "ISEQUALTILDE", val: opiseqnow, parenIsForExp: true},
-    {name: "ISSPACESHIP", val: opisidentical, parenIsForExp: true},
-    {name: "ISROUGHLY", val: opisroughly, parenIsForExp: true},
-    {name: "IS", val: opis, parenIsForExp: true},
-    {name: "SATISFIESNOT", val: opsatisfiesnot, parenIsForExp: true},
-    {name: "SATISFIES", val: opsatisfies, parenIsForExp: true},
-    {name: "RAISESOTHER", val: opraisesother, parenIsForExp: true},
-    {name: "RAISESNOT", val: opraisesnot, parenIsForExp: true},
-    {name: "RAISESSATISFIES", val: opraisessatisfies, parenIsForExp: true},
-    {name: "RAISESVIOLATES", val: opraisesviolates, parenIsForExp: true},
-    {name: "RAISES", val: opraises, parenIsForExp: true},
-
-    {name: "LBRACK", val: lbrack},
-    {name: "RBRACK", val: rbrack},
-    {name: "LBRACE", val: lbrace, parenIsForExp: "PARENAFTERBRACE"},
-    {name: "RBRACE", val: rbrace},
-    {name: "RPAREN", val: rparen},
-    {name: "LANGLE", val: langle},
-    {name: "RANGLE", val: rangle},
-
-    {name: "EQUALS", val: equals, parenIsForExp: true},
-
-    {name: "BAD-OPER", val: opsNoSpace},
-
-    {name: "BLOCKCOMMENT", val: blockcommentstart},
-    {name: "COMMENT", val: comment},
-    {name: "WS", val: ws, parenIsForExp: true},
-
-    {name: "SEMI", val: semi},
-    {name: "BACKSLASH", val: backslash},
-
-    {name: "NAME", val: name},
-
-    {name: "UNTERMINATED-STRING", val: unterminated_string},
-    {name: "UNKNOWN", val: anychar},
-  ];
-  Tokens.forEach(function(tok) {
-    if (!tok.hasOwnProperty("parenIsForExp")) tok.parenIsForExp = false;
-    else if (tok.parenIsForExp == true) tok.parenIsForExp = "PARENSPACE";
-  });
 
   return {
-    'Tokenizer': new Tokenizer(true, Tokens)
-  };
+    'Tokenizer': new Tokenizer(spec)
+  }; 
 });
