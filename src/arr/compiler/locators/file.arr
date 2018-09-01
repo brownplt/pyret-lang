@@ -1,7 +1,7 @@
 provide *
 
 import builtin-modules as B
-import parse-pyret as PP
+import parser-interface as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CS
 import file("../js-of-pyret.arr") as JSP

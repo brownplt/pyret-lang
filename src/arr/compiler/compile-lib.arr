@@ -2,7 +2,7 @@ provide *
 provide-types *
 
 import either as E
-import parse-pyret as P
+import parser-interface as P
 import ast as A
 import load-lib as L
 import render-error-display as RED

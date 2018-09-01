@@ -4,7 +4,7 @@ provide *
 provide-types *
 import ast as A
 import srcloc as S
-import parse-pyret as PP
+import parser-interface as PP
 import string-dict as SD
 import lists as L
 import file("compile-structs.arr") as C

@@ -3,7 +3,7 @@ import builtin-modules as B
 import string-dict as SD
 import file as F
 import pathlib as P
-import parse-pyret as PP
+import parser-interface as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
 import file("../type-structs.arr") as T
