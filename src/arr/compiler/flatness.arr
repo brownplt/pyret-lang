@@ -555,7 +555,7 @@ fun get-defined-values(ast):
   dvs-dict
 end
 
-fun get-flat-provides(provides, post-env, { flatness-env; _ }, ast) block:
+fun get-flat-provides(provides, env, post-env, { flatness-env; _ }, ast) block:
   dvs-dict = get-defined-values(ast)
   cases(C.Provides) provides block:
     | provides(uri, modules, values, aliases, datatypes) =>
@@ -564,9 +564,13 @@ fun get-flat-provides(provides, post-env, { flatness-env; _ }, ast) block:
           | none => values.get-value(k)
           | some(bind) =>
             maybe-flatness = flatness-env.get-now(bind.atom.key())
-            existing-val = values.get-value(k)
+            ve = values.get-value(k)
+            existing-val = cases(C.ValueExport) ve:
+              | v-alias(origin, name) => env.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+              | else => ve
+            end
             cases(Option) maybe-flatness:
-              | none => existing-val
+              | none => ve
               | some(flatness-result) =>
                 C.v-fun(existing-val.origin, existing-val.t, k, flatness-result)
             end
