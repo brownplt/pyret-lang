@@ -46,3 +46,4 @@ import file("./tests/test-import-variable.arr") as _
 import file("./tests/modules/include-shadow-same.arr") as _
 import file("./tests/modules/import-re-provided.arr") as _
 import file("./tests/modules/test-aliased-names-same-type.arr") as _
+import file("./tests/modules/test-double-rename.arr") as _

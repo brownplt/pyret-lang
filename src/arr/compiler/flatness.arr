@@ -457,7 +457,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, post-env :: C.ComputedEnvironment,
             end
         end
       else:
-        cases(Option) env.value-by-uri(vb.origin.uri-of-definition, vb.atom.toname()):
+        cases(Option) env.value-by-uri(vb.origin.uri-of-definition, vb.origin.original-name.toname()):
           | none =>
             raise("The name: " + vb.atom.toname() + " could not be found on the module " + vb.origin.uri-of-definition)
           | some(value-export) =>
@@ -475,7 +475,7 @@ fun make-prog-flatness-env(anfed :: AA.AProg, post-env :: C.ComputedEnvironment,
 
   ad = SD.make-mutable-string-dict()
   fun init-type-provides(provides, tb) block:
-    name = tb.atom.toname()
+    name = tb.origin.original-name.toname()
 
     if provides.data-definitions.has-key(name):
       # NOTE(joe): Datatypes _must_ just be flat brand checks
@@ -487,6 +487,9 @@ fun make-prog-flatness-env(anfed :: AA.AProg, post-env :: C.ComputedEnvironment,
       # underlying annotation in terms of datatypes and simple constructors so we
       # can use ann-flatness on them
       ad.set-now(tb.atom.key(), none)
+    else:
+      spy: provides, tb end
+      raise("Unknown type key (shouldn't happen): " + name)
     end
   end
   for SD.each-key-now(k from type-bindings):

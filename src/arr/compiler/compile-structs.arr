@@ -57,26 +57,26 @@ data NativeModule:
 end
 
 data BindOrigin:
-  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI)
+  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI, original-name :: A.Name)
 end
 
-fun bo-local(loc):
+fun bo-local(loc, original-name):
   cases(SL.Srcloc) loc:
     | builtin(source) =>
-      bind-origin(loc, loc, true, source)
+      bind-origin(loc, loc, true, source, original-name)
     | else =>
-      bind-origin(loc, loc, true, loc.source)
+      bind-origin(loc, loc, true, loc.source, original-name)
   end
 end
 
 # NOTE(joe): If source information ends up in provides, we can add an extra arg
 # here to provide better definition site info for names from other modules
-fun bo-module(loc, uri):
-  bind-origin(loc, SL.builtin(uri), false, uri)
+fun bo-module(loc, uri, original-name):
+  bind-origin(loc, SL.builtin(uri), false, uri, original-name)
 end
 
-fun bo-global(uri):
-  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
+fun bo-global(uri, original-name):
+  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, original-name)
 end
 
 data ValueBinder:
@@ -447,15 +447,17 @@ fun srcloc-from-raw(raw):
   end
 end
 
-fun origin-from-raw(uri, raw):
+fun origin-from-raw(uri, raw, name):
   if raw.provided:
     bind-origin(
       srcloc-from-raw(raw.local-bind-site),
       srcloc-from-raw(raw.definition-bind-site),
       raw.new-definition,
-      raw.uri-of-definition)
+      raw.uri-of-definition,
+      A.s-name(srcloc-from-raw(raw.definition-bind-site), name)
+      )
   else:
-    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
+    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, A.s-name(SL.builtin(uri), name))
   end
 end
 
@@ -467,14 +469,16 @@ fun provides-from-raw-provides(uri, raw):
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, v-just-type(origin-from-raw(uri, {provided:false}), t-top))
+      vdict.set(v, v-just-type(origin-from-raw(uri, {provided:false}, v), t-top))
     else:
-      origin = origin-from-raw(uri, v.value.origin)
       if v.value.bind == "alias":
+        origin = origin-from-raw(uri, v.value.origin, v.value.original-name)
         vdict.set(v.name, v-alias(origin, v.value.original-name))
       else if v.value.bind == "var":
+        origin = origin-from-raw(uri, v.value.origin, v.name)
         vdict.set(v.name, v-var(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       else if v.value.bind == "fun":
+        origin = origin-from-raw(uri, v.value.origin, v.name)
         flatness = if is-number(v.value.flatness):
           some(v.value.flatness)
         else:
@@ -482,6 +486,7 @@ fun provides-from-raw-provides(uri, raw):
         end
         vdict.set(v.name, v-fun(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
+        origin = origin-from-raw(uri, v.value.origin, v.name)
         vdict.set(v.name, v-just-type(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end
     end
@@ -1336,7 +1341,7 @@ data CompileError:
           ED.text(" is being used as a value:")]
       usage = ED.cmcode(self.id.l)
       cases(BindOrigin) self.origin:
-        | bind-origin(lbind, ldef, newdef, uri) =>
+        | bind-origin(lbind, ldef, newdef, uri, orig-name) =>
           if newdef:
             [ED.error: intro, usage,
               [ED.para:

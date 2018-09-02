@@ -416,12 +416,14 @@ check "raw-provide-syntax":
     bn("global", name)
   end
 
-  o = CM.bind-origin(l, l, false, "test-raw-provides")
+  o = lam(n):
+    CM.bind-origin(l, l, false, "test-raw-provides", A.s-name(l, n))
+  end
 
   provs.values is
     [string-dict:
       "string-to-num",
-      CM.v-just-type(o, T.t-arrow(
+      CM.v-just-type(o("string-to-num"), T.t-arrow(
         [list: g("String")],
         T.t-app(
           bn("option", "Option"),
@@ -429,7 +431,7 @@ check "raw-provide-syntax":
           l, false),
         l, false)),
       "num-greater",
-      CM.v-just-type(o, T.t-arrow(
+      CM.v-just-type(o("num-greater"), T.t-arrow(
         [list: g("Number"), g("Number")],
         g("Boolean"),
         l, false))
@@ -442,12 +444,12 @@ end
 
 check:
   l = SL.builtin("test-provides1")
-  o = CM.bind-origin(l, l, false, "test-raw-provides")
+  o = lam(n): CM.bind-origin(l, l, false, "test-raw-provides", A.s-name(l, n)) end
   ps = CM.provides("test-provides1",
     # MARK(joe/ben): modules
     mt,
     [string-dict:
-      "x", CM.v-just-type(o, T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)
@@ -473,7 +475,7 @@ check:
   canon is CM.provides("test-provides1",
     mt, #MARK(joe/ben): modules
     [string-dict:
-      "x", CM.v-just-type(o, T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)

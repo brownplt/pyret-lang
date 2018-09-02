@@ -618,7 +618,7 @@ end
 
 fun get-origin-loc(o):
   cases(C.BindOrigin) o:
-    | bind-origin(_, definition-bind-site, _, _) => definition-bind-site
+    | bind-origin(_, definition-bind-site, _, _, _) => definition-bind-site
   end
 end
 
@@ -704,7 +704,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
-  fun make-import-atom-for(name, from-uri, env, shadow bindings, make-binding):
+  fun make-import-atom-for(name :: A.Name, from-uri, env, shadow bindings, make-binding):
     if A.is-s-name(name):
       cases(Option) env.get(name.toname()) block:
         | none =>
@@ -713,7 +713,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           # If they are from the same URI, can import the same name multiple
           # times. If not, then they count as shadowing one another (e.g. two
           # values named list coming from two different libs)
-          spy: b, from-uri end
           shadowing = b.origin.uri-of-definition == from-uri
           make-atom-for(name, shadowing, env, bindings, make-binding)
       end
@@ -733,12 +732,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           cases(C.ValueExport) val-info block:
               # TODO(joe): can use origin information here once v-alias and friends go through
             | v-var(_origin-unused, t) =>
-              b = C.value-bind(C.bo-global(mod-info.from-uri), C.vb-var, names.s-global(name), A.a-blank)
+              b = C.value-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.vb-var, names.s-global(name), A.a-blank)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
-              b = C.value-bind(C.bo-global(mod-info.from-uri), C.vb-let, names.s-global(name), A.a-blank)
+              b = C.value-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.vb-let, names.s-global(name), A.a-blank)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
           end
@@ -751,7 +750,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.types) block:
       mod-info = initial.provides-by-type-name-value(name)
-      b = C.type-bind(C.bo-global(mod-info.from-uri), C.tb-type-let, names.s-type-global(name), none)
+      b = C.type-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.tb-type-let, names.s-type-global(name), none)
       type-bindings.set-now(names.s-type-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -765,7 +764,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       when not(mod-info.modules.has-key(name)):
         spy: mod-info, initial end
       end
-      b = C.module-bind(C.bo-global(mod-info.from-uri), names.s-module-global(name), mod-info.modules.get-value(name))
+      b = C.module-bind(C.bo-global(mod-info.from-uri, names.s-module-global(name)), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -779,7 +778,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # a letrec'd ID is used in a refinement within the same letrec,
       # so state may be necessary here
       atom-env = make-atom-for(b.b.id, b.b.shadows, env, bindings,
-        C.value-bind(C.bo-local(b.l), C.vb-letrec, _, b.b.ann.visit(visitor)))
+        C.value-bind(C.bo-local(b.l, b.b.id), C.vb-letrec, _, b.b.ann.visit(visitor)))
       { atom-env.env; link(atom-env.atom, atoms) }
     end
     new-visitor = visitor.{env: env}
@@ -829,7 +828,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun handle-column-binds(column-binds :: A.ColumnBinds, visitor):
     env-and-binds = for fold(acc from { env: visitor.env, cbs: [list: ] }, cb from column-binds.binds):
         atom-env = make-atom-for(cb.id, cb.shadows, acc.env, bindings,
-          C.value-bind(C.bo-local(cb.l), C.vb-let, _, cb.ann.visit(visitor)))
+          C.value-bind(C.bo-local(cb.l, cb.id), C.vb-let, _, cb.ann.visit(visitor)))
         new-cb = A.s-bind(cb.l, cb.shadows, atom-env.atom, cb.ann.visit(visitor.{env: acc.env}))
         { env: atom-env.env, cbs: link(new-cb, acc.cbs) }
       end
@@ -843,7 +842,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     "$included-" + to-string(include-counter)
   end
 
-  fun add-value-name(env, vname, mod-info):
+  fun add-value-name(env, vname, as-name, mod-info):
     maybe-value-export = mod-info.values.get(vname.toname())
     cases(Option) maybe-value-export:
       | none => raise("Cannot find name " + vname.toname())
@@ -852,39 +851,39 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | v-var(_, t) => C.vb-var
           | else => C.vb-let
         end
-        atom-env = make-import-atom-for(vname, value-export.origin.uri-of-definition, env, bindings,
-          C.value-bind(C.bo-module(vname.l, mod-info.from-uri), vbinder, _, A.a-any(vname.l)))
+        atom-env = make-import-atom-for(as-name, value-export.origin.uri-of-definition, env, bindings,
+          C.value-bind(C.bo-module(vname.l, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
         atom-env.env
     end
   end
 
-  fun add-type-name(type-env, tname, mod-info):
+  fun add-type-name(type-env, tname, as-name, mod-info):
     maybe-type-export = mod-info.aliases.get(tname.toname())
     cases(Option) maybe-type-export:
       | none => raise("Cannot find type name " + tname.toname())
       | some(t) =>
-        uri-of-typ = cases(T.Type) t:
+        { orig-name; uri-of-typ } = cases(T.Type) t:
           | t-name(module-name, id, _, _) =>
             cases(T.NameOrigin) module-name:
-              | local => mod-info.from-uri
-              | module-uri(shadow uri) => uri
-              | dependency(d) => mod-info.from-uri
+              | local => { id; mod-info.from-uri }
+              | module-uri(shadow uri) => { id; uri }
+              | dependency(d) => { id; mod-info.from-uri }
             end
-          | else => mod-info.from-uri
+          | else => { tname; mod-info.from-uri }
         end
-        atom-env = make-import-atom-for(tname, uri-of-typ, type-env, type-bindings,
-          C.type-bind(C.bo-module(tname.l, mod-info.from-uri), C.tb-type-let, _, none))
+        atom-env = make-import-atom-for(as-name, uri-of-typ, type-env, type-bindings,
+          C.type-bind(C.bo-module(tname.l, uri-of-typ, orig-name), C.tb-type-let, _, none))
         atom-env.env
     end
   end
 
-  fun add-module-name(module-env, mname, mod-info):
+  fun add-module-name(module-env, mname, as-name, mod-info):
     maybe-module-export = mod-info.modules.get(mname.toname())
     cases(Option) maybe-module-export:
       | none => raise("Cannot find module name " + mname.toname())
       | some(uri) =>
-        atom-env = make-import-atom-for(mname, mod-info.from-uri, module-env, module-bindings,
-          C.module-bind(C.bo-module(mname.l, mod-info.from-uri), _, uri))
+        atom-env = make-import-atom-for(as-name, mod-info.from-uri, module-env, module-bindings,
+          C.module-bind(C.bo-module(mname.l, mod-info.from-uri, mname), _, uri))
         atom-env.env
     end
   end
@@ -901,18 +900,19 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         | s-star(l, hidings) =>          
           imported-names = star-names(dict.keys-list(), hidings)
           for fold(shadow which-env from which-env, n from imported-names):
-            adder(which-env, A.s-name(l, n), mod-info)
+            adder(which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
           end
         | s-module-ref(l, path, as-name) =>
-          when is-some(as-name):
-            raise("Aliasing on include not yet supported")
-          end
           maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
           shadow mod-info = cases(Option) maybe-uri:
             | none => raise("Could not find module " + to-repr(path))
             | some(p-uri) => initial-env.provides-by-uri-value(p-uri)
           end
-          adder(which-env, path.last(), mod-info)
+          shadow as-name = cases(Option) as-name:
+            | none => path.last()
+            | some(n) => n
+          end
+          adder(which-env, path.last(), as-name, mod-info)
       end
     end
 
@@ -938,10 +938,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         atom-env-m =
           if A.is-s-underscore(local-name):
             make-anon-import-for(local-name.l, "$underscore_import", imp-me, module-bindings,
-              C.module-bind(C.bo-local(l), _, mod-uri))
+              C.module-bind(C.bo-local(l, local-name), _, mod-uri))
           else:
             make-atom-for(local-name, false, imp-me, module-bindings,
-              C.module-bind(C.bo-local(l), _, mod-uri))
+              C.module-bind(C.bo-local(l, local-name), _, mod-uri))
           end
         new-header = A.s-import(l, file, atom-env-m.atom)
         { imp-e; imp-te; atom-env-m.env; link(new-header, imp-imps) }
@@ -1104,10 +1104,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               end
             end
           | s-module-ref(shadow l, path, as-name) =>
-            maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
-            atom = cases(Option) maybe-uri:
-              | none => which-env.get-value(path.first.toname()).atom
-              | some(v) => A.s-name(l, path.last().toname())
+            remote-reference-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
+            {maybe-uri; atom} = cases(Option) remote-reference-uri:
+              | none =>
+                b = which-env.get-value(path.first.toname())
+                if b.origin.new-definition:
+                  { none; b.atom }
+                else:
+                  { some(b.origin.uri-of-definition); b.origin.original-name }
+                end
+              | some(uri) =>
+                { some(uri); A.s-name(l, path.last().toname()) }
             end
             cases(Option) as-name:
               | none => which-dict.set-now(atom.toname(), {l; maybe-uri; atom})
@@ -1192,18 +1199,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             shadow acc = { env: e, te: te }
             new-types = for fold(shadow acc from {env: acc.te, atoms: empty}, param from params):
               atom-env = make-atom-for(param, false, acc.env, type-bindings,
-                C.type-bind(C.bo-local(l2), C.tb-type-var, _, none))
+                C.type-bind(C.bo-local(l2, param), C.tb-type-var, _, none))
               { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
             end
             atom-env = make-atom-for(name, false, acc.te, type-bindings,
-              C.type-bind(C.bo-local(l2), C.tb-type-let, _, none))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, none))
             new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: e, type-env: new-types.env}))
             { e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
             atom-env-t = make-atom-for(name, false, te, type-bindings,
-              C.type-bind(C.bo-local(l2), C.tb-type-let, _, none))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, none))
             atom-env = make-atom-for(tname, false, e, bindings,
-              C.value-bind(C.bo-local(l2), C.vb-let, _, A.a-blank))
+              C.value-bind(C.bo-local(l2, tname), C.vb-let, _, A.a-blank))
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
             { atom-env.env; atom-env-t.env; link(new-bind, bs) }
         end
@@ -1218,7 +1225,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-let-bind(l2, bind, expr) =>
             visited-ann = bind.ann.visit(self.{env: e})
             atom-env = make-atom-for(bind.id, bind.shadows, e, bindings,
-              C.value-bind(C.bo-local(l2), C.vb-let, _, visited-ann))
+              C.value-bind(C.bo-local(l2, bind.id), C.vb-let, _, visited-ann))
             visit-expr = expr.visit(self.{env: e})
             new-bind = A.s-let-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
@@ -1229,7 +1236,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-var-bind(l2, bind, expr) =>
             visited-ann = bind.ann.visit(self.{env: e})
             atom-env = make-atom-for(bind.id, bind.shadows, e, bindings,
-              C.value-bind(C.bo-local(l2), C.vb-var, _, visited-ann))
+              C.value-bind(C.bo-local(l2, bind.id), C.vb-var, _, visited-ann))
             visit-expr = expr.visit(self.{env: e})
             new-bind = A.s-var-bind(l2, A.s-bind(l2, bind.shadows, atom-env.atom, visited-ann), visit-expr)
             {
@@ -1254,7 +1261,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         cases(A.ForBind) fb block:
           | s-for-bind(l2, bind, val) => 
             atom-env = make-atom-for(bind.id, bind.shadows, env, bindings,
-              C.value-bind(C.bo-local(l2), C.vb-let, _, bind.ann.visit(self)))
+              C.value-bind(C.bo-local(l2, bind.id), C.vb-let, _, bind.ann.visit(self)))
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
             visit-val = val.visit(self)
             new-fb = A.s-for-bind(l2, new-bind, visit-val)
@@ -1267,7 +1274,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {env; atoms} = for fold(acc from { self.env; empty }, a from args.map(_.bind)):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
-          C.value-bind(C.bo-local(a.l), C.vb-let, _, a.ann.visit(self)))
+          C.value-bind(C.bo-local(a.l, a.id), C.vb-let, _, a.ann.visit(self)))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       new-args = for map2(a from args, at from atoms.reverse()):
@@ -1287,7 +1294,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: env}
@@ -1301,14 +1308,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
-          C.value-bind(C.bo-local(a.l), C.vb-let, _, a.ann.visit(with-params)))
+          C.value-bind(C.bo-local(a.l, a.id), C.vb-let, _, a.ann.visit(with-params)))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       new-args = for map2(a from args, at from atoms.reverse()):
@@ -1329,14 +1336,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(param.l), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(param.l, param), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
-          C.value-bind(C.bo-local(a.l), C.vb-let, _, a.ann.visit(with-params)))
+          C.value-bind(C.bo-local(a.l, a.id), C.vb-let, _, a.ann.visit(with-params)))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       new-args = for map2(a from args, at from atoms.reverse()):
@@ -1352,14 +1359,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
       {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
         {env; atoms} = acc
         atom-env = make-atom-for(a.id, a.shadows, env, bindings,
-          C.value-bind(C.bo-local(a.l), C.vb-let, _, a.ann.visit(with-params)))
+          C.value-bind(C.bo-local(a.l, a.id), C.vb-let, _, a.ann.visit(with-params)))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       new-args = for map2(a from args, at from atoms.reverse()):
@@ -1449,7 +1456,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       new-bind = cases(A.Bind) bind:
         | s-bind(l2, shadows, name, ann) =>
           atom-env = make-atom-for(name, true, self.env, bindings,
-            C.value-bind(C.bo-local(l2), C.vb-let, _, ann.visit(self)))
+            C.value-bind(C.bo-local(l2, name), C.vb-let, _, ann.visit(self)))
           A.s-bind(l2, shadows, atom-env.atom, ann.visit(self))
       end
       A.s-variant-member(l, typ, new-bind)

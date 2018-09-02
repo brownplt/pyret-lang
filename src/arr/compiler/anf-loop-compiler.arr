@@ -2206,9 +2206,9 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
         | s-module-global(s) =>
           { env.uri-by-module-name(n.toname()); "modules"}
         | s-global(s) =>
-          {env.uri-by-value-name(n.toname()); "values"}
+          { env.uri-by-value-name(n.toname()); "values"}
         | s-type-global(s) =>
-          {env.uri-by-type-name(n.toname()); "types"}
+          { env.uri-by-type-name(n.toname()); "types"}
       end
 
     uri = cases(Option) maybe-uri:
@@ -2221,18 +2221,18 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
   # MARK(joe): need to do something below for modules that come from
   # a context like "include"
   module-binds = for CL.map_list(n from module-and-global-binds.is-true):
-    { which; uri } = ask:
+    { which; uri; lookup-name } = ask:
       | self.bindings.has-key-now(n.key()) then:
         val-bind = self.bindings.get-value-now(n.key())
-        { "values"; val-bind.origin.uri-of-definition }
+        { "values"; val-bind.origin.uri-of-definition; val-bind.origin.original-name }
       | self.type-bindings.has-key-now(n.key()) then:
         typ-bind = self.type-bindings.get-value-now(n.key())
-        { "types"; typ-bind.origin.uri-of-definition }
+        { "types"; typ-bind.origin.uri-of-definition; typ-bind.origin.original-name }
       | self.module-bindings.has-key-now(n.key()) then:
         mod-bind = self.module-bindings.get-value-now(n.key())
-        { "modules"; mod-bind.origin.uri-of-definition }
+        { "modules"; mod-bind.origin.uri-of-definition; mod-bind.origin.original-name }
     end
-    j-var(js-id-of(n), get-module-field(uri, which, n.toname()))
+    j-var(js-id-of(n), get-module-field(uri, which, lookup-name.toname()))
   end
   fun clean-import-name(name):
     js-id-of(name)
