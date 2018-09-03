@@ -208,7 +208,12 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
       mod = modules.get-value-now(k).provides
       key = mod.from-uri
       vals-types-dict = for SD.fold-keys(sd from [string-dict:], shadow k from mod.values):
-        sd.set(k, mod.values.get-value(k).t)
+        ve = mod.values.get-value(k)
+        typ = cases(C.ValueExport) ve:
+          | v-alias(origin, name) => compile-env.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname()).t
+          | else => ve.t
+        end
+        sd.set(k, typ)
       end
       val-provides = t-record(vals-types-dict, program.l, false)
       module-type = t-module(key,
@@ -248,8 +253,10 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           if vbind.origin.new-definition: global-types
           else:
             thismod = context.modules.get-value(vbind.origin.uri-of-definition)
-            cases(Option) thismod.provides.fields.get(vbind.atom.toname()):
-              | none => raise("Cannot find binding for " + key)
+            cases(Option) thismod.provides.fields.get(vbind.origin.original-name.toname()) block:
+              | none =>
+                spy: vbind, ps: thismod.provides.fields end
+                raise("Cannot find value binding for " + vbind.origin.original-name.toname())
               | some(typ) => global-types.set(key, typ)
             end
           end
@@ -261,8 +268,8 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           if tbind.origin.new-definition: global-aliases
           else:
             thismod = context.modules.get-value(tbind.origin.uri-of-definition)
-            cases(Option) thismod.aliases.get(tbind.atom.toname()):
-              | none => raise("cannot find binding for " + key)
+            cases(Option) thismod.aliases.get(tbind.origin.original-name.toname()):
+              | none => raise("Cannot find type binding for " + tbind.origin.original-name.toname())
               | some(typ) => global-aliases.set(key, typ)
             end
           end
@@ -2200,7 +2207,7 @@ fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResul
                       fold-result(TCS.tc-info(info.types.set(value-key, typ), info.aliases, info.data-types), context)
                   end
                 end
-              | s-module-ref(_, uri, name, as-name) => fold-result(info, context)
+              | s-remote-ref(_, uri, name, as-name) => fold-result(info, context)
             end
           | s-provide-type(l, name-spec) =>
             cases(A.NameSpec) name-spec:
@@ -2212,7 +2219,7 @@ fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResul
                   typ = context.aliases.get-value(alias-key)
                   fold-result(TCS.tc-info(info.types, info.aliases.set(alias-key, typ), info.data-types), context)
                 end
-              | s-module-ref(_, _, _, _) => fold-result(info, context)
+              | s-remote-ref(_, _, _, _) => fold-result(info, context)
             end
           | s-provide-module(l, name-spec) => fold-result(info, context)
           | s-provide-data(l, name-spec, hidden) =>
@@ -2225,7 +2232,7 @@ fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResul
                   typ = context.data-types.get-value(data-key)
                   fold-result(TCS.tc-info(info.types, info.aliases, info.data-types.set(data-key, typ)), context)
                 end
-              | s-module-ref(_, _, _, _) => fold-result(info, context)
+              | s-remote-ref(_, _, _, _) => fold-result(info, context)
             end
         end
       end, provide-specs, context, initial-info)
