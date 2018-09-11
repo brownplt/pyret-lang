@@ -878,12 +878,36 @@ member-always3 = member3
 member-always = member
 foldl = fold
 
+fun make0<a>() -> List<a>:
+  empty
+end
+
+fun make1<a>(m :: a) -> List<a>:
+  link(m, empty)
+end
+
+fun make2<a>(m :: a, n :: a) -> List<a>:
+  link(m, link(n, empty))
+end
+
+fun make3<a>(m :: a, n :: a, o :: a) -> List<a>:
+  link(m, link(n, link(o, empty)))
+end
+
+fun make4<a>(m :: a, n :: a, o :: a, p :: a) -> List<a>:
+  link(m, link(n, link(o, link(p, empty))))
+end
+
+fun make5<a>(m :: a, n :: a, o :: a, p :: a, q :: a) -> List<a>:
+  link(m, link(n, link(o, link(p, link(q, empty)))))
+end
+
 list = {
   make: raw-array-to-list,
-  make0: lam(): empty end,
-  make1: lam(a): link(a, empty) end,
-  make2: lam(a, b): link(a, link(b, empty)) end,
-  make3: lam(a, b, c): link(a, link(b, link(c, empty))) end,
-  make4: lam(a, b, c, d): link(a, link(b, link(c, link(d, empty)))) end,
-  make5: lam(a, b, c, d, e): link(a, link(b, link(c, link(d, link(e, empty))))) end,
+  make0: make0,
+  make1: make1,
+  make2: make2,
+  make3: make3,
+  make4: make4,
+  make5: make5,
 }
