@@ -1730,13 +1730,7 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
     to-type(binding.ann, context).bind(lam(maybe-type, shadow context):
       new-type = cases(Option<Type>) maybe-type:
         | some(typ) => typ.set-loc(binding.l)
-        | none =>
-          cases(A.Name) binding.id:
-            | s-atom(base, _) =>
-              new-existential(binding.l, true)
-            | else =>
-              new-existential(binding.l, true)
-          end
+        | none => new-existential(binding.l, true)
       end
       shadow context = context.add-variable(new-type)
       fold-result(dict.set(binding.id.key(), new-type), context)
