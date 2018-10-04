@@ -1,7 +1,18 @@
+var Jasmine = require('jasmine');
+var jazz = new Jasmine();
 const R = require("requirejs");
 var build = process.env["PHASE"] || "build/phaseA";
+R.config({
+  waitSeconds: 15000,
+  paths: {
+    "trove": "../../" + build + "/trove",
+    "js": "../../" + build + "/js",
+    "compiler": "../../" + build + "/arr/compiler",
+    "jglr": "../../lib/jglr",
+    "pyret-base": "../../" + build
+  }
+});
 R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], function(T, G, fs) {
-  _ = require("jasmine-node");
   function parse(str) {
     const toks = T.Tokenizer;
     toks.tokenizeFrom(str);
@@ -753,5 +764,6 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     });
   });
 
+  jazz.execute();
 
 });
