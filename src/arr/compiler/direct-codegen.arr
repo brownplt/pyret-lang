@@ -515,7 +515,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) => nyi("s-table")
-    | s-paren(l, e) => nyi("s-paren")
+    | s-paren(l, e) => 
+        { e-ans; e-stmts } = compile-expr(context, e)
+        { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _)           => nyi("s-let")
     | s-var(l, name, value) =>
         { e-ans; e-stmts } = compile-expr(context, value)
