@@ -480,7 +480,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(false, elts-vals)]); c-stmts + elts-stmts }
 
     | s-instantiate(l, inner-expr, params) => nyi("s-instantiate")
-    | s-user-block(l, body) => nyi("s-user-block")
+    | s-user-block(l, body) => 
+        # Just emit the body as an expression
+        compile-expr(context, body)
     | s-template(l) => nyi("s-template")
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
     | s-type(l, name, params, ann) => nyi("s-type")
