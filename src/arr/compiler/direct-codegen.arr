@@ -502,7 +502,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-update(l, obj, fields) => nyi("s-update")
     | s-extend(l, obj, fields) => nyi("s-extend")
     | s-for(l, iter, bindings, ann, body, blocky) => nyi("s-for")
-    | s-id-var(l, x) => nyi("s-id-var")
+    | s-id-var(l, ident) => 
+      { j-id(js-id-of(ident)); cl-empty }
     | s-frac(l, num, den) => 
         # Following the s-num convention of paren wrapping
         # TODO: Properly generate the Number object
