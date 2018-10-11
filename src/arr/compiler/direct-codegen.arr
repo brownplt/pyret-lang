@@ -490,7 +490,11 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")
     | s-if-pipe-else(l, branches, _else, blocky) => nyi("s-if-pipe-else")
     | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
-    | s-assign(l, id, val) => nyi("s-assign")
+    | s-assign(l, id, val) => 
+      block:
+        { e-val; e-stmts } = compile-expr(context, val)
+        { j-assign(js-id-of(id), e-val); e-stmts }
+      end
     | s-bracket(l, obj, key) => nyi("s-bracket")
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
     | s-update(l, obj, fields) => nyi("s-update")
