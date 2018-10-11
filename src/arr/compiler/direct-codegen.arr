@@ -513,7 +513,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-table(l, headers, rows) => nyi("s-table")
     | s-paren(l, e) => nyi("s-paren")
     | s-let(_, _, _, _)           => nyi("s-let")
-    | s-var(_, _, _)              => nyi("s-var")
+    | s-var(l, name, value) =>
+        { e-ans; e-stmts } = compile-expr(context, value)
+        cases(A.Bind) name:
+          | s-bind(bl, doShadow, id, ann) => { j-var(id, e-ans); e-stmts }
+          | s-tuple-bind(_, _, _) => nyi("s-var s-tuple-bind")
+        end
     | s-check(l, name, body, keyword-check) => nyi("s-check")
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
     | s-load-table(l, headers, spec) => nyi("s-load-table")
