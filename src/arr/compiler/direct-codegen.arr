@@ -501,7 +501,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-extend(l, obj, fields) => nyi("s-extend")
     | s-for(l, iter, bindings, ann, body, blocky) => nyi("s-for")
     | s-id-var(l, x) => nyi("s-id-var")
-    | s-frac(l, num, den) => nyi("s-frac")
+    | s-frac(l, num, den) => 
+        # Following the s-num convention of paren wrapping
+        # TODO: Properly generate the Number object
+        { j-parens(j-num(num / den)); cl-empty }
     | s-rfrac(l, num, den) => nyi("s-rfrac")
     | s-str(l, str) => {j-str( str ); cl-empty}
     | s-bool(l, bool) =>
