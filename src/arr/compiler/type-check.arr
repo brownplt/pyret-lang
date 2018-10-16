@@ -444,7 +444,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-if-pipe should have already been desugared")
         | s-if-pipe-else(l, branches, _else) =>
           raise("s-if-pipe-else should have already been desugared")
-        | s-if(l, branches) =>
+        | s-if(l, branches, blocky) =>
+          # TODO(ALEX): check s-if handling
           raise("s-if should have already been desugared")
         | s-if-else(l, branches, _else, blocky) =>
           map-fold-result(lam(branch, shadow context):
@@ -710,8 +711,18 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("s-if-pipe should have already been desugared")
     | s-if-pipe-else(l, branches, _else) =>
       raise("s-if-pipe-else should have already been desugared")
-    | s-if(l, branches) =>
-      raise("s-if should have already been desugared")
+    | s-if(l, branches, blocky) =>
+      # TODO(ALEX): check s-if handling
+      # Manually desurgar into s-if-else
+      _synthesis(
+        A.s-if-else(l, 
+                    branches,
+                    A.s-app(A.dummy-loc, 
+                            A.s-id(A.dummy-loc, A.s-global("raise")),
+                            empty),
+                    blocky),
+        top-level,
+        context)
     | s-if-else(l, branches, _else, b) =>
       map-fold-result(handle-if-branch, branches, context).typing-bind(lam(result, shadow context):
         synthesis(_else, false, context).bind(
