@@ -477,7 +477,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-check-expr(l, expr, ann) =>
           synthesis(expr, false, context) # XXX: this should probably use the annotation instead
         | s-paren(l, expr) =>
-          raise("s-paren should have already been desugared")
+          # TODO(ALEX): check s-paren handling
+          check-synthesis(expr, expect-type, top-level, context)
         | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
           check-fun(l, body, params, args, ann, expect-type, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), context)
         | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
@@ -743,7 +744,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-check-expr(l, expr, ann) =>
       synthesis(expr, false, context) # XXX: this should probably use the annotation instead
     | s-paren(l, expr) =>
-      raise("s-paren should have already been desugared")
+      # TODO(ALEX): check s-paren handling
+      synthesis(expr, false, context)
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
       synthesis-fun(l, body, params, args, ann, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), top-level, context)
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
