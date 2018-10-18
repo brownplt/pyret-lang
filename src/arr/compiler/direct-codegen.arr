@@ -12,6 +12,8 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
+flat-prim-app = A.prim-app-info-c(false)
+
 type CList = CL.ConcatList
 clist = CL.clist
 cl-empty = CL.concat-empty
@@ -495,9 +497,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         context,
         A.s-if-else(l, 
                     branches,
-                    A.s-app(A.dummy-loc, 
-                            A.s-id(A.dummy-loc, A.s-global("raise")),
-                            empty),
+                    A.s-prim-app(l, 
+                      "throwNoBranchesMatched", 
+                      [list: A.s-srcloc(l, l), A.s-str(l, "if")], 
+                      flat-prim-app),
                     blocky)
       )
     | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")

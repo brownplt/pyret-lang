@@ -19,6 +19,8 @@ type Loc = A.Loc
 type Expr = A.Expr
 type Name = A.Name
 
+flat-prim-app = A.prim-app-info-c(false)
+
 local = TS.local
 module-uri = TS.module-uri
 
@@ -717,9 +719,10 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       _synthesis(
         A.s-if-else(l, 
                     branches,
-                    A.s-app(A.dummy-loc, 
-                            A.s-id(A.dummy-loc, A.s-global("raise")),
-                            empty),
+                    A.s-prim-app(l, 
+                      "throwNoBranchesMatched", 
+                      [list: A.s-srcloc(l, l), A.s-str(l, "if")], 
+                      flat-prim-app),
                     blocky),
         top-level,
         context)
