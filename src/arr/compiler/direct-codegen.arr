@@ -489,27 +489,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-newtype(l, name, namet) => nyi("s-newtype")
     | s-when(l, test, body, blocky) => nyi("s-when")
     | s-if(l, branches, blocky) => 
-      ans = fresh-id(compiler-name("ans"))
-
-      # branches.length() guaranteed > 1
-      # Take the last branch
-      last-branch = branches.last()
-      { last-test-v; last-test-stmts } = compile-expr(context, last-branch.test)
-      { last-body-v; last-body-stmts } = compile-expr(context, last-branch.body)
-      last-block = j-block(last-test-stmts + [clist:
-          j-if1(last-test-v, j-block(last-body-stmts + [clist: j-assign(ans, last-body-v)]))])
-
-      previous-branches = branches.take(branches.length() - 1)
-  
-      # Attach branch into 'else' block of branch before it
-      blck = for fold(blck from last-block, b from previous-branches.reverse()):
-        { test-v; test-stmts } = compile-expr(context, b.test)
-        { body-v; body-stmts } = compile-expr(context, b.body)
-        j-block(test-stmts + [clist:
-          j-if(test-v, j-block(body-stmts + [clist: j-assign(ans, body-v)]), blck)])
-      end
-
-      { j-id(ans); [clist: j-var(ans, j-undefined)] + blck.stmts }
+      # TODO(ALEX): check s-if handling
+      # Desugar into s-if-else with raise in last branch
+      compile-expr(
+        context,
+        A.s-if-else(l, 
+                    branches,
+                    A.s-app(A.dummy-loc, 
+                            A.s-id(A.dummy-loc, A.s-global("raise")),
+                            empty),
+                    blocky)
+      )
     | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")
     | s-if-pipe-else(l, branches, _else, blocky) => nyi("s-if-pipe-else")
     | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
