@@ -1006,7 +1006,8 @@ end
 instrument-calls-visitor = A.default-map-visitor.{
   method s-app(self, loc, f :: A.Expr, exps :: List<A.Expr>):
     temp = mk-id(loc, "tr_") # "Trace Result"
-    dummy = mk-id(loc, "dmme_")
+    push-dummy = mk-id(loc, "pushdmme_")
+    pop-dummy = mk-id(loc, "popdmme_")
     temp-arg-names = range(0, exps.length()).map(lam(x): "arg" + num-to-string(x) + "_" end).map(mk-id(loc, _))
     arg-bindings :: List<A.LetBind> = map2(lam(name, exp): A.s-let-bind(loc, name.id-b, exp.visit(self)) end, temp-arg-names, exps)
     f-visit = f.visit(self)
@@ -1015,15 +1016,17 @@ instrument-calls-visitor = A.default-map-visitor.{
     # let args in
     A.s-let-expr(loc,
                  arg-bindings,
-                 A.s-block(loc, [list:
-        A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)),
-        A.s-let-expr(loc,
+                 A.s-let-expr(loc,
+                 [list: A.s-let-bind(loc,
+                                     push-dummy.id-b,
+                                     A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)))],
+                 A.s-let-expr(loc,
                     [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
                     A.s-let-expr(loc,
-                                 [list: A.s-let-bind(loc, dummy.id-b,
+                                 [list: A.s-let-bind(loc, pop-dummy.id-b,
                                       A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)))],
                                       temp.id-e, false),
-                    false)]), false)
+                    false), false), false)
   end
 }
 
