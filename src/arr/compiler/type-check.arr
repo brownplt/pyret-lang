@@ -709,10 +709,21 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
             typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l, false)), l, e)])
         end
       end)
-    | s-if-pipe(l, branches) =>
-      raise("s-if-pipe should have already been desugared")
-    | s-if-pipe-else(l, branches, _else) =>
-      raise("s-if-pipe-else should have already been desugared")
+    | s-if-pipe(l, branches, blocky) =>
+      _synthesis(
+        A.s-if(l, 
+               for map(b from branches): b.to-if-branch() end, 
+               blocky),
+        top-level,
+        context)
+    | s-if-pipe-else(l, branches, _else, blocky) =>
+      _synthesis(
+        A.s-if-else(l, 
+                    for map(b from branches): b.to-if-branch() end,
+                    _else, 
+                    blocky),
+        top-level,
+        context)
     | s-if(l, branches, blocky) =>
       # TODO(ALEX): check s-if handling
       # Manually desurgar into s-if-else

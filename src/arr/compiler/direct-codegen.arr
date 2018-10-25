@@ -503,8 +503,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                       flat-prim-app),
                     blocky)
       )
-    | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")
-    | s-if-pipe-else(l, branches, _else, blocky) => nyi("s-if-pipe-else")
+    | s-if-pipe(l, branches, blocky) => 
+      compile-expr(context, 
+                   A.s-if(l, 
+                          for map(b from branches): b.to-if-branch() end, 
+                          blocky))
+    | s-if-pipe-else(l, branches, _else, blocky) => 
+      compile-expr(context, 
+                   A.s-if-else(l, 
+                               for map(b from branches): b.to-if-branch() end,
+                               _else, 
+                               blocky))
     | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
     | s-assign(l, id, val) => 
       block:

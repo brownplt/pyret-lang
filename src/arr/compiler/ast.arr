@@ -1508,7 +1508,10 @@ data IfPipeBranch:
       str-pipespace
         + PP.nest(2 * INDENT, self.test.tosource() + break-one + str-thencolon)
         + PP.nest(INDENT, break-one + self.body.tosource())
-    end
+    end,
+    method to-if-branch(self):
+      s-if-branch(self.l, self.test, self.body)
+    end,
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
