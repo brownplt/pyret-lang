@@ -271,7 +271,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
-      { console([clist: j-str(name)] + argvs); argstmts }
+
+      { j-app(j-dot(j-id(js-id-of(A.s-atom("$global", 1))), name), argvs); argstmts }
       
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
