@@ -273,7 +273,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
 
-      { j-app(j-dot(j-id(GLOBAL), name), argvs); argstmts }
+      { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
       
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
