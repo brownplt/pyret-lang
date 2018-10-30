@@ -75,7 +75,6 @@ j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
 
-
 fun find-index<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<{a; Number}> block:
   doc: ```Returns value and its index or -1 depending on if element is found```
   var i = 0
@@ -132,6 +131,8 @@ end
 fun compiler-name(id):
   const-id(string-append("$",id))
 end
+
+GLOBAL = const-id("_global")
 
 RUNTIME = j-id(const-id("R"))
 NAMESPACE = j-id(const-id("NAMESPACE"))
@@ -272,7 +273,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
 
-      { j-app(j-dot(j-id(js-id-of(A.s-atom("$global", 1))), name), argvs); argstmts }
+      { j-app(j-dot(j-id(GLOBAL), name), argvs); argstmts }
       
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
@@ -648,6 +649,11 @@ fun node-prelude(prog, provides, env, options) block:
   global-names = AU.get-globals(prog)
   uri-to-local-js-name = [D.mutable-string-dict:]
 
+  # manually emit global import
+  global-import = J.j-var(GLOBAL, 
+                          j-app(j-id(const-id("require")), 
+                                [clist: j-str( relative-path + "../builtin/global.arr.js")]))
+
   # We create a JS require() statement for each import in the Pyret program
   # and bind it to a unique name. dep-to-local-js-names helps us look
   # up these names later if we need to access a value from that module
@@ -678,7 +684,7 @@ fun node-prelude(prog, provides, env, options) block:
     end
   end
 
-  import-stmts = explicit-imports + implicit-imports
+  import-stmts = explicit-imports + implicit-imports + cl-sing(global-import)
 
   # We also build up a list of var statements that bind local JS names for
   # all the globals used as identifiers, to make compiling uses of s-global
