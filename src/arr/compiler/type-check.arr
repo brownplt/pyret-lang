@@ -696,8 +696,15 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-ref not implemented")
     | s-contract(l, name, params, ann) =>
       raise("synthesis for s-contract not implemented")
-    | s-when(l, test, block) =>
-      raise("s-when should have already been desugared")
+    | s-when(l, test, block, blocky) =>
+      synthesis(
+        A.s-if-else(l, 
+                    [list: A.s-if-branch(l, test, block)],
+                    A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
+                    blocky),
+        top-level,
+        context
+      )
     | s-assign(l, id, value) =>
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         cases(Type) id-type:

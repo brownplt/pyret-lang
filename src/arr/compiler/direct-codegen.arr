@@ -491,7 +491,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
     | s-type(l, name, params, ann) => nyi("s-type")
     | s-newtype(l, name, namet) => nyi("s-newtype")
-    | s-when(l, test, body, blocky) => nyi("s-when")
+    | s-when(l, test, body, blocky) => 
+      compile-expr(
+        context,
+        A.s-if-else(l, 
+                    [list: A.s-if-branch(l, test, body)],
+                    A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
+                    blocky)
+      )
     | s-if(l, branches, blocky) => 
       # TODO(ALEX): check s-if handling
       # Desugar into s-if-else with raise in last branch
