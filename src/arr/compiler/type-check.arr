@@ -679,7 +679,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
         typing-result(A.s-block(l, new-stmts), typ.set-loc(l), context)
       end)
     | s-user-block(l, body) =>
-      raise("s-user-block should have already been desugared")
+      synthesis(body, top-level, context)
     | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       raise("s-fun should have already been desugared")
     | s-type(l, name, params, ann) =>
