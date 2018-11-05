@@ -40,6 +40,7 @@ module.exports = {
   '_lessthan': _lessthan,
   '_greaterthan': _greaterthan,
   '_lessequal': _lessequal,
-  '_greaterequal': _greaterequal
+  '_greaterequal': _greaterequal,
+  'trace-value': runtime['trace-value'],
 };
 
