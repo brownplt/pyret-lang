@@ -561,7 +561,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       # Represent tuples as arrays
       { j-list(false, fieldvs); stmts }
-    | s-tuple-get(l, tup, index, index-loc) => nyi("s-tuple-get")
+    | s-tuple-get(l, tup, index, index-loc) => 
+
+      {tupv; tup-stmts} = compile-expr(context, tup)
+      
+      # Tuples represented as arrays
+      {j-bracket(tupv, j-num(index)); tup-stmts}
+
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) => nyi("s-table")
