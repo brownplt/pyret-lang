@@ -4964,6 +4964,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeNumberBig(jsnums.remainder(n, m, NumberErrbacks));
     }
 
+    var num_gcd = function(n, m) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-gcd"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-gcd",
+        n, thisRuntime.Number, m, thisRuntime.Number);
+      return thisRuntime.makeNumberBig(jsnums.gcd(n, [m], NumberErrbacks));
+    }
+
     var num_truncate = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
@@ -5597,6 +5604,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
       'num-sqr': makeFunction(num_sqr, "num-sqr"),
+      'num-gcd': makeFunction(num_gcd, "num-gcd"),
       'num-ceiling': makeFunction(num_ceiling, "num-ceiling"),
       'num-floor': makeFunction(num_floor, "num-floor"),
       'num-round': makeFunction(num_round, "num-round"),
