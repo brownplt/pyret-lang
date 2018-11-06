@@ -548,7 +548,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         else:
           {j-false; cl-empty}
         end
-    | s-tuple(l, fields) => nyi("s-tuple")
+    | s-tuple(l, fields) =>
+
+      # Fields are in reverse order
+      {fieldvs; stmts} = for fold({fieldvs; stmts} from {cl-empty; cl-empty}, f from fields.reverse()) block:
+
+        {val; field-stmts} = compile-expr(context, f)
+
+        { cl-cons(val, fieldvs); field-stmts + stmts }
+      end
+
+      # Represent tuples as arrays
+      { j-list(false, fieldvs); stmts }
     | s-tuple-get(l, tup, index, index-loc) => nyi("s-tuple-get")
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
