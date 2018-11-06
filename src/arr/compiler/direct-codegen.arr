@@ -540,7 +540,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         # Following the s-num convention of paren wrapping
         # TODO: Properly generate the Number object
         { j-parens(j-num(num / den)); cl-empty }
-    | s-rfrac(l, num, den) => nyi("s-rfrac")
+    | s-rfrac(l, num, den) => 
+        compile-expr(context, A.s-frac(l, num, den))
     | s-str(l, str) => {j-str( str ); cl-empty}
     | s-bool(l, bool) =>
         if bool:
