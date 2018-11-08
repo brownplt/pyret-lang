@@ -579,7 +579,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { e-ans; e-stmts } = compile-expr(context, value)
         cases(A.Bind) name:
           | s-bind(bl, doShadow, id, ann) => { j-var(id, e-ans); e-stmts }
-          | s-tuple-bind(_, _, _) => nyi("s-var s-tuple-bind")
+          | s-tuple-bind(bl, fields, as-name) => 
+            { val; stmts } = gen-tuple-bind(context, fields, as-name, e-ans)
+
+            { val; e-stmts + stmts }
         end
     | s-check(l, name, body, keyword-check) => nyi("s-check")
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
@@ -594,6 +597,34 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | else => raise("NYI (compile): " + torepr(expr))
   end
 
+end
+
+fun gen-tuple-bind(context, fields, as-name, value):
+  var count = 0
+  {bindings; stmts} = for fold({bind; stmt-list} from {cl-empty; cl-empty}, b from fields) block:
+    { bind-v; bind-stmts} = cases(A.Bind) b:
+      | s-bind(bl, doShadow, id, ann) => { j-var(id, j-bracket(value, j-num(count))); cl-empty }
+      | s-tuple-bind(l, shadow fields, shadow as-name) => gen-tuple-bind(context, fields, as-name, j-bracket(value, j-num(count)))
+    end
+
+    count := count + 1
+
+    { cl-cons(bind-v, bind); bind-stmts + stmt-list }
+  end
+
+  { shadow bindings; shadow stmts } = cases(Option<A.Bind>) as-name:
+    | some(b) => 
+      cases(A.Bind) b:
+        | s-bind(bl, doShadow, id, ann) => { j-var(id, value); cl-empty }
+        | s-tuple-bind(l, shadow fields, shadow as-name) => 
+          { as-bind-v; as-stmts } = gen-tuple-bind(context, fields, as-name, value)
+          { cl-cons(as-bind-v, bindings); as-stmts + stmts }
+      end
+
+    | none => { bindings; stmts }
+  end
+
+  { j-block(bindings); stmts }
 end
 
 
