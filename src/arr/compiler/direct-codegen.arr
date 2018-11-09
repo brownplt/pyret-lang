@@ -489,8 +489,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         compile-expr(context, body)
     | s-template(l) => nyi("s-template")
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
-    | s-type(l, name, params, ann) => nyi("s-type")
-    | s-newtype(l, name, namet) => nyi("s-newtype")
+    | s-type(l, name, params, ann) => raise("s-type already removed")
+    | s-newtype(l, name, namet) => raise("s-newtype already removed")
     | s-when(l, test, body, blocky) => 
       compile-expr(
         context,
