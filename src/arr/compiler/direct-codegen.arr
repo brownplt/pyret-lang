@@ -523,7 +523,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                                for map(b from branches): b.to-if-branch() end,
                                _else, 
                                blocky))
-    | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
+    | s-cases(l, typ, val, branches, blocky) =>
+      compile-expr(context,
+                   A.s-cases-else(l, typ, val, branches,
+                     A.s-prim-app(l, 
+                                  "throwNoBranchesMatched",
+                                  [list: A.s-srcloc(l, l), A.s-str(l, "cases")], 
+                                  flat-prim-app),
+                     blocky))
     | s-assign(l, id, val) => 
       block:
         { e-val; e-stmts } = compile-expr(context, val)
