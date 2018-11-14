@@ -553,7 +553,10 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             typing-result(A.s-array(l, new-values), expect-type, context)
           end)
         | s-construct(l, modifier, constructor, values) =>
-          check-synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]), top-level, context)
+          check-synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]), 
+                          expect-type,
+                          top-level, 
+                          context)
           #raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
           check-synthesis(e, expect-type, top-level, context)
