@@ -2,6 +2,7 @@ provide *
 provide-types *
 
 import srcloc as SL
+import file("desugar-helpers.arr") as DH
 import file("ast.arr") as A
 import file("ast-util.arr") as AU
 import file("js-ast.arr") as J
@@ -540,7 +541,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
     | s-update(l, obj, fields) => nyi("s-update")
     | s-extend(l, obj, fields) => nyi("s-extend")
-    | s-for(l, iter, bindings, ann, body, blocky) => nyi("s-for")
+    | s-for(l, iter, bindings, ann, body, blocky) => 
+      compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
     | s-id-var(l, ident) => 
       { j-id(js-id-of(ident)); cl-empty }
     | s-frac(l, num, den) => 

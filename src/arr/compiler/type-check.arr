@@ -7,6 +7,7 @@ import error as ERR
 import file("ast.arr") as A
 import srcloc as SL
 import string-dict as SD
+import file("desugar-helpers.arr") as DH
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
@@ -900,7 +901,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data-expr should have been handled by s-letrec")
     | s-for(l, iterator, bindings, ann, body, blocky) =>
-      raise("s-for should have already been desugared")
+      _synthesis(DH.desugar-s-for(l, iterator, bindings, ann, body), top-level, context)
     | s-check(l, name, body, keyword-check) =>
       result-type = new-existential(l, false)
       shadow context = context.add-variable(result-type)
