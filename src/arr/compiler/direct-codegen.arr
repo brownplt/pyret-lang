@@ -134,6 +134,7 @@ fun compiler-name(id):
 end
 
 GLOBAL = const-id("_global")
+NOTHING = const-id("_nothing")
 
 RUNTIME = j-id(const-id("R"))
 NAMESPACE = j-id(const-id("NAMESPACE"))
@@ -497,7 +498,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         context,
         A.s-if-else(l, 
                     [list: A.s-if-branch(l, test, body)],
-                    A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
+                    A.s-id(l, A.s-global("nothing")),   
                     blocky)
       )
     | s-if(l, branches, blocky) => 
@@ -711,6 +712,10 @@ fun node-prelude(prog, provides, env, options) block:
                           j-app(j-id(const-id("require")), 
                                 [clist: j-str( relative-path + "../builtin/global.arr.js")]))
 
+  nothing-import = J.j-var(NOTHING, j-undefined)
+
+  manual-imports = [clist: global-import, nothing-import]
+
   # We create a JS require() statement for each import in the Pyret program
   # and bind it to a unique name. dep-to-local-js-names helps us look
   # up these names later if we need to access a value from that module
@@ -741,7 +746,7 @@ fun node-prelude(prog, provides, env, options) block:
     end
   end
 
-  import-stmts = explicit-imports + implicit-imports + cl-sing(global-import)
+  import-stmts = explicit-imports + implicit-imports + manual-imports
 
   # We also build up a list of var statements that bind local JS names for
   # all the globals used as identifiers, to make compiling uses of s-global
