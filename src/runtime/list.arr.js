@@ -13,7 +13,7 @@ module.exports = {
   'contains': function( list, elm ) {
     return list.some( cur => cur === elm );
   },
-  'map': function( list, fun ) {
+  'map': function( fun, list ) {
     return list.map( fun );
   },
   'slice': function( list, start, end = list.length ) {
@@ -23,10 +23,10 @@ module.exports = {
     list.push( elm );
     return list;
   },
-  'filter': function( list, fun ) {
+  'filter': function( fun, list ) {
     return list.filter( fun );
   },
-  'reduce': function( list, fun, val ) {
+  'reduce': function( fun, list, val ) {
     return list.reduce( fun, val );
   },
   'sum': function( list ) {
