@@ -485,7 +485,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { elts-vals; elts-stmts } = compile-list(context, elts)
       { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(false, elts-vals)]); c-stmts + elts-stmts }
 
-    | s-instantiate(l, inner-expr, params) => compile-expr(inner-expr)
+    | s-instantiate(l, inner-expr, params) => compile-expr(context, inner-expr)
     | s-user-block(l, body) => 
         # Just emit the body as an expression
         compile-expr(context, body)
