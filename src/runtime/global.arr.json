@@ -44,8 +44,8 @@
       "_greaterequal": {"bind": "fun",
                   "flatness": false,
                   "name": "_plus",
-                  "typ": ["arrow", ["Any", "Any"], "Boolean"]}
-
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "equal-always": ["arrow", ["Any", "Any"], "Boolean"]
     },
     "aliases": {
     },

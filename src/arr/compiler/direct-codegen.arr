@@ -300,6 +300,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op/" then: j-binop(lv, J.j-divide, rv)
         | op == "op<" then: j-binop(lv, J.j-lt, rv)
         | op == "op>" then: j-binop(lv, J.j-gt, rv)
+        # TODO(alex): Use equal-always, equal-now, etc
         | op == "op==" then: j-binop(lv, J.j-eq, rv)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)

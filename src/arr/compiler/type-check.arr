@@ -765,7 +765,19 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
       synthesis-cases(l, typ, val, branches, some(_else), context)
     | s-op(loc, op-l, op, l, r) =>
-      synthesis-op(loc, op, op-l, l, r, context)
+      ask:
+      | op == "op==" then:
+        synthesis(A.s-prim-app(
+                    loc,
+                    "equal-always", 
+                    [list: l, r], flat-prim-app 
+                  ), 
+          top-level, 
+          context
+        )
+      | otherwise:
+        synthesis-op(loc, op, op-l, l, r, context)
+      end
     | s-check-test(loc, op, refinement, l, r) =>
       if is-some(test-inference-data):
         collect-example(e, context).typing-bind(lam(_, shadow context):
