@@ -108,6 +108,17 @@ fun desugar-s-op(loc, op-l, op, l, r):
                   "equal-always", 
                   [list: l, r], flat-prim-app 
       ) 
+    | op == "op<>" then:
+      inner = A.s-prim-app(
+                  loc,
+                  "equal-always", 
+                  [list: l, r], flat-prim-app 
+      )
+      A.s-prim-app(
+                  loc,
+                  "not", 
+                  [list: inner], flat-prim-app 
+      )
     | otherwise:
       A.s-op(loc, op-l, op, l, r)
     end
