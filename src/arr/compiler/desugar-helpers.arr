@@ -99,3 +99,16 @@ fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann
           link(lambda-for, args)
          )
 end
+
+fun desugar-s-op(loc, op-l, op, l, r):
+  ask:
+    | op == "op==" then:
+      A.s-prim-app(
+                  loc,
+                  "equal-always", 
+                  [list: l, r], flat-prim-app 
+      ) 
+    | otherwise:
+      A.s-op(loc, op-l, op, l, r)
+    end
+end

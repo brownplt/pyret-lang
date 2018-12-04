@@ -765,18 +765,10 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
       synthesis-cases(l, typ, val, branches, some(_else), context)
     | s-op(loc, op-l, op, l, r) =>
-      ask:
-      | op == "op==" then:
-        synthesis(A.s-prim-app(
-                    loc,
-                    "equal-always", 
-                    [list: l, r], flat-prim-app 
-                  ), 
-          top-level, 
-          context
-        )
-      | otherwise:
-        synthesis-op(loc, op, op-l, l, r, context)
+      desugared = DH.desugar-s-op(loc, op-l, op, l, r)
+      cases(Expr) desugared:
+        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(loc, op, op-l, l, r)
+        | else => synthesis(desugared, top-level, context)
       end
     | s-check-test(loc, op, refinement, l, r) =>
       if is-some(test-inference-data):
