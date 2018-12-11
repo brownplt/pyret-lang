@@ -81,9 +81,12 @@ fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann
   { binds; args } = for fold({ bl; el } from { empty; empty }, fb from bindings):
     cases(A.ForBind) fb:
       | s-for-bind(l, bind, arg) =>
-        { link(bind, bl); link(arg, el) }
+        { bl.push(bind); el.push(arg) }
     end
   end
+
+  shadow binds = binds.reverse()
+  shadow args = args.reverse()
 
   # TODO(alex): for loops are documented to desugar
   #   for f1(v1 from s1..., vn from sn) block end
