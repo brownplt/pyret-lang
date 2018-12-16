@@ -1003,7 +1003,64 @@ where:
 
 end
 
+fun sugar-pop(self, loc, ans):
+  A.s-prim-app(loc, "tracePopCall", [list: ans.visit(self)], A.prim-app-info-c(false))
+  #|
+    (pop ans) =>
+    (s-prim-app "tracePopCall" [ans])
+  |#
+end
+fun sugar-push(self, loc, name, args :: List<A.Bind>):
+  #|
+    (push name [<s-bind _ arg_{i} _> ...i]) =>
+    (s-prim-app "tracePushCall" [(s-str name)
+      # not using this one for now, can add back in later!
+      (mk-list [(s-str (biject name-to-str arg_{i})) ...i])
+      (mk-list [(s-app (g-id "tostring") [(s-id arg_{i})]) ...i])])
+  |#
+  A.s-prim-app(loc, "tracePushCall",
+    [list: A.s-str(loc, name),
+      args.map(lam(a): _.visit(self) end)
+    ], A.prim-app-info-c(false))
+end
+fun wrap-func-body(self, loc, name, args, body, blocky):
+  ans = mk-id(loc, "ans_")
+  A.s-block(loc, [list:
+    sugar-push(self, loc, name, args),
+    A.s-let(loc, ans.id-b, body.visit(self), blocky),
+    sugar-pop(self, loc, ans.id-e),
+    ans.id-e
+  ])
+#|
+    (wrap-func-body name args body blocky) =>
+    (fresh [ans]
+      (s-block [
+        (push name args)
+        (s-let (mk-s-bind ans) body blocky)
+        (pop (s-id ans))
+        (s-id ans)]))
+|#
+end
+
+# replace with things from https://github.com/brownplt/pyret-lang/blob/fun-stepper/src/arr/trove/stepify.sugar
+
 instrument-calls-visitor = A.default-map-visitor.{
+  method s-fun(self, loc, name :: String, params :: List<A.Name>,
+   args :: List<A.Bind>, ann, doc, body :: A.Expr, _check-loc, _check, blocky):
+    new-body = wrap-func-body(self, loc, name, args, body, blocky)
+    A.s-fun(loc, name, params, args, ann, doc, new-body, _check-loc, _check, blocky)
+  end,
+  method s-lam(self, loc, name :: String, params :: List<A.Name>,
+   args :: List<A.Bind>, ann, doc, body :: A.Expr, _check-loc, _check,  blocky):
+    new-body = wrap-func-body(self, loc, name, args, body, blocky)
+    A.s-lam(loc, name, params, args, ann, doc, new-body, _check-loc, _check, blocky)
+  end,
+  method s-method(self, loc, name, params :: List<A.Name>,
+   args :: List<A.Bind>, ann, doc, body :: A.Expr, _check-loc, _check, blocky):
+    new-body = wrap-func-body(self, loc, name, args, body, blocky)
+    A.s-method(loc,  name, params, args, ann, doc, new-body, _check-loc, _check, blocky)
+  end
+  #|
   method s-app(self, loc, f :: A.Expr, exps :: List<A.Expr>):
     temp = mk-id(loc, "tr_") # "Trace Result"
     push-dummy = mk-id(loc, "pushdmme_")
@@ -1028,8 +1085,10 @@ instrument-calls-visitor = A.default-map-visitor.{
                                       temp.id-e, false),
                     false), false), false)
   end
+  |#
 }
 
+#| have this instrument written lam, method, and function bodies instead |#
 fun instrument-calls(exp) block:
   generated-binds := SD.make-mutable-string-dict()
   {ast: exp.visit(instrument-calls-visitor), new-binds: generated-binds}
