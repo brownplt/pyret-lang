@@ -247,7 +247,7 @@ fun from_list<A>(l :: List<A>):
   end
 end
 
-check:
+#check:
   # [clist: 1, 2, 3] is concat-cons(1, concat-cons(2, concat-singleton(3)))
-  nothing
-end
+#  nothing
+#end
