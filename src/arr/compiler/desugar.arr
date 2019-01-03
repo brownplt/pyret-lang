@@ -1028,10 +1028,11 @@ fun wrap-func-body(self, loc, name, args, body, blocky):
   A.s-block(loc, [list:
     sugar-push(self, loc, name, args),
     A.s-let-expr(loc, [list: A.s-let-bind(loc, ans.id-b, body.visit(self))],
-    ans.id-e,
+    A.s-block(loc, [list:
+      sugar-pop(self, loc, ans.id-e),
+      ans.id-e
+    ]),
     true),
-    sugar-pop(self, loc, ans.id-e),
-    ans.id-e
   ])
 #|
     (wrap-func-body name args body blocky) =>
