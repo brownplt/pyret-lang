@@ -1003,8 +1003,8 @@ where:
 
 end
 
-fun sugar-pop(self, loc, ans):
-  A.s-prim-app(loc, "tracePopCall", [list: ans], A.prim-app-info-c(false))
+fun sugar-pop(self, loc, name, ans):
+  A.s-prim-app(loc, "tracePopCall", [list: A.s-str(loc, name), ans], A.prim-app-info-c(false))
   #|
     (pop ans) =>
     (s-prim-app "tracePopCall" [ans])
@@ -1029,7 +1029,7 @@ fun wrap-func-body(self, loc, name, args, body, blocky):
     sugar-push(self, loc, name, args),
     A.s-let-expr(loc, [list: A.s-let-bind(loc, ans.id-b, body.visit(self))],
     A.s-block(loc, [list:
-      sugar-pop(self, loc, ans.id-e),
+      sugar-pop(self, loc, name, ans.id-e),
       ans.id-e
     ]),
     true),
