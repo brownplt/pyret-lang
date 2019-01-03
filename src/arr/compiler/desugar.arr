@@ -1004,7 +1004,7 @@ where:
 end
 
 fun sugar-pop(self, loc, ans):
-  A.s-prim-app(loc, "tracePopCall", [list: ans.visit(self)], A.prim-app-info-c(false))
+  A.s-prim-app(loc, "tracePopCall", [list: ans], A.prim-app-info-c(false))
   #|
     (pop ans) =>
     (s-prim-app "tracePopCall" [ans])
@@ -1020,14 +1020,16 @@ fun sugar-push(self, loc, name, args :: List<A.Bind>):
   |#
   A.s-prim-app(loc, "tracePushCall",
     [list: A.s-str(loc, name),
-      args.map(lam(a): _.visit(self) end)
+      A.s-array(loc, args.map(lam(a): A.s-id(loc, a.id) end))
     ], A.prim-app-info-c(false))
 end
 fun wrap-func-body(self, loc, name, args, body, blocky):
   ans = mk-id(loc, "ans_")
   A.s-block(loc, [list:
     sugar-push(self, loc, name, args),
-    A.s-let(loc, ans.id-b, body.visit(self), blocky),
+    A.s-let-expr(loc, [list: A.s-let-bind(loc, ans.id-b, body.visit(self))],
+    ans.id-e,
+    true),
     sugar-pop(self, loc, ans.id-e),
     ans.id-e
   ])
