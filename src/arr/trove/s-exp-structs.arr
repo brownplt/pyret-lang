@@ -4,8 +4,7 @@ provide *
 provide-types *
 
 import global as _
-import lists as lists
-type List = lists.List
+include lists
 
 data S-Exp:
   | s-list(exps :: List<S-Exp>)

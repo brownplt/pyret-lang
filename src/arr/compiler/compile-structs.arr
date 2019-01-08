@@ -58,26 +58,26 @@ data NativeModule:
 end
 
 data BindOrigin:
-  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI)
+  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI, original-name :: A.Name)
 end
 
-fun bo-local(loc):
+fun bo-local(loc, original-name):
   cases(SL.Srcloc) loc:
     | builtin(source) =>
-      bind-origin(loc, loc, true, source)
+      bind-origin(loc, loc, true, source, original-name)
     | else =>
-      bind-origin(loc, loc, true, loc.source)
+      bind-origin(loc, loc, true, loc.source, original-name)
   end
 end
 
 # NOTE(joe): If source information ends up in provides, we can add an extra arg
 # here to provide better definition site info for names from other modules
-fun bo-module(loc, uri):
-  bind-origin(loc, SL.builtin(uri), false, uri)
+fun bo-module(loc, uri, original-name):
+  bind-origin(loc, SL.builtin(uri), false, uri, original-name)
 end
 
-fun bo-global(uri):
-  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
+fun bo-global(uri, original-name):
+  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, original-name)
 end
 
 data ValueBinder:
@@ -118,14 +118,24 @@ data ScopeResolution:
   | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
 end
 
+data ComputedEnvironment:
+  | computed-none
+  | computed-env(
+      module-bindings :: SD.MutableStringDict<ModuleBind>,
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
+      datatypes :: SD.MutableStringDict<A.Expr>,
+      module-env :: SD.StringDict<ModuleBind>,
+      env :: SD.StringDict<ValueBind>,
+      type-env :: SD.StringDict<TypeBind>)
+end
+
 data NameResolution:
   | resolved-names(
       ast :: A.Program,
       errors :: List<CompileError>,
-      module-bindings :: SD.MutableStringDict<ModuleBind>,
-      bindings :: SD.MutableStringDict<ValueBind>,
-      type-bindings :: SD.MutableStringDict<TypeBind>,
-      datatypes :: SD.MutableStringDict<A.Expr>)
+      env :: ComputedEnvironment
+     )
 end
 
 # Used to describe when additional module imports should be added to a
@@ -140,7 +150,7 @@ data ExtraImport:
 end
 
 data Loadable:
-  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, result-printer :: CompileResult<Any>)
+  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, post-compile-env :: ComputedEnvironment, result-printer :: CompileResult<Any>)
     # NOTE(joe): there's a circular dependency between this module and js-of-pyret.arr; hence the Any above
 end
 
@@ -156,13 +166,43 @@ sharing:
   # that fully resolves names (once ValueExport and
   # friends have that information)
   method value-by-uri(self, uri :: String, name :: String):
-    self.all-modules
+    cases(Option) self.all-modules
       .get-value-now(uri)
-      .provides
-      .values.get(name)
+      .provides.values
+      .get(name):
+
+      | none => none
+      | some(ve) =>
+        cases(ValueExport) ve:
+          | v-alias(origin, shadow name) =>
+            self.value-by-uri(origin.uri-of-definition, name)
+          | else => some(ve)
+        end
+    end
   end,
   method value-by-uri-value(self, uri :: String, name :: String):
     cases(Option) self.value-by-uri(uri, name):
+      | none => raise("Could not find value " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method resolve-value-by-uri(self, uri :: String, name :: String):
+    cases(Option) self.all-modules
+      .get-value-now(uri)
+      .provides.values
+      .get(name):
+
+      | none => none
+      | some(ve) =>
+        cases(ValueExport) ve:
+          | v-alias(origin, shadow name) =>
+            self.resolve-value-by-uri(origin.uri-of-definition, name)
+          | else => some({name; ve})
+        end
+    end
+  end,
+  method resolve-value-by-uri-value(self, uri :: String, name :: String):
+    cases(Option) self.resolve-value-by-uri(uri, name):
       | none => raise("Could not find value " + name + " on module " + uri)
       | some(v) => v
     end
@@ -184,12 +224,12 @@ sharing:
   end,
   method global-value(self, name :: String):
     self.globals.values.get(name)
-      .and-then(self.value-by-dep-key(_, name))
+      .and-then(self.value-by-uri(_, name))
       .and-then(_.value)
   end,
   method global-type(self, name :: String):
     self.globals.types.get(name)
-      .and-then(self.type-by-dep-key(_, name))
+      .and-then(self.type-by-uri(_, name))
       .and-then(_.value)
   end,
   method uri-by-dep-key(self, dep-key):
@@ -198,6 +238,12 @@ sharing:
   method provides-by-uri(self, uri):
     self.all-modules.get-now(uri)
       .and-then(_.provides)
+  end,
+  method provides-by-uri-value(self, uri):
+    cases(Option) self.provides-by-uri(uri):
+      | none => raise("Could not find module with uri: " + uri)
+      | some(shadow provides) => provides
+    end
   end,
   method provides-by-dep-key(self, dep-key):
     self.my-modules.get(dep-key)
@@ -212,8 +258,7 @@ sharing:
   end,
   method provides-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.provides-by-dep-key(_))
-      .and-then(_.value)
+      .and-then(self.provides-by-uri-value(_))
   end,
   method provides-by-value-name-value(self, name):
     cases(Option) self.provides-by-value-name(name):
@@ -223,7 +268,7 @@ sharing:
   end,
   method provides-by-type-name(self, name):
     self.globals.types.get(name)
-      .and-then(self.provides-by-dep-key(_))
+      .and-then(self.provides-by-uri(_))
       .and-then(_.value)
   end,
   method provides-by-type-name-value(self, name):
@@ -234,7 +279,7 @@ sharing:
   end,
   method provides-by-module-name(self, name):
     self.globals.modules.get(name)
-      .and-then(self.provides-by-dep-key(_))
+      .and-then(self.provides-by-uri(_))
       .and-then(_.value)
   end,
   method provides-by-module-name-value(self, name):
@@ -263,25 +308,27 @@ sharing:
       | some(g) => g
     end
   end,
+  method uri-by-module-name(self, name):
+    self.globals.modules.get(name)
+  end,
   method uri-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.uri-by-dep-key(_))
   end,
   method uri-by-type-name(self, name):
     self.globals.types.get(name)
-      .and-then(self.uri-by-dep-key(_))
   end
 end
 
-# globals maps from names to the appropriate dependency (e.g. in my-modules)
+# globals maps from names to uri (e.g. in all-modules)
 data Globals:
-  | globals(modules :: StringDict<String>, values :: StringDict<String>, types :: StringDict<String>)
+  | globals(modules :: StringDict<URI>, values :: StringDict<URI>, types :: StringDict<URI>)
 end
 
 data ValueExport:
-  | v-just-type(t :: T.Type)
-  | v-var(t :: T.Type)
-  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
+  | v-alias(origin :: BindOrigin, original-name :: String)
+  | v-just-type(origin :: BindOrigin, t :: T.Type)
+  | v-var(origin :: BindOrigin, t :: T.Type)
+  | v-fun(origin :: BindOrigin, t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
 data Provides:
@@ -395,23 +442,62 @@ fun datatype-from-raw(uri, datatyp):
   end
 end
 
+fun srcloc-from-raw(raw):
+  if raw-array-length(raw) == 1:
+    SL.builtin(raw-array-get(raw, 0))
+  else:
+    SL.srcloc(
+      raw-array-get(raw, 0),
+      raw-array-get(raw, 1),
+      raw-array-get(raw, 2),
+      raw-array-get(raw, 3),
+      raw-array-get(raw, 4),
+      raw-array-get(raw, 5),
+      raw-array-get(raw, 6))
+  end
+end
+
+fun origin-from-raw(uri, raw, name):
+  if raw.provided:
+    bind-origin(
+      srcloc-from-raw(raw.local-bind-site),
+      srcloc-from-raw(raw.definition-bind-site),
+      raw.new-definition,
+      raw.uri-of-definition,
+      A.s-name(srcloc-from-raw(raw.definition-bind-site), name)
+      )
+  else:
+    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, A.s-name(SL.builtin(uri), name))
+  end
+end
+
 fun provides-from-raw-provides(uri, raw):
+  mods = raw.modules
+  mdict = for fold(mdict from SD.make-string-dict(), v from raw.modules):
+    mdict.set(v.name, v.uri)
+  end
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, v-just-type(t-top))
+      vdict.set(v, v-just-type(origin-from-raw(uri, {provided:false}, v), t-top))
     else:
-      if v.value.bind == "var":
-        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      if v.value.bind == "alias":
+        origin = origin-from-raw(uri, v.value.origin, v.value.original-name)
+        vdict.set(v.name, v-alias(origin, v.value.original-name))
+      else if v.value.bind == "var":
+        origin = origin-from-raw(uri, v.value.origin, v.name)
+        vdict.set(v.name, v-var(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       else if v.value.bind == "fun":
+        origin = origin-from-raw(uri, v.value.origin, v.name)
         flatness = if is-number(v.value.flatness):
           some(v.value.flatness)
         else:
           none
         end
-        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
+        vdict.set(v.name, v-fun(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
-        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+        origin = origin-from-raw(uri, v.value.origin, v.name)
+        vdict.set(v.name, v-just-type(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end
     end
   end
@@ -427,8 +513,7 @@ fun provides-from-raw-provides(uri, raw):
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  # MARK(joe/ben): modules
-  provides(uri, [SD.string-dict:], vdict, adict, ddict)
+  provides(uri, mdict, vdict, adict, ddict)
 end
 
 
@@ -525,15 +610,15 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
     end
-  | contract-on-import(loc :: Loc, name :: String, import-type :: A.ImportType) with:
+  | contract-on-import(loc :: Loc, name :: String, import-loc :: Loc, import-uri :: String) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Contracts for functions can only be defined once, and the contract for "),
           ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
           ED.text(" is already defined in the "),
-          ED.highlight(ED.code(ED.text(self.import-type.tosource().pretty(1000).join-str(""))),
-            [list: self.import-type.l], 1),
+          ED.highlight(ED.code(ED.text(self.import-uri)),
+            [list: self.import-loc], 1),
           ED.text(" library.")],
         ED.cmcode(self.loc)]
     end,
@@ -1267,7 +1352,7 @@ data CompileError:
           ED.text(" is being used as a value:")]
       usage = ED.cmcode(self.id.l)
       cases(BindOrigin) self.origin:
-        | bind-origin(lbind, ldef, newdef, uri) =>
+        | bind-origin(lbind, ldef, newdef, uri, orig-name) =>
           if newdef:
             [ED.error: intro, usage,
               [ED.para:
@@ -2616,6 +2701,7 @@ type CompileOptions = {
   check-mode :: Boolean,
   check-all :: Boolean,
   type-check :: Boolean,
+  enable-spies :: Boolean,
   allow-shadowed :: Boolean,
   collect-all :: Boolean,
   collect-times :: Boolean,
@@ -2637,6 +2723,7 @@ default-compile-options = {
   check-all : true,
   checks: "all",
   type-check : false,
+  enable-spies: true,
   allow-shadowed : false,
   collect-all: false,
   collect-times: false,
@@ -2718,26 +2805,27 @@ runtime-provides = provides("builtin://global",
   [string-dict:])
 
 runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
-  rb.set(k, "builtin(global)")
+  rb.set(k, "builtin://global")
 end
 
 runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
-  rt.set(k, "builtin(global)")
+  rt.set(k, "builtin://global")
 end
 shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
-  rt.set(k, "builtin(global)")
+  rt.set(k, "builtin://global")
 end
 
 # MARK(joe/ben): modules
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
+# no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
 
 # MARK(joe/ben): modules
-standard-globals = globals([string-dict:], runtime-values, runtime-types)
+# standard-globals = globals([string-dict:], runtime-values, runtime-types)
 
-minimal-imports = extra-imports(
-  [list:
-    extra-import(builtin("global"), "$global", [list:], [list:])]
-)
+# minimal-imports = extra-imports(
+#  [list:
+#    extra-import(builtin("global"), "$global", [list:], [list:])]
+# )
+minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
@@ -2814,6 +2902,13 @@ standard-imports = extra-imports(
         ],
         [list: "Set"])
     ])
+
+# MARK(joe/ben): modules
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
+
+# MARK(joe/ben): modules
+standard-globals = globals([string-dict:], runtime-values, runtime-types)
+
 
 reactor-optional-fields = [SD.string-dict:
   "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},

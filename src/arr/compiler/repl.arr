@@ -27,31 +27,27 @@ fun is-standard-import(imp :: CS.ExtraImport):
   standard-import-names.member(imp.as-name)
 end
 
-fun get-defined-ids(p, imports, body):
+fun get-defined-ids(p, imports, body, extras):
   ids = A.toplevel-ids(p)
-  import-names = for fold(names from empty, imp from imports):
+  import-ids = for filter(imp from imports): A.is-s-import(imp) end
+  extra-ids = for map(imp from extras.imports):
+    A.s-name(p.l, imp.as-name)
+  end
+  shadow import-ids = import-ids.map(_.name) + extra-ids
+  value-names = for fold(names from empty, imp from imports):
     cases(A.Import) imp:
-      | s-import(_, _, name) => link(name, names)
+      | s-import(_, _, _) => names
       | s-import-fields(_, imp-names, _) => names + imp-names
       | s-include(_, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
-  ids-plus-import-names = import-names + ids
-  type-ids = A.block-type-ids(body)
-  import-type-names = for fold(names from empty, imp from imports):
-    cases(A.Import) imp:
-      | s-import(_, _, name) => link(name, names)
-      | s-import-fields(_, imp-names, _) => names
-      | s-include(_, _) => names
-      | else => raise("Unknown import type: " + torepr(imp))
-    end
-  end
-  type-ids-plus-import-names = import-type-names + type-ids.map(_.name)
+  ids-plus-imported-names = value-names + ids
+  type-ids = A.block-type-ids(body).map(_.name)
   {
-    imports: imports,
-    ids: ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end),
-    type-ids: type-ids-plus-import-names.filter(lam(id): not(A.is-s-underscore(id)) end)
+    import-ids: import-ids.filter(lam(id): not(A.is-s-underscore(id)) end),
+    ids: ids-plus-imported-names.filter(lam(id): not(A.is-s-underscore(id)) end),
+    type-ids: type-ids.filter(lam(id): not(A.is-s-underscore(id)) end)
   }
 end
 
@@ -63,16 +59,20 @@ fun af(l,  name):
   A.a-field(l, name.toname(), A.a-name(l, name))
 end
 
-fun make-provide-for-repl(p :: A.Program):
+fun make-provide-for-repl(p :: A.Program, extras):
   cases(A.Program) p:
-    | s-program(l, _, _, imports, body) =>
-      defined-ids = get-defined-ids(p, imports, body)
+    | s-program(l, _, _, _, imports, body) =>
+      defined-ids = get-defined-ids(p, imports, body, CS.extra-imports(empty))
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
+      repl-mod-provide = for map(n from defined-ids.import-ids):
+        A.s-provide-module(l, A.s-module-ref(l, [list: n], none))
+      end
       A.s-program(l,
           A.s-provide(l, A.s-obj(l, repl-provide)),
           A.s-provide-types(l, repl-type-provide),
-          defined-ids.imports,
+          [list: A.s-provide-block(l, empty, repl-mod-provide) ],
+          imports,
           body)
   end
 end
@@ -81,11 +81,11 @@ fun make-provide-for-repl-main-env(p :: A.Program, env :: CS.CompileEnvironment)
   make-provide-for-repl-main(p, env.globals)
 end
 
-fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
+fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals, extras):
   doc: "Make the program simply provide all (for the repl)"
   cases(A.Program) p:
-    | s-program(l, _, _, imports, body) =>
-      defined-ids = get-defined-ids(p, imports, body)
+    | s-program(l, _, _, _, imports, body) =>
+      defined-ids = get-defined-ids(p, imports, body, extras)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       env-provide = for SD.fold-keys(flds from repl-provide, name from globals.values):
@@ -94,10 +94,14 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals):
       env-type-provide = for SD.fold-keys(flds from repl-type-provide, name from globals.types):
         link(af(l, A.s-name(l, name)), flds)
       end
+      repl-mod-provide = for map(i from defined-ids.import-ids):
+        A.s-provide-module(l, A.s-module-ref(l, [list: i], none))
+      end
       A.s-program(l,
-          A.s-provide(l, A.s-obj(l, env-provide)),
-          A.s-provide-types(l, env-type-provide),
-          defined-ids.imports,
+          A.s-provide(l, A.s-obj(l, repl-provide)),
+          A.s-provide-types(l, repl-type-provide),
+          [list: A.s-provide-block(l, empty, repl-mod-provide)],
+          imports,
           body)
   end
 end
@@ -119,30 +123,23 @@ fun make-definitions-finder(import-types :: SD.StringDict, make-builtin):
 end
 
 
-fun filter-env-by-imports(env :: CS.CompileEnvironment, l :: CL.Locator, dep :: String, g :: CS.Globals) -> {new-globals:: CS.Globals, new-extras:: List<CS.ExtraImport>}:
-  cases(A.Program) CL.get-ast(l.get-module(), l.uri()):
-    | s-program(_, _, _, imports, _) =>
-      for fold(res from {new-globals: g, new-extras: empty}, i from imports):
-        shadow g = res.new-globals
-        cases(A.Import) RN.expand-import(i, env):
-          | s-import-complete(_, values, types, file, vals-name, type-name) =>
-            depname = AU.import-to-dep(file).key()
-            new-vals = for fold(vs from g.values, k from values.map(_.toname())):
-              vs.set(k, depname)
-            end
-            new-types = for fold(ts from g.types, k from types.map(_.toname())):
-              ts.set(k, depname)
-            end
-            # MARK(joe/ben): modules
-            ng = CS.globals(
-              [SD.string-dict:],
-              new-vals.set(vals-name.toname(), dep),
-              new-types.set(type-name.toname(), dep))
-            ne = link(CS.extra-import(AU.import-to-dep(file), "_", empty, empty), res.new-extras)
-            { new-globals: ng, new-extras: ne }
-        end
-      end
+fun filter-env-by-imports(post-env :: CS.ComputedEnvironment, g :: CS.Globals) -> CS.Globals:
+
+  module-env = post-env.module-env
+  val-env = post-env.env
+  type-env = post-env.type-env
+
+  module-globals = for fold(mg from g.modules, k from module-env.keys-list()):
+    mg.set(k, module-env.get-value(k).origin.uri-of-definition)
   end
+  val-globals = for fold(vg from g.values, k from val-env.keys-list()):
+    vg.set(k, val-env.get-value(k).origin.uri-of-definition)
+  end
+  type-globals = for fold(tg from g.types, k from type-env.keys-list()):
+    tg.set(k, type-env.get-value(k).origin.uri-of-definition)
+  end
+
+  CS.globals(module-globals, val-globals, type-globals)
 end
 
 fun make-repl<a>(
@@ -175,22 +172,8 @@ fun make-repl<a>(
   fun update-env(result, loc, cr) block:
     dep = CS.dependency("repl", [list: loc.uri()])
 
-    globs-and-imports = filter-env-by-imports(cr.compile-env, loc, dep.key(), globals)
-    globals := globs-and-imports.new-globals
-    extra-imports := CS.extra-imports(
-      globs-and-imports.new-extras +
-      link(
-        CS.extra-import(dep, "_", [list:], [list:]),
-        extra-imports.imports))
-
-    new-vals = for SD.fold-keys(vs from globals.values, provided-name from cr.provides.values):
-      vs.set(provided-name, dep.key())
-    end
-    new-types = for SD.fold-keys(ts from globals.types, provided-name from cr.provides.aliases):
-      ts.set(provided-name, dep.key())
-    end
-    # MARK(joe/ben): modules
-    globals := CS.globals([SD.string-dict:], new-vals, new-types)
+    new-globals = filter-env-by-imports(cr.post-compile-env, globals)
+    globals := new-globals
 
     locator-cache.set-now(loc.uri(), loc)
     current-realm := L.get-result-realm(result)
@@ -250,7 +233,7 @@ fun make-repl<a>(
       when ast == nothing block:
         interactions = get-interactions()
         parsed = P.surface-parse(interactions, uri)
-        ast := make-provide-for-repl(parsed)
+        ast := make-provide-for-repl(parsed, extra-imports)
       end
       ast
     end
@@ -269,7 +252,7 @@ fun make-repl<a>(
       method get-options(self, options): options end,
       method get-native-modules(self): [list:] end,
       method get-module(self): CL.pyret-ast(get-ast()) end,
-      method get-extra-imports(self): extras-now end,
+      method get-extra-imports(self): CS.extra-imports(empty) end,
       method get-dependencies(self):
         mod-deps = CL.get-dependencies(self.get-module(), self.uri())
         mod-deps + self.get-extra-imports().imports.map(_.dependency)
@@ -290,7 +273,7 @@ fun make-repl<a>(
       when ast == nothing block:
         initial-definitions = get-defs()
         parsed = P.surface-parse(initial-definitions, "definitions://")
-        provided = make-provide-for-repl-main(parsed, globals)
+        provided = make-provide-for-repl-main(parsed, globals, extra-imports)
         ast := provided
       end
       ast

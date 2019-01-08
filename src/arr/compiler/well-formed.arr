@@ -437,7 +437,7 @@ end
 var parent-block-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, provides, imports, body):
     raise("Impossible")
   end,
   method s-special-import(self, l, kind, args) block:
@@ -611,7 +611,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     name.visit(self) and ann.visit(self)
   end,
-  method s-check-test(self, l, op, refinement, left, right) block:
+  method s-check-test(self, l, op, refinement, left, right, cause) block:
     when not(in-check-block):
       add-error(C.unwelcome-test(l))
     end
@@ -623,7 +623,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.unwelcome-test-refinement(refinement.value, op))
       end
     end
-    left.visit(self) and self.option(right)
+    left.visit(self) and self.option(right) and self.option(cause)
   end,
   method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
     old-pbl = parent-block-loc
@@ -993,7 +993,7 @@ well-formed-visitor = A.default-iter-visitor.{
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, provides, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
       | else => body.visit(self)
@@ -1204,8 +1204,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op-loc, op, left, right)
   end,
-  method s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
-    well-formed-visitor.s-check-test(l, op, refinement, left, right)
+  method s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>, cause :: Option<A.Expr>):
+    well-formed-visitor.s-check-test(l, op, refinement, left, right, cause)
   end,
   method s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)

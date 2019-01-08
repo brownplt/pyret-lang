@@ -5,7 +5,12 @@
     "pyret-base/js/secure-loader",
     "pyret-base/js/type-util"
   ],
-  provides: {},
+  provides: {
+    values: {
+      "builtin-raw-locator": "tany",
+      "builtin-raw-locator-from-str": "tany"
+    }
+  },
   theModule: function(RUNTIME, ns, uri, fs, loader, t) {
     var F = RUNTIME.makeFunction;
 
@@ -65,6 +70,22 @@
               }
               return [];
             }, "get-raw-datatype-provides"),
+          "get-raw-module-provides":
+            F(function() {
+              var m = getData(content);
+              if(typeof m.provides.modules === "object") {
+                var mods = m.provides.modules;
+                return Object.keys(mods).map(function(k) {
+                  return RUNTIME.makeObject({
+                    name: k,
+                    uri: mods[k].uri
+                  });
+                });
+              }
+              else {
+                return [];
+              }
+            }, "get-raw-module-provides"),
           "get-raw-alias-provides":
             F(function() {
               var m = staticInfo;

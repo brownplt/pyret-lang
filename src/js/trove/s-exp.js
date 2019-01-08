@@ -3,7 +3,30 @@
     { "import-type": "builtin", "name": "s-exp-structs" }
   ],
   nativeRequires: ["s-expression"],
-  provides: {},
+  provides: {
+    shorthands: {
+      "S-Exp": {
+        tag: "name",
+        origin: { "import-type": "uri", uri: "builtin://s-exp-structs" },
+        name: "S-Exp"
+      },
+      "pred": ["arrow", ["Any"], "Boolean"]
+    },
+    values: {
+      "s-list": ["arrow", [["List", "S-Exp"]], "S-Exp"],
+      "s-num": ["arrow", ["Number"], "S-Exp"],
+      "s-str": ["arrow", ["String"], "S-Exp"],
+      "s-sym": ["arrow", ["String"], "S-Exp"],
+      "is-s-list": "pred",
+      "is-s-num": "pred",
+      "is-s-str": "pred",
+      "is-s-sym": "pred",
+      "read-s-exp": ["arrow", ["String"], "S-Exp"]
+    },
+    types: {
+      "S-Exp": "S-Exp"
+    }
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, sstruct, sexp) {
     var gf = RUNTIME.getField;
     var vals = gf(sstruct, "values");

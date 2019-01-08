@@ -26,25 +26,25 @@ fun main(args :: List<String>) -> Number block:
     "serve",
       C.flag(C.once, "Start the Pyret server"),
     "port",
-      C.next-val-default(C.String, "1701", none, C.once, "Port to serve on (default 1701, can also be UNIX file socket or windows pipe)"),
+      C.next-val-default(C.Str, "1701", none, C.once, "Port to serve on (default 1701, can also be UNIX file socket or windows pipe)"),
     "build-standalone",
-      C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
+      C.next-val(C.Str, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "build-runnable",
-      C.next-val(C.String, C.once, "Main Pyret (.arr) file to build as a standalone"),
+      C.next-val(C.Str, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "require-config",
-      C.next-val(C.String, C.once, "JSON file to use for requirejs configuration of build-runnable"),
+      C.next-val(C.Str, C.once, "JSON file to use for requirejs configuration of build-runnable"),
     "outfile",
-      C.next-val(C.String, C.once, "Output file for build-runnable"),
+      C.next-val(C.Str, C.once, "Output file for build-runnable"),
     "build",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to build"),
+      C.next-val(C.Str, C.once, "Pyret (.arr) file to build"),
     "run",
-      C.next-val(C.String, C.once, "Pyret (.arr) file to compile and run"),
+      C.next-val(C.Str, C.once, "Pyret (.arr) file to compile and run"),
     "standalone-file",
-      C.next-val-default(C.String, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
+      C.next-val-default(C.Str, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
     "builtin-js-dir",
-      C.next-val(C.String, C.many, "Directory to find the source of builtin js modules"),
+      C.next-val(C.Str, C.many, "Directory to find the source of builtin js modules"),
     "builtin-arr-dir",
-      C.next-val(C.String, C.many, "Directory to find the source of builtin arr modules"),
+      C.next-val(C.Str, C.many, "Directory to find the source of builtin arr modules"),
     "allow-builtin-overrides",
       C.flag(C.once, "Allow overlapping builtins defined between builtin-js-dir and builtin-arr-dir"),
     "no-display-progress",
@@ -52,19 +52,21 @@ fun main(args :: List<String>) -> Number block:
     "compiled-read-only-dir",
       C.next-val(C.String, C.many, "Additional directories to search to find precompiled versions of modules"),
     "compiled-dir",
-      C.next-val-default(C.String, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
+      C.next-val-default(C.Str, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
     "library",
       C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
-      C.next-val-default(C.String, ".", none, C.once, "Base directory to search for modules"),
+      C.next-val-default(C.Str, ".", none, C.once, "Base directory to search for modules"),
     "checks",
-      C.next-val(C.String, C.once, "Specify which checks to execute (all, none, or main)"),
+      C.next-val(C.Str, C.once, "Specify which checks to execute (all, none, or main)"),
     "profile",
       C.flag(C.once, "Add profiling information to the main file"),
     "check-all",
       C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
       C.flag(C.once, "Skip checks"),
+    "no-spies",
+      C.flag(C.once, "Disable printing of all `spy` statements"),
     "allow-shadow",
       C.flag(C.once, "Run without checking for shadowed variables"),
     "improper-tail-calls",
@@ -74,11 +76,11 @@ fun main(args :: List<String>) -> Number block:
     "type-check",
       C.flag(C.once, "Type-check the program during compilation"),
     "inline-case-body-limit",
-      C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
+      C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
     "deps-file",
-      C.next-val(C.String, C.once, "Provide a path to override the default dependencies file"),
+      C.next-val(C.Str, C.once, "Provide a path to override the default dependencies file"),
     "html-file",
-      C.next-val(C.String, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
+      C.next-val(C.Str, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
     "no-module-eval",
       C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
     "no-user-annotations",
@@ -102,10 +104,8 @@ fun main(args :: List<String>) -> Number block:
         if r.has-key("no-check-mode") or r.has-key("library"): "none"
         else if r.has-key("checks"): r.get-value("checks")
         else: "all" end
+      enable-spies = not(r.has-key("no-spies"))
       allow-shadowed = r.has-key("allow-shadow")
-      libs =
-        if r.has-key("library"): CS.minimal-imports
-        else: CS.standard-imports end
       module-dir = r.get-value("module-load-dir")
       inline-case-body-limit = r.get-value("inline-case-body-limit")
       type-check = r.has-key("type-check")
@@ -254,5 +254,5 @@ fun main(args :: List<String>) -> Number block:
   end
 end
 
-exit-code = main(C.args)
+exit-code = main(C.other-args)
 SYS.exit-quiet(exit-code)
