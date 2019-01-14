@@ -1,11 +1,11 @@
 #lang pyret
 
-import cmdline as C
 import file as F
 import pathlib as P
 import render-error-display as RED
 import string-dict as D
 import system as SYS
+import file("cmdline.arr") as C
 import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
