@@ -6,6 +6,10 @@ import pprint as PP
 import srcloc as S
 import contracts as C
 import valueskeleton as VS
+import lists as L
+
+all = L.all
+foldr = L.foldr
 
 type Loc = S.Srcloc
 
