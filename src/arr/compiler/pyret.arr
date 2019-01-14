@@ -50,7 +50,7 @@ fun main(args :: List<String>) -> Number block:
     "no-display-progress",
       C.flag(C.once, "Skip printing the \"Compiling X/Y\" progress indicator"),
     "compiled-read-only-dir",
-      C.next-val(C.String, C.many, "Additional directories to search to find precompiled versions of modules"),
+      C.next-val(C.Str, C.many, "Additional directories to search to find precompiled versions of modules"),
     "compiled-dir",
       C.next-val-default(C.Str, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
     "library",
