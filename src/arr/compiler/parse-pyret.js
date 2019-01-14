@@ -29,11 +29,34 @@
     var link = RUNTIME.getField(lists, "link");
     var empty = RUNTIME.getField(lists, "empty");
 
-    var makePyretPos = RUNTIME.ffi.makePyretPos;
-    var combinePyretPos = RUNTIME.ffi.combinePyretPos;
-
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
     
+    function makePyretPos(fileName, p) {
+      var n = RUNTIME.makeNumber;
+      return RUNTIME.getField(srcloc, "srcloc").app(
+        RUNTIME.makeString(fileName),
+        n(p.startRow),
+        n(p.startCol),
+        n(p.startChar),
+        n(p.endRow),
+        n(p.endCol),
+        n(p.endChar)
+      );
+    }
+
+    function combinePyretPos(fileName, p1, p2) {
+      var n = RUNTIME.makeNumber;
+      return RUNTIME.getField(srcloc, "srcloc").app(
+        RUNTIME.makeString(fileName),
+        n(p1.startRow),
+        n(p1.startCol),
+        n(p1.startChar),
+        n(p2.endRow),
+        n(p2.endCol),
+        n(p2.endChar)
+      );
+    }
+
     function isSignedNumberAsStmt(stmt) {
       var node = stmt;
       if (node.name !== "stmt") return false;       node = node.kids[0];
