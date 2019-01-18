@@ -1008,25 +1008,35 @@ instrument-calls-visitor = A.default-map-visitor.{
     temp = mk-id(loc, "tr_") # "Trace Result"
     push-dummy = mk-id(loc, "pushdmme_")
     pop-dummy = mk-id(loc, "popdmme_")
+    fun-dummy = mk-id(loc, "fundmme_")
     temp-arg-names = range(0, exps.length()).map(lam(x): "arg" + num-to-string(x) + "_" end).map(mk-id(loc, _))
     arg-bindings :: List<A.LetBind> = map2(lam(name, exp): A.s-let-bind(loc, name.id-b, exp.visit(self)) end, temp-arg-names, exps)
     f-visit = f.visit(self)
     exps-visit = temp-arg-names.map(lam(x): x.id-e.visit(self) end)
       # these exps in A.s-array shouldn't be used all the time, map over them?
     # let args in
+    pop-let = A.s-let-expr(loc,
+                [list: A.s-let-bind(loc,
+                                    pop-dummy.id-b,
+                                    A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)))],
+                temp.id-e,
+                false)
+    result-let = A.s-let-expr(loc,
+                    [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
+                    pop-let,
+                    false)
+    # make push let an expression instead of a binding
+    push-let-binding = A.s-let-bind(loc,
+                  push-dummy.id-b,
+                  A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)))
+    push-let = A.s-let-expr(loc,
+                [list: push-let-binding],
+                result-let,
+                false)
     A.s-let-expr(loc,
                  arg-bindings,
-                 A.s-let-expr(loc,
-                 [list: A.s-let-bind(loc,
-                                     push-dummy.id-b,
-                                     A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)))],
-                 A.s-let-expr(loc,
-                    [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
-                    A.s-let-expr(loc,
-                                 [list: A.s-let-bind(loc, pop-dummy.id-b,
-                                      A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)))],
-                                      temp.id-e, false),
-                    false), false), false)
+                 push-let,
+                 false)
   end
 }
 
