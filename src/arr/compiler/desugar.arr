@@ -1023,7 +1023,7 @@ instrument-calls-visitor = A.default-map-visitor.{
                 temp.id-e,
                 false)
     result-let = A.s-let-expr(loc,
-                    [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
+                    [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, fun-dummy.id-e, exps-visit))],
                     pop-let,
                     false)
     push-let-binding = A.s-let-bind(loc,
@@ -1038,7 +1038,7 @@ instrument-calls-visitor = A.default-map-visitor.{
                  push-let,
                  false)
     fun-let = A.s-let-expr(loc,
-                [list: A.s-let-bind(loc, fun-dummy.id-b, f)],
+                [list: A.s-let-bind(loc, fun-dummy.id-b, f-visit)],
                 args-let,
                 false)
     fun-let
