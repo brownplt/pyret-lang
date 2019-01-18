@@ -1015,28 +1015,33 @@ instrument-calls-visitor = A.default-map-visitor.{
     exps-visit = temp-arg-names.map(lam(x): x.id-e.visit(self) end)
       # these exps in A.s-array shouldn't be used all the time, map over them?
     # let args in
+    # bind fun-dummy to result of f-visit?
     pop-let = A.s-let-expr(loc,
                 [list: A.s-let-bind(loc,
                                     pop-dummy.id-b,
-                                    A.s-prim-app(loc, "tracePopCall", [list: f, temp.id-e], A.prim-app-info-c(false)))],
+                                    A.s-prim-app(loc, "tracePopCall", [list: fun-dummy.id-e, temp.id-e], A.prim-app-info-c(false)))],
                 temp.id-e,
                 false)
     result-let = A.s-let-expr(loc,
                     [list: A.s-let-bind(loc, temp.id-b, A.s-app(loc, f-visit, exps-visit))],
                     pop-let,
                     false)
-    # make push let an expression instead of a binding
     push-let-binding = A.s-let-bind(loc,
                   push-dummy.id-b,
-                  A.s-prim-app(loc, "tracePushCall", [list: f, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)))
+                  A.s-prim-app(loc, "tracePushCall", [list: fun-dummy.id-e, A.s-array(loc, temp-arg-names.map(_.id-e))], A.prim-app-info-c(false)))
     push-let = A.s-let-expr(loc,
                 [list: push-let-binding],
                 result-let,
                 false)
-    A.s-let-expr(loc,
+    args-let = A.s-let-expr(loc,
                  arg-bindings,
                  push-let,
                  false)
+    fun-let = A.s-let-expr(loc,
+                [list: A.s-let-bind(loc, fun-dummy.id-b, f)],
+                args-let,
+                false)
+    fun-let
   end
 }
 
