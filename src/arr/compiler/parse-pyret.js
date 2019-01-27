@@ -2,11 +2,11 @@
   requires: [
     { "import-type": "builtin", name: "srcloc" },
     { "import-type": "dependency", protocol: "file", args: ["./ast.arr"] },
-    { "import-type": "builtin", name: "lists" }
+    { "import-type": "builtin", name: "lists" },
+    { "import-type": "dependency", protocol: "js-file", args: ["./pyret-parser"] },
+    { "import-type": "dependency", protocol: "js-file", args: ["./pyret-tokenizer"] },
   ],
   nativeRequires: [
-    "pyret-base/js/pyret-tokenizer",
-    "pyret-base/js/pyret-parser"
   ],
   provides: {
     shorthands: {
@@ -21,10 +21,13 @@
       "maybe-surface-parse": ["arrow", ["String", "String"], ["Option", "Program"]],
     }
   },
-  theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizer, parser) {
+  theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizerLib, parserLib) {
     var srcloc = RUNTIME.getField(srclocLib, "values");
     var ast = RUNTIME.getField(astLib, "values");
     var lists = RUNTIME.getField(listsLib, "values");
+
+    var tokenizer = RUNTIME.getField(RUNTIME.getField(tokenizerLib, "values"), "Tokenizer");
+    var parser = RUNTIME.getField(RUNTIME.getField(parserLib, "values"), "PyretGrammar")
 
     var link = RUNTIME.getField(lists, "link");
     var empty = RUNTIME.getField(lists, "empty");
