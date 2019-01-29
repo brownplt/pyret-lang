@@ -100889,6 +100889,6 @@ theModule: function(runtime, ns, uri, E) {
       }
     ]
   };
-  return { PyretGrammar: Grammar.fromSerializable(g_json) };
+  return runtime.makeModuleReturn({ PyretGrammar: Grammar.fromSerializable(g_json) }, {});
 }
 })
