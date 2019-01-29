@@ -104,7 +104,7 @@ fun println(s) block:
   print(s + "\n")
 end
 
-fun make-compiled-pyret(program-ast, env, post-env, provides, options) -> { C.Provides; CompiledCodePrinter} block:
+fun make-compiled-pyret(program-ast, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
 #  each(println, program-ast.tosource().pretty(80))
 # TODO(alex): Pass post-env to direct-codegen:compile-program
   {provides; 

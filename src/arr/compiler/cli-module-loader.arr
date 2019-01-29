@@ -234,7 +234,7 @@ fun get-loadable(basedir, read-only-basedirs, l) -> Option<Loadable>:
         aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CS.no-builtins, CS.ok(JSP.ccp-file(module-path))))
+      some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(module-path))))
   end
 end
 
@@ -574,8 +574,8 @@ fun build-program(path, options, stats) block:
         loadable
       else:
         cases(CL.Loadable) loadable:
-          | module-as-string(prov, env, rp) =>
-            CL.module-as-string(prov, env, CS.ok(JSP.ccp-two-files(static-path, code-path)))
+          | module-as-string(prov, env, post-env, rp) =>
+            CL.module-as-string(prov, env, post-env, CS.ok(JSP.ccp-two-files(static-path, code-path)))
           | else => loadable
         end
       end

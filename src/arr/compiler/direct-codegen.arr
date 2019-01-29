@@ -239,21 +239,14 @@ end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
-    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+    | s-module(l, answer, dms, dvs, dts, checks) =>
       {a-exp; a-stmts} = compile-expr(context, answer)
 
-      when not(A.is-s-obj(provides)):
-        raise("Fatal: provides is not an object")
-      end
+      {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, dv from dvs) block:
+        # TODO(joe): vars
+        {val; field-stmts} = compile-expr(context, dv.value)
 
-      {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, p from provides.fields) block:
-        when not(A.is-s-data-field(p)):
-          raise("Can only provide data fields")
-        end
-
-        {val; field-stmts} = compile-expr(context, p.value)
-
-        { cl-cons(j-field(p.name, val), fields); field-stmts + stmts }
+        { cl-cons(j-field(dv.name, val), fields); field-stmts + stmts }
       end
 
       ans = j-obj(fields + [clist:
@@ -272,6 +265,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       {e; cl-empty}
     | s-id(l, id) => {j-id(js-id-of(id)); cl-empty}
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
+    | s-id-modref(l, id, _, field) =>
+      {objv; obj-stmts} = compile-expr(context, A.s-id(l, id))
+      {j-bracket(objv, j-str(field)); obj-stmts}
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
 
@@ -677,7 +673,7 @@ fun node-prelude(prog, provides, env, options) block:
   relative-path = pre-append-dir #string-append( pre-append-dir, options.runtime-path )
 
   imports = cases( A.Program ) prog:
-    | s-program( _, _, _, shadow imports, _ ) => imports
+    | s-program( _, _, _, _, shadow imports, _ ) => imports
   end
 
   fun uri-to-real-fs-path(uri):
@@ -722,11 +718,13 @@ fun node-prelude(prog, provides, env, options) block:
   # up these names later if we need to access a value from that module
   explicit-imports = for CL.map_list(import-stmt from imports):
     cases( A.Import ) import-stmt block:
-      | s-import-complete( _,  _, _, import-type, name, _ ) =>
-        dep-key = AU.import-to-dep(import-type).key()
+      | s-import(l, file, name) =>
+        dep-key = AU.import-to-dep(file).key()
         uri = env.uri-by-dep-key(dep-key)
         uri-to-local-js-name.set-now(uri, name)
         uri-to-import(uri, name)
+      | else => raise("Unhandled import: " + to-repr(import-stmt))
+        
     end
   end
 

@@ -327,7 +327,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, post-env, m); empty}
       end
     | arr-js-file(provides, header-file, code-file) =>
-      {module-as-string(provides, CS.no-builtins, CS.ok(JSP.ccp-two-files(header-file, code-file))); empty}
+      {module-as-string(provides, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-two-files(header-file, code-file))); empty}
     | arr-file(mod, libs, shadow options)  =>
       #print("Module is being freshly compiled\n")
       var ast = cases(PyretCode) mod:
