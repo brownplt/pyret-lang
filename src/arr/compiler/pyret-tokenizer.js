@@ -577,8 +577,8 @@
   };
 
 
-  return {
+  return runtime.makeModuleReturn({
     'Tokenizer': new Tokenizer(spec)
-  }; 
+  }, {}); 
   }
 })
