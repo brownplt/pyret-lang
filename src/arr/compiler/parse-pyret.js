@@ -3,8 +3,8 @@
     { "import-type": "builtin", name: "srcloc" },
     { "import-type": "dependency", protocol: "file", args: ["./ast.arr"] },
     { "import-type": "builtin", name: "lists" },
-    { "import-type": "dependency", protocol: "js-file", args: ["./pyret-parser"] },
     { "import-type": "dependency", protocol: "js-file", args: ["./pyret-tokenizer"] },
+    { "import-type": "dependency", protocol: "js-file", args: ["./pyret-parser"] },
   ],
   nativeRequires: [
   ],
@@ -1561,8 +1561,8 @@
     function parseDataRaw(data, fileName) {
       var message = "";
       try {
-        const toks = tokenizer.Tokenizer;
-        const grammar = parser.PyretGrammar;
+        const toks = tokenizer;
+        const grammar = parser;
         toks.tokenizeFrom(data);
         // while (toks.hasNext())
         //   console.log(toks.next().toString(true));
