@@ -72,7 +72,7 @@
             }, "get-raw-datatype-provides"),
           "get-raw-module-provides":
             F(function() {
-              var m = getData(content);
+              var m = staticInfo;
               if(typeof m.provides.modules === "object") {
                 var mods = m.provides.modules;
                 return Object.keys(mods).map(function(k) {
