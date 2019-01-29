@@ -12,7 +12,7 @@
       "builtin-raw-locator-from-str": "tany"
     }
   },
-  theModule: function(RUNTIME, ns, uri, fs, loader, t) {
+  theModule: function(RUNTIME, ns, uri, t, fs, loader) {
     var F = RUNTIME.makeFunction;
 
     function builtinLocatorFromString(codeContent, headerContent) {

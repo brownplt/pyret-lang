@@ -468,7 +468,7 @@
     }
 
 
-    return runtime.makeModuleReturn({
+    return runtime.makeJSModuleReturn({
       any: any,
       string: string,
       number: number,
@@ -487,7 +487,7 @@
       bindToPyret: bindToPyret,
       expandType: expandType,
       expandRecord: expandRecord
-    }, {});
+    });
 
 
   }
