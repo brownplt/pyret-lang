@@ -2,7 +2,7 @@
   provides: {},
   requires: [],
   nativeRequires: [
-    "jgrl/jglr"
+    "jglr/jglr"
   ],
   theModule: function(runtime, ns, uri, E) {
   const SrcLoc = E.SrcLoc
