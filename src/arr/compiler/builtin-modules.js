@@ -1,9 +1,10 @@
 ({
-  requires: [],
   nativeRequires: [
     "fs",
     "pyret-base/js/secure-loader",
-    "pyret-base/js/type-util"
+  ],
+  requires: [
+    { "import-type": "dependency", protocol: "js-file", args: ["./type-util"] }
   ],
   provides: {
     values: {
