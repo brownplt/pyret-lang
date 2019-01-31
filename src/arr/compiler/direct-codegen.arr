@@ -242,11 +242,23 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-module(l, answer, dms, dvs, dts, checks) =>
       {a-exp; a-stmts} = compile-expr(context, answer)
 
+      # Expose top-level values and variables to outside modules
+      # Use variable names as keys
       {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, dv from dvs) block:
-        # TODO(joe): vars
-        {val; field-stmts} = compile-expr(context, dv.value)
+        cases(A.DefinedValue) dv:
+          | s-defined-value(name, def-v) =>
+            block:
+              {val; field-stmts} = compile-expr(context, def-v)
 
-        { cl-cons(j-field(dv.name, val), fields); field-stmts + stmts }
+              { cl-cons(j-field(name, val), fields); field-stmts + stmts }
+            end
+
+          | s-defined-var(name, id) =>
+            block:
+              # TODO(alex): Box variables so external code can mutate variables
+              { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts }
+            end
+        end
       end
 
       ans = j-obj(fields + [clist:
