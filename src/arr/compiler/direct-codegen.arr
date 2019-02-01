@@ -425,7 +425,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       datatype = cases(A.Ann) typ block:
         | a-name(_, name) =>
           print(context.datatypes.keys-now())
-          cases(Option) context.datatypes.get-now(name.key()):
+          # Datatypes in env are key'd by the raw string name
+          cases(Option) context.datatypes.get-now(name.toname()):
             | some(dt) => dt
             | none => raise("Unknown datatype name: " + to-repr(typ))
           end
