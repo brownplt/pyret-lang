@@ -801,7 +801,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op-l, op, l, r) =>
       desugared = DH.desugar-s-op(loc, op-l, op, l, r)
       cases(Expr) desugared:
-        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(loc, op, op-l, l, r)
+        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(loc, op, op-l, l, r, context)
         | else => synthesis(desugared, top-level, context)
       end
     | s-check-test(loc, op, refinement, l, r, cause) =>
