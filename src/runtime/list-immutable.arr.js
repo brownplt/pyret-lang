@@ -21,7 +21,7 @@ module.exports = {
   'map': function( list, fun ) {
     return list.map( fun );
   },
-  'flat-map': function( list, fun ) {
+  'flat-map': function( fun, list ) {
     return List( list ).flatMap( fun );
   },
   'flatten': function( list ) {
@@ -33,10 +33,10 @@ module.exports = {
   'push': function( list, elm ) {
     return list.push( elm );
   },
-  'filter': function( list, fun ) {
+  'filter': function( fun, list ) {
     return list.filter( fun );
   },
-  'reduce': function( list, fun, val ) {
+  'reduce': function( fun, list, val ) {
     return list.reduce( fun, val );
   },
   'sum': function( list ) {
