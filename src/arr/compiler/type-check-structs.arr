@@ -1354,6 +1354,7 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
       cases(TS.NameOrigin) a-mod:
         | dependency(d) => TS.dep-error(a-mod)
         | local =>
+          spy: aliases: context.aliases, key: a-id.key() end
           cases(Option) context.aliases.get(a-id.key()):
             | none => t
             | some(aliased) => resolve-alias(aliased, context).set-loc(l).set-inferred(inferred)

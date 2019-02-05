@@ -135,7 +135,7 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
     | t-name(_, _, _, inferred) =>
       cases(Option<DataType>) context.get-data-type(typ):
         | none =>
-          fold-errors([list: C.cant-typecheck("Expected a data type but got " + tostring(typ), typ.l)])
+          fold-errors([list: C.cant-typecheck("Expected a data type but got " + to-repr(typ), typ.l)])
         | some(data-type) =>
           if is-empty(data-type.params):
             fold-result(typ, context)
