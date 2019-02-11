@@ -42,7 +42,7 @@
     "jshint": "^2.9.5"
   },
   "scripts": {
-    "build": "mkdir -p build/phaseA; pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
+    "build": "./new-build.sh",
     "test": "jest --verbose test"
   },
   "repository": {
