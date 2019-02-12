@@ -1,12 +1,18 @@
 ({
-  requires: [],
   nativeRequires: [
     "fs",
     "pyret-base/js/secure-loader",
-    "pyret-base/js/type-util"
   ],
-  provides: {},
-  theModule: function(RUNTIME, ns, uri, fs, loader, t) {
+  requires: [
+    { "import-type": "dependency", protocol: "js-file", args: ["./type-util"] }
+  ],
+  provides: {
+    values: {
+      "builtin-raw-locator": "tany",
+      "builtin-raw-locator-from-str": "tany"
+    }
+  },
+  theModule: function(RUNTIME, ns, uri, t, fs, loader) {
     var F = RUNTIME.makeFunction;
 
     function builtinLocatorFromString(codeContent, headerContent) {
@@ -65,6 +71,22 @@
               }
               return [];
             }, "get-raw-datatype-provides"),
+          "get-raw-module-provides":
+            F(function() {
+              var m = staticInfo;
+              if(typeof m.provides.modules === "object") {
+                var mods = m.provides.modules;
+                return Object.keys(mods).map(function(k) {
+                  return RUNTIME.makeObject({
+                    name: k,
+                    uri: mods[k].uri
+                  });
+                });
+              }
+              else {
+                return [];
+              }
+            }, "get-raw-module-provides"),
           "get-raw-alias-provides":
             F(function() {
               var m = staticInfo;

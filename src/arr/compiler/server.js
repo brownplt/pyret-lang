@@ -1,5 +1,9 @@
 {
-  provides: {},
+  provides: {
+    values: {
+      "make-server": "tany"
+    }
+  },
   requires: [],
   nativeRequires: ['http', 'ws'],
   theModule: function(runtime, _, uri, http, ws) {

@@ -315,6 +315,7 @@ check "raw-provide-syntax":
         name: "string-to-num",
         value: {
           bind: "let",
+          origin: {provided: false},
           typ: {
             tag: "arrow",
             args: [list: gr("String")],
@@ -330,6 +331,7 @@ check "raw-provide-syntax":
         name: "num-greater",
         value: {
           bind: "let",
+          origin: {provided: false},
           typ: {
             tag: "arrow",
             args: [list: gr("Number"), gr("Number")],
@@ -399,7 +401,7 @@ check "raw-provide-syntax":
 
   provs = CM.provides-from-raw-provides("test-raw-provides", {
     uri: "test-raw-provides",
-    # MARK(joe/ben): modules
+    modules: raw-array-to-list(raw.get-raw-module-provides()),
     values: raw-array-to-list(raw.get-raw-value-provides()),
     aliases: raw-array-to-list(raw.get-raw-alias-provides()),
     datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
@@ -414,10 +416,14 @@ check "raw-provide-syntax":
     bn("global", name)
   end
 
+  o = lam(n):
+    CM.bind-origin(l, l, false, "test-raw-provides", A.s-name(l, n))
+  end
+
   provs.values is
     [string-dict:
       "string-to-num",
-      CM.v-just-type(T.t-arrow(
+      CM.v-just-type(o("string-to-num"), T.t-arrow(
         [list: g("String")],
         T.t-app(
           bn("option", "Option"),
@@ -425,7 +431,7 @@ check "raw-provide-syntax":
           l, false),
         l, false)),
       "num-greater",
-      CM.v-just-type(T.t-arrow(
+      CM.v-just-type(o("num-greater"), T.t-arrow(
         [list: g("Number"), g("Number")],
         g("Boolean"),
         l, false))
@@ -437,11 +443,13 @@ check "raw-provide-syntax":
 end
 
 check:
+  l = SL.builtin("test-provides1")
+  o = lam(n): CM.bind-origin(l, l, false, "test-raw-provides", A.s-name(l, n)) end
   ps = CM.provides("test-provides1",
     # MARK(joe/ben): modules
     mt,
     [string-dict:
-      "x", CM.v-just-type(T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)
@@ -455,6 +463,7 @@ check:
             [SD.string-dict:
               "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)]),
           CM.no-builtins,
+          CM.computed-none,
           CM.ok("dummy")
         )
       ],
@@ -466,7 +475,7 @@ check:
   canon is CM.provides("test-provides1",
     mt, #MARK(joe/ben): modules
     [string-dict:
-      "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)

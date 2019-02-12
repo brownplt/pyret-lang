@@ -2,11 +2,11 @@
 
 provide {
   file-name: file-name,
-  args: other-args,
-  Number: read-number,
-  Bool: read-bool,
-  String: read-string,
-  Custom: read-custom,
+  other-args: other-args,
+  Num: Num,
+  Bool: Bool,
+  Str: Str,
+  Custom: Custom,
   ParseParam: is-ParseParam,
   ParamRepeat: is-ParamRepeat,
   Param: is-Param,
@@ -35,27 +35,13 @@ import base as _
 import cmdline-lib as CL
 import format as F
 import string-dict as D
-import lists as lists
+import lists as L
 import either as E
 import option as O
 import valueskeleton as VS
 
-type Option = O.Option
-some = O.some
-none = O.none
-
-type Either = E.Either
-right = E.right
 left = E.left
-
-type List = lists.List
-link = lists.link
-empty = lists.empty
-list = lists.list
-is-empty = lists.is-empty
-fold = lists.fold
-
-
+right = E.right
 
 
 format = F.format
@@ -67,7 +53,7 @@ other-args = all-cmdline-params.rest
 
 data ParseParam:
   | read-number with:
-    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Number, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> E.Either<Number, String>:
       n = string-tonumber(s)
       if is-nothing(n):
         right(format("~a expected a numeric argument, got ~a", [list: param-name, torepr(s)]))
@@ -76,7 +62,7 @@ data ParseParam:
     end,
     method parse-string(self): "<number>" end
   | read-bool with:
-    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<Boolean, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> E.Either<Boolean, String>:
       if s == "true": left(true)
       else if s == "false": left(false)
       else:
@@ -85,7 +71,7 @@ data ParseParam:
     end,
     method parse-string(self): "(true|false)" end
   | read-string with:
-    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> Either<String, String>:
+    method parse(_, arg-index :: Number, param-name :: String, s :: String) -> E.Either<String, String>:
       left(s)
     end,
     method parse-string(self): "<string>" end
@@ -97,7 +83,7 @@ data ParseParam:
 end
 
 data ParsedArguments:
-  | success(parsed :: D.StringDict, unknown :: List<String>)
+  | success(parsed :: D.StringDict, unknown :: L.List<String>)
   | arg-error(message :: String, partial-results :: ParsedArguments)
 end
 
@@ -113,10 +99,10 @@ data Param:
   | flag(repeated :: ParamRepeat, desc :: String)
   | equals-val(parser :: ParseParam, repeated :: ParamRepeat, desc :: String)
   | equals-val-default(
-      parser :: ParseParam, default :: Any, short-name :: Option<String>, repeated :: ParamRepeat, desc :: String)
+      parser :: ParseParam, default :: Any, short-name :: O.Option<String>, repeated :: ParamRepeat, desc :: String)
   | next-val(parser :: ParseParam, repeated :: ParamRepeat, desc :: String)
   | next-val-default(
-      parser :: ParseParam, default :: Any, short-name :: Option<String>, repeated :: ParamRepeat, desc :: String)
+      parser :: ParseParam, default :: Any, short-name :: O.Option<String>, repeated :: ParamRepeat, desc :: String)
 end
 
 fun is-Param_(l):
@@ -125,7 +111,7 @@ fun is-Param_(l):
 end
 
 # options : Dictionary of Params
-fun usage-info(options) -> List<String>:
+fun usage-info(options) -> L.List<String>:
   option-info = 
     for D.map-keys(key from options):
       cases(Param) options.get-value(key):
@@ -134,7 +120,7 @@ fun usage-info(options) -> List<String>:
         | equals-val(parser, repeated, desc) =>
           format("  --~a=~a: ~a (~a)", [list: key, parser.parse-string(), desc, repeated])
         | equals-val-default(parser, default, short-name, repeated, desc) =>
-          cases(Option<String>) short-name:
+          cases(O.Option<String>) short-name:
             | none =>
               format("  --~a[=~a]: ~a (~a, default: ~a)", [list: key, parser.parse-string(), desc, repeated, default])
             | some(short) =>
@@ -144,7 +130,7 @@ fun usage-info(options) -> List<String>:
         | next-val(parser, repeated, desc) =>
           format("  --~a ~a: ~a (~a)", [list: key, parser.parse-string(), desc, repeated])
         | next-val-default(parser, default, short-name, repeated, desc) =>
-          cases(Option<String>) short-name:
+          cases(O.Option<String>) short-name:
             | none =>
               format("  --~a [~a]: ~a (~a, default: ~a)", [list: key, parser.parse-string(), desc, repeated, default])
             | some(short) =>
@@ -158,7 +144,7 @@ end
 
 # options : Dictionary of Params
 # returns Dictionary where names are same as names of options, values are parsed values (if present)
-fun parse-args(options, args :: List<String>) -> ParsedArguments:
+fun parse-args(options, args :: L.List<String>) -> ParsedArguments:
   doc: ```Takes a dictionary of Param definitions, and a list of string arguments, 
   and returns either the parsed argument results, or an error if the provided 
   arguments do not satisfy the requirements of the Params dictionary.```
@@ -170,7 +156,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
         cur-option = opts-dict.get-value(key)
         cases(Param) cur-option:
           | equals-val-default(_, _, short-name, _, _) =>
-            cases(Option<String>) short-name:
+            cases(O.Option<String>) short-name:
               | none => acc
               | some(short) =>
                 if acc.options.has-key(short):
@@ -179,7 +165,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                 end
             end
           | next-val-default(_, _, short-name, _, _) =>
-            cases(Option<String>) short-name:
+            cases(O.Option<String>) short-name:
               | none => acc
               | some(short) =>
                 if acc.options.has-key(short):
@@ -225,14 +211,14 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
         | else => results
       end
     end
-    required = for lists.filter(key from opts-dict.keys-list()):
+    required = for filter(key from opts-dict.keys-list()):
       repeated = opts-dict.get-value(key).repeated
       (repeated == required-once) or (repeated == required-many)
     end
     fun process(results, cur-index, remaining):
       if is-arg-error(results): results
       else:
-        cases(List<String>) remaining:
+        cases(L.List<String>) remaining:
           | empty => results
           | link(first, more-args) =>
             if string-length(first) < 2:
@@ -243,33 +229,33 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
               if full-options.has-key(key):
                 cases(Param) full-options.get-value(key):
                   | equals-val(parser, repeated, _) =>
-                    cases(List<String>) key-parts.rest:
+                    cases(L.List<String>) key-parts.rest:
                       | empty =>
                         arg-error(
                           format("Option ~a must be of the form --~a=~a", [list: key, key, parser.parse-string()]),
                           results)
                       | link(val, _) =>
                         parsed-val = parser.parse(cur-index, key, val)
-                        cases(Either) parsed-val:
+                        cases(E.Either) parsed-val:
                           | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 1, more-args)
                           | right(e) => arg-error(e, results)
                         end
                     end
                   | equals-val-default(parser, default, _, repeated, _) =>
-                    cases(List<String>) key-parts.rest:
+                    cases(L.List<String>) key-parts.rest:
                       | empty =>
                         process(handle-repeated(results, repeated, key, default), cur-index + 1, more-args)
                       | link(val, _) =>
                         parsed-val = parser.parse(cur-index, key, val)
-                        cases(Either) parsed-val:
+                        cases(E.Either) parsed-val:
                           | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 1, more-args)
                           | right(e) => arg-error(e, results)
                         end
                     end
                   | next-val(parser, repeated, _) =>
-                    cases(List<String>) key-parts.rest:
+                    cases(L.List<String>) key-parts.rest:
                       | empty =>
-                        cases(List<String>) more-args:
+                        cases(L.List<String>) more-args:
                           | empty =>
                             arg-error(format("Missing value for option ~a; it must be of the form --~a ~a",
                                 [list: key, key, parser.parse-string()]),
@@ -277,7 +263,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                           | link(val, rest) =>
                             if string-char-at(val, 0) == "-":
                               parsed-val = parser.parse(cur-index, key, val)
-                              cases(Either) parsed-val:
+                              cases(E.Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
                                 | right(_) =>
                                   arg-error(format("Missing value for option ~a; it must be of the form --~a ~a",
@@ -286,7 +272,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                               end
                             else:
                               parsed-val = parser.parse(cur-index + 1, key, val)
-                              cases(Either) parsed-val:
+                              cases(E.Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
                                 | right(e) => arg-error(e, results)
                               end
@@ -299,14 +285,14 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                           results)
                     end
                   | next-val-default(parser, default, _, repeated, _) =>
-                    cases(List<String>) key-parts.rest:
+                    cases(L.List<String>) key-parts.rest:
                       | empty =>
-                        cases(List<String>) more-args:
+                        cases(L.List<String>) more-args:
                           | empty => handle-repeated(results, repeated, key, default)
                           | link(val, rest) =>
                             if string-char-at(val, 0) == "-":
                               parsed-val = parser.parse(cur-index, key, val)
-                              cases(Either) parsed-val:
+                              cases(E.Either) parsed-val:
                                 | left(v) =>
                                   process(handle-repeated(results, repeated, key, v), cur-index + 2, rest)
                                 | right(e) =>
@@ -314,7 +300,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
                               end
                             else:
                               parsed-val = parser.parse(cur-index, key, val)
-                              cases(Either) parsed-val:
+                              cases(E.Either) parsed-val:
                                 | left(v) => process(handle-repeated(results, repeated, key, v), cur-index + 1, rest)
                                 | right(e) => arg-error(e, results)
                               end
@@ -376,7 +362,7 @@ fun parse-args(options, args :: List<String>) -> ParsedArguments:
             | else => acc
           end
         end
-        missing-args = for lists.filter(key from required):
+        missing-args = for filter(key from required):
           not(filled-missing-defaults.has-key(key))
         end
         if is-empty(missing-args): success(filled-missing-defaults, other)
@@ -397,7 +383,7 @@ end
 
 
 fun dict(l):
-  for fold(d from D.make-string-dict(), i from lists.range(0, l.length() / 2)):
+  for fold(d from D.make-string-dict(), i from range(0, l.length() / 2)):
     d.set(l.get(2 * i), l.get((2 * i) + 1))
   end
 end
@@ -531,3 +517,7 @@ check:
     is success(dict([list: "color", [list: green, red, red]]), [list: "blue"])
 end
 
+Num = read-number
+Str = read-string
+Bool = read-bool
+Custom = read-custom

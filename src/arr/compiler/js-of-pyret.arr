@@ -95,17 +95,19 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, bindings, type-bindings, datatypes, provides, options)
+fun trace-make-compiled-pyret(add-phase, program-ast, env, post-env, provides, options)
   -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  make-compiled-pyret(program-ast, env, bindings, type-bindings, datatypes, provides, options)
+  make-compiled-pyret(program-ast, env, post-env, provides, options)
 end
 
 fun println(s) block:
   print(s + "\n")
 end
 
-fun make-compiled-pyret(program-ast, env, bindings, type-bindings, datatypes, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
+fun make-compiled-pyret(program-ast, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
+#  each(println, program-ast.tosource().pretty(80))
+# TODO(alex): Pass post-env to direct-codegen:compile-program
   {provides; 
-    C.ok(ccp-dict(D.compile-program(program-ast, env, datatypes, provides, options)))}
+    C.ok(ccp-dict(D.compile-program(program-ast, env, post-env.datatypes, provides, options)))}
 end
 

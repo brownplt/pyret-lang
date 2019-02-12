@@ -1,7 +1,14 @@
 ({
   requires: [],
   nativeRequires: ["pyret-base/js/runtime"],
-  provides: {},
+  provides: {
+    values: {
+      "make-runtime": "tany"
+    },
+    types: {
+      "Runtime": "tany"
+    }
+  },
   theModule: function(runtime, ns, uri, runtimeLib) {
     var get = runtime.getField;
     function applyBrand(brand, val) {

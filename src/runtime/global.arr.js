@@ -40,6 +40,8 @@ module.exports = {
   '_lessthan': _lessthan,
   '_greaterthan': _greaterthan,
   '_lessequal': _lessequal,
-  '_greaterequal': _greaterequal
+  '_greaterequal': _greaterequal,
+  'equal-always': runtime['py_equal'],
+  'trace-value': runtime['trace-value'],
 };
 

@@ -32,6 +32,8 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     return t;
   };
   Tokenizer.prototype.makeWSToken = function makeWSToken(startLine, startCol, startPos) {
+    this.parenIsForExp = true;
+    this.priorWhitespace = true;
     this.addWhitespace(SrcLoc.make(startLine, startCol, startPos, this.line, this.col, this.pos));
     return IGNORED_WS;
     // var t = new E.Token("WS", this.str.slice(startPos, this.pos));
@@ -110,6 +112,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "FOR", val: "for"},
     {name: "FROM", val: "from"},
     {name: "FUN", val: "fun"},
+    {name: "HIDING", val: "hiding"},
     {name: "IF", val: "if"},
     {name: "IMPORT", val: "import"},
     {name: "INCLUDE", val: "include"},
@@ -122,12 +125,14 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "ISNOTSPACESHIP", val: "is-not<=>", parenIsForExp: true},
     {name: "ISROUGHLY", val: "is-roughly", parenIsForExp: true},
     {name: "ISSPACESHIP", val: "is<=>", parenIsForExp: true},
+    {name: "BECAUSE", val: "because", parenIsForExp: true},
     {name: "LAM", val: "lam"},
     {name: "LAZY", val: "lazy"},
     {name: "LET", val: "let"},
     {name: "LETREC", val: "letrec"},
     {name: "LOAD-TABLE", val: "load-table"},
     {name: "METHOD", val: "method"},
+    {name: "MODULE", val: "module"},
     {name: "NEWTYPE", val: "newtype"},
     {name: "OF", val: "of"},
     {name: "OR", val: "or", parenIsForExp: true},
@@ -217,6 +222,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "ELSECOLON", val: "else:", parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: "examples:", parenIsForExp: true},
     {name: "OTHERWISECOLON", val: "otherwise:", parenIsForExp: true},
+    {name: "PROVIDECOLON", val: "provide:", parenIsForExp: true},
     {name: "ROW", val: "row:"},
     {name: "SHARING", val: "sharing:", parenIsForExp: true},
     {name: "SOURCECOLON", val: "source:"},
@@ -254,6 +260,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BAR", val: "|", parenIsForExp: true},
     {name: "EQUALS", val: "=", noFollow: new Set("~"), parenIsForExp: true},
     {name: "LANGLE", val: "<", noFollow: new Set(">=")},
+    {name: "STAR", val: "*", noFollow: new Set(wsString), needsWs: true, parenIsForExp: true},
     {name: "RANGLE", val: ">", noFollow: new Set("=")},
     { name: "NUMBER", val: "", firsts: new Set("~-+1234567890"),
       process: function tokenizeNumber(tok_spec) {
@@ -480,7 +487,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "PLUS", val: "+", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "DASH", val: "-", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
-    {name: "STAR", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "TIMES", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "SLASH", val: "/", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "SPACESHIP", val: "<=>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "LEQ", val: "<=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
@@ -536,11 +543,10 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
             this.curCol++;
           }
         }
-        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
-        this.addWhitespace(ws_loc);
         if (nestingDepth === 0) {
-          return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, ws_loc, tok_spec);
+          return this.makeWSToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
         } else {
+          var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
           return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
         }
       }},
@@ -551,9 +557,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
           this.pos++;
           this.curCol++;
         }
-        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
-        this.addWhitespace(ws_loc);
-        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, ws_loc, tok_spec);
+        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
       }}
   ]);
   

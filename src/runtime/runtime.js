@@ -25,7 +25,12 @@ function py_equal(e1, e2) {
   return true;
 }
 
-module.exports = {
-  py_equal: py_equal
-};
+function traceValue(loc, value) {
+  // NOTE(alex): stubbed out until we decide what to actually do with it
+  return value;
+}
 
+module.exports = {
+  py_equal: py_equal,
+  "trace-value": traceValue,
+};

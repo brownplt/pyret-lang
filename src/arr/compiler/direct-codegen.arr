@@ -2,6 +2,7 @@ provide *
 provide-types *
 
 import srcloc as SL
+import file("desugar-helpers.arr") as DH
 import file("ast.arr") as A
 import file("ast-util.arr") as AU
 import file("js-ast.arr") as J
@@ -11,6 +12,8 @@ import file("type-structs.arr") as T
 import pathlib as P
 import sha as sha
 import string-dict as D
+
+flat-prim-app = A.prim-app-info-c(false)
 
 type CList = CL.ConcatList
 clist = CL.clist
@@ -73,7 +76,6 @@ j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
 
-
 fun find-index<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<{a; Number}> block:
   doc: ```Returns value and its index or -1 depending on if element is found```
   var i = 0
@@ -130,6 +132,9 @@ end
 fun compiler-name(id):
   const-id(string-append("$",id))
 end
+
+GLOBAL = const-id("_global")
+NOTHING = const-id("_nothing")
 
 RUNTIME = j-id(const-id("R"))
 NAMESPACE = j-id(const-id("NAMESPACE"))
@@ -234,21 +239,26 @@ end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
-    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+    | s-module(l, answer, dms, dvs, dts, checks) =>
       {a-exp; a-stmts} = compile-expr(context, answer)
 
-      when not(A.is-s-obj(provides)):
-        raise("Fatal: provides is not an object")
-      end
+      # Expose top-level values and variables to outside modules
+      # Use variable names as keys
+      {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, dv from dvs) block:
+        cases(A.DefinedValue) dv:
+          | s-defined-value(name, def-v) =>
+            block:
+              {val; field-stmts} = compile-expr(context, def-v)
 
-      {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, p from provides.fields) block:
-        when not(A.is-s-data-field(p)):
-          raise("Can only provide data fields")
+              { cl-cons(j-field(name, val), fields); field-stmts + stmts }
+            end
+
+          | s-defined-var(name, id) =>
+            block:
+              # TODO(alex): Box variables so external code can mutate variables
+              { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts }
+            end
         end
-
-        {val; field-stmts} = compile-expr(context, p.value)
-
-        { cl-cons(j-field(p.name, val), fields); field-stmts + stmts }
       end
 
       ans = j-obj(fields + [clist:
@@ -267,9 +277,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       {e; cl-empty}
     | s-id(l, id) => {j-id(js-id-of(id)); cl-empty}
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
+    | s-id-modref(l, id, _, field) =>
+      {objv; obj-stmts} = compile-expr(context, A.s-id(l, id))
+      {j-bracket(objv, j-str(field)); obj-stmts}
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
-      { console([clist: j-str(name)] + argvs); argstmts }
+
+      { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
       
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
@@ -294,6 +308,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op/" then: j-binop(lv, J.j-divide, rv)
         | op == "op<" then: j-binop(lv, J.j-lt, rv)
         | op == "op>" then: j-binop(lv, J.j-gt, rv)
+        # TODO(alex): Use equal-always, equal-now, etc
         | op == "op==" then: j-binop(lv, J.j-eq, rv)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
@@ -410,7 +425,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       datatype = cases(A.Ann) typ block:
         | a-name(_, name) =>
           print(context.datatypes.keys-now())
-          cases(Option) context.datatypes.get-now(name.key()):
+          # Datatypes in env are key'd by the raw string name
+          cases(Option) context.datatypes.get-now(name.toname()):
             | some(dt) => dt
             | none => raise("Unknown datatype name: " + to-repr(typ))
           end
@@ -479,26 +495,73 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { elts-vals; elts-stmts } = compile-list(context, elts)
       { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(false, elts-vals)]); c-stmts + elts-stmts }
 
-    | s-instantiate(l, inner-expr, params) => nyi("s-instantiate")
-    | s-user-block(l, body) => nyi("s-user-block")
+    | s-instantiate(l, inner-expr, params) => compile-expr(context, inner-expr)
+    | s-user-block(l, body) => 
+        # Just emit the body as an expression
+        compile-expr(context, body)
     | s-template(l) => nyi("s-template")
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
-    | s-type(l, name, params, ann) => nyi("s-type")
-    | s-newtype(l, name, namet) => nyi("s-newtype")
-    | s-when(l, test, body, blocky) => nyi("s-when")
-    | s-if(l, branches, blocky) => nyi("s-if")
-    | s-if-pipe(l, branches, blocky) => nyi("s-if-pipe")
-    | s-if-pipe-else(l, branches, _else, blocky) => nyi("s-if-pipe-else")
-    | s-cases(l, typ, val, branches, blocky) => nyi("s-cases")
-    | s-assign(l, id, val) => nyi("s-assign")
+    | s-type(l, name, params, ann) => raise("s-type already removed")
+    | s-newtype(l, name, namet) => raise("s-newtype already removed")
+    | s-when(l, test, body, blocky) => 
+      compile-expr(
+        context,
+        A.s-if-else(l, 
+                    [list: A.s-if-branch(l, test, body)],
+                    A.s-id(l, A.s-global("nothing")),   
+                    blocky)
+      )
+    | s-if(l, branches, blocky) => 
+      # TODO(ALEX): check s-if handling
+      # Desugar into s-if-else with raise in last branch
+      compile-expr(
+        context,
+        A.s-if-else(l, 
+                    branches,
+                    A.s-prim-app(l, 
+                      "throwNoBranchesMatched", 
+                      [list: A.s-srcloc(l, l), A.s-str(l, "if")], 
+                      flat-prim-app),
+                    blocky)
+      )
+    | s-if-pipe(l, branches, blocky) => 
+      compile-expr(context, 
+                   A.s-if(l, 
+                          for map(b from branches): b.to-if-branch() end, 
+                          blocky))
+    | s-if-pipe-else(l, branches, _else, blocky) => 
+      compile-expr(context, 
+                   A.s-if-else(l, 
+                               for map(b from branches): b.to-if-branch() end,
+                               _else, 
+                               blocky))
+    | s-cases(l, typ, val, branches, blocky) =>
+      compile-expr(context,
+                   A.s-cases-else(l, typ, val, branches,
+                     A.s-prim-app(l, 
+                                  "throwNoBranchesMatched",
+                                  [list: A.s-srcloc(l, l), A.s-str(l, "cases")], 
+                                  flat-prim-app),
+                     blocky))
+    | s-assign(l, id, val) => 
+      block:
+        { e-val; e-stmts } = compile-expr(context, val)
+        { j-assign(js-id-of(id), e-val); e-stmts }
+      end
     | s-bracket(l, obj, key) => nyi("s-bracket")
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
     | s-update(l, obj, fields) => nyi("s-update")
     | s-extend(l, obj, fields) => nyi("s-extend")
-    | s-for(l, iter, bindings, ann, body, blocky) => nyi("s-for")
-    | s-id-var(l, x) => nyi("s-id-var")
-    | s-frac(l, num, den) => nyi("s-frac")
-    | s-rfrac(l, num, den) => nyi("s-rfrac")
+    | s-for(l, iter, bindings, ann, body, blocky) => 
+      compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
+    | s-id-var(l, ident) => 
+      { j-id(js-id-of(ident)); cl-empty }
+    | s-frac(l, num, den) => 
+        # Following the s-num convention of paren wrapping
+        # TODO: Properly generate the Number object
+        { j-parens(j-num(num / den)); cl-empty }
+    | s-rfrac(l, num, den) => 
+        compile-expr(context, A.s-frac(l, num, den))
     | s-str(l, str) => {j-str( str ); cl-empty}
     | s-bool(l, bool) =>
         if bool:
@@ -506,14 +569,33 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         else:
           {j-false; cl-empty}
         end
-    | s-tuple(l, fields) => nyi("s-tuple")
-    | s-tuple-get(l, tup, index, index-loc) => nyi("s-tuple-get")
+    | s-tuple(l, fields) =>
+
+      # Fields are in reverse order
+      {fieldvs; stmts} = for fold({fieldvs; stmts} from {cl-empty; cl-empty}, f from fields.reverse()) block:
+
+        {val; field-stmts} = compile-expr(context, f)
+
+        { cl-cons(val, fieldvs); field-stmts + stmts }
+      end
+
+      # Represent tuples as arrays
+      { j-list(false, fieldvs); stmts }
+    | s-tuple-get(l, tup, index, index-loc) => 
+
+      {tupv; tup-stmts} = compile-expr(context, tup)
+      
+      # Tuples represented as arrays
+      {j-bracket(tupv, j-num(index)); tup-stmts}
+
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) => nyi("s-table")
-    | s-paren(l, e) => nyi("s-paren")
-    | s-let(_, _, _, _)           => nyi("s-let")
-    | s-var(_, _, _)              => nyi("s-var")
+    | s-paren(l, e) => 
+        { e-ans; e-stmts } = compile-expr(context, e)
+        { j-parens(e-ans); e-stmts }
+    | s-let(_, _, _, _) => raise("desugared into s-let-expr")
+    | s-var(l, name, value) => raise("desugared into s-let-expr")
     | s-check(l, name, body, keyword-check) => nyi("s-check")
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
     | s-load-table(l, headers, spec) => nyi("s-load-table")
@@ -527,6 +609,34 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | else => raise("NYI (compile): " + torepr(expr))
   end
 
+end
+
+fun gen-tuple-bind(context, fields, as-name, value):
+  var count = 0
+  {bindings; stmts} = for fold({bind; stmt-list} from {cl-empty; cl-empty}, b from fields) block:
+    { bind-v; bind-stmts} = cases(A.Bind) b:
+      | s-bind(bl, doShadow, id, ann) => { j-var(id, j-bracket(value, j-num(count))); cl-empty }
+      | s-tuple-bind(l, shadow fields, shadow as-name) => gen-tuple-bind(context, fields, as-name, j-bracket(value, j-num(count)))
+    end
+
+    count := count + 1
+
+    { cl-cons(bind-v, bind); bind-stmts + stmt-list }
+  end
+
+  { shadow bindings; shadow stmts } = cases(Option<A.Bind>) as-name:
+    | some(b) => 
+      cases(A.Bind) b:
+        | s-bind(bl, doShadow, id, ann) => { j-var(id, value); cl-empty }
+        | s-tuple-bind(l, shadow fields, shadow as-name) => 
+          { as-bind-v; as-stmts } = gen-tuple-bind(context, fields, as-name, value)
+          { cl-cons(as-bind-v, bindings); as-stmts + stmts }
+      end
+
+    | none => { bindings; stmts }
+  end
+
+  { j-block(bindings); stmts }
 end
 
 
@@ -576,7 +686,7 @@ fun node-prelude(prog, provides, env, options) block:
   relative-path = pre-append-dir #string-append( pre-append-dir, options.runtime-path )
 
   imports = cases( A.Program ) prog:
-    | s-program( _, _, _, shadow imports, _ ) => imports
+    | s-program( _, _, _, _, shadow imports, _ ) => imports
   end
 
   fun uri-to-real-fs-path(uri):
@@ -607,16 +717,27 @@ fun node-prelude(prog, provides, env, options) block:
   global-names = AU.get-globals(prog)
   uri-to-local-js-name = [D.mutable-string-dict:]
 
+  # manually emit global import
+  global-import = J.j-var(GLOBAL, 
+                          j-app(j-id(const-id("require")), 
+                                [clist: j-str( relative-path + "../builtin/global.arr.js")]))
+
+  nothing-import = J.j-var(NOTHING, j-undefined)
+
+  manual-imports = [clist: global-import, nothing-import]
+
   # We create a JS require() statement for each import in the Pyret program
   # and bind it to a unique name. dep-to-local-js-names helps us look
   # up these names later if we need to access a value from that module
   explicit-imports = for CL.map_list(import-stmt from imports):
     cases( A.Import ) import-stmt block:
-      | s-import-complete( _,  _, _, import-type, name, _ ) =>
-        dep-key = AU.import-to-dep(import-type).key()
+      | s-import(l, file, name) =>
+        dep-key = AU.import-to-dep(file).key()
         uri = env.uri-by-dep-key(dep-key)
         uri-to-local-js-name.set-now(uri, name)
         uri-to-import(uri, name)
+      | else => raise("Unhandled import: " + to-repr(import-stmt))
+        
     end
   end
 
@@ -637,7 +758,7 @@ fun node-prelude(prog, provides, env, options) block:
     end
   end
 
-  import-stmts = explicit-imports + implicit-imports
+  import-stmts = explicit-imports + implicit-imports + manual-imports
 
   # We also build up a list of var statements that bind local JS names for
   # all the globals used as identifiers, to make compiling uses of s-global
