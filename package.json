@@ -42,7 +42,7 @@
     "jshint": "^2.9.5"
   },
   "scripts": {
-    "build": "./new-build.sh",
+    "build": "make build",
     "test": "jest --verbose test"
   },
   "repository": {
