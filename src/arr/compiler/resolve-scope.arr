@@ -1148,7 +1148,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               data-expr = datatypes.get-value-now(k)
 
               # NOTE(joe): Trying this as a nice collapsing of cases
-              expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: data-expr.name], none), hidden)
+              expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
 
               # TODO(joe): need to check datatypes from elsewhere with .new-definition?
               # provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); data-expr.namet})

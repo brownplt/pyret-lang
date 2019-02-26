@@ -367,7 +367,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
       T.t-tuple(for map(e from typ.elts): tfr(e) end, l, false)
     | t == "name" then:
       if typ.origin.import-type == "$ELF":
-        T.t-name(T.local, A.s-type-global(typ.name), l, false)
+        T.t-name(T.module-uri(uri), A.s-type-global(typ.name), l, false)
       else if typ.origin.import-type == "uri":
         T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l, false)
       else:
@@ -491,7 +491,6 @@ fun provides-from-raw-provides(uri, raw):
       end
     end
   end
-  aliases = raw.aliases
   adict = for fold(adict from SD.make-string-dict(), a from raw.aliases):
     if is-string(a):
       adict.set(a, t-top)
@@ -499,7 +498,6 @@ fun provides-from-raw-provides(uri, raw):
       adict.set(a.name, type-from-raw(uri, a.typ, SD.make-string-dict()))
     end
   end
-  datas = raw.datatypes
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
