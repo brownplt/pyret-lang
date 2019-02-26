@@ -2031,19 +2031,24 @@ end
 fun import-key(i): AU.import-to-dep(i).key() end
 
 fun compile-type-variant(variant):
-  # TODO -- support with-members
   cases(T.TypeVariant) variant:
     | t-variant(name, members, with-members, l) =>
-      j-list(true, [clist: j-str(name),
-        j-list(false, CL.map_list(lam({mem-name; typ}):
+      compiled-members = j-list(false, CL.map_list(lam({mem-name; typ}):
           if T.is-t-ref(typ):
             j-list(true, [clist: j-str("ref"), j-str(mem-name), compile-provided-type(typ.typ)])
           else:
             j-list(true, [clist: j-str(mem-name), compile-provided-type(typ)])
           end
-        end, members))])
+        end, members))
+      compiled-with-members = j-obj(for cl-map-sd(mem-name from with-members):
+            compile-type-member(mem-name, with-members.get-value(mem-name))
+          end)
+      j-list(true, [clist: j-str(name), compiled-members, compiled-with-members])
     | t-singleton-variant(name, with-members, l) =>
-      j-list(true, [clist: j-str(name)])
+      compiled-with-members = j-obj(for cl-map-sd(mem-name from with-members):
+          compile-type-member(mem-name, with-members.get-value(mem-name))
+        end)
+      j-list(true, [clist: j-str(name), compiled-with-members])
   end
 end
 
@@ -2109,11 +2114,9 @@ fun compile-provided-type(typ):
           end), compile-provided-type(body)])
       # | t-ref(_, _) =>
       # | t-existential(_, _) =>
-      # | t-data-refinement(_, _, _) =>
     | t-data-refinement(base-typ, variant-name, l, _) =>
-      # TODO(joe): omitting variant-name in serialized
-      # output until we have a good representation for it
-      compile-provided-type(base-typ)
+      j-list(true,
+        [clist: j-str("data%"), compile-provided-type(base-typ), j-str(variant-name)])
     | else => j-ternary(j-false, j-str(tostring(typ)), j-str("tany"))
   end
 end

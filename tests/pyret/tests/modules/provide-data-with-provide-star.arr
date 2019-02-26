@@ -1,8 +1,9 @@
-provide:
-  data D
-end
+provide *
+provide-types *
 
 data D:
-  | d1
+  | d1 with:
+    method method-name(self): "has a method" end
   | d2
 end
+

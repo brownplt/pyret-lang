@@ -363,6 +363,8 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
     | t == "bot" then: T.t-bot(l, false)
     | t == "record" then:
       T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l, false)
+    | t == "data-refinement" then:
+      T.t-data-refinement(tfr(typ.basetype), typ.variant, l, false)
     | t == "tuple" then:
       T.t-tuple(for map(e from typ.elts): tfr(e) end, l, false)
     | t == "name" then:
@@ -403,9 +405,15 @@ fun tvariant-from-raw(uri, tvariant, env):
       members = tvariant.vmembers.foldr(lam(tm, members):
         link({tm.name; type-from-raw(uri, tm.typ, env)}, members)
       end, empty)
-      t-variant(tvariant.name, members, [string-dict: ])
+      with-members = for fold(wmembers from [string-dict:], wm from tvariant.withmembers):
+        wmembers.set(wm.name, type-from-raw(uri, wm.value, env))
+      end
+      t-variant(tvariant.name, members, with-members)
     | t == "singleton-variant" then:
-      t-singleton-variant(tvariant.name, [string-dict: ])
+      with-members = for fold(wmembers from [string-dict:], wm from tvariant.withmembers):
+        wmembers.set(wm.name, type-from-raw(uri, wm.value, env))
+      end
+      t-singleton-variant(tvariant.name, with-members)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
