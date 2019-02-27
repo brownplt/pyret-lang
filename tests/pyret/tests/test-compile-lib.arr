@@ -357,6 +357,7 @@ check "raw-provide-syntax":
           tag: "data",
           name: "Ither",
           params: [list: "a", "b"],
+          withmembers: [list:],
           variants: [list:
             {
               tag: "variant",
@@ -449,7 +450,7 @@ check:
     # MARK(joe/ben): modules
     mt,
     [string-dict:
-      "x", CM.v-just-type(o("x"), T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)
