@@ -357,11 +357,11 @@ check "raw-provide-syntax":
           tag: "data",
           name: "Ither",
           params: [list: "a", "b"],
-          withmembers: [list:],
           variants: [list:
             {
               tag: "variant",
               name: "left",
+              withmembers: [list:],
               vmembers: [list: {
                 tag: "variant-member",
                 name: "value",
@@ -372,6 +372,7 @@ check "raw-provide-syntax":
             {
               tag: "variant",
               name: "right",
+              withmembers: [list:],
               vmembers: [list: {
                 tag: "variant-member",
                 name: "value",
