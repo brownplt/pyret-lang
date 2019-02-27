@@ -62,7 +62,8 @@ compile-file = lam(base-path, filename):
 end
 
 fun is-arr-file(filename):
-  string-index-of(filename, ".arr") == (string-length(filename) - 4)
+  ix = string-index-of(filename, ".arr")
+  (ix <> -1) and (ix == (string-length(filename) - 4))
 end
 
 check "These should all be good programs":
