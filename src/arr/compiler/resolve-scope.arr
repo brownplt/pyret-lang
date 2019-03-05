@@ -1112,15 +1112,30 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
 
-      fun expand-name-spec(which-dict, which-bindings, which-env, spec, pre-path):
+
+
+      fun expand-name-spec(which-dict, which-bindings, which-env, get-provided-bindings, spec, pre-path):
         cases(A.NameSpec) spec:
           | s-star(shadow l, hidden) =>
-            for each(shadow k from which-env.keys-list()):
-              bind = which-env.get-value(k)
-              when(bind.origin.new-definition):
-                # TODO(joe): check hiding
-                which-dict.set-now(bind.atom.toname(), {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); bind.atom})
-              end
+            remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
+            cases(Option) remote-reference-uri:
+              | none =>
+                for each(shadow k from which-env.keys-list()):
+                  bind = which-env.get-value(k)
+                  when(bind.origin.new-definition):
+                    # TODO(joe): check hiding
+                    which-dict.set-now(bind.atom.toname(), {l; none; bind.atom})
+                  end
+                end
+              | some(uri) =>
+                bindings-from-module = get-provided-bindings(initial-env.provides-by-uri-value(uri))
+                for each(shadow k from bindings-from-module.keys-list()):
+                  # NOTE(joe): This is where we would do something like
+                  # "prefix-out" by doing `prefix + k` below. The k that's the
+                  # key in set-now is the name it's provided as, and the k in
+                  # the s-name is the name to look for in the original module
+                  which-dict.set-now(k, {l; remote-reference-uri; A.s-name(l, k) })
+                end
             end
           | s-module-ref(shadow l, path, as-name) =>
             remote-reference-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
@@ -1144,6 +1159,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       fun expand-data-spec(val-env, type-env, spec, pre-path, hidden):
         cases(A.NameSpec) spec:
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
+
+            # TODO(joe): need to condition on pre-path being empty/referring to
+            # another module as above in expand-name-spec
             for each(k from datatypes.keys-list-now()):
               data-expr = datatypes.get-value-now(k)
 
@@ -1216,11 +1234,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       fun expand(provide-spec, path):
         cases(A.ProvideSpec) provide-spec:
           | s-provide-name(shadow l, name-spec) =>
-            expand-name-spec(provided-values, bindings, final-visitor.env, name-spec, path)
+            expand-name-spec(provided-values, bindings, final-visitor.env, _.values, name-spec, path)
           | s-provide-type(shadow l, name-spec) =>
-            expand-name-spec(provided-types, type-bindings, final-visitor.type-env, name-spec, path)
+            expand-name-spec(provided-types, type-bindings, final-visitor.type-env, _.aliases, name-spec, path)
           | s-provide-module(shadow l, name-spec) =>
-            expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, name-spec, path)
+            expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, _.modules, name-spec, path)
           | s-provide-data(shadow l, name-spec, hidden) =>
             expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden)
           | else => nothing
