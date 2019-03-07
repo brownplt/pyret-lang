@@ -581,9 +581,9 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Well-formedness:"),
+          ED.text("Well-formedness: "),
           ED.text(self.msg),
-          ED.text("at")],
+          ED.text(" at")],
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
   | reserved-name(loc :: Loc, id :: String) with:

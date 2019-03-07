@@ -1495,7 +1495,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 mod-bind = self.module-env.get-value(s)
                 cases(Option) initial-env.value-by-uri(mod-bind.uri, name) block:
                   | none =>
-                    name-errors := link(C.wf-err-split("The module " + s + "( " + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
+                    name-errors := link(C.wf-err-split("The module " + s + " (" + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
                     A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
                   | some(ve) =>
                     cases(C.ValueExport) ve:

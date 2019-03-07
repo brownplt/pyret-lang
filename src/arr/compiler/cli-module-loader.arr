@@ -410,12 +410,21 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
+  config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
+  cases(Option) config.get-now("typable-builtins"):
+    | none => nothing
+    | some(tb) =>
+      cases(JSON.JSON) tb:
+        | j-arr(l) => 
+          BL.set-typable-builtins(l.map(_.s))
+        | else => raise("Expected a list for typable-builtins, but got: " + to-repr(tb))
+      end
+  end
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))
       when not(config.has-key-now("baseUrl")):
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
