@@ -220,8 +220,14 @@ fun get-cli-module-storage(storage-dir :: String):
       for each2(m from maybe-modules, t from to-compile):
         cases(Option<Loadable>) m:
           | none => nothing
-          | some(shadow m) =>
-            modules.set-now(t.locator.uri(), m)
+          | some(shadow m) => nothing
+            # NOTE(joe):
+            # With re-providing, this is unsafe, because modules can alias values in others
+            # Therefore, we need to wait to add modules until after all their dependencies
+            # have been processed, otherwise the type-checker will not be able
+            # to compute the type environment
+            #
+            # modules.set-now(t.locator.uri(), m)
         end
       end
       modules
