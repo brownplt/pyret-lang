@@ -427,8 +427,16 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           print(context.datatypes.keys-now())
           # Datatypes in env are key'd by the raw string name
           cases(Option) context.datatypes.get-now(name.toname()):
-            | some(dt) => dt
-            | none => raise("Unknown datatype name: " + to-repr(typ))
+            | some(dt) => 
+              context.provides.data-definitions.get-value(name.toname())
+            | none => 
+              # TODO(alex): split into helper method on CompileEnvironment
+              type-bind = context.post-env.type-bindings.get-value-now(name.key())
+              type-uri = type-bind.origin.uri-of-definition
+              type-original-name = type-bind.origin.original-name.toname()
+              provides-result = context.env.provides-by-uri-value(type-uri)
+              dt = provides-result.data-definitions.get-value(type-original-name)
+              dt
           end
         | else => raise("Can only do cases on a known datatype annotation, not on " + to-repr(typ))
       end
@@ -446,8 +454,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         cases(A.CasesBranch) b:
           | s-cases-branch(_, pl, name, args, body) =>
             {body-val; body-stmts} = compile-expr(context, body)
-            arg-binds = for CL.map_list2(a from args, m from variant.members):
-              j-var(js-id-of(a.bind.id), j-bracket(val-v, j-str(m.bind.id.toname())))
+            arg-binds = for CL.map_list2(a from args, {m; _} from variant.fields):
+              j-var(js-id-of(a.bind.id), j-bracket(val-v, j-str(m)))
             end
             j-case(j-num(tag),
               j-block(arg-binds + body-stmts + [clist: j-expr(j-assign(ans, body-val)), j-break]))
@@ -773,13 +781,14 @@ fun node-prelude(prog, provides, env, options) block:
 
 end
 
-fun compile-program(prog :: A.Program, env, datatypes, provides, options) block:
+fun compile-program(prog :: A.Program, env, post-env, provides, options) block:
   {ans; stmts} = compile-expr({
     uri: provides.from-uri,
     options: options,
     provides: provides,
-    datatypes: datatypes,
-    env: env
+    datatypes: post-env.datatypes,
+    env: env,
+    post-env: post-env,
   }, prog.block)
 
   prelude = node-prelude(prog, provides, env, options)
