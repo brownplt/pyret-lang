@@ -744,8 +744,7 @@ fun node-prelude(prog, provides, env, options) block:
         uri = env.uri-by-dep-key(dep-key)
         uri-to-local-js-name.set-now(uri, name)
         uri-to-import(uri, name)
-      | else => raise("Unhandled import: " + to-repr(import-stmt))
-        
+      | else => J.j-var(const-id("SKIP"), J.j-undefined)
     end
   end
 
