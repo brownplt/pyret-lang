@@ -138,7 +138,7 @@ fun add-existentials-to-data-name(typ :: Type, context :: Context) -> FoldResult
     | t-name(_, _, _, inferred) =>
       cases(Option<DataType>) context.get-data-type(typ):
         | none =>
-          fold-errors([list: C.cant-typecheck("Expected a data type but got " + tostring(typ), typ.l)])
+          fold-errors([list: C.cant-typecheck("Expected a data type but got " + to-repr(typ), typ.l)])
         | some(data-type) =>
           if is-empty(data-type.params):
             fold-result(typ, context)
@@ -213,7 +213,8 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
       vals-types-dict = for SD.fold-keys(sd from [string-dict:], shadow k from mod.values):
         ve = mod.values.get-value(k)
         typ = cases(C.ValueExport) ve:
-          | v-alias(origin, name) => compile-env.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname()).t
+          | v-alias(origin, name) =>
+            compile-env.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname()).t
           | else => ve.t
         end
         sd.set(k, typ)
@@ -258,7 +259,6 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
             thismod = context.modules.get-value(vbind.origin.uri-of-definition)
             cases(Option) thismod.provides.fields.get(vbind.origin.original-name.toname()) block:
               | none =>
-                spy: vbind, ps: thismod.provides.fields end
                 raise("Cannot find value binding for " + vbind.origin.original-name.toname())
               | some(typ) => global-types.set(key, typ)
             end

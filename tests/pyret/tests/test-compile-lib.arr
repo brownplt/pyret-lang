@@ -361,6 +361,7 @@ check "raw-provide-syntax":
             {
               tag: "variant",
               name: "left",
+              withmembers: [list:],
               vmembers: [list: {
                 tag: "variant-member",
                 name: "value",
@@ -371,6 +372,7 @@ check "raw-provide-syntax":
             {
               tag: "variant",
               name: "right",
+              withmembers: [list:],
               vmembers: [list: {
                 tag: "variant-member",
                 name: "value",
@@ -449,7 +451,7 @@ check:
     # MARK(joe/ben): modules
     mt,
     [string-dict:
-      "x", CM.v-just-type(o("x"), T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)

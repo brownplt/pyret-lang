@@ -330,8 +330,14 @@ fun get-cli-module-storage(storage-dir :: String, extra-dirs :: List<String>):
       for each2(m from maybe-modules, t from to-compile):
         cases(Option<Loadable>) m:
           | none => nothing
-          | some(shadow m) =>
-            modules.set-now(t.locator.uri(), m)
+          | some(shadow m) => nothing
+            # NOTE(joe):
+            # With re-providing, this is unsafe, because modules can alias values in others
+            # Therefore, we need to wait to add modules until after all their dependencies
+            # have been processed, otherwise the type-checker will not be able
+            # to compute the type environment
+            #
+            # modules.set-now(t.locator.uri(), m)
         end
       end
       modules
@@ -587,43 +593,21 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
+  config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
+  cases(Option) config.get-now("typable-builtins"):
+    | none => nothing
+    | some(tb) =>
+      cases(JSON.JSON) tb:
+        | j-arr(l) => 
+          BL.set-typable-builtins(l.map(_.s))
+        | else => raise("Expected a list for typable-builtins, but got: " + to-repr(tb))
+      end
+  end
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      #|
-      shadow require-config-path = if not( P.is-absolute( require-config-path ) ):
-          P.resolve(P.join(options.base-dir, require-config-path))
-        else: require-config-path
-        end
-      config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
-      config.set-now("out", JSON.j-str(P.resolve(P.join(options.base-dir, outfile))))
-      when not(config.has-key-now("baseUrl")):
-        config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
-      end
-
-      when options.collect-times: stats.set-now("standalone", time-now()) end
-      make-standalone-res = MS.make-standalone(program.natives, program.js-ast,
-        JSON.j-obj(config.freeze()).serialize(), options)
-
-      html-res = if is-some(options.html-file):
-        MS.make-html-file(outfile, options.html-file.value)
-      else:
-        true
-      end
-
-      ans = make-standalone-res and html-res
-      
-      when options.collect-times block:
-        standalone-end = time-now() - stats.get-value-now("standalone")
-        stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])
-        for SD.each-key-now(key from stats):
-          print(key + ": \n" + stats.get-value-now(key).join-str(", \n") + "\n")
-        end
-      end
-      ans
-      |#
       nothing
   end
 end

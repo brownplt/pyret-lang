@@ -1088,20 +1088,54 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # names and atoms that will be exposed. The atoms will be used by code
       # generation and by the type-checker/cross-module scope resolution to
       # pick out information about the binding (e.g. flatness, etc)
+      # The actual values in the dictionaries are triples of
+      #
+      #  {Srcloc; Option<URI>; Atom}
+      #
+      # The location is the location of the provide clause, the URI is none if
+      # the name is provided from this module, and some if it is re-provided
+      # from another module
       provided-modules = [SD.mutable-string-dict:]
       provided-values = [SD.mutable-string-dict:]
       provided-types = [SD.mutable-string-dict:]
       provided-datatypes = [SD.mutable-string-dict:]
 
-      fun expand-name-spec(which-dict, which-bindings, which-env, spec, pre-path):
+      fun is-hidden(hidden :: List<A.Name>, maybe-hidden-name :: String):
+        for lists.any(h from hidden):
+          h.name == maybe-hidden-name
+        end
+      end
+
+      fun maybe-add(hidden, which-dict, maybe-add-name :: String, to-add):
+        when not(is-hidden(hidden, maybe-add-name)):
+          which-dict.set-now(maybe-add-name, to-add)
+        end
+      end
+
+
+
+      fun expand-name-spec(which-dict, which-bindings, which-env, get-provided-bindings, spec, pre-path):
         cases(A.NameSpec) spec:
           | s-star(shadow l, hidden) =>
-            for each(shadow k from which-env.keys-list()):
-              bind = which-env.get-value(k)
-              when(bind.origin.new-definition):
-                # TODO(joe): check hiding
-                which-dict.set-now(bind.atom.toname(), {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); bind.atom})
-              end
+            remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
+            cases(Option) remote-reference-uri:
+              | none =>
+                for each(shadow k from which-env.keys-list()):
+                  bind = which-env.get-value(k)
+                  when(bind.origin.new-definition):
+                    # TODO(joe): check hiding
+                    which-dict.set-now(bind.atom.toname(), {l; none; bind.atom})
+                  end
+                end
+              | some(uri) =>
+                bindings-from-module = get-provided-bindings(initial-env.provides-by-uri-value(uri))
+                for each(shadow k from bindings-from-module.keys-list()):
+                  # NOTE(joe): This is where we would do something like
+                  # "prefix-out" by doing `prefix + k` below. The k that's the
+                  # key in set-now is the name it's provided as, and the k in
+                  # the s-name is the name to look for in the original module
+                  which-dict.set-now(k, {l; remote-reference-uri; A.s-name(l, k) })
+                end
             end
           | s-module-ref(shadow l, path, as-name) =>
             remote-reference-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
@@ -1122,40 +1156,91 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             end
         end
       end
-      fun expand-data-spec(spec, pre-path):
+      fun expand-data-spec(val-env, type-env, spec, pre-path, hidden):
         cases(A.NameSpec) spec:
-          | s-star(shadow l, hidden) =>
+          | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
+
+            # TODO(joe): need to condition on pre-path being empty/referring to
+            # another module as above in expand-name-spec
             for each(k from datatypes.keys-list-now()):
               data-expr = datatypes.get-value-now(k)
+
+              # NOTE(joe): Trying this as a nice collapsing of cases
+              expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
+
               # TODO(joe): need to check datatypes from elsewhere with .new-definition?
-              provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); data-expr.namet})
+              # provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); data-expr.namet})
             end
           | s-module-ref(shadow l, path, as-name) =>
             maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
-            {name; atom} = cases(Option) maybe-uri:
-              | none =>
+            cases(Option) maybe-uri block:
+              | none => # path must be a single element if there's no URI of a remote module
+                        # e.g. provide: D end   NOT    provide: M.D end
                 data-expr = datatypes.get-value-now(path.first.toname())
-                { data-expr.name; data-expr.namet }
-              | some(v) =>
-                { path.last().toname(); A.s-name(l, path.last().toname()) }
-            end
-            data-expr = datatypes.get-value-now(path.first.toname())
-            cases(Option) as-name:
-              | none => provided-datatypes.set-now(data-expr.name, {l; none; data-expr.namet})
-              | some(n) => raise("Cannot rename data using as")
+                maybe-add(hidden, provided-datatypes, data-expr.name, {l; none; data-expr.namet})
+                data-checker-name = A.make-checker-name(data-expr.name)
+                data-checker-vb = val-env.get-value(data-checker-name)
+                maybe-add(hidden, provided-values, data-checker-name, {l; none; data-checker-vb.atom})
+                data-alias-tb = type-env.get-value(data-expr.name)
+                maybe-add(hidden, provided-types, data-expr.name, {l; none; data-alias-tb.atom})
+                for each(v from data-expr.variants) block:
+                  variant-vb = val-env.get-value(v.name)
+                  checker-name = A.make-checker-name(v.name)
+                  variant-checker-vb = val-env.get-value(checker-name)
+                  maybe-add(hidden, provided-values, v.name, {l; none; variant-vb.atom})
+                  maybe-add(hidden, provided-values, checker-name, {l; none; variant-checker-vb.atom})
+                end
+                
+              | some(uri) =>
+                datatype-name = path.last().toname()
+                providing-module = initial-env.provides-by-uri-value(uri)
+                maybe-datatype = providing-module.data-definitions.get(datatype-name)
+                { datatype-uri; datatype } = cases(Option) maybe-datatype:
+                  | none => 
+                    cases(Option) providing-module.aliases.get(datatype-name):
+                      | none => raise("Name " + datatype-name + " not defined as a type or datatype on " + uri)
+                      | some(t) =>
+                        cases(T.Type) t block:
+                          | t-name(module-name, id, _, _) =>
+                            when(not(T.is-module-uri(module-name))): raise("Expected a remote reference: " + to-repr(module-name)) end
+
+                            remote-datatype = initial-env.provides-by-uri-value(module-name.uri).data-definitions.get(datatype-name)
+                            cases(Option) remote-datatype:
+                              | some(rd) => { module-name.uri; rd }
+                              | none =>
+                                raise("Cannot re-provide datatype " + datatype-name + " because it isn't a datatype in " + uri)
+                            end
+                        end
+                    end
+                  | some(datatype) => { uri; datatype }
+                end
+                fun add-value-if-defined(name):
+                  when(providing-module.values.has-key(name)):
+                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
+                  end
+                end
+                # maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
+                add-value-if-defined(A.make-checker-name(datatype-name))
+                when(providing-module.aliases.has-key(datatype-name)):
+                  maybe-add(hidden, provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})
+                end
+                for each(v from datatype.variants) block:
+                  add-value-if-defined(v.name)
+                  add-value-if-defined(A.make-checker-name(v.name))
+                end
             end
         end
       end
       fun expand(provide-spec, path):
         cases(A.ProvideSpec) provide-spec:
           | s-provide-name(shadow l, name-spec) =>
-            expand-name-spec(provided-values, bindings, final-visitor.env, name-spec, path)
+            expand-name-spec(provided-values, bindings, final-visitor.env, _.values, name-spec, path)
           | s-provide-type(shadow l, name-spec) =>
-            expand-name-spec(provided-types, type-bindings, final-visitor.type-env, name-spec, path)
+            expand-name-spec(provided-types, type-bindings, final-visitor.type-env, _.aliases, name-spec, path)
           | s-provide-module(shadow l, name-spec) =>
-            expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, name-spec, path)
+            expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, _.modules, name-spec, path)
           | s-provide-data(shadow l, name-spec, hidden) =>
-            expand-data-spec(name-spec, path)
+            expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden)
           | else => nothing
         end
       end
@@ -1410,7 +1495,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 mod-bind = self.module-env.get-value(s)
                 cases(Option) initial-env.value-by-uri(mod-bind.uri, name) block:
                   | none =>
-                    name-errors := link(C.wf-err-split("The module " + s + "( " + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
+                    name-errors := link(C.wf-err-split("The module " + s + " (" + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
                     A.s-id-modref(l, mod-bind.atom, mod-bind.uri, name)
                   | some(ve) =>
                     cases(C.ValueExport) ve:
