@@ -431,6 +431,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               context.provides.data-definitions.get-value(name.toname())
             | none => 
               # TODO(alex): split into helper method on CompileEnvironment
+              # TODO(alex): Perform a recursive lookup on type aliases
               type-bind = context.post-env.type-bindings.get-value-now(name.key())
               type-uri = type-bind.origin.uri-of-definition
               type-original-name = type-bind.origin.original-name.toname()
