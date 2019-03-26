@@ -841,19 +841,5 @@ default-modules.set-now("builtin://json-structs", module-const-json-structs)
 shadow default-modules = default-modules.freeze()
 
 fun make-default-modules() block:
-  default-modules = SD.make-mutable-string-dict()
-  default-modules.set-now("builtin://equality", module-const-equality)
-  default-modules.set-now("builtin://lists", module-const-lists)
-  default-modules.set-now("builtin://option", module-const-option)
-  default-modules.set-now("builtin://error", module-const-error)
-  default-modules.set-now("builtin://either", module-const-either)
-  default-modules.set-now("builtin://arrays", module-const-arrays)
-  default-modules.set-now("builtin://pick", module-const-pick)
-  default-modules.set-now("builtin://sets", module-const-sets)
-  default-modules.set-now("builtin://s-exp", module-const-s-exp)
-  default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
-  default-modules.set-now("builtin://json-structs", module-const-json-structs)
-  default-modules.set-now("builtin://valueskeleton", module-const-valueskeleton)
-  default-modules.freeze()
   default-modules
 end
