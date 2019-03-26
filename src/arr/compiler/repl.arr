@@ -247,6 +247,7 @@ fun make-repl<a>(
     end)
     globals-now = globals
     {
+      method get-uncached(self): none end,
       method needs-compile(self, provs): true end,
       method get-modified-time(self): 0 end,
       method get-options(self, options): options end,
@@ -279,6 +280,7 @@ fun make-repl<a>(
       ast
     end
     {
+      method get-uncached(self): none end,
       method needs-compile(self, provs): true end,
       method get-modified-time(self): 0 end,
       method get-options(self, options): options end,

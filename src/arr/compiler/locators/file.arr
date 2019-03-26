@@ -19,6 +19,7 @@ fun mockable-file-locator(file-ops):
     {
       path: path,
       globals: globals,
+      method get-uncached(self): none end,
       method get-modified-time(self):
         file-ops.file-times(path).mtime
       end,

@@ -18,6 +18,7 @@ const-dict = BL.const-dict
 fun make-jsfile-locator(path):
   raw = B.builtin-raw-locator(path)
   {
+    method get-uncached(_): none end,
     method needs-compile(_, _): false end,
     method get-modified-time(self):
       F.file-times(path + ".js").mtime
