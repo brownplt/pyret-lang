@@ -27,9 +27,9 @@ end
 data CompiledCodePrinter:
   | ccp-dict(dict :: SD.StringDict) with:
     method to-j-expr(self, d):
-      J.j-parens(J.j-obj(for cl-map-sd(k from d):
+      J.j-obj(for cl-map-sd(k from d):
           J.j-field(k, d.get-value(k))
-        end))
+        end)
     end,
     method pyret-to-js-static(self) -> String:
       self.to-j-expr(self.dict.remove("theModule")).to-ugly-source()
