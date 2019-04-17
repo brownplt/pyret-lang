@@ -1,0 +1,25 @@
+<!doctype HTML>
+<html>
+<head></head>
+
+<body>
+
+<input type="text" id="program"></input>
+
+<script>
+var myWorker = new Worker('pyret-worker.js');
+let input = document.getElementById("program");
+
+input.onchange = function() {
+  console.log(input);
+  myWorker.postMessage({program: input.value});
+  console.log('Message posted to worker');
+}
+
+myWorker.onmessage = function(e) {
+  console.log('Message received from worker', e);
+}
+
+</script>
+</body>
+</html>
