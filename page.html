@@ -7,7 +7,7 @@
 <input type="text" id="program"></input>
 
 <script>
-var myWorker = new Worker('pyret-worker.js');
+var myWorker = new Worker('build/worker/pyret.jarr');
 let input = document.getElementById("program");
 
 input.onchange = function() {
