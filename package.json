@@ -44,6 +44,7 @@
   },
   "scripts": {
     "build": "mkdir -p build/phaseA; pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr",
+    "web": "mkdir -p build/worker; make build/worker/bundled-node-compile-deps.js; pyret --standalone-file worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/pyret.arr -o build/worker/pyret.jarr",
     "test": "jest --verbose test"
   },
   "repository": {

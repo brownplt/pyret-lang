@@ -1,0 +1,3 @@
+[ ] Investigate including BrowserFS: https://github.com/jvilk/BrowserFS
+[ ] Investigate making the path library load: https://github.com/browserify/path-browserify
+[ ] Figure out how to build pyret-worker without editing it by hand

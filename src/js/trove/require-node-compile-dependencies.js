@@ -17,15 +17,27 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
-fs = nodeRequire("fs");
-define("fs", [], function () { return fs; });
+define("fs", [], function () { return {}; });
 
-path = nodeRequire("path");
+path = require("path");
 define("path", [], function () { return path; });
 
-http = nodeRequire("http");
-define("http", [], function () {return http;});
+define("http", [], function () {return {};});
 
-ws = nodeRequire("ws");
-define("ws", [], function () { return ws });
+define("ws", [], function () { return {} });
+
+self.util = { format: function(object) { return object; } };
+
+self.process = {
+  argv: [],
+  exit: function(exit_code) {
+    console.error("The program tried to exit: ", exit_code); 
+  },
+  stdout: {
+    write: function(str) { console.log(str); }
+  },
+  stderr: {
+    write: function(str) { console.error(str); }
+  }
+};
 

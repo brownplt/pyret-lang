@@ -1,4 +1,28 @@
-requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "program"], function(runtimeLib, loadHooksLib, program) {
+/*
+TODO(joe): see how the lack of this interacts with CPO
+
+if(typeof window === 'undefined') {
+var require = require("requirejs");
+}
+require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
+
+*/
+// TODO: Change to myrequire
+requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, loader, runtimeLib, loadHooksLib, stackLib, program) {
+
+  loader.compileInNewScriptContext = function(src) {
+    var promise = Q.defer();
+    var loader_callback_count = 0;
+    // NOTE(joe): look at this further, came from
+    // https://stackoverflow.com/questions/7931182/reliably-detect-if-the-script-is-executing-in-a-web-worker
+    if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+      var resultF = eval("(function() { return " + src + "; })");
+      var result = resultF();
+      console.log("The result", result);
+      promise.resolve(result);
+      return promise.promise;
+    }
+  };
 
   var staticModules = program.staticModules;
   var depMap = program.depMap;
@@ -63,8 +87,8 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "program"],
           var errs = runtime.getField(summary, "errored");
           var failed = runtime.getField(summary, "failed");
           var exitCode = (errs !== 0 || failed !== 0) ? EXIT_ERROR_CHECK_FAILURES : EXIT_SUCCESS;
-          console.log(runtime.getField(summary, "message"));
-          console.log("\n",
+          process.stdout.write(util.format(runtime.getField(summary, "message")));
+          process.stdout.write("\n",
                                function() { process.exit(exitCode); });
         }
         // NOTE: Never calls resumer.resume, because there's nothing to do here beside exit
@@ -112,11 +136,11 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "program"],
               function(printResult) {
                 // This callback is *not* on the Pyret stack, so no need to pause
                 if(execRt.isSuccessResult(printResult)) {
-                  console.error(printResult.result);
-                  console.error(("\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack) + "\n",
+                  process.stderr.write(util.format(printResult.result));
+                  process.stderr.write("\nPyret stack:\n" + execRt.printPyretStack(res.exn.pyretStack) + "\n",
                                        function() { process.exit(EXIT_ERROR); });
                 } else {
-                  console.log(
+                  process.stderr.write(
                       "While trying to report that Pyret terminated with an error:\n" + JSON.stringify(res)
                       + "\ndisplaying that error produced another error:\n" + JSON.stringify(printResult)
                       + "\nStack:\n" + JSON.stringify(exnStack)
@@ -127,11 +151,11 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "program"],
           }
         }, "error->display");
     } else if (res.exn && res.exn.stack) {
-      console.error("Abstraction breaking: Uncaught JavaScript error:\n", res.exn);
-      console.error(("Stack trace:\n", res.exn.stack, "\n",
+      process.stderr.write("Abstraction breaking: Uncaught JavaScript error:\n" + util.format(res.exn));
+      process.stderr.write("Stack trace:\n" + util.format(res.exn.stack) + "\n",
                            function() { process.exit(EXIT_ERROR_JS); });
     } else {
-      console.error("Unknown error result: ", (res.exn), "\n",
+      process.stderr.write("Unknown error result: " + util.format(res.exn) + "\n",
                            function() { process.exit(EXIT_ERROR_UNKNOWN); });
     }
   }
