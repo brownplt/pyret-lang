@@ -38,6 +38,14 @@ self.process = {
   },
   stderr: {
     write: function(str) { console.error(str); }
+  },
+  hrtime: function(time) {
+    // TODO(alex): hrtime impl
+    if (time == undefined) {
+      return [0, 0];
+    } else {
+      return [1, 1];
+    }
   }
 };
 
