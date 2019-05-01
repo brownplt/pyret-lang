@@ -5,20 +5,27 @@
 <body>
 
 <input type="text" id="program"></input>
+<button type="button" id="compile">Compile</button>
 
 <script>
 var myWorker = new Worker('build/worker/pyret.jarr');
 let input = document.getElementById("program");
+let compile = document.getElementById("compile");
 
-input.onchange = function() {
-  console.log(input);
-  myWorker.postMessage({program: input.value});
+compile.onclick = function() {
+  let message = {
+    program: input.value,
+    options: {
+      program: "./program"
+    }
+  };
+  myWorker.postMessage(JSON.stringify(message));
   console.log('Message posted to worker');
-}
+};
 
 myWorker.onmessage = function(e) {
-  console.log('Message received from worker', e);
-}
+  console.log("Message from worker: ", e);
+};
 
 </script>
 </body>

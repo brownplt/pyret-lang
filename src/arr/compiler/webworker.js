@@ -27,8 +27,13 @@
 
     function setupHandlers(onCompile) {
       onmessage = function(e) {
+        // Data pre-processing
+        console.log(e.data);
+        var parsed = JSON.parse(e.data);
+        var program = parsed.program;
+        var options = JSON.stringify(parsed.options);
         // TODO(alex): May need to due complex message handling here
-        onCompile.app(e.data, respondForPy);
+        onCompile.app(options, respondForPy);
       };
     }
 
