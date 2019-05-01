@@ -18,11 +18,11 @@ BrowserFS.install(window);
 BrowserFS.configure({
   fs: "LocalStorage"
 }, function(e) {
+  BrowserFS.FileSystem.WorkerFS.attachRemoteListener(myWorker);
   if (e) {
     throw e;
   }
 });
-BrowserFS.FileSystem.WorkerFS.attachRemoteListener(myWorker);
 
 compile.onclick = function() {
   let message = {

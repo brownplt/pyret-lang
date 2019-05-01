@@ -17,6 +17,9 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
+// NOTE(alex): Configure is async. Placeholder object so fs module will be defined
+self.fsPlaceholder = {};
+
 // How WorkerFS works: https://github.com/jvilk/BrowserFS/issues/210
 BrowserFS = require("browserfs");
 BrowserFS.install({});
@@ -30,16 +33,30 @@ BrowserFS.configure({
       worker: self,
     }
   }, function(e) {
-    // Exception handler
-    if (e) {
-      throw e;
-    }
+    // NOTE(alex): configure() is async
+
+    // Source: https://jvilk.com/browserfs/1.3.0/interfaces/browserfs.html#bfsrequire
+    // self.fs = BrowserFS.BFSRequire("fs");
+    BrowserFS.FileSystem.WorkerFS.Create({worker: self}, function(error, fs) {
+      self.fsPlaceholder = fs;
+      console.log("RESULT:", self.fsPlaceholder);
+      console.log("create result:", fs.mkdir("/", function(err, content) { 
+        console.log("create:", err, ",", content);
+      } ));
+      console.log("exists result:", fs.exists("/", function(err, content) { 
+        console.log("exists:", err, ",", content);
+      } ));
+
+      console.log("Done setting up");
+      if (e) {
+        console.error(e);
+      }
+      
+      });
+    
   });
 
-// Source: https://jvilk.com/browserfs/1.3.0/interfaces/browserfs.html#bfsrequire
-fs = BrowserFS.BFSRequire("fs");
-define("fs", [], function () { return fs; });
-
+define("fs", [], function () { return fsPlaceholder; });
 path = require("path");
 define("path", [], function () { return path; });
 
