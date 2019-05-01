@@ -1,14 +1,12 @@
-import file as F
+import either as E
+import json as J
 import pathlib as P
+import string-dict as SD
 import render-error-display as RED
-import string-dict as D
-import system as SYS
-import file("cmdline.arr") as C
-import file("cli-module-loader.arr") as CLI
-import file("compile-lib.arr") as CL
-import file("compile-structs.arr") as CS
+import file("./cli-module-loader.arr") as CLI
+import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
-import file("server.arr") as S
+import js-file("webworker") as W
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
@@ -17,7 +15,6 @@ success-code = 0
 failure-code = 1
 
 fun compile(options):
-  f = raise("FOO")
   outfile = cases(Option) options.get("outfile"):
     | some(v) => v
     | none => options.get-value("program") + ".jarr"
@@ -47,3 +44,70 @@ fun compile(options):
       user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations)
     })
 end
+pyret-dir = ""
+compile-handler = lam(msg, send-message) block:
+  # print("Got message in pyret-land: " + msg)
+  opts = J.read-json(msg).native()
+  # print(torepr(opts))
+  # print("\n")
+  when opts.has-key("builtin-js-dir"):
+    if is-List(opts.get-value("builtin-js-dir")):
+      B.set-builtin-js-dirs(opts.get-value("builtin-js-dir"))
+    else:
+      B.set-builtin-js-dirs([list: opts.get-value("builtin-js-dir")])
+    end
+  end
+  when opts.has-key("builtin-arr-dir"):
+    if is-List(opts.get-value("builtin-arr-dir")):
+      B.set-builtin-arr-dirs(opts.get-value("builtin-arr-dir"))
+    else:
+      B.set-builtin-arr-dirs([list: opts.get-value("builtin-arr-dir")])
+    end
+  end
+  when opts.has-key("allow-builtin-overrides"):
+    B.set-allow-builtin-overrides(opts.get-value("allow-builtin-overrides"))
+  end
+  fun log(s, to-clear):
+    d = [SD.string-dict: "type", J.j-str("echo-log"), "contents", J.j-str(s)]
+    with-clear = cases(Option) to-clear:
+      | none => d.set("clear-first", J.j-bool(false))
+      | some(n) => d.set("clear-first", J.j-num(n))
+    end
+    send-message(J.j-obj(with-clear).serialize())
+  end
+  fun err(s):
+    d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
+    send-message(J.j-obj(d).serialize())
+  end
+  with-logger = opts.set("log", log)
+  with-error = with-logger.set("log-error", err)
+  with-pyret-dir = with-error.set("this-pyret-dir", pyret-dir)
+  with-compiled-read-only-dirs =
+    if opts.has-key("perilous") and opts.get-value("perilous"):
+      with-pyret-dir.set("compiled-read-only",
+        link(P.resolve(P.join(pyret-dir, "../../src/runtime")), empty)
+      ).set("user-annotations", false)
+    else:
+      with-pyret-dir.set("compiled-read-only",
+        link(P.resolve(P.join(pyret-dir, "../../src/runtime")), empty)
+      )
+    end
+  with-require-config = with-compiled-read-only-dirs.set("require-config",
+    opts.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
+  result = run-task(lam():
+    compile(with-require-config)
+  end)
+  cases(E.Either) result block:
+    | right(exn) =>
+      err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
+      err(err-str + "\n")
+      d = [SD.string-dict: "type", J.j-str("compile-failure")]
+      send-message(J.j-obj(d).serialize())
+    | left(val) =>
+      d = [SD.string-dict: "type", J.j-str("compile-success")]
+      send-message(J.j-obj(d).serialize())
+      nothing
+  end
+end
+
+W.setupHandlers(compile)
