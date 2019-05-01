@@ -94,9 +94,10 @@ compile-handler = lam(msg, send-message) block:
     end
   with-require-config = with-compiled-read-only-dirs.set("require-config",
     opts.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
-  result = run-task(lam():
-    compile(with-require-config)
-  end)
+  result = compile(with-require-config) 
+  # run-task(lam():
+  #  compile(with-require-config)
+  # end)
   cases(E.Either) result block:
     | right(exn) =>
       err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
@@ -110,4 +111,4 @@ compile-handler = lam(msg, send-message) block:
   end
 end
 
-W.setupHandlers(compile)
+W.setupHandlers(compile-handler)
