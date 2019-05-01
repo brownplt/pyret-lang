@@ -10,11 +10,6 @@
   "bundleDependencies": {
     "browserify": "^14.4.0"
   },
-  "browser": {
-    "fs": false,
-    "path": false,
-    "os": false
-  },
   "dependencies": {
     "ascii-table": "~0.0.9",
     "benchmark": "^2.1.4",

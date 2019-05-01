@@ -36,8 +36,8 @@ BrowserFS.configure({
     }
   });
 
-fs = require("fs");
-console.log(fs);
+// Source: https://jvilk.com/browserfs/1.3.0/interfaces/browserfs.html#bfsrequire
+fs = BrowserFS.BFSRequire("fs");
 define("fs", [], function () { return fs; });
 
 path = require("path");
