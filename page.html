@@ -16,7 +16,9 @@ compile.onclick = function() {
   let message = {
     program: input.value,
     options: {
-      program: "./program"
+      program: "./program",
+      "base-dir": "./",
+      checks: "none",
     }
   };
   myWorker.postMessage(JSON.stringify(message));
