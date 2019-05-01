@@ -17,7 +17,28 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
-define("fs", [], function () { return {}; });
+// How WorkerFS works: https://github.com/jvilk/BrowserFS/issues/210
+BrowserFS = require("browserfs");
+BrowserFS.install({});
+
+BrowserFS.configure({
+    fs: "WorkerFS",
+    // TODO(alex): Web Workers do not have access to LocalStorage
+    // Source: https://stackoverflow.com/questions/6179159/accessing-localstorage-from-a-webworker 
+    //fs: "LocalStorage"
+    options: {
+      worker: self,
+    }
+  }, function(e) {
+    // Exception handler
+    if (e) {
+      throw e;
+    }
+  });
+
+fs = require("fs");
+console.log(fs);
+define("fs", [], function () { return fs; });
 
 path = require("path");
 define("path", [], function () { return path; });

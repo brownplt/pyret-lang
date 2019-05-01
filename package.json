@@ -10,9 +10,15 @@
   "bundleDependencies": {
     "browserify": "^14.4.0"
   },
+  "browser": {
+    "fs": false,
+    "path": false,
+    "os": false
+  },
   "dependencies": {
     "ascii-table": "~0.0.9",
     "benchmark": "^2.1.4",
+    "browserfs": "^1.4.3",
     "browserify": "^14.4.0",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^4.0.1",
