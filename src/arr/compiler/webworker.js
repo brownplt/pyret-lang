@@ -33,7 +33,18 @@
         var program = parsed.program;
         var options = JSON.stringify(parsed.options);
         // TODO(alex): May need to due complex message handling here
-        onCompile.app(options, respondForPy);
+        
+        RUNTIME.runThunk(function() {
+          return onCompile.app(options, respondForPy);
+        }, function(result) {
+          if(RUNTIME.isFailureResult(result)) {
+            console.error("Error from compile:", result);
+            
+          }
+          else {
+            console.log("Success:", result);
+          }
+        });
       };
     }
 
