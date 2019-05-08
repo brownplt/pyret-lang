@@ -36,24 +36,19 @@ BrowserFS.configure({
     // NOTE(alex): configure() is async
 
     // Source: https://jvilk.com/browserfs/1.3.0/interfaces/browserfs.html#bfsrequire
-    // self.fs = BrowserFS.BFSRequire("fs");
-    BrowserFS.FileSystem.WorkerFS.Create({worker: self}, function(error, fs) {
-      self.fsPlaceholder = fs;
-      console.log("RESULT:", self.fsPlaceholder);
-      console.log("create result:", fs.mkdir("/", function(err, content) { 
-        console.log("create:", err, ",", content);
-      } ));
-      console.log("exists result:", fs.exists("/", function(err, content) { 
-        console.log("exists:", err, ",", content);
-      } ));
+    fs = BrowserFS.BFSRequire("fs");
+    Object.assign(self.fsPlaceholder, fs);
+    Object.assign(self.fsPlaceholder, fs.__proto__);
+    fs.exists("/foo", function(err, content) { 
+        console.log("PRE exists:", err, ",", content);
+        fs.mkdir("/foo", function(err, content) { 
+          console.log("create:", err, ",", content);
+          fs.exists("/foo", function(err, content) { 
+            console.log("POST exists:", err, ",", content);
+          })
+        });
 
-      console.log("Done setting up");
-      if (e) {
-        console.error(e);
-      }
-      
-      });
-    
+    });
   });
 
 define("fs", [], function () { return fsPlaceholder; });
