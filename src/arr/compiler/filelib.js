@@ -18,30 +18,41 @@
   },
   nativeRequires: ["fs"],
   theModule: function(RUNTIME, NAMESPACE, uri, fs) {
-    function InputFile(name) {
+    function InputFile(name, fd) {
       this.name = name;
-      this.fd = fs.openSync(name, "r");
+      this.fd = fd;
     }
 
-    function OutputFile(name, append) {
+    function OutputFile(name, fd) {
       this.name = name;
-      this.fd = fs.openSync(name, (append ? "a" : "w"));
+      this.fd = fd;
     }
 
+    // Use ASYNC file operations with Pyret
+    // HowTo: https://www.pyret.org/docs/latest/s_running.html#%28part._.Asynchronous_.J.S_and_.Pyret%29
     var vals = {
       "open-input-file": RUNTIME.makeFunction(function(filename) {
           RUNTIME.ffi.checkArity(1, arguments, "open-input-file", false);
           RUNTIME.checkString(filename);
-          var s = RUNTIME.unwrap(filename);
-          return RUNTIME.makeOpaque(new InputFile(s));
+          var stringName = RUNTIME.unwrap(filename);
+          RUNTIME.pauseStack(function(restarter) {
+            fs.open(stringName, function(err, fd) {
+              restarter.resume(RUNTIME.makeOpaque(new InputFile(stringName, fd)));
+            });
+          });
         }, "open-input-file"),
       "open-output-file": RUNTIME.makeFunction(function(filename, append) {
           RUNTIME.ffi.checkArity(2, arguments, "open-output-file", false);
           RUNTIME.checkString(filename);
           RUNTIME.checkBoolean(append);
-          var s = RUNTIME.unwrap(filename);
-          var b = RUNTIME.unwrap(append);
-          return RUNTIME.makeOpaque(new OutputFile(s, b));
+          var stringName = RUNTIME.unwrap(filename);
+          var appendOption = RUNTIME.unwrap(append);
+          RUNTIME.pauseStack(function(restarter) {
+            fs.open(name, (appendOption ? "a" : "w"), function(err, fd) {
+              restarter.resume(RUNTIME.makeOpaque(
+                new OutputFile(stringName, fd)));
+            });
+          });
         }, "open-output-file"),
       "read-file": RUNTIME.makeFunction(function(file) {
           RUNTIME.ffi.checkArity(1, arguments, "read-file", false);
@@ -100,15 +111,23 @@
           if(!(v instanceof InputFile || v instanceof OutputFile)) {
             RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
           }
-          if(!fs.existsSync(v.name)) {
-            RUNTIME.ffi.throwMessageException("File " + v.name + " did not exist when getting file-times");
-          }
-          var stats = fs.lstatSync(v.name);
-          return RUNTIME.makeObject({
-            mtime: Number(stats.mtime),
-            atime: Number(stats.atime),
-            ctime: Number(stats.ctime)
+          RUNTIME.pauseStack(function(restarter) {
+            fs.exists(v.name, function(exists) {
+              if (!exists) {
+                restarter.error(
+                  myRuntime.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
+              }
+
+              fs.lstat(v.name, function(error, stats) {
+                  restarter.resume(RUNTIME.makeObject({
+                    mtime: Number(stats.mtime),
+                    atime: Number(stats.atime),
+                    ctime: Number(stats.ctime)
+                  }));
+              });
+            })
           });
+          
         }, "file-times"),
       "real-path": RUNTIME.makeFunction(function(path) {
           RUNTIME.ffi.checkArity(1, arguments, "real-path", false);
