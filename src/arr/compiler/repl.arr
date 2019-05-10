@@ -39,6 +39,7 @@ fun get-defined-ids(p, imports, body, extras):
       | s-import(_, _, _) => names
       | s-import-fields(_, imp-names, _) => names + imp-names
       | s-include(_, _) => names
+      | s-include-from(_, _, _) => names
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
