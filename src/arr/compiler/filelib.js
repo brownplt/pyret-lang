@@ -222,7 +222,6 @@
             restarter.resume(true);
           });
         });
-        return true;
       }, "create-dir"),
       "list-files": RUNTIME.makeFunction(function(directory) {
           RUNTIME.ffi.checkArity(1, arguments, "list-files", false);
