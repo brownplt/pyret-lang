@@ -60,7 +60,12 @@
           var v = file.val;
           if(v instanceof InputFile) {
             if (v.fd) {
-              return RUNTIME.makeString(fs.readFileSync(v.fd, {encoding: 'utf8'}));
+              RUNTIME.pauseStack(function(restarter) {
+                fs.readFile(v.fd, {encoding: 'utf8'}, function(err, data) {
+                  // NOTE(alex): ignore errors for now
+                  restarter.resume(RUNTIME.makeString(data));
+                });
+              });
             } else {
               throw Error("Attempting to read an already-closed file");
             }
@@ -77,8 +82,12 @@
           var s = RUNTIME.unwrap(val);
           if(v instanceof OutputFile) {
             if (v.fd) {
-              fs.writeSync(v.fd, s, {encoding: 'utf8'});
-              return NAMESPACE.get('nothing');
+              RUNTIME.pauseStack(function(restarter) {
+                fs.write(v.fd, s, {encoding: 'utf8'}, function(err, bytesWritten, buffer) {
+                  // NOTE(alex): ignore errors for now
+                  restarter.resume(NAMESPACE.get('nothing'));
+                });
+              });
             } else {
               console.error("Failed to display to " + v.name);
               throw Error("Attempting to write to an already-closed file");
@@ -94,8 +103,12 @@
           var v = file.val;
           if(v instanceof OutputFile) {
             if (v.fd) {
-              fs.fsyncSync(v.fd);
-              return NAMESPACE.get('nothing');
+              RUNTIME.pauseStack(function(restarter) {
+                fs.fsync(v.fd, function(err) {
+                  // NOTE(alex): ignore errors for now
+                  restarter.resume(NAMESPACE.get('nothing'));
+                });
+              });
             } else {
               throw Error("Attempting to flush an already-closed file");
             }
