@@ -236,12 +236,12 @@
           });
       }, "list-files"),
       "symlink": RUNTIME.makeFunction(function(target, path, fileOrDir) {
-          RUNTIME.pauseStack(function(restarter) {
-            fs.symlink(target, path fileOrDir, function(err) {
-              // NOTE(alex): ignore errors for now
-              restarter.resume(true);
-            });
+        RUNTIME.pauseStack(function(restarter) {
+          fs.symlink(target, path, fileOrDir, function(err) {
+            // NOTE(alex): ignore errors for now
+            restarter.resume(true);
           });
+        });
       })
     };
 
