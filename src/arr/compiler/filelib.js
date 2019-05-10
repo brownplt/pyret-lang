@@ -128,7 +128,7 @@
             fs.exists(v.name, function(exists) {
               if (!exists) {
                 restarter.error(
-                  myRuntime.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
+                  RUNTIME.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
               }
 
               fs.lstat(v.name, function(error, stats) {
