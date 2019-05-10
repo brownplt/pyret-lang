@@ -146,20 +146,30 @@
           RUNTIME.ffi.checkArity(1, arguments, "real-path", false);
           RUNTIME.checkString(path);
           var s = RUNTIME.unwrap(path);
-          var newpath;
-          try {
-            newpath = fs.realpathSync(s);
-          } catch(e) {
-            newpath = s; // should this be an error instead?
-          }
-          return RUNTIME.makeString(newpath);
+
+          RUNTIME.pauseStack(function(restarter) {
+            fs.realPath(s, function(err, resolvedPath) {
+              var newPath;
+              if (err) {
+                newPath = s;
+              } else {
+                newPath = resolvedPath;
+              }
+
+              restarter.resume(RUNTIME.makeString(newPath));
+            });
+          });
+          
         }, "real-path"),
       "exists": RUNTIME.makeFunction(function(path) {
           RUNTIME.ffi.checkArity(1, arguments, "exists", false);
           RUNTIME.checkString(path);
           var s = RUNTIME.unwrap(path);
-          var e = fs.existsSync(s);
-          return RUNTIME.makeBoolean(e);
+          RUNTIME.pauseStack(function(restarter) {
+            fs.exists(s, function(exists) {
+              restarter.resume(RUNTIME.makeBoolean(exists));
+            });
+          });
         }, "exists"),
       "close-output-file": RUNTIME.makeFunction(function(file) { 
           RUNTIME.ffi.checkArity(1, arguments, "close-output-file", false);
@@ -167,9 +177,13 @@
           var v = file.val;
           if(v instanceof OutputFile) {
             if (v.fd) {
-              fs.closeSync(v.fd);
-              v.fd = false;
-              return NAMESPACE.get('nothing');
+              RUNTIME.pauseStack(function(restarter) {
+                fs.close(v.fd, function(err) {
+                  // NOTE(alex): ignore errors for now
+                  v.fd = false;
+                  restarter.resume(NAMESPACE.get('nothing'));
+                });
+              });
             } else {
               throw Error("Attempting to close an already-closed file");
             }
@@ -184,9 +198,13 @@
           var v = file.val;
           if(v instanceof InputFile) {
             if (v.fd) {
-              fs.closeSync(v.fd);
-              v.fd = false;
-              return NAMESPACE.get('nothing');
+              RUNTIME.pauseStack(function(restarter) {
+                fs.close(v.fd, function(err) {
+                  // NOTE(alex): ignore errors for now
+                  v.fd = false;
+                  restarter.resume(NAMESPACE.get('nothing'));
+                });
+              });
             } else {
               throw Error("Attempting to close an already-closed file");
             }
@@ -198,19 +216,33 @@
       "create-dir": RUNTIME.makeFunction(function(directory) {
         RUNTIME.ffi.checkArity(1, arguments, "create-dir", false);
         RUNTIME.checkString(directory);
-        fs.mkdirSync(directory);
+        RUNTIME.pauseStack(function(restarter) {
+          fs.mkdir(directory, function(err) {
+            // NOTE(alex): ignore errors for now
+            restarter.resume(true);
+          });
+        });
         return true;
       }, "create-dir"),
       "list-files": RUNTIME.makeFunction(function(directory) {
           RUNTIME.ffi.checkArity(1, arguments, "list-files", false);
           RUNTIME.checkString(directory);
           var dir = RUNTIME.unwrap(directory);
-          var contents = fs.readdirSync(dir)
-          return RUNTIME.ffi.makeList(contents.map(RUNTIME.makeString))
+          RUNTIME.pauseStack(function(restarter) {
+            fs.readdir(dir, function(err, files) {
+              // NOTE(alex): ignore errors for now
+              var contents = files;
+              restarter.resume(RUNTIME.ffi.makeList(contents.map(RUNTIME.makeString)));
+            });
+          });
       }, "list-files"),
       "symlink": RUNTIME.makeFunction(function(target, path, fileOrDir) {
-          fs.symlinkSync(target, path, fileOrDir);
-          return true;
+          RUNTIME.pauseStack(function(restarter) {
+            fs.symlink(target, path fileOrDir, function(err) {
+              // NOTE(alex): ignore errors for now
+              restarter.resume(true);
+            });
+          });
       })
     };
 
