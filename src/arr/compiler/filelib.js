@@ -58,16 +58,25 @@
           RUNTIME.ffi.checkArity(1, arguments, "read-file", false);
           RUNTIME.checkOpaque(file);
           var v = file.val;
-          if(v instanceof InputFile) {
-            if (v.fd) {
-              return RUNTIME.makeString(fs.readFileSync(v.fd, {encoding: 'utf8'}));
+
+          RUNTIME.pauseStack(function(restarter) {
+            if(v instanceof InputFile) {
+              if (v.fd) {
+                fs.readFile(v.fd, {encoding: 'utf8'}, function(err, data) {
+                    restarter.resume(
+                      RUNTIME.makeString(data));
+                });
+              } else {
+                restarter.error(
+                  RUNTIME.ffi.makeMessageException("Attempting to read an already-closed file")
+                );
+              }
             } else {
-              throw Error("Attempting to read an already-closed file");
+              restarter.error(
+                RUNTIME.ffi.makeMessageException("Expected file in read-file, but got something else")              ); 
             }
-          }
-          else {
-            throw Error("Expected file in read-file, but got something else");
-          }
+          });
+          
         }, "read-file"),
       "display": RUNTIME.makeFunction(function(file, val) {
           RUNTIME.ffi.checkArity(2, arguments, "display", false);
@@ -75,18 +84,25 @@
           RUNTIME.checkString(val);
           var v = file.val;
           var s = RUNTIME.unwrap(val);
-          if(v instanceof OutputFile) {
-            if (v.fd) {
-              fs.writeSync(v.fd, s, {encoding: 'utf8'});
-              return NAMESPACE.get('nothing');
+          RUNTIME.pauseStack(function(restarter) {
+            if(v instanceof OutputFile) {
+              if (v.fd) {
+                fs.write(v.fd, s, {encoding: 'utf8'}, function(err, bytesWritten, buffer) {
+                  // NOTE(alex): ignore errors for now (to match original sync code) 
+                  restarter.resume(NAMESPACE.get('nothing'));
+                });
+              } else {
+                // console.error("Failed to display to " + v.name);
+                restarter.error(
+                  RUNTIME.ffi.makeMessageException("Attempting to write to an already-closed file")
+                );
+              }
             } else {
-              console.error("Failed to display to " + v.name);
-              throw Error("Attempting to write to an already-closed file");
+              restarter.error(
+                  RUNTIME.ffi.makeMessageException("Expected file in display, but got something else")
+              );
             }
-          }
-          else {
-            throw Error("Expected file in display, but got something else");
-          }
+          });
         }, "display"),
       "flush-output-file": RUNTIME.makeFunction(function(file) {
           RUNTIME.ffi.checkArity(1, arguments, "flush-output-file", false);
@@ -115,7 +131,7 @@
             fs.exists(v.name, function(exists) {
               if (!exists) {
                 restarter.error(
-                  myRuntime.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
+                  RUNTIME.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
               }
 
               fs.lstat(v.name, function(error, stats) {
