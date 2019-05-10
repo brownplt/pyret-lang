@@ -93,6 +93,18 @@ check:
   # fails because shadows SD above
   result6 = next-interaction("import string-dict as SD")
   result6 satisfies E.is-left
+
+  result7 = next-interaction(```
+    include from SD:
+      mutable-string-dict,
+      type MutableStringDict
+    end
+    msd1 :: SD.MutableStringDict = [mutable-string-dict:]
+    msd2 :: MutableStringDict = [SD2.mutable-string-dict:]
+    msd1 =~ msd2
+  ```)
+  val(result7) is some(true)
+
 end
 
 check:
