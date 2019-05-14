@@ -290,6 +290,8 @@
                         'name': 'string-char-at',
                         'typ': ['arrow', ['String', 'Number'], 'String']},
       "string-contains":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
+      "string-starts-with":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
+      "string-ends-with":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
       "string-equal":{'bind': 'fun', 'flatness': 0, 'name': 'string-equal', 'typ': 'StrPred2'},
       "string-explode":{'bind': 'fun',
                         'flatness': 0,

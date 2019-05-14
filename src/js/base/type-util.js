@@ -118,10 +118,6 @@ define("pyret-base/js/type-util", [], function() {
   }
 
   function bindToPyret(runtime, value) {
-    var wrapper = function(t) {
-      return runtime.makeObject({ bind: "let", typ: t });
-    };
-    var typ;
     var origin = runtime.makeObject({ provided: false });
     if(!value.bind) {
       return runtime.makeObject({
@@ -279,13 +275,14 @@ define("pyret-base/js/type-util", [], function() {
     if(typ.bind == 'fun') {
       return {
         bind: typ.bind,
+        origin: typ.origin,
         flatness: typ.flatness,
         name: typ.name,
         typ: expandType(typ.typ, shorthands)
       };
     }
     else if (typ.bind === 'var') {
-      return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
+      return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
     }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];

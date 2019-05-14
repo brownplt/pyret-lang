@@ -622,6 +622,12 @@ fun get-origin-loc(o):
   end
 end
 
+fun get-local-loc(o):
+  cases(C.BindOrigin) o:
+    | bind-origin(local-bind-site, _, _, _, _) => local-bind-site
+  end
+end
+
 
 fun uri-from(start :: String, path :: List<A.Name>, compile-env):
   cases(List) path:
@@ -684,8 +690,26 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-name(l, s) =>
         when env.has-key(s) and not(is-shadowing):
           old-loc = get-origin-loc(env.get-value(s).origin)
-          name-errors := link(C.shadow-id(s, l, old-loc), name-errors)
+          local-loc = get-local-loc(env.get-value(s).origin)
+          import-loc-opt =
+            if (local-loc == p.l) or (local-loc == A.dummy-loc) block:
+              none
+            else:
+              spy "import-loc-opt":
+                local-loc
+              end
+              some(local-loc)
+            end
+          name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt, name-errors)
         end
+        # when env.has-key(s):
+        #   spy "make-atom-for":
+        #     s,
+        #     use-loc: l,
+        #     is-shadowing,
+        #     origin: env.get-value(s)
+        #   end
+        # end
         atom = names.make-atom(s)
         binding = make-binding(atom)
         bindings.set-now(atom.key(), binding)
@@ -729,15 +753,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       cases(Option) val-info block:
         | none => raise("The value is a global that doesn't exist in any module: " + name)
         | some(shadow val-info) =>
+          origin = val-info.origin
           cases(C.ValueExport) val-info block:
               # TODO(joe): can use origin information here once v-alias and friends go through
-            | v-var(_origin-unused, t) =>
-              b = C.value-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.vb-var, names.s-global(name), A.a-blank)
+            | v-var(_, t) =>
+              b = C.value-bind(C.bo-global(some(origin), mod-info.from-uri, names.s-global(name)), C.vb-var, names.s-global(name), A.a-blank)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
-              b = C.value-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.vb-let, names.s-global(name), A.a-blank)
+              b = C.value-bind(C.bo-global(some(origin), mod-info.from-uri, names.s-global(name)), C.vb-let, names.s-global(name), A.a-blank)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
           end
@@ -750,7 +775,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.types) block:
       mod-info = initial.provides-by-type-name-value(name)
-      b = C.type-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.tb-type-let, names.s-type-global(name), none)
+      b = C.type-bind(C.bo-global(none, mod-info.from-uri, names.s-global(name)), C.tb-type-let, names.s-type-global(name), none)
       type-bindings.set-now(names.s-type-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -764,7 +789,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       when not(mod-info.modules.has-key(name)):
         spy: mod-info, initial end
       end
-      b = C.module-bind(C.bo-global(mod-info.from-uri, names.s-module-global(name)), names.s-module-global(name), mod-info.modules.get-value(name))
+      b = C.module-bind(C.bo-global(none, mod-info.from-uri, names.s-module-global(name)), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -852,7 +877,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | else => C.vb-let
         end
         atom-env = make-import-atom-for(as-name, value-export.origin.uri-of-definition, env, bindings,
-          C.value-bind(C.bo-module(vname.l, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
+          C.value-bind(C.bo-module(vname.l, value-export.origin.definition-bind-site, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
         atom-env.env
     end
   end
@@ -862,17 +887,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     cases(Option) maybe-type-export:
       | none => raise("Cannot find type name " + tname.toname())
       | some(t) =>
-        { orig-name; uri-of-typ } = cases(T.Type) t:
-          | t-name(module-name, id, _, _) =>
+        { orig-name; uri-of-typ; loc-of-typ } = cases(T.Type) t:
+          | t-name(module-name, id, loc, _) =>
             cases(T.NameOrigin) module-name:
-              | local => { id; mod-info.from-uri }
-              | module-uri(shadow uri) => { id; uri }
-              | dependency(d) => { id; mod-info.from-uri }
+              | local => { id; mod-info.from-uri; loc }
+              | module-uri(shadow uri) => { id; uri; loc }
+              | dependency(d) => { id; mod-info.from-uri; loc }
             end
-          | else => { tname; mod-info.from-uri }
+          | else => { tname; mod-info.from-uri; t.l }
         end
         atom-env = make-import-atom-for(as-name, uri-of-typ, type-env, type-bindings,
-          C.type-bind(C.bo-module(tname.l, uri-of-typ, orig-name), C.tb-type-let, _, none))
+          C.type-bind(C.bo-module(tname.l, loc-of-typ, uri-of-typ, orig-name), C.tb-type-let, _, none))
         atom-env.env
     end
   end
@@ -883,7 +908,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | none => raise("Cannot find module name " + mname.toname())
       | some(uri) =>
         atom-env = make-import-atom-for(as-name, mod-info.from-uri, module-env, module-bindings,
-          C.module-bind(C.bo-module(mname.l, mod-info.from-uri, mname), _, uri))
+          C.module-bind(C.bo-module(mname.l, S.builtin(uri), mod-info.from-uri, mname), _, uri))
         atom-env.env
     end
   end

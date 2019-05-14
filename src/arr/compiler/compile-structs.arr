@@ -71,12 +71,20 @@ end
 
 # NOTE(joe): If source information ends up in provides, we can add an extra arg
 # here to provide better definition site info for names from other modules
-fun bo-module(loc, uri, original-name):
-  bind-origin(loc, SL.builtin(uri), false, uri, original-name)
+fun bo-module(local-loc, def-loc, def-uri, original-name):
+  # spy "bo-module":
+  #   def-uri, original-name, local-loc, def-loc
+  # end
+  bind-origin(local-loc, def-loc, false, def-uri, original-name)
 end
 
-fun bo-global(uri, original-name):
-  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, original-name)
+fun bo-global(opt-origin, uri, original-name):
+  cases(Option) opt-origin block:
+    | none =>
+      bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, original-name)
+    | some(origin) =>
+      bind-origin(SL.builtin(uri), origin.definition-bind-site, false, uri, original-name)
+  end
 end
 
 data ValueBinder:
@@ -465,7 +473,7 @@ fun origin-from-raw(uri, raw, name):
       A.s-name(srcloc-from-raw(raw.definition-bind-site), name)
       )
   else:
-    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, A.s-name(SL.builtin(uri), name))
+    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, A.s-name(A.dummy-loc, name))
   end
 end
 
@@ -1553,52 +1561,119 @@ data CompileError:
           ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
               + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")]]
     end
-  | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+  | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc, import-loc :: Option<Loc>) with:
     # TODO: disambiguate what is doing the shadowing and what is being shadowed.
     # it's not necessarily a binding; could be a function definition.
     method render-fancy-reason(self):
       old-loc-color = 0
       new-loc-color = 1
+      imp-loc-color = 2
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text(" shadows the declaration of a built-in of the same name.")]]
-        | srcloc(_, _, _, _, _, _, _) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text(" shadows a previous declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                [ED.para:
+                  ED.text("1The declaration of "),
+                  ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                  ED.text(" shadows the declaration of a built-in of the same name.")]]
+            | some(imp-loc) =>
+              [ED.error:
+                [ED.para:
+                  ED.text("2The declaration of "),
+                  ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                  ED.text(" shadows the declaration of a built-in of the same name, which was imported "),
+                  ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]]
+          end
+        | srcloc(filename, _, _, _, _, _, _) =>
+          is-builtin-loc = (string-index-of(filename, "builtin://") == 0)
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                if is-builtin-loc:
+                  [ED.para:
+                    ED.text("3The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a built-in declaration of the same name.")]
+                else:
+                  [ED.para:
+                    ED.text("4The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a previous declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color)]
+                end]
+            | some(imp-loc) =>
+              [ED.error:
+                if is-builtin-loc:
+                  [ED.para:
+                    ED.text("5The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a built-in declaration of the same name, which was imported "),
+                    ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
+                else:
+                  [ED.para:
+                    ED.text("6The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a previous declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
+                    ED.text(", which was imported "),
+                    ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
+                end]
+          end
       end
     end,
     method render-reason(self):
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.new-loc),
-              ED.text(" shadows the declaration of a built-in identifier also named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.old-loc)]]
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                [ED.para:
+                  ED.text("7The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows the declaration of a built-in of the same name, defined at "),
+                  ED.loc(self.old-loc)]]
+            | some(imp-loc) =>
+              [ED.error:
+                [ED.para:
+                  ED.text("8The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows the declaration of a built-in of the same name, defined at "),
+                  ED.loc(self.old-loc),
+                  ED.text(" and imported from "),
+                  ED.loc(imp-loc)]]
+          end
         | srcloc(_, _, _, _, _, _, _) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.new-loc),
-              ED.text(" shadows the declaration of an identifier also named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.old-loc)]]
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                [ED.para:
+                  ED.text("9The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows a previous declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" defined at "),
+                  ED.loc(self.old-loc)]]
+            | some(imp-loc) =>
+              [ED.error:
+                [ED.para:
+                  ED.text("0The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows a previous declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" defined at "),
+                  ED.loc(self.old-loc),
+                  ED.text(" and imported from "),
+                  ED.loc(imp-loc)]]
+          end
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
@@ -2818,6 +2893,8 @@ runtime-provides = provides("builtin://global",
     "_greaterequal", t-top,
     "string-equal", t-top,
     "string-contains", t-top,
+    "string-starts-with", t-top,
+    "string-ends-with", t-top,
     "string-append", t-top,
     "string-length", t-top,
     "string-isnumber", t-top,

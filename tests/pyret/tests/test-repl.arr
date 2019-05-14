@@ -3,6 +3,7 @@ import runtime-lib as RT
 import string-dict as SD
 import either as E
 import pathlib as P
+import render-error-display as RED
 import file("../../../src/arr/compiler/locators/builtin.arr") as B
 import file("../../../src/arr/compiler/repl.arr") as R
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
@@ -12,24 +13,33 @@ print("Running repl-tests: " + tostring(time-now()) + "\n")
 
 type Either = E.Either
 
-fun get-run-answer(res):
+fun val(res):
   cases(Either) res block:
-    | right(ans) => ans
+    | right(ans) => L.get-result-answer(ans)
     | left(err) =>
       print-error("Expected an answer, but got compilation errors:")
       for lists.each(e from err):
         print-error(tostring(e))
       end
+      nothing
   end
 end
-val = lam(str): L.get-result-answer(get-run-answer(str)) end
-msg = lam(str): L.render-error-message(get-run-answer(str)) end
-
-fun startswith(hay, needle):
-  needle-len = string-length(needle)
-  hay-len = string-length(hay)
-  (needle-len <= hay-len) and
-  string-equal(string-substring(hay, 0, needle-len), needle)
+fun msgs(res) block:
+  cases(Either) res block:
+    | right(ans) =>
+      L.render-error-message(ans).message
+    | left(shadow res) =>
+      sep = "\n========================\n"
+      for map(r from res):
+        cases(CS.CompileResult) r:
+          | ok(code) => tostring(code)
+          | err(problems) =>
+            for map(p from problems):
+              RED.display-to-string(p.render-reason(), torepr, empty)
+            end.join-str("sep")
+        end
+      end.join-str(sep)
+  end
 end
 
 r = RT.make-runtime()
@@ -64,6 +74,35 @@ check:
 
   result5 = next-interaction("is-function(make-string-dict)")
   val(result5) is some(true)
+end
+
+check:
+  result = restart("import some from option", false)
+  L.get-result-answer(result.v) is none
+
+  result2 = next-interaction("some = 5")
+  result2 satisfies E.is-left
+  msg2 = msgs(result2)
+  msg2 is%(string-contains) "declaration of `some` at "
+  msg2 is%(string-contains) "shadows a previous declaration of `some` defined at builtin://option"
+  msg2 is%(string-contains) "and imported from"
+
+  result3 = restart("some = 5", false)
+  result3 satisfies E.is-left
+  msg3 = msgs(result3)
+  msg3 is%(string-contains) "declaration of `some` at"
+  msg3 is%(string-contains) "shadows a previous declaration of `some` defined at builtin://option"
+  msg3 is-not%(string-contains) "and imported from"
+
+  result4 = restart("include ast", false)
+  L.get-result-answer(result4.v) is none
+
+  result5 = next-interaction("s-program = 5")
+  result5 satisfies E.is-left
+  msg5 = msgs(result5)
+  msg5 is%(string-contains) "declaration of `s-program` at "
+  msg5 is%(string-contains) "shadows a previous declaration of `s-program` defined at builtin://ast"
+  msg5 is%(string-contains) "and imported from"
 end
 
 check:
@@ -241,8 +280,8 @@ check:
   raw-array-length(stacktrace46) is 5
   raw-array-get(stacktrace46, 0) is "definitions://: line 2, column 12"
   # Don't check the actual line number in the builtin:lists
-  startswith(raw-array-get(stacktrace46, 1), "builtin://lists:")
-  startswith(raw-array-get(stacktrace46, 2), "builtin://lists:")
+  raw-array-get(stacktrace46, 1) is%(string-starts-with) "builtin://lists:"
+  raw-array-get(stacktrace46, 2) is%(string-starts-with) "builtin://lists:"
   raw-array-get(stacktrace46, 3) is "definitions://: line 3, column 0"
   raw-array-get(stacktrace46, 4) is "interactions://1: line 1, column 0"
 

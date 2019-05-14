@@ -4664,6 +4664,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         l, thisRuntime.String, r, thisRuntime.String);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
+    var string_starts_with = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-starts-with"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-starts-with",
+        l, thisRuntime.String, r, thisRuntime.String);
+      return thisRuntime.makeBoolean(l.startsWith(r));
+    }
+    var string_ends_with = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ends-with"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-ends-with",
+        l, thisRuntime.String, r, thisRuntime.String);
+      return thisRuntime.makeBoolean(l.endsWith(r));
+    }
     var string_length = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-length"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Strings", "string-length",
@@ -5635,6 +5647,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'string-equal': makeFunction(string_equals, "string-equal"),
       'string-contains': makeFunction(string_contains, "string-contains"),
+      'string-starts-with': makeFunction(string_contains, "string-starts-with"),
+      'string-ends-with': makeFunction(string_contains, "string-ends-with"),
       'string-append': makeFunction(string_append, "string-append"),
       'string-length': makeFunction(string_length, "string-length"),
       'string-isnumber': makeFunction(string_isnumber, "string-isnumber"),
