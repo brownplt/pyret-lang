@@ -1259,16 +1259,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         maker(name-spec)
       end
 
-      for each(k from provided-types.keys-list-now()):
-        provide-spec-loc = provided-types.get-value-now(k).{0}
-        cases(Option) datatypes.get-now(k):
-          | none => nothing
-          | some(dt) =>
-            cases(Option) provided-datatypes.get-now(k):
-              | none => provided-datatypes.set-now(k, {provide-spec-loc; none; dt.namet})
-              | some(pdt) => nothing
-            end
-        end
+      for each(k from datatypes.keys-list-now()):
+        dt = datatypes.get-value-now(k)
+        provided-datatypes.set-now(k, {dt.l; none; dt.namet})
       end
 
       final-val-provides = for map(k from provided-values.keys-list-now()):
