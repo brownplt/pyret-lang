@@ -8,7 +8,7 @@ build:
 web:
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
-	pyret --standalone-file worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
+	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	browserify src/js/trove/require-node-compile-dependencies.js -o $@
