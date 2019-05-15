@@ -27,9 +27,9 @@ end
 data CompiledCodePrinter:
   | ccp-dict(dict :: SD.StringDict) with:
     method to-j-expr(self, d):
-      J.j-parens(J.j-obj(for cl-map-sd(k from d):
+      J.j-obj(for cl-map-sd(k from d):
           J.j-field(k, d.get-value(k))
-        end))
+        end)
     end,
     method pyret-to-js-static(self) -> String:
       self.to-j-expr(self.dict.remove("theModule")).to-ugly-source()
@@ -106,8 +106,7 @@ end
 
 fun make-compiled-pyret(program-ast, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
 #  each(println, program-ast.tosource().pretty(80))
-# TODO(alex): Pass post-env to direct-codegen:compile-program
   {provides; 
-    C.ok(ccp-dict(D.compile-program(program-ast, env, post-env.datatypes, provides, options)))}
+    C.ok(ccp-dict(D.compile-program(program-ast, env, post-env, provides, options)))}
 end
 

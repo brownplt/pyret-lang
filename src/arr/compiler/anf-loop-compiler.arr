@@ -2032,19 +2032,24 @@ end
 fun import-key(i): AU.import-to-dep(i).key() end
 
 fun compile-type-variant(variant):
-  # TODO -- support with-members
   cases(T.TypeVariant) variant:
     | t-variant(name, members, with-members, l) =>
-      j-list(true, [clist: j-str(name),
-        j-list(false, CL.map_list(lam({mem-name; typ}):
+      compiled-members = j-list(false, CL.map_list(lam({mem-name; typ}):
           if T.is-t-ref(typ):
             j-list(true, [clist: j-str("ref"), j-str(mem-name), compile-provided-type(typ.typ)])
           else:
             j-list(true, [clist: j-str(mem-name), compile-provided-type(typ)])
           end
-        end, members))])
+        end, members))
+      compiled-with-members = j-obj(for cl-map-sd(mem-name from with-members):
+            compile-type-member(mem-name, with-members.get-value(mem-name))
+          end)
+      j-list(true, [clist: j-str(name), compiled-members, compiled-with-members])
     | t-singleton-variant(name, with-members, l) =>
-      j-list(true, [clist: j-str(name)])
+      compiled-with-members = j-obj(for cl-map-sd(mem-name from with-members):
+          compile-type-member(mem-name, with-members.get-value(mem-name))
+        end)
+      j-list(true, [clist: j-str(name), compiled-with-members])
   end
 end
 
@@ -2058,7 +2063,7 @@ fun compile-provided-data(typ :: T.DataType):
       j-list(false,
         [clist: j-str("data"), j-str(name),
           j-list(false, for CL.map_list(p from params):
-              j-str(tostring(p))
+              j-str(p.id.key())
             end),
           j-list(false, CL.map_list(compile-type-variant, variants)),
           j-obj(for cl-map-sd(mem-name from members):
@@ -2083,7 +2088,7 @@ fun compile-provided-type(typ):
         | dependency(dep) =>
           raise("Dependency-origin names in provided-types shouldn't be possible")
       end
-    | t-var(name, l, _) => j-list(true, [clist: j-str("tid"), j-str(name.toname())])
+    | t-var(name, l, _) => j-list(true, [clist: j-str("tid"), j-str(name.key())]) # NOTE(joe): changed to .key()
     | t-arrow(args, ret, l, _) =>
       j-list(true,
         [clist: j-str("arrow"),
@@ -2106,11 +2111,13 @@ fun compile-provided-type(typ):
       j-list(true,
         [clist: j-str("forall"),
           j-list(false, for CL.map_list(p from params):
-            j-str(tostring(p))
+            j-str(p.id.key())
           end), compile-provided-type(body)])
       # | t-ref(_, _) =>
       # | t-existential(_, _) =>
-      # | t-data-refinement(_, _, _) =>
+    | t-data-refinement(base-typ, variant-name, l, _) =>
+      j-list(true,
+        [clist: j-str("data%"), compile-provided-type(base-typ), j-str(variant-name)])
     | else => j-ternary(j-false, j-str(tostring(typ)), j-str("tany"))
   end
 end

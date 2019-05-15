@@ -1198,7 +1198,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                raise("Cannot alias data right now")
+                # dp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
+                # raise("Cannot alias data right now")
+
+                dp #NOTE(joe): the type alias does the work here, and datatypes are ONLY stored on the module in which they are defined
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
                 dp.set(exp.name, data-expr-to-datatype(exp))
@@ -1282,6 +1285,7 @@ fun find-mod(compile-env, uri) -> Option<String>:
   end
 end
 
+
 fun transform-dict-helper(canonicalizer):
   lam(d, uri, transformer):
     for SD.fold-keys(s from [SD.string-dict: ], v from d):
@@ -1316,21 +1320,7 @@ fun canonicalize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvi
     | t-name(origin, name, loc, inferred) =>
       cases(T.NameOrigin) origin:
       | local => T.t-name(T.module-uri(provides.from-uri), name, loc, inferred)
-      | module-uri(uri) =>
-        cases(Option<String>) find-mod(compile-env, uri):
-        | some(_) => T.t-name(T.module-uri(uri), name, loc, inferred)
-        | none =>
-          if string-index-of(uri, "builtin://") == 0:
-            T.t-name(T.module-uri(uri), name, loc, inferred)
-          else if uri == provides.from-uri:
-            T.t-name(T.module-uri(uri), name, loc, inferred)
-          else:
-          # TODO(joe): This should become an error once things are localized again
-
-            #T.t-name(T.module-uri(uri), name, loc)
-            raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
-          end
-        end
+      | module-uri(uri) => t
       | dependency(d) =>
         provides-for-d = compile-env.provides-by-dep-key(d)
         cases(Option<CS.Provides>) provides-for-d:
@@ -1360,18 +1350,7 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
         if uri == provides.from-uri:
           T.t-name(T.local, name, loc, inferred)
         else:
-          cases(Option<String>) find-mod(compile-env, uri):
-          | some(d) => T.t-name(T.dependency(d), name, loc, inferred)
-          | none =>
-            if string-index-of(uri, "builtin://") == 0:
-              T.t-name(T.module-uri(uri), name, loc, inferred)
-            else:
-              # TODO(joe): This should become an error once things are localized again
-              #T.t-name(T.module-uri(uri), name, loc)
-
-              raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
-            end
-          end
+          t
         end
       | dependency(d) =>
         provides-for-d = compile-env.my-modules.get(d)
@@ -1449,7 +1428,10 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                raise("Cannot alias data right now")
+                # dp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
+                # raise("Cannot alias data right now")
+
+                dp #NOTE(joe): the type alias does the work here, and datatypes are ONLY stored on the module in which they are defined
               | s-local-ref(l, name, _) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
                 dp.set(exp.name, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer))

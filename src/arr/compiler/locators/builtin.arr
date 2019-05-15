@@ -31,6 +31,7 @@ end
 
 var _defunct-builtin-js-dirs = [list: "src/js/runtime"]
 var builtin-arr-dirs = [list:]
+var typable-builtins = [list: ]
 var allow-builtin-overrides = false
 
 fun set-builtin-js-dirs(paths :: List<String>):
@@ -43,6 +44,10 @@ end
 
 fun set-allow-builtin-overrides(flag :: Boolean):
   allow-builtin-overrides := flag
+end
+
+fun set-typable-builtins(uris :: List<String>):
+  typable-builtins := uris
 end
 
 fun make-builtin-js-locator(basedir, builtin-name):
@@ -105,7 +110,8 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       F.file-times(path).mtime
     end,
     method get-options(self, options):
-      options.{ check-mode: false, type-check: false }
+      type-check = typable-builtins.member(self.uri())
+      options.{ check-mode: false, type-check: type-check }
     end,
     method get-module(self) block:
       when ast == nothing block:

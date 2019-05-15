@@ -336,15 +336,21 @@
       function expandVariant(v, shorthands) {
         if(!iA(v)) {
           throw new Error("Serialized variant types should be arrays, got: " + String(v));
-        }
-        else {
+        } else {
           if(v.length === 1) {
-            return singletonVariant(v[0]);
-          }
-          else if(v.length === 2) {
-            return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }));
-          }
-          else {
+            return singletonVariant(v[0], {});
+          } else if(v.length === 2) {
+            if(Array.isArray(v[1])) {
+              return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }), {});
+            }
+            else {
+              return singletonVariant(v[0], expandRecord(v[1], shorthands));
+            }
+          } else if(v.length === 3) {
+            return variant(v[0], 
+              v[1].map(function(m) { return expandMember(m, shorthands); }),
+              expandRecord(v[2], shorthands));
+          } else {
             throw new Error("Bad serialized variant: " + String(v));
           }
         }

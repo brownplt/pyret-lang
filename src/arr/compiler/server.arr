@@ -37,7 +37,8 @@ fun compile(options):
       log: options.get("log").or-else(compile-opts.log),
       log-error: options.get("log-error").or-else(compile-opts.log-error),
       deps-file: options.get("deps-file").or-else(compile-opts.deps-file),
-      user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations)
+      user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations),
+      builtin-js-dirs: compile-opts.builtin-js-dirs.append(options.get-value("builtin-js-dirs"))
     })
 end
 
@@ -47,12 +48,14 @@ fun serve(port, pyret-dir):
     opts = J.read-json(msg).native()
     # print(torepr(opts))
     # print("\n")
-    when opts.has-key("builtin-js-dir"):
+    builtin-js-dirs = if opts.has-key("builtin-js-dir"):
       if is-List(opts.get-value("builtin-js-dir")):
-        B.set-builtin-js-dirs(opts.get-value("builtin-js-dir"))
+        opts.get-value("builtin-js-dir")
       else:
-        B.set-builtin-js-dirs([list: opts.get-value("builtin-js-dir")])
+        [list: opts.get-value("builtin-js-dir")]
       end
+    else:
+      empty
     end
     when opts.has-key("builtin-arr-dir"):
       if is-List(opts.get-value("builtin-arr-dir")):
@@ -91,8 +94,11 @@ fun serve(port, pyret-dir):
       end
     with-require-config = with-compiled-read-only-dirs.set("require-config",
       opts.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
+
+    with-builtin-js-dirs = with-require-config.set("builtin-js-dirs", builtin-js-dirs)
+
     result = run-task(lam():
-      compile(with-require-config)
+      compile(with-builtin-js-dirs)
     end)
     cases(E.Either) result block:
       | right(exn) =>

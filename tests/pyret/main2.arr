@@ -45,5 +45,8 @@ import file("./tests/test-module-syntax.arr") as _
 import file("./tests/test-import-variable.arr") as _
 import file("./tests/modules/include-shadow-same.arr") as _
 import file("./tests/modules/import-re-provided.arr") as _
+import file("./tests/modules/test-import-re-provided-data.arr") as _
+import file("./tests/modules/test-import-re-re-provide-data.arr") as _
 import file("./tests/modules/test-aliased-names-same-type.arr") as _
 import file("./tests/modules/test-double-rename.arr") as _
+import file("./tests/modules/test-provide-data-with-provide-star.arr") as _

@@ -74,6 +74,14 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
+  function dataRefinement(basetype, variant) {
+    return {
+      tag: "data-refinement",
+      basetype: basetype,
+      variant: variant
+    };
+  }
+
   function dataType(name, params, variants, methods) {
     return {
       tag: "data",
@@ -84,18 +92,20 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
-  function variant(name, vmembers) {
+  function variant(name, vmembers, withmembers) {
     return {
       tag: "variant",
       name: name,
-      vmembers: vmembers
+      vmembers: vmembers,
+      withmembers: withmembers
     };
   }
 
-  function singletonVariant(name) {
+  function singletonVariant(name, withmembers) {
     return {
       tag: "singleton-variant",
-      name: name
+      name: name,
+      withmembers: withmembers
     }
   }
 
@@ -189,15 +199,23 @@ define("pyret-base/js/type-util", [], function() {
           methods: L(methods)
         });
       case "variant":
+        var methods = Object.keys(typ.withmembers).map(function(k) {
+          return O({ name: k, value: tp(typ.withmembers[k]) });
+        });
         return O({
           tag: "variant",
           name: typ.name,
           vmembers: L(typ.vmembers.map(tp)),
+          withmembers: L(methods)
         });
       case "singleton-variant":
+        var methods = Object.keys(typ.withmembers).map(function(k) {
+          return O({ name: k, value: tp(typ.withmembers[k]) });
+        });
         return O({
           tag: "singleton-variant",
-          name: typ.name
+          name: typ.name,
+          withmembers: L(methods)
         });
       case "variant-member":
         return O({
@@ -210,6 +228,12 @@ define("pyret-base/js/type-util", [], function() {
         return O({
           tag: "record",
           fields: L(Object.keys(typ.fields).map(function(f) { return O({ tag: "member", name: f, value: tp(typ.fields[f]) }); })),
+        });
+      case "data-refinement":
+        return O({
+          tag: "data-refinement",
+          basetype: tp(typ.basetype),
+          variant: typ.variant
         });
       case "name":
         return O({
@@ -335,10 +359,20 @@ define("pyret-base/js/type-util", [], function() {
       }
       else {
         if(v.length === 1) {
-          return singletonVariant(v[0]);
+          return singletonVariant(v[0], {});
         }
         else if(v.length === 2) {
-          return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }));
+          if(Array.isArray(v[1])) {
+            return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }), {});
+          }
+          else {
+            return singletonVariant(v[0], expandRecord(v[1], shorthands));
+          }
+        }
+        else if(v.length === 3) {
+          return variant(v[0],
+            v[1].map(function(m) { return expandMember(m, shorthands); }),
+            expandRecord(v[2], shorthands));
         }
         else {
           throw new Error("Bad serialized variant: " + String(v));
@@ -419,6 +453,13 @@ define("pyret-base/js/type-util", [], function() {
           return {
             tag: "record",
             fields: expandRecord(typ[1], shorthands)
+          };
+        }
+        else if(head === "data%") {
+          return {
+            tag: "data-refinement",
+            basetype: expandType(typ[1], shorthands),
+            variant: typ[2]
           };
         }
         else if(head === "tyapp") {
