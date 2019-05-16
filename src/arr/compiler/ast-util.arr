@@ -1144,7 +1144,14 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             cases(A.NameSpec) v.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
                 { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
-                vp.set(as-name.toname(), CS.v-alias(val-export.origin, origin-name))
+                origin = val-export.origin
+                corrected-origin = CS.bind-origin(
+                  as-name.l,
+                  origin.definition-bind-site,
+                  origin.new-definition,
+                  origin.uri-of-definition,
+                  origin.original-name)
+                vp.set(as-name.toname(), CS.v-alias(corrected-origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 vb = resolved.env.bindings.get-value-now(name.key())
                 provided-value = cases(CS.ValueBinder) vb.binder:
@@ -1153,6 +1160,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 end
                 vp.set(as-name.toname(), provided-value)
             end
+          end
+          spy "get-named-provides":
+            vp-specs,
+            val-provides
           end
 
           tp-specs = provide-specs.filter(A.is-s-provide-type)

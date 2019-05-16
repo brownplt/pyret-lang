@@ -572,7 +572,7 @@ fun get-flat-provides(provides, env, post-env, { flatness-env; _ }, ast) block:
             cases(Option) maybe-flatness:
               | none => ve
               | some(flatness-result) =>
-                C.v-fun(existing-val.origin, existing-val.t, k, flatness-result)
+                C.v-fun(ve.origin, existing-val.t, k, flatness-result)
             end
         end
         s.set(k, new-val)

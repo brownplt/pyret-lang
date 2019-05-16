@@ -53,10 +53,12 @@ fun get-defined-ids(p, imports, body, extras):
 end
 
 fun df(l, name):
+  shadow l = if l.contains(name.l): name.l else: l end
   A.s-data-field(l, name.toname(), A.s-id(l, name))
 end
 
 fun af(l,  name):
+  shadow l = if l.contains(name.l): name.l else: l end
   A.a-field(l, name.toname(), A.a-name(l, name))
 end
 
@@ -67,6 +69,7 @@ fun make-provide-for-repl(p :: A.Program, extras):
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       repl-mod-provide = for map(n from defined-ids.import-ids):
+        shadow l = if l.contains(n.l): n.l else: l end
         A.s-provide-module(l, A.s-module-ref(l, [list: n], none))
       end
       A.s-program(l,
@@ -88,6 +91,10 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals, extras):
     | s-program(l, _, _, _, imports, body) =>
       defined-ids = get-defined-ids(p, imports, body, extras)
       repl-provide = for map(n from defined-ids.ids): df(l, n) end
+      spy "make-provide-for-repl-main":
+        defined-ids,
+        repl-provide
+      end
       repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
       env-provide = for SD.fold-keys(flds from repl-provide, name from globals.values):
         link(df(l, A.s-name(l, name)), flds)
@@ -96,6 +103,7 @@ fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals, extras):
         link(af(l, A.s-name(l, name)), flds)
       end
       repl-mod-provide = for map(i from defined-ids.import-ids):
+        shadow l = if l.contains(i.l): i.l else: l end
         A.s-provide-module(l, A.s-module-ref(l, [list: i], none))
       end
       A.s-program(l,
@@ -181,6 +189,16 @@ fun make-repl<a>(
 
   end
   fun restart-interactions(defs-locator :: CL.Locator, options :: CS.CompileOptions) block:
+    spy "restart-interaction#beginning":
+      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
+        prov = current-modules.get-value-now(k).provides
+        if prov.values.has-key("some"):
+          d.set(k, prov)
+        else:
+          d
+        end
+      end
+    end
     current-interaction := 0
     current-compile-options := options
     current-realm := realm
@@ -203,10 +221,30 @@ fun make-repl<a>(
       | left(err) =>
         nothing
     end
+    spy "restart-interaction#end":
+      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
+        prov = current-modules.get-value-now(k).provides
+        if prov.values.has-key("some"):
+          d.set(k, prov)
+        else:
+          d
+        end
+      end
+    end
     result
   end
 
   fun run-interaction(repl-locator :: CL.Locator) block:
+    spy "run-interaction#start":
+      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
+        prov = current-modules.get-value-now(k).provides
+        if prov.values.has-key("some"):
+          d.set(k, prov)
+        else:
+          d
+        end
+      end
+    end
     worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules) block:
@@ -221,6 +259,16 @@ fun make-repl<a>(
         end
       | left(err) =>
         nothing
+    end
+    spy "run-interaction#end":
+      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
+        prov = current-modules.get-value-now(k).provides
+        if prov.values.has-key("some"):
+          d.set(k, prov)
+        else:
+          d
+        end
+      end
     end
     result
   end

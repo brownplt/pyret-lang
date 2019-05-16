@@ -81,9 +81,9 @@ end
 fun bo-global(opt-origin, uri, original-name):
   cases(Option) opt-origin block:
     | none =>
-      bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, original-name)
+      bind-origin(A.dummy-loc, SL.builtin(uri), false, uri, original-name)
     | some(origin) =>
-      bind-origin(SL.builtin(uri), origin.definition-bind-site, false, uri, original-name)
+      bind-origin(origin.local-bind-site, origin.definition-bind-site, false, uri, original-name)
   end
 end
 

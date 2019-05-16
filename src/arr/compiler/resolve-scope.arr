@@ -695,12 +695,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             if (local-loc == p.l) or (local-loc == A.dummy-loc) block:
               none
             else:
-              spy "import-loc-opt":
-                local-loc
-              end
               some(local-loc)
             end
-          name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt, name-errors)
+          spy "import-loc-opt":
+            name,
+            use-loc: l,
+            orig-loc: old-loc,
+            local-loc
+          end
+          name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt), name-errors)
         end
         # when env.has-key(s):
         #   spy "make-atom-for":
@@ -747,9 +750,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
-    for SD.each-key(name from initial.globals.values):
+    for SD.each-key(name from initial.globals.values) block:
       mod-info = initial.provides-by-value-name-value(name)
       val-info = mod-info.values.get(name)
+      when name == "some":
+        spy "scope-env-from-env":
+          mod-info,
+          val-info
+        end
+      end
       cases(Option) val-info block:
         | none => raise("The value is a global that doesn't exist in any module: " + name)
         | some(shadow val-info) =>
@@ -877,7 +886,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | else => C.vb-let
         end
         atom-env = make-import-atom-for(as-name, value-export.origin.uri-of-definition, env, bindings,
-          C.value-bind(C.bo-module(vname.l, value-export.origin.definition-bind-site, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
+          C.value-bind(C.bo-module(as-name.l, value-export.origin.definition-bind-site, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
         atom-env.env
     end
   end
