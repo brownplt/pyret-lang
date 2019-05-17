@@ -33,6 +33,7 @@ docs/written/index/
 docs/*.arr.js
 
 build/docs
+build/worker
 build/phaseA
 build/phaseB
 build/phaseC
