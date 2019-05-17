@@ -16,6 +16,19 @@ web:
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
+build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js 
+	mkdir -p build/phaseA 
+	mkdir -p build/worker 
+	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser" 
+ 
+src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js 
+	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js 
+ 
+build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js 
+	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js 
+ 
+parser: src/arr/compiler/pyret-parser.js/pyret-grammar.js build/worker/pyret-grammar.js
+
 build/worker/pyret-api.js: src/webworker/pyret-api.js
 	browserify src/webworker/pyret-api.js -o $@
 
@@ -24,14 +37,6 @@ build/worker/browserfs.min.js: src/webworker/browserfs.min.js
 
 build/worker/page.html: src/webworker/page.html
 	cp $< $@
-
-parser:
-	mkdir -p build/phaseA
-	mkdir -p build/worker
-	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser"
-	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js
-	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js
-
 
 clean:
 	rm -r -f build/phaseA build/worker
