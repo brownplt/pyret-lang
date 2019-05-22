@@ -6,6 +6,14 @@ let compile = document.getElementById("compile");
 
 window["projectsDir"] = "./projects";
 
+function appendScript(src) {
+  var headElement = document.getElementsByTagName("HEAD")[0];
+  var scriptElement = document.createElement('script');
+  scriptElement.type = 'text/javascript';
+  scriptElement.src = src;
+  headElement.appendChild(scriptElement);
+}
+
 // How to use BrowserFS with Web Workers: https://github.com/jvilk/BrowserFS/issues/210
 BrowserFS.install(window);
 BrowserFS.configure({
@@ -18,12 +26,9 @@ BrowserFS.configure({
     fs.mkdirSync(window["projectsDir"]);
   }
 
-  var headElement = document.getElementsByTagName("HEAD")[0];
-  var scriptElement = document.createElement('script');
-  scriptElement.type = 'text/javascript';
-  scriptElement.src = "pyret-api.js";
-  headElement.appendChild(scriptElement);
-  
+  appendScript("pyret-api.js");
+  appendScript("runner.js");
+
   if (e) {
     throw e;
   }

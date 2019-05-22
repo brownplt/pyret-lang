@@ -13,6 +13,7 @@ web:
 	make build/worker/page.html
 	make build/worker/browserfs.min.js
 	make build/worker/setup.js
+	make build/worker/runner.js
 	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js
@@ -37,14 +38,20 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
  
 parser: src/arr/compiler/pyret-parser.js build/worker/pyret-grammar.js
 
-build/worker/pyret-api.js: build/worker/pyret-api.ts.js build/worker/runtime-loader.js
-	browserify build/worker/pyret-api.ts.js -o $@
-
 build/worker/runtime-loader.js: src/webworker/runtime-loader.ts
 	tsc $< --outFile $@
 
+build/worker/pyret-api.js: build/worker/pyret-api.ts.js build/worker/runtime-loader.js
+	browserify build/worker/pyret-api.ts.js -o $@
+
 build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts
 	tsc src/webworker/pyret-api.ts --outFile $@
+
+build/worker/runner.js: build/worker/runner.ts.js
+	browserify build/worker/runner.ts.js -o $@
+
+build/worker/runner.ts.js: src/webworker/runner.ts
+	tsc src/webworker/runner.ts --outFile $@
 
 build/worker/setup.js: build/worker/setup.ts.js
 	browserify build/worker/setup.ts.js -o $@
