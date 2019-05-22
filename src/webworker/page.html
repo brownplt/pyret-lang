@@ -8,7 +8,9 @@
 <button type="button" id="compile">Compile</button>
 
 <script type="text/javascript" src="browserfs.min.js"></script>
+<script type="text/javascript" src="pyret-api.js"></script>
 <script>
+
 var myWorker = new Worker('pyret.jarr');
 let input = document.getElementById("program");
 let compile = document.getElementById("compile");
