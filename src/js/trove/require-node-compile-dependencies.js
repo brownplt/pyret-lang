@@ -39,16 +39,6 @@ BrowserFS.configure({
     fs = BrowserFS.BFSRequire("fs");
     Object.assign(self.fsPlaceholder, fs);
     Object.assign(self.fsPlaceholder, fs.__proto__);
-    fs.exists("/foo", function(err, content) { 
-        console.log("PRE exists:", err, ",", content);
-        fs.mkdir("/foo", function(err, content) { 
-          console.log("create:", err, ",", content);
-          fs.exists("/foo", function(err, content) { 
-            console.log("POST exists:", err, ",", content);
-          })
-        });
-
-    });
   });
 
 define("fs", [], function () { return fsPlaceholder; });
