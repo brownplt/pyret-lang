@@ -14,8 +14,11 @@ web:
 	make build/worker/runtime-files.json
 	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
-build/worker/runtime-files.json: 
-	node src/webworker/runtime-bundler.js src/runtime/ src/runtime-arr/ build/worker/runtime-files.json
+build/worker/runtime-files.json: build/worker/runtime-bundler.js
+	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/ build/worker/runtime-files.json
+
+build/worker/runtime-bundler.js: src/webworker/runtime-bundler.ts
+	tsc src/webworker/runtime-bundler.ts --outFile $@
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	browserify src/js/trove/require-node-compile-dependencies.js -o $@

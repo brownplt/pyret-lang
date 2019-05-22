@@ -10,7 +10,7 @@ function walkSync(dir, base_key) {
     if (fs.statSync(path.join(dir, file)).isDirectory()) {
       let recPath = path.join(dir, file);
       let recKey = path.join(base_key, file);
-      let recResult = walkInternal(recPath, recKey);
+      let recResult = walkSync(recPath, recKey);
       filelist = filelist.concat(recResult);
     } else {
       let key = path.join(base_key, file);
