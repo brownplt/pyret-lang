@@ -36,11 +36,14 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
  
 parser: src/arr/compiler/pyret-parser.js build/worker/pyret-grammar.js
 
-build/worker/pyret-api.js: build/worker/pyret-api.ts.js
+build/worker/pyret-api.js: build/worker/pyret-api.ts.js build/worker/runtime-loader.js
 	browserify build/worker/pyret-api.ts.js -o $@
 
-build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts $(wildcard src/webworker/runtime/*.ts)
-	tsc --module amd src/webworker/pyret-api.ts --outFile $@
+build/worker/runtime-loader.js: src/webworker/runtime-loader.ts
+	tsc $< --outFile $@
+
+build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts
+	tsc src/webworker/pyret-api.ts --outFile $@
 
 build/worker/browserfs.min.js: src/webworker/browserfs.min.js
 	cp $< $@

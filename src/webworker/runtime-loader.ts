@@ -4,4 +4,4 @@ function load(): void {
   console.log(runtimefiles);
 }
 
-export {load}  
+module.exports = load;
