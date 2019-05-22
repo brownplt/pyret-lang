@@ -1,14 +1,14 @@
 var runtimefiles = require("./runtime-files.json");
 var BrowserFS = require("browserfs");
 
-BrowserFS.install(window);
+/*
 BrowserFS.configure({
   fs: "LocalStorage"
 }, function(e) {
   if (e) {
     throw e;
   }
-});
+});*/
 
 var fs = BrowserFS.BFSRequire("fs");
 function load(): void {

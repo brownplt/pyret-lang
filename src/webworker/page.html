@@ -8,7 +8,6 @@
 <button type="button" id="compile">Compile</button>
 
 <script type="text/javascript" src="browserfs.min.js"></script>
-<script type="text/javascript" src="pyret-api.js"></script>
 <script>
 
 var myWorker = new Worker('pyret.jarr');
@@ -21,6 +20,13 @@ BrowserFS.configure({
   fs: "LocalStorage"
 }, function(e) {
   BrowserFS.FileSystem.WorkerFS.attachRemoteListener(myWorker);
+
+  var headElement = document.getElementsByTagName("HEAD")[0];
+  var scriptElement = document.createElement('script');
+  scriptElement.type = 'text/javascript';
+  scriptElement.src = "pyret-api.js";
+  headElement.appendChild(scriptElement);
+  
   if (e) {
     throw e;
   }
