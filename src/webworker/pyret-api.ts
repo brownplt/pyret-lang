@@ -5,9 +5,12 @@ const projectPrefix = "_project";
 function getProjects() {
   var bfs = window["BrowserFS"];
   let fs = bfs.BFSRequire("fs");
-  let files = fs.readdirSync("./");
   let projectList = [];
 
+  fs.readdir(window["projectsDir"], function(err, files) {
+    console.log("FOO", files);
+    console.log("BAR", err);
+  });
   /*
   files.forEach(function(file) {
     let statResult = fs.statSync(file);
