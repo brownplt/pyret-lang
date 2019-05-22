@@ -1,4 +1,4 @@
-import { load } from "./runtime-loader"
+import { load } from "./runtime/runtime-loader"
 
 function runPath(path) {
   
