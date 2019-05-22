@@ -1,18 +1,10 @@
-var runtimefiles = require("./runtime-files.json");
-var BrowserFS = require("browserfs");
 
-/*
-BrowserFS.configure({
-  fs: "LocalStorage"
-}, function(e) {
-  if (e) {
-    throw e;
-  }
-});*/
 
-var fs = BrowserFS.BFSRequire("fs");
 function load(): void {
-  let files = runtimefiles;
+  let bfs = window["BrowserFS"];
+  let fs = bfs.BFSRequire("fs");
+
+  let files = require("./runtime-files.json");
 
   let prewritten = "./prewritten";
   let uncompiled = "./uncompiled";

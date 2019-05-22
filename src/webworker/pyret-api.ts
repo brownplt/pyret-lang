@@ -1,23 +1,14 @@
 var loader = require("./runtime-loader");
-var BrowserFS = require("browserfs");
-
-BrowserFS.configure({
-  fs: "LocalStorage"
-}, function(e) {
-  if (e) {
-    throw e;
-  }
-});
-
-
 
 const projectPrefix = "_project";
 
 function getProjects() {
-  let fs = BrowserFS.BFSRequire("fs");
+  var bfs = window["BrowserFS"];
+  let fs = bfs.BFSRequire("fs");
   let files = fs.readdirSync("./");
   let projectList = [];
 
+  /*
   files.forEach(function(file) {
     let statResult = fs.statSync(file);
     if (statResult.isDirectory()) {
@@ -26,6 +17,7 @@ function getProjects() {
       }
     }
   });
+   */
 }
 
 function runPath(path) {

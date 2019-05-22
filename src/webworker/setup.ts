@@ -39,4 +39,4 @@ myWorker.onmessage = function(e) {
   console.log("Message from worker: ", e);
 };
 
-window.BrowserFS = BrowserFS;
+window["BrowserFS"] = BrowserFS;
