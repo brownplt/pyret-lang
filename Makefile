@@ -12,6 +12,7 @@ web:
 	make build/worker/pyret-api.js
 	make build/worker/page.html
 	make build/worker/browserfs.min.js
+	make build/worker/setup.js
 	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js
@@ -44,6 +45,12 @@ build/worker/runtime-loader.js: src/webworker/runtime-loader.ts
 
 build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts
 	tsc src/webworker/pyret-api.ts --outFile $@
+
+build/worker/setup.js: build/worker/setup.ts.js
+	browserify build/worker/setup.ts.js -o $@
+
+build/worker/setup.ts.js: src/webworker/setup.ts
+	tsc $< --outFile $@
 
 build/worker/browserfs.min.js: src/webworker/browserfs.min.js
 	cp $< $@
