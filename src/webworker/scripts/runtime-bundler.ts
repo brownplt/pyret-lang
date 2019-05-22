@@ -28,8 +28,8 @@ var prewrittenBuiltinsDir = process.argv[2];
 var uncompiledBuiltinsDir = process.argv[3];
 var outputFile = process.argv[4];
 
-var prewrittenObject = walkSync(prewrittenBuiltinsDir, ".prewritten");
-var uncompiledObject = walkSync(uncompiledBuiltinsDir, ".uncompiled");
+var prewrittenObject = walkSync(prewrittenBuiltinsDir, "./prewritten");
+var uncompiledObject = walkSync(uncompiledBuiltinsDir, "./uncompiled");
 
 var filelist = prewrittenObject.concat(uncompiledObject);
 
