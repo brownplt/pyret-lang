@@ -31,7 +31,7 @@ src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js
 build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js 
 	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js 
  
-parser: src/arr/compiler/pyret-parser.js/pyret-grammar.js build/worker/pyret-grammar.js
+parser: src/arr/compiler/pyret-parser.js build/worker/pyret-grammar.js
 
 build/worker/pyret-api.js: build/worker/pyret-api.ts.js
 	browserify build/worker/pyret-api.ts.js -o $@
