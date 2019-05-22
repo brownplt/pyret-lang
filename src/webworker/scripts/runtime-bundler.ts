@@ -7,7 +7,7 @@ function walkSync(dir, base_key) {
 
   files.forEach(function(file) {
     let statResult = fs.statSync(path.join(dir, file));
-    if (fs.statSync(path.join(dir, file)).isDirectory()) {
+    if (statResult.isDirectory()) {
       let recPath = path.join(dir, file);
       let recKey = path.join(base_key, file);
       let recResult = walkSync(recPath, recKey);
@@ -16,7 +16,7 @@ function walkSync(dir, base_key) {
       let key = path.join(base_key, file);
       let filePath = path.join(dir, file);
       let content = fs.readFileSync(filePath).toString();
-      filelist.push({ key: key, content: content});
+      filelist.push({ key: key, content: content, timestamp: statResult.mtime.getTime()});
     }
   });
 
@@ -31,7 +31,8 @@ var outputFile = process.argv[4];
 var prewrittenObject = walkSync(prewrittenBuiltinsDir, ".prewritten");
 var uncompiledObject = walkSync(uncompiledBuiltinsDir, ".uncompiled");
 
-var fileObject = prewrittenObject.concat(uncompiledObject);
-var fileString = JSON.stringify(fileObject);
+var filelist = prewrittenObject.concat(uncompiledObject);
 
-fs.writeFileSync(outputFile, fileString);
+var output = JSON.stringify(filelist);
+
+fs.writeFileSync(outputFile, output);
