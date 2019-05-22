@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web
+.PHONY: all clean build parser web 
 
 all: build parser
 
@@ -8,17 +8,17 @@ build:
 web: 
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
+	make build/worker/runtime-files.json
 	make build/worker/pyret-api.js
 	make build/worker/page.html
 	make build/worker/browserfs.min.js
-	make build/worker/runtime-files.json
 	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js
 	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/ build/worker/runtime-files.json
 
-build/worker/runtime-bundler.js: src/webworker/runtime-bundler.ts
-	tsc src/webworker/runtime-bundler.ts --outFile $@
+build/worker/runtime-bundler.js: src/webworker/scripts/runtime-bundler.ts
+	tsc src/webworker/scripts/runtime-bundler.ts --outFile $@
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	browserify src/js/trove/require-node-compile-dependencies.js -o $@
@@ -39,8 +39,9 @@ parser: src/arr/compiler/pyret-parser.js build/worker/pyret-grammar.js
 build/worker/pyret-api.js: build/worker/pyret-api.ts.js
 	browserify build/worker/pyret-api.ts.js -o $@
 
-build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts
-	tsc src/webworker/pyret-api.ts --outFile $@
+
+build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts $(wildcard src/webworker/*.ts)
+	tsc --module amd src/webworker/pyret-api.ts --outFile $@
 
 build/worker/browserfs.min.js: src/webworker/browserfs.min.js
 	cp $< $@
