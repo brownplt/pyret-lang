@@ -428,8 +428,7 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         ED.paragraph([list: ED.highlight(ED.text("Well-formedness:"), [list: self.loc], 0), ED.text(" ")]
-            + self.msg),
-        ED.cmcode(self.loc)]
+            + self.msg)]
     end
   | wf-empty-block(loc :: A.Loc) with:
     method render-fancy-reason(self):
