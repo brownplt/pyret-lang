@@ -1,1 +1,3 @@
-1<m> + 1<s>
+var result = 1%<m> + 1%<s>
+
+print(result)

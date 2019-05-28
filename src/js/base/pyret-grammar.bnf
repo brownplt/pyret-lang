@@ -138,7 +138,7 @@ unit-expr: (PARENNOSPACE|PARENAFTERBRACE) unit-expr | RPAREN
   | id-expr
 
 
-num-expr: NUMBER
+num-expr: NUMBER [PERCENT dim-expr]
 frac-expr: RATIONAL
 rfrac-expr: ROUGHRATIONAL
 bool-expr: TRUE | FALSE
