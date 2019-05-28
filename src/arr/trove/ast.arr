@@ -928,13 +928,13 @@ data Expr:
   | s-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "s-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | s-num(l :: Loc, n :: Number) with:
+  | s-num(l :: Loc, n :: Number, u :: Option<Unit>) with:
     method label(self): "s-num" end,
     method tosource(self): PP.number(self.n) end
-  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
+  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
     method label(self): "s-frac" end,
     method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
-  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
+  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
     method label(self): "s-rfrac" end,
     method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
   | s-bool(l :: Loc, b :: Boolean) with:
@@ -1624,6 +1624,16 @@ sharing:
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
+
+data Unit:
+  | u-one(l :: Loc)
+  | u-base(l :: Loc, id :: Name)
+  | u-mul(l :: Loc, lhs :: Unit, rhs :: Unit)
+  | u-div(l :: Loc, lhs :: Unit, rhs :: Unit)
+  | u-pow(l :: Loc, u :: Unit, n :: NumInteger)
+  | u-paren(l :: Loc, u :: Unit)
+end
+
 
 data Ann:
   | a-blank with:
