@@ -279,19 +279,22 @@ fun ensure-unique-variant-ids(variants :: List<A.Variant>, name :: String, data-
   end
 end
 
-fun unit-opname(u :: A.Unit):
+fun unit-is-op(u :: A.Unit):
+  # NOTE(benmusch): Should we include powers here?
+  A.is-u-mul(u) or A.is-u-div(u) or A.is-u-pow(u)
+end
+fun unit-opname(u :: A.Unit%(unit-is-op)):
   cases(A.Unit) u:
-    | u-mul(l, _, _) => "*"
-    | u-div(l, _, _) => "/"
-    | u-pow(l, _, _) => "^"
-    | else           => raise("unit-opname called on non-operator")
+    | u-mul(_, _, _, _) => "*"
+    | u-div(_, _, _, _) => "/"
+    | u-pow(_, _, _, _) => "^"
   end
 end
 fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
   cases(Option) parent-maybe block:
     | some(p) =>
-      if u.is-operation() and p.is-operation() and not(u.label() == p.label()):
-        add-error(C.mixed-binops(p.l, unit-opname(p), u.l, unit-opname(u), u.l))
+      if unit-is-op(u) and unit-is-op(p) and not(u.label() == p.label()):
+        add-error(C.mixed-binops(p.l, unit-opname(u), u.op-l, unit-opname(p), p.op-l))
       else:
         nothing
       end
@@ -299,14 +302,14 @@ fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
   end
 
   cases(A.Unit) u block:
-    | u-mul(_, lhs, rhs) =>
+    | u-mul(_, _, lhs, rhs) =>
       wf-unit(lhs, some(u))
       wf-unit(rhs, some(u))
-    | u-div(_, lhs, rhs) =>
+    | u-div(_, _, lhs, rhs) =>
       wf-unit(lhs, some(u))
       wf-unit(rhs, some(u))
     | u-paren(_, paren-u) => wf-unit(paren-u, some(u))
-    | u-pow(l, pow-u, n) =>
+    | u-pow(l, _, pow-u, n) =>
       if (n == 0) or not(num-is-integer(n)):
         add-error(C.invalid-unit-power(l, n))
       else:
@@ -344,6 +347,7 @@ fun reachable-ops(self, l, op-l, op, ast):
         reachable-ops(self, l, op-l, op, right2)
       else:
         add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
+        nothing
       end
       true
     | else => ast.visit(self)
@@ -1374,6 +1378,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method a-field(_, l, name, ann):
     well-formed-visitor.a-field(l, name, ann)
+  end,
+  method s-num(self, l, n, unit-maybe):
+    well-formed-visitor.s-num(l, n, unit-maybe)
   end
 }
 

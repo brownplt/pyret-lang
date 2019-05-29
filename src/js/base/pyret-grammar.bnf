@@ -130,12 +130,12 @@ id-expr: NAME
 
 prim-expr: num-expr | frac-expr | rfrac-expr | bool-expr | string-expr
 
-dim-expr: (LANGLE|LT) unit-expr (RANGLE|GT) | (LANGLE|LT) NUMBER (RANGLE|GT)
-unit-expr: (PARENNOSPACE|PARENSPACE) unit-expr RPAREN
+dim-expr: (LANGLE|LT) unit-expr (RANGLE|GT)
+# TODO(benmusch): Consider adding | (LANGLE|LT) NUMBER (RANGLE|GT)
+unit-lhs: (PARENNOSPACE|PARENSPACE) unit-expr RPAREN
   | unit-expr CARET NUMBER
-  | unit-expr STAR unit-expr
-  | unit-expr SLASH unit-expr
   | NAME
+unit-expr: unit-lhs | unit-lhs STAR unit-expr | unit-lhs SLASH unit-expr
 
 
 num-expr: NUMBER [PERCENT dim-expr]

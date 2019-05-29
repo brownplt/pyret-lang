@@ -1637,36 +1637,29 @@ end
 data Unit:
   | u-one(l :: Loc) with:
     method label(self): "u-one" end,
-    method is-operation(self): false end,
     method tosource(self): str-one end
   | u-base(l :: Loc, id :: Name) with:
     method label(self): "u-base" end,
-    method is-operation(self): false end,
     method tosource(self): self.id.tosource() end
-  | u-mul(l :: Loc, lhs :: Unit, rhs :: Unit) with:
+  | u-mul(l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit) with:
     method label(self): "u-mul" end,
-    method is-operation(self): true end,
     method tosource(self):
       PP.separate(str-space, [list: self.lhs.tosource(), str-times, self.rhs.tosource()])
     end
-  | u-div(l :: Loc, lhs :: Unit, rhs :: Unit) with:
+  | u-div(l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit) with:
     method label(self): "u-div" end,
-    method is-operation(self): true end,
     method tosource(self):
       PP.separate(str-space, [list: self.lhs.tosource(), str-divide, self.rhs.tosource()])
     end
-  | u-pow(l :: Loc, u :: Unit, n :: Number) with:
-    method label(self): "u-div" end,
+  | u-pow(l :: Loc, op-l :: Loc, u :: Unit, n :: Number) with:
+    method label(self): "u-pow" end,
     method is-operation(self): true end,
     method tosource(self):
       PP.separate(str-space, [list: self.u.tosource(), str-caret, PP.number(self.n)])
     end
   | u-paren(l :: Loc, u :: Unit) with:
     method label(self): "u-paren" end,
-    method is-operation(sel): false end,
     method tosource(self): PP.paren(self.u.tosource()) end
-sharing:
-  method loc(self): self.l end
 end
 
 

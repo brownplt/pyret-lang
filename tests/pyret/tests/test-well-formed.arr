@@ -263,6 +263,15 @@ check "underscores":
   run-str("{a: 1}._") is%(output) compile-error(CS.is-underscore-as)
 end
 
+check "unit annotations":
+  run-str("2%<m * n / o>") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("2%<m ^ 1 / o>") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("2%<m / n * o>") is%(output) compile-error(CS.is-mixed-binops)
+
+  run-str("2%<m ^ 0>") is%(output) compile-error(CS.is-invalid-unit-power)
+  run-str("2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
+end
+
 #|
       it("should notice empty blocks", function(done) {
         P.checkCompileError("lam(): end", function(e) {

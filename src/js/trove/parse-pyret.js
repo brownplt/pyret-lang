@@ -973,27 +973,32 @@
           // TODO: Handle numbers here somehow
           return tr(node.kids[1])
         },
-        'unit-expr': function(node) {
+        'unit-lhs': function(node) {
           if (node.kids.length === 1) {
-            // (unit-expr ident)
             return RUNTIME.getField(ast, 'u-base')
               .app(pos(node.pos), name(node.kids[0]))
           } else if (node.kids[1].name === 'CARET') {
-            // (unit-expr unit-expr CARET unit-expr)
+            // (unit-expr unit-lhs CARET unit-expr)
             return RUNTIME.getField(ast, 'u-pow')
-              .app(pos(node.pos), tr(node.kids[0]), number(node.kids[2]))
-          } else if (node.kids[1].name === 'STAR') {
-            // (unit-expr unit-expr TIMES unit-expr)
-            return RUNTIME.getField(ast, 'u-mul')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]))
-          } else if (node.kids[1].name === 'SLASH') {
-            // (unit-expr unit-expr DIVIDE unit-expr)
-            return RUNTIME.getField(ast, 'u-div')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]))
+              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), number(node.kids[2]))
           } else {
             // (unit-expr PAREN unit-expr PAREN)
             return RUNTIME.getField(ast, 'u-paren')
               .app(pos(node.pos), tr(node.kids[1]))
+          }
+        },
+        'unit-expr': function(node) {
+          if (node.kids.length === 1) {
+            // (unit-expr unit-lhs)
+            return tr(node.kids[0])
+          } else if (node.kids[1].name === 'STAR') {
+            // (unit-expr unit-lhs TIMES unit-expr)
+            return RUNTIME.getField(ast, 'u-mul')
+              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), tr(node.kids[2]))
+          } else if (node.kids[1].name === 'SLASH') {
+            // (unit-expr unit-lhs DIVIDE unit-expr)
+            return RUNTIME.getField(ast, 'u-div')
+              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), tr(node.kids[2]))
           }
         },
         'tuple-expr': function(node) {
