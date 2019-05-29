@@ -468,3 +468,24 @@ check "should parse reactors":
   does-parse("reactor: end") is false
   does-parse("reactor end") is false
 end
+
+check "should parse unit-annotated numbers":
+  # TODO(benmusch): Figure out a non-ambiguous grammar to get rid of the need
+  # for %'s
+  does-parse("2%<m>") is true
+  does-parse("2%<(m)>") is true
+  does-parse("2%<m * n>") is true
+  does-parse("2%<m / n>") is true
+  does-parse("2%<m ^ 1>") is true
+  does-parse("2%<(m / n) ^ -5 * (o ^ 10)>") is true
+
+  does-parse("2%<>") is false
+  does-parse("2%<()>") is false
+  does-parse("2%<m *>") is false
+  does-parse("2%<m*n>") is false
+  does-parse("2%<m />") is false
+  does-parse("2%<m/n>") is false
+  does-parse("2%<m^1>") is false
+  does-parse("2%<m ^ n>") is false
+  does-parse("2%<m^1>") is false
+end
