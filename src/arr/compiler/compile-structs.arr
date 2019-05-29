@@ -670,6 +670,31 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
+  | invalid-unit-power(loc, power) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Reading a "),
+          ED.highlight(ED.text("unit annotation"), [ED.locs: self.loc], 0),
+          ED.text(" errored:")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("The exponent "),
+          ED.embed(self.power),
+          ED.text("is not allowed in unit expressions. "),
+          ED.text("Make sure to use a non-zero integer value.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret disallows units with the exponent")],
+        [ED.para:
+          ED.embed(self.power)],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.loc),
+          ED.text(". Make sure to use a non-zero integer value.")]]
+    end
   | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     method render-fancy-reason(self):
       [ED.error:

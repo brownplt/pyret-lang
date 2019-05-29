@@ -477,6 +477,8 @@ check "should parse unit-annotated numbers":
   does-parse("2%<m * n>") is true
   does-parse("2%<m / n>") is true
   does-parse("2%<m ^ 1>") is true
+  does-parse("2%<m ^ 1.2>") is true # should be wf-error
+  does-parse("2%<m ^ 1/2>") is true # should be wf-error
   does-parse("2%<(m / n) ^ -5 * (o ^ 10)>") is true
 
   does-parse("2%<>") is false

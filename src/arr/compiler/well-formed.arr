@@ -279,6 +279,43 @@ fun ensure-unique-variant-ids(variants :: List<A.Variant>, name :: String, data-
   end
 end
 
+fun unit-opname(u :: A.Unit):
+  cases(A.Unit) u:
+    | u-mul(l, _, _) => "*"
+    | u-div(l, _, _) => "/"
+    | u-pow(l, _, _) => "^"
+    | else           => raise("unit-opname called on non-operator")
+  end
+end
+fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
+  cases(Option) parent-maybe block:
+    | some(p) =>
+      if u.is-operation() and p.is-operation() and not(u.label() == p.label()):
+        add-error(C.mixed-binops(p.l, unit-opname(p), u.l, unit-opname(u), u.l))
+      else:
+        nothing
+      end
+    | none => nothing
+  end
+
+  cases(A.Unit) u block:
+    | u-mul(_, lhs, rhs) =>
+      wf-unit(lhs, some(u))
+      wf-unit(rhs, some(u))
+    | u-div(_, lhs, rhs) =>
+      wf-unit(lhs, some(u))
+      wf-unit(rhs, some(u))
+    | u-paren(_, paren-u) => wf-unit(paren-u, some(u))
+    | u-pow(l, pow-u, n) =>
+      if (n == 0) or not(num-is-integer(n)):
+        add-error(C.invalid-unit-power(l, n))
+      else:
+        nothing
+      end
+      wf-unit(pow-u, some(u))
+    | else => nothing
+  end
+end
 
 fun wf-last-stmt(block-loc, stmt :: A.Expr):
   cases(A.Expr) stmt:
@@ -987,6 +1024,13 @@ well-formed-visitor = A.default-iter-visitor.{
   method a-name(self, l, id) block:
     when A.is-s-underscore(id):
       add-error(C.underscore-as-ann(l))
+    end
+    true
+  end,
+  method s-num(self, l, n, unit-maybe) block:
+    cases(Option) unit-maybe:
+      | none => nothing
+      | some(u) => wf-unit(u, none)
     end
     true
   end
