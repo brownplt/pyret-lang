@@ -104,6 +104,9 @@ str-extract = PP.str("extract")
 str-load-table = PP.str("load-table:")
 str-src = PP.str("source:")
 str-sanitize = PP.str("sanitize")
+str-one = PP.str("1")
+str-times = PP.str("*")
+str-divide = PP.str("/")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -930,7 +933,13 @@ data Expr:
     method tosource(self): PP.str(torepr(self.loc)) end
   | s-num(l :: Loc, n :: Number, u :: Option<Unit>) with:
     method label(self): "s-num" end,
-    method tosource(self): PP.number(self.n) end
+    method tosource(self):
+      cases(Option) self.u:
+        | none => PP.number(self.n)
+        | some(u) => PP.separate(str-percent,
+          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, u.tosource(), PP.rangle)])
+      end
+    end
   | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
     method label(self): "s-frac" end,
     method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
@@ -1626,12 +1635,30 @@ sharing:
 end
 
 data Unit:
-  | u-one(l :: Loc)
-  | u-base(l :: Loc, id :: Name)
-  | u-mul(l :: Loc, lhs :: Unit, rhs :: Unit)
-  | u-div(l :: Loc, lhs :: Unit, rhs :: Unit)
-  | u-pow(l :: Loc, u :: Unit, n :: NumInteger)
-  | u-paren(l :: Loc, u :: Unit)
+  | u-one(l :: Loc) with:
+    method label(self): "u-one" end,
+    method tosource(self): str-one end
+  | u-base(l :: Loc, id :: Name) with:
+    method label(self): "u-base" end,
+    method tosource(self): self.id.tosource() end
+  | u-mul(l :: Loc, lhs :: Unit, rhs :: Unit) with:
+    method label(self): "u-mul" end,
+    method tosource(self):
+      PP.separate(str-space, [list: self.lhs.tosource(), str-times, self.rhs.tosource()])
+    end
+  | u-div(l :: Loc, lhs :: Unit, rhs :: Unit) with:
+    method label(self): "u-div" end,
+    method tosource(self):
+      PP.separate(str-space, [list: self.lhs.tosource(), str-divide, self.rhs.tosource()])
+    end
+  | u-pow(l :: Loc, u :: Unit, n :: NumInteger) with:
+    method label(self): "u-div" end,
+    method tosource(self):
+      PP.separate(str-space, [list: self.u.tosource(), str-caret, PP.number(self.n)])
+    end
+  | u-paren(l :: Loc, u :: Unit) with:
+    method label(self): "u-paren" end,
+    method tosource(self): PP.paren(self.u.tosource()) end
 end
 
 

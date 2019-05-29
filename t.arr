@@ -1,3 +1,3 @@
-var result = 1%<m> + 1%<s>
+var result = 1%<m / s> + 1%<(s * m) ^ 2>
 
 print(result)

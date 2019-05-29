@@ -977,7 +977,23 @@
           if (node.kids.length === 1) {
             // (unit-expr ident)
             return RUNTIME.getField(ast, 'u-base')
-              .app(pos(node.pos), tr(node.kids[0]))
+              .app(pos(node.pos), name(node.kids[0]))
+          } else if (node.kids[1].name === 'CARET') {
+            // (unit-expr unit-expr CARET unit-expr)
+            return RUNTIME.getField(ast, 'u-pow')
+              .app(pos(node.pos), tr(node.kids[0]), number(node.kids[2]))
+          } else if (node.kids[1].name === 'STAR') {
+            // (unit-expr unit-expr TIMES unit-expr)
+            return RUNTIME.getField(ast, 'u-mul')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]))
+          } else if (node.kids[1].name === 'SLASH') {
+            // (unit-expr unit-expr DIVIDE unit-expr)
+            return RUNTIME.getField(ast, 'u-div')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]))
+          } else {
+            // (unit-expr PAREN unit-expr PAREN)
+            return RUNTIME.getField(ast, 'u-paren')
+              .app(pos(node.pos), tr(node.kids[1]))
           }
         },
         'tuple-expr': function(node) {
@@ -1151,9 +1167,15 @@
           }
         },
         'num-expr': function(node) {
-          // (num-expr n [PERCENT dim-expr])
-          return RUNTIME.getField(ast, 's-num')
-            .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeNone());
+          if (node.kids.length == 1) {
+            // (num-expr n)
+            return RUNTIME.getField(ast, 's-num')
+              .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeNone());
+          } else {
+            // (num-expr n [PERCENT dim-expr])
+            return RUNTIME.getField(ast, 's-num')
+              .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeSome(tr(node.kids[2])));
+          }
         },
         'frac-expr': function(node) {
           // (frac-expr n)
