@@ -136,13 +136,25 @@
     }
 
     function getBuiltinLocator(path) {
-      if (path === undefined) {
-        console.error("Got undefined name in builtin locator");
-        console.trace();
-      }
-      var codeContent = String(fs.readFileSync(fs.realpathSync(path + ".arr.js")));
-      var headerContent = String(fs.readFileSync(fs.realpathSync(path + ".arr.json")));
-      return builtinLocatorFromString(codeContent, headerContent);
+      return RUNTIME.pauseStack(function(restarter) {
+        if (path === undefined) {
+          console.error("Got undefined name in builtin locator");
+          console.trace();
+          return restarter.error("Got undefined name in builtin locator");
+        }
+        fs.realpath(path + ".arr.js", function(err1, arrjs) {
+          fs.realpath(path + ".arr.json", function(err2, arrjson) {
+            fs.readFile(arrjs, function(err3, arrjsbuf) {
+              fs.readFile(arrjson, function(err3, arrjsonbuf) {
+                var codeContent = String(arrjsbuf);
+                var headerContent = String(arrjsonbuf);
+                return restarter.resume(builtinLocatorFromString(codeContent, headerContent));
+              });
+            });
+          });
+        });
+
+      });
     }
     var O = RUNTIME.makeObject;
     return O({
