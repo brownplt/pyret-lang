@@ -29,8 +29,10 @@
       onmessage = function(e) {
         // Data pre-processing
         console.log(e.data);
-        var parsed = JSON.parse(e.data);
-        var program = parsed.program;
+        if(!e.data || !e.data._parley) {
+          return;
+        }
+        var parsed = e.data;
         var options = JSON.stringify(parsed.options);
         // TODO(alex): May need to due complex message handling here
         

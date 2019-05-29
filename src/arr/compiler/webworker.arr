@@ -15,6 +15,7 @@ success-code = 0
 failure-code = 1
 
 fun compile(options):
+  spy: options end
   outfile = cases(Option) options.get("outfile"):
     | some(v) => v
     | none => options.get-value("program") + ".jarr"

@@ -10,13 +10,13 @@ import pathlib as P
 import sha as crypto
 import string-dict as SD
 import render-error-display as RED
-import file as F
 import error as ERR
 import system as SYS
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
+import file("file.arr") as F
 import file("locators/file.arr") as FL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
@@ -103,10 +103,10 @@ fun cached-available(basedir, uri, name, modified-time) -> Option<CachedType>:
   saved-path = P.join(basedir, uri-to-path(uri, name))
 
   if (F.file-exists(saved-path + ".arr.js") and
-      (F.file-times(saved-path + ".arr.js").mtime > modified-time)):
+      (F.mtimes(saved-path + ".arr.js").mtime > modified-time)):
     some(split)
   else if (F.file-exists(saved-path + ".js") and
-      (F.file-times(saved-path + ".js").mtime > modified-time)):
+      (F.mtimes(saved-path + ".js").mtime > modified-time)):
     some(single-file)
   else:
     none
@@ -126,7 +126,7 @@ fun get-cached(basedir, uri, name, cache-type):
     method needs-compile(_, _): false end,
     method get-modified-time(self):
       0
-      # F.file-times(static-path + ".js").mtime
+      # F.mtimes(static-path + ".js").mtime
     end,
     method get-options(self, options):
       options.{ checks: "none" }
@@ -170,8 +170,14 @@ fun get-cached(basedir, uri, name, cache-type):
 end
 
 fun get-cached-if-available(basedir, loc) block:
-  saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
-  cached-type = cached-available(basedir, loc.uri(), loc.name(), loc.get-modified-time())
+  uri = loc.uri()
+  name = loc.name()
+  saved-path = P.join(basedir, uri-to-path(uri, name))
+  spy: saved-path end
+  mtime = loc.get-modified-time()
+  spy: uri, name, mtime end
+  cached-type = cached-available(basedir, uri, name, mtime)
+  spy: cached-type end
   cases(Option) cached-type:
     | none => loc
     | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct)
@@ -361,7 +367,8 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         if F.file-exists(real-path):
           CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
         else:
-          raise("Cannot find import " + torepr(dep))
+          spy: ctxt, this-path, real-path end
+          raise("Cannot find import " + torepr(dep) + ", looking at " + real-path)
         end
       else if protocol == "builtin-test":
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first, ctxt.options)
@@ -379,7 +386,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         if F.file-exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
         else:
-          raise("Cannot find import " + torepr(dep))
+          raise("Cannot find import " + torepr(dep) + ", looking at " + real-path)
         end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
@@ -537,6 +544,7 @@ fun build-program(path, options, stats) block:
     compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
     options: options
   }, base-module)
+  spy: base end
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   copy-js-dependencies( wl, options )

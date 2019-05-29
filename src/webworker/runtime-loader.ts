@@ -1,10 +1,10 @@
+let files = require("../../build/worker/runtime-files.json");
 
 
 function load(): void {
   let bfs = window["BrowserFS"];
   let fs = bfs.BFSRequire("fs");
 
-  let files = require("./runtime-files.json");
 
   let prewritten = "./prewritten";
   let uncompiled = "./uncompiled";

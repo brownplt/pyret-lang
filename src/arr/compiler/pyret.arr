@@ -1,6 +1,5 @@
 #lang pyret
 
-import file as F
 import pathlib as P
 import render-error-display as RED
 import string-dict as D
@@ -9,6 +8,7 @@ import file("cmdline.arr") as C
 import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
+import file("file.arr") as F
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
 

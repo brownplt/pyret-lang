@@ -9,11 +9,8 @@ web:
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
 	make build/worker/runtime-files.json
-	make build/worker/pyret-api.js
 	make build/worker/page.html
-	make build/worker/browserfs.min.js
-	make build/worker/setup.js
-	make build/worker/runner.js
+	make build/worker/main.js
 	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js
@@ -58,6 +55,12 @@ build/worker/setup.js: build/worker/setup.ts.js
 
 build/worker/setup.ts.js: src/webworker/setup.ts
 	tsc $< --outFile $@
+
+build/worker/main.js: src/webworker/main.ts
+	browserify src/webworker/main.ts -p [ tsify ] -o build/worker/main.js
+
+#build/worker/main.ts.js: src/webworker/main.ts
+#	tsc $< --outFile $@
 
 build/worker/browserfs.min.js: src/webworker/browserfs.min.js
 	cp $< $@

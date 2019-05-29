@@ -5,7 +5,7 @@ import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CS
 import file("../js-of-pyret.arr") as JSP
-import file as F
+import file("../file.arr") as F
 import pathlib as P
 
 # Still unsure if just a path is the right input for this.
@@ -20,7 +20,7 @@ fun mockable-file-locator(file-ops):
       path: path,
       globals: globals,
       method get-modified-time(self):
-        file-ops.file-times(path).mtime
+        file-ops.mtimes(path).mtime
       end,
       method get-options(self, options):
         options
@@ -69,5 +69,6 @@ file-locator = mockable-file-locator({
     output-file: F.output-file(_, false),
     file-exists: F.file-exists,
     file-times: F.file-times,
+    mtimes: F.mtimes,
     real-path: F.real-path
 })

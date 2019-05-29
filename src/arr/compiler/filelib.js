@@ -35,8 +35,8 @@
           RUNTIME.ffi.checkArity(1, arguments, "open-input-file", false);
           RUNTIME.checkString(filename);
           var stringName = RUNTIME.unwrap(filename);
-          RUNTIME.pauseStack(function(restarter) {
-            fs.open(stringName, function(err, fd) {
+          return RUNTIME.pauseStack(function(restarter) {
+            fs.open(stringName, "r", function(err, fd) {
               restarter.resume(RUNTIME.makeOpaque(new InputFile(stringName, fd)));
             });
           });
@@ -47,7 +47,7 @@
           RUNTIME.checkBoolean(append);
           var stringName = RUNTIME.unwrap(filename);
           var appendOption = RUNTIME.unwrap(append);
-          RUNTIME.pauseStack(function(restarter) {
+          return RUNTIME.pauseStack(function(restarter) {
             fs.open(name, (appendOption ? "a" : "w"), function(err, fd) {
               restarter.resume(RUNTIME.makeOpaque(
                 new OutputFile(stringName, fd)));
@@ -59,9 +59,9 @@
           RUNTIME.checkOpaque(file);
           var v = file.val;
           if(v instanceof InputFile) {
-            if (v.fd) {
-              RUNTIME.pauseStack(function(restarter) {
-                fs.readFile(v.fd, {encoding: 'utf8'}, function(err, data) {
+            if (v.name) {
+              return RUNTIME.pauseStack(function(restarter) {
+                fs.readFile(v.name, {encoding: 'utf8'}, function(err, data) {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(RUNTIME.makeString(data));
                 });
@@ -82,7 +82,7 @@
           var s = RUNTIME.unwrap(val);
           if(v instanceof OutputFile) {
             if (v.fd) {
-              RUNTIME.pauseStack(function(restarter) {
+              return RUNTIME.pauseStack(function(restarter) {
                 fs.write(v.fd, s, {encoding: 'utf8'}, function(err, bytesWritten, buffer) {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(NAMESPACE.get('nothing'));
@@ -103,7 +103,7 @@
           var v = file.val;
           if(v instanceof OutputFile) {
             if (v.fd) {
-              RUNTIME.pauseStack(function(restarter) {
+              return RUNTIME.pauseStack(function(restarter) {
                 fs.fsync(v.fd, function(err) {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(NAMESPACE.get('nothing'));
@@ -117,6 +117,27 @@
             throw Error("Expected file in read-file, but got something else");
           }
         }, "flush-output-file"),                  
+      "mtimes": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "mtimes", false);
+          RUNTIME.checkString(path);
+          return RUNTIME.pauseStack(function(restarter) {
+            fs.exists(path, function(exists) {
+              if (!exists) {
+                restarter.error(
+                  RUNTIME.ffi.makeMessageException("File " + path + " did not exist when getting file-times"));
+              }
+
+              fs.lstat(path, function(error, stats) {
+                  restarter.resume(RUNTIME.makeObject({
+                    mtime: Number(stats.mtime),
+                    atime: Number(stats.atime),
+                    ctime: Number(stats.ctime)
+                  }));
+              });
+            })
+          });
+          
+        }, "file-times"),
       "file-times": RUNTIME.makeFunction(function(file) {
           RUNTIME.ffi.checkArity(1, arguments, "file-times", false);
           RUNTIME.checkOpaque(file);
@@ -124,7 +145,7 @@
           if(!(v instanceof InputFile || v instanceof OutputFile)) {
             RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
           }
-          RUNTIME.pauseStack(function(restarter) {
+          return RUNTIME.pauseStack(function(restarter) {
             fs.exists(v.name, function(exists) {
               if (!exists) {
                 restarter.error(
@@ -147,8 +168,8 @@
           RUNTIME.checkString(path);
           var s = RUNTIME.unwrap(path);
 
-          RUNTIME.pauseStack(function(restarter) {
-            fs.realPath(s, function(err, resolvedPath) {
+          return RUNTIME.pauseStack(function(restarter) {
+            fs.realpath(s, function(err, resolvedPath) {
               var newPath;
               if (err) {
                 newPath = s;
@@ -165,7 +186,7 @@
           RUNTIME.ffi.checkArity(1, arguments, "exists", false);
           RUNTIME.checkString(path);
           var s = RUNTIME.unwrap(path);
-          RUNTIME.pauseStack(function(restarter) {
+          return RUNTIME.pauseStack(function(restarter) {
             fs.exists(s, function(exists) {
               restarter.resume(RUNTIME.makeBoolean(exists));
             });
@@ -177,7 +198,7 @@
           var v = file.val;
           if(v instanceof OutputFile) {
             if (v.fd) {
-              RUNTIME.pauseStack(function(restarter) {
+              return RUNTIME.pauseStack(function(restarter) {
                 fs.close(v.fd, function(err) {
                   // NOTE(alex): ignore errors for now
                   v.fd = false;
@@ -198,7 +219,7 @@
           var v = file.val;
           if(v instanceof InputFile) {
             if (v.fd) {
-              RUNTIME.pauseStack(function(restarter) {
+              return RUNTIME.pauseStack(function(restarter) {
                 fs.close(v.fd, function(err) {
                   // NOTE(alex): ignore errors for now
                   v.fd = false;
@@ -216,7 +237,7 @@
       "create-dir": RUNTIME.makeFunction(function(directory) {
         RUNTIME.ffi.checkArity(1, arguments, "create-dir", false);
         RUNTIME.checkString(directory);
-        RUNTIME.pauseStack(function(restarter) {
+        return RUNTIME.pauseStack(function(restarter) {
           fs.mkdir(directory, function(err) {
             // NOTE(alex): ignore errors for now
             restarter.resume(true);
@@ -227,7 +248,7 @@
           RUNTIME.ffi.checkArity(1, arguments, "list-files", false);
           RUNTIME.checkString(directory);
           var dir = RUNTIME.unwrap(directory);
-          RUNTIME.pauseStack(function(restarter) {
+          return RUNTIME.pauseStack(function(restarter) {
             fs.readdir(dir, function(err, files) {
               // NOTE(alex): ignore errors for now
               var contents = files;
@@ -236,7 +257,7 @@
           });
       }, "list-files"),
       "symlink": RUNTIME.makeFunction(function(target, path, fileOrDir) {
-        RUNTIME.pauseStack(function(restarter) {
+        return RUNTIME.pauseStack(function(restarter) {
           fs.symlink(target, path, fileOrDir, function(err) {
             // NOTE(alex): ignore errors for now
             restarter.resume(true);

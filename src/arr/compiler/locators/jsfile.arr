@@ -1,11 +1,11 @@
 provide *
 import js-file("../builtin-modules") as B
 import string-dict as SD
-import file as F
 import pathlib as P
 import file("./builtin.arr") as BL
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
+import file("../file.arr") as F
 import file("../type-structs.arr") as T
 import file("../js-of-pyret.arr") as JSP
 
