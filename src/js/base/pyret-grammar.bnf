@@ -131,7 +131,7 @@ id-expr: NAME
 prim-expr: num-expr | frac-expr | rfrac-expr | bool-expr | string-expr
 
 dim-expr: (LANGLE|LT) unit-expr (RANGLE|GT) | (LANGLE|LT) NUMBER (RANGLE|GT)
-unit-expr: (PARENNOSPACE|PARENAFTERBRACE) unit-expr | RPAREN
+unit-expr: (PARENNOSPACE|PARENAFTERBRACE) unit-expr RPAREN
   | unit-expr CARET NUMBER
   | unit-expr TIMES unit-expr
   | unit-expr SLASH unit-expr

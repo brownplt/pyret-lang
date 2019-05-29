@@ -968,6 +968,18 @@
           // (prim-expr e)
           return tr(node.kids[0]);
         },
+        'dim-expr': function(node) {
+          // (LANGLE|LT) unit-expr (RANGLE|GT) | (LANGLE|LT) NUMBER (RANGLE|GT)
+          // TODO: Handle numbers here somehow
+          return tr(node.kids[1])
+        },
+        'unit-expr': function(node) {
+          if (node.kids.length === 1) {
+            // (unit-expr ident)
+            return RUNTIME.getField(ast, 'u-base')
+              .app(pos(node.pos), tr(node.kids[0]))
+          }
+        },
         'tuple-expr': function(node) {
           return RUNTIME.getField(ast, 's-tuple')
               .app(pos(node.pos), tr(node.kids[1]))
@@ -1139,9 +1151,9 @@
           }
         },
         'num-expr': function(node) {
-          // (num-expr n)
+          // (num-expr n [PERCENT dim-expr])
           return RUNTIME.getField(ast, 's-num')
-            .app(pos(node.pos), number(node.kids[0]));
+            .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeNone());
         },
         'frac-expr': function(node) {
           // (frac-expr n)

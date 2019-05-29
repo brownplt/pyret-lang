@@ -566,7 +566,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-undefined not implemented")
         | s-srcloc(l, loc) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-num(l, n) =>
+        | s-num(l, n, _) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-frac(l, num, den) =>
           check-synthesis(e, expect-type, top-level, context)
@@ -828,7 +828,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-undefined not implemented")
     | s-srcloc(l, loc) =>
       typing-result(e, t-srcloc(l), context)
-    | s-num(l, n) =>
+    | s-num(l, n, _) =>
       typing-result(e, t-number(l), context)
     | s-frac(l, num, den) =>
       typing-result(e, t-number(l), context)

@@ -471,28 +471,28 @@ where:
 
 
   compare1 =
-    A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15)),
-      A.s-let-bind(d, b("y"), A.s-num(d, 10))],
+    A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 15, none)),
+      A.s-let-bind(d, b("y"), A.s-num(d, 10, none))],
     id("y"), false)
   dsb(p("x = 15 y = 10 y").stmts).visit(A.dummy-loc-visitor)
     is compare1
 
   dsb(p("x = 55 var y = 10 y").stmts).visit(A.dummy-loc-visitor)
-    is A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55)),
-      A.s-var-bind(d, b("y"), A.s-num(d, 10))], id("y"), false)
+    is A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 55, none)),
+      A.s-var-bind(d, b("y"), A.s-num(d, 10, none))], id("y"), false)
 
   bs("x = 7 print(2) var y = 10 y") is
-  A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7))],
+  A.s-let-expr(d, [list:A.s-let-bind(d, b("x"), A.s-num(d, 7, none))],
     A.s-block(d, [list:
-        A.s-app(d, id("print"), [list:A.s-num(d, 2)]),
-        A.s-let-expr(d, [list:A.s-var-bind(d, b("y"), A.s-num(d, 10))],
+        A.s-app(d, id("print"), [list:A.s-num(d, 2, none)]),
+        A.s-let-expr(d, [list:A.s-var-bind(d, b("y"), A.s-num(d, 10, none))],
           id("y"), false)
       ]), false)
 
   prog = bs("fun f(): 4 end fun g(): 5 end f()")
   prog is A.s-letrec(d, [list:
-      A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
-      A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5)))
+      A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4, none))),
+      A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5, none)))
     ],
     A.s-app(d, id("f"), [list: ]), false)
 
@@ -501,13 +501,13 @@ where:
 
   prog2 = bs("print(1) fun f(): 4 end fun g(): 5 end fun h(): 6 end x = 3 print(x)")
   prog2 is A.s-block(d,
-    [list: p-s(A.s-num(d, 1)),
+    [list: p-s(A.s-num(d, 1, none)),
       A.s-letrec(d, [list:
-          A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4))),
-          A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5))),
-          A.s-letrec-bind(d, b("h"), thunk(A.s-num(d, 6)))
+          A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4, none))),
+          A.s-letrec-bind(d, b("g"), thunk(A.s-num(d, 5, none))),
+          A.s-letrec-bind(d, b("h"), thunk(A.s-num(d, 6, none)))
         ],
-        A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 3))], p-s(id("x")), false),
+        A.s-let-expr(d, [list: A.s-let-bind(d, b("x"), A.s-num(d, 3, none))], p-s(id("x")), false),
         false)])
 
   dsb([list: prog2]) is prog2
@@ -519,17 +519,17 @@ where:
   prog3 is A.s-block(d,
     [list:
       p-s(id("x")),
-      A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3)),
+      A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3, none)),
       p-s(id("x"))
     ])
   
   prog4 = bs("var x = 10 fun f(): 4 end f()")
   prog4
     is A.s-let-expr(d, [list:
-      A.s-var-bind(d, b("x"), A.s-num(d, 10))
+      A.s-var-bind(d, b("x"), A.s-num(d, 10, none))
     ],
     A.s-letrec(d, [list:
-        A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4)))
+        A.s-letrec-bind(d, b("f"), thunk(A.s-num(d, 4, none)))
       ],
       A.s-app(d, id("f"), [list: ]), false),
     false
@@ -707,7 +707,7 @@ where:
   ds = lam(prog): desugar-scope(prog, C.no-builtins).ast.visit(A.dummy-loc-visitor) end
   compare1 = A.s-program(d, A.s-provide-none(d), A.s-provide-types-none(d), [list: ],
         A.s-let-expr(d, [list:
-            A.s-let-bind(d, b("x"), A.s-num(d, 10))
+            A.s-let-bind(d, b("x"), A.s-num(d, 10, none))
           ],
           A.s-module(d, id("nothing"), empty, empty, id("x"), [list:], checks), false)
       )

@@ -22,8 +22,8 @@ check "https://github.com/brownplt/pyret-lang/issues/828":
 (1 + 2)
                      ```).visit(A.dummy-loc-visitor)
     is program-block([list:
-      A.s-op(A.dummy-loc, A.dummy-loc, "op*", A.s-num(A.dummy-loc, 3), A.s-num(A.dummy-loc, 2)),
-      A.s-paren(A.dummy-loc, A.s-op(A.dummy-loc, A.dummy-loc, "op+", A.s-num(A.dummy-loc, 1), A.s-num(A.dummy-loc, 2)))
+      A.s-op(A.dummy-loc, A.dummy-loc, "op*", A.s-num(A.dummy-loc, 3, none), A.s-num(A.dummy-loc, 2, none)),
+      A.s-paren(A.dummy-loc, A.s-op(A.dummy-loc, A.dummy-loc, "op+", A.s-num(A.dummy-loc, 1, none), A.s-num(A.dummy-loc, 2, none)))
     ])
 
   P.get-parse-result("ab#|...|#cd").visit(A.dummy-loc-visitor)

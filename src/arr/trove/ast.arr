@@ -2140,8 +2140,8 @@ default-map-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(l, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number):
-    s-num(l, n)
+  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
+    s-num(l, n, u)
   end,
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(l, num, den)
@@ -2700,7 +2700,7 @@ default-iter-visitor = {
   method s-srcloc(self, l, shadow loc):
     true
   end,
-  method s-num(self, l :: Loc, n :: Number):
+  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
     true
   end,
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
@@ -3237,8 +3237,8 @@ dummy-loc-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number):
-    s-num(dummy-loc, n)
+  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
+    s-num(dummy-loc, n, u)
   end,
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-frac(dummy-loc, num, den)

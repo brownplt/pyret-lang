@@ -528,11 +528,11 @@ fun desugar-expr(expr :: A.Expr):
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
-    | s-num(_, _) => expr
+    | s-num(_, _, _) => expr
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
-    | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
+    | s-frac(l, num, den) => A.s-num(l, num / den, none) # NOTE: Possibly must preserve further?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
-    | s-rfrac(l, num, den) => A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
+    | s-rfrac(l, num, den) => A.s-num(l, num-to-roughnum(num / den), none) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
@@ -958,8 +958,8 @@ where:
   p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
   ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
-  one = A.s-num(d, 1)
-  two = A.s-num(d, 2)
+  one = A.s-num(d, 1, none)
+  two = A.s-num(d, 2, none)
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
 
   if-else = "if true: 5 else: 6 end"

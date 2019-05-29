@@ -347,7 +347,7 @@ fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) blo
                   ED.text(" operator expression probably isn't intentional.")]], l)
         end
       | s-id(_, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
-      | s-num(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-num(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-frac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-rfrac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-bool(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
