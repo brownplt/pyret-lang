@@ -290,6 +290,10 @@ fun unit-opname(u :: A.Unit%(unit-is-op)):
     | u-pow(_, _, _, _) => "^"
   end
 end
+
+
+# TODO(benmuch): Consider refactoring to make this a proper visitor
+#                and shadow the reachable-ops pattern
 fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
   cases(Option) parent-maybe block:
     | some(p) =>

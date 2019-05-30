@@ -1667,7 +1667,7 @@ compiler-visitor = {
   method a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
-  method a-num(self, l :: Loc, n :: Number):
+  method a-num(self, l :: Loc, n :: Number, u :: N.AUnit):
     if num-is-fixnum(n):
       c-exp(j-parens(j-num(n)), cl-empty)
     else:
@@ -1907,21 +1907,22 @@ remove-useless-if-visitor = N.default-map-visitor.{
 
 check:
   d = N.dummy-loc
+  u-one = N.a-unit-one
   true1 = N.a-if(d, N.a-bool(d, true),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 2))))
-  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u-one))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 2, u-one))))
+  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1, u-one))
 
   false4 = N.a-if(d, N.a-bool(d, false),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 3))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4))))
-  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 3, u-one))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u-one))))
+  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4, u-one))
 
   N.a-if(d, N.a-id(d, A.s-name(d, "x")), N.a-lettable(d, true1), N.a-lettable(d, false4)
     ).visit(remove-useless-if-visitor)
     is N.a-if(d, N.a-id(d, A.s-name(d, "x")),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4))))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u-one))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u-one))))
 
 end
 |#

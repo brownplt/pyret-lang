@@ -41,6 +41,9 @@ str-provide = PP.str("provide")
 str-as = PP.str("as")
 str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
+str-percent = PP.str("%")
+str-caret = PP.str("^")
+str-space = PP.str(" ")
 
 dummy-loc = SL.builtin("dummy-location")
 is-s-provide-complete = A.is-s-provide-complete
@@ -58,6 +61,17 @@ sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
   end
+end
+
+# normalized form of a unit as a linked-list of names and powers
+data AUnit:
+  | a-unit-one with:
+    method tosource(self): PP.str("") end
+  | a-unit-name(l :: Loc, id :: A.Name, power :: Number, rest :: AUnit) with:
+    method tosource(self):
+      PP.separate(str-space, [list:
+        self.id.tosource(), str-caret, PP.number(self.power), self.rest.tosource()])
+    end
 end
 
 data AImportType:
@@ -461,9 +475,15 @@ data AVal:
   | a-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "a-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | a-num(l :: Loc, n :: Number) with:
+  | a-num(l :: Loc, n :: Number, u :: AUnit) with:
     method label(self): "a-num" end,
-    method tosource(self): PP.number(self.n) end
+    method tosource(self):
+      cases(AUnit) self.u:
+        | a-unit-one(_) => PP.number(self.n)
+        | a-unit-name(_, _, _, _) => PP.separate(str-percent,
+          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
+      end
+    end
   | a-str(l :: Loc, s :: String) with:
     method label(self): "a-str" end,
     method tosource(self): PP.str(torepr(self.s)) end
@@ -574,10 +594,18 @@ fun strip-loc-field(field :: AField):
   end
 end
 
+fun strip-loc-unit(u :: AUnit):
+  cases(AUnit) u:
+    | a-unit-one => a-unit-one
+    | a-unit-name(_, id, power, rest) =>
+      a-unit-name(dummy-loc, id, power, strip-loc-unit(rest))
+  end
+end
+
 fun strip-loc-val(val :: AVal):
   cases(AVal) val:
     | a-srcloc(_, l) => a-srcloc(dummy-loc, l)
-    | a-num(_, n) => a-num(dummy-loc, n)
+    | a-num(_, n, u) => a-num(dummy-loc, n, u)
     | a-str(_, s) => a-str(dummy-loc, s)
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
@@ -705,8 +733,8 @@ default-map-visitor = {
   method a-srcloc(self, l, loc):
     a-srcloc(l, loc)
   end,
-  method a-num(self, l :: Loc, n :: Number):
-    a-num(l, n)
+  method a-num(self, l :: Loc, n :: Number, u :: AUnit):
+    a-num(l, n, u)
   end,
   method a-str(self, l :: Loc, s :: String):
     a-str(l, s)
@@ -811,7 +839,7 @@ where:
   x = n("x")
   y = n("y")
   freevars-e(
-      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4)),
+      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4, a-unit-one)),
         a-lettable(d, a-val(d, a-id(d, y))))).keys-list() is [list: y.key()]
 end
 
@@ -968,7 +996,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far
-    | a-num(_, _) => seen-so-far
+    | a-num(_, _, _) => seen-so-far
     | a-str(_, _) => seen-so-far
     | a-bool(_, _) => seen-so-far
     | a-undefined(_) => seen-so-far
