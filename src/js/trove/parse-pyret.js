@@ -104,7 +104,7 @@
         else
           return RUNTIME.makeString(tok.value.slice(1, -1));
       }
-      function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
+      function number(tok) { return RUNTIME.makeNumberFromString(tok.value, {}); }
       const translators = {
         'program': function(node) {
           var prelude = tr(node.kids[0]);
@@ -1186,13 +1186,13 @@
           // (frac-expr n)
           var numden = node.kids[0].value.split("/");
           return RUNTIME.getField(ast, 's-frac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1]));
         },
         'rfrac-expr': function(node) {
           // (rfrac-expr n)
           var numden = node.kids[0].value.substring(1).split("/");
           return RUNTIME.getField(ast, 's-rfrac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1]));
         },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's-str')

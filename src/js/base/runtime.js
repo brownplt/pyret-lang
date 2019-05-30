@@ -617,14 +617,21 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     /**Makes a PNumber using the given string
 
        @param {string} s
-       @return {!PNumber} with value n
+       @param {unit} u
+       @return {!PNumber} with value n and unit u
     */
-    function makeNumberFromString(s) {
+    function makeNumberFromString(s, u) {
+      console.log("unit: ", u)
       var result = jsnums.fromString(s, NumberErrbacks);
       if(result === false) {
         thisRuntime.ffi.throwMessageException("Could not create number from: " + s);
       }
-      return result;
+
+      if (Object.keys(u).length === 0) {
+        return result;
+      } else {
+        return Unitnum(result, u)
+      }
     }
 
     /*********************

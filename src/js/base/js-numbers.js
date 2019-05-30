@@ -98,7 +98,7 @@ pyretnum := fixnum | boxnum
 A fixnum is simply a JS double, and we prefer to use them
 whenever possible, viz., for integers that are small enough.
 
-boxnum := BigInteger | Rational | Roughnum.
+boxnum := BigInteger | Rational | Roughnum | Unitnum.
 
 An integer is either a fixnum or a BigInteger.
 
@@ -113,6 +113,7 @@ define("pyret-base/js/js-numbers", function() {
   // Creates a binary function that works either on fixnums or boxnums.
   // Applies the appropriate binary function, ensuring that both pyretnums are
   // coerced to be the same kind.
+  // TODO(benmusch): integrate units here
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y, errbacks) {
@@ -240,7 +241,8 @@ define("pyret-base/js/js-numbers", function() {
     return (typeof(thing) === 'number'
             || (thing instanceof Rational ||
                 thing instanceof Roughnum ||
-                thing instanceof BigInteger));
+                thing instanceof BigInteger ||
+                thing instanceof Unitnum));
   };
 
   // isRational: pyretnum -> boolean
@@ -1046,6 +1048,85 @@ define("pyret-base/js/js-numbers", function() {
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
 
+  // Unit operations
+
+  var _removeUnitFromNumber = function(n) {
+    if (n instanceof Unitnum) {
+      return _removeUnitFromNumber(n.n);
+    } else {
+      return n;
+    }
+  }
+
+  var _unitToString = function(u) {
+    unitStrs = [];
+    for (unitName in Object.keys(u)) {
+      power = u[unitName];
+      if (power === 1) {
+        unitStrs = unitStrs.concat(unitName)
+      } else if (power !== 0) {
+        unitStrs = unitStrs.concat(unitName + " ^ " + power)
+      }
+    }
+
+    if (unitStrs.length === 0) {
+      return "1";
+    } else {
+      return unitStrs.join(" * ");
+    }
+  };
+
+  var _unitOf = function(n) {
+    if (n instanceof Unitnum) {
+      return n.u;
+    } else {
+      return {};
+    }
+  };
+
+  var _unitExponentOf = function(u, key) {
+    if (key in u) {
+      return u[key];
+    } else {
+      return 0;
+    }
+  };
+
+  var _unitMap = function(u, f) {
+    newUnit = {};
+    for (unitName in Object.keys(u)) {
+      newUnit[unitName] = f(u[unitName]);
+    }
+    return newUnit;
+  }
+
+  var _unitEquals = function(u1, u2) {
+    for (unitName in Object.keys(Object.assign({}, u1, u2))) {
+      if (_unitExponentOf(u1, unitName) !== _unitExponentOf(u2, unitName)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  var _unitMerge = function(u1, u2) {
+    newUnit = {};
+    for (unitName in Object.keys(Object.assign({}, u1, u2))) {
+      newUnit[unitName] = _unitExponentOf(u1, unitName) + _unitExponentOf(u2, unitName);
+    }
+    return newUnit;
+  }
+
+  var _unitInvert = function(u) {
+    return _unitMap(u, function(n) { return -1 * n })
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
   // Integer operations
   // Integers are either represented as fixnums or as BigIntegers.
 
@@ -1425,6 +1506,182 @@ define("pyret-base/js/js-numbers", function() {
   // Produce true if the given number of the same type is equal.
 
   //////////////////////////////////////////////////////////////////////
+
+  // Unitnums
+  var Unitnum = function(n, u) {
+    this.n = n;
+    this.u = u;
+  };
+
+  Unitnum.prototype.toString = function() {
+    unitStr = "<" + _unitToString(this.u) + ">"
+    if (typeof(this.n) === "number") {
+      return this.n.toString(10) + unitStr;
+    } else {
+      return this.n.toString() + unitStr;
+    }
+  };
+
+  Unitnum.prototype.isFinite = function() {
+    return typeof(this.n) === "number" || this.n.isFinite();
+  };
+
+  Unitnum.prototype.isInteger = function() {
+    return isInteger(this.n);
+  };
+
+  Unitnum.prototype.isRational = function() {
+    return isRational(this.n);
+  };
+
+  Unitnum.prototype.isExact = Unitnum.prototype.isRational;
+
+  Unitnum.prototype.toRational = function() {
+    return Unitnum(toRational(this.n), this.u);
+  }
+
+  Unitnum.prototype.toExact = Unitnum.prototype.toRational;
+
+  Unitnum.prototype.toRoughnum = function() {
+    return Unitnum(toRoughnum(this.n), u);
+  };
+
+  Unitnum.prototype.toFixnum = function() {
+    return this.n;
+  };
+
+  Unitnum.prototype.greaterThan = function(n) {
+    // TODO(benmusch): Should this check for unit mis-match?
+    return greaterThan(this.n, n);
+  };
+
+  Unitnum.prototype.greaterThanOrEqual = function(n) {
+    // TODO(benmusch): Should this check for unit mis-match?
+    return greaterThanOrEqual(this.n, n);
+  };
+
+  Unitnum.prototype.lessThan = function(n) {
+    // TODO(benmusch): Should this check for unit mis-match?
+    return lessThan(this.n, n);
+  };
+
+  Unitnum.prototype.lessThanOrEqual = function(n) {
+    // TODO(benmusch): Should this check for unit mis-match?
+    return lessThanOrEqual(this.n, n);
+  };
+
+  Unitnum.prototype.add = function(n) {
+    console.log("Oh hello")
+    if (!_unitEquals(this.u, _unitOf(n))) {
+      return 10000000000;
+    } else {
+      result = add(_removeUnitFromNumber(this.n), _removeUnitFromNumber(n));
+      return Unitnum(result, this.u);
+    }
+  };
+
+  Unitnum.prototype.subtract = function(n) {
+    if (!_unitEquals(this.u, _unitOf(n))) {
+      return 10000000000;
+    } else {
+      result = subtract(_removeUnitFromNumber(this.n), _removeUnitFromNumber(n));
+      return Unitnum(result, this.u);
+    }
+  };
+
+  Unitnum.prototype.multiply = function(n) {
+    result = subtract(_removeUnitFromNumber(this.n), _removeUnitFromNumber(n));
+    newUnit = _unitMerge(_unitOf(this), _unitOf(n));
+    return Unitnum(result, newUnit);
+  };
+
+  Unitnum.prototype.divide = function(n) {
+    result = subtract(_removeUnitFromNumber(this.n), _removeUnitFromNumber(n));
+    newUnit = _unitMerge(_unitOf(this), _unitInvert(_unitOf(n)));
+    return Unitnum(result, newUnit);
+  };
+
+  Unitnum.prototype.numerator = function() {
+    return Unitnum(numerator(this.n), this.u);
+  };
+
+  Unitnum.prototype.denominator = function() {
+    return Unitnum(denominator(this.n), this.u);
+  };
+
+  Unitnum.prototype.integerSqrt = function() {
+    // TODO: Check valid units for this
+    newUnit = _unitMap(this.u, function(n) { return n / 2 });
+    return Unitnum(integerSqrt(this.n), newUnit);
+  };
+
+  Unitnum.prototype.sqrt = function() {
+    // TODO: Check valid units for this
+    newUnit = _unitMap(this.u, function(n) { return n / 2 });
+    return Unitnum(sqrt(this.n), newUnit);
+  };
+
+  Unitnum.prototype.floor = function() {
+    return Unitnum(floor(this.n), this.u);
+  };
+
+  Unitnum.prototype.floor = function() {
+    return Unitnum(floor(this.n), this.u);
+  };
+
+  Unitnum.prototype.ceiling = function() {
+    return Unitnum(ceiling(this.n), this.u);
+  };
+
+  Unitnum.prototype.ceiling = function() {
+    // TODO(benmush): how should this behave???
+    return Unitnum(log(this.n), this.u);
+  };
+
+  Unitnum.prototype.atan = function() {
+    // TODO(benmush): how should this behave???
+    return Unitnum(atan(this.n), this.u);
+  };
+
+  Unitnum.prototype.cos = function() {
+    // TODO(benmush): how should this behave???
+    return Unitnum(cos(this.n), this.u);
+  };
+
+  Unitnum.prototype.sin = function() {
+    // TODO(benmush): how should this behave???
+    return Unitnum(sin(this.n), this.u);
+  };
+
+  Unitnum.prototype.expt = function(n) {
+    // TODO(benmush): What even is this vs exp???
+    newUnit = _unitMap(this.u, function(pow) { n * pow });
+    return Unitnum(expt(this.n), newUnit);
+  };
+
+  Unitnum.prototype.exp = function() {
+    // TODO(benmush): What even is this vs expt???
+    return Unitnum(exp(this.n), this.u);
+  };
+
+  Unitnum.prototype.acos = function() {
+    // TODO(benmush): how should this behave???
+    return Unitnum(acos(this.n), this.u);
+  };
+
+  Unitnum.prototype.asin = function() {
+    // TODO(benmush): how should this behave???
+    return Unitnum(asin(this.n), this.u);
+  };
+
+  Unitnum.prototype.round = function() {
+    return Unitnum(round(this.n), this.u);
+  };
+
+  Unitnum.prototype.equals = function(other) {
+    return _unitEquals(_unitOf(this), _unitOf(other)) &&
+      equals(this.n, _removeUnitFromNumber(other));
+  };
 
   // Rationals
 

@@ -174,13 +174,14 @@ fun anf-unit(u-maybe :: Option<A.Unit>) -> N.AUnit:
       unit-names(u).fold(
         lam(acc, id):
           power = unit-power(id, u)
-          if power == 0: acc else: N.a-unit-one(id, power, acc) end
+          if power == 0: acc else: N.a-unit-name(id, power, acc) end
         end,
         N.a-unit-one)
   end
 end
 
-fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
+fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
+  1 + "abc"
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
       adts = for map(dt from dts):
@@ -205,7 +206,10 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         
       end)
     | s-num(l, n, u-maybe) =>
-      k(N.a-val(l, N.a-num(l, n, anf-unit(u-maybe))))
+      block:
+        1 + "abc"
+        k(N.a-val(l, N.a-num(l, n, anf-unit(u-maybe))))
+      end
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
     | s-frac(l, num, den) => k(N.a-val(l, N.a-num(l, num / den, N.a-unit-one))) # Possibly unneeded if removed by desugar?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den

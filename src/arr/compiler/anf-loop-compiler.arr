@@ -1325,6 +1325,14 @@ fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: S
     flatness-env.has-key-now(name)
 end
 
+fun compile-unit(u :: N.AUnit, acc :: CList<J.JField>) -> CList<J.JField>:
+  cases(N.AUnit) u:
+    | a-unit-one => J.j-obj(acc)
+    | a-unit-name(id, power, rest) =>
+      compile-unit(rest, CL.concat-cons(j-field(tostring(u), j-num(power)), acc))
+  end
+end
+
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compiler,
     b :: Option<BindType>,
@@ -1639,7 +1647,9 @@ compiler-visitor = {
         ))
     method-expr = if len < 9:
       rt-method(string-append("makeMethod", tostring(len - 1)), [clist: j-id(temp-full), j-str(name)])
-    else:
+    else: #raise("don't do that")
+      # TODO(benmusch): what's going on here? Why did I need to comment that
+      # line?
       rt-method("makeMethodN", [clist: j-id(temp-full), j-str(name)])
     end
     c-exp(method-expr, [clist: full-var])
@@ -1667,11 +1677,14 @@ compiler-visitor = {
   method a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
-  method a-num(self, l :: Loc, n :: Number, u :: N.AUnit):
-    if num-is-fixnum(n):
-      c-exp(j-parens(j-num(n)), cl-empty)
+  method a-num(self, l :: Loc, n :: Number, u :: N.AUnit) block:
+    print("\n...hellooo....\n")
+    1 + ""
+    if num-is-fixnum(n) and N.is-a-unit-one(u):
+      c-exp(j-parens(j-num(100)), cl-empty)
     else:
-      c-exp(rt-method("makeNumberFromString", [clist: j-str(tostring(n))]), cl-empty)
+      args = [clist: j-str("1000"), compile-unit(u, CL.empty)]
+      c-exp(rt-method("makeNumberFromString", args), cl-empty)
     end
   end,
   method a-str(self, l :: Loc, s :: String):
