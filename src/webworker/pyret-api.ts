@@ -1,4 +1,4 @@
-var loader = require("./runtime-loader");
+var loader = require("./runtime-loader.ts");
 
 const projectPrefix = "_project";
 

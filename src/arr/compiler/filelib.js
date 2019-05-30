@@ -48,7 +48,7 @@
           var stringName = RUNTIME.unwrap(filename);
           var appendOption = RUNTIME.unwrap(append);
           return RUNTIME.pauseStack(function(restarter) {
-            fs.open(name, (appendOption ? "a" : "w"), function(err, fd) {
+            fs.open(stringName, (appendOption ? "a" : "w"), function(err, fd) {
               restarter.resume(RUNTIME.makeOpaque(
                 new OutputFile(stringName, fd)));
             });
@@ -81,9 +81,9 @@
           var v = file.val;
           var s = RUNTIME.unwrap(val);
           if(v instanceof OutputFile) {
-            if (v.fd) {
+            if (v.name) {
               return RUNTIME.pauseStack(function(restarter) {
-                fs.write(v.fd, s, {encoding: 'utf8'}, function(err, bytesWritten, buffer) {
+                fs.writeFile(v.name, s, {encoding: 'utf8'}, function(err, bytesWritten, buffer) {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(NAMESPACE.get('nothing'));
                 });

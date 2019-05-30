@@ -1,6 +1,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
-var assert = require('assert');
+//var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -29,7 +29,7 @@ module.exports = {
   'raw-array': array['raw-array'],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
-  'assert': function( lv, rv, msg ) { assert.strictEqual( lv, rv, msg ) },
+//  'assert': function( lv, rv, msg ) { assert.strictEqual( lv, rv, msg ) },
   print: function(v) {
     process.stdout.write(String(v));
   },

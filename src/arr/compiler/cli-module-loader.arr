@@ -267,9 +267,12 @@ fun setup-compiled-dirs( options ) block:
 	mkdirp( project-dir )
 	mkdirp( builtin-dir )
 
-  when not(FS.exists(P.join(compiled-dir, "node_modules"))):
-    FS.symlink(P.join(options.this-pyret-dir, "../../node_modules"), P.join(compiled-dir, "node_modules"), "dir")
-  end
+  spy "end of setup compiled-dirs": base-dir, project-dir, builtin-dir end
+
+  # TODO(joe, anchor, May '19): sort this out for builtins needed by generated code
+  #when not(FS.exists(P.join(compiled-dir, "node_modules"))):
+  #  FS.symlink(P.join(options.this-pyret-dir, "../../node_modules"), P.join(compiled-dir, "node_modules"), "dir")
+  #end
 
   {base-dir; project-dir; builtin-dir}
 end
@@ -277,10 +280,16 @@ end
 fun set-loadable(options, locator, loadable) block:
   doc: "Returns the module path of the cached file"
   { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
+
+  spy: project-base, project-dir, builtin-dir end
   locuri = loadable.provides.from-uri
+
+  spy "locuri": locuri end
 
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
+
+      spy: ccp end
 
       uri = locator.uri()
 
@@ -322,7 +331,9 @@ fun set-loadable(options, locator, loadable) block:
 
       {save-static-path; save-code-path}
 
-    | err(_) => {""; ""}
+    | err(_) =>
+      spy: loadable end
+      {""; ""}
   end
 end
 
@@ -468,6 +479,7 @@ fun run(path, options, subsequent-command-line-arguments):
 end
 
 fun copy-js-dependency( dep-path, uri, dirs, options ) block:
+  spy "copying": dep-path end
   { base-dir; project-dir; builtin-dir } = dirs
   {save-path; cutoff} = ask block:
     | string-index-of( uri, "builtin://" ) == 0 then:
@@ -497,6 +509,7 @@ end
 
 fun copy-js-dependencies( wl, options ) block:
   dirs = setup-compiled-dirs( options )
+  spy: dirs end
   arr-js-modules = for filter( tc from wl ):
     CL.is-arr-js-file( tc.locator.get-compiled( options ) )
   end
@@ -507,6 +520,7 @@ fun copy-js-dependencies( wl, options ) block:
     code-path = tc.locator.get-compiled( options ).code-file
 
     deps = DT.get-dependencies( code-path )
+    spy: deps end
     deps-list = raw-array-to-list( deps )
 
     for each( dep-path from deps-list ):
@@ -515,6 +529,8 @@ fun copy-js-dependencies( wl, options ) block:
       end
     end
   end
+
+  spy: paths end
 
   for each( dep-path from paths.keys-list-now() ):
     copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs, options )
@@ -547,6 +563,7 @@ fun build-program(path, options, stats) block:
   spy: base end
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
+  spy "About to copy js deps": wl end
   copy-js-dependencies( wl, options )
   clear-and-print("Loading existing compiled modules...")
   storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)

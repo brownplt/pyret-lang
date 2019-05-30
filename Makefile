@@ -13,7 +13,7 @@ web:
 	make build/worker/main.js
 	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
-build/worker/runtime-files.json: build/worker/runtime-bundler.js
+build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.arr.j*
 	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/ build/worker/runtime-files.json
 
 build/worker/runtime-bundler.js: src/webworker/scripts/runtime-bundler.ts
@@ -56,7 +56,7 @@ build/worker/setup.js: build/worker/setup.ts.js
 build/worker/setup.ts.js: src/webworker/setup.ts
 	tsc $< --outFile $@
 
-build/worker/main.js: src/webworker/main.ts
+build/worker/main.js: src/webworker/*.ts
 	browserify src/webworker/main.ts -p [ tsify ] -o build/worker/main.js
 
 #build/worker/main.ts.js: src/webworker/main.ts
