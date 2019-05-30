@@ -67,7 +67,7 @@ end
 data AUnit:
   | a-unit-one with:
     method tosource(self): PP.str("") end
-  | a-unit-name(l :: Loc, id :: A.Name, power :: Number, rest :: AUnit) with:
+  | a-unit-name(id :: A.Name, power :: Number, rest :: AUnit) with:
     method tosource(self):
       PP.separate(str-space, [list:
         self.id.tosource(), str-caret, PP.number(self.power), self.rest.tosource()])
@@ -480,7 +480,7 @@ data AVal:
     method tosource(self):
       cases(AUnit) self.u:
         | a-unit-one(_) => PP.number(self.n)
-        | a-unit-name(_, _, _, _) => PP.separate(str-percent,
+        | a-unit-name(_, _, _) => PP.separate(str-percent,
           [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
       end
     end
@@ -591,14 +591,6 @@ end
 fun strip-loc-field(field :: AField):
   cases(AField) field:
     | a-field(_, name, value) => a-field(dummy-loc, name, strip-loc-val(value))
-  end
-end
-
-fun strip-loc-unit(u :: AUnit):
-  cases(AUnit) u:
-    | a-unit-one => a-unit-one
-    | a-unit-name(_, id, power, rest) =>
-      a-unit-name(dummy-loc, id, power, strip-loc-unit(rest))
   end
 end
 

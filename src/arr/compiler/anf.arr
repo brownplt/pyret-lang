@@ -6,6 +6,7 @@ provide-types *
 import ast as A
 import srcloc as SL
 import file("ast-anf.arr") as N
+import string-dict as SD
 
 type Loc = SL.Srcloc
 
@@ -142,9 +143,41 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
   anf-block-help(es-init)
 end
 
+# return all of the names in a unit
+fun unit-names(u :: A.Unit) -> Set<A.Name>:
+  cases (A.Unit) u:
+    | u-one(_) => [list-set: ]
+    | u-base(_, id) => [list-set: id]
+    | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
+    | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
+    | u-pow(_, _, shadow u, n) => unit-names(u)
+    | u-paren(_, _, shadow u, n) => unit-names(u)
+  end
+end
+
+fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
+  cases (A.Unit) u:
+    | u-one(_) => 0
+    | u-base(_, id) =>
+      if id == target-id: 1 else: 0 end
+    | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
+    | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
+    | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
+    | u-paren(_, _, shadow u, n) => unit-power(target-id, u)
+  end
+end
+
 fun anf-unit(u-maybe :: Option<A.Unit>) -> N.AUnit:
-  # TODO: Fill this in
-  N.a-unit-one
+  cases(Option) u-maybe:
+    | none => N.a-unit-one
+    | some(u) =>
+      unit-names(u).fold(
+        lam(acc, id):
+          power = unit-power(id, u)
+          if power == 0: acc else: N.a-unit-one(id, power, acc) end
+        end,
+        N.a-unit-one)
+  end
 end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
