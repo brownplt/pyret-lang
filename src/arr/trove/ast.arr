@@ -1653,7 +1653,6 @@ data Unit:
     end
   | u-pow(l :: Loc, op-l :: Loc, u :: Unit, n :: Number) with:
     method label(self): "u-pow" end,
-    method is-operation(self): true end,
     method tosource(self):
       PP.separate(str-space, [list: self.u.tosource(), str-caret, PP.number(self.n)])
     end
