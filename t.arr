@@ -1,3 +1,3 @@
-var result = 1%<m> + 1%<m * s>
+var result = 1%<m * s> / 1%<m * s>
 print(result)
 print("\n")

@@ -123,8 +123,6 @@ define("pyret-base/js/js-numbers", function() {
       if (options.forceSameUnits && !_unitEquals(xUnits, yUnits)) {
         errbacks.throwIncompatibleUnits("Got incompatible units: " +
           _unitToString(xUnits) + " and " + _unitToString(yUnits));
-      } else {
-        console.log("Units were compatible", xUnits, yUnits, _unitEquals(xUnits, yUnits));
       }
 
       var getFinalUnits = options.getFinalUnits || function(x, y, errbacks) { return {} }
