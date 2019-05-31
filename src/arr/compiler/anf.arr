@@ -23,7 +23,7 @@ fun mk-id(loc, base):
   { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
 end
 
-fun anf-term(e :: A.Expr) -> N.AExpr:
+fun anf-term(e :: A.Expr) -> N.AExpr block:
   anf(e, lam(x): N.a-lettable(x.l, x) end)
 end
 
@@ -181,7 +181,6 @@ fun anf-unit(u-maybe :: Option<A.Unit>) -> N.AUnit:
 end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
-  1 + "abc"
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
       adts = for map(dt from dts):
@@ -206,10 +205,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
         
       end)
     | s-num(l, n, u-maybe) =>
-      block:
-        1 + "abc"
         k(N.a-val(l, N.a-num(l, n, anf-unit(u-maybe))))
-      end
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
     | s-frac(l, num, den) => k(N.a-val(l, N.a-num(l, num / den, N.a-unit-one))) # Possibly unneeded if removed by desugar?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den

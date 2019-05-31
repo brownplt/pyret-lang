@@ -1325,11 +1325,11 @@ fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: S
     flatness-env.has-key-now(name)
 end
 
-fun compile-unit(u :: N.AUnit, acc :: CList<J.JField>) -> CList<J.JField>:
+fun compile-unit(u :: N.AUnit, acc :: CList<J.JField>) -> J.JExpr:
   cases(N.AUnit) u:
     | a-unit-one => J.j-obj(acc)
     | a-unit-name(id, power, rest) =>
-      compile-unit(rest, CL.concat-cons(j-field(tostring(u), j-num(power)), acc))
+      compile-unit(rest, CL.concat-cons(j-field(tostring(id), j-num(power)), acc))
   end
 end
 
@@ -1678,12 +1678,10 @@ compiler-visitor = {
     c-exp(self.get-loc(loc), cl-empty)
   end,
   method a-num(self, l :: Loc, n :: Number, u :: N.AUnit) block:
-    print("\n...hellooo....\n")
-    1 + ""
     if num-is-fixnum(n) and N.is-a-unit-one(u):
-      c-exp(j-parens(j-num(100)), cl-empty)
+      c-exp(j-parens(j-num(n)), cl-empty)
     else:
-      args = [clist: j-str("1000"), compile-unit(u, CL.empty)]
+      args = [clist: j-str(tostring(n)), compile-unit(u, CL.concat-empty)]
       c-exp(rt-method("makeNumberFromString", args), cl-empty)
     end
   end,

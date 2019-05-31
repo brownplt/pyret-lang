@@ -621,7 +621,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
        @return {!PNumber} with value n and unit u
     */
     function makeNumberFromString(s, u) {
-      console.log("unit: ", u)
       var result = jsnums.fromString(s, NumberErrbacks);
       if(result === false) {
         thisRuntime.ffi.throwMessageException("Could not create number from: " + s);
@@ -630,7 +629,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (Object.keys(u).length === 0) {
         return result;
       } else {
-        return Unitnum(result, u)
+        return jsnums.addUnit(result, u)
       }
     }
 
@@ -3868,6 +3867,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       throwSqrtNegative: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwLogNonPositive: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwIncomparableValues: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
+      throwIncompatibleUnits: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwInternalError: function(msg) { thisRuntime.ffi.throwInternalError(msg); },
     };
 
