@@ -1,3 +1,7 @@
-var result = 1%<m * s> / 1%<m * s>
-print(result)
+print(1%<m> / 1%<s>)
 print("\n")
+print(1%<m> * 1%<m * s>)
+print("\n")
+print(1%<m> + 1%<m>)
+print("\n")
+print(1%<m> - 1%<s>)
