@@ -1609,7 +1609,7 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwIncompatibleUnits("Cannot add units: " +
         _unitToString(this.u) + " and " + _unitToString(n.u));
     }
-    return _withUnit(add(_withoutUnit(this), _withoutUnit(n)), this.u);
+    return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u);
   };
 
   Unitnum.prototype.subtract = function(n, errbacks) {
@@ -1617,18 +1617,18 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwIncompatibleUnits("Cannot add units: " +
         _unitToString(this.u) + " and " + _unitToString(n.u));
     }
-    return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n)), this.u);
+    return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u);
   };
 
   Unitnum.prototype.multiply = function(n, errbacks) {
     var newUnit = _unitMerge(this.u, n.u);
     // TODO(benmusch): This & divide should un-box the numbers if the unit is 1
-    return _withUnit(multiply(_withoutUnit(this), _withoutUnit(n)), newUnit);
+    return _withUnit(multiply(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit);
   };
 
   Unitnum.prototype.divide = function(n, errbacks) {
     var newUnit = _unitMerge(this.u, _unitInvert(n.u));
-    return _withUnit(divide(_withoutUnit(this), _withoutUnit(n)), newUnit);
+    return _withUnit(divide(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit);
   };
 
   Unitnum.prototype.numerator = function() {
