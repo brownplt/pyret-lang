@@ -1199,8 +1199,18 @@
         'rfrac-expr': function(node) {
           // (rfrac-expr n)
           var numden = node.kids[0].value.substring(1).split("/");
-          return RUNTIME.getField(ast, 's-rfrac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1]));
+          if (node.kids.length == 1) {
+            // (rfrac-expr n)
+            return RUNTIME.getField(ast, 's-rfrac')
+              .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1], {}));
+          } else {
+            // (rfrac-expr n PERCENT dim-expr)
+            return RUNTIME.getField(ast, 's-rfrac')
+              .app(pos(node.pos),
+                RUNTIME.makeNumberFromString(numden[0], {}),
+                RUNTIME.makeNumberFromString(numden[1], {}),
+                RUNTIME.ffi.makeSome(tr(node.kids[2])));
+          }
         },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's-str')

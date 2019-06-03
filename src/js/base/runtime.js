@@ -621,6 +621,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
        @return {!PNumber} with value n and unit u
     */
     function makeNumberFromString(s, u) {
+      u = u || {}
       var result = jsnums.fromString(s, NumberErrbacks);
       if(result === false) {
         thisRuntime.ffi.throwMessageException("Could not create number from: " + s);

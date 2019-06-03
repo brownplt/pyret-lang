@@ -657,6 +657,7 @@ define("pyret-base/js/js-numbers", function() {
       },
       onXSpecialCase: function(x, y, errbacks) {
         if (!_unitEquals(_unitOf(y), {})) {
+          // need this because the isXSpecialCase check cannot look at the y
           errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
         }
 
@@ -677,10 +678,6 @@ define("pyret-base/js/js-numbers", function() {
         return !(y instanceof Unitnum) && (eqv(y, 0, errbacks) || lessThan(y, 0, errbacks));
       },
       onYSpecialCase: function(x, y, errbacks) {
-        if (!_unitEquals(_unitOf(y), {})) {
-          errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
-        }
-
         if (eqv(y, 0, errbacks)) {
           return 1;
         } else { // i.e., y is negative

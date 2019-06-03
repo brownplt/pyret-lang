@@ -532,7 +532,7 @@ fun desugar-expr(expr :: A.Expr):
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
     | s-frac(l, num, den, u) => A.s-num(l, num / den, u) # NOTE: Possibly must preserve further?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
-    | s-rfrac(l, num, den) => A.s-num(l, num-to-roughnum(num / den), none) # NOTE: Possibly must preserve further?
+    | s-rfrac(l, num, den, u) => A.s-num(l, num-to-roughnum(num / den), u) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))

@@ -394,7 +394,7 @@ fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) blo
       | s-id(_, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
       | s-num(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-frac(_, _, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-rfrac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-rfrac(_, _, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-bool(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-str(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-dot(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone field-lookup expression probably isn't intentional.")]], l)
@@ -914,10 +914,16 @@ well-formed-visitor = A.default-iter-visitor.{
 
     true
   end,
-  method s-rfrac(self, l, num, den) block:
+  method s-rfrac(self, l, num, den, unit-maybe) block:
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
+
+    cases(Option) unit-maybe:
+      | none => nothing
+      | some(u) => wf-unit(u, none)
+    end
+
     true
   end,
   method s-id(self, l, id) block:
@@ -1311,8 +1317,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-reactor(self, l, fields):
     well-formed-visitor.s-reactor(l, fields)
   end,
-  method s-rfrac(_, l :: Loc, num, den):
-    well-formed-visitor.s-rfrac(l, num, den)
+  method s-rfrac(_, l :: Loc, num, den, u):
+    well-formed-visitor.s-rfrac(l, num, den, u)
   end,
   method s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)

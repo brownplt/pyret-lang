@@ -952,7 +952,14 @@ data Expr:
     end
   | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
     method label(self): "s-rfrac" end,
-    method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+    method tosource(self):
+      base-str = PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den)
+      cases(Option) self.u:
+        | none => base-str
+        | some(u) => PP.separate(str-percent,
+          [list: base-str, PP.surround(INDENT, 0, PP.langle, u.tosource(), PP.rangle)])
+      end
+    end
   | s-bool(l :: Loc, b :: Boolean) with:
     method label(self): "s-bool" end,
     method tosource(self): PP.str(tostring(self.b)) end
@@ -2180,8 +2187,8 @@ default-map-visitor = {
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
     s-frac(l, num, den, u)
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-rfrac(l, num, den)
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+    s-rfrac(l, num, den, u)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
@@ -2740,7 +2747,7 @@ default-iter-visitor = {
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
     true
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
     true
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -3277,8 +3284,8 @@ dummy-loc-visitor = {
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
     s-frac(dummy-loc, num, den, u)
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-rfrac(dummy-loc, num, den)
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+    s-rfrac(dummy-loc, num, den, u)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)
