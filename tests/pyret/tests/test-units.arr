@@ -8,6 +8,10 @@ check "Unit equality":
   2%<(((s * m) ^ 2) / t) ^ 2> is 2%<m * s * m * s * (((m * s) / t) ^ 2)>
 
   1/1%<m> is 1%<m>
+
+  # tests for adding/removing units
+  (10 * 1%<m>) + 1%<m> is 11%<m>
+  (10%<m> / 1%<m>) + 1 is 11
 end
 
 check "Arithmetic binops":
