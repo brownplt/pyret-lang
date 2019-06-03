@@ -942,7 +942,14 @@ data Expr:
     end
   | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
     method label(self): "s-frac" end,
-    method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+    method tosource(self) block:
+      base-str = PP.number(self.num) + PP.str("/") + PP.number(self.den)
+      cases(Option) self.u:
+        | none => base-str
+        | some(u) => PP.separate(str-percent,
+          [list: base-str, PP.surround(INDENT, 0, PP.langle, u.tosource(), PP.rangle)])
+      end
+    end
   | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
     method label(self): "s-rfrac" end,
     method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
@@ -2170,8 +2177,8 @@ default-map-visitor = {
   method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
     s-num(l, n, u)
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-frac(l, num, den)
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+    s-frac(l, num, den, u)
   end,
   method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-rfrac(l, num, den)
@@ -2730,7 +2737,7 @@ default-iter-visitor = {
   method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
     true
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
     true
   end,
   method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
@@ -3267,8 +3274,8 @@ dummy-loc-visitor = {
   method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
     s-num(dummy-loc, n, u)
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-frac(dummy-loc, num, den)
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+    s-frac(dummy-loc, num, den, u)
   end,
   method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
     s-rfrac(dummy-loc, num, den)

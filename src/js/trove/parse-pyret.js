@@ -1176,16 +1176,25 @@
             return RUNTIME.getField(ast, 's-num')
               .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeNone());
           } else {
-            // (num-expr n [PERCENT dim-expr])
+            // (num-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-num')
               .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeSome(tr(node.kids[2])));
           }
         },
         'frac-expr': function(node) {
-          // (frac-expr n)
           var numden = node.kids[0].value.split("/");
-          return RUNTIME.getField(ast, 's-frac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1]));
+          if (node.kids.length == 1) {
+            // (frac-expr n)
+            return RUNTIME.getField(ast, 's-frac')
+              .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1], {}));
+          } else {
+            // (frac-expr n PERCENT dim-expr)
+            return RUNTIME.getField(ast, 's-frac')
+              .app(pos(node.pos),
+                RUNTIME.makeNumberFromString(numden[0], {}),
+                RUNTIME.makeNumberFromString(numden[1], {}),
+                RUNTIME.ffi.makeSome(tr(node.kids[2])));
+          }
         },
         'rfrac-expr': function(node) {
           // (rfrac-expr n)

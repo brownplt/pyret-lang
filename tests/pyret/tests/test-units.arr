@@ -6,6 +6,8 @@ check "Unit equality":
   2 is 2%<m / m>
   2%<s * m> is 2%<m * s>
   2%<(((s * m) ^ 2) / t) ^ 2> is 2%<m * s * m * s * (((m * s) / t) ^ 2)>
+
+  1/1%<m> is 1%<m>
 end
 
 check "Arithmetic binops":
@@ -48,12 +50,14 @@ check "Other supported operations":
   TODO:
   numerator()
   denominator()
-  abs()
-  floor()
-  expt(n)
-  round()
+  What even is the best option for those?
   |#
-  true is true
+  num-abs(-2%<m>) is 2%<m>
+  num-floor(3/2%<m>) is 1%<m>
+  num-expt(2%<m>, 3) is 8%<m ^ 3>
+  num-round(3/2%<m>) is 2%<m>
+
+  num-expt(2%<m>, 3%<m>) raises "expt: power cannot have a unit"
 end
 
 check "Unsupported unops":

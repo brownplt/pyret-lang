@@ -207,7 +207,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
     | s-num(l, n, u-maybe) =>
         k(N.a-val(l, N.a-num(l, n, anf-unit(u-maybe))))
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
-    | s-frac(l, num, den) => k(N.a-val(l, N.a-num(l, num / den, N.a-unit-one))) # Possibly unneeded if removed by desugar?
+    | s-frac(l, num, den, u-maybe) =>
+      k(N.a-val(l, N.a-num(l, num / den, anf-unit(u-maybe)))) # Possibly unneeded if removed by desugar?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
     | s-rfrac(l, num, den) => k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den), N.a-unit-one))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k(N.a-val(l, N.a-str(l, s)))

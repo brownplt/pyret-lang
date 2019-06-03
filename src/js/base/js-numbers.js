@@ -646,13 +646,20 @@ define("pyret-base/js/js-numbers", function() {
       }
     },
     function(x, y, errbacks) {
-      return x.expt(y, errbacks);
+      if (!_unitEquals(_unitOf(y), {})) {
+        errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
+      }
+      return x.expt(_withoutUnit(y), errbacks);
     },
     {
       isXSpecialCase: function(x, errbacks) {
-        return eqv(x, 0, errbacks) || eqv(x, 1, errbacks);
+        return (eqv(x, 0, errbacks) || eqv(x, 1, errbacks));
       },
       onXSpecialCase: function(x, y, errbacks) {
+        if (!_unitEquals(_unitOf(y), {})) {
+          errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
+        }
+
         if (eqv(x, 0, errbacks)) {
           if (eqv(y, 0, errbacks)) {
             return 1;
@@ -667,9 +674,13 @@ define("pyret-base/js/js-numbers", function() {
       },
 
       isYSpecialCase: function(y, errbacks) {
-        return eqv(y, 0, errbacks) || lessThan(y, 0, errbacks);
+        return !(y instanceof Unitnum) && (eqv(y, 0, errbacks) || lessThan(y, 0, errbacks));
       },
       onYSpecialCase: function(x, y, errbacks) {
+        if (!_unitEquals(_unitOf(y), {})) {
+          errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
+        }
+
         if (eqv(y, 0, errbacks)) {
           return 1;
         } else { // i.e., y is negative
@@ -1733,8 +1744,8 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.expt = function(n) {
-    var newUnit = _unitMap(this.u, function(pow) { n * pow });
-    return new Unitnum(expt(this.n), newUnit);
+    var newUnit = _unitMap(this.u, function(pow) { return n * pow });
+    return new Unitnum(expt(this.n, n), newUnit);
   };
 
   Unitnum.prototype.exp = function(errbacks) {

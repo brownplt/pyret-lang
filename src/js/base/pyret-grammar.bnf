@@ -141,8 +141,8 @@ unit-expr: unit-lhs
 
 
 num-expr: NUMBER [PERCENT dim-expr]
-frac-expr: RATIONAL
-rfrac-expr: ROUGHRATIONAL
+frac-expr: RATIONAL [PERCENT dim-expr]
+rfrac-expr: ROUGHRATIONAL [PERCENT dim-expr]
 bool-expr: TRUE | FALSE
 string-expr: STRING
 
