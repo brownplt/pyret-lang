@@ -752,7 +752,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // sqrt: pyretnum -> pyretnum
   var sqrt = function(n, errbacks) {
-    if (lessThan(n, 0, errbacks)) {
+    if (isNegative(n)) {
       errbacks.throwSqrtNegative('sqrt: negative argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -809,7 +809,7 @@ define("pyret-base/js/js-numbers", function() {
     if ( eqv(n, 1, errbacks) ) {
       return 0;
     }
-    if (lessThanOrEqual(n, 0, errbacks)) {
+    if (isNonPositive(n)) {
       errbacks.throwLogNonPositive('log: non-positive argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -884,7 +884,7 @@ define("pyret-base/js/js-numbers", function() {
   // acos: pyretnum -> pyretnum
   var acos = function(n, errbacks) {
     if (eqv(n, 1, errbacks)) { return 0; }
-    if (lessThan(n, -1, errbacks) || greaterThan(n, 1, errbacks)) {
+    if (lessThan(_withoutUnit(n), -1, errbacks) || greaterThan(_withoutUnit(n), 1, errbacks)) {
       errbacks.throwDomainError('acos: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -896,7 +896,7 @@ define("pyret-base/js/js-numbers", function() {
   // asin: pyretnum -> pyretnum
   var asin = function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 0; }
-    if (lessThan(n, -1, errbacks) || greaterThan(n, 1, errbacks)) {
+    if (lessThan(_withoutUnit(n), -1, errbacks) || greaterThan(_withoutUnit(n), 1, errbacks)) {
       errbacks.throwDomainError('asin: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -1161,7 +1161,7 @@ define("pyret-base/js/js-numbers", function() {
     }
   }
 
-  var _makeUnsupportedUnop = function(u, errbacks, opName) {
+  var _throwUnitsUnsupported = function(u, errbacks, opName) {
     // TODO(benmusch): Use another errback function
     errbacks.throwIncompatibleUnits("The " + opName + " operation does not support units" +
       " but was given an argument with the unit " + _unitToString(u))
@@ -1469,6 +1469,18 @@ define("pyret-base/js/js-numbers", function() {
   // isReal: -> boolean
   // Produce true if the number is real.
 
+  // isPositive: -> boolean
+  // Produce true if the number is positive.
+
+  // isNonNegative: -> boolean
+  // Produce true if the number is positive.
+
+  // isNegative: -> boolean
+  // Produce true if the number is positive.
+
+  // isNonPositive: -> boolean
+  // Produce true if the number is positive.
+
   // toRational: -> pyretnum
   // Produce an exact number.
 
@@ -1531,6 +1543,9 @@ define("pyret-base/js/js-numbers", function() {
   // atan: -> pyretnum
   // Produce the arc tangent.
 
+  // tan: -> pyretnum
+  // Produce the arc tangent.
+
   // cos: -> pyretnum
   // Produce the cosine.
 
@@ -1589,6 +1604,22 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.isExact = Unitnum.prototype.isRational;
+
+  Unitnum.prototype.isPositive = function() {
+    return isPositive(this.n);
+  };
+
+  Unitnum.prototype.isNonNegative = function() {
+    return isNonNegative(this.n);
+  };
+
+  Unitnum.prototype.isNegative = function() {
+    return isNegative(this.n);
+  };
+
+  Unitnum.prototype.isNonPositive = function() {
+    return isNonPositive(this.n);
+  };
 
   Unitnum.prototype.toRational = function() {
     return new Unitnum(toRational(this.n), this.u);
@@ -1678,8 +1709,12 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.log = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "log");
+  };
+
+  Unitnum.prototype.tan = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "tan");
   };
 
   Unitnum.prototype.atan = function(errbacks) {
@@ -1702,8 +1737,8 @@ define("pyret-base/js/js-numbers", function() {
     return new Unitnum(expt(this.n), newUnit);
   };
 
-  Unitnum.prototype.exp = function() {
-    return new Unitnum(exp(this.n), this.u);
+  Unitnum.prototype.exp = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "exp");
   };
 
   Unitnum.prototype.acos = function(errbacks) {

@@ -53,6 +53,7 @@ check "Other supported operations":
   expt(n)
   round()
   |#
+  true is true
 end
 
 check "Unsupported unops":
@@ -60,13 +61,13 @@ check "Unsupported unops":
   TODO:
   integerSqrt() - is there any way to trigger this or is this unused?
   |#
-  num-sqrt(2%<m>) raises "sdkfjsdljfsld"
-  num-log(2%<m>) raises "sdkfjsdljfsld"
-  num-atan(2%<m>) raises "sdkfjsdljfsld"
-  num-asin(2%<m>) raises "sdkfjsdljfsld"
-  num-acos(2%<m>) raises "sdkfjsdljfsld"
-  num-sin(2%<m>) raises "sdkfjsdljfsld"
-  num-tan(2%<m>) raises "sdkfjsdljfsld"
-  num-cos(2%<m>) raises "sdkfjsdljfsld"
-  num-exp(2%<m>) raises "sdkfjsdljfsld"
+  num-sqrt(2%<m>) raises "The square root operation does not support units but was given an argument with the unit m"
+  num-log(2%<m>) raises "The log operation does not support units but was given an argument with the unit m"
+  num-atan(2%<m>) raises "The atan operation does not support units but was given an argument with the unit m"
+  num-asin(0%<m>) raises "The asin operation does not support units but was given an argument with the unit m"
+  num-acos(0%<m>) raises "The acos operation does not support units but was given an argument with the unit m"
+  num-sin(2%<m>) raises "The sin operation does not support units but was given an argument with the unit m"
+  num-tan(2%<m>) raises "The tan operation does not support units but was given an argument with the unit m"
+  num-cos(2%<m>) raises "The cos operation does not support units but was given an argument with the unit m"
+  num-exp(2%<m>) raises "The exp operation does not support units but was given an argument with the unit m"
 end
