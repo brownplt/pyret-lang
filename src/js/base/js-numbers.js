@@ -601,7 +601,7 @@ define("pyret-base/js/js-numbers", function() {
       return x >= y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.greaterThanOrEqual(y);
+      return x.greaterThanOrEqual(y, errbacks);
     })(x, y, errbacks);
   }
 
@@ -611,7 +611,7 @@ define("pyret-base/js/js-numbers", function() {
       return x <= y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.lessThanOrEqual(y);
+      return x.lessThanOrEqual(y, errbacks);
     })(x, y, errbacks);
   };
 
@@ -621,7 +621,7 @@ define("pyret-base/js/js-numbers", function() {
       return x > y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.greaterThan(y);
+      return x.greaterThan(y, errbacks);
     })(x, y, errbacks);
   };
 
@@ -631,7 +631,7 @@ define("pyret-base/js/js-numbers", function() {
       return x < y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.lessThan(y);
+      return x.lessThan(y, errbacks);
     })(x, y, errbacks);
   };
 
@@ -1147,6 +1147,26 @@ define("pyret-base/js/js-numbers", function() {
     return _unitMap(u, function(n) { return -1 * n })
   }
 
+  var _ensureSameUnits = function(u1, u2, errbacks, opName) {
+    var msg;
+    if (opName !== undefined) {
+      msg = "Cannot perform " + opName + " operation due to unit mis-match: ";
+    } else {
+      msg = "Cannot perform operation due to unit mis-match: ";
+    }
+    msg += (_unitToString(u1) + " and " + _unitToString(u2));
+
+    if (!_unitEquals(u1, u2)) {
+      errbacks.throwIncompatibleUnits(msg);
+    }
+  }
+
+  var _makeUnsupportedUnop = function(u, errbacks, opName) {
+    // TODO(benmusch): Use another errback function
+    errbacks.throwIncompatibleUnits("The " + opName + " operation does not support units" +
+      " but was given an argument with the unit " + _unitToString(u))
+  }
+
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
@@ -1581,42 +1601,36 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.toFixnum = function() {
-    return this.n;
+    return toFixnum(this.n);
   };
 
-  Unitnum.prototype.greaterThan = function(n) {
-    // TODO(benmusch): Should this check for unit mis-match?
-    return greaterThan(this.n, n);
+  Unitnum.prototype.greaterThan = function(n, errbacks) {
+    _ensureSameUnits(this.u, _unitOf(n), errbacks, ">");
+    return greaterThan(_withoutUnit(this.n), _withoutUnit(n));
   };
 
-  Unitnum.prototype.greaterThanOrEqual = function(n) {
-    // TODO(benmusch): Should this check for unit mis-match?
-    return greaterThanOrEqual(this.n, n);
+  Unitnum.prototype.greaterThanOrEqual = function(n, errbacks) {
+    _ensureSameUnits(this.u, _unitOf(n), errbacks, ">=");
+    return greaterThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
   };
 
-  Unitnum.prototype.lessThan = function(n) {
-    // TODO(benmusch): Should this check for unit mis-match?
-    return lessThan(this.n, n);
+  Unitnum.prototype.lessThan = function(n, errbacks) {
+    _ensureSameUnits(this.u, _unitOf(n), errbacks, "<");
+    return lessThan(_withoutUnit(this.n), _withoutUnit(n));
   };
 
-  Unitnum.prototype.lessThanOrEqual = function(n) {
-    // TODO(benmusch): Should this check for unit mis-match?
-    return lessThanOrEqual(this.n, n);
+  Unitnum.prototype.lessThanOrEqual = function(n, errbacks) {
+    _ensureSameUnits(this.u, _unitOf(n), errbacks, "<=");
+    return lessThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.add = function(n, errbacks) {
-    if (!_unitEquals(this.u, n.u)) {
-      errbacks.throwIncompatibleUnits("Cannot add units: " +
-        _unitToString(this.u) + " and " + _unitToString(n.u));
-    }
+    _ensureSameUnits(this.u, _unitOf(n), errbacks, "+");
     return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u);
   };
 
   Unitnum.prototype.subtract = function(n, errbacks) {
-    if (!_unitEquals(this.u, n.u)) {
-      errbacks.throwIncompatibleUnits("Cannot add units: " +
-        _unitToString(this.u) + " and " + _unitToString(n.u));
-    }
+    _ensureSameUnits(this.u, _unitOf(n), errbacks, "-");
     return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u);
   };
 
@@ -1631,28 +1645,28 @@ define("pyret-base/js/js-numbers", function() {
     return _withUnit(divide(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit);
   };
 
-  Unitnum.prototype.numerator = function() {
+  Unitnum.prototype.numerator = function(errbacks) {
+    // TODO(benmusch): How should this behave? Maybe remove the unit?
     return new Unitnum(numerator(this.n), this.u);
   };
 
-  Unitnum.prototype.denominator = function() {
+  Unitnum.prototype.denominator = function(errbacks) {
+    // TODO(benmusch): How should this behave? Maybe remove the unit?
     return new Unitnum(denominator(this.n), this.u);
   };
 
-  Unitnum.prototype.integerSqrt = function() {
-    // TODO: Check valid units for this
-    var newUnit = _unitMap(this.u, function(n) { return n / 2 });
-    return new Unitnum(integerSqrt(this.n), newUnit);
+  Unitnum.prototype.integerSqrt = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "integer square root");
   };
 
-  Unitnum.prototype.sqrt = function() {
-    // TODO: Check valid units for this
-    var newUnit = _unitMap(this.u, function(n) { return n / 2 });
-    return new Unitnum(sqrt(this.n), newUnit);
+  Unitnum.prototype.sqrt = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "square root");
   };
 
-  Unitnum.prototype.floor = function() {
-    return new Unitnum(floor(this.n), this.u);
+  Unitnum.prototype.abs = function() {
+    return new Unitnum(abs(this.n), this.u);
   };
 
   Unitnum.prototype.floor = function() {
@@ -1663,45 +1677,43 @@ define("pyret-base/js/js-numbers", function() {
     return new Unitnum(ceiling(this.n), this.u);
   };
 
-  Unitnum.prototype.ceiling = function() {
-    // TODO(benmush): how should this behave???
-    return new Unitnum(log(this.n), this.u);
+  Unitnum.prototype.log = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "log");
   };
 
-  Unitnum.prototype.atan = function() {
-    // TODO(benmush): how should this behave???
-    return new Unitnum(atan(this.n), this.u);
+  Unitnum.prototype.atan = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "atan");
   };
 
-  Unitnum.prototype.cos = function() {
-    // TODO(benmush): how should this behave???
-    return new Unitnum(cos(this.n), this.u);
+  Unitnum.prototype.cos = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "cos");
   };
 
-  Unitnum.prototype.sin = function() {
-    // TODO(benmush): how should this behave???
-    return new Unitnum(sin(this.n), this.u);
+  Unitnum.prototype.sin = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "sin");
   };
 
   Unitnum.prototype.expt = function(n) {
-    // TODO(benmush): What even is this vs exp???
     var newUnit = _unitMap(this.u, function(pow) { n * pow });
     return new Unitnum(expt(this.n), newUnit);
   };
 
   Unitnum.prototype.exp = function() {
-    // TODO(benmush): What even is this vs expt???
     return new Unitnum(exp(this.n), this.u);
   };
 
-  Unitnum.prototype.acos = function() {
-    // TODO(benmush): how should this behave???
-    return new Unitnum(acos(this.n), this.u);
+  Unitnum.prototype.acos = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "acos");
   };
 
-  Unitnum.prototype.asin = function() {
-    // TODO(benmush): how should this behave???
-    return new Unitnum(asin(this.n), this.u);
+  Unitnum.prototype.asin = function(errbacks) {
+    // TODO(benmusch): potentially support units here
+    _throwUnitsUnsupported(this.u, errbacks, "asin");
   };
 
   Unitnum.prototype.round = function() {
