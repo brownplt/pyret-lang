@@ -977,8 +977,7 @@
           if (node.kids.length === 1) {
             return RUNTIME.getField(ast, 'u-base')
               .app(pos(node.pos), name(node.kids[0]))
-          } else if (node.kids[1].name === 'CARET') {
-            // (unit-expr unit-lhs CARET unit-expr)
+          } else if (node.kids.length === 3 && node.kids[1].name === 'CARET') {
             return RUNTIME.getField(ast, 'u-pow')
               .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), number(node.kids[2]))
           } else {
