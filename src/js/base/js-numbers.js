@@ -1636,7 +1636,7 @@ define("pyret-base/js/js-numbers", function() {
   Unitnum.prototype.toExact = Unitnum.prototype.toRational;
 
   Unitnum.prototype.toRoughnum = function() {
-    return new Unitnum(toRoughnum(this.n), u);
+    return new Unitnum(toRoughnum(this.n), this.u);
   };
 
   Unitnum.prototype.toFixnum = function() {
