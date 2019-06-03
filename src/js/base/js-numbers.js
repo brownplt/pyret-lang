@@ -511,7 +511,7 @@ define("pyret-base/js/js-numbers", function() {
   var equalsAnyZero = function(x, errbacks) {
     if (typeof(x) === 'number') return x === 0;
     if (isRoughnum(x)) return x.n === 0;
-    return x.equals(0, errbacks);
+    return equals(x, 0, errbacks);
   };
 
   // eqv: pyretnum pyretnum -> boolean
@@ -1709,8 +1709,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.equals = function(other) {
-    return _unitEquals(_unitOf(this), _unitOf(other)) &&
-      equals(this.n, _withoutUnit(other));
+    // TODO(benmusch): should this support a polymorphic zero which ignores
+    // units?
+    return _unitEquals(this.u, _unitOf(other)) &&
+      equals(this.n, other.n);
   };
 
   // Rationals

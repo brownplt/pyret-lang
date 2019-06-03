@@ -151,7 +151,7 @@ fun unit-names(u :: A.Unit) -> Set<A.Name>:
     | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
     | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
     | u-pow(_, _, shadow u, n) => unit-names(u)
-    | u-paren(_, _, shadow u, n) => unit-names(u)
+    | u-paren(_, shadow u) => unit-names(u)
   end
 end
 
@@ -163,7 +163,7 @@ fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
     | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
     | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
     | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
-    | u-paren(_, _, shadow u, n) => unit-power(target-id, u)
+    | u-paren(_, shadow u) => unit-power(target-id, u)
   end
 end
 
