@@ -10,6 +10,27 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 // TODO: Change to myrequire
 requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, loader, runtimeLib, loadHooksLib, stackLib, program) {
 
+  var oldLog = console.log;
+  console.log = function(message) {
+    var outputLine = "";
+    for (let i = 0; i < arguments.length; i++) {
+      var separator = ",";
+      if (i === arguments.length - 1) {
+        separator = "";
+      }
+
+      var arg = arguments[i];
+      if (typeof arg === "object") {
+        outputLine += JSON.stringify(arg, null, 4) + separator;
+      } else {
+        outputLine += arg + separator;
+      }
+    }
+
+    postMessage(outputLine);
+    // oldLog.apply(console, arguments);
+  };
+
   loader.compileInNewScriptContext = function(src) {
     var promise = Q.defer();
     var loader_callback_count = 0;
@@ -18,7 +39,7 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
     if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
       var resultF = eval("(function() { return " + src + "; })");
       var result = resultF();
-      console.log("The result", result);
+      // console.log("The result", result);
       promise.resolve(result);
       return promise.promise;
     }

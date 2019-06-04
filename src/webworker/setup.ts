@@ -21,19 +21,13 @@ BrowserFS.configure({
   }
 });
 
-window["BrowserFS"] = BrowserFS;
-module.exports = {
-  BrowserFS: BrowserFS,
-  worker: myWorker
-};
-
 // Setup HTML output
 // NOTE(alex): May need to CTRL + F5 (refresh and clear cache) in order to see HTML logs
 var consoleOutputElement = document.getElementById("consoleOut");
-var oldLog = console.log;
 var consoleOutput = "";
+const oldLog = console.log;
 
-var genericLog = function(prefix, ...args: any[]) {
+const genericLog = function(prefix, ...args: any[]) {
   var outputLine = prefix;
   let logArgs = arguments[1];
   for (let i = 0; i < logArgs.length; i++) {
@@ -56,12 +50,19 @@ var genericLog = function(prefix, ...args: any[]) {
   consoleOutputElement.innerHTML = consoleOutput;
 };
 
-console.log = function(message) {
+console.log = function() {
   genericLog("[LOG]", arguments);
-  oldLog(message, arguments);
+  oldLog.apply(console, arguments);
 }
 
-var workerLog = function(message) {
+const workerLog = function() {
   genericLog("[WORKER]", arguments);
-  oldLog(message, arguments);
+  oldLog.apply(console, arguments);
+};
+
+window["BrowserFS"] = BrowserFS;
+module.exports = {
+  BrowserFS: BrowserFS,
+  worker: myWorker,
+  workerLog: workerLog
 };
