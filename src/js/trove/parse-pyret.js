@@ -1390,6 +1390,11 @@
           return RUNTIME.getField(ast, 'a-pred')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
         },
+        'unit-ann': function(node) {
+          // (unit-ann ann PERCENT dim-expr)
+          return RUNTIME.getField(ast, 'a-unit')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+        },
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)
           return RUNTIME.getField(ast, 'a-dot')

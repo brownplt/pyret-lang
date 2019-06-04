@@ -1325,6 +1325,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method a-record(self, l, fields): A.a-record(l, fields.map(_.visit(self))) end,
     method a-app(self, l, ann, args): A.a-app(l, ann.visit(self), args.map(_.visit(self))) end,
     method a-pred(self, l, ann, exp): A.a-pred(l, ann.visit(self), exp.visit(self)) end,
+    method a-unit(self, l, ann, u): A.a-unit(l, ann.visit(self), u) end,
     method a-dot(self, l, obj, field) block:
       cases(A.Name) obj block:
         | s-name(nameloc, s) =>

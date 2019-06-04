@@ -1371,6 +1371,9 @@ top-level-visitor = A.default-iter-visitor.{
   method s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
     well-formed-visitor.s-table-extend(l, column-binds, extensions)
   end,
+  method s-num(self, l, n, unit-maybe):
+    well-formed-visitor.s-num(l, n, unit-maybe)
+  end,
   method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
   end,
@@ -1389,14 +1392,14 @@ top-level-visitor = A.default-iter-visitor.{
   method a-pred(_, l, ann, exp):
     well-formed-visitor.a-pred(l, ann, exp)
   end,
+  method a-unit(_, l, ann, u):
+    well-formed-visitor.a-unit(l, ann, u)
+  end,
   method a-dot(_, l, obj, field):
     well-formed-visitor.a-dot(l, obj, field)
   end,
   method a-field(_, l, name, ann):
     well-formed-visitor.a-field(l, name, ann)
-  end,
-  method s-num(self, l, n, unit-maybe):
-    well-formed-visitor.s-num(l, n, unit-maybe)
   end
 }
 

@@ -2295,6 +2295,9 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
             fold-errors([list: C.cant-typecheck("missing annotation on " + tostring(ann), l)])
         end
       end)
+    | a-unit(l, ann, u) =>
+      # TODO(benmusch): Change this to tc units
+      to-type(ann, context)
     | a-dot(l, obj, field) =>
       key = obj.key()
       origin = context.module-names.get(key)

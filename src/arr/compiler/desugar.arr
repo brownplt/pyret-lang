@@ -108,6 +108,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
       A.a-record(l, fields.map(desugar-afield))
     | a-tuple(l, fields) =>
       A.a-tuple(l, fields.map(desugar-ann))
+    | a-unit(l, ann, u) =>
+      A.a-unit(l, desugar-ann(ann), u)
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end

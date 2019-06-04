@@ -781,6 +781,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-tuple(l, fields) => freevars-list-acc(fields, seen-so-far)
     | a-app(l, a, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
     | a-method-app(l, a, _, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
+    | a-unit(l, a, u) => freevars-ann-acc(a, seen-so-far)
     | a-pred(l, a, pred) =>
       name = cases(A.Expr) pred:
         | s-id(_, n) => n

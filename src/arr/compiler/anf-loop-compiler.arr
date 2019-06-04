@@ -395,6 +395,9 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         rt-method(pred-maker, [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
         cl-append(compiled-base.other-stmts, compiled-exp.other-stmts)
         )
+    | a-unit(l, base, u) =>
+      # TODO(benmusch): change this to compile units
+      compile-ann(base, visitor)
     | a-dot(l, m, field) =>
       c-exp(
         rt-method("getDotAnn", [clist:

@@ -1742,6 +1742,12 @@ data Ann:
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     method label(self): "a-pred" end,
     method tosource(self): self.ann.tosource() + str-percent + PP.parens(self.exp.tosource()) end,
+  | a-unit(l :: Loc, ann :: Ann, u :: Unit) with:
+    method label(self): "a-unit" end,
+    method tosource(self) block:
+      unit-str = PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)
+      self.ann.tosource() + str-percent + unit-str
+    end
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     method label(self): "a-dot" end,
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
@@ -2393,6 +2399,10 @@ default-map-visitor = {
   method a-pred(self, l, ann, exp):
     a-pred(l, ann.visit(self), exp.visit(self))
   end,
+  method a-unit(self, l, ann, u):
+    # TODO(benmusch): Add units to the visitor?
+    a-unit(l, ann.visit(self), u)
+  end,
   method a-dot(self, l, obj, field):
     a-dot(l, obj.visit(self), field)
   end,
@@ -2943,6 +2953,9 @@ default-iter-visitor = {
   method a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
   end,
+  method a-unit(self, l, ann, u):
+    ann.visit(self)
+  end,
   method a-dot(self, l, obj, field):
     obj.visit(self)
   end,
@@ -3489,6 +3502,9 @@ dummy-loc-visitor = {
   end,
   method a-pred(self, l, ann, exp):
     a-pred(dummy-loc, ann.visit(self), exp.visit(self))
+  end,
+  method a-unit(self, l, ann, u):
+    a-unit(dummy-loc, ann.visit(self), u)
   end,
   method a-dot(self, l, obj, field):
     a-dot(dummy-loc, obj, field)
