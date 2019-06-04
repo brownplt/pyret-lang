@@ -324,6 +324,14 @@ fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
   end
 end
 
+fun unit-ann-loc(ann :: A.Ann) -> Option<A.Loc>:
+  cases(A.Ann) ann:
+    | a-pred(l, base, exp) => unit-ann-loc(base)
+    | a-unit(l, base, u) => some(l)
+    | else => none
+  end
+end
+
 fun wf-last-stmt(block-loc, stmt :: A.Expr):
   cases(A.Expr) stmt:
     | s-let(l, _, _, _)                   => add-error(C.block-ending(l, block-loc, "let-binding"))
@@ -1044,6 +1052,14 @@ well-formed-visitor = A.default-iter-visitor.{
   method a-name(self, l, id) block:
     when A.is-s-underscore(id):
       add-error(C.underscore-as-ann(l))
+    end
+    true
+  end,
+  method a-unit(self, l, base, u) block:
+    wf-unit(u, none)
+    cases(Option) unit-ann-loc(base):
+      | none => nothing
+      | some(dup-l) => add-error(C.multiple-unit-anns(l, dup-l))
     end
     true
   end,

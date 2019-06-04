@@ -273,13 +273,21 @@ check "unit annotations":
   run-str("~1/2%<m * n / o>") is%(output) compile-error(CS.is-mixed-binops)
   run-str("~1/2%<m ^ 1 / o>") is%(output) compile-error(CS.is-mixed-binops)
   run-str("~1/2%<m / n * o>") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("var n :: Number%<m * n / o> = 0") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("var n :: Number%<m ^ 1 / o> = 0") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("var n :: Number%<m / n * o> = 0") is%(output) compile-error(CS.is-mixed-binops)
 
   run-str("2%<m ^ 0>") is%(output) compile-error(CS.is-invalid-unit-power)
-  run-str("2%<m ^ 0>") is%(output) compile-error(CS.is-invalid-unit-power)
+  run-str("2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
+  run-str("1/2%<m ^ 0>") is%(output) compile-error(CS.is-invalid-unit-power)
   run-str("1/2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
-  run-str("1/2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
+  run-str("~1/2%<m ^ 0>") is%(output) compile-error(CS.is-invalid-unit-power)
   run-str("~1/2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
-  run-str("~1/2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
+  run-str("var n :: Number%<m ^ 0> = 0") is%(output) compile-error(CS.is-invalid-unit-power)
+  run-str("var n :: Number%<m ^ 2.1> = 0") is%(output) compile-error(CS.is-invalid-unit-power)
+
+  run-str("var n :: Number%<m>%<s> = 0") is%(output) compile-error(CS.is-multiple-unit-anns)
+  run-str("var n :: Number%<m>%(num-is-integer)%<s> = 0") is%(output) compile-error(CS.is-multiple-unit-anns)
 end
 
 #|
