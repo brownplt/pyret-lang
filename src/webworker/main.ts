@@ -24,5 +24,5 @@ compile.onclick = function() {
 };
 
 worker.onmessage = function(e) {
-  setup.workerLog("Worker: ", e.data);
+  setup.workerLog(e.data);
 };
