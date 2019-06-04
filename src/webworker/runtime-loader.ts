@@ -4,7 +4,6 @@ let files = require("../../build/worker/runtime-files.json");
 function load(): void {
   let bfs = window["BrowserFS"];
   let fs = bfs.BFSRequire("fs");
-  console.log("Loading files" , files);
 
   let prewritten = "./prewritten";
   let uncompiled = "./uncompiled";
@@ -16,7 +15,7 @@ function load(): void {
     fs.mkdirSync(uncompiled);
   }
 
-  console.log("Loading files" , files);
+  console.log("Loading runtime files.");
 
   for (var index in files) {
     var path = files[index].key;
@@ -25,7 +24,7 @@ function load(): void {
     if (fs.existsSync(path)) {
       let statResult = fs.statSync(path);
       let localTimestamp = statResult.mtime.getTime();
-      console.log(path, localTimestamp, canonicalTimestamp);
+      console.log("Loading " + path, localTimestamp, canonicalTimestamp);
       if (localTimestamp < canonicalTimestamp) {
         fs.writeFileSync(path, content);
       }
