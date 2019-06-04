@@ -470,8 +470,6 @@ check "should parse reactors":
 end
 
 check "should parse unit-annotated numbers":
-  # TODO(benmusch): Figure out a non-ambiguous grammar to get rid of the need
-  # for %'s
   does-parse("2%<m>") is true
   does-parse("2%<(m)>") is true
   does-parse("2%<m * n>") is true
@@ -491,4 +489,22 @@ check "should parse unit-annotated numbers":
   does-parse("2%<m ^ 6/5>") is false
   does-parse("2%<m ^ n>") is false
   does-parse("2%<m^1>") is false
+end
+
+check "should parse unit-anns numbers":
+  does-parse("n :: Number%<m> = 0") is true
+  does-parse("n :: Number%<m>%(is-even) = 0") is true
+  does-parse("n :: Number%<m>%(is-two)%(is-even) = 0") is true
+  does-parse("n :: String%<m> = 'foo'") is true
+
+  # TODO(benmusch): Should these parse?
+  does-parse("n :: Number%(is-two)%<m> = 0") is true
+
+  # should be caught by wf:
+  does-parse("n :: Number%<m>%<s> = 0") is true
+  does-parse("n :: Number%<m>%(is-even)%<s> = 0") is true
+  does-parse("n :: Number%<m / s * m> = 0") is true
+
+  does-parse("n :: Number%<>%(is-even) = 0") is false
+  does-parse("n :: Number%<> = 0") is false
 end
