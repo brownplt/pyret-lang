@@ -50,14 +50,15 @@ const genericLog = function(prefix, ...args: any[]) {
   consoleOutputElement.innerHTML = consoleOutput;
 };
 
-console.log = function() {
-  genericLog("[LOG]", arguments);
-  oldLog.apply(console, arguments);
+console.log = function(...args) {
+  genericLog("[LOG]", args);
+  oldLog.apply(console, args);
 }
 
-const workerLog = function() {
-  genericLog("[WORKER]", arguments);
-  oldLog.apply(console, arguments);
+const workerLog = function(...args) {
+  genericLog("[WORKER]", args);
+  args.unshift("Worker:");
+  oldLog.apply(console, args);
 };
 
 window["BrowserFS"] = BrowserFS;
