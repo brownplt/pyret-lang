@@ -261,6 +261,6 @@ app-ann: (name-ann|dot-ann) LANGLE comma-anns (RANGLE|GT)
 
 comma-anns: ann (COMMA ann)*
 
-pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
+pred-ann: ann [PERCENT dim-expr] PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
 
 dot-ann : NAME DOT NAME
