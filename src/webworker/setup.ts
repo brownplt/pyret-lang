@@ -27,6 +27,7 @@ var consoleOutputElement = document.getElementById("consoleOut");
 var outputList = document.createElement("ul");
 consoleOutputElement.appendChild(outputList);
 const oldLog = console.log;
+const oldError = console.error;
 
 const genericLog = function(prefix, ...args: any[]) {
   var outputLine = prefix;
@@ -61,13 +62,19 @@ console.log = function(...args) {
 
 console.error = function(...args) {
   genericLog("[ERR]", args);
-  oldLog.apply(console, args);
+  oldError.apply(console, args);
 }
 
 const workerLog = function(...args) {
   genericLog("[WORKER]", args);
   args.unshift("Worker:");
   oldLog.apply(console, args);
+};
+
+const workerError = function(...args) {
+  genericLog("[WORKER-ERR]", args);
+  args.unshift("Worker Error:");
+  oldError.apply(console, args);
 };
 
 window["BrowserFS"] = BrowserFS;
