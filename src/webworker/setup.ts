@@ -48,6 +48,7 @@ const genericLog = function(prefix, ...args: any[]) {
   consoleOutput += outputLine;
 
   consoleOutputElement.innerHTML = consoleOutput;
+  consoleOutputElement.scrollTop = consoleOutputElement.scrollHeight;
 };
 
 console.log = function(...args) {
