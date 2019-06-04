@@ -143,43 +143,6 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
   anf-block-help(es-init)
 end
 
-# return all of the names in a unit
-fun unit-names(u :: A.Unit) -> Set<A.Name>:
-  cases (A.Unit) u:
-    | u-one(_) => [list-set: ]
-    | u-base(_, id) => [list-set: id]
-    | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
-    | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
-    | u-pow(_, _, shadow u, n) => unit-names(u)
-    | u-paren(_, shadow u) => unit-names(u)
-  end
-end
-
-fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
-  cases (A.Unit) u:
-    | u-one(_) => 0
-    | u-base(_, id) =>
-      if id == target-id: 1 else: 0 end
-    | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
-    | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
-    | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
-    | u-paren(_, shadow u) => unit-power(target-id, u)
-  end
-end
-
-fun anf-unit(u-maybe :: Option<A.Unit>) -> N.AUnit:
-  cases(Option) u-maybe:
-    | none => N.a-unit-one
-    | some(u) =>
-      unit-names(u).fold(
-        lam(acc, id):
-          power = unit-power(id, u)
-          if power == 0: acc else: N.a-unit-name(id, power, acc) end
-        end,
-        N.a-unit-one)
-  end
-end
-
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
@@ -205,13 +168,13 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
         
       end)
     | s-num(l, n, u-maybe) =>
-        k(N.a-val(l, N.a-num(l, n, anf-unit(u-maybe))))
+        k(N.a-val(l, N.a-num(l, n, u-maybe)))
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
     | s-frac(l, num, den, u-maybe) =>
-      k(N.a-val(l, N.a-num(l, num / den, anf-unit(u-maybe)))) # Possibly unneeded if removed by desugar?
+      k(N.a-val(l, N.a-num(l, num / den, u-maybe))) # Possibly unneeded if removed by desugar?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
     | s-rfrac(l, num, den, u-maybe) =>
-      k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den), anf-unit(u-maybe)))) # Possibly unneeded if removed by desugar?
+      k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den), u-maybe))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k(N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
@@ -383,7 +346,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
       N.a-let(
         l,
         bind(l, array-id),
-        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length(), N.a-unit-one)], flat-prim-app),
+        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length(), none)], flat-prim-app),
         anf-name-arr-rec(values, array-id, 0, lam():
           k(N.a-val(l, N.a-id(l, array-id)))
         end))

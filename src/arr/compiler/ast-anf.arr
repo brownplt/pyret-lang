@@ -63,17 +63,6 @@ sharing:
   end
 end
 
-# normalized form of a unit as a linked-list of names and powers
-data AUnit:
-  | a-unit-one with:
-    method tosource(self): PP.str("") end
-  | a-unit-name(id :: A.Name, power :: Number, rest :: AUnit) with:
-    method tosource(self):
-      PP.separate(str-space, [list:
-        self.id.tosource(), str-caret, PP.number(self.power), self.rest.tosource()])
-    end
-end
-
 data AImportType:
   | a-import-builtin(l :: Loc, lib :: String) with:
     method tosource(self): PP.str(self.lib) end
@@ -475,13 +464,12 @@ data AVal:
   | a-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "a-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | a-num(l :: Loc, n :: Number, u :: AUnit) with:
+  | a-num(l :: Loc, n :: Number, u :: Option<A.Unit>) with:
     method label(self): "a-num" end,
     method tosource(self):
-      cases(AUnit) self.u:
-        | a-unit-one(_) => PP.number(self.n)
-        | a-unit-name(_, _, _) => PP.separate(str-percent,
-          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
+      cases(Option) self.u:
+        | none => PP.number(self.n)
+        | some(u) => PP.separate(str-percent, [list: PP.number(self.n), u.tosource()])
       end
     end
   | a-str(l :: Loc, s :: String) with:
@@ -725,7 +713,7 @@ default-map-visitor = {
   method a-srcloc(self, l, loc):
     a-srcloc(l, loc)
   end,
-  method a-num(self, l :: Loc, n :: Number, u :: AUnit):
+  method a-num(self, l :: Loc, n :: Number, u :: Option<A.Unit>):
     a-num(l, n, u)
   end,
   method a-str(self, l :: Loc, s :: String):
@@ -832,7 +820,7 @@ where:
   x = n("x")
   y = n("y")
   freevars-e(
-      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4, a-unit-one)),
+      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4, none)),
         a-lettable(d, a-val(d, a-id(d, y))))).keys-list() is [list: y.key()]
 end
 

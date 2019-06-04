@@ -1328,11 +1328,45 @@ fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: S
     flatness-env.has-key-now(name)
 end
 
-fun compile-unit(u :: N.AUnit, acc :: CList<J.JField>) -> J.JExpr:
-  cases(N.AUnit) u:
-    | a-unit-one => J.j-obj(acc)
-    | a-unit-name(id, power, rest) =>
-      compile-unit(rest, CL.concat-cons(j-field(tostring(id), j-num(power)), acc))
+# return all of the names in a unit
+fun unit-names(u :: A.Unit) -> Set<A.Name>:
+  cases (A.Unit) u:
+    | none(_) => [list-set: ]
+    | u-base(_, id) => [list-set: id]
+    | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
+    | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
+    | u-pow(_, _, shadow u, n) => unit-names(u)
+    | u-paren(_, shadow u) => unit-names(u)
+  end
+end
+
+fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
+  cases (A.Unit) u:
+    | none(_) => 0
+    | u-base(_, id) =>
+      if id == target-id: 1 else: 0 end
+    | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
+    | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
+    | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
+    | u-paren(_, shadow u) => unit-power(target-id, u)
+  end
+end
+
+fun compile-unit(u-maybe :: Option<A.Unit>) -> J.JExpr:
+  cases(Option) u-maybe block:
+    | none => J.j-obj(CL.concat-empty)
+    | some(u) =>
+      fields = unit-names(u).fold(
+        lam(acc, id):
+          power = unit-power(id, u)
+          if power == 0:
+            acc
+          else:
+            CL.concat-cons(j-field(tostring(id), j-num(power)), acc)
+          end
+        end,
+        CL.concat-empty)
+      j-obj(fields)
   end
 end
 
@@ -1680,11 +1714,11 @@ compiler-visitor = {
   method a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
-  method a-num(self, l :: Loc, n :: Number, u :: N.AUnit) block:
-    if num-is-fixnum(n) and N.is-a-unit-one(u):
+  method a-num(self, l :: Loc, n :: Number, u-maybe :: Option<A.Unit>) block:
+    if num-is-fixnum(n) and A.is-u-one(u-maybe.or-else(A.u-one(N.dummy-loc))):
       c-exp(j-parens(j-num(n)), cl-empty)
     else:
-      args = [clist: j-str(tostring(n)), compile-unit(u, CL.concat-empty)]
+      args = [clist: j-str(tostring(n)), compile-unit(u-maybe)]
       c-exp(rt-method("makeNumberFromString", args), cl-empty)
     end
   end,
@@ -1921,22 +1955,21 @@ remove-useless-if-visitor = N.default-map-visitor.{
 
 check:
   d = N.dummy-loc
-  u-one = N.a-unit-one
   true1 = N.a-if(d, N.a-bool(d, true),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u-one))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 2, u-one))))
-  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1, u-one))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, none))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 2, none))))
+  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1, none))
 
   false4 = N.a-if(d, N.a-bool(d, false),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 3, u-one))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u-one))))
-  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4, u-one))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 3, none))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, none))))
+  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4, none))
 
   N.a-if(d, N.a-id(d, A.s-name(d, "x")), N.a-lettable(d, true1), N.a-lettable(d, false4)
     ).visit(remove-useless-if-visitor)
     is N.a-if(d, N.a-id(d, A.s-name(d, "x")),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u-one))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u-one))))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, none))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, none))))
 
 end
 |#
