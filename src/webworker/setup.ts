@@ -59,6 +59,11 @@ console.log = function(...args) {
   oldLog.apply(console, args);
 }
 
+console.error = function(...args) {
+  genericLog("[ERR]", args);
+  oldLog.apply(console, args);
+}
+
 const workerLog = function(...args) {
   genericLog("[WORKER]", args);
   args.unshift("Worker:");
