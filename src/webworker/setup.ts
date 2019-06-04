@@ -24,12 +24,14 @@ BrowserFS.configure({
 // Setup HTML output
 // NOTE(alex): May need to CTRL + F5 (refresh and clear cache) in order to see HTML logs
 var consoleOutputElement = document.getElementById("consoleOut");
-var consoleOutput = "";
+var outputList = document.createElement("ul");
+consoleOutputElement.appendChild(outputList);
 const oldLog = console.log;
 
 const genericLog = function(prefix, ...args: any[]) {
   var outputLine = prefix;
   let logArgs = arguments[1];
+
   for (let i = 0; i < logArgs.length; i++) {
     var separator = ",";
     if (i === logArgs.length - 1) {
@@ -43,11 +45,12 @@ const genericLog = function(prefix, ...args: any[]) {
       outputLine += arg + separator;
     }
   }
-  outputLine += "\n";
+   
   
-  consoleOutput += outputLine;
+  var li = document.createElement("li");
+  li.innerHTML = outputLine;
+  outputList.appendChild(li);
 
-  consoleOutputElement.innerHTML = consoleOutput;
   consoleOutputElement.scrollTop = consoleOutputElement.scrollHeight;
 };
 
