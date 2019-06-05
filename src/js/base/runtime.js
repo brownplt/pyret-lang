@@ -2933,12 +2933,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.ann = ann;
       this.u = u;
       this.flat = true;
+      this.isAny = jsnums.checkUnit(this.u, { "_": 1 })
     }
     function makeUnitAnn(ann, u) {
       return new PUnitAnn(ann, u);
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {
-      if (!jsnums.checkUnit(jsnums.getUnit(val), this.u)) {
+      if (!this.isAny && !jsnums.checkUnit(jsnums.getUnit(val), this.u)) {
         var name = "<" + jsnums.unitToString(this.u) + ">";
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),

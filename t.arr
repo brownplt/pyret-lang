@@ -1,3 +1,2 @@
-fun id(x): x end
- fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end
- f('foo')
+fun id(n :: Number): n end
+id(1%<s>)

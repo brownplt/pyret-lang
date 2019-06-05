@@ -93,9 +93,9 @@ fun desugar-ann-helper(a :: A.Ann, seen-unit :: Boolean) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
     | a-any(_) => a
-    | a-name(_, _) =>
+    | a-name(l, _) =>
       # TODO(benmusch): should we check if this is a number-related name?
-      if seen-unit: a else: A.a-unit(A.dummy-loc, a, A.u-one(A.dummy-loc)) end
+      if seen-unit: a else: A.a-unit(l, a, A.u-one(A.dummy-loc)) end
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
     | a-arrow(l, args, ret, use-parens) =>
