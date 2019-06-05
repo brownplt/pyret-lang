@@ -37,7 +37,17 @@ worker.onmessage = function(e) {
         setup.workerLog(msgObject.data);
       }
     } else {
-      setup.workerLog(e.data);
+      var msgType = msgObject["type"];
+      if (msgType == "echo-log") {
+        setup.workerLog(msgObject.contents);
+      } else if (msgType == "echo-err") {
+        setup.workerError(msgObject.contents);
+      } else if (msgType == "compile-failure") {
+        setup.workerError("Compilation failure");
+      } else {
+        setup.workerLog(e.data);
+      }
+
     }
   } catch(error) {
     setup.workerLog(e.data);
