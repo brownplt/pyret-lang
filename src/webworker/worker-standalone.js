@@ -14,7 +14,7 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
     let outputLine = "";
     let logArgs = args[0];
     for (let i = 0; i < logArgs.length; i++) {
-      var separator = ",";
+      var separator = " ";
       if (i === logArgs.length - 1) {
         separator = "";
       }

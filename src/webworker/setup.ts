@@ -42,7 +42,7 @@ const genericLog = function(prefix, className, ...args: any[]) {
   let logArgs = args[0];
 
   for (let i = 0; i < logArgs.length; i++) {
-    var separator = ",";
+    var separator = " ";
     if (i === logArgs.length - 1) {
       separator = "";
     }
