@@ -333,7 +333,7 @@ end
 # return all of the names in a unit
 fun unit-names(u :: A.Unit) -> Set<A.Name>:
   cases (A.Unit) u:
-    | none(_) => [list-set: ]
+    | u-one(_) => [list-set: ]
     | u-base(_, id) => [list-set: id]
     | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
     | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
@@ -344,7 +344,7 @@ end
 
 fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
   cases (A.Unit) u:
-    | none(_) => 0
+    | u-one(_) => 0
     | u-base(_, id) =>
       if id == target-id: 1 else: 0 end
     | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
