@@ -15,8 +15,6 @@ function load(): void {
     fs.mkdirSync(uncompiled);
   }
 
-  console.log("Loading runtime files.");
-
   for (var index in files) {
     var path = files[index].key;
     var content = files[index].content;
@@ -24,7 +22,6 @@ function load(): void {
     if (fs.existsSync(path)) {
       let statResult = fs.statSync(path);
       let localTimestamp = statResult.mtime.getTime();
-      console.log("Loading " + path, localTimestamp, canonicalTimestamp);
       if (localTimestamp < canonicalTimestamp) {
         fs.writeFileSync(path, content);
       }

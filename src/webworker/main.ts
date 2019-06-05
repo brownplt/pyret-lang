@@ -9,7 +9,6 @@ const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
-console.log(showBFS.checked);
 
 compile.onclick = function() {
   fs.writeFileSync("./projects/program.arr", input.value);

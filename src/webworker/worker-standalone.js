@@ -91,7 +91,7 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
   var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: checkFlag("checks") === "all"});
   postLoadHooks[main] = function(answer) {
     var checks = checkFlag("checks");
-    if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
+    if(checks && checks === "none") {  return; }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
@@ -207,9 +207,7 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
   function onComplete(result) {
     // This function is *not* on the Pyret stack, so no need to pause
     if(runtime.isSuccessResult(result)) {
-      //console.log("The program completed successfully");
-      //console.log(result);
-      process.exit(EXIT_SUCCESS);
+      console.log("Worker setup done, ready to receive compilation requests");
     }
     else if (runtime.isFailureResult(result)) {
       if (runtime.isPyretException(result.exn) && isExit(runtime, result)) {

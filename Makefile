@@ -3,7 +3,7 @@
 all: build parser
 
 build: src/arr/compiler/pyret-parser.js
-	pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
+	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
 web: build/worker/pyret-grammar.js
 	mkdir -p build/worker; 
@@ -11,7 +11,7 @@ web: build/worker/pyret-grammar.js
 	make build/worker/runtime-files.json
 	make build/worker/page.html
 	make build/worker/main.js
-	pyret --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
+	pyret --checks none --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.arr.j*
 	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/ build/worker/runtime-files.json
