@@ -31,7 +31,7 @@ const oldError = console.error;
 
 const genericLog = function(prefix, ...args: any[]) {
   var outputLine = prefix;
-  let logArgs = arguments[1];
+  let logArgs = args[0];
 
   for (let i = 0; i < logArgs.length; i++) {
     var separator = ",";
