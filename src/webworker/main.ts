@@ -24,5 +24,22 @@ compile.onclick = function() {
 };
 
 worker.onmessage = function(e) {
-  setup.workerLog(e.data);
+  try {
+    var msgObject = JSON.parse(e.data);
+
+    var tag = msgObject["tag"];
+    if (tag !== undefined) {
+      if (tag === "log") {
+        setup.workerLog(msgObject.data);
+      } else if (tag === "error") {
+        setup.workerError(msgObject.data);
+      } else {
+        setup.workerLog(msgObject.data);
+      }
+    } else {
+      setup.workerLog(e.data);
+    }
+  } catch(error) {
+    setup.workerLog(e.data);
+  }
 };

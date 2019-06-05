@@ -10,16 +10,16 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 // TODO: Change to myrequire
 requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, loader, runtimeLib, loadHooksLib, stackLib, program) {
 
-  var oldLog = console.log;
-  console.log = function(message) {
-    var outputLine = "";
-    for (let i = 0; i < arguments.length; i++) {
+  const genericLog = function(tag, ...args) {
+    let outputLine = "";
+    let logArgs = args[0];
+    for (let i = 0; i < logArgs.length; i++) {
       var separator = ",";
-      if (i === arguments.length - 1) {
+      if (i === logArgs.length - 1) {
         separator = "";
       }
 
-      var arg = arguments[i];
+      let arg = logArgs[i];
       if (typeof arg === "object") {
         outputLine += JSON.stringify(arg, null, 4) + separator;
       } else {
@@ -27,8 +27,17 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
       }
     }
 
-    postMessage(outputLine);
+    let msgObject = { tag: tag, data: outputLine };
+    postMessage(JSON.stringify(msgObject));
     // oldLog.apply(console, arguments);
+  };
+
+  console.log = function(...args) {
+    genericLog("log", args);
+  };
+
+  console.error = function(...args) {
+    genericLog("error", args);
   };
 
   loader.compileInNewScriptContext = function(src) {
