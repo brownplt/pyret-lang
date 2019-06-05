@@ -2932,12 +2932,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function PUnitAnn(ann, u) {
       this.ann = ann;
       this.u = u;
+      this.flat = true;
     }
     function makeUnitAnn(ann, u) {
       return new PUnitAnn(ann, u);
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {
-      metadata.checkedUnits = true
       if (!jsnums.checkUnit(jsnums.getUnit(val), this.u)) {
         var name = "<" + jsnums.unitToString(this.u) + ">";
         return thisRuntime.ffi.contractFail(

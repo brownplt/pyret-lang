@@ -69,7 +69,7 @@ fun ann-flatness(ann :: A.Ann, val-env :: FEnv, ann-env :: FEnv) -> Flatness:
         ann-flatness(base, val-env, ann-env),
         val-flatness
       )
-    | a-unit(l, base, u) => some(0)
+    | a-unit(l, base, u) => ann-flatness(base, val-env, ann-env)
     | a-dot(l, obj, field) => none # TODO(joe): module-ids should make this doable...
     | a-checked(checked, residual) => none
   end

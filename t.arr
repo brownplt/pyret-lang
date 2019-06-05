@@ -1,5 +1,3 @@
-fun f(n :: Number%(num-is-integer)) block:
-  print(n)
-  print("\n")
-end
-f(2%<s>)
+fun id(x): x end
+ fun f(x) -> Number: cases(List) empty: | empty => id(x) | link(_, _) => id(x) end end
+ f('foo')
