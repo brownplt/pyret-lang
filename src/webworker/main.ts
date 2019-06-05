@@ -8,6 +8,9 @@ const worker = setup.worker;
 const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
 
+const showBFS = <HTMLInputElement>document.getElementById("showBFS");
+console.log(showBFS.checked);
+
 compile.onclick = function() {
   fs.writeFileSync("./projects/program.arr", input.value);
   let message = {
@@ -24,9 +27,24 @@ compile.onclick = function() {
 };
 
 worker.onmessage = function(e) {
+
+  // Handle BrowserFS messages
+  if (e.data.browserfsMessage === true && showBFS.checked === false) {
+    return;
+  }
+
   try {
     var msgObject = JSON.parse(e.data);
 
+    // Handle BrowserFS messages
+    try {
+      let innerData = JSON.parse(msgObject.data);
+      if (innerData.browserfsMessage === true && showBFS.checked === false) {
+        return;
+      }
+
+    } catch(error) { }
+    
     var tag = msgObject["tag"];
     if (tag !== undefined) {
       if (tag === "log") {
