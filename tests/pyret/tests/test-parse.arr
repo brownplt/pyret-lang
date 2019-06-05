@@ -492,19 +492,18 @@ check "should parse unit-annotated numbers":
 end
 
 check "should parse unit-anns numbers":
+  does-parse("n :: Number%<m>%<s> = 0") is false
+  does-parse("n :: Number%<m>%(is-even)%<s> = 0") is false
+  does-parse("n :: Number%(is-two)%<m> = 0") is false
+  does-parse("n :: Number%<>%(is-even) = 0") is false
+  does-parse("n :: Number%<> = 0") is false
+
+  # should be caught by wf:
+  does-parse("n :: Number%<m / s * m> = 0") is true
+
+  does-parse("n :: Number%<m>%(is-even) = 0") is true
   does-parse("n :: Number%<m> = 0") is true
   does-parse("n :: Number%<m>%(is-even) = 0") is true
   does-parse("n :: Number%<m>%(is-two)%(is-even) = 0") is true
   does-parse("n :: String%<m> = 'foo'") is true
-
-  # TODO(benmusch): Should these parse?
-  does-parse("n :: Number%(is-two)%<m> = 0") is true
-
-  # should be caught by wf:
-  does-parse("n :: Number%<m>%<s> = 0") is true
-  does-parse("n :: Number%<m>%(is-even)%<s> = 0") is true
-  does-parse("n :: Number%<m / s * m> = 0") is true
-
-  does-parse("n :: Number%<>%(is-even) = 0") is false
-  does-parse("n :: Number%<> = 0") is false
 end

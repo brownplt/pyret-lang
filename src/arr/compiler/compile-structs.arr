@@ -1076,23 +1076,6 @@ data CompileError:
           ED.loc(self.l),
           ED.text(" cannot be used where a type annotation is expected.")]]
     end
-  | multiple-unit-anns(l :: Loc, dup-l :: Loc) with:
-    method render-fancy-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("The annotation had multiple "),
-          ED.code(ED.highlight(ED.text("unit annotations"), [ED.locs: self.l, self.dup-l])),
-          ED.text(", but only one is allowed")]]
-    end,
-    method render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("Tried to add a unit annotation at "),
-          ED.loc(self.dup-l),
-          ED.text(", but one already exists at "),
-          ED.loc(self.l),
-          ED.text(". Do not add more than one unit annotation.")]]
-    end
   | block-needed(expr-loc :: Loc, blocks :: List<A.Expr % (is-s-block)>) with:
     method render-fancy-reason(self):
       if self.blocks.length() > 1:

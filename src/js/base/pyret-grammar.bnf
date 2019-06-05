@@ -262,7 +262,7 @@ app-ann: (name-ann|dot-ann) LANGLE comma-anns (RANGLE|GT)
 comma-anns: ann (COMMA ann)*
 
 # TODO: Can we enforce ordering here?
-unit-ann: ann PERCENT dim-expr
+unit-ann: name-ann PERCENT dim-expr
 
 pred-ann: ann PERCENT (PARENSPACE|PARENNOSPACE) id-expr RPAREN
 
