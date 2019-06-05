@@ -62,9 +62,6 @@ build/worker/main.js: src/webworker/*.ts
 #build/worker/main.ts.js: src/webworker/main.ts
 #	tsc $< --outFile $@
 
-build/worker/browserfs.min.js: src/webworker/browserfs.min.js
-	cp $< $@
-
 build/worker/page.html: src/webworker/page.html
 	cp $< $@
 
