@@ -2,10 +2,10 @@
 
 all: build parser
 
-build:
+build: src/arr/compiler/pyret-parser.js
 	pyret -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
-web: 
+web: build/worker/pyret-grammar.js
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
 	make build/worker/runtime-files.json
@@ -33,7 +33,7 @@ src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js
 build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js 
 	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js 
  
-parser: src/arr/compiler/pyret-parser.js build/worker/pyret-grammar.js
+parser: src/arr/compiler/pyret-parser.js
 
 build/worker/runtime-loader.js: src/webworker/runtime-loader.ts
 	tsc $< --outFile $@
