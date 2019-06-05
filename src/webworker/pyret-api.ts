@@ -7,10 +7,6 @@ function getProjects() {
   let fs = bfs.BFSRequire("fs");
   let projectList = [];
 
-  fs.readdir(window["projectsDir"], function(err, files) {
-    console.log("FOO", files);
-    console.log("BAR", err);
-  });
   /*
   files.forEach(function(file) {
     let statResult = fs.statSync(file);
@@ -27,8 +23,6 @@ function runPath(path) {
   
 }
 
-console.log("LOADING");
+console.log("LOADING RUNTIME FILES");
 loader();
-console.log("FINISHED LOADING");
-console.log(getProjects());
-console.log("FINISHED GETTING");
+console.log("FINISHED LOADING RUNTIME FILES");
