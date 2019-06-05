@@ -81,5 +81,6 @@ window["BrowserFS"] = BrowserFS;
 module.exports = {
   BrowserFS: BrowserFS,
   worker: myWorker,
-  workerLog: workerLog
+  workerLog: workerLog,
+  workerError: workerError
 };
