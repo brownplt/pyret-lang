@@ -1060,9 +1060,6 @@ define("pyret-base/js/js-numbers", function() {
 
   // Unit operations
 
-  // hard-coded constant of what the underscore unit parses to
-  var UNIT_ANY = { "_": 1 }
-
   var _withUnit = function(n, u) {
     if (n instanceof Unitnum) {
       return new Unitnum(n.n, u);
