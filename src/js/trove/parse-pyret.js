@@ -1186,7 +1186,10 @@
           if (node.kids.length == 1) {
             // (frac-expr n)
             return RUNTIME.getField(ast, 's-frac')
-              .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1], {}));
+              .app(pos(node.pos),
+                   RUNTIME.makeNumberFromString(numden[0], {}),
+                   RUNTIME.makeNumberFromString(numden[1], {}),
+                   RUNTIME.ffi.makeNone());
           } else {
             // (frac-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-frac')
@@ -1202,7 +1205,10 @@
           if (node.kids.length == 1) {
             // (rfrac-expr n)
             return RUNTIME.getField(ast, 's-rfrac')
-              .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0], {}), RUNTIME.makeNumberFromString(numden[1], {}));
+              .app(pos(node.pos),
+                   RUNTIME.makeNumberFromString(numden[0], {}),
+                   RUNTIME.makeNumberFromString(numden[1], {}),
+                   RUNTIME.ffi.makeNone());
           } else {
             // (rfrac-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-rfrac')

@@ -2553,7 +2553,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function checkAnn(compilerLoc, ann, val, after) {
       if(isCheapAnnotation(ann)) {
-        return returnOrRaise(ann.check(compilerLoc, val), val, after);
+        return returnOrRaise(ann.check(compilerLoc, val, {}), val, after);
       }
       else {
         return checkAnnSafe(compilerLoc, ann, val, after);
@@ -2561,7 +2561,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
     function checkAnnSafe(compilerLoc, ann, val, after) {
       return safeCall(function() {
-          return ann.check(compilerLoc, val);
+          return ann.check(compilerLoc, val, {});
         }, function(result) {
           return returnOrRaise(result, val, after);
         },
@@ -2581,7 +2581,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           );
       }
       if (isCheapAnnotation(ann)) {
-        var result = ann.check(compilerLoc, args[index]);
+        var result = ann.check(compilerLoc, args[index], {});
         if(thisRuntime.ffi.isOk(result)) { return args[index]; }
         if(thisRuntime.ffi.isFail(result)) {
           raiseJSJS(wrapReason(result));
@@ -2589,7 +2589,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         throw "Internal error: got invalid result from annotation check";
       } else {
         return safeCall(function() {
-          return ann.check(compilerLoc, args[index]);
+          return ann.check(compilerLoc, args[index], {});
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) { return args[index]; }
           if(thisRuntime.ffi.isFail(result)) { raiseJSJS(wrapReason(result)); }
@@ -2600,7 +2600,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function checkArgsInternal1(moduleName, funName, arg, ann) {
-      var result = ann.check(moduleName, arg);
+      var result = ann.check(moduleName, arg, {});
       if(thisRuntime.ffi.isFail(result)) {
         raiseJSJS(thisRuntime.ffi.contractFail(
           thisRuntime.getField(result, "loc"),
@@ -2615,7 +2615,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function checkArgsInternal2(moduleName, funName, arg1, ann1, arg2, ann2) {
-      var result1 = ann1.check(moduleName, arg1);
+      var result1 = ann1.check(moduleName, arg1, {});
       if(thisRuntime.ffi.isFail(result1)) {
         raiseJSJS(thisRuntime.ffi.contractFail(
           thisRuntime.getField(result1, "loc"),
@@ -2627,7 +2627,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             thisRuntime.getField(result1, "reason"))
         ));
       }
-      var result2 = ann2.check(moduleName, arg2);
+      var result2 = ann2.check(moduleName, arg2, {});
       if(thisRuntime.ffi.isFail(result2)) {
         raiseJSJS(thisRuntime.ffi.contractFail(
           thisRuntime.getField(result2, "loc"),
@@ -2642,7 +2642,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function checkArgsInternal3(moduleName, funName, arg1, ann1, arg2, ann2, arg3, ann3) {
-      var result1 = ann1.check(moduleName, arg1);
+      var result1 = ann1.check(moduleName, arg1, {});
       if(thisRuntime.ffi.isFail(result1)) {
         raiseJSJS(thisRuntime.ffi.contractFail(
           thisRuntime.getField(result1, "loc"),
@@ -2654,7 +2654,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             thisRuntime.getField(result1, "reason"))
         ));
       }
-      var result2 = ann2.check(moduleName, arg2);
+      var result2 = ann2.check(moduleName, arg2, {});
       if(thisRuntime.ffi.isFail(result2)) {
         raiseJSJS(thisRuntime.ffi.contractFail(
           thisRuntime.getField(result2, "loc"),
@@ -2666,7 +2666,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             thisRuntime.getField(result2, "reason"))
         ));
       }
-      var result3 = ann3.check(moduleName, arg3);
+      var result3 = ann3.check(moduleName, arg3, {});
       if(thisRuntime.ffi.isFail(result3)) {
         raiseJSJS(thisRuntime.ffi.contractFail(
           thisRuntime.getField(result3, "loc"),
@@ -2686,7 +2686,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (!isCheapAnnotation(argsAndAnns[index + 1])) {
           thisRuntime.ffi.throwMessageException("Internal error: non-stacksafe annotation given to checkArgsInternalInline");
         }
-        var result = argsAndAnns[index + 1].check(moduleName, argsAndAnns[index]);
+        var result = argsAndAnns[index + 1].check(moduleName, argsAndAnns[index], {});
         if(thisRuntime.ffi.isFail(result)) {
           var onlyArgs = [];
           for (var i = 0; i < argsAndAnns.length; i += 2) {
@@ -2720,13 +2720,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function _checkAnn(compilerLoc, ann, val) {
       if (isCheapAnnotation(ann)) {
-        var result = ann.check(compilerLoc, val);
+        var result = ann.check(compilerLoc, val, {});
         if(thisRuntime.ffi.isOk(result)) { return val; }
         if(thisRuntime.ffi.isFail(result)) { raiseJSJS(result); }
         throw "Internal error: got invalid result from annotation check";
       } else {
         return safeCall(function() {
-          var res = ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val, {});
           //if(thisRuntime.isContinuation(res)) { console.trace(); }
           return res;
         }, function(result) {
@@ -2740,11 +2740,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function safeCheckAnnArg(compilerLoc, ann, val, after) {
       if(isCheapAnnotation(ann)) {
-        return returnOrRaise(ann.check(compilerLoc, val), val, after);
+        return returnOrRaise(ann.check(compilerLoc, val, {}), val, after);
       }
       else {
         return safeCall(function() {
-          var res = ann.check(compilerLoc, val);
+          var res = ann.check(compilerLoc, val, {});
           //if(thisRuntime.isContinuation(res)) { console.trace(); }
           return res;
         }, function(result) {
@@ -2863,7 +2863,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           thisRuntime.ffi.makeTypeMismatch(val, that.name));
       }
     }
-    PPrimAnn.prototype.check = function(compilerLoc, val) {
+    PPrimAnn.prototype.check = function(compilerLoc, val, metadata) {
+      // TODO(benmusch): Is this really how I wanna do this??
+      if (!metadata.checkedUnits) {
+        return makeUnitAnn(this, {}).check(compilerLoc, val, metadata);
+      }
+
       var that = this;
       if(isCheapAnnotation(this)) {
         return this.checkOrFail(this.pred(val), val, compilerLoc);
@@ -2908,13 +2913,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.anns.push({ ann: ann, loc: loc });
     }
 
-    PAnnList.prototype.check = function(compilerLoc, val) {
+    PAnnList.prototype.check = function(compilerLoc, val, metadata) {
       var that = this;
       function checkI(i) {
         if(i >= that.anns.length) { return thisRuntime.ffi.contractOk; }
         else {
           return safeCall(function() {
-            return that.anns[i].ann.check(compilerLoc, val);
+            return that.anns[i].ann.check(compilerLoc, val, {});
           }, function(passed) {
             if(thisRuntime.ffi.isOk(passed)) { return checkI(i + 1); }
             else {
@@ -2927,6 +2932,25 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
       }
       return checkI(0);
+    }
+
+    function PUnitAnn(ann, u) {
+      this.ann = ann;
+      this.u = u;
+    }
+    function makeUnitAnn(ann, u) {
+      return new PUnitAnn(ann, u);
+    }
+    PUnitAnn.prototype.check = function(compilerLoc, val, metadata) {
+      metadata.checkedUnits = true
+      if (!jsnums.checkUnit(jsnums.getUnit(val), this.u)) {
+        var name = "<" + jsnums.unitToString(this.u) + ">";
+        return thisRuntime.ffi.contractFail(
+          makeSrcloc(compilerLoc),
+          thisRuntime.ffi.makePredicateFailure(val, name));
+      } else {
+        return this.ann.check(compilerLoc, val, metadata);
+      }
     }
 
     function PPredAnn(ann, pred, predname) {
@@ -2947,7 +2971,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       newAnn.flat = true;
       return newAnn;
     }
-    PPredAnn.prototype.check = function(compilerLoc, val) {
+    PPredAnn.prototype.check = function(compilerLoc, val, metadata) {
       function fail() {
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),
@@ -2957,7 +2981,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       // NOTE(joe): fast, safe path for flat refinement
       if(that.flat) {
-        var result = that.ann.check(compilerLoc, val);
+        var result = that.ann.check(compilerLoc, val, {});
         if(thisRuntime.ffi.isOk(result)) {
           var predPassed = that.pred.app(val);
           if(predPassed) { return thisRuntime.ffi.contractOk; }
@@ -2969,7 +2993,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
 
       return safeCall(function() {
-        return that.ann.check(compilerLoc, val);
+        return that.ann.check(compilerLoc, val, {});
       }, function(result) {
         if(thisRuntime.ffi.isOk(result)) {
           return safeCall(function() {
@@ -3011,7 +3035,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function makeTupleAnn(locs, anns) {
       return new PTupleAnn(locs, anns);
     }
-    PTupleAnn.prototype.check = function(compilerLoc, val) {
+    PTupleAnn.prototype.check = function(compilerLoc, val, metadata) {
       var that = this;
       if(!isTuple(val)) {
         return thisRuntime.ffi.contractFail(
@@ -3027,7 +3051,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // Fast path for flat refinements, since arbitrary stack space can't be consumed
       if(that.flat) {
         for(var i = 0; i < that.anns.length; i++) {
-          var result = that.anns[i].check(that.locs[i], val.vals[i]);
+          var result = that.anns[i].check(that.locs[i], val.vals[i], {});
           if(!thisRuntime.ffi.isOk(result)) {
             return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
             //return result;
@@ -3042,7 +3066,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return safeCall(function() {
           var thisChecker = remainingAnns.pop();
           thisAnn = thisChecker;
-          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
+          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length], {});
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
             if(remainingAnns.length === 0) { return thisRuntime.ffi.contractOk; }
@@ -3132,7 +3156,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         ]))
       );
     };
-    PRecordAnn.prototype.check = function(compilerLoc, val) {
+    PRecordAnn.prototype.check = function(compilerLoc, val, metadata) {
       var that = this;
       if(!isObject(val)) {
         return thisRuntime.ffi.contractFail(
@@ -3150,7 +3174,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(that.flat) {
         for(var i = 0; i < that.fields.length; i++) {
           var thisField = that.fields[i];
-          var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField));
+          var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField), {});
           if(!thisRuntime.ffi.isOk(result)) {
             return result;
           }
@@ -3164,7 +3188,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return safeCall(function() {
           thisField = remainingFields.pop();
           var thisChecker = that.anns[thisField];
-          return thisChecker.check(that.locs[that.locs.length - remainingFields.length], getColonField(val, thisField));
+          return thisChecker.check(that.locs[that.locs.length - remainingFields.length], getColonField(val, thisField), {});
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
             if(remainingFields.length === 0) { return thisRuntime.ffi.contractOk; }
@@ -5751,6 +5775,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'checkConstructorArgs': checkConstructorArgs,
       'checkConstructorArgs2': checkConstructorArgs2,
       'getDotAnn': getDotAnn,
+      'makeUnitAnn': makeUnitAnn,
       'makePredAnn': makePredAnn,
       'makeFlatPredAnn': makeFlatPredAnn,
       'makePrimitiveAnn': makePrimitiveAnn,

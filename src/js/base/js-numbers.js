@@ -4312,11 +4312,14 @@ define("pyret-base/js/js-numbers", function() {
 
   Numbers['fromFixnum'] = fromFixnum;
   Numbers['fromString'] = fromString;
-  Numbers['addUnit'] = addUnit;
   Numbers['fromSchemeString'] = fromSchemeString;
   Numbers['makeBignum'] = makeBignum;
   Numbers['makeRational'] = Rational.makeInstance;
   Numbers['makeRoughnum'] = Roughnum.makeInstance;
+  Numbers['addUnit'] = addUnit;
+  Numbers['getUnit'] = _unitOf;
+  Numbers['checkUnit'] = _unitEquals;
+  Numbers['unitToString'] = _unitToString;
 
   Numbers['isPyretNumber'] = isPyretNumber;
   Numbers['isRational'] = isRational;

@@ -1,9 +1,5 @@
-print(1%<m> / 1%<s>)
-print("\n")
-print(1%<m> * 1%<m * s>)
-print("\n")
-print(1%<m> + 1%<m>)
-print("\n")
-print(10 / 0%<m>)
-print("\n")
-print(1 - 1%<s>)
+fun f(n :: Number%(num-is-integer)) block:
+  print(n)
+  print("\n")
+end
+f(2%<s>)

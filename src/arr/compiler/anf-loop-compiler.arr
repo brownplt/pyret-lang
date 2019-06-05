@@ -330,7 +330,47 @@ fun is-function-flat(flatness-env :: FL.FEnv, fun-name :: String) -> Boolean:
   is-flat-enough(flatness-opt)
 end
 
+# return all of the names in a unit
+fun unit-names(u :: A.Unit) -> Set<A.Name>:
+  cases (A.Unit) u:
+    | none(_) => [list-set: ]
+    | u-base(_, id) => [list-set: id]
+    | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
+    | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
+    | u-pow(_, _, shadow u, n) => unit-names(u)
+    | u-paren(_, shadow u) => unit-names(u)
+  end
+end
 
+fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
+  cases (A.Unit) u:
+    | none(_) => 0
+    | u-base(_, id) =>
+      if id == target-id: 1 else: 0 end
+    | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
+    | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
+    | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
+    | u-paren(_, shadow u) => unit-power(target-id, u)
+  end
+end
+
+fun compile-unit(u-maybe :: Option<A.Unit>) -> J.JExpr:
+  cases(Option) u-maybe block:
+    | none => J.j-obj(CL.concat-empty)
+    | some(u) =>
+      fields = unit-names(u).fold(
+        lam(acc, id):
+          power = unit-power(id, u)
+          if power == 0:
+            acc
+          else:
+            CL.concat-cons(j-field(tostring(id), j-num(power)), acc)
+          end
+        end,
+        CL.concat-empty)
+      j-obj(fields)
+  end
+end
 
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
@@ -396,8 +436,11 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         cl-append(compiled-base.other-stmts, compiled-exp.other-stmts)
         )
     | a-unit(l, base, u) =>
-      # TODO(benmusch): change this to compile units
-      compile-ann(base, visitor)
+      compiled-base = compile-ann(base, visitor)
+      compiled-unit = compile-unit(some(u))
+      c-exp(
+        rt-method("makeUnitAnn", [clist: compiled-base.exp, compiled-unit]),
+        cl-empty)
     | a-dot(l, m, field) =>
       c-exp(
         rt-method("getDotAnn", [clist:
@@ -1326,48 +1369,6 @@ end
 
 fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: String) -> Boolean:
     flatness-env.has-key-now(name)
-end
-
-# return all of the names in a unit
-fun unit-names(u :: A.Unit) -> Set<A.Name>:
-  cases (A.Unit) u:
-    | none(_) => [list-set: ]
-    | u-base(_, id) => [list-set: id]
-    | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
-    | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
-    | u-pow(_, _, shadow u, n) => unit-names(u)
-    | u-paren(_, shadow u) => unit-names(u)
-  end
-end
-
-fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
-  cases (A.Unit) u:
-    | none(_) => 0
-    | u-base(_, id) =>
-      if id == target-id: 1 else: 0 end
-    | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
-    | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
-    | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
-    | u-paren(_, shadow u) => unit-power(target-id, u)
-  end
-end
-
-fun compile-unit(u-maybe :: Option<A.Unit>) -> J.JExpr:
-  cases(Option) u-maybe block:
-    | none => J.j-obj(CL.concat-empty)
-    | some(u) =>
-      fields = unit-names(u).fold(
-        lam(acc, id):
-          power = unit-power(id, u)
-          if power == 0:
-            acc
-          else:
-            CL.concat-cons(j-field(tostring(id), j-num(power)), acc)
-          end
-        end,
-        CL.concat-empty)
-      j-obj(fields)
-  end
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
