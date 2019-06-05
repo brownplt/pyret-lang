@@ -261,6 +261,12 @@ check "underscores":
 
   run-str("{a: 1}.{_: 2}") is%(output) compile-error(CS.is-underscore-as)
   run-str("{a: 1}._") is%(output) compile-error(CS.is-underscore-as)
+
+  run-str("2%<_>") is%(output) compile-error(CS.is-underscore-as-unit)
+  run-str("n :: Number%<_ * m> = 1") is%(output) compile-error(CS.is-underscore-as-unit)
+  run-str("n :: Number%<_ / m> = 1") is%(output) compile-error(CS.is-underscore-as-unit)
+  run-str("n :: Number%<(_)> = 1") is%(output) compile-error(CS.is-underscore-as-unit)
+  run-str("n :: Number%<_ ^ 2> = 1") is%(output) compile-error(CS.is-underscore-as-unit)
 end
 
 check "unit annotations":

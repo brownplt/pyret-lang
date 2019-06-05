@@ -294,7 +294,7 @@ end
 
 # TODO(benmuch): Consider refactoring to make this a proper visitor
 #                and shadow the reachable-ops pattern
-fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
+fun wf-unit-helper(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
   cases(Option) parent-maybe block:
     | some(p) =>
       if unit-is-op(u) and unit-is-op(p) and not(u.label() == p.label()):
@@ -307,19 +307,37 @@ fun wf-unit(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
 
   cases(A.Unit) u block:
     | u-mul(_, _, lhs, rhs) =>
-      wf-unit(lhs, some(u))
-      wf-unit(rhs, some(u))
+      wf-unit-helper(lhs, some(u))
+      wf-unit-helper(rhs, some(u))
     | u-div(_, _, lhs, rhs) =>
-      wf-unit(lhs, some(u))
-      wf-unit(rhs, some(u))
-    | u-paren(_, paren-u) => wf-unit(paren-u, some(u))
+      wf-unit-helper(lhs, some(u))
+      wf-unit-helper(rhs, some(u))
+    | u-paren(_, paren-u) => wf-unit-helper(paren-u, some(u))
     | u-pow(l, _, pow-u, n) =>
       if (n == 0) or not(num-is-integer(n)):
         add-error(C.invalid-unit-power(l, n))
       else:
         nothing
       end
-      wf-unit(pow-u, some(u))
+      wf-unit-helper(pow-u, some(u))
+    | u-base(l, id) =>
+      if A.is-s-underscore(id) and is-some(parent-maybe):
+        add-error(C.underscore-as-unit(l))
+      else:
+        nothing
+      end
+  end
+end
+fun wf-unit(u :: A.Unit, allow-underscore :: Boolean) block:
+  wf-unit-helper(u, none)
+
+  cases(A.Unit) u:
+    | u-base(l, id) =>
+      if A.is-s-underscore(id) and not(allow-underscore):
+        add-error(C.underscore-as-unit(l))
+      else:
+        nothing
+      end
     | else => nothing
   end
 end
@@ -917,7 +935,7 @@ well-formed-visitor = A.default-iter-visitor.{
 
     cases(Option) unit-maybe:
       | none => nothing
-      | some(u) => wf-unit(u, none)
+      | some(u) => wf-unit(u, false)
     end
 
     true
@@ -929,7 +947,7 @@ well-formed-visitor = A.default-iter-visitor.{
 
     cases(Option) unit-maybe:
       | none => nothing
-      | some(u) => wf-unit(u, none)
+      | some(u) => wf-unit(u, false)
     end
 
     true
@@ -1056,7 +1074,7 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   method a-unit(self, l, base, u) block:
-    wf-unit(u, none)
+    wf-unit(u, true)
     cases(Option) unit-ann-loc(base):
       | none => nothing
       | some(dup-l) => add-error(C.multiple-unit-anns(l, dup-l))
@@ -1066,7 +1084,7 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-num(self, l, n, unit-maybe) block:
     cases(Option) unit-maybe:
       | none => nothing
-      | some(u) => wf-unit(u, none)
+      | some(u) => wf-unit(u, false)
     end
     true
   end

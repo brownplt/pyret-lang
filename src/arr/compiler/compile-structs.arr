@@ -997,6 +997,27 @@ data CompileError:
           ED.text(self.kind),
           ED.text(".")]]
     end
+  | underscore-as-unit(l :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The underscore "),
+          ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
+          ED.text(" is invalid."),
+          ED.text(" Underscores can only be used in units when"),
+          ED.text(" they are an annotation and there is nothing else in the unit expression")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The underscore "),
+          ED.code(ED.text("_")),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(" is invalid."),
+          ED.text(" Underscores can only be used in units when"),
+          ED.text(" they are an annotation and there is nothing else in the unit expression")]]
+    end
   | underscore-as-pattern(l :: Loc) with:
     method render-fancy-reason(self):
       [ED.error:
