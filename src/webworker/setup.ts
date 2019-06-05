@@ -37,6 +37,11 @@ consoleOutputElement.appendChild(outputList);
 const oldLog = console.log;
 const oldError = console.error;
 
+const clearLogsButton = document.getElementById("clearLogs");
+clearLogsButton.onclick = function() {
+  outputList.innerHTML = "";
+}
+
 const genericLog = function(prefix, className, ...args: any[]) {
   var outputLine = prefix;
   let logArgs = args[0];
