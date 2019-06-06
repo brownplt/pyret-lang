@@ -973,7 +973,7 @@
           // TODO: Handle numbers here somehow
           return tr(node.kids[1])
         },
-        'unit-lhs': function(node) {
+        'unit-atom': function(node) {
           if (node.kids.length === 1) {
             return RUNTIME.getField(ast, 'u-base')
               .app(pos(node.pos), name(node.kids[0]))
@@ -988,16 +988,22 @@
         },
         'unit-expr': function(node) {
           if (node.kids.length === 1) {
-            // (unit-expr unit-lhs)
+            // (unit-expr unit-atom)
             return tr(node.kids[0])
-          } else if (node.kids[1].name === 'STAR') {
-            // (unit-expr unit-lhs TIMES unit-expr)
-            return RUNTIME.getField(ast, 'u-mul')
-              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), tr(node.kids[2]))
-          } else if (node.kids[1].name === 'SLASH') {
-            // (unit-expr unit-lhs DIVIDE unit-expr)
-            return RUNTIME.getField(ast, 'u-div')
-              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), tr(node.kids[2]))
+          } else {
+            function mkUnit(op, lhs, rhs) {
+              var unitType = op.name === 'STAR' ? 'u-mul' : 'u-div';
+              return RUNTIME.getField(ast, unitType)
+                .app(pos2(node.kids[0].pos, rhs.pos),
+                     pos(op.pos),
+                     lhs,
+                     tr(rhs));
+            }
+            var unit = mkUnit(node.kids[1], tr(node.kids[0]), node.kids[2]);
+            for (var i = 4; i < node.kids.length; i += 2) {
+              unit = mkUnit(node.kids[i - 1], unit, node.kids[i]);
+            }
+            return unit;
           }
         },
         'tuple-expr': function(node) {
