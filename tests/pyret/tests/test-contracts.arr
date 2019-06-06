@@ -543,4 +543,12 @@ check "Should notice unit mis-matches":
     fun id(n :: { a :: Number%<s>, b :: Number%<m>}): n end
     id({ a: 1%<s>, b: 1%<m>})
     ```) is%(output) success
+  #| TODO: re-comment when working on unit annotations
+  run-str(
+    ```
+  type MyAny = Any
+  fun id(n :: MyAny): n end
+  id(1%<m>)
+    ```) is%(output) success
+    |#
 end

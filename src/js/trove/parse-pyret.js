@@ -1173,30 +1173,32 @@
         'num-expr': function(node) {
           if (node.kids.length == 1) {
             // (num-expr n)
+            var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
             return RUNTIME.getField(ast, 's-num')
-              .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeNone());
+              .app(pos(node.pos), number(node.kids[0]), u);
           } else {
             // (num-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-num')
-              .app(pos(node.pos), number(node.kids[0]), RUNTIME.ffi.makeSome(tr(node.kids[2])));
+              .app(pos(node.pos), number(node.kids[0]), tr(node.kids[2]));
           }
         },
         'frac-expr': function(node) {
           var numden = node.kids[0].value.split("/");
           if (node.kids.length == 1) {
             // (frac-expr n)
+            var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
             return RUNTIME.getField(ast, 's-frac')
               .app(pos(node.pos),
                    RUNTIME.makeNumberFromString(numden[0], {}),
                    RUNTIME.makeNumberFromString(numden[1], {}),
-                   RUNTIME.ffi.makeNone());
+                   u);
           } else {
             // (frac-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-frac')
               .app(pos(node.pos),
                 RUNTIME.makeNumberFromString(numden[0], {}),
                 RUNTIME.makeNumberFromString(numden[1], {}),
-                RUNTIME.ffi.makeSome(tr(node.kids[2])));
+                tr(node.kids[2]));
           }
         },
         'rfrac-expr': function(node) {
@@ -1204,18 +1206,19 @@
           var numden = node.kids[0].value.substring(1).split("/");
           if (node.kids.length == 1) {
             // (rfrac-expr n)
+            var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
             return RUNTIME.getField(ast, 's-rfrac')
               .app(pos(node.pos),
                    RUNTIME.makeNumberFromString(numden[0], {}),
                    RUNTIME.makeNumberFromString(numden[1], {}),
-                   RUNTIME.ffi.makeNone());
+                   u);
           } else {
             // (rfrac-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-rfrac')
               .app(pos(node.pos),
                 RUNTIME.makeNumberFromString(numden[0], {}),
                 RUNTIME.makeNumberFromString(numden[1], {}),
-                RUNTIME.ffi.makeSome(tr(node.kids[2])));
+                tr(node.kids[2]));
           }
         },
         'string-expr': function(node) {

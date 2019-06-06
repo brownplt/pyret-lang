@@ -314,18 +314,15 @@ fun wf-unit-helper(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
       wf-unit-helper(rhs, some(u))
     | u-paren(_, paren-u) => wf-unit-helper(paren-u, some(u))
     | u-pow(l, _, pow-u, n) =>
-      if (n == 0) or not(num-is-integer(n)):
+      when (n == 0) or not(num-is-integer(n)):
         add-error(C.invalid-unit-power(l, n))
-      else:
-        nothing
       end
       wf-unit-helper(pow-u, some(u))
     | u-base(l, id) =>
-      if A.is-s-underscore(id) and is-some(parent-maybe):
+      when A.is-s-underscore(id) and is-some(parent-maybe):
         add-error(C.underscore-as-unit(l))
-      else:
-        nothing
       end
+    | u-one(l) => nothing
   end
 end
 fun wf-unit(u :: A.Unit, allow-underscore :: Boolean) block:
@@ -920,28 +917,20 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
-  method s-frac(self, l, num, den, unit-maybe) block:
+  method s-frac(self, l, num, den, u) block:
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
 
-    cases(Option) unit-maybe:
-      | none => nothing
-      | some(u) => wf-unit(u, false)
-    end
-
+    wf-unit(u, false)
     true
   end,
-  method s-rfrac(self, l, num, den, unit-maybe) block:
+  method s-rfrac(self, l, num, den, u) block:
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
 
-    cases(Option) unit-maybe:
-      | none => nothing
-      | some(u) => wf-unit(u, false)
-    end
-
+    wf-unit(u, false)
     true
   end,
   method s-id(self, l, id) block:
@@ -1069,11 +1058,8 @@ well-formed-visitor = A.default-iter-visitor.{
     wf-unit(u, true)
     true
   end,
-  method s-num(self, l, n, unit-maybe) block:
-    cases(Option) unit-maybe:
-      | none => nothing
-      | some(u) => wf-unit(u, false)
-    end
+  method s-num(self, l, n, u) block:
+    wf-unit(u, false)
     true
   end
 }
@@ -1393,8 +1379,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
     well-formed-visitor.s-table-extend(l, column-binds, extensions)
   end,
-  method s-num(self, l, n, unit-maybe):
-    well-formed-visitor.s-num(l, n, unit-maybe)
+  method s-num(self, l, n, u):
+    well-formed-visitor.s-num(l, n, u)
   end,
   method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)

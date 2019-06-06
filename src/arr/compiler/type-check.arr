@@ -828,7 +828,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-undefined not implemented")
     | s-srcloc(l, loc) =>
       typing-result(e, t-srcloc(l), context)
-    | s-num(l, n, _) =>
+    | s-num(l, n, u) =>
       typing-result(e, t-number(l), context)
     | s-frac(l, num, den, u) =>
       typing-result(e, t-number(l), context)

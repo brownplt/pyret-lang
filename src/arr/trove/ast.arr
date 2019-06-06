@@ -140,7 +140,7 @@ data Name:
     method tosourcestring(self): "$type$" + self.s end,
     method toname(self): self.s end,
     method key(self): "tglobal#" + self.s end
-    
+
   | s-atom(base :: String, serial :: Number) with:
     method to-compiled-source(self): PP.str(self.to-compiled()) end,
     method to-compiled(self): self.base + tostring(self.serial) end,
@@ -931,33 +931,36 @@ data Expr:
   | s-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "s-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | s-num(l :: Loc, n :: Number, u :: Option<Unit>) with:
+  | s-num(l :: Loc, n :: Number, u :: Unit) with:
     method label(self): "s-num" end,
     method tosource(self):
-      cases(Option) self.u:
-        | none => PP.number(self.n)
-        | some(u) => PP.separate(str-percent,
-          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, u.tosource(), PP.rangle)])
+      if is-u-one(self.u):
+        PP.number(self.n)
+      else:
+        PP.separate(str-percent,
+          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
       end
     end
-  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
+  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit) with:
     method label(self): "s-frac" end,
     method tosource(self) block:
       base-str = PP.number(self.num) + PP.str("/") + PP.number(self.den)
-      cases(Option) self.u:
-        | none => base-str
-        | some(u) => PP.separate(str-percent,
-          [list: base-str, PP.surround(INDENT, 0, PP.langle, u.tosource(), PP.rangle)])
+      if is-u-one(self.u):
+        base-str
+      else:
+        PP.separate(str-percent,
+          [list: base-str, PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
       end
     end
-  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>) with:
+  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit) with:
     method label(self): "s-rfrac" end,
     method tosource(self):
       base-str = PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den)
-      cases(Option) self.u:
-        | none => base-str
-        | some(u) => PP.separate(str-percent,
-          [list: base-str, PP.surround(INDENT, 0, PP.langle, u.tosource(), PP.rangle)])
+      if is-u-one(self.u):
+        base-str
+      else:
+        PP.separate(str-percent,
+          [list: base-str, PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
       end
     end
   | s-bool(l :: Loc, b :: Boolean) with:
@@ -1673,6 +1676,10 @@ data Unit:
   | u-paren(l :: Loc, u :: Unit) with:
     method label(self): "u-paren" end,
     method tosource(self): PP.paren(self.u.tosource()) end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
 end
 
 
@@ -2187,13 +2194,13 @@ default-map-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(l, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
     s-num(l, n, u)
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
     s-frac(l, num, den, u)
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
     s-rfrac(l, num, den, u)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -2751,13 +2758,13 @@ default-iter-visitor = {
   method s-srcloc(self, l, shadow loc):
     true
   end,
-  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
     true
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
     true
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
     true
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
@@ -3291,14 +3298,14 @@ dummy-loc-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
-    s-num(dummy-loc, n, u)
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
+    s-num(dummy-loc, n, u.visit(self))
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
-    s-frac(dummy-loc, num, den, u)
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    s-frac(dummy-loc, num, den, u.visit(self))
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Option<Unit>):
-    s-rfrac(dummy-loc, num, den, u)
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    s-rfrac(dummy-loc, num, den, u.visit(self))
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)
@@ -3511,5 +3518,19 @@ dummy-loc-visitor = {
   end,
   method a-field(self, l, name, ann):
     a-field(dummy-loc, name, ann.visit(self))
+  end,
+  method u-one(self, l): u-one(dummy-loc) end,
+  method u-base(self, l, id): u-base(dummy-loc, id) end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-mul(dummy-loc, dummy-loc, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-div(dummy-loc, dummy-loc, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: Unit, n :: Number):
+    u-pow(dummy-loc, dummy-loc, u.visit(self), n)
+  end,
+  method u-paren(self, l :: Loc, u :: Unit):
+    u-paren(dummy-loc, u.visit(self))
   end
 }

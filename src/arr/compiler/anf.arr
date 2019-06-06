@@ -167,14 +167,14 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
           end)
         
       end)
-    | s-num(l, n, u-maybe) =>
-        k(N.a-val(l, N.a-num(l, n, u-maybe)))
+    | s-num(l, n, u) =>
+        k(N.a-val(l, N.a-num(l, n, u)))
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
-    | s-frac(l, num, den, u-maybe) =>
-      k(N.a-val(l, N.a-num(l, num / den, u-maybe))) # Possibly unneeded if removed by desugar?
+    | s-frac(l, num, den, u) =>
+      k(N.a-val(l, N.a-num(l, num / den, u))) # Possibly unneeded if removed by desugar?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
-    | s-rfrac(l, num, den, u-maybe) =>
-      k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den), u-maybe))) # Possibly unneeded if removed by desugar?
+    | s-rfrac(l, num, den, u) =>
+      k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den), u))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k(N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
@@ -346,7 +346,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
       N.a-let(
         l,
         bind(l, array-id),
-        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length(), none)], flat-prim-app),
+        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length(), A.u-one(l))], flat-prim-app),
         anf-name-arr-rec(values, array-id, 0, lam():
           k(N.a-val(l, N.a-id(l, array-id)))
         end))

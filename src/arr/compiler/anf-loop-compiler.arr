@@ -354,22 +354,18 @@ fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
   end
 end
 
-fun compile-unit(u-maybe :: Option<A.Unit>) -> J.JExpr:
-  cases(Option) u-maybe block:
-    | none => J.j-obj(CL.concat-empty)
-    | some(u) =>
-      fields = unit-names(u).fold(
-        lam(acc, id):
-          power = unit-power(id, u)
-          if power == 0:
-            acc
-          else:
-            CL.concat-cons(j-field(tostring(id), j-num(power)), acc)
-          end
-        end,
-        CL.concat-empty)
-      j-obj(fields)
-  end
+fun compile-unit(u :: A.Unit) -> J.JExpr:
+  fields = unit-names(u).fold(
+    lam(acc, id):
+      power = unit-power(id, u)
+      if power == 0:
+        acc
+      else:
+        CL.concat-cons(j-field(tostring(id), j-num(power)), acc)
+      end
+    end,
+    CL.concat-empty)
+  j-obj(fields)
 end
 
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
@@ -437,7 +433,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         )
     | a-unit(l, base, u) =>
       compiled-base = compile-ann(base, visitor)
-      compiled-unit = compile-unit(some(u))
+      compiled-unit = compile-unit(u)
       c-exp(
         rt-method("makeUnitAnn", [clist: compiled-base.exp, compiled-unit]),
         cl-empty)
@@ -1715,11 +1711,11 @@ compiler-visitor = {
   method a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
-  method a-num(self, l :: Loc, n :: Number, u-maybe :: Option<A.Unit>) block:
-    if num-is-fixnum(n) and A.is-u-one(u-maybe.or-else(A.u-one(N.dummy-loc))):
+  method a-num(self, l :: Loc, n :: Number, u :: A.Unit) block:
+    if num-is-fixnum(n) and A.is-u-one(u):
       c-exp(j-parens(j-num(n)), cl-empty)
     else:
-      args = [clist: j-str(tostring(n)), compile-unit(u-maybe)]
+      args = [clist: j-str(tostring(n)), compile-unit(u)]
       c-exp(rt-method("makeNumberFromString", args), cl-empty)
     end
   end,
@@ -1956,21 +1952,22 @@ remove-useless-if-visitor = N.default-map-visitor.{
 
 check:
   d = N.dummy-loc
+  u = A.u-one(d)
   true1 = N.a-if(d, N.a-bool(d, true),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, none))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 2, none))))
-  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1, none))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 2, u))))
+  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1, u))
 
   false4 = N.a-if(d, N.a-bool(d, false),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 3, none))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, none))))
-  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4, none))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 3, u))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u))))
+  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4, u))
 
   N.a-if(d, N.a-id(d, A.s-name(d, "x")), N.a-lettable(d, true1), N.a-lettable(d, false4)
     ).visit(remove-useless-if-visitor)
     is N.a-if(d, N.a-id(d, A.s-name(d, "x")),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, none))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, none))))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u))))
 
 end
 |#

@@ -464,7 +464,7 @@ data AVal:
   | a-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "a-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | a-num(l :: Loc, n :: Number, u :: Option<A.Unit>) with:
+  | a-num(l :: Loc, n :: Number, u :: A.Unit) with:
     method label(self): "a-num" end,
     method tosource(self):
       cases(Option) self.u:
@@ -713,7 +713,7 @@ default-map-visitor = {
   method a-srcloc(self, l, loc):
     a-srcloc(l, loc)
   end,
-  method a-num(self, l :: Loc, n :: Number, u :: Option<A.Unit>):
+  method a-num(self, l :: Loc, n :: Number, u :: A.Unit):
     a-num(l, n, u)
   end,
   method a-str(self, l :: Loc, s :: String):
@@ -820,7 +820,7 @@ where:
   x = n("x")
   y = n("y")
   freevars-e(
-      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4, none)),
+      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4, A.u-one(d))),
         a-lettable(d, a-val(d, a-id(d, y))))).keys-list() is [list: y.key()]
 end
 

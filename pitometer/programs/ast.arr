@@ -3070,7 +3070,7 @@ dummy-loc-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
     s-num(dummy-loc, n, u)
   end,
   method s-frac(self, l :: Loc, num :: Number, den :: Number):

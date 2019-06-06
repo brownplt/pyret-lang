@@ -965,8 +965,8 @@ where:
   p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
   ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
-  one = A.s-num(d, 1, none)
-  two = A.s-num(d, 2, none)
+  one = A.s-num(d, 1, A.u-one(d))
+  two = A.s-num(d, 2, A.u-one(d))
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
 
   if-else = "if true: 5 else: 6 end"
