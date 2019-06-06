@@ -1092,7 +1092,7 @@ define("pyret-base/js/js-numbers", function() {
     if (unitStrs.length === 0) {
       return "1";
     } else {
-      return unitStrs.join(" * ");
+      return unitStrs.sort().join(" * ");
     }
   };
 
