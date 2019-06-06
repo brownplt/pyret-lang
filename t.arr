@@ -1,3 +1,3 @@
-type MyAny = Any
+type MyAny = Number%<_>
 fun id(n :: MyAny): n end
-id(1%<m>)
+id(1)

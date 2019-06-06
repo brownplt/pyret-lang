@@ -23,7 +23,7 @@ fun mk-id(loc, base):
   { id: t, id-b: bind(loc, t), id-e: N.a-id(loc, t) }
 end
 
-fun anf-term(e :: A.Expr) -> N.AExpr block:
+fun anf-term(e :: A.Expr) -> N.AExpr:
   anf(e, lam(x): N.a-lettable(x.l, x) end)
 end
 
@@ -143,7 +143,7 @@ fun anf-block(es-init :: List<A.Expr>, k :: ANFCont):
   anf-block-help(es-init)
 end
 
-fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr block:
+fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
     | s-module(l, answer, dvs, dts, provides, types, checks) =>
       adts = for map(dt from dts):

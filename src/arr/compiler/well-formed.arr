@@ -279,65 +279,6 @@ fun ensure-unique-variant-ids(variants :: List<A.Variant>, name :: String, data-
   end
 end
 
-fun unit-is-op(u :: A.Unit):
-  # NOTE(benmusch): Should we include powers here?
-  A.is-u-mul(u) or A.is-u-div(u) or A.is-u-pow(u)
-end
-fun unit-opname(u :: A.Unit%(unit-is-op)):
-  cases(A.Unit) u:
-    | u-mul(_, _, _, _) => "*"
-    | u-div(_, _, _, _) => "/"
-    | u-pow(_, _, _, _) => "^"
-  end
-end
-
-
-# TODO(benmuch): Consider refactoring to make this a proper visitor
-#                and shadow the reachable-ops pattern
-fun wf-unit-helper(u :: A.Unit, parent-maybe :: Option<A.Unit>) block:
-  cases(Option) parent-maybe block:
-    | some(p) =>
-      if unit-is-op(u) and unit-is-op(p) and not(u.label() == p.label()):
-        add-error(C.mixed-binops(p.l, unit-opname(u), u.op-l, unit-opname(p), p.op-l))
-      else:
-        nothing
-      end
-    | none => nothing
-  end
-
-  cases(A.Unit) u block:
-    | u-mul(_, _, lhs, rhs) =>
-      wf-unit-helper(lhs, some(u))
-      wf-unit-helper(rhs, some(u))
-    | u-div(_, _, lhs, rhs) =>
-      wf-unit-helper(lhs, some(u))
-      wf-unit-helper(rhs, some(u))
-    | u-paren(_, paren-u) => wf-unit-helper(paren-u, some(u))
-    | u-pow(l, _, pow-u, n) =>
-      when (n == 0) or not(num-is-integer(n)):
-        add-error(C.invalid-unit-power(l, n))
-      end
-      wf-unit-helper(pow-u, some(u))
-    | u-base(l, id) =>
-      when A.is-s-underscore(id) and is-some(parent-maybe):
-        add-error(C.underscore-as-unit(l))
-      end
-    | u-one(l) => nothing
-  end
-end
-fun wf-unit(u :: A.Unit, allow-underscore :: Boolean) block:
-  wf-unit-helper(u, none)
-
-  cases(A.Unit) u:
-    | u-base(l, id) =>
-      if A.is-s-underscore(id) and not(allow-underscore):
-        add-error(C.underscore-as-unit(l))
-      else:
-        nothing
-      end
-    | else => nothing
-  end
-end
 
 fun wf-last-stmt(block-loc, stmt :: A.Expr):
   cases(A.Expr) stmt:
@@ -350,6 +291,41 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | else => nothing
   end
 end
+
+
+fun unit-opname(u :: A.Unit):
+  cases(A.Unit) u:
+    | u-mul(_, _, _, _) => "*"
+    | u-div(_, _, _, _) => "/"
+    | u-pow(_, _, _, _) => "^"
+  end
+end
+fun reachable-ops-unit(self, l, op-l, parent, u):
+  cases(A.Unit) u block:
+    | u-mul(l2, op-l2, lhs, rhs) =>
+      if A.is-u-mul(parent) block:
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+      else:
+        add-error(C.mixed-binops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+      end
+    | u-div(l2, op-l2, lhs, rhs) =>
+      if A.is-u-div(parent) block:
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+      else:
+        add-error(C.mixed-binops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+      end
+    | u-pow(l2, op-l2, pow-u, n) =>
+      if A.is-u-pow(self):
+        reachable-ops-unit(self, l2, op-l2, u, pow-u)
+      else:
+        add-error(C.mixed-binops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+      end
+    | else => u.visit(self)
+  end
+end
+
 
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   for map(mem from members):
@@ -366,7 +342,6 @@ fun reachable-ops(self, l, op-l, op, ast):
         reachable-ops(self, l, op-l, op, right2)
       else:
         add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
-        nothing
       end
       true
     | else => ast.visit(self)
@@ -922,7 +897,7 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.zero-fraction(l, num))
     end
 
-    wf-unit(u, false)
+    u.visit(self)
     true
   end,
   method s-rfrac(self, l, num, den, u) block:
@@ -930,7 +905,7 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.zero-fraction(l, num))
     end
 
-    wf-unit(u, false)
+    u.visit(self)
     true
   end,
   method s-id(self, l, id) block:
@@ -1055,11 +1030,34 @@ well-formed-visitor = A.default-iter-visitor.{
     true
   end,
   method a-unit(self, l, base, u) block:
-    wf-unit(u, true)
+    cases(A.Unit) u:
+      | u-base(_, id) => when not(A.is-s-underscore(id)): u.visit(self) end
+      | else => u.visit(self)
+    end
+    base.visit(self)
     true
   end,
-  method s-num(self, l, n, u) block:
-    wf-unit(u, false)
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: A.Unit, rhs :: A.Unit) block:
+    reachable-ops-unit(self, l, op-l, A.u-mul(l, op-l, lhs, rhs), lhs)
+    reachable-ops-unit(self, l, op-l, A.u-mul(l, op-l, lhs, rhs), rhs)
+    true
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: A.Unit, rhs :: A.Unit) block:
+    reachable-ops-unit(self, l, op-l, A.u-div(l, op-l, lhs, rhs), lhs)
+    reachable-ops-unit(self, l, op-l, A.u-div(l, op-l, lhs, rhs), rhs)
+    true
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: A.Unit, n :: Number) block:
+    when (n == 0) or not(num-is-integer(n)):
+      add-error(C.invalid-unit-power(l, n))
+    end
+    reachable-ops-unit(self, l, op-l, A.u-pow(l, op-l, u, n), u)
+    true
+  end,
+  method u-base(self, l :: Loc, id :: A.Name) block:
+    when A.is-s-underscore(id):
+      add-error(C.underscore-as-unit(l))
+    end
     true
   end
 }

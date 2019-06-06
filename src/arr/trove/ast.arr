@@ -2195,13 +2195,13 @@ default-map-visitor = {
     s-srcloc(l, loc)
   end,
   method s-num(self, l :: Loc, n :: Number, u :: Unit):
-    s-num(l, n, u)
+    s-num(l, n, u.visit(self))
   end,
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
-    s-frac(l, num, den, u)
+    s-frac(l, num, den, u.visit(self))
   end,
   method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
-    s-rfrac(l, num, den, u)
+    s-rfrac(l, num, den, u.visit(self))
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
@@ -2407,14 +2407,31 @@ default-map-visitor = {
     a-pred(l, ann.visit(self), exp.visit(self))
   end,
   method a-unit(self, l, ann, u):
-    # TODO(benmusch): Add units to the visitor?
-    a-unit(l, ann.visit(self), u)
+    a-unit(l, ann.visit(self), u.visit(self))
   end,
   method a-dot(self, l, obj, field):
     a-dot(l, obj.visit(self), field)
   end,
   method a-field(self, l, name, ann):
     a-field(l, name, ann.visit(self))
+  end,
+  method u-one(self, l):
+    u-one(l)
+  end,
+  method u-base(self, l, id):
+    u-base(l, id)
+  end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-mul(l, op-l, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-div(l, op-l, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: Unit, n :: Number):
+    u-pow(l, op-l, u.visit(self), n)
+  end,
+  method u-paren(self, l :: Loc, u :: Unit):
+    u-paren(l, u.visit(self))
   end
 }
 
@@ -2759,13 +2776,13 @@ default-iter-visitor = {
     true
   end,
   method s-num(self, l :: Loc, n :: Number, u :: Unit):
-    true
+    u.visit(self)
   end,
   method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
-    true
+    u.visit(self)
   end,
   method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
-    true
+    u.visit(self)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     true
@@ -2961,13 +2978,31 @@ default-iter-visitor = {
     ann.visit(self) and exp.visit(self)
   end,
   method a-unit(self, l, ann, u):
-    ann.visit(self)
+    ann.visit(self) and u.visit(self)
   end,
   method a-dot(self, l, obj, field):
     obj.visit(self)
   end,
   method a-field(self, l, name, ann):
     ann.visit(self)
+  end,
+  method u-one(self, l):
+    true
+  end,
+  method u-base(self, l, id):
+    true
+  end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    lhs.visit(self) and rhs.visit(self)
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    lhs.visit(self) and rhs.visit(self)
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: Unit, n :: Number):
+    u.visit(self)
+  end,
+  method u-paren(self, l :: Loc, u :: Unit):
+    u.visit(self)
   end
 }
 
@@ -3511,7 +3546,7 @@ dummy-loc-visitor = {
     a-pred(dummy-loc, ann.visit(self), exp.visit(self))
   end,
   method a-unit(self, l, ann, u):
-    a-unit(dummy-loc, ann.visit(self), u)
+    a-unit(dummy-loc, ann.visit(self), u.visit(self))
   end,
   method a-dot(self, l, obj, field):
     a-dot(dummy-loc, obj, field)

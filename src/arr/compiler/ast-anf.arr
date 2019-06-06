@@ -467,9 +467,11 @@ data AVal:
   | a-num(l :: Loc, n :: Number, u :: A.Unit) with:
     method label(self): "a-num" end,
     method tosource(self):
-      cases(Option) self.u:
-        | none => PP.number(self.n)
-        | some(u) => PP.separate(str-percent, [list: PP.number(self.n), u.tosource()])
+      if A.is-u-one(self.u):
+        PP.number(self.n)
+      else:
+        PP.separate(str-percent,
+          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
       end
     end
   | a-str(l :: Loc, s :: String) with:
