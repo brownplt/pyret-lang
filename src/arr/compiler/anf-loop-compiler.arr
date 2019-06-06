@@ -330,38 +330,31 @@ fun is-function-flat(flatness-env :: FL.FEnv, fun-name :: String) -> Boolean:
   is-flat-enough(flatness-opt)
 end
 
-# return all of the names in a unit
-fun unit-names(u :: A.Unit) -> Set<A.Name>:
-  cases (A.Unit) u:
-    | u-one(_) => [list-set: ]
-    | u-base(_, id) => [list-set: id]
-    | u-mul(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
-    | u-div(_, _, lhs, rhs) => unit-names(lhs).union(unit-names(rhs))
-    | u-pow(_, _, shadow u, n) => unit-names(u)
-    | u-paren(_, shadow u) => unit-names(u)
+fun normalize-unit-help(u :: A.Unit, factor :: NumInteger, acc :: D.MutableStringDict<NumInteger>) -> D.MutableStringDict<NumInteger>:
+  cases (A.Unit) u block:
+    | u-one(_) => acc
+    | u-base(_, id) =>
+      acc.set-now(tostring(id), acc.get-now(tostring(id)).or-else(0) + factor)
+      acc
+    | u-mul(_, _, lhs, rhs) => normalize-unit-help(lhs, factor, normalize-unit-help(rhs, factor, acc))
+    | u-div(_, _, lhs, rhs) => normalize-unit-help(lhs, factor, normalize-unit-help(rhs, factor * -1, acc))
+    | u-pow(_, _, shadow u, n) => normalize-unit-help(u, n * factor, acc)
+    | u-paren(_, shadow u) => normalize-unit-help(u, factor, acc)
   end
 end
-
-fun unit-power(target-id :: A.Name, u :: A.Unit) -> NumInteger:
-  cases (A.Unit) u:
-    | u-one(_) => 0
-    | u-base(_, id) =>
-      if id == target-id: 1 else: 0 end
-    | u-mul(_, _, lhs, rhs) => unit-power(target-id, lhs) + unit-power(target-id, rhs)
-    | u-div(_, _, lhs, rhs) => unit-power(target-id, lhs) + (-1 * unit-power(target-id, rhs))
-    | u-pow(_, _, shadow u, n) => unit-power(target-id, u) * n
-    | u-paren(_, shadow u) => unit-power(target-id, u)
-  end
+fun normalize-unit(u :: A.Unit) -> D.StringDict<NumInteger>:
+  normalize-unit-help(u, 1, [mutable-string-dict: ]).freeze()
 end
 
 fun compile-unit(u :: A.Unit) -> J.JExpr:
-  fields = unit-names(u).fold(
-    lam(acc, id):
-      power = unit-power(id, u)
+  normalized = normalize-unit(u)
+  fields = normalized.keys().fold(
+    lam(acc, key):
+      power = normalized.get-value(key)
       if power == 0:
         acc
       else:
-        CL.concat-cons(j-field(tostring(id), j-num(power)), acc)
+        CL.concat-cons(j-field(key, j-num(power)), acc)
       end
     end,
     CL.concat-empty)
