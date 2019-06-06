@@ -1191,6 +1191,7 @@ define("pyret-base/js/js-numbers", function() {
     options = options || {};
     return (function(m, n) {
       if (m instanceof Rational || m instanceof Unitnum) {
+        // TODO(benmusch): Is this okay? Can we always use fixnums?
         m = m.toFixnum();
       }
 
@@ -1420,7 +1421,7 @@ define("pyret-base/js/js-numbers", function() {
       return m > n;
     },
     function(m, n) {
-      return bnCompareTo.call(_withoutUnit(m), _withoutUnit(n)) > 0;
+      return bnCompareTo.call(m, n) > 0;
     },
     {doNotCoerceToFloating: true});
 
