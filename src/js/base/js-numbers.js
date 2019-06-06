@@ -1190,12 +1190,12 @@ define("pyret-base/js/js-numbers", function() {
   var makeIntegerBinop = function(onFixnums, onBignums, options) {
     options = options || {};
     return (function(m, n) {
-      if (m instanceof Rational) {
-        m = numerator(m);
+      if (m instanceof Rational || m instanceof Unitnum) {
+        m = m.toFixnum();
       }
 
-      if (n instanceof Rational) {
-        n = numerator(n);
+      if (n instanceof Rational || n instanceof Unitnum) {
+        n = n.toFixnum();
       }
 
       if (typeof(m) === 'number' && typeof(n) === 'number') {
@@ -1222,9 +1222,8 @@ define("pyret-base/js/js-numbers", function() {
   var makeIntegerUnOp = function(onFixnums, onBignums, options, errbacks) {
     options = options || {};
     return (function(m) {
-      m = _withoutUnit(m)
-      if (m instanceof Rational) {
-        m = numerator(m);
+      if (m instanceof Rational || m instanceof Unitnum) {
+        m = m.toFixnum();
       }
 
       if (typeof(m) === 'number') {
@@ -1275,7 +1274,7 @@ define("pyret-base/js/js-numbers", function() {
       return n === 0;
     },
     function(n) {
-      return bnEquals.call(_withoutUnit(n), BigInteger.ZERO);
+      return bnEquals.call(n, BigInteger.ZERO);
     }
   );
 
@@ -1285,7 +1284,7 @@ define("pyret-base/js/js-numbers", function() {
       return n === 1;
     },
     function(n) {
-      return bnEquals.call(_withoutUnit(n), BigInteger.ONE);
+      return bnEquals.call(n, BigInteger.ONE);
     });
 
   // _integerIsNegativeOne: integer-pyretnum -> boolean
@@ -1294,7 +1293,7 @@ define("pyret-base/js/js-numbers", function() {
       return n === -1;
     },
     function(n) {
-      return bnEquals.call(_withoutUnit(n), BigInteger.NEGATIVE_ONE);
+      return bnEquals.call(n, BigInteger.NEGATIVE_ONE);
     });
 
   // _integerAdd: integer-pyretnum integer-pyretnum -> integer-pyretnum
@@ -1303,7 +1302,7 @@ define("pyret-base/js/js-numbers", function() {
       return m + n;
     },
     function(m, n) {
-      return bnAdd.call(_withoutUnit(m), _withoutUnit(n));
+      return bnAdd.call(m, n);
     });
 
   // _integerSubtract: integer-pyretnum integer-pyretnum -> integer-pyretnum
@@ -1312,7 +1311,7 @@ define("pyret-base/js/js-numbers", function() {
       return m - n;
     },
     function(m, n) {
-      return bnSubtract.call(_withoutUnit(m), _withoutUnit(n));
+      return bnSubtract.call(m, n);
     });
 
   // _integerMultiply: integer-pyretnum integer-pyretnum -> integer-pyretnum
@@ -1321,7 +1320,7 @@ define("pyret-base/js/js-numbers", function() {
       return m * n;
     },
     function(m, n) {
-      return bnMultiply.call(_withoutUnit(m), _withoutUnit(n));
+      return bnMultiply.call(m, n);
     });
 
   //_integerQuotient: integer-pyretnum integer-pyretnum -> integer-pyretnum
@@ -1330,7 +1329,7 @@ define("pyret-base/js/js-numbers", function() {
       return ((m - (m % n))/ n);
     },
     function(m, n) {
-      return bnDivide.call(_withoutUnit(m), _withoutUnit(n));
+      return bnDivide.call(m, n);
     });
 
   var _integerRemainder = makeIntegerBinop(
@@ -1338,7 +1337,7 @@ define("pyret-base/js/js-numbers", function() {
       return m % n;
     },
     function(m, n) {
-      return bnRemainder.call(_withoutUnit(m), _withoutUnit(n));
+      return bnRemainder.call(m, n);
     });
 
   // splitIntIntoMantissaExpt: integer-pyretnum -> [JS-double, JS-int]
@@ -1411,7 +1410,7 @@ define("pyret-base/js/js-numbers", function() {
       return m === n;
     },
     function(m, n) {
-      return bnEquals.call(_withoutUnit(n), _withoutUnit(n));
+      return bnEquals.call(m, n);
     },
     {doNotCoerceToFloating: true});
 
@@ -1431,7 +1430,7 @@ define("pyret-base/js/js-numbers", function() {
       return m < n;
     },
     function(m, n) {
-      return bnCompareTo.call(_withoutUnit(m), _withoutUnit(n)) < 0;
+      return bnCompareTo.call(m, n) < 0;
     },
     {doNotCoerceToFloating: true});
 
@@ -1441,7 +1440,7 @@ define("pyret-base/js/js-numbers", function() {
       return m >= n;
     },
     function(m, n) {
-      return bnCompareTo.call(_withoutUnit(m), _withoutUnit(n)) >= 0;
+      return bnCompareTo.call(m, n) >= 0;
     },
     {doNotCoerceToFloating: true});
 
@@ -1451,7 +1450,7 @@ define("pyret-base/js/js-numbers", function() {
       return m <= n;
     },
     function(m, n) {
-      return bnCompareTo.call(_withoutUnit(m), _withoutUnit(n)) <= 0;
+      return bnCompareTo.call(m, n) <= 0;
     },
     {doNotCoerceToFloating: true});
 
@@ -1685,13 +1684,11 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.numerator = function(errbacks) {
-    // TODO(benmusch): How should this behave? Maybe remove the unit?
-    return new Unitnum(numerator(this.n), this.u);
+    _throwUnitsUnsupported(this.u, errbacks, "numerator");
   };
 
   Unitnum.prototype.denominator = function(errbacks) {
-    // TODO(benmusch): How should this behave? Maybe remove the unit?
-    return new Unitnum(denominator(this.n), this.u);
+    _throwUnitsUnsupported(this.u, errbacks, "denominator");
   };
 
   Unitnum.prototype.integerSqrt = function(errbacks) {
