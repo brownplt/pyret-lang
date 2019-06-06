@@ -348,8 +348,8 @@ end
 
 fun compile-unit(u :: A.Unit) -> J.JExpr:
   normalized = normalize-unit(u)
-  fields = normalized.keys().fold(
-    lam(acc, key):
+  fields = normalized.fold-keys(
+    lam(key, acc):
       power = normalized.get-value(key)
       if power == 0:
         acc
