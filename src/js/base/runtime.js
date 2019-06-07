@@ -4890,7 +4890,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_equal = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-equals"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-equals",
-        l, thisRuntime.Number, r, thisRuntime.NumberAnyUnit);
+        l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.equals(l, r, NumberErrbacks));
     };
 
@@ -4922,14 +4922,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_max = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-max",
-        l, thisRuntime.Number, r, thisRuntime.NumberAnyUnit);
+        l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
       if (jsnums.greaterThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
     var num_min = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-min",
-        l, thisRuntime.Number, r, thisRuntime.NumberAnyUnit);
+        l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
       if (jsnums.lessThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
@@ -5004,7 +5004,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
         n, thisRuntime.NumberAnyUnit);
-      if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
+      if (jsnums.isPositive(n, NumberErrbacks)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
       } else {
         return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));

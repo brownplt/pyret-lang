@@ -51,31 +51,83 @@ check "Logical binops":
 end
 
 check "Other supported operations":
-  #|
-  TODO:
-  numerator()
-  denominator()
-  What even is the best option for those?
-  |#
+  num-equal(2%<m>, 2%<m>) is true
+  num-equal(4/2%<m>, 2%<m>) is true
+  num-equal(4/2, 2%<m>) is false
+
+  num-to-roughnum(2%<m>) is-roughly ~2.0%<m>
+
+  num-is-integer(2%<m>) is true
+  num-is-integer(2.5%<m>) is false
+
+  num-is-rational(2%<m>) is true
+  num-is-rational(2.5%<m>) is true
+  num-is-rational(1/2%<m>) is true
+  num-is-rational(~2%<m>) is false
+
+  num-is-roughnum(2%<m>) is false
+  num-is-roughnum(1/2%<m>) is false
+  num-is-roughnum(1.609%<m>) is false
+  num-is-roughnum(~2%<m>) is true
+
+  num-is-positive(2%<m>) is true
+  num-is-positive(0%<m>) is false
+  num-is-positive(-2%<m>) is false
+  num-is-non-positive(2%<m>) is false
+  num-is-non-positive(0%<m>) is true
+  num-is-non-positive(-2%<m>) is true
+
+  num-is-negative(2%<m>) is false
+  num-is-negative(0%<m>) is false
+  num-is-negative(-2%<m>) is true
+  num-is-non-negative(2%<m>) is true
+  num-is-non-negative(0%<m>) is true
+  num-is-non-negative(-2%<m>) is false
+
+  num-to-string(2.5%<s * (m ^ 2)>) is "5/2<m ^ 2 * s>"
+  num-to-string(2%<s * (m ^ 2)>) is "2<m ^ 2 * s>"
+  num-to-string(2/3%<s * (m ^ 2)>) is "2/3<m ^ 2 * s>"
+  num-to-string(~2.718%<s * (m ^ 2)>) is "~2.718<m ^ 2 * s>"
+  num-to-string(~6.022e23%<s * (m ^ 2)>) is "~6.022e+23<m ^ 2 * s>"
+
+  num-to-string-digits(2/3%<s * (m ^ 2)>, 3) is "0.667<m ^ 2 * s>"
+  num-to-string-digits(-2/3%<s * (m ^ 2)>, 3) is "-0.667<m ^ 2 * s>"
+
+  # TODO: Failing... hmmm....
+  num-to-string-digits(5%<s * (m ^ 2)>, 2) is "5.00<m ^ 2 * s>"
+
+  num-to-string-digits(5%<s * (m ^ 2)>, 0) is "5<m ^ 2 * s>"
+  num-to-string-digits(555%<s * (m ^ 2)>, -2) is "600<m ^ 2 * s>"
+
+  num-max(2%<m>, 1%<m>) is 2%<m>
+  num-max(2%<s>, 2%<m>) raises ""
+  num-min(2%<m>, 1%<m>) is 1%<m>
+  num-min(2%<s>, 2%<m>) raises ""
+
   num-abs(-2%<m>) is 2%<m>
   num-floor(3/2%<m>) is 1%<m>
+  num-ceiling(3/2%<m>) is 2%<m>
   num-round(3/2%<m>) is 2%<m>
+  num-round-even(3.5%<m>) is 4%<m>
+  num-truncate(3.5%<m>) is 3%<m>
+  num-sqr(3%<m>) is 9%<m ^ 2>
 end
 
 check "Unsupported unops":
-  #|
-  TODO:
-  integerSqrt() - is there any way to trigger this or is this unused?
-  |#
-  num-sqrt(2%<m>) raises "The square root operation does not support units but was given an argument with the unit m"
-  num-log(2%<m>) raises "The log operation does not support units but was given an argument with the unit m"
-  num-atan(2%<m>) raises "The atan operation does not support units but was given an argument with the unit m"
-  num-asin(0%<m>) raises "The asin operation does not support units but was given an argument with the unit m"
-  num-acos(0%<m>) raises "The acos operation does not support units but was given an argument with the unit m"
-  num-sin(2%<m>) raises "The sin operation does not support units but was given an argument with the unit m"
-  num-tan(2%<m>) raises "The tan operation does not support units but was given an argument with the unit m"
-  num-cos(2%<m>) raises "The cos operation does not support units but was given an argument with the unit m"
-  num-exp(2%<m>) raises "The exp operation does not support units but was given an argument with the unit m"
-  num-expt(2%<m>, 3) raises "Blah"
-  num-expt(2%<m>, 3%<m>) raises "Blah"
+  num-sqrt(2%<m>) raises ""
+  num-log(2%<m>) raises ""
+  num-atan(2%<m>) raises ""
+  num-atan2(2%<m>) raises ""
+  num-asin(0%<m>) raises ""
+  num-acos(0%<m>) raises ""
+  num-sin(2%<m>) raises ""
+  num-tan(2%<m>) raises ""
+  num-cos(2%<m>) raises ""
+  num-exp(2%<m>) raises ""
+  num-expt(2%<m>, 3) raises ""
+  num-expt(2%<m>, 3%<m>) raises ""
+  num-modulo(2%<m>, 2%<m>) raises ""
+  num-to-string-digits(2/3%<s * (m ^ 2)>, 3%<m>) raises ""
+  num-within-abs(2%<m>) raises ""
+  num-within-rel(2%<m>) raises ""
 end

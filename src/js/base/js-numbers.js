@@ -748,14 +748,14 @@ define("pyret-base/js/js-numbers", function() {
   var numerator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
-    return n.numerator();
+    return n.numerator(errbacks);
   };
 
   // denominator: pyretnum -> pyretnum
   var denominator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return 1;
-    return n.denominator();
+    return n.denominator(errbacks);
   };
 
   // sqrt: pyretnum -> pyretnum
@@ -1575,6 +1575,10 @@ define("pyret-base/js/js-numbers", function() {
   // round: -> pyretnum
   // Round to the nearest integer.
 
+  // roundEven: -> pyretnum
+  // Round to the nearest integer, returning an exactnum if the number is
+  // between integers
+
   // equals: pyretnum -> boolean
   // Produce true if the given number of the same type is equal.
 
@@ -1759,6 +1763,10 @@ define("pyret-base/js/js-numbers", function() {
 
   Unitnum.prototype.round = function() {
     return new Unitnum(round(this.n), this.u);
+  };
+
+  Unitnum.prototype.roundEven = function() {
+    return new Unitnum(roundEven(this.n), this.u);
   };
 
   Unitnum.prototype.equals = function(other) {
@@ -4283,6 +4291,10 @@ define("pyret-base/js/js-numbers", function() {
     if (!isInteger(digits)) {
       errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
     }
+
+    if (n instanceof Unitnum) {
+      return toStringDigits(n.n, digits, errbacks) + "<" + _unitToString(n.u) + ">";
+    }
     var tenDigits = expt(10, digits, errbacks);
     var d = toFixnum(digits);
     n = divide(round(multiply(n, tenDigits, errbacks), errbacks), tenDigits, errbacks);
@@ -4297,7 +4309,7 @@ define("pyret-base/js/js-numbers", function() {
       return ans;
     }
     // n is not an integer implies that d >= 1
-    var decimal = toRepeatingDecimal(n.numerator(), n.denominator(), undefined, errbacks);
+    var decimal = toRepeatingDecimal(numerator(n), denominator(n), undefined, errbacks);
     var ans = decimal[1].toString();
     while (ans.length < d) {
       ans += decimal[2];
