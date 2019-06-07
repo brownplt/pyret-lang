@@ -59,10 +59,7 @@ check "Other supported operations":
   |#
   num-abs(-2%<m>) is 2%<m>
   num-floor(3/2%<m>) is 1%<m>
-  num-expt(2%<m>, 3) is 8%<m ^ 3>
   num-round(3/2%<m>) is 2%<m>
-
-  num-expt(2%<m>, 3%<m>) raises "expt: power cannot have a unit"
 end
 
 check "Unsupported unops":
@@ -79,4 +76,6 @@ check "Unsupported unops":
   num-tan(2%<m>) raises "The tan operation does not support units but was given an argument with the unit m"
   num-cos(2%<m>) raises "The cos operation does not support units but was given an argument with the unit m"
   num-exp(2%<m>) raises "The exp operation does not support units but was given an argument with the unit m"
+  num-expt(2%<m>, 3) raises "Blah"
+  num-expt(2%<m>, 3%<m>) raises "Blah"
 end
