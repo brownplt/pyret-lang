@@ -89,13 +89,11 @@ end
 fun desugar-afield(f :: A.AField) -> A.AField:
   A.a-field(f.l, f.name, desugar-ann(f.ann))
 end
-fun desugar-ann-helper(a :: A.Ann, seen-unit :: Boolean) -> A.Ann:
+fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
     | a-any(_) => a
-    | a-name(l, _) =>
-      # TODO(benmusch): should we check if this is a number-related name?
-      if seen-unit: a else: A.a-unit(l, a, A.u-one(A.dummy-loc)) end
+    | a-name(l, _) => a
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
     | a-arrow(l, args, ret, use-parens) =>
@@ -111,13 +109,10 @@ fun desugar-ann-helper(a :: A.Ann, seen-unit :: Boolean) -> A.Ann:
     | a-tuple(l, fields) =>
       A.a-tuple(l, fields.map(desugar-ann))
     | a-unit(l, ann, u) =>
-      A.a-unit(l, desugar-ann-helper(ann, true), u)
+      A.a-unit(l, desugar-ann(ann), u)
     | a-pred(l, ann, exp) =>
-      A.a-pred(l, desugar-ann-helper(ann, seen-unit), desugar-expr(exp))
+      A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
-end
-fun desugar-ann(a :: A.Ann) -> A.Ann:
-  desugar-ann-helper(a, false)
 end
 
 fun desugar(program :: A.Program):
