@@ -725,6 +725,36 @@ data CompileError:
           ED.loc(self.op-b-loc),
           ED.text(". Use parentheses to group the operations and to make the order of operations clear.")]]
     end
+  | mixed-unit-ops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Reading this "),
+          ED.highlight(ED.text("unit"), [ED.locs: self.exp-loc], -1),
+          ED.text(" errored:")],
+        ED.cmcode(self.exp-loc),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
+          ED.text(" operation is at the same level as the "),
+          ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], 1)),
+          ED.text(" operation.")],
+        [ED.para:
+          ED.text("Use parentheses to group the operations and to make the order of operations clear.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Unit operators of different kinds cannot be mixed at the same level, but "),
+          ED.code(ED.text(self.op-a-name)),
+          ED.text(" is at "),
+          ED.loc(self.op-a-loc),
+          ED.text(" at the same level as "),
+          ED.code(ED.text(self.op-b-name)),
+          ED.text(" at "),
+          ED.loc(self.op-b-loc),
+          ED.text(". Use parentheses to group the operations and to make the order of operations clear.")]]
+    end
   | block-ending(l :: Loc, block-loc :: Loc, kind) with:
     method render-fancy-reason(self):
       [ED.error:

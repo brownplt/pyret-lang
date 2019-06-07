@@ -307,20 +307,20 @@ fun reachable-ops-unit(self, l, op-l, parent, u):
         reachable-ops-unit(self, l2, op-l2, u, lhs)
         reachable-ops-unit(self, l2, op-l2, u, lhs)
       else:
-        add-error(C.mixed-binops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+        add-error(C.mixed-unit-ops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
       end
     | u-div(l2, op-l2, lhs, rhs) =>
       if A.is-u-div(parent) block:
         reachable-ops-unit(self, l2, op-l2, u, lhs)
         reachable-ops-unit(self, l2, op-l2, u, lhs)
       else:
-        add-error(C.mixed-binops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+        add-error(C.mixed-unit-ops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
       end
     | u-pow(l2, op-l2, pow-u, n) =>
       if A.is-u-pow(self):
         reachable-ops-unit(self, l2, op-l2, u, pow-u)
       else:
-        add-error(C.mixed-binops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+        add-error(C.mixed-unit-ops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
       end
     | else => u.visit(self)
   end
