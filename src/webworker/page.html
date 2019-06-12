@@ -5,9 +5,14 @@
 <body>
 
 <div>
-  <div style="float: left; width: 50%"> 
-    <input type="text" id="program"></input>
-    <button type="button" id="compile">Compile</button>
+  <div style="float: left; width: 50%; height 100%">
+    <div>
+      <button type="button" id="compile">Compile</button>
+      <button type="button" id="compileRun">Compile and Run</button>
+    </div>
+    <div style="height: 100%; padding:5px">
+      <textarea style="width: 90%; height: auto; overflow-y: scroll; box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; display:block; resize:none; font-size:16px" rows="40" type="textarea" id="program"></textarea>
+    </div>
   </div>
 
   <div style="float:right; width: 50%">
