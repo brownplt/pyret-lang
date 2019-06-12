@@ -7,10 +7,11 @@ const worker = setup.worker;
 
 const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
+const compileRun = document.getElementById("compileRun");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
-compile.onclick = function() {
+function compileProgram() {
   fs.writeFileSync("./projects/program.arr", input.value);
   let message = {
     _parley: true,
@@ -22,7 +23,14 @@ compile.onclick = function() {
     }
   };
   worker.postMessage(message);
-  console.log('Message posted to worker');
+}
+
+compile.onclick = compileProgram;
+
+compileRun.onclick = function() {
+  compileProgram();
+  console.log("RUNNING");
+  runner.makeRequire("/compiled/project")("program.arr.js");
 };
 
 worker.onmessage = function(e) {
