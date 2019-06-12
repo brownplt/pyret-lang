@@ -11,6 +11,8 @@ const compileRun = document.getElementById("compileRun");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
+var shouldRun = false;
+
 function compileProgram() {
   fs.writeFileSync("./projects/program.arr", input.value);
   let message = {
@@ -29,8 +31,7 @@ compile.onclick = compileProgram;
 
 compileRun.onclick = function() {
   compileProgram();
-  console.log("RUNNING");
-  runner.makeRequire("/compiled/project")("program.arr.js");
+  shouldRun = true;
 };
 
 worker.onmessage = function(e) {
@@ -69,6 +70,13 @@ worker.onmessage = function(e) {
         setup.workerError(msgObject.contents);
       } else if (msgType == "compile-failure") {
         setup.workerError("Compilation failure");
+      } else if (msgType == "compile-success") {
+        console.log("Compilation succeeded!");
+        if (shouldRun) {
+          console.log("Running...");
+          runner.makeRequire("/compiled/project")("program.arr.js");
+          shouldRun = false;
+        }
       } else {
         setup.workerLog(e.data);
       }
