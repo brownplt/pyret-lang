@@ -24,12 +24,36 @@ function walkSync(dir, base_key) {
 
 }
 
+function checkDirectory(p) {
+  if (fs.existsSync(p) == false) {
+    // console.error("Unabled to bundle runtime files.", p, "does not exist");
+    throw ("Unable to bundle runtime files. " + p + " does not exist");
+  } 
+
+
+  let statResult = fs.statSync(p);
+  if (statResult.isDirectory() == false) {
+    // console.error("Unable to bundle runtime files.", p, "is not a directory");
+    throw ("Unable to bundle runtime files. " + p + " is not a directory");
+  }
+
+  return true;
+}
+
 var prewrittenBuiltinsDir = process.argv[2];
 var uncompiledBuiltinsDir = process.argv[3];
 var outputFile = process.argv[4];
 
-var prewrittenObject = walkSync(prewrittenBuiltinsDir, "./prewritten");
-var uncompiledObject = walkSync(uncompiledBuiltinsDir, "./uncompiled");
+var prewrittenObject = [];
+var uncompiledObject = [];
+
+if (checkDirectory(prewrittenBuiltinsDir)) {
+  prewrittenObject = walkSync(prewrittenBuiltinsDir, "./prewritten");
+}
+
+if (checkDirectory(uncompiledBuiltinsDir)) {
+  uncompiledObject = walkSync(uncompiledBuiltinsDir, "./uncompiled");
+}
 
 var filelist = prewrittenObject.concat(uncompiledObject);
 
