@@ -135,8 +135,8 @@ define("pyret-base/js/js-numbers", function() {
 
       if (x instanceof Unitnum || y instanceof Unitnum) {
         // if x or y have units, ensure they are both wrapped in unitnums
-        x = _withUnit(x, _unitOf(x));
-        y = _withUnit(y, _unitOf(y));
+        x = _withUnit(x, _unitOf(x), true);
+        y = _withUnit(y, _unitOf(y), true);
       } else if (x instanceof Roughnum) {
         // y is rough, rat or bigint
         if (!(y instanceof Roughnum)) {
@@ -1060,9 +1060,12 @@ define("pyret-base/js/js-numbers", function() {
 
   // Unit operations
 
-  var _withUnit = function(n, u) {
-    if (n instanceof Unitnum) {
-      return new Unitnum(n.n, u);
+  var _withUnit = function(n, u, forceUnitnum) {
+    if (_unitEquals(u, {}) && !forceUnitnum) {
+      return _withoutUnit(n);
+    } else if (n instanceof Unitnum) {
+      // TODO: make sure this is okay in all instances
+      return _withUnit(n.n, u, forceUnitnum);
     } else {
       return new Unitnum(n, u);
     }
@@ -1634,13 +1637,13 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.toRational = function() {
-    return new Unitnum(toRational(this.n), this.u);
+    return _withUnit(toRational(this.n), this.u, false);
   }
 
   Unitnum.prototype.toExact = Unitnum.prototype.toRational;
 
   Unitnum.prototype.toRoughnum = function() {
-    return new Unitnum(toRoughnum(this.n), this.u);
+    return _withUnit(toRoughnum(this.n), this.u, false);
   };
 
   Unitnum.prototype.toFixnum = function() {
@@ -1669,23 +1672,22 @@ define("pyret-base/js/js-numbers", function() {
 
   Unitnum.prototype.add = function(n, errbacks) {
     _ensureSameUnits(this.u, _unitOf(n), errbacks, "+");
-    return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u);
+    return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
   };
 
   Unitnum.prototype.subtract = function(n, errbacks) {
     _ensureSameUnits(this.u, _unitOf(n), errbacks, "-");
-    return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u);
+    return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
   };
 
   Unitnum.prototype.multiply = function(n, errbacks) {
     var newUnit = _unitMerge(this.u, n.u);
-    // TODO(benmusch): This & divide should un-box the numbers if the unit is 1
-    return _withUnit(multiply(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit);
+    return _withUnit(multiply(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit, false);
   };
 
   Unitnum.prototype.divide = function(n, errbacks) {
     var newUnit = _unitMerge(this.u, _unitInvert(n.u));
-    return _withUnit(divide(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit);
+    return _withUnit(divide(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit, false);
   };
 
   Unitnum.prototype.numerator = function(errbacks) {
@@ -1707,15 +1709,15 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.abs = function() {
-    return new Unitnum(abs(this.n), this.u);
+    return _withUnit(abs(this.n), this.u, false);
   };
 
   Unitnum.prototype.floor = function() {
-    return new Unitnum(floor(this.n), this.u);
+    return _withUnit(floor(this.n), this.u, false);
   };
 
   Unitnum.prototype.ceiling = function() {
-    return new Unitnum(ceiling(this.n), this.u);
+    return _withUnit(ceiling(this.n), this.u, false);
   };
 
   Unitnum.prototype.log = function(errbacks) {
@@ -1744,29 +1746,29 @@ define("pyret-base/js/js-numbers", function() {
 
   Unitnum.prototype.expt = function(n) {
     var newUnit = _unitMap(this.u, function(pow) { return n * pow });
-    return new Unitnum(expt(this.n, n), newUnit);
+    return _withUnit(expt(this.n, n), newUnit, false);
   };
 
   Unitnum.prototype.exp = function(errbacks) {
-    _throwUnitsUnsupported(this.u, errbacks, "exp");
+    _throwUnitsUnsupported(this.u, errbacks, "exp", false);
   };
 
   Unitnum.prototype.acos = function(errbacks) {
     // TODO(benmusch): potentially support units here
-    _throwUnitsUnsupported(this.u, errbacks, "acos");
+    _throwUnitsUnsupported(this.u, errbacks, "acos", false);
   };
 
   Unitnum.prototype.asin = function(errbacks) {
     // TODO(benmusch): potentially support units here
-    _throwUnitsUnsupported(this.u, errbacks, "asin");
+    _throwUnitsUnsupported(this.u, errbacks, "asin", false);
   };
 
   Unitnum.prototype.round = function() {
-    return new Unitnum(round(this.n), this.u);
+    return _withUnit(round(this.n), this.u, false);
   };
 
   Unitnum.prototype.roundEven = function() {
-    return new Unitnum(roundEven(this.n), this.u);
+    return _withUnit(roundEven(this.n), this.u, false);
   };
 
   Unitnum.prototype.equals = function(other) {
@@ -2456,7 +2458,7 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var addUnit = function(n, u) {
-    return new Unitnum(n, u);
+    return _withUnit(n, u, false);
   };
 
   ///////////////////////////////////////////////////////////
@@ -3042,6 +3044,9 @@ define("pyret-base/js/js-numbers", function() {
   // (protected) r = this * a, r != this,a (HAC 14.12)
   // "this" should be the larger one if appropriate.
   function bnpMultiplyTo(a,r) {
+    if (a === undefined || r === undefined || this === undefined) {
+      console.log("this", this, "a", a, "r", r)
+    }
     var x = this.abs(), y = a.abs();
     var i = x.t;
     r.t = i+y.t;

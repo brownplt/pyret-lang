@@ -85,6 +85,7 @@ fun destructure-method-application(l, src-available, maybe-ast):
 end
 
 data RuntimeError:
+  # note to self: ED.text(to-repr(self)) for simple string-ification
   | multi-error(errors #|:: List<RuntimeError>|#) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       # The concatenation of renderings is _not_ a valid rendering;

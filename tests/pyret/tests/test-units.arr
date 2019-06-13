@@ -13,6 +13,8 @@ check "Unit equality":
   # tests for adding/removing units
   (10 * 1%<m>) + 1%<m> is 11%<m>
   (10%<m> / 1%<m>) + 1 is 11
+
+  # test poly 0
 end
 
 check "Arithmetic binops":
