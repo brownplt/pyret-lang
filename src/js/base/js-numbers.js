@@ -253,6 +253,11 @@ define("pyret-base/js/js-numbers", function() {
             (isPyretNumber(n) && n.isRational()));
   };
 
+  // isUnitnum: pyretnum -> boolean
+  var isUnitnum = function(n) {
+    return n instanceof Unitnum;
+  };
+
   var isExact = isRational;
 
   // isReal: pyretnum -> boolean
@@ -4338,6 +4343,7 @@ define("pyret-base/js/js-numbers", function() {
 
   Numbers['isPyretNumber'] = isPyretNumber;
   Numbers['isRational'] = isRational;
+  Numbers['isUnitnum'] = isUnitnum;
   Numbers['isReal'] = isReal;
   Numbers['isExact'] = isExact;
   Numbers['isInteger'] = isInteger;
