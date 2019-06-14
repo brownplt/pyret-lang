@@ -20,7 +20,7 @@ function compileProgram() {
     options: {
       program: "program.arr",
       "base-dir": "/projects",
-      "builtin-js-dir": "/prewritten/",
+      "builtin-js-dirs": ["/prewritten/", "/uncompiled/"],
       checks: "none",
     }
   };
