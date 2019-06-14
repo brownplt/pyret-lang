@@ -2940,19 +2940,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.isAny = jsnums.checkUnit(this.u, { "_": 1 })
       this.implicit = implicit;
     }
-    function makeUnitAnn(ann, u, srcLoc) {
+    function makeUnitAnn(ann, u, srcloc) {
       if (ann.withUnit === undefined) {
-        thisRuntime.ffi.throwMessageException("Units!");
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(u), makeSrcloc(srcloc));
       }
       return ann.withUnit(u);
     }
-    PUnitAnn.prototype.withUnit = function(unit) {
+    PUnitAnn.prototype.withUnit = function(unit, srcloc) {
       if (this.implicit) {
         return new PUnitAnn(this.ann, unit, false);
       } else if (jsnums.checkUnit(this.u, unit)) {
         return this;
       } else {
-        thisRuntime.ffi.throwMessageException("Units!");
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(u), makeSrcloc(srcloc));
       }
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {
@@ -2984,9 +2984,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       newAnn.flat = true;
       return newAnn;
     }
-    PPredAnn.prototype.withUnit = function(unit) {
-      console.log("Got withUnit on pred")
-      return new PPredAnn(makeUnitAnn(this.ann, unit), this.pred, this.predName, this.flat)
+    PPredAnn.prototype.withUnit = function(unit, srcloc) {
+      return new PPredAnn(makeUnitAnn(this.ann, unit, srcloc), this.pred, this.predName, this.flat)
     }
     PPredAnn.prototype.check = function(compilerLoc, val) {
       function fail() {

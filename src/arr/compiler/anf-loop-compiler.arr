@@ -428,7 +428,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
       compiled-base = compile-ann(base, visitor)
       compiled-unit = compile-unit(u)
       c-exp(
-        rt-method("makeUnitAnn", [clist: compiled-base.exp, compiled-unit]),
+        rt-method("makeUnitAnn", [clist: compiled-base.exp, compiled-unit, visitor.get-loc(l)]),
         cl-empty)
     | a-dot(l, m, field) =>
       c-exp(

@@ -499,6 +499,10 @@
     function throwModuleLoadFailureL(names) {
       raise(makeModuleLoadFailureL(names));
     }
+    function throwUnitsOnUnsupportedAnn(unitStr, loc) {
+      runtime.checkString(unitStr);
+      raise(err("units-on-unsupported-ann")(loc, unitStr));
+    }
 
     function makeModuleLoadFailureL(names) {
       var namesList = makeList(names);
@@ -657,6 +661,7 @@
       throwParseErrorBadNumber: throwParseErrorBadNumber,
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
+      throwUnitsOnUnsupportedAnn: throwUnitsOnUnsupportedAnn,
 
       makeBadBracketException: makeBadBracketException,
       makeRecordFieldsFail: makeRecordFieldsFail,
