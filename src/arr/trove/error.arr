@@ -2653,7 +2653,14 @@ data ParseError:
     method render-reason(self): ED.text("missing-comma: " + self.loc.format(true)) end
   | units-on-unsupported-ann(loc, unit-str) with:
     method render-fancy-reason(self):
-      ED.text("Unittsssss (but fancy)")
+      [ED.error:
+        [ED.para:
+          ED.text("The annotation at "),
+          ED.loc(self.loc),
+          ED.text(" is annotated with the unit "),
+          ED.code(ED.text(self.unit-str)),
+          ED.text(" but does not support unit annotations.")],
+        ED.cmcode(self.loc)]
     end,
     method render-reason(self):
       [ED.error:
