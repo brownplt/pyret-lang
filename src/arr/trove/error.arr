@@ -2655,8 +2655,8 @@ data ParseError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("The annotation at "),
-          ED.loc(self.loc),
+          ED.text("This "),
+          ED.highlight(ED.text("annotation"), [ED.locs: self.loc], -1),
           ED.text(" is annotated with the unit "),
           ED.code(ED.text(self.unit-str)),
           ED.text(" but does not support unit annotations.")],
