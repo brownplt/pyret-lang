@@ -681,7 +681,7 @@ data CompileError:
         [ED.para:
           ED.text("The exponent "),
           ED.embed(self.power),
-          ED.text("is not allowed in unit expressions. "),
+          ED.text(" is not allowed in unit expressions. "),
           ED.text("Make sure to use a non-zero integer value.")]]
     end,
     method render-reason(self):
@@ -694,6 +694,32 @@ data CompileError:
           ED.text("at "),
           ED.loc(self.loc),
           ED.text(". Make sure to use a non-zero integer value.")]]
+    end
+  | one-as-power-base(loc, power) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Reading a "),
+          ED.highlight(ED.text("unit annotation"), [ED.locs: self.loc], 0),
+          ED.text(" errored:")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.code(ED.text("1")),
+          ED.text(" is raised to the power "),
+          ED.embed(self.power),
+          ED.text(". One cannot be raised to a power")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.code(ED.text("1")),
+          ED.text(" is raised to the power ")],
+        [ED.para:
+          ED.embed(self.power)],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.loc),
+          ED.text(". One cannot be raised to a power")]]
     end
   | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     method render-fancy-reason(self):

@@ -287,6 +287,8 @@ check "unit annotations":
   run-str("~1/2%<m ^ 2.1>") is%(output) compile-error(CS.is-invalid-unit-power)
   run-str("var n :: Number%<m ^ 0> = 0") is%(output) compile-error(CS.is-invalid-unit-power)
   run-str("var n :: Number%<m ^ 2.1> = 0") is%(output) compile-error(CS.is-invalid-unit-power)
+
+  run-str("2%<1 ^ 2>") is%(output) compile-error(CS.is-one-as-power-base)
 end
 
 #|

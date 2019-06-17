@@ -1044,7 +1044,11 @@ well-formed-visitor = A.default-iter-visitor.{
     when (n == 0) or not(num-is-integer(n)):
       add-error(C.invalid-unit-power(l, n))
     end
-    reachable-ops-unit(self, l, op-l, A.u-pow(l, op-l, u, n), u)
+
+    when A.is-u-one(u):
+      add-error(C.one-as-power-base(l, n))
+    end
+    u.visit(self)
     true
   end,
   method u-base(self, l :: Loc, id :: A.Name) block:

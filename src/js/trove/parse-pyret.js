@@ -970,20 +970,24 @@
         },
         'dim-expr': function(node) {
           // (LANGLE|LT) unit-expr (RANGLE|GT) | (LANGLE|LT) NUMBER (RANGLE|GT)
-          // TODO: Handle numbers here somehow
           return tr(node.kids[1])
         },
         'unit-atom': function(node) {
-          if (node.kids.length === 1) {
+          if (node.kids.length === 1 && node.kids[0].name === 'NAME') {
             return RUNTIME.getField(ast, 'u-base')
               .app(pos(node.pos), name(node.kids[0]))
+          } else if (node.kids.length === 1 && node.kids[0].name === 'NUMBER') {
+            if (node.kids[0].value !== '1') {
+              throw "Invalid number in unit: " + node.kids[0].value;
+            }
+            return RUNTIME.getField(ast, 'u-one').app(pos(node.pos));
           } else if (node.kids.length === 3 && node.kids[1].name === 'CARET') {
             return RUNTIME.getField(ast, 'u-pow')
-              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), number(node.kids[2]))
+              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), number(node.kids[2]));
           } else {
             // (unit-expr PAREN unit-expr PAREN)
             return RUNTIME.getField(ast, 'u-paren')
-              .app(pos(node.pos), tr(node.kids[1]))
+              .app(pos(node.pos), tr(node.kids[1]));
           }
         },
         'unit-expr': function(node) {

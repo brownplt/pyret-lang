@@ -2952,7 +2952,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       } else if (jsnums.checkUnit(this.u, unit)) {
         return this;
       } else {
-        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(u), makeSrcloc(srcloc));
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), makeSrcloc(srcloc));
       }
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {

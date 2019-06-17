@@ -135,6 +135,7 @@ dim-expr: (LANGLE|LT) unit-expr (RANGLE|GT)
 unit-atom: (PARENNOSPACE|PARENSPACE) unit-expr RPAREN
   | NAME
   | unit-atom CARET NUMBER
+  | NUMBER
 unit-expr: unit-atom ((STAR|SLASH) unit-atom)*
 
 

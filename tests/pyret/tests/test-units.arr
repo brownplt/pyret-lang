@@ -3,6 +3,9 @@ check "Unit equality":
   2%<s> == 2%<m> is false
 
   2%<m> is 2%<m>
+  2%<1 / m> is 2%<m ^ -1>
+  2%<1> is 2
+  2%<1 * m> is 2%<m>
   2%<m / s / s> is 2%<m * (s ^ -2)>
   2 is 2%<m / m>
   2%<s * m> is 2%<m * s>
