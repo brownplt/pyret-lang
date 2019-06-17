@@ -116,7 +116,12 @@ check "Other supported operations":
   num-round(3/2%<m>) is 2%<m>
   num-round-even(3.5%<m>) is 4%<m>
   num-truncate(3.5%<m>) is 3%<m>
+
   num-sqr(3%<m>) is 9%<m ^ 2>
+  num-expt(2%<m>, 3) is 8%<m ^ 3>
+  num-expt(2%<m / s>, -3) is 1/8%<(s / m) ^ 3>
+  num-sqrt(4%<m ^ 2>) is 2%<m>
+  num-sqrt(4%<m ^ -2>) is 2%<1 / m>
 end
 
 check "Unsupported unops":
@@ -130,8 +135,8 @@ check "Unsupported unops":
   num-tan(2%<m>) raises ""
   num-cos(2%<m>) raises ""
   num-exp(2%<m>) raises ""
-  num-expt(2%<m>, 3) raises ""
   num-expt(2%<m>, 3%<m>) raises ""
+  num-expt(2%<m>, 0.5) raises ""
   num-modulo(2%<m>, 2%<m>) raises ""
   num-to-string-digits(2/3%<s * (m ^ 2)>, 3%<m>) raises ""
   num-within-abs(2%<m>) raises ""

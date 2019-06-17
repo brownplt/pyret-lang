@@ -1721,13 +1721,25 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.integerSqrt = function(errbacks) {
-    // TODO(benmusch): potentially support units here
-    _throwUnitsUnsupported(this.u, errbacks, "integer square root");
+    var newUnit = _unitMap(this.u, function(pow) {
+      if (pow % 2 !== 0) {
+        errbacks.throwIncompatibleUnits("`sqrt` on non-even unit exponent");
+      } else {
+        return pow / 2;
+      }
+    });
+    return _withUnit(integerSqrt(this.n), newUnit, false);
   };
 
   Unitnum.prototype.sqrt = function(errbacks) {
-    // TODO(benmusch): potentially support units here
-    _throwUnitsUnsupported(this.u, errbacks, "square root");
+    var newUnit = _unitMap(this.u, function(pow) {
+      if (pow % 2 !== 0) {
+        errbacks.throwIncompatibleUnits("`sqrt` on non-even unit exponent");
+      } else {
+        return pow / 2;
+      }
+    });
+    return _withUnit(sqrt(this.n), newUnit, false);
   };
 
   Unitnum.prototype.abs = function() {
@@ -1766,7 +1778,10 @@ define("pyret-base/js/js-numbers", function() {
     _throwUnitsUnsupported(this.u, errbacks, "sin");
   };
 
-  Unitnum.prototype.expt = function(n) {
+  Unitnum.prototype.expt = function(n, errbacks) {
+    if (!isInteger(n)) {
+      errbacks.throwIncompatibleUnits("`num-expt` on unit with non-integer power");
+    }
     var newUnit = _unitMap(this.u, function(pow) { return n * pow });
     return _withUnit(expt(this.n, n), newUnit, false);
   };

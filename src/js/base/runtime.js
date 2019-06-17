@@ -2952,6 +2952,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       } else if (jsnums.checkUnit(this.u, unit)) {
         return this;
       } else {
+        // TODO: improve this error message
         thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), makeSrcloc(srcloc));
       }
     }
@@ -5029,7 +5030,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqrt",
-        n, thisRuntime.NumNonNegative);
+        n, thisRuntime.NumNonNegativeAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n, NumberErrbacks));
     }
     var num_sqr = function(n) {
@@ -5151,7 +5152,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_expt = function(n, pow) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-expt"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-is-rational",
-        n, thisRuntime.Number, pow, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit, pow, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow, NumberErrbacks));
     }
     var num_tostring = function(n) {
