@@ -2947,10 +2947,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return ann.withUnit(u);
     }
     PUnitAnn.prototype.withUnit = function(unit, srcloc) {
-      if (this.implicit) {
+      if (this.implicit || jsnums.checkUnit(this.u, unit)) {
         return new PUnitAnn(this.ann, unit, false);
-      } else if (jsnums.checkUnit(this.u, unit)) {
-        return this;
       } else {
         // TODO: improve this error message
         thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), makeSrcloc(srcloc));
