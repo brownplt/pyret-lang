@@ -1120,6 +1120,20 @@ define("pyret-base/js/js-numbers", function() {
     }
   };
 
+  var _unitToList = function(u) {
+    var items = [];
+    for (var unitName in u) {
+      if (!u.hasOwnProperty(unitName)) continue
+      items.push({ name: unitName, pow: u[unitName] });
+    }
+    var comparator = function(a, b) {
+      if (a.name > b.name) { return 1 }
+      else if (a.name < b.name) { return -1 }
+      else { return 0 }
+    }
+    return items.sort(comparator);
+  }
+
   var _unitMap = function(u, f) {
     var newUnit = {};
     for (var unitName in u) {
@@ -4374,6 +4388,7 @@ define("pyret-base/js/js-numbers", function() {
   Numbers['unitToString'] = _unitToString;
   Numbers['unitNumerator'] = _unitNumerator;
   Numbers['unitDenominator'] = _unitDenominator;
+  Numbers['unitToList'] = _unitToList;
 
   Numbers['isPyretNumber'] = isPyretNumber;
   Numbers['isRational'] = isRational;
