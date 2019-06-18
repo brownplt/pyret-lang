@@ -475,7 +475,7 @@ define("pyret-base/js/js-numbers", function() {
   var divide = makeNumericBinop(
     function(x, y, errbacks) {
       if (_integerIsZero(y))
-        errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
+        errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
       var div = x / y;
       if (isOverflow(div)) {
         return (makeBignum(x)).divide(makeBignum(y), errbacks);
@@ -487,7 +487,7 @@ define("pyret-base/js/js-numbers", function() {
     },
     function(x, y, errbacks) {
       if (equalsAnyZero(y, errbacks)) {
-        errbacks.throwDivByZero('/: division by zero, ' + x + ' ' + y);
+        errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
       }
       return x.divide(y, errbacks);
     },
@@ -497,7 +497,7 @@ define("pyret-base/js/js-numbers", function() {
       },
       onXSpecialCase: function(x, y, errbacks) {
         if (equalsAnyZero(y, errbacks)) {
-          errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
+          errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
         }
         return 0;
       },
@@ -505,7 +505,7 @@ define("pyret-base/js/js-numbers", function() {
         return equalsAnyZero(y, errbacks);
       },
       onYSpecialCase: function(x, y, errbacks) {
-        errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
+        errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
       }
     });
 
@@ -530,7 +530,7 @@ define("pyret-base/js/js-numbers", function() {
   var equalsAnyZero = function(x, errbacks) {
     if (typeof(x) === 'number') return x === 0;
     if (isRoughnum(x)) return x.n === 0;
-    return equals(x, 0, errbacks);
+    return equals(_withoutUnit(x), 0, errbacks);
   };
 
   // eqv: pyretnum pyretnum -> boolean
@@ -1661,12 +1661,8 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.toString = function() {
-    var unitStr = "<" + unitToString(this.u) + ">"
-    if (typeof(this.n) === "number") {
-      return this.n.toString(10) + unitStr;
-    } else {
-      return this.n.toString() + unitStr;
-    }
+    var unitStr = "%<" + unitToString(this.u) + ">"
+    return this.n.toString() + unitStr;
   };
 
   Unitnum.prototype.isFinite = function() {
@@ -1806,22 +1802,18 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.tan = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "tan");
   };
 
   Unitnum.prototype.atan = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "atan");
   };
 
   Unitnum.prototype.cos = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "cos");
   };
 
   Unitnum.prototype.sin = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "sin");
   };
 
@@ -1838,12 +1830,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.acos = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "acos", false);
   };
 
   Unitnum.prototype.asin = function(errbacks) {
-    // TODO(benmusch): potentially support units here
     _throwUnitsUnsupported(this.u, errbacks, "asin", false);
   };
 
@@ -1856,10 +1846,7 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.equals = function(other) {
-    // TODO(benmusch): should this support a polymorphic zero which ignores
-    // units?
-    return checkUnit(this.u, getUnit(other)) &&
-      equals(this.n, other.n);
+    return checkUnit(this.u, getUnit(other)) && equals(this.n, other.n);
   };
 
   // Rationals
@@ -3124,9 +3111,6 @@ define("pyret-base/js/js-numbers", function() {
   // (protected) r = this * a, r != this,a (HAC 14.12)
   // "this" should be the larger one if appropriate.
   function bnpMultiplyTo(a,r) {
-    if (a === undefined || r === undefined || this === undefined) {
-      console.log("this", this, "a", a, "r", r)
-    }
     var x = this.abs(), y = a.abs();
     var i = x.t;
     r.t = i+y.t;
@@ -4378,7 +4362,7 @@ define("pyret-base/js/js-numbers", function() {
     }
 
     if (n instanceof Unitnum) {
-      return toStringDigits(n.n, digits, errbacks) + "<" + unitToString(n.u) + ">";
+      return toStringDigits(n.n, digits, errbacks) + "%<" + unitToString(n.u) + ">";
     }
     var tenDigits = expt(10, digits, errbacks);
     var d = toFixnum(digits);

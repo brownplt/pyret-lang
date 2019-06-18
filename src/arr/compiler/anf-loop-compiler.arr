@@ -1690,9 +1690,7 @@ compiler-visitor = {
         ))
     method-expr = if len < 9:
       rt-method(string-append("makeMethod", tostring(len - 1)), [clist: j-id(temp-full), j-str(name)])
-    else: #raise("don't do that")
-      # TODO(benmusch): what's going on here? Why did I need to comment that
-      # line?
+    else:
       rt-method("makeMethodN", [clist: j-id(temp-full), j-str(name)])
     end
     c-exp(method-expr, [clist: full-var])

@@ -5145,8 +5145,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(typeof n === "number");
     }
-    // TODO(benmusch): consider supporting units and then validating integer
-    // power
     var num_expt = function(n, pow) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-expt"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-is-rational",

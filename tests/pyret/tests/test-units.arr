@@ -41,6 +41,7 @@ check "Arithmetic binops":
   2%<m> / 2%<m> is 1
   2%<m> / 2%<s> is 1%<m / s>
   2%<m> / 2%<s ^ 2> is 1%<m / (s ^ 2)>
+  2%<m> / 0%<s ^ 2> raises "/: division by zero, 2%<m> 0%<s ^ 2>"
 end
 
 check "Logical binops":
@@ -95,18 +96,18 @@ check "Other supported operations":
   num-is-non-negative(0%<m>) is true
   num-is-non-negative(-2%<m>) is false
 
-  num-to-string(2.5%<s * (m ^ 2)>) is "5/2<m ^ 2 * s>"
-  num-to-string(2%<s * (m ^ 2)>) is "2<m ^ 2 * s>"
-  num-to-string(2/3%<s * (m ^ 2)>) is "2/3<m ^ 2 * s>"
-  num-to-string(~2.718%<s * (m ^ 2)>) is "~2.718<m ^ 2 * s>"
-  num-to-string(~6.022e23%<s * (m ^ 2)>) is "~6.022e+23<m ^ 2 * s>"
+  num-to-string(2.5%<s * (m ^ 2)>) is "5/2%<m ^ 2 * s>"
+  num-to-string(2%<s * (m ^ 2)>) is "2%<m ^ 2 * s>"
+  num-to-string(2/3%<s * (m ^ 2)>) is "2/3%<m ^ 2 * s>"
+  num-to-string(~2.718%<s * (m ^ 2)>) is "~2.718%<m ^ 2 * s>"
+  num-to-string(~6.022e23%<s * (m ^ 2)>) is "~6.022e+23%<m ^ 2 * s>"
 
-  num-to-string-digits(2/3%<s * (m ^ 2)>, 3) is "0.667<m ^ 2 * s>"
-  num-to-string-digits(-2/3%<s * (m ^ 2)>, 3) is "-0.667<m ^ 2 * s>"
+  num-to-string-digits(2/3%<s * (m ^ 2)>, 3) is "0.667%<m ^ 2 * s>"
+  num-to-string-digits(-2/3%<s * (m ^ 2)>, 3) is "-0.667%<m ^ 2 * s>"
 
-  num-to-string-digits(5%<s * (m ^ 2)>, 2) is "5.00<m ^ 2 * s>"
-  num-to-string-digits(5%<s * (m ^ 2)>, 0) is "5<m ^ 2 * s>"
-  num-to-string-digits(555%<s * (m ^ 2)>, -2) is "600<m ^ 2 * s>"
+  num-to-string-digits(5%<s * (m ^ 2)>, 2) is "5.00%<m ^ 2 * s>"
+  num-to-string-digits(5%<s * (m ^ 2)>, 0) is "5%<m ^ 2 * s>"
+  num-to-string-digits(555%<s * (m ^ 2)>, -2) is "600%<m ^ 2 * s>"
 
   num-max(2%<m>, 1%<m>) is 2%<m>
   num-max(2%<s>, 2%<m>) raises-satisfies E.is-incompatible-units
