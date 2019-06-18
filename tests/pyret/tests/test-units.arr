@@ -21,15 +21,17 @@ check "Unit equality":
   (10 * 1%<m>) + 1%<m> is 11%<m>
   (10%<m> / 1%<m>) + 1 is 11
 
-  # test poly 0
+  0%<s> == 0%<m> is false
 end
 
 check "Arithmetic binops":
   2%<m> + 2%<m> is 4%<m>
   (2%<m> + 2%<s>) raises-satisfies E.is-incompatible-units
+  (2%<m> + 0%<s>) raises-satisfies E.is-incompatible-units
 
   2%<m> - 2%<m> is 0%<m>
   (2%<m> - 2%<s>) raises-satisfies E.is-incompatible-units
+  (2%<m> - 0%<s>) raises-satisfies E.is-incompatible-units
 
   2%<m> * 2%<m> is 4%<m ^ 2>
   2%<m> * 2%<m ^ -1> is 4

@@ -620,18 +620,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
        @param {unit} u
        @return {!PNumber} with value n and unit u
     */
-    function makeNumberFromString(s, u) {
-      u = u || {}
+    function makeNumberFromString(s) {
       var result = jsnums.fromString(s, NumberErrbacks);
       if(result === false) {
         thisRuntime.ffi.throwMessageException("Could not create number from: " + s);
       }
-
-      if (Object.keys(u).length === 0) {
-        return result;
-      } else {
-        return jsnums.addUnit(result, u)
-      }
+      return result;
     }
 
     /*********************
@@ -2937,7 +2931,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.ann = ann;
       this.u = u;
       this.flat = true;
-      this.isAny = jsnums.checkUnit(this.u, { "_": 1 })
       this.implicit = implicit;
     }
     function makeUnitAnn(ann, u, srcloc) {
@@ -2955,7 +2948,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {
       var u = jsnums.getUnit(val);
-      if (!this.isAny && !jsnums.checkUnit(u, this.u)) {
+      if (!jsnums.checkUnit(u, this.u)) {
         var expectedUnit = jsnums.unitToString(this.u);
         var actualUnit = jsnums.unitToString(u);
         return thisRuntime.ffi.contractFail(
@@ -4888,6 +4881,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     var rng = seedrandom("ahoy, world!");
 
+    var UNIT_ONE = jsnums.UNIT_ONE;
+    var UNIT_ANY = jsnums.UNIT_ANY;
+
     var num_random = function(max) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-random"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-random",
@@ -5970,6 +5966,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_to_string': num_tostring,
       'num_tostring_digits': num_tostring_digits,
       'num_to_fixnum': num_to_fixnum,
+      'addUnit': jsnums.addUnit,
+      'UNIT_ONE': UNIT_ONE,
+      'UNIT_ANY': UNIT_ANY,
 
       'string_contains': string_contains,
       'string_append': string_append,
@@ -6120,15 +6119,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       fillPrimAnnNamespace(name, ann);
     }
 
-    makePrimUnitAnn("Number", isNumber, {});
-    makePrimUnitAnn("Exactnum", jsnums.isRational, {});
-    makePrimUnitAnn("Roughnum", jsnums.isRoughnum, {});
-    makePrimUnitAnn("NumInteger", jsnums.isInteger, {});
-    makePrimUnitAnn("NumRational", jsnums.isRational, {});
-    makePrimUnitAnn("NumPositive", jsnums.isPositive, {});
-    makePrimUnitAnn("NumNegative", jsnums.isNegative, {});
-    makePrimUnitAnn("NumNonPositive", jsnums.isNonPositive, {});
-    makePrimUnitAnn("NumNonNegative", jsnums.isNonNegative, {});
+    makePrimUnitAnn("Number", isNumber, UNIT_ONE);
+    makePrimUnitAnn("Exactnum", jsnums.isRational, UNIT_ONE);
+    makePrimUnitAnn("Roughnum", jsnums.isRoughnum, UNIT_ONE);
+    makePrimUnitAnn("NumInteger", jsnums.isInteger, UNIT_ONE);
+    makePrimUnitAnn("NumRational", jsnums.isRational, UNIT_ONE);
+    makePrimUnitAnn("NumPositive", jsnums.isPositive, UNIT_ONE);
+    makePrimUnitAnn("NumNegative", jsnums.isNegative, UNIT_ONE);
+    makePrimUnitAnn("NumNonPositive", jsnums.isNonPositive, UNIT_ONE);
+    makePrimUnitAnn("NumNonNegative", jsnums.isNonNegative, UNIT_ONE);
 
     makePrimAnn("NumberAnyUnit", isNumber);
     makePrimAnn("ExactnumAnyUnit", jsnums.isRational);
@@ -6148,7 +6147,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     makePrimAnn("Nothing", isNothing);
     makePrimAnn("Object", isObject);
     makePrimAnn("Tuple", isTuple);
-    makePrimUnitAnn("Any", function() { return true; }, {"_": 1});
+    makePrimUnitAnn("Any", function() { return true; }, UNIT_ANY);
+
 
     thisRuntime.namespace = Namespace.namespace(runtimeNamespaceBindings);
 

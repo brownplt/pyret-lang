@@ -104,7 +104,7 @@
         else
           return RUNTIME.makeString(tok.value.slice(1, -1));
       }
-      function number(tok) { return RUNTIME.makeNumberFromString(tok.value, {}); }
+      function number(tok) { return RUNTIME.makeNumberFromString(tok.value); }
       const translators = {
         'program': function(node) {
           var prelude = tr(node.kids[0]);
@@ -1199,15 +1199,15 @@
             var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
             return RUNTIME.getField(ast, 's-frac')
               .app(pos(node.pos),
-                   RUNTIME.makeNumberFromString(numden[0], {}),
-                   RUNTIME.makeNumberFromString(numden[1], {}),
+                   RUNTIME.makeNumberFromString(numden[0]),
+                   RUNTIME.makeNumberFromString(numden[1]),
                    u);
           } else {
             // (frac-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-frac')
               .app(pos(node.pos),
-                RUNTIME.makeNumberFromString(numden[0], {}),
-                RUNTIME.makeNumberFromString(numden[1], {}),
+                RUNTIME.makeNumberFromString(numden[0]),
+                RUNTIME.makeNumberFromString(numden[1]),
                 tr(node.kids[2]));
           }
         },
@@ -1219,15 +1219,15 @@
             var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
             return RUNTIME.getField(ast, 's-rfrac')
               .app(pos(node.pos),
-                   RUNTIME.makeNumberFromString(numden[0], {}),
-                   RUNTIME.makeNumberFromString(numden[1], {}),
+                   RUNTIME.makeNumberFromString(numden[0]),
+                   RUNTIME.makeNumberFromString(numden[1]),
                    u);
           } else {
             // (rfrac-expr n PERCENT dim-expr)
             return RUNTIME.getField(ast, 's-rfrac')
               .app(pos(node.pos),
-                RUNTIME.makeNumberFromString(numden[0], {}),
-                RUNTIME.makeNumberFromString(numden[1], {}),
+                RUNTIME.makeNumberFromString(numden[0]),
+                RUNTIME.makeNumberFromString(numden[1]),
                 tr(node.kids[2]));
           }
         },
