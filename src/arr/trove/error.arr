@@ -2429,6 +2429,31 @@ data RuntimeError:
     method render-reason(self):
       ED.text("")
     end
+  | units-on-unsupported-ann(loc, unit-str) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The annotation at "),
+          ED.loc(self.loc),
+          ED.text(" is annotated with the unit "),
+          ED.code(ED.text(self.unit-str)),
+          ED.text(" but does not support unit annotations.")]]
+    end
+  | incompatible-units(op-name, l, r) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The " + self.op-name + " operation failed due to incompatible units. "),
+          ED.text(tostring(self.l)),
+          ED.text(" is not compatible with "),
+          ED.text(tostring(self.r))]]
+    end
 end
 
 data ParseError:
@@ -2651,24 +2676,4 @@ data ParseError:
     method render-reason(self): ED.text("missing-end: " + self.loc.format(true)) end
   | missing-comma(loc) with:
     method render-reason(self): ED.text("missing-comma: " + self.loc.format(true)) end
-  | units-on-unsupported-ann(loc, unit-str) with:
-    method render-fancy-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("This "),
-          ED.highlight(ED.text("annotation"), [ED.locs: self.loc], -1),
-          ED.text(" is annotated with the unit "),
-          ED.code(ED.text(self.unit-str)),
-          ED.text(" but does not support unit annotations.")],
-        ED.cmcode(self.loc)]
-    end,
-    method render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("The annotation at "),
-          ED.loc(self.loc),
-          ED.text(" is annotated with the unit "),
-          ED.code(ED.text(self.unit-str)),
-          ED.text(" but does not support unit annotations.")]]
-    end
 end

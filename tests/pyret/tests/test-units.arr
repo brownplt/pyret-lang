@@ -1,3 +1,5 @@
+import error as E
+
 check "Unit equality":
   2 == 2%<m> is false
   2%<s> == 2%<m> is false
@@ -23,10 +25,10 @@ end
 
 check "Arithmetic binops":
   2%<m> + 2%<m> is 4%<m>
-  (2%<m> + 2%<s>) raises "Cannot perform + operation due to unit mis-match: m and s"
+  (2%<m> + 2%<s>) raises-satisfies E.is-incompatible-units
 
   2%<m> - 2%<m> is 0%<m>
-  (2%<m> - 2%<s>) raises "Cannot perform - operation due to unit mis-match: m and s"
+  (2%<m> - 2%<s>) raises-satisfies E.is-incompatible-units
 
   2%<m> * 2%<m> is 4%<m ^ 2>
   2%<m> * 2%<m ^ -1> is 4
@@ -41,19 +43,19 @@ end
 check "Logical binops":
   2%<m> > 1%<m> is true
   2%<m> > 2%<m> is false
-  2%<m> > 2%<s> raises "Cannot perform > operation due to unit mis-match: m and s"
+  2%<m> > 2%<s>  raises-satisfies E.is-incompatible-units
 
   2%<m> >= 2%<m> is true
   2%<m> >= 3%<m> is false
-  2%<m> >= 2%<s> raises "Cannot perform >= operation due to unit mis-match: m and s"
+  2%<m> >= 2%<s>  raises-satisfies E.is-incompatible-units
 
   1%<m> < 2%<m> is true
   2%<m> < 2%<m> is false
-  2%<m> < 2%<s> raises "Cannot perform < operation due to unit mis-match: m and s"
+  2%<m> < 2%<s> raises-satisfies E.is-incompatible-units
 
   2%<m> <= 2%<m> is true
   2%<m> <= 1%<m> is false
-  2%<m> <= 2%<s> raises "Cannot perform <= operation due to unit mis-match: m and s"
+  2%<m> <= 2%<s> raises-satisfies E.is-incompatible-units
 end
 
 check "Other supported operations":

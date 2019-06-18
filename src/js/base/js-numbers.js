@@ -652,7 +652,7 @@ define("pyret-base/js/js-numbers", function() {
     },
     function(x, y, errbacks) {
       if (!_unitEquals(_unitOf(y), {})) {
-        errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
+        errbacks.throwInternalError("expt: power cannot have a unit")
       }
       return x.expt(_withoutUnit(y), errbacks);
     },
@@ -663,7 +663,7 @@ define("pyret-base/js/js-numbers", function() {
       onXSpecialCase: function(x, y, errbacks) {
         if (!_unitEquals(_unitOf(y), {})) {
           // need this because the isXSpecialCase check cannot look at the y
-          errbacks.throwIncompatibleUnits("expt: power cannot have a unit")
+          errbacks.throwInternalError("expt: power cannot have a unit")
         }
 
         if (eqv(x, 0, errbacks)) {
@@ -1194,23 +1194,18 @@ define("pyret-base/js/js-numbers", function() {
     return _unitNumerator(_unitInvert(u));
   }
 
-  var _ensureSameUnits = function(u1, u2, errbacks, opName) {
-    var msg;
-    if (opName !== undefined) {
-      msg = "Cannot perform " + opName + " operation due to unit mis-match: ";
-    } else {
-      msg = "Cannot perform operation due to unit mis-match: ";
-    }
-    msg += (_unitToString(u1) + " and " + _unitToString(u2));
+  var _ensureSameUnits = function(n1, n2, errbacks, opName) {
+    var u1 = _unitOf(n1);
+    var u2 = _unitOf(n2);
 
     if (!_unitEquals(u1, u2)) {
-      errbacks.throwIncompatibleUnits(msg);
+      errbacks.throwIncompatibleUnits(opName, n1, n2);
     }
   }
 
   var _throwUnitsUnsupported = function(u, errbacks, opName) {
     // TODO(benmusch): Use another errback function
-    errbacks.throwIncompatibleUnits("The " + opName + " operation does not support units" +
+    errbacks.throwInternalError("The " + opName + " operation does not support units" +
       " but was given an argument with the unit " + _unitToString(u))
   }
 
@@ -1231,6 +1226,7 @@ define("pyret-base/js/js-numbers", function() {
     return (function(m, n) {
       if (m instanceof Rational || m instanceof Unitnum) {
         // TODO(benmusch): Is this okay? Can we always use fixnums?
+        // TODO(benmusch): Consider lifting both to unitnums
         m = m.toFixnum();
       }
 
@@ -1687,32 +1683,32 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.greaterThan = function(n, errbacks) {
-    _ensureSameUnits(this.u, _unitOf(n), errbacks, ">");
+    _ensureSameUnits(this, n, errbacks, ">");
     return greaterThan(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.greaterThanOrEqual = function(n, errbacks) {
-    _ensureSameUnits(this.u, _unitOf(n), errbacks, ">=");
+    _ensureSameUnits(this, n, errbacks, ">=");
     return greaterThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.lessThan = function(n, errbacks) {
-    _ensureSameUnits(this.u, _unitOf(n), errbacks, "<");
+    _ensureSameUnits(this, n, errbacks, "<");
     return lessThan(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.lessThanOrEqual = function(n, errbacks) {
-    _ensureSameUnits(this.u, _unitOf(n), errbacks, "<=");
+    _ensureSameUnits(this, n, errbacks, "<=");
     return lessThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.add = function(n, errbacks) {
-    _ensureSameUnits(this.u, _unitOf(n), errbacks, "+");
+    _ensureSameUnits(this, n, errbacks, "+");
     return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
   };
 
   Unitnum.prototype.subtract = function(n, errbacks) {
-    _ensureSameUnits(this.u, _unitOf(n), errbacks, "-");
+    _ensureSameUnits(this, n, errbacks, "-");
     return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
   };
 

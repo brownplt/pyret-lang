@@ -503,6 +503,12 @@
       runtime.checkString(unitStr);
       raise(err("units-on-unsupported-ann")(loc, unitStr));
     }
+    function throwIncompatibleUnits(opName, l, r) {
+      runtime.checkString(opName);
+      runtime.checkNumber(l);
+      runtime.checkNumber(r);
+      raise(err("incompatible-units")(opName, l, r));
+    }
 
     function makeModuleLoadFailureL(names) {
       var namesList = makeList(names);
@@ -653,6 +659,8 @@
       throwDuplicateColumn: throwDuplicateColumn,
       throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
+      throwUnitsOnUnsupportedAnn: throwUnitsOnUnsupportedAnn,
+      throwIncompatibleUnits: throwIncompatibleUnits,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorColonColon: throwParseErrorColonColon,
@@ -661,7 +669,6 @@
       throwParseErrorBadNumber: throwParseErrorBadNumber,
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
-      throwUnitsOnUnsupportedAnn: throwUnitsOnUnsupportedAnn,
 
       makeBadBracketException: makeBadBracketException,
       makeRecordFieldsFail: makeRecordFieldsFail,
