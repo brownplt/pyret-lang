@@ -506,6 +506,12 @@ check "Should notice unit mis-matches":
     fun id(n :: { a :: Number%<s>, b :: Number%<m>}): n end
     id({ a: 1%<s>, b: 1%<s>})
     ```) is%(output) contract-error
+  run-str(
+    ```
+  type MyAny = Any%<1>
+  fun id(n :: MyAny%<m>): n end
+  id(1%<m>)
+    ```) is%(output) contract-error
 
   run-str(
     ```
