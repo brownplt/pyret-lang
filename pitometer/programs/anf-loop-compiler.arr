@@ -1193,6 +1193,7 @@ compiler-visitor = {
     if num-is-fixnum(n):
       c-exp(j-parens(j-num(n)), cl-empty)
     else:
+      c-exp(rt-method("makeNumberFromString", [clist: j-str(tostring(n))]), cl-empty)
     end
   end,
   method a-str(self, l :: Loc, s :: String):

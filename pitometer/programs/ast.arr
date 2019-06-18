@@ -891,7 +891,7 @@ data Expr:
   | s-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "s-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | s-num(l :: Loc, n :: Number, u :: Option<Unit>) with:
+  | s-num(l :: Loc, n :: Number) with:
     method label(self): "s-num" end,
     method tosource(self): PP.number(self.n) end
   | s-frac(l :: Loc, num :: Number, den :: Number) with:
@@ -2023,8 +2023,8 @@ default-map-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(l, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number, u :: Option<Unit>):
-    s-num(l, n, u)
+  method s-num(self, l :: Loc, n :: Number):
+    s-num(l, n)
   end,
   method s-frac(self, l :: Loc, num :: Number, den :: Number):
     s-frac(l, num, den)
@@ -3070,8 +3070,8 @@ dummy-loc-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number, u :: Unit):
-    s-num(dummy-loc, n, u)
+  method s-num(self, l :: Loc, n :: Number):
+    s-num(dummy-loc, n)
   end,
   method s-frac(self, l :: Loc, num :: Number, den :: Number):
     s-frac(dummy-loc, num, den)
