@@ -652,7 +652,7 @@ define("pyret-base/js/js-numbers", function() {
     },
     function(x, y, errbacks) {
       if (!_unitEquals(_unitOf(y), {})) {
-        errbacks.throwInternalError("expt: power cannot have a unit")
+        errbacks.throwInvalidUnitState("num-expt", y, "power cannot have a unit")
       }
       return x.expt(_withoutUnit(y), errbacks);
     },
@@ -663,7 +663,7 @@ define("pyret-base/js/js-numbers", function() {
       onXSpecialCase: function(x, y, errbacks) {
         if (!_unitEquals(_unitOf(y), {})) {
           // need this because the isXSpecialCase check cannot look at the y
-          errbacks.throwInternalError("expt: power cannot have a unit")
+          errbacks.throwInvalidUnitState("num-expt", y, "power cannot have a unit")
         }
 
         if (eqv(x, 0, errbacks)) {
@@ -1205,7 +1205,7 @@ define("pyret-base/js/js-numbers", function() {
 
   var _throwUnitsUnsupported = function(u, errbacks, opName) {
     // TODO(benmusch): Use another errback function
-    errbacks.throwInternalError("The " + opName + " operation does not support units" +
+    errbacks.throwGeneralError("The " + opName + " operation does not support units" +
       " but was given an argument with the unit " + _unitToString(u))
   }
 
@@ -1731,9 +1731,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.integerSqrt = function(errbacks) {
+    var that = this;
     var newUnit = _unitMap(this.u, function(pow) {
       if (pow % 2 !== 0) {
-        errbacks.throwIncompatibleUnits("`sqrt` on non-even unit exponent");
+        errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
       } else {
         return pow / 2;
       }
@@ -1742,9 +1743,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.sqrt = function(errbacks) {
+    var that = this;
     var newUnit = _unitMap(this.u, function(pow) {
       if (pow % 2 !== 0) {
-        errbacks.throwIncompatibleUnits("`sqrt` on non-even unit exponent");
+        errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
       } else {
         return pow / 2;
       }
@@ -1790,7 +1792,7 @@ define("pyret-base/js/js-numbers", function() {
 
   Unitnum.prototype.expt = function(n, errbacks) {
     if (!isInteger(n)) {
-      errbacks.throwIncompatibleUnits("`num-expt` on unit with non-integer power");
+      errbacks.throwInvalidUnitState("num-expt", n, "a number with a unit cannot be raised to a non-integer power");
     }
     var newUnit = _unitMap(this.u, function(pow) { return n * pow });
     return _withUnit(expt(this.n, n), newUnit, false);
@@ -4381,6 +4383,7 @@ define("pyret-base/js/js-numbers", function() {
   Numbers['addUnit'] = addUnit;
   Numbers['getUnit'] = _unitOf;
   Numbers['checkUnit'] = _unitEquals;
+  Numbers['ensureSameUnits'] = _ensureSameUnits;
   Numbers['unitToString'] = _unitToString;
   Numbers['unitNumerator'] = _unitNumerator;
   Numbers['unitDenominator'] = _unitDenominator;

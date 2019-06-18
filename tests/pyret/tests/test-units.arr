@@ -101,16 +101,14 @@ check "Other supported operations":
   num-to-string-digits(2/3%<s * (m ^ 2)>, 3) is "0.667<m ^ 2 * s>"
   num-to-string-digits(-2/3%<s * (m ^ 2)>, 3) is "-0.667<m ^ 2 * s>"
 
-  # TODO: Failing... hmmm....
   num-to-string-digits(5%<s * (m ^ 2)>, 2) is "5.00<m ^ 2 * s>"
-
   num-to-string-digits(5%<s * (m ^ 2)>, 0) is "5<m ^ 2 * s>"
   num-to-string-digits(555%<s * (m ^ 2)>, -2) is "600<m ^ 2 * s>"
 
   num-max(2%<m>, 1%<m>) is 2%<m>
-  num-max(2%<s>, 2%<m>) raises ""
+  num-max(2%<s>, 2%<m>) raises-satisfies E.is-incompatible-units
   num-min(2%<m>, 1%<m>) is 1%<m>
-  num-min(2%<s>, 2%<m>) raises ""
+  num-min(2%<s>, 2%<m>) raises-satisfies E.is-incompatible-units
 
   num-abs(-2%<m>) is 2%<m>
   num-floor(3/2%<m>) is 1%<m>
@@ -127,7 +125,7 @@ check "Other supported operations":
 end
 
 check "Unsupported unops":
-  num-sqrt(2%<m>) raises ""
+  num-sqrt(2%<m>) raises-satisfies E.is-invalid-unit-state
   num-log(2%<m>) raises ""
   num-atan(2%<m>) raises ""
   num-atan2(2%<m>) raises ""

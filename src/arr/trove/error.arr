@@ -2454,6 +2454,18 @@ data RuntimeError:
           ED.text(" is not compatible with "),
           ED.text(tostring(self.r))]]
     end
+  | invalid-unit-state(op-name, n, desc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The " + self.op-name + " operation failed. "),
+          ED.text(tostring(self.n)),
+          ED.text(" is an invalid argument because: "),
+          ED.text(self.desc)]]
+    end
 end
 
 data ParseError:

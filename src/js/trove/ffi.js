@@ -509,6 +509,12 @@
       runtime.checkNumber(r);
       raise(err("incompatible-units")(opName, l, r));
     }
+    function throwInvalidUnitState(opName, n, desc) {
+      runtime.checkString(opName);
+      runtime.checkNumber(n);
+      runtime.checkString(desc);
+      raise(err("invalid-unit-state")(opName, n, desc))
+    }
 
     function makeModuleLoadFailureL(names) {
       var namesList = makeList(names);
@@ -573,6 +579,15 @@
       runtime.checkString(name);
       runtime.checkPyretVal(val);
       return contract("predicate-failure")(val, name);
+    }
+
+    function makeUnitFailure(val, name, expected, actual, isImplicit) {
+      runtime.checkString(name);
+      runtime.checkPyretVal(val);
+      runtime.checkString(expected);
+      runtime.checkString(actual);
+      runtime.checkBoolean(isImplicit)
+      return contract("unit-fail")(val, name, expected, actual, isImplicit);
     }
 
     function makeDotAnnNotPresent(name, field) {
@@ -661,6 +676,7 @@
       throwModuleLoadFailureL: throwModuleLoadFailureL,
       throwUnitsOnUnsupportedAnn: throwUnitsOnUnsupportedAnn,
       throwIncompatibleUnits: throwIncompatibleUnits,
+      throwInvalidUnitState: throwInvalidUnitState,
 
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorColonColon: throwParseErrorColonColon,
@@ -683,6 +699,7 @@
       makeAnnFailure: makeAnnFailure,
       makeRefInitFail: makeRefInitFail,
       makePredicateFailure: makePredicateFailure,
+      makeUnitFailure: makeUnitFailure,
       makeDotAnnNotPresent: makeDotAnnNotPresent,
       makeFailureAtArg: makeFailureAtArg,
       contractOk: gf(CON, "ok"),

@@ -294,6 +294,31 @@ data FailureReason:
         [ED.error: message, ED.embed(self.val)]
       end
     end
+  | unit-fail(val, name, expected, actual, is-implicit) with:
+    method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      self.render-reason(loc, from-fail-arg)
+    end,
+    method render-reason(self, loc, from-fail-arg):
+      message = [ED.para:
+        ED.text("The predicate"), ED.code(ED.text(self.name)),
+        ED.text("in the annotation at"), draw-and-highlight(loc),
+        ED.text("returned false for this value:"), ED.embed(self.val)]
+      if self.is-implicit and not(loc.is-builtin()):
+        [ED.error:
+          message,
+          [ED.para:
+            ED.text("The unit"), ED.code(ED.text(self.actual)),
+            ED.text("was expected to match"), ED.code(ED.text(self.expected)),
+            ED.text("due to the default of the"), ED.code(ED.text(self.name)),
+            ED.text("annotation. Did you mean to specify another unit or the any unit (%<_>)?")]]
+      else:
+        [ED.error:
+          message,
+          [ED.para:
+            ED.text("The unit"), ED.code(ED.text(self.actual)),
+            ED.text("was expected to match"), ED.code(ED.text(self.expected))]]
+      end
+    end
   | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:

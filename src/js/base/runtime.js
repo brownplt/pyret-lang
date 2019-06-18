@@ -2955,11 +2955,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {
-      if (!this.isAny && !jsnums.checkUnit(jsnums.getUnit(val), this.u)) {
-        var name = "<" + jsnums.unitToString(this.u) + ">";
+      var u = jsnums.getUnit(val);
+      if (!this.isAny && !jsnums.checkUnit(u, this.u)) {
+        var expectedUnit = jsnums.unitToString(this.u);
+        var actualUnit = jsnums.unitToString(u);
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makePredicateFailure(val, name));
+          thisRuntime.ffi.makeUnitFailure(val, this.ann.name || "", expectedUnit, actualUnit, this.implicit));
       } else {
         return this.ann.check(compilerLoc, val);
       }
@@ -3908,6 +3910,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       throwLogNonPositive: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwIncomparableValues: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwIncompatibleUnits: function(op, l, r) { thisRuntime.ffi.throwIncompatibleUnits(op, l, r); },
+      throwInvalidUnitState: function(op, n, desc) { thisRuntime.ffi.throwInvalidUnitState(op, n, desc) },
       throwInternalError: function(msg) { thisRuntime.ffi.throwInternalError(msg); },
     };
 
@@ -4938,6 +4941,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-max",
         l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-max");
       if (jsnums.greaterThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
@@ -4945,6 +4949,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-min",
         l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-min");
       if (jsnums.lessThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
