@@ -3791,7 +3791,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       throwSqrtNegative: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwLogNonPositive: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwIncomparableValues: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
-      throwIncompatibleUnits: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwInternalError: function(msg) { thisRuntime.ffi.throwInternalError(msg); },
     };
 
