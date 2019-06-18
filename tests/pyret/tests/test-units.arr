@@ -1,4 +1,5 @@
 import error as E
+import contracts as C
 
 check "Unit equality":
   2 == 2%<m> is false
@@ -124,21 +125,27 @@ check "Other supported operations":
   num-sqrt(4%<m ^ -2>) is 2%<1 / m>
 end
 
+fun is-unit-contract-fail(result):
+  C.is-fail(result) and C.is-failure-at-arg(result.reason) and C.is-unit-fail(result.reason.reason)
+end
+
 check "Unsupported unops":
   num-sqrt(2%<m>) raises-satisfies E.is-invalid-unit-state
-  num-log(2%<m>) raises ""
-  num-atan(2%<m>) raises ""
-  num-atan2(2%<m>) raises ""
-  num-asin(0%<m>) raises ""
-  num-acos(0%<m>) raises ""
-  num-sin(2%<m>) raises ""
-  num-tan(2%<m>) raises ""
-  num-cos(2%<m>) raises ""
-  num-exp(2%<m>) raises ""
-  num-expt(2%<m>, 3%<m>) raises ""
-  num-expt(2%<m>, 0.5) raises ""
-  num-modulo(2%<m>, 2%<m>) raises ""
-  num-to-string-digits(2/3%<s * (m ^ 2)>, 3%<m>) raises ""
-  num-within-abs(2%<m>) raises ""
-  num-within-rel(2%<m>) raises ""
+  num-expt(2%<m>, 0.5) raises-satisfies E.is-invalid-unit-state
+
+  num-log(2%<m>) raises-satisfies is-unit-contract-fail
+  num-atan(2%<m>) raises-satisfies is-unit-contract-fail
+  num-atan2(2%<m>, 2) raises-satisfies is-unit-contract-fail
+  num-atan2(2, 2%<m>) raises-satisfies is-unit-contract-fail
+  num-asin(0%<m>) raises-satisfies is-unit-contract-fail
+  num-acos(0%<m>) raises-satisfies is-unit-contract-fail
+  num-sin(2%<m>) raises-satisfies is-unit-contract-fail
+  num-tan(2%<m>) raises-satisfies is-unit-contract-fail
+  num-cos(2%<m>) raises-satisfies is-unit-contract-fail
+  num-exp(2%<m>) raises-satisfies is-unit-contract-fail
+  num-expt(2%<m>, 3%<m>) raises-satisfies is-unit-contract-fail
+  num-modulo(2%<m>, 2%<m>) raises-satisfies is-unit-contract-fail
+  num-to-string-digits(2/3%<s * (m ^ 2)>, 3%<m>) raises-satisfies is-unit-contract-fail
+  num-within-abs(2%<m>) raises-satisfies is-unit-contract-fail
+  num-within-rel(2%<m>) raises-satisfies is-unit-contract-fail
 end

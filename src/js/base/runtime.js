@@ -2950,7 +2950,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (this.implicit || jsnums.checkUnit(this.u, unit)) {
         return new PUnitAnn(this.ann, unit, false);
       } else {
-        // TODO: improve this error message
         thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), makeSrcloc(srcloc));
       }
     }
