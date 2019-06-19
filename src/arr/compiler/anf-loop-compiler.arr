@@ -354,7 +354,12 @@ fun compile-unit-help(u :: A.Unit) -> J.JExpr:
       if power == 0:
         acc
       else:
-        CL.concat-cons(j-field(key, j-num(power)), acc)
+        val = if num-is-fixnum(power):
+          j-num(power)
+        else:
+          rt-method("makeNumberFromString", [clist: j-str(tostring(power))])
+        end
+        CL.concat-cons(j-field(key, val), acc)
       end
     end,
     CL.concat-empty)

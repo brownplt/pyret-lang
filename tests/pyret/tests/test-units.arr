@@ -152,3 +152,13 @@ check "Unsupported unops":
   num-within-abs(2%<m>) raises-satisfies is-unit-contract-fail
   num-within-rel(2%<m>) raises-satisfies is-unit-contract-fail
 end
+
+check "Units with bigint powers":
+  1%<u ^ 10000000000000001> == 1%<u ^ 10000000000000000> is false
+  1%<u ^ 10000000000000001> == 1%<u ^ 10000000000000001> is true
+
+  num-sqr(1%<u ^ 9000000000000000>) == 1%<u ^ 18000000000000000> is true
+  num-sqrt(1%<u ^ 18000000000000000>) == 1%<u ^ 9000000000000000> is true
+  num-sqr(1%<u ^ 9000000000000000>) == 1%<u ^ 180000000000000000> is false
+  num-sqrt(1%<u ^ 18000000000000000>) == 1%<u ^ 90000000000000000> is false
+end

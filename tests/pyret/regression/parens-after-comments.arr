@@ -6,7 +6,7 @@ fun program-block(contents):
     empty, A.s-block(A.dummy-loc, contents))
 end
 
-one = A.u-one
+one = A.u-one(A.dummy-loc)
 
 check "https://github.com/brownplt/pyret-lang/issues/828":
   P.does-parse(```

@@ -1108,10 +1108,10 @@ define("pyret-base/js/js-numbers", function() {
       if (!u.hasOwnProperty(unitName) || unitName === COUNT_FIELD) continue
 
       var power = u[unitName];
-      if (power === 1) {
+      if (_integerIsOne(power)) {
         unitStrs = unitStrs.concat(unitName)
-      } else if (power !== 0) {
-        unitStrs = unitStrs.concat(unitName + " ^ " + power)
+      } else if (!_integerIsZero(power)) {
+        unitStrs = unitStrs.concat(unitName + " ^ " + power.toString())
       }
     }
     return unitStrs.sort().join(" * ");
@@ -1187,7 +1187,7 @@ define("pyret-base/js/js-numbers", function() {
     for (var unitName in u1) {
       if (!u1.hasOwnProperty(unitName)) continue
 
-      if (_unitExponentOf(u1, unitName) !== _unitExponentOf(u2, unitName)) {
+      if (!_integerEquals(_unitExponentOf(u1, unitName), _unitExponentOf(u2, unitName))) {
         return false;
       }
     }
@@ -1203,8 +1203,8 @@ define("pyret-base/js/js-numbers", function() {
       if (!u1.hasOwnProperty(unitName) && !u2.hasOwnProperty(unitName)) continue
       if (unitName === COUNT_FIELD) continue;
 
-      var newExp = _unitExponentOf(u1, unitName) + _unitExponentOf(u2, unitName); 
-      if (newExp !== 0) {
+      var newExp = _integerAdd(_unitExponentOf(u1, unitName), _unitExponentOf(u2, unitName));
+      if (!_integerIsZero(newExp)) {
         newUnit[unitName] = newExp;
       }
     }
@@ -1219,11 +1219,11 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   var _unitInvert = function(u) {
-    return _unitMap(u, function(n) { return -1 * n })
+    return _unitMap(u, function(n) { return _integerMultiply(-1, n) })
   }
 
   var unitNumerator = function(u) {
-    return _unitFilter(u, function(pow) { return pow > 0 });
+    return _unitFilter(u, function(pow) { return _integerGreaterThan(pow, 0) });
   }
 
   var unitDenominator = function(u) {
@@ -1764,10 +1764,10 @@ define("pyret-base/js/js-numbers", function() {
   Unitnum.prototype.integerSqrt = function(errbacks) {
     var that = this;
     var newUnit = _unitMap(this.u, function(pow) {
-      if (pow % 2 !== 0) {
+      if (!_integerIsZero(_integerModulo(pow, 2))) {
         errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
       } else {
-        return pow / 2;
+        return _integerDivideToFixnum(pow, 2);
       }
     });
     return _withUnit(integerSqrt(this.n), newUnit, false);
@@ -1776,10 +1776,10 @@ define("pyret-base/js/js-numbers", function() {
   Unitnum.prototype.sqrt = function(errbacks) {
     var that = this;
     var newUnit = _unitMap(this.u, function(pow) {
-      if (pow % 2 !== 0) {
+      if (!_integerIsZero(_integerModulo(pow, 2))) {
         errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
       } else {
-        return pow / 2;
+        return _integerDivideToFixnum(pow, 2);
       }
     });
     return _withUnit(sqrt(this.n), newUnit, false);
