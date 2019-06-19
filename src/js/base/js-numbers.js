@@ -1767,7 +1767,7 @@ define("pyret-base/js/js-numbers", function() {
       if (!_integerIsZero(_integerModulo(pow, 2))) {
         errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
       } else {
-        return _integerDivideToFixnum(pow, 2);
+        return halve(pow, errbacks);
       }
     });
     return _withUnit(integerSqrt(this.n), newUnit, false);
@@ -1779,7 +1779,7 @@ define("pyret-base/js/js-numbers", function() {
       if (!_integerIsZero(_integerModulo(pow, 2))) {
         errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
       } else {
-        return _integerDivideToFixnum(pow, 2);
+        return halve(pow, errbacks);
       }
     });
     return _withUnit(sqrt(this.n), newUnit, false);

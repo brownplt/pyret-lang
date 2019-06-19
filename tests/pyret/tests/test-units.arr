@@ -161,4 +161,6 @@ check "Units with bigint powers":
   num-sqrt(1%<u ^ 18000000000000000>) == 1%<u ^ 9000000000000000> is true
   num-sqr(1%<u ^ 9000000000000000>) == 1%<u ^ 180000000000000000> is false
   num-sqrt(1%<u ^ 18000000000000000>) == 1%<u ^ 90000000000000000> is false
+
+  num-sqrt(num-sqrt(num-sqrt(num-sqr(num-sqr(num-sqr(1%<u ^ 10000000000000001>)))))) is 1%<u ^ 10000000000000001>
 end
