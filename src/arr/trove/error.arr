@@ -2508,7 +2508,17 @@ data RuntimeError:
                       ED.text(" had the unit: ")],
                     ED.code(ED.text(self.r)),
                     [ED.para: ED.text("These units are not compatible")]]
-                | none => ED.text("TODO")
+                | none =>
+                  [ED.sequence:
+                    ed-intro(self.op-name + " operation", loc, -1, true),
+                    ED.cmcode(loc),
+                    [ED.para:
+                      ED.text("The left side had the unit: "),
+                      ED.code(ED.text(self.l))],
+                    [ED.para:
+                      ED.text("The right side had the unit: "),
+                      ED.code(ED.text(self.r))],
+                    [ED.para: ED.text("These units are not compatible")]]
               end
             else:
               [ED.sequence:
@@ -2542,7 +2552,6 @@ data RuntimeError:
         lam(loc):
           [ED.sequence:
             ed-simple-intro(self.op-name + " operation", loc),
-            ED.cmcode(loc),
             [ED.para:
               ED.text("The left side had the unit: "),
               ED.code(ED.text(self.l))],
@@ -2566,15 +2575,52 @@ data RuntimeError:
     end
   | invalid-unit-state(op-name, n, desc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.render-reason()
+      [ED.error:
+        cases(O.Option) maybe-stack-loc(0, false):
+          | some(loc) =>
+            if loc.is-builtin():
+              [ED.sequence:
+                ed-intro(self.op-name + " function", loc, -1, true),
+                [ED.para:
+                  ED.code(ED.text(tostring(self.n))),
+                  ED.text(" is an invalid argument because: "),
+                  ED.text(self.desc)],
+                please-report-bug()]
+            else if src-available(loc):
+              [ED.sequence:
+                ed-intro(self.op-name + " function", loc, -1, true),
+                ED.cmcode(loc),
+                [ED.para:
+                  ED.code(ED.text(tostring(self.n))),
+                  ED.text(" is an invalid argument because: "),
+                  ED.text(self.desc)]]
+            end
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("The " + self.op-name + " function failed.")],
+              [ED.para:
+                ED.code(ED.text(tostring(self.n))),
+                ED.text(" is an invalid argument because: "),
+                ED.text(self.desc)]]
+        end]
     end,
     method render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("The " + self.op-name + " operation failed. "),
-          ED.text(tostring(self.n)),
-          ED.text(" is an invalid argument because: "),
-          ED.text(self.desc)]]
+      [ED.error: ED.maybe-stack-loc(0, false,
+        lam(loc):
+          [ED.sequence:
+            ed-simple-intro(self.op-name + " function", loc),
+            [ED.para:
+              ED.code(ED.text(tostring(self.n))),
+              ED.text(" is an invalid argument because: "),
+              ED.text(self.desc)]]
+        end,
+        [ED.sequence:
+          [ED.para: ED.text("The " + self.op-name + " function failed.")],
+          [ED.para:
+            ED.code(ED.text(tostring(self.n))),
+            ED.text(" is an invalid argument because: "),
+            ED.text(self.desc)]])]
     end
 end
 
