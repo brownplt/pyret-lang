@@ -2430,16 +2430,48 @@ data RuntimeError:
     end
   | units-on-unsupported-ann(loc, unit-str) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.render-reason()
+      if self.loc.is-builtin():
+        [ED.error:
+          ed-intro("unit annotation", self.loc, -1, true),
+          ED.cmcode(self.loc),
+          [ED.para: ED.text("It annotated a type which does not support units.")],
+          please-report-bug()]
+      else if src-available(self.loc):
+        cases(O.Option) maybe-ast(self.loc):
+          | some(ast) =>
+            [ED.error:
+              ed-intro("unit annotation", self.loc, -1, true),
+              ED.cmcode(self.loc),
+              [ED.para:
+                ED.highlight(ED.text("unit"), [ED.locs: ast.l], 0),
+                ED.text(" annotated a "),
+                ED.highlight(ED.text("base type"), [ED.locs: ast.ann.l], 1),
+                ED.text(" which does not support units.")]]
+          | none      =>
+            [ED.error:
+              ed-intro("unit annotation", self.loc, -1, true),
+              ED.cmcode(self.loc),
+              [ED.para:
+                ED.text("It annotated a type which does not support units. "),
+                ED.text("Consider removing the unit annotation or changing the base type.")]]
+        end
+      else:
+        self.render-reason()
+      end
     end,
     method render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("The annotation at "),
-          ED.loc(self.loc),
-          ED.text(" is annotated with the unit "),
-          ED.code(ED.text(self.unit-str)),
-          ED.text(" but does not support unit annotations.")]]
+      base-err = [ED.para:
+        ed-simple-intro("unit annotation", self.loc),
+        ED.text("The annotation at "),
+        ED.loc(self.loc),
+        ED.text(" is annotated with the unit "),
+        ED.code(ED.text(self.unit-str)),
+        ED.text(" but does not support unit annotations.")]
+      if self.loc.is-builtin():
+        [ED.error: base-err, please-report-bug()]
+      else:
+        [ED.error: base-err]
+      end
     end
   | incompatible-units(op-name, l, r) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
