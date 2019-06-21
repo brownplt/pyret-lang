@@ -685,3 +685,18 @@ check "table-from-rows":
 end
 
 
+check "table-from-column":
+  col1 = range(0, 100)
+  col2 = range(500, 600)
+  col3 = range(1000, 1100)
+
+  t = TS.table-from-column("a", col1).add-column("b", col2).add-column("c", col3)
+
+  t.length() is 100
+  t.column-names() is [list: "a", "b", "c"]
+  cs = t.all-columns()
+  cs.get(0) is col1
+  cs.get(1) is col2
+  cs.get(2) is col3
+  cs.length() is 3
+end

@@ -93,3 +93,11 @@ table-from-rows = {
   make4: lam(t1, t2, t3, t4): table-from-raw-array([raw-array: t1, t2, t3, t4]) end,
   make5: lam(t1, t2, t3, t4, t5): table-from-raw-array([raw-array: t1, t2, t3, t4, t5]) end,
 }
+
+table-from-column :: <A> String, List<A> -> Table
+fun table-from-column(col-name, values):
+  rows = for map(v from values):
+    raw-row.make([raw-array: {col-name; v}])
+  end
+  table-from-rows.make(raw-array-from-list(rows))
+end
