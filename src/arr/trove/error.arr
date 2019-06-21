@@ -2475,15 +2475,94 @@ data RuntimeError:
     end
   | incompatible-units(op-name, l, r) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.render-reason()
+      [ED.error:
+        cases(O.Option) maybe-stack-loc(0, false):
+          | some(loc) =>
+            if loc.is-builtin():
+              [ED.sequence:
+                ed-intro(self.op-name + " operation", loc, -1, true),
+                [ED.para:
+                  ED.text("The left side had the unit: "),
+                  ED.code(ED.text(self.l))],
+                [ED.para:
+                  ED.text("The right side had the unit: "),
+                  ED.code(ED.text(self.r))],
+                [ED.para: ED.text("These units are not compatible")],
+                please-report-bug()]
+            else if src-available(loc):
+              cases(O.Option) maybe-ast(loc):
+                | some(ast) =>
+                  left-loc = ast.left.l
+                  right-loc = ast.right.l
+                  [ED.sequence:
+                    ed-intro(self.op-name + " operation", loc, -1, true),
+                    ED.cmcode(loc),
+                    [ED.para:
+                      ED.text("The "),
+                      ED.highlight(ED.text("left side"), [ED.locs: left-loc], 0),
+                      ED.text(" had the unit:")],
+                    ED.code(ED.text(self.l)),
+                    [ED.para:
+                      ED.text("The "),
+                      ED.highlight(ED.text("right side"), [ED.locs: right-loc], 1),
+                      ED.text(" had the unit: ")],
+                    ED.code(ED.text(self.r)),
+                    [ED.para: ED.text("These units are not compatible")]]
+                | none => ED.text("TODO")
+              end
+            else:
+              [ED.sequence:
+                ed-intro(self.op-name + " operation", loc, -1, true),
+                ED.cmcode(loc),
+                [ED.para:
+                  ED.text("The left side had the unit: "),
+                  ED.code(ED.text(self.l))],
+                [ED.para:
+                  ED.text("The right side had the unit: "),
+                  ED.code(ED.text(self.r))],
+                [ED.para: ED.text("These units are not compatible")]]
+            end
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("A "),
+                ED.code(ED.text(self.opname)),
+                ED.text(" operation errored.")],
+              [ED.para:
+                ED.text("The left side had the unit: "),
+                ED.code(ED.text(self.l))],
+              [ED.para:
+                ED.text("The right side had the unit: "),
+                ED.code(ED.text(self.r))],
+              [ED.para: ED.text("These units are not compatible")]]
+        end]
     end,
     method render-reason(self):
-      [ED.error:
-        [ED.para:
-          ED.text("The " + self.op-name + " operation failed due to incompatible units. "),
-          ED.text(tostring(self.l)),
-          ED.text(" is not compatible with "),
-          ED.text(tostring(self.r))]]
+      [ED.error: ED.maybe-stack-loc(0, false,
+        lam(loc):
+          [ED.sequence:
+            ed-simple-intro(self.op-name + " operation", loc),
+            ED.cmcode(loc),
+            [ED.para:
+              ED.text("The left side had the unit: "),
+              ED.code(ED.text(self.l))],
+            [ED.para:
+              ED.text("The right side had the unit: "),
+              ED.code(ED.text(self.r))],
+            [ED.para: ED.text("These units are not compatible")]]
+        end,
+        [ED.sequence:
+          [ED.para:
+            ED.text("A "),
+            ED.code(ED.text(self.opname)),
+            ED.text(" operation errored.")],
+          [ED.para:
+            ED.text("The left side had the unit: "),
+            ED.code(ED.text(self.l))],
+          [ED.para:
+            ED.text("The right side had the unit: "),
+            ED.code(ED.text(self.r))],
+          [ED.para: ED.text("These units are not compatible")]])]
     end
   | invalid-unit-state(op-name, n, desc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):

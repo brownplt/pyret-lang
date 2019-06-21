@@ -505,8 +505,8 @@
     }
     function throwIncompatibleUnits(opName, l, r) {
       runtime.checkString(opName);
-      runtime.checkNumber(l);
-      runtime.checkNumber(r);
+      runtime.checkString(l);
+      runtime.checkString(r);
       raise(err("incompatible-units")(opName, l, r));
     }
     function throwInvalidUnitState(opName, n, desc) {

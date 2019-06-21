@@ -1235,7 +1235,7 @@ define("pyret-base/js/js-numbers", function() {
     var u2 = getUnit(n2);
 
     if (!checkUnit(u1, u2)) {
-      errbacks.throwIncompatibleUnits(opName, n1, n2);
+      errbacks.throwIncompatibleUnits(opName, unitToString(u1), unitToString(u2));
     }
   }
 
