@@ -2935,15 +2935,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
     function makeUnitAnn(ann, u, srcloc) {
       if (ann.withUnit === undefined) {
-        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(u), makeSrcloc(srcloc));
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(u), srcloc);
       }
-      return ann.withUnit(u);
+      return ann.withUnit(u, srcloc);
     }
     PUnitAnn.prototype.withUnit = function(unit, srcloc) {
       if (this.implicit || jsnums.checkUnit(this.u, unit)) {
         return new PUnitAnn(this.ann, unit, false);
       } else {
-        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), makeSrcloc(srcloc));
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), srcloc);
       }
     }
     PUnitAnn.prototype.check = function(compilerLoc, val) {

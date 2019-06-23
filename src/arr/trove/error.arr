@@ -2459,12 +2459,10 @@ data RuntimeError:
         self.render-reason()
       end
     end,
-    method render-reason(self):
+    method render-reason(self) block:
       base-err = [ED.para:
         ed-simple-intro("unit annotation", self.loc),
-        ED.text("The annotation at "),
-        ED.loc(self.loc),
-        ED.text(" is annotated with the unit "),
+        ED.text("The annotation is annotated with the unit "),
         ED.code(ED.text(self.unit-str)),
         ED.text(" but does not support unit annotations.")]
       if self.loc.is-builtin():

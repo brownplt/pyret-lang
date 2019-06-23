@@ -500,6 +500,7 @@
       raise(makeModuleLoadFailureL(names));
     }
     function throwUnitsOnUnsupportedAnn(unitStr, loc) {
+      loc = runtime.makeSrcloc(loc);
       runtime.checkString(unitStr);
       raise(err("units-on-unsupported-ann")(loc, unitStr));
     }
