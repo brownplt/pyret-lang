@@ -131,7 +131,6 @@ id-expr: NAME
 prim-expr: num-expr | frac-expr | rfrac-expr | bool-expr | string-expr
 
 dim-expr: (LANGLE|LT) unit-expr (RANGLE|GT)
-# TODO(benmusch): Consider adding | (LANGLE|LT) NUMBER (RANGLE|GT)
 unit-atom: (PARENNOSPACE|PARENSPACE) unit-expr RPAREN
   | NAME
   | unit-atom CARET NUMBER
