@@ -1,3 +1,4 @@
+#|
 import file("./tests/test-strings.arr") as _
 import file("./tests/test-format.arr") as _
 import file("./tests/test-numbers.arr") as _
@@ -41,4 +42,5 @@ import file("./tests/test-tail-call.arr") as _
 import file("./tests/test-parse.arr") as _
 import file("./tests/test-parse-errors.arr") as _
 import file("./tests/test-flatness.arr") as _
+|#
 import file("./tests/test-units.arr") as _

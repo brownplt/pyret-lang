@@ -1,6 +1,12 @@
 import error as E
 import contracts as C
 
+fun is-unit-contract-fail(result):
+  C.is-fail(result) and C.is-failure-at-arg(result.reason) and C.is-unit-fail(result.reason.reason)
+end
+
+#|
+
 check "Unit equality":
   2 == 2%<m> is false
   2%<s> == 2%<m> is false
@@ -128,11 +134,7 @@ check "Other supported operations":
   num-sqrt(4%<m ^ -2>) is 2%<1 / m>
 end
 
-fun is-unit-contract-fail(result):
-  C.is-fail(result) and C.is-failure-at-arg(result.reason) and C.is-unit-fail(result.reason.reason)
-end
-
-check "Unsupported unops":
+check "Unsupported operations":
   num-sqrt(2%<m>) raises-satisfies E.is-invalid-unit-state
   num-expt(2%<m>, 0.5) raises-satisfies E.is-invalid-unit-state
 
@@ -149,8 +151,6 @@ check "Unsupported unops":
   num-expt(2%<m>, 3%<m>) raises-satisfies is-unit-contract-fail
   num-modulo(2%<m>, 2%<m>) raises-satisfies is-unit-contract-fail
   num-to-string-digits(2/3%<s * (m ^ 2)>, 3%<m>) raises-satisfies is-unit-contract-fail
-  num-within-abs(2%<m>) raises-satisfies is-unit-contract-fail
-  num-within-rel(2%<m>) raises-satisfies is-unit-contract-fail
 end
 
 check "Units with bigint powers":
@@ -163,4 +163,51 @@ check "Units with bigint powers":
   num-sqrt(1%<u ^ 18000000000000000>) == 1%<u ^ 90000000000000000> is false
 
   num-sqrt(num-sqrt(num-sqrt(num-sqr(num-sqr(num-sqr(1%<u ^ 10000000000000001>)))))) is 1%<u ^ 10000000000000001>
+end
+|#
+
+check "Within builtins":
+  within(2%<m>) raises-satisfies is-unit-contract-fail
+
+  within(0.5)(3%<m>, 5/2%<m>) is true
+  within(0.5)(3%<m>, ~2.999999%<m>) is true
+  within(0.5)(3%<m>, 2%<m>) is true
+  within(0.5)(3%<m>, 1%<m>) is false
+  within(0.5)([list: 1%<m>, 1%<m>], [list: 1%<m>, 4%<m>]) is false
+  within(0.5)([list: 1%<m>, 2%<m>], [list: 1%<m>, 2.5%<m>]) is true
+
+  within(0.5)(3%<m>, 2) is false
+  within(0.5)(3%<m>, 2%<p>) is false
+
+  within-abs(1%<m>)(2%<m>, 5/2%<m>) is true
+  within-abs(1%<m>)(2%<m>, ~2.99999%<m>) is true
+  within-abs(1%<m>)(2%<m>, 3%<m>) is true
+  within-abs(1%<m>)(2%<m>, 4%<m>) is false
+  within-abs(1%<m>)([list: 1%<m>, 2%<m>], [list: 1%<m>, 4%<m>]) is false
+  within-abs(1%<m>)([list: 1%<m>, 3.5%<m>], [list: 1%<m>, 4%<m>]) is true
+
+  within-abs(1)(2, 3%<m>) is false
+  within-abs(1%<m>)(2, 3%<m>) is false
+  within-abs(1)(2%<m>, 3%<p>) is false
+  within-abs(1%<p>)(2%<m>, 3%<m>) is false
+
+  num-within-rel(2%<m>) raises-satisfies is-unit-contract-fail
+
+  num-within-rel(0.5)(3%<m>, 5/2%<m>) is true
+  num-within-rel(0.5)(3%<m>, ~2.999999%<m>) is true
+  num-within-rel(0.5)(3%<m>, 2%<m>) is true
+  num-within-rel(0.5)(3%<m>, 1%<m>) is false
+
+  num-within-rel(0.5)(3%<m>, 2) raises-satisfies E.is-incompatible-units
+  num-within-rel(0.5)(3%<m>, 2%<p>) raises-satisfies E.is-incompatible-units
+
+  num-within-abs(1%<m>)(2%<m>, 5/2%<m>) is true
+  num-within-abs(1%<m>)(2%<m>, ~2.99999%<m>) is true
+  num-within-abs(1%<m>)(2%<m>, 3%<m>) is true
+  num-within-abs(1%<m>)(2%<m>, 4%<m>) is false
+
+  num-within-abs(1)(2, 3%<m>) raises-satisfies E.is-incompatible-units
+  num-within-abs(1%<m>)(2, 3%<m>) raises-satisfies E.is-incompatible-units
+  num-within-abs(1)(2%<m>, 3%<p>) raises-satisfies E.is-incompatible-units
+  num-within-abs(1%<p>)(2%<m>, 3%<m>) raises-satisfies E.is-incompatible-units
 end

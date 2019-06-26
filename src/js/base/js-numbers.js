@@ -372,13 +372,13 @@ define("pyret-base/js/js-numbers", function() {
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
      onXSpecialCase: function(x, y, errbacks) {
-       ensureSameUnits(x, y, errbacks, "+");
+       ensureSameUnits(x, y, errbacks, "+ operation");
        return y;
      },
      isYSpecialCase: function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
      onYSpecialCase: function(x, y, errbacks) {
-       ensureSameUnits(x, y, errbacks, "+");
+       ensureSameUnits(x, y, errbacks, "+ operation");
        return x;
      }
     });
@@ -411,13 +411,13 @@ define("pyret-base/js/js-numbers", function() {
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
      onXSpecialCase: function(x, y, errbacks) {
-       ensureSameUnits(x, y, errbacks, "-");
+       ensureSameUnits(x, y, errbacks, "- operation");
        return negate(y, errbacks);
      },
      isYSpecialCase: function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
      onYSpecialCase: function(x, y, errbacks) {
-       ensureSameUnits(x, y, errbacks, "-");
+       ensureSameUnits(x, y, errbacks, "- operation");
        return x;
      }
     });
@@ -550,7 +550,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   // used for within
-  var roughlyEquals = function(x, y, delta, errbacks) {
+  var roughlyEquals = function(x, y, delta, where, errbacks) {
+    ensureSameUnits(x, y, errbacks, where + "'s arguments");
+    ensureSameUnits(y, delta, errbacks, where + "'s tolerance");
+
     if (isNegative(delta)) {
       errbacks.throwToleranceError("negative tolerance " + delta);
     }
@@ -559,7 +562,7 @@ define("pyret-base/js/js-numbers", function() {
 
     if (isRoughnum(delta) && delta.n === Number.MIN_VALUE) {
       if ((isRoughnum(x) || isRoughnum(y)) &&
-            (Math.abs(subtract(x,y).n) === Number.MIN_VALUE)) {
+            (Math.abs(_withoutUnit(subtract(x,y)).n) === Number.MIN_VALUE)) {
         errbacks.throwToleranceError("roughnum tolerance too small for meaningful comparison, " + x + ' ' + y + ' ' + delta);
       }
     }
@@ -571,7 +574,12 @@ define("pyret-base/js/js-numbers", function() {
     return approxEquals(ratx, raty, ratdelta, errbacks);
   };
 
-  var roughlyEqualsRel = function(computedValue, trueValue, delta, errbacks) {
+  var roughlyEqualsRel = function(computedValue, trueValue, delta, where, errbacks) {
+    if (!checkUnit(getUnit(delta), UNIT_ONE)) {
+      errbacks.throwInvalidUnitState("relative rough equality", delta, "tolerance cannot have a unit");
+    }
+    ensureSameUnits(computedValue, trueValue, errbacks, where + "'s arguments");
+
     if (isNegative(delta)) {
       errbacks.throwRelToleranceError('negative relative tolerance ' + delta)
     }
@@ -1177,6 +1185,8 @@ define("pyret-base/js/js-numbers", function() {
       newUnit[unitName] = u[unitName];
       newUnit[COUNT_FIELD] += 1;
     }
+
+    if (newUnit[COUNT_FIELD] === 0) return UNIT_ONE;
     return newUnit;
   }
 
@@ -1714,32 +1724,32 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Unitnum.prototype.greaterThan = function(n, errbacks) {
-    ensureSameUnits(this, n, errbacks, ">");
+    ensureSameUnits(this, n, errbacks, "> operation");
     return greaterThan(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.greaterThanOrEqual = function(n, errbacks) {
-    ensureSameUnits(this, n, errbacks, ">=");
+    ensureSameUnits(this, n, errbacks, ">= operation");
     return greaterThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.lessThan = function(n, errbacks) {
-    ensureSameUnits(this, n, errbacks, "<");
+    ensureSameUnits(this, n, errbacks, "< operation");
     return lessThan(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.lessThanOrEqual = function(n, errbacks) {
-    ensureSameUnits(this, n, errbacks, "<=");
+    ensureSameUnits(this, n, errbacks, "<= operation");
     return lessThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
   };
 
   Unitnum.prototype.add = function(n, errbacks) {
-    ensureSameUnits(this, n, errbacks, "+");
+    ensureSameUnits(this, n, errbacks, "+ operation");
     return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
   };
 
   Unitnum.prototype.subtract = function(n, errbacks) {
-    ensureSameUnits(this, n, errbacks, "-");
+    ensureSameUnits(this, n, errbacks, "- operation");
     return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
   };
 

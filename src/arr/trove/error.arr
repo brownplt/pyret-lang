@@ -2471,114 +2471,93 @@ data RuntimeError:
         [ED.error: base-err]
       end
     end
-  | incompatible-units(op-name, l, r) with:
-    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+  | incompatible-units(reason, u, v) with:
+    # TODO Fix spacing in render-fancy-reason (and maybe render-reason)
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
+      base-err-msg = [ED.para:
+        ED.text("The units "),
+        ED.code(ED.text(self.u)),
+        ED.text(" and "),
+        ED.code(ED.text(self.v)),
+        ED.text(" are not compatible")]
       [ED.error:
-        cases(O.Option) maybe-stack-loc(0, false):
+        cases(O.Option) maybe-stack-loc(0, true) block:
           | some(loc) =>
+            default-err-msg = [ED.sequence:
+              ed-intro(self.reason, loc, -1, true),
+              ED.cmcode(loc),
+              base-err-msg]
             if loc.is-builtin():
               [ED.sequence:
-                ed-intro(self.op-name + " operation", loc, -1, true),
-                [ED.para:
-                  ED.text("The left side had the unit: "),
-                  ED.code(ED.text(self.l))],
-                [ED.para:
-                  ED.text("The right side had the unit: "),
-                  ED.code(ED.text(self.r))],
-                [ED.para: ED.text("These units are not compatible")],
+                ed-intro(self.reason, loc, -1, true),
+                base-err-msg,
                 please-report-bug()]
             else if src-available(loc):
               cases(O.Option) maybe-ast(loc):
                 | some(ast) =>
-                  left-loc = ast.left.l
-                  right-loc = ast.right.l
-                  [ED.sequence:
-                    ed-intro(self.op-name + " operation", loc, -1, true),
-                    ED.cmcode(loc),
-                    [ED.para:
-                      ED.text("The "),
-                      ED.highlight(ED.text("left side"), [ED.locs: left-loc], 0),
-                      ED.text(" had the unit:")],
-                    ED.code(ED.text(self.l)),
-                    [ED.para:
-                      ED.text("The "),
-                      ED.highlight(ED.text("right side"), [ED.locs: right-loc], 1),
-                      ED.text(" had the unit: ")],
-                    ED.code(ED.text(self.r)),
-                    [ED.para: ED.text("These units are not compatible")]]
-                | none =>
-                  [ED.sequence:
-                    ed-intro(self.op-name + " operation", loc, -1, true),
-                    ED.cmcode(loc),
-                    [ED.para:
-                      ED.text("The left side had the unit: "),
-                      ED.code(ED.text(self.l))],
-                    [ED.para:
-                      ED.text("The right side had the unit: "),
-                      ED.code(ED.text(self.r))],
-                    [ED.para: ED.text("These units are not compatible")]]
+                  cases(Any) ast:
+                    | s-op(_l, op-l, opname, l, r) =>
+                      left-loc = l.l
+                      right-loc = r.l
+                      [ED.sequence:
+                        ed-intro(self.reason, loc, -1, true),
+                        ED.cmcode(loc),
+                        [ED.para:
+                          ED.text("The "),
+                          ED.highlight(ED.text("left side"), [ED.locs: left-loc], 0),
+                          ED.text(" had the unit:")],
+                        ED.code(ED.text(self.u)),
+                        [ED.para:
+                          ED.text("The "),
+                          ED.highlight(ED.text("right side"), [ED.locs: right-loc], 1),
+                          ED.text(" had the unit: ")],
+                        ED.code(ED.text(self.v)),
+                        [ED.para: ED.text("These units are not compatible")]]
+                    | else => default-err-msg
+                  end
+                | none => default-err-msg
               end
             else:
-              [ED.sequence:
-                ed-intro(self.op-name + " operation", loc, -1, true),
-                ED.cmcode(loc),
-                [ED.para:
-                  ED.text("The left side had the unit: "),
-                  ED.code(ED.text(self.l))],
-                [ED.para:
-                  ED.text("The right side had the unit: "),
-                  ED.code(ED.text(self.r))],
-                [ED.para: ED.text("These units are not compatible")]]
+              default-err-msg
             end
           | none =>
             [ED.sequence:
               [ED.para:
                 ED.text("A "),
-                ED.code(ED.text(self.opname)),
-                ED.text(" operation errored.")],
-              [ED.para:
-                ED.text("The left side had the unit: "),
-                ED.code(ED.text(self.l))],
-              [ED.para:
-                ED.text("The right side had the unit: "),
-                ED.code(ED.text(self.r))],
-              [ED.para: ED.text("These units are not compatible")]]
+                ED.code(ED.text(self.reason)),
+                ED.text(" errored.")],
+              base-err-msg]
         end]
     end,
-    method render-reason(self):
+    method render-reason(self) block:
+      base-err-msg = [ED.para:
+        ED.text("The units "),
+        ED.code(ED.text(self.u)),
+        ED.text(" and "),
+        ED.code(ED.text(self.v)),
+        ED.text(" are not compatible")]
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
           [ED.sequence:
-            ed-simple-intro(self.op-name + " operation", loc),
-            [ED.para:
-              ED.text("The left side had the unit: "),
-              ED.code(ED.text(self.l))],
-            [ED.para:
-              ED.text("The right side had the unit: "),
-              ED.code(ED.text(self.r))],
-            [ED.para: ED.text("These units are not compatible")]]
+            ed-simple-intro(self.reason, loc),
+            base-err-msg]
         end,
         [ED.sequence:
           [ED.para:
             ED.text("A "),
-            ED.code(ED.text(self.opname)),
-            ED.text(" operation errored.")],
-          [ED.para:
-            ED.text("The left side had the unit: "),
-            ED.code(ED.text(self.l))],
-          [ED.para:
-            ED.text("The right side had the unit: "),
-            ED.code(ED.text(self.r))],
-          [ED.para: ED.text("These units are not compatible")]])]
+            ED.code(ED.text(self.reason)),
+            ED.text(" errored.")],
+          base-err-msg])]
     end
-  | invalid-unit-state(op-name, n, desc) with:
+  | invalid-unit-state(opname, n, desc) with:
+    # TODO: update
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         cases(O.Option) maybe-stack-loc(0, false):
           | some(loc) =>
             if loc.is-builtin():
               [ED.sequence:
-                ed-intro(self.op-name + " function", loc, -1, true),
+                ed-intro(self.opname + " function", loc, -1, true),
                 [ED.para:
                   ED.code(ED.text(tostring(self.n))),
                   ED.text(" is an invalid argument because: "),
@@ -2586,7 +2565,7 @@ data RuntimeError:
                 please-report-bug()]
             else if src-available(loc):
               [ED.sequence:
-                ed-intro(self.op-name + " function", loc, -1, true),
+                ed-intro(self.opname + " function", loc, -1, true),
                 ED.cmcode(loc),
                 [ED.para:
                   ED.code(ED.text(tostring(self.n))),
@@ -2596,7 +2575,7 @@ data RuntimeError:
           | none =>
             [ED.sequence:
               [ED.para:
-                ED.text("The " + self.op-name + " function failed.")],
+                ED.text("The " + self.opname + " function failed.")],
               [ED.para:
                 ED.code(ED.text(tostring(self.n))),
                 ED.text(" is an invalid argument because: "),
@@ -2607,14 +2586,14 @@ data RuntimeError:
       [ED.error: ED.maybe-stack-loc(0, false,
         lam(loc):
           [ED.sequence:
-            ed-simple-intro(self.op-name + " function", loc),
+            ed-simple-intro(self.opname + " function", loc),
             [ED.para:
               ED.code(ED.text(tostring(self.n))),
               ED.text(" is an invalid argument because: "),
               ED.text(self.desc)]]
         end,
         [ED.sequence:
-          [ED.para: ED.text("The " + self.op-name + " function failed.")],
+          [ED.para: ED.text("The " + self.opname + " function failed.")],
           [ED.para:
             ED.code(ED.text(tostring(self.n))),
             ED.text(" is an invalid argument because: "),

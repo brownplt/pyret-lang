@@ -1988,17 +1988,21 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           curLeft = current.left;
           curRight = current.right;
 
-          if (thisRuntime.ffi.isEqual(identical3(curLeft, curRight))) {
+          if (!fromWithin && thisRuntime.ffi.isEqual(identical3(curLeft, curRight))) {
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
-            if (tol) {
+            if (!jsnums.checkUnit(jsnums.getUnit(curLeft), jsnums.getUnit(curRight))) {
+              toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path + ".units", curLeft, curRight);
+            } else if (tol) {
               if (rel) {
-                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, NumberErrbacks)) {
+                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, "equality", NumberErrbacks)) {
                   continue;
                 } else {
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
                 }
-              } else if (jsnums.roughlyEquals(curLeft, curRight, tol, NumberErrbacks)) {
+              } else if (!jsnums.checkUnit(jsnums.getUnit(curLeft), jsnums.getUnit(tol))) {
+                toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path + ".tolerance-units", curLeft, curRight);
+              } else if (jsnums.roughlyEquals(curLeft, curRight, tol, "equality", NumberErrbacks)) {
                 continue;
               } else {
                 toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
@@ -2212,7 +2216,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbsNow3(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs-now3",
-        tol, thisRuntime.NumNonNegative);
+        tol, thisRuntime.NumNonNegativeAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3(...)"], 2, $a, false); }
         return equal3(l, r, EQUAL_NOW, tol, TOL_IS_ABS, FROM_WITHIN);
@@ -2232,7 +2236,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbs3(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs3",
-        tol, thisRuntime.NumNonNegative);
+        tol, thisRuntime.NumNonNegativeAnyUnit);
 
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3(...)"], 2, $a, false); }
@@ -2261,7 +2265,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbsNow(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs-now",
-        tol, thisRuntime.NumNonNegative);
+        tol, thisRuntime.NumNonNegativeAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now(...)"], 2, $a, false); }
         return safeCall(function() {
@@ -2273,7 +2277,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbs(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs",
-        tol, thisRuntime.Number);
+        tol, thisRuntime.NumberAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs(...)"], 2, $a, false); }
         return safeCall(function () {
@@ -4907,28 +4911,26 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeBoolean(jsnums.equals(l, r, NumberErrbacks));
     };
 
-    // TODO(benmusch): Maybe support any unit here?
     var num_within_abs = function(delta) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-within-abs",
-        delta, thisRuntime.NumNonNegative);
+        delta, thisRuntime.NumNonNegativeAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within"], 2, $a, false); }
         thisRuntime.checkArgsInternal2("Numbers", "from within",
-          l, thisRuntime.Number, r, thisRuntime.Number);
-        return makeBoolean(jsnums.roughlyEquals(l, r, delta, NumberErrbacks));
+          l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+        return makeBoolean(jsnums.roughlyEquals(l, r, delta, "num-within-abs operation", NumberErrbacks));
       }, "num-within-abs(...)");
     }
 
-    // TODO(benmusch): Maybe support any unit here?
     var num_within_rel = function(relTol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "within-rel", relTol, thisRuntime.Number);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a, false); }
         thisRuntime.checkArgsInternal2("Numbers", "from within-rel",
-          l, thisRuntime.Number, r, thisRuntime.Number);
-        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, NumberErrbacks));
+          l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, "num-within-rel operation", NumberErrbacks));
       }, "num-within-rel(...)");
     }
 
@@ -4936,7 +4938,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-max",
         l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
-      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-max");
+      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-max operation");
       if (jsnums.greaterThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
@@ -4944,7 +4946,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-min",
         l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
-      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-min");
+      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-min operation");
       if (jsnums.lessThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
