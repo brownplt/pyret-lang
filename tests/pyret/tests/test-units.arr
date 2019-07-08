@@ -5,7 +5,6 @@ fun is-unit-contract-fail(result):
   C.is-fail(result) and C.is-failure-at-arg(result.reason) and C.is-unit-fail(result.reason.reason)
 end
 
-#|
 
 check "Unit equality":
   2 == 2%<m> is false
@@ -28,6 +27,11 @@ check "Unit equality":
   (10%<m> / 1%<m>) + 1 is 11
 
   0%<s> == 0%<m> is false
+
+  2%<m> =~ 2%<m> is true
+  2%<m> =~ 2%<s> is false
+  2%<m> <=> 2%<m> is true
+  2%<m> <=> 2%<s> is false
 end
 
 check "Arithmetic binops":
@@ -164,7 +168,6 @@ check "Units with bigint powers":
 
   num-sqrt(num-sqrt(num-sqrt(num-sqr(num-sqr(num-sqr(1%<u ^ 10000000000000001>)))))) is 1%<u ^ 10000000000000001>
 end
-|#
 
 check "Within builtins":
   within(2%<m>) raises-satisfies is-unit-contract-fail

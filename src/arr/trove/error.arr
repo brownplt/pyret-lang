@@ -2472,7 +2472,6 @@ data RuntimeError:
       end
     end
   | incompatible-units(reason, u, v) with:
-    # TODO Fix spacing in render-fancy-reason (and maybe render-reason)
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
       base-err-msg = [ED.para:
         ED.text("The units "),
@@ -2550,7 +2549,6 @@ data RuntimeError:
           base-err-msg])]
     end
   | invalid-unit-state(opname, n, desc) with:
-    # TODO: update
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
         cases(O.Option) maybe-stack-loc(0, false):
