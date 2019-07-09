@@ -2446,7 +2446,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
       } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
         return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
-      } else if (v1 === v2) {
+      } else if (v1 === v2 || (jsnums.isPyretNumber(v1) && jsnums.isPyretNumber(v2) && jsnums.equals(v1, v2))) {
         return thisRuntime.ffi.equal;
       } else {
         return thisRuntime.ffi.notEqual.app("", v1, v2);
