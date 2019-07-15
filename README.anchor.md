@@ -3,6 +3,8 @@
 Installing
 -----------
 
+This guide explains how to install and interface with the Anchor Pyret compiler.
+
 ### Setting up the environment
 
 Using Linux or MacOS is highly recommended.
@@ -10,7 +12,7 @@ Using Linux or MacOS is highly recommended.
 First, install npm, Node.js, git, and Python.
 
 It is important to have a recent version of npm and Node.js. You can install a recent version 
-of these by following the instructions [here]('https://github.com/nodesource/distributions/blob/master/README.md').
+of these by following the instructions at https://github.com/nodesource/distributions/blob/master/README.md
 
 Install git and Python through your package manager.
 
