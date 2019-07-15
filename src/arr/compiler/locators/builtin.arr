@@ -105,7 +105,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   path = P.join(basedir, builtin-name + ".arr")
   
   var ast = nothing
-  {
+  unused = {
     method get-modified-time(self):
       F.file-times(path).mtime
     end,
@@ -182,6 +182,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     method name(self): builtin-name end,
     method _equals(self, other, eq): eq(self.uri(), other.uri()) end
   }
+  raise("Builtin arr files not supported")
 end
 
 fun maybe-make-builtin-locator(builtin-name :: String, options) -> Option<CL.Locator> block:
