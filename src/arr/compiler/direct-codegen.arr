@@ -428,7 +428,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           # Datatypes in env are key'd by the raw string name
           cases(Option) context.datatypes.get-now(name.toname()):
             | some(dt) => 
-              context.provides.data-definitions.get-value(name.toname())
+              # Note(alex): Next line necessary?
+              # context.provides.data-definitions.get-value(name.toname())
+              dt
             | none => 
               # TODO(alex): split into helper method on CompileEnvironment
               # TODO(alex): Perform a recursive lookup on type aliases
@@ -781,12 +783,21 @@ fun node-prelude(prog, provides, env, options) block:
 
 end
 
-fun compile-program(prog :: A.Program, env, post-env, provides, options) block:
+fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) block:
+  # TODO(alex): Find out if a uri is actually required by AU.data-expr-to-datatype
+
+  # Translate datatypes from Expr form to Type form in order to be useful for cases expressions
+  translated-datatype-map = D.make-mutable-string-dict()
+  _ = for map(key from post-env.datatypes.keys-now().to-list()):
+    translated-datatype = AU.data-expr-to-datatype(uri, env, post-env.datatypes.get-value-now(key))
+    translated-datatype-map.set-now(key, translated-datatype)
+  end
+
   {ans; stmts} = compile-expr({
     uri: provides.from-uri,
     options: options,
     provides: provides,
-    datatypes: post-env.datatypes,
+    datatypes: translated-datatype-map,
     env: env,
     post-env: post-env,
   }, prog.block)

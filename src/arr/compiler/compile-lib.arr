@@ -442,10 +442,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                 end
                 add-phase("Cleaned AST", cleaned)
                 {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.env, provides, options)
+                  JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
                 else:
                   if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.env, provides, options)
+                    JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
                   else:
                     {provides; add-phase("Result", CS.err(unique(any-errors)))}
                   end

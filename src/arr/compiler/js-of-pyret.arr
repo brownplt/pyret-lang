@@ -95,18 +95,18 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, env, post-env, provides, options)
+fun trace-make-compiled-pyret(add-phase, program-ast, uri, env, post-env, provides, options)
   -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  make-compiled-pyret(program-ast, env, post-env, provides, options)
+  make-compiled-pyret(program-ast, uri, env, post-env, provides, options)
 end
 
 fun println(s) block:
   print(s + "\n")
 end
 
-fun make-compiled-pyret(program-ast, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
+fun make-compiled-pyret(program-ast, uri, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
 #  each(println, program-ast.tosource().pretty(80))
   {provides; 
-    C.ok(ccp-dict(D.compile-program(program-ast, env, post-env, provides, options)))}
+    C.ok(ccp-dict(D.compile-program(program-ast, uri, env, post-env, provides, options)))}
 end
 
