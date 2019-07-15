@@ -5,7 +5,7 @@ all: build parser
 build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
-web: build/worker/pyret-grammar.js
+web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
 	make build/worker/runtime-files.json
