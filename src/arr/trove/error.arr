@@ -2446,8 +2446,8 @@ data RuntimeError:
                 ED.highlight(ED.text("unit"), [ED.locs: ast.l], 0),
                 ED.text(" annotated a "),
                 ED.highlight(ED.text("base type"), [ED.locs: ast.ann.l], 1),
-                ED.text(" which does not support units.")]]
-          | none      =>
+                ED.text(" which does not support units. Consider removing the unit annotation or changing the base type.")]]
+          | none =>
             [ED.error:
               ed-intro("unit annotation", self.loc, -1, true),
               ED.cmcode(self.loc),
@@ -2517,7 +2517,7 @@ data RuntimeError:
                 | none => default-err-msg
               end
             else:
-              default-err-msg
+              base-err-msg
             end
           | none =>
             [ED.sequence:
@@ -2550,6 +2550,13 @@ data RuntimeError:
     end
   | invalid-unit-state(opname, n, desc) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      base-err-msg = [ED.sequence:
+        [ED.para:
+          ED.text("The " + self.opname + " function failed.")],
+        [ED.para:
+          ED.code(ED.text(tostring(self.n))),
+          ED.text(" is an invalid argument because: "),
+          ED.text(self.desc)]]
       [ED.error:
         cases(O.Option) maybe-stack-loc(0, false):
           | some(loc) =>
@@ -2569,15 +2576,10 @@ data RuntimeError:
                   ED.code(ED.text(tostring(self.n))),
                   ED.text(" is an invalid argument because: "),
                   ED.text(self.desc)]]
+            else:
+              base-err-msg
             end
-          | none =>
-            [ED.sequence:
-              [ED.para:
-                ED.text("The " + self.opname + " function failed.")],
-              [ED.para:
-                ED.code(ED.text(tostring(self.n))),
-                ED.text(" is an invalid argument because: "),
-                ED.text(self.desc)]]
+          | none => base-err-msg
         end]
     end,
     method render-reason(self):
