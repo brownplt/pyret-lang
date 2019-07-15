@@ -83,7 +83,10 @@
           if(v instanceof OutputFile) {
             if (v.name) {
               return RUNTIME.pauseStack(function(restarter) {
-                fs.writeFile(v.name, s, {encoding: 'utf8'}, function(err, bytesWritten, buffer) {
+                fs.writeFile(v.name, s, {
+                  encoding: 'utf8', 
+                  flag: 'a+'
+                }, function(err, bytesWritten, buffer) {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(NAMESPACE.get('nothing'));
                 });
