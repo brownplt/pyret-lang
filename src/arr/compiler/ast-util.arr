@@ -989,161 +989,165 @@ fun get-name-spec-atom-and-name(ns :: A.NameSpec):
   end
 end
 
-fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
-  fun collect-shared-fields(vs :: List<A.Variant>) -> SD.StringDict<T.Type>:
-    if is-empty(vs):
-      [SD.string-dict: ]
-    else:
-      init-members = members-to-t-members(vs.first.with-members)
-      vs.rest.foldl(lam(v, shared-members):
-        v.with-members.foldl(lam(m, shadow shared-members):
-          if shared-members.has-key(m.name):
-            existing-mem-type = shared-members.get-value(m.name)
-            this-mem-type = member-to-t-member(m)
-            if existing-mem-type == this-mem-type:
-              shared-members
-            else:
-              shared-members.remove(m.name)
-            end
-          else:
+fun collect-shared-fields(uri :: URI, compile-env :: CS.CompileEnvironment, vs :: List<A.Variant>) -> SD.StringDict<T.Type>:
+  if is-empty(vs):
+    [SD.string-dict: ]
+  else:
+    init-members = members-to-t-members(uri, compile-env, vs.first.with-members)
+    vs.rest.foldl(lam(v, shared-members):
+      v.with-members.foldl(lam(m, shadow shared-members):
+        if shared-members.has-key(m.name):
+          existing-mem-type = shared-members.get-value(m.name)
+          this-mem-type = member-to-t-member(uri, compile-env, m)
+          if existing-mem-type == this-mem-type:
             shared-members
-          end
-        end, shared-members)
-      end, init-members)
-    end
-  end
-
-  fun v-members-to-t-members(ms):
-    ms.foldr(lam(m, members):
-      cases(A.VariantMember) m:
-        | s-variant-member(l, kind, bind) =>
-          typ = if A.is-s-mutable(kind):
-            T.t-ref(ann-to-typ(bind.ann), l, false)
           else:
-            ann-to-typ(bind.ann)
+            shared-members.remove(m.name)
           end
-          link({bind.id.toname(); typ}, members)
-      end
-    end, empty)
+        else:
+          shared-members
+        end
+      end, shared-members)
+    end, init-members)
   end
+end
 
-  fun member-to-t-member(m):
+fun v-members-to-t-members(uri :: URI, compile-env :: CS.CompileEnvironment, ms):
+  ms.foldr(lam(m, members):
+    cases(A.VariantMember) m:
+      | s-variant-member(l, kind, bind) =>
+        typ = if A.is-s-mutable(kind):
+          T.t-ref(ann-to-typ(uri, compile-env, bind.ann), l, false)
+        else:
+          ann-to-typ(uri, compile-env, bind.ann)
+        end
+        link({bind.id.toname(); typ}, members)
+    end
+  end, empty)
+end
+
+fun member-to-t-member(uri :: URI, compile-env :: CS.CompileEnvironment, m):
+  cases(A.Member) m:
+    | s-data-field(l, name, val) =>
+      T.t-top(l, false)
+    | s-mutable-field(l, name, ann, val) =>
+      T.t-ref(ann-to-typ(uri, compile-env, ann), false)
+    | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
+      arrow-part =
+        T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(uri, compile-env, ann), l, false)
+      if is-empty(params): arrow-part
+      else:
+        tvars = for map(p from params): T.t-var(p, l, false) end
+        T.t-forall(tvars, arrow-part, l, false)
+      end
+  end
+end
+
+fun members-to-t-members(uri :: URI, compile-env :: CS.CompileEnvironment, ms):
+  ms.foldl(lam(m, members):
     cases(A.Member) m:
       | s-data-field(l, name, val) =>
-        T.t-top(l, false)
+        members.set(name, member-to-t-member(uri, compile-env, m))
       | s-mutable-field(l, name, ann, val) =>
-        T.t-ref(ann-to-typ(ann), false)
+        members.set(name, member-to-t-member(uri, compile-env, m))
       | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
-        arrow-part =
-          T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(ann), l, false)
-        if is-empty(params): arrow-part
-        else:
-          tvars = for map(p from params): T.t-var(p, l, false) end
-          T.t-forall(tvars, arrow-part, l, false)
-        end
+        members.set(name, member-to-t-member(uri, compile-env, m))
     end
-  end
+  end, [SD.string-dict: ])
+end
 
-  fun members-to-t-members(ms):
-    ms.foldl(lam(m, members):
-      cases(A.Member) m:
-        | s-data-field(l, name, val) =>
-          members.set(name, member-to-t-member(m))
-        | s-mutable-field(l, name, ann, val) =>
-          members.set(name, member-to-t-member(m))
-        | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
-          members.set(name, member-to-t-member(m))
+# TODO(MATT): a-blank should have location
+fun ann-to-typ(uri :: URI, compile-env :: CS.CompileEnvironment, a :: A.Ann) -> T.Type:
+  fun mappy-ann-to-typ(to-map :: A.Ann) -> T.Type:
+    ann-to-typ(uri, compile-env, to-map)
+  end
+  cases(A.Ann) a:
+    | a-blank => T.t-top(A.dummy-loc, false)
+    | a-any(l) => T.t-top(l, false)
+    | a-name(l, id) =>
+      cases(A.Name) id:
+        | s-type-global(name) =>
+          cases(Option<String>) compile-env.globals.types.get(name):
+            | none =>
+              raise("Name not found in globals.types: " + name)
+            | some(mod-uri) =>
+              T.t-name(T.module-uri(mod-uri), id, l, false)
+          end
+        | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
+        | else => raise("Bad name found in ann-to-typ: " + id.key())
       end
-    end, [SD.string-dict: ])
+    | a-type-var(l, id) =>
+      T.t-var(id, l, false)
+    | a-arrow(l, args, ret, use-parens) =>
+      T.t-arrow(map(mappy-ann-to-typ, args), ann-to-typ(uri, compile-env, ret), l, false)
+    | a-arrow-argnames(l, args, ret, use-parens) =>
+      T.t-arrow(map({(arg): ann-to-typ(uri, compile-env, arg.ann)}, args), ann-to-typ(uri, compile-env, ret), l, false)
+    | a-method(l, args, ret) =>
+      raise("Cannot provide a raw method")
+    | a-record(l, fields) =>
+      T.t-record(fields.foldl(lam(f, members):
+        members.set(f.name, ann-to-typ(uri, compile-env, f.ann))
+      end, [SD.string-dict: ]), l, false)
+    | a-tuple(l, fields) =>
+      T.t-tuple(map(mappy-ann-to-typ, fields), l, false)
+    | a-app(l, ann, args) =>
+      T.t-app(ann-to-typ(uri, compile-env, ann), map(mappy-ann-to-typ, args), l, false)
+    | a-pred(l, ann, exp) =>
+      # TODO(joe): give more info than this to type checker?  only needed dynamically, right?
+      ann-to-typ(uri, compile-env, ann)
+    | a-dot(l, obj, field) =>
+      # TODO(joe): maybe-b = resolved.module-bindings.get-now(obj.key())
+      # Then use the information to provide the right a-dot type by looking
+      # it up on the module.
+      T.t-top(l, false)
+    | a-checked(checked, residual) =>
+      raise("a-checked should only be generated by the type-checker")
   end
+end
+fun data-expr-to-datatype(uri :: URI, compile-env :: CS.CompileEnvironment, exp :: A.Expr % (is-s-data-expr)) -> T.DataType:
+  cases(A.Expr) exp:
+    | s-data-expr(l, name, _, params, _, variants, shared-members, _, _) =>
 
-  # TODO(MATT): a-blank should have location
-  fun ann-to-typ(a :: A.Ann) -> T.Type:
-    cases(A.Ann) a:
-      | a-blank => T.t-top(A.dummy-loc, false)
-      | a-any(l) => T.t-top(l, false)
-      | a-name(l, id) =>
-        cases(A.Name) id:
-          | s-type-global(name) =>
-            cases(Option<String>) compile-env.globals.types.get(name):
-              | none =>
-                raise("Name not found in globals.types: " + name)
-              | some(mod-uri) =>
-                T.t-name(T.module-uri(mod-uri), id, l, false)
-            end
-          | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
-          | else => raise("Bad name found in ann-to-typ: " + id.key())
+      tvars = for map(tvar from params):
+        T.t-var(tvar, l, false)
+      end
+
+      tvariants = for map(tv from variants):
+        cases(A.Variant) tv:
+          | s-variant(l2, constr-loc, vname, members, with-members) =>
+            T.t-variant(
+              vname,
+              v-members-to-t-members(uri, compile-env, members),
+              members-to-t-members(uri, compile-env, with-members),
+              l2)
+          | s-singleton-variant(l2, vname, with-members) =>
+            T.t-singleton-variant(
+              vname,
+              members-to-t-members(uri, compile-env, with-members),
+              l2)
         end
-      | a-type-var(l, id) =>
-        T.t-var(id, l, false)
-      | a-arrow(l, args, ret, use-parens) =>
-        T.t-arrow(map(ann-to-typ, args), ann-to-typ(ret), l, false)
-      | a-arrow-argnames(l, args, ret, use-parens) =>
-        T.t-arrow(map({(arg): ann-to-typ(arg.ann)}, args), ann-to-typ(ret), l, false)
-      | a-method(l, args, ret) =>
-        raise("Cannot provide a raw method")
-      | a-record(l, fields) =>
-        T.t-record(fields.foldl(lam(f, members):
-          members.set(f.name, ann-to-typ(f.ann))
-        end, [SD.string-dict: ]), l, false)
-      | a-tuple(l, fields) =>
-        T.t-tuple(map(ann-to-typ, fields), l, false)
-      | a-app(l, ann, args) =>
-        T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l, false)
-      | a-pred(l, ann, exp) =>
-        # TODO(joe): give more info than this to type checker?  only needed dynamically, right?
-        ann-to-typ(ann)
-      | a-dot(l, obj, field) =>
-        # TODO(joe): maybe-b = resolved.module-bindings.get-now(obj.key())
-        # Then use the information to provide the right a-dot type by looking
-        # it up on the module.
-        T.t-top(l, false)
-      | a-checked(checked, residual) =>
-        raise("a-checked should only be generated by the type-checker")
-    end
+      end
+
+      shared-across-variants = collect-shared-fields(uri, compile-env, variants)
+      shared-fields = members-to-t-members(uri, compile-env, shared-members)
+      all-shared-fields = shared-across-variants.fold-keys(lam(key, all-shared-fields):
+        if shared-fields.has-key(key):
+          all-shared-fields
+        else:
+          all-shared-fields.set(key, shared-across-variants.get-value(key))
+        end
+      end, shared-fields)
+
+      T.t-data(
+        name,
+        tvars,
+        tvariants,
+        all-shared-fields,
+        l)
   end
-  fun data-expr-to-datatype(exp :: A.Expr % (is-s-data-expr)) -> T.DataType:
-    cases(A.Expr) exp:
-      | s-data-expr(l, name, _, params, _, variants, shared-members, _, _) =>
+end
 
-        tvars = for map(tvar from params):
-          T.t-var(tvar, l, false)
-        end
-
-        tvariants = for map(tv from variants):
-          cases(A.Variant) tv:
-            | s-variant(l2, constr-loc, vname, members, with-members) =>
-              T.t-variant(
-                vname,
-                v-members-to-t-members(members),
-                members-to-t-members(with-members),
-                l2)
-            | s-singleton-variant(l2, vname, with-members) =>
-              T.t-singleton-variant(
-                vname,
-                members-to-t-members(with-members),
-                l2)
-          end
-        end
-
-        shared-across-variants = collect-shared-fields(variants)
-        shared-fields = members-to-t-members(shared-members)
-        all-shared-fields = shared-across-variants.fold-keys(lam(key, all-shared-fields):
-          if shared-fields.has-key(key):
-            all-shared-fields
-          else:
-            all-shared-fields.set(key, shared-across-variants.get-value(key))
-          end
-        end, shared-fields)
-
-        T.t-data(
-          name,
-          tvars,
-          tvariants,
-          all-shared-fields,
-          l)
-    end
-  end
+fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides: 
   cases(A.Program) resolved.ast:
     | s-program(_, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
@@ -1172,8 +1176,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               | s-local-ref(l, name, as-name) =>
                 vb = resolved.env.bindings.get-value-now(name.key())
                 provided-value = cases(CS.ValueBinder) vb.binder:
-                  | vb-var => CS.v-var(vb.origin, ann-to-typ(vb.ann))
-                  | else => CS.v-just-type(vb.origin, ann-to-typ(vb.ann))
+                  | vb-var => CS.v-var(vb.origin, ann-to-typ(uri, compile-env, vb.ann))
+                  | else => CS.v-just-type(vb.origin, ann-to-typ(uri, compile-env, vb.ann))
                 end
                 vp.set(as-name.toname(), provided-value)
             end
@@ -1188,7 +1192,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 tb = resolved.env.type-bindings.get-value-now(name.key())
                 typ = cases(Option) tb.ann:
                   | none => T.t-top(l, false)
-                  | some(target-ann) => ann-to-typ(target-ann)
+                  | some(target-ann) => ann-to-typ(uri, compile-env, target-ann)
                 end
                 tp.set(as-name.toname(), typ)
             end
@@ -1204,7 +1208,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 dp #NOTE(joe): the type alias does the work here, and datatypes are ONLY stored on the module in which they are defined
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
-                dp.set(exp.name, data-expr-to-datatype(exp))
+                dp.set(exp.name, data-expr-to-datatype(uri, compile-env, exp))
             end
           end
           provs = CS.provides(
