@@ -104,6 +104,15 @@ fun main(args :: List<String>) -> Number block:
         if r.has-key("no-check-mode") or r.has-key("library"): "none"
         else if r.has-key("checks"): r.get-value("checks")
         else: "all" end
+      builtin-js-dirs = if r.has-key("builtin-js-dir"):
+        if is-List(r.get-value("builtin-js-dir")):
+            r.get-value("builtin-js-dir")
+          else:
+            [list: r.get-value("builtin-js-dir")]
+          end
+      else:
+        empty
+      end
       enable-spies = not(r.has-key("no-spies"))
       allow-shadowed = r.has-key("allow-shadow")
       module-dir = r.get-value("module-load-dir")
@@ -172,7 +181,8 @@ fun main(args :: List<String>) -> Number block:
                     html-file: html-file,
                     module-eval: module-eval,
                     user-annotations: user-annotations,
-                    runtime-annotations: runtime-annotations
+                    runtime-annotations: runtime-annotations,
+                    builtin-js-dirs: compile-opts.builtin-js-dirs.append(builtin-js-dirs),
                   })
               success-code
             else if r.has-key("serve"):
@@ -206,7 +216,8 @@ fun main(args :: List<String>) -> Number block:
                   ignore-unbound: false,
                   proper-tail-calls: tail-calls,
                   compile-module: false,
-                  display-progress: display-progress
+                  display-progress: display-progress,
+                  builtin-js-dirs: builtin-js-dirs,
                 })
               failures = filter(CS.is-err, result.loadables)
               if is-link(failures) block:
@@ -231,7 +242,8 @@ fun main(args :: List<String>) -> Number block:
               result = CLI.run(r.get-value("run"), CS.default-compile-options.{
                   standalone-file: standalone-file,
                   display-progress: display-progress,
-                  checks: checks
+                  checks: checks,
+                  builtin-js-dirs: builtin-js-dirs,
                 }, run-args)
               _ = print(result.message + "\n")
               result.exit-code
