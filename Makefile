@@ -12,7 +12,7 @@ runtime-arr: build src/runtime-arr/*.arr
 	# Necessary to make relative require paths correct
 	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr
 
-web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js
+web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime-arr
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
 	make build/worker/runtime-files.json
@@ -21,7 +21,7 @@ web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js
 	pyret --checks none --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.arr.j*
-	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/ build/worker/runtime-files.json
+	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/compiled/project/ build/worker/runtime-files.json
 
 build/worker/runtime-bundler.js: src/webworker/scripts/runtime-bundler.ts
 	tsc src/webworker/scripts/runtime-bundler.ts --outFile $@
