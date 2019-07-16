@@ -8,6 +8,10 @@ build: src/arr/compiler/pyret-parser.js
 test: build
 	jest --verbose test
 
+runtime-arr: build src/runtime-arr/*.arr
+	# Necessary to make relative require paths correct
+	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr
+
 web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
@@ -71,3 +75,4 @@ build/worker/page.html: src/webworker/page.html
 clean:
 	rm -r -f build/phaseA build/worker
 	rm -f src/arr/compiler/pyret-parser.js
+	rm -r -f src/arr/runtime-arr/compiled
