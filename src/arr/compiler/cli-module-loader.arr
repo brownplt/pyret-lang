@@ -428,19 +428,6 @@ default-test-context = {
   options: CS.default-compile-options
 }
 
-fun compile(path, options):
-  base-module = CS.dependency("file", [list: path])
-  base = module-finder({
-    current-load-path: P.resolve(options.base-dir),
-    cache-base-dir: options.compiled-cache,
-    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
-    options: options
-  }, base-module)
-  wl = CL.compile-worklist(module-finder, base.locator, base.context)
-  compiled = CL.compile-program(wl, options)
-  compiled
-end
-
 fun handle-compilation-errors(problems, options) block:
   for lists.each(e from problems) block:
     options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
