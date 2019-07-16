@@ -1987,8 +1987,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           curLeft = current.left;
           curRight = current.right;
+          var isIdentical = thisRuntime.ffi.isEqual(identical3(curLeft, curRight))
 
-          if (!fromWithin && thisRuntime.ffi.isEqual(identical3(curLeft, curRight))) {
+          if (!fromWithin && isIdentical) {
+            continue;
+          } else if (isIdentical && !(isNumber(curLeft) || isNumber(curRight)) && !jsnums.isUnitnum(tol)) {
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (!jsnums.checkUnit(jsnums.getUnit(curLeft), jsnums.getUnit(curRight))) {
