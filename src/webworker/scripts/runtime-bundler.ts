@@ -41,21 +41,21 @@ function checkDirectory(p) {
 }
 
 var prewrittenBuiltinsDir = process.argv[2];
-var uncompiledBuiltinsDir = process.argv[3];
+var compiledBuiltinsDir = process.argv[3];
 var outputFile = process.argv[4];
 
 var prewrittenObject = [];
-var uncompiledObject = [];
+var compiledObject = [];
 
 if (checkDirectory(prewrittenBuiltinsDir)) {
   prewrittenObject = walkSync(prewrittenBuiltinsDir, "./prewritten");
 }
 
-if (checkDirectory(uncompiledBuiltinsDir)) {
-  uncompiledObject = walkSync(uncompiledBuiltinsDir, "./uncompiled");
+if (checkDirectory(compiledBuiltinsDir)) {
+  compiledObject = walkSync(compiledBuiltinsDir, "./prewritten");
 }
 
-var filelist = prewrittenObject.concat(uncompiledObject);
+var filelist = prewrittenObject.concat(compiledObject);
 
 var output = JSON.stringify(filelist);
 
