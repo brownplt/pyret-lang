@@ -35,8 +35,6 @@ fun main(args :: List<String>) -> Number block:
       C.next-val(C.Str, C.once, "JSON file to use for requirejs configuration of build-runnable"),
     "outfile",
       C.next-val(C.Str, C.once, "Output file for build-runnable"),
-    "build",
-      C.next-val(C.Str, C.once, "Pyret (.arr) file to build"),
     "run",
       C.next-val(C.Str, C.once, "Pyret (.arr) file to compile and run"),
     "standalone-file",
@@ -206,32 +204,6 @@ fun main(args :: List<String>) -> Number block:
                     display-progress: display-progress
                   })
                |#
-            else if r.has-key("build"):
-              result = CLI.compile(r.get-value("build"),
-                CS.default-compile-options.{
-                  checks : checks,
-                  type-check : type-check,
-                  allow-shadowed : allow-shadowed,
-                  collect-all: false,
-                  ignore-unbound: false,
-                  proper-tail-calls: tail-calls,
-                  compile-module: false,
-                  display-progress: display-progress,
-                  builtin-js-dirs: builtin-js-dirs,
-                })
-              failures = filter(CS.is-err, result.loadables)
-              if is-link(failures) block:
-                for each(f from failures) block:
-                  for lists.each(e from f.errors) block:
-                    print-error(tostring(e))
-                    print-error("\n")
-                  end
-                  print-error("There were compilation errors\n")
-                end
-                failure-code
-              else:
-                success-code
-              end
             else if r.has-key("run"):
               run-args =
                 if is-empty(rest):
