@@ -2443,7 +2443,7 @@ data RuntimeError:
               ed-intro("unit annotation", self.loc, -1, true),
               ED.cmcode(self.loc),
               [ED.para:
-                ED.highlight(ED.text("unit"), [ED.locs: ast.l], 0),
+                ED.highlight(ED.text("The unit " + self.unit-str), [ED.locs: ast.l], 0),
                 ED.text(" annotated a "),
                 ED.highlight(ED.text("base type"), [ED.locs: ast.ann.l], 1),
                 ED.text(" which does not support units. Consider removing the unit annotation or changing the base type.")]]
