@@ -214,11 +214,23 @@ sharing:
       | some(v) => v
     end
   end,
+  method value-by-origin(self, origin):
+    self.value-by-uri(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method value-by-origin-value(self, origin):
+    self.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method resolve-value-by-origin(self, origin):
+    self.resolve-value-by-uri(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method resolve-value-by-origin-value(self, origin):
+    self.resolve-value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+  end,
   method type-by-uri(self, uri, name):
     self.all-modules
       .get-value-now(uri)
       .provides
-      .types.get(name)
+      .aliases.get(name)
   end,
   method type-by-uri-value(self, uri, name):
     cases(Option) self.type-by-uri(uri, name):
@@ -226,14 +238,26 @@ sharing:
       | some(v) => v
     end
   end,
+  method type-by-origin(self, origin):
+    self.type-by-uri(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method type-by-origin-value(self, origin):
+    self.type-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+  end,
   method global-value(self, name :: String):
     self.globals.values.get(name)
-      .and-then(self.value-by-uri(_, name))
+      .and-then(self.value-by-origin(_))
       .and-then(_.value)
+  end,
+  method global-value-value(self, name :: String):
+    cases(Option) self.global-value(name):
+      | none => raise("Could not find value " + name + " as a global")
+      | some(v) => v
+    end
   end,
   method global-type(self, name :: String):
     self.globals.types.get(name)
-      .and-then(self.type-by-uri(_, name))
+      .and-then(self.type-by-origin(_))
       .and-then(_.value)
   end,
   method uri-by-dep-key(self, dep-key):
@@ -249,6 +273,12 @@ sharing:
       | some(shadow provides) => provides
     end
   end,
+  method provides-by-origin(self, origin):
+    self.provides-by-uri(origin.uri-of-definition)
+  end,
+  method provides-by-origin-value(self, origin):
+    self.provides-by-uri-value(origin.uri-of-definition)
+  end,
   method provides-by-dep-key(self, dep-key):
     self.my-modules.get(dep-key)
       .and-then(self.all-modules.get-value-now(_))
@@ -262,7 +292,7 @@ sharing:
   end,
   method provides-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.provides-by-uri-value(_))
+      .and-then(self.provides-by-origin-value(_))
   end,
   method provides-by-value-name-value(self, name):
     cases(Option) self.provides-by-value-name(name):
@@ -272,7 +302,7 @@ sharing:
   end,
   method provides-by-type-name(self, name):
     self.globals.types.get(name)
-      .and-then(self.provides-by-uri(_))
+      .and-then(self.provides-by-origin(_))
       .and-then(_.value)
   end,
   method provides-by-type-name-value(self, name):
@@ -283,7 +313,7 @@ sharing:
   end,
   method provides-by-module-name(self, name):
     self.globals.modules.get(name)
-      .and-then(self.provides-by-uri(_))
+      .and-then(self.provides-by-origin(_))
       .and-then(_.value)
   end,
   method provides-by-module-name-value(self, name):
@@ -306,20 +336,30 @@ sharing:
     uri = self.my-modules.get-value(dep-key)
     self.type-by-uri(uri, name)
   end,
-  method uri-by-module-name(self, name):
+  method origin-by-module-name(self, name):
     self.globals.modules.get(name)
   end,
-  method uri-by-value-name(self, name):
+  method origin-by-value-name(self, name):
     self.globals.values.get(name)
   end,
-  method uri-by-type-name(self, name):
+  method origin-by-type-name(self, name):
     self.globals.types.get(name)
+  end,
+  method uri-by-module-name(self, name):
+    self.globals.modules.get(name).and-then(_.uri-of-definition)
+  end,
+  method uri-by-value-name(self, name):
+    self.globals.values.get(name).and-then(_.uri-of-definition)
+  end,
+  method uri-by-type-name(self, name):
+    self.globals.types.get(name).and-then(_.uri-of-definition)
   end
 end
 
-# globals maps from names to uri (e.g. in all-modules)
+# Globals maps from names to BindOrigins so we know the most recent binding and
+# original binding for each
 data Globals:
-  | globals(modules :: StringDict<URI>, values :: StringDict<URI>, types :: StringDict<URI>)
+  | globals(modules :: StringDict<BindOrigin>, values :: StringDict<BindOrigin>, types :: StringDict<BindOrigin>)
 end
 
 data ValueExport:
@@ -1565,6 +1605,14 @@ data CompileError:
     # TODO: disambiguate what is doing the shadowing and what is being shadowed.
     # it's not necessarily a binding; could be a function definition.
     method render-fancy-reason(self):
+
+
+      # included in definitions, shadowed in definitions
+      # included in definitions, shadowed in interactions
+      # global in definitions, shadowed in definitions
+      # global in definitions, shadowed in interactions
+      # everything else mentions the name somewhere as a local-bind-site
+
       old-loc-color = 0
       new-loc-color = 1
       imp-loc-color = 2
@@ -3030,14 +3078,14 @@ runtime-provides = provides("builtin://global",
   [string-dict:])
 
 runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
-  rb.set(k, "builtin://global")
+  rb.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
 
 runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
-  rt.set(k, "builtin://global")
+  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
 shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
-  rt.set(k, "builtin://global")
+  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
 minimal-imports = extra-imports(empty)
 

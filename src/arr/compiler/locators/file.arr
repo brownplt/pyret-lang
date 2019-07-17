@@ -34,6 +34,7 @@ fun mockable-file-locator(file-ops):
           f = file-ops.input-file(self.path)
           str = f.read-file()
           f.close-file()
+          spy "Parsing": uri: self.uri() end
           ast := CL.pyret-ast(PP.surface-parse(str, self.uri()))
         end
         ast

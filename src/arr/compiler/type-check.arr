@@ -166,13 +166,12 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
-      dep-key = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
 
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-uri-value(dep-key, g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.global-value-value(g).t))
       end
     end
   end, context)
@@ -180,11 +179,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
-      dep-key = globts.get-value(g)
+      origin = globts.get-value(g)
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.provides-by-uri(dep-key):
+        cases(Option<C.Provides>) compile-env.provides-by-uri(origin.uri-of-definition):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -196,7 +195,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(dep-key) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(origin.uri-of-definition) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end

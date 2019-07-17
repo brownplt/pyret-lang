@@ -39,7 +39,17 @@ fun get-defined-ids(p, imports, body, extras):
       | s-import(_, _, _) => names
       | s-import-fields(_, imp-names, _) => names + imp-names
       | s-include(_, _) => names
-      | s-include-from(_, _, _) => names
+      | s-include-from(_, _, specs) => names
+        #|
+        for fold(spec-names from names, s from specs):
+          cases(A.IncludeSpec) s:
+            | s-include-name
+            | s-include-data
+            | s-include-type
+            | s-include-module
+          end
+        end
+        |#
       | else => raise("Unknown import type: " + torepr(imp))
     end
   end
@@ -139,13 +149,13 @@ fun filter-env-by-imports(post-env :: CS.ComputedEnvironment, g :: CS.Globals) -
   type-env = post-env.type-env
 
   module-globals = for fold(mg from g.modules, k from module-env.keys-list()):
-    mg.set(k, module-env.get-value(k).origin.uri-of-definition)
+    mg.set(k, module-env.get-value(k).origin)
   end
   val-globals = for fold(vg from g.values, k from val-env.keys-list()):
-    vg.set(k, val-env.get-value(k).origin.uri-of-definition)
+    vg.set(k, val-env.get-value(k).origin)
   end
   type-globals = for fold(tg from g.types, k from type-env.keys-list()):
-    tg.set(k, type-env.get-value(k).origin.uri-of-definition)
+    tg.set(k, type-env.get-value(k).origin)
   end
 
   CS.globals(module-globals, val-globals, type-globals)

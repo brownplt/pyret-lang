@@ -1044,8 +1044,9 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
             cases(Option<String>) compile-env.globals.types.get(name):
               | none =>
                 raise("Name not found in globals.types: " + name)
-              | some(mod-uri) =>
-                T.t-name(T.module-uri(mod-uri), id, l, false)
+              | some(origin) =>
+                # ```include from string-dict: type StringDict as SD end```
+                T.t-name(T.module-uri(origin.uri-of-definition), origin.original-name, l, false)
             end
           | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
           | else => raise("Bad name found in ann-to-typ: " + id.key())
@@ -1161,10 +1162,12 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 vp.set(as-name.toname(), provided-value)
             end
           end
+          #|
           spy "get-named-provides":
             vp-specs,
             val-provides
           end
+          |#
 
           tp-specs = provide-specs.filter(A.is-s-provide-type)
           typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
