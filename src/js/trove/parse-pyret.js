@@ -1409,7 +1409,7 @@
           else if (nextTok.name === "COLONCOLON")
             RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));
           else if (typeof opLookup[String(nextTok.value).trim()] === "function")
-            RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
+            RUNTIME.ffi.throwParseErrorBadCheckOper(opLookup[String(nextTok.value).trim()](makePyretPos(fileName, nextTok.pos)));
           else
             RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
         }
