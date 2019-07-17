@@ -540,7 +540,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
           }
         }
         if (nestingDepth === 0) {
-          return this.makeWSToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
+          return this.makeWSToken(line, col, pos);
         } else {
           var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
           return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
