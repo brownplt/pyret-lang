@@ -77,6 +77,27 @@ check:
 end
 
 check:
+  prog = ```
+         import string-dict as SD
+         include from SD:
+         string-dict as sd
+         end
+         ```
+  result = restart(prog, false)
+  L.get-result-answer(result.v) is none
+
+  result2 = next-interaction("sd")
+  result2 satisfies E.is-right
+
+  result3 = next-interaction("sd = 5")
+  result3 satisfies E.is-left
+  msg3 = msgs(result3)
+  msg3 is%(string-contains) "declaration of `sd` at "
+  msg3 is%(string-contains) "imported from" # TODO: update this text when the error message is fixed
+  
+end
+
+check:
   result = restart("import some from option", false)
   L.get-result-answer(result.v) is none
 

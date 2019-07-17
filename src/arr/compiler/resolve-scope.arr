@@ -697,12 +697,14 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             else:
               some(local-loc)
             end
+          #|
           spy "import-loc-opt":
             name,
             use-loc: l,
             orig-loc: old-loc,
             local-loc
           end
+          |#
           name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt), name-errors)
         end
         # when env.has-key(s):
@@ -755,11 +757,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       origin = initial.globals.values.get-value(name)
       uri-of-definition = origin.uri-of-definition
       val-info = initial.value-by-origin(origin)
-      when name == "some":
-        spy "scope-env-from-env":
-          val-info
-        end
-      end
       cases(Option) val-info block:
         | none => raise("The value is a global that doesn't exist in any module: " + name)
         | some(shadow val-info) =>
