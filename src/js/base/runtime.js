@@ -1992,6 +1992,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           if (!fromWithin && isIdentical) {
             continue;
           } else if (isIdentical && !(isNumber(curLeft) || isNumber(curRight)) && !jsnums.isUnitnum(tol)) {
+            // when this equality check is from a within call and the tolerance
+            // has a unit, we can't just check for equality because we need to
+            // check for unit-mismatches between the tolerance and compared values
+            // see commits 7c66302 and 7ddfc67
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (!jsnums.checkUnit(jsnums.getUnit(curLeft), jsnums.getUnit(curRight))) {
