@@ -2208,22 +2208,22 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
   free-ids = freevars.map-keys-now(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
-    { maybe-uri; which } =
+    { maybe-origin; which } =
       cases(A.Name) n:
         | s-module-global(s) =>
-          { env.uri-by-module-name(n.toname()); "modules"}
+          { env.origin-by-module-name(n.toname()); "modules"}
         | s-global(s) =>
-          { env.uri-by-value-name(n.toname()); "values"}
+          { env.origin-by-value-name(n.toname()); "values"}
         | s-type-global(s) =>
-          { env.uri-by-type-name(n.toname()); "types"}
+          { env.origin-by-type-name(n.toname()); "types"}
       end
 
-    uri = cases(Option) maybe-uri:
-      | some(global-uri) => global-uri
+    { uri; name } = cases(Option) maybe-origin:
+      | some(origin) => { origin.uri-of-definition; origin.original-name.toname() }
       | none => raise(n.toname() + " not found")
     end
 
-    j-var(js-id-of(n), get-module-field(uri, which, n.toname()))
+    j-var(js-id-of(n), get-module-field(uri, which, name))
   end
   # MARK(joe): need to do something below for modules that come from
   # a context like "include"

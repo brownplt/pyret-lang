@@ -437,10 +437,12 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                 end
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
+                #|
                 spy "compile-lib:canonicalize-provides":
                   final-provides,
                   canonical-provides
                 end
+                |#
                 mod-result = module-as-string(canonical-provides, env, named-result.env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>

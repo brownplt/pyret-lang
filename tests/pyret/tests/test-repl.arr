@@ -146,6 +146,24 @@ check:
 
 end
 
+check "include-from at repl":
+  new-import-sd = ```
+  import string-dict as SD
+  include from SD:
+  string-dict as sd,
+  type StringDict as StrD
+  end
+  ```
+  result1 = restart(new-import-sd, false)
+  result1 satisfies E.is-right
+
+  result2 = next-interaction("sd")
+  result2 satisfies E.is-right
+
+  result3 = next-interaction("s :: StrD = [sd:]")
+  result3 satisfies E.is-right
+end
+
 check:
   importbindsd = "import string-dict as SD\nstring-dict = SD.string-dict"
   result13 = restart(importbindsd, false)
