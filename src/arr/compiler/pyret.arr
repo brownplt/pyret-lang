@@ -84,7 +84,9 @@ fun main(args :: List<String>) -> Number block:
     "no-user-annotations",
       C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank."),
     "no-runtime-annotations",
-      C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank.")
+      C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank."),
+    "runtime-builtin-relative-path",
+      C.next-val(C.Str, C.once, "Relative path of builtins at runtime. Only used when compiling builtins using anchor.")
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -129,6 +131,7 @@ fun main(args :: List<String>) -> Number block:
       module-eval = not(r.has-key("no-module-eval"))
       user-annotations = not(r.has-key("no-user-annotations"))
       runtime-annotations = not(r.has-key("no-runtime-annotations"))
+      builtin-build = r.has-key("builtin-build")
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -181,6 +184,7 @@ fun main(args :: List<String>) -> Number block:
                     user-annotations: user-annotations,
                     runtime-annotations: runtime-annotations,
                     builtin-js-dirs: compile-opts.builtin-js-dirs.append(builtin-js-dirs),
+                    runtime-builtin-relative-path: r.get("runtime-builtin-relative-path").or-else(compile-opts.runtime-builtin-relative-path)
                   })
               success-code
             else if r.has-key("serve"):

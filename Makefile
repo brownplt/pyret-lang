@@ -10,7 +10,7 @@ test: build
 
 runtime-arr: build src/runtime-arr/*.arr
 	# Necessary to make relative require paths correct
-	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/src/runtime"
+	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/src/runtime" --runtime-builtin-relative-path "./"
 
 web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime-arr
 	mkdir -p build/worker; 
