@@ -1201,7 +1201,13 @@ the number of quote characters in the match."
             (forward-char 4))
            ((and (pyret-AS) (pyret-has-top opens '(wantcolonoras import)))
             (pop opens) (pop opens)
-            (decf (pyret-indent-shared defered-opened))
+            (cond
+             ((> (pyret-indent-shared cur-opened) 0)
+              (decf (pyret-indent-shared cur-opened)))
+             ((> (pyret-indent-shared defered-opened) 0)
+              (decf (pyret-indent-shared defered-opened)))
+             (t
+              (incf (pyret-indent-shared defered-closed))))
             (forward-char 2))
            ((pyret-SHARING)
             (incf (pyret-indent-data cur-closed))
