@@ -9,6 +9,7 @@ import file("js-ast.arr") as J
 import file("gensym.arr") as G
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
+import file("provide-serialization.arr") as PSE
 import pathlib as P
 import sha as sha
 import string-dict as D
@@ -812,9 +813,11 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
 
+  serialized-provides = PSE.compile-provides(provides)
+
   [D.string-dict:
     "requires", j-list(true, [clist:]),
-    "provides", j-obj([clist:]),
+    "provides", serialized-provides,
     "nativeRequires", j-list(true, [clist:]),
     "theModule", J.j-raw-code(module-and-map.code),
     "theMap", J.j-str(module-and-map.map)
