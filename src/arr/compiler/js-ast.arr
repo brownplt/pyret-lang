@@ -594,6 +594,15 @@ data JExpr:
       printer(tostring(self.n))
     end,
     method tosource(self): PP.number(self.n) end
+  | j-bool(b :: Boolean) with:
+    method label(self): "j-bool" end,
+    method print-ugly-source(self, printer):
+      if self.b:
+        printer("true")
+      else:
+        printer("false")
+      end
+    end,
   | j-true with:
     method label(self): "j-true" end,
     method print-ugly-source(self, printer):
