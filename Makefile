@@ -76,3 +76,4 @@ clean:
 	rm -r -f build/phaseA build/worker
 	rm -f src/arr/compiler/pyret-parser.js
 	rm -r -f src/arr/runtime-arr/compiled
+	rm -r -f tests-new/.pyret
