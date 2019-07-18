@@ -51,7 +51,7 @@
   "scripts": {
     "build": "make build",
     "web": "make web",
-    "test": "jest --verbose test"
+    "test": "make test"
   },
   "repository": {
     "type": "git",
