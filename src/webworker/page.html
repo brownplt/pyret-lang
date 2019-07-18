@@ -1,36 +1,38 @@
 <!doctype HTML>
 <html>
-<head></head>
+    <head>
+    </head>
 
-<body>
-
-<div>
-  <div style="float: left; width: 50%; height 100%">
-    <div>
-      <button type="button" id="compile">Compile</button>
-      <button type="button" id="compileRun">Compile and Run</button>
-    </div>
-    <div style="height: 100%; padding:5px">
-      <textarea style="width: 90%; height: auto; overflow-y: scroll; box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; display:block; resize:none; font-size:16px" rows="40" type="textarea" id="program"></textarea>
-    </div>
-  </div>
-
-  <div style="float:right; width: 50%">
-    <div style="padding:10px">
-      <input type="checkbox" id="showBFS" value="show"> 
-      <label for="showBFS">Show BFS Messages</label>
-      <div style="float:right">
-        <button type="button" id="clearLogs"> 
-          <label for="clear">Clear Logs</label>
-        </button> 
-      </div>
-    </div>
-
-    <div id="consoleOut" style="position: absolute; height: 90%; overflow-y: scroll; white-space:pre-line"> 
-    </div>
-  </div>
-</div>
-
-<script type="text/javascript" src="main.js"></script>
-</body>
+    <body>
+        <div style="display: flex; flex-direction: column">
+            <div style="display: flex; flex-direction: row">
+                <div style="float: left; width: 50%">
+                    <div>
+                        <button type="button" id="compile">Compile</button>
+                        <button type="button" id="compileRun">Compile and Run</button>
+                    </div>
+                    <div style="height: 100%; padding:5px">
+                        <textarea style="width: 90%; height: auto; overflow-y: scroll; box-sizing: border-box; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; display:block; resize:none; font-size:16px" rows="40" type="textarea" id="program"></textarea>
+                    </div>
+                </div>
+                <div style="float: right; width: 50%">
+                    <div style="padding:10px">
+                        <input type="checkbox" id="showBFS" value="show">
+                        <label for="showBFS">Show BFS Messages</label>
+                        <div style="float:right">
+                            <button type="button" id="clearLogs">
+                                <label for="clear">Clear Logs</label>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="consoleOut" style="position: absolute; height: 90%; overflow-y: scroll; white-space:pre-line">
+                    </div>
+                </div>
+            </div>
+            <div style="border: 2px solid black">
+                <ul id="filesystemBrowser"></ul>
+            </div>
+        </div>
+        <script type="text/javascript" src="main.js"></script>
+    </body>
 </html>
