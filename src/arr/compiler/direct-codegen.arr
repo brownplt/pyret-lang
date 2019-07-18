@@ -652,6 +652,7 @@ end
 
 
 fun node-prelude(prog, provides, env, options) block:
+  runtime-builtin-relative-path = options.runtime-builtin-relative-path
   fun get-base-dir( source, build-dir ):
     source-head = ask:
       | string-index-of( source, "file://" ) == 0 then: 7
@@ -716,7 +717,7 @@ fun node-prelude(prog, provides, env, options) block:
     ask:
       | starts-with(uri, "builtin://") then:
         builtin-name = string-substring(uri, 10, string-length(uri))
-        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + "../builtin/" + builtin-name + ".arr.js")]))
+        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + runtime-builtin-relative-path + builtin-name + ".arr.js")]))
       | starts-with(uri, "jsfile://") or starts-with(uri, "file://") then:
         target-path = uri-to-real-fs-path(uri)
         this-path = uri-to-real-fs-path(provides.from-uri)
@@ -731,7 +732,7 @@ fun node-prelude(prog, provides, env, options) block:
   # manually emit global import
   global-import = J.j-var(GLOBAL, 
                           j-app(j-id(const-id("require")), 
-                                [clist: j-str( relative-path + "../builtin/global.arr.js")]))
+                                [clist: j-str( relative-path + runtime-builtin-relative-path + "global.arr.js")]))
 
   nothing-import = J.j-var(NOTHING, j-undefined)
 
