@@ -794,7 +794,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       origin = initial.globals.modules.get-value(name)
       mod-info = initial.provides-by-origin-value(origin)
       when not(mod-info.modules.has-key(name)):
-        spy: mod-info, initial end
+        spy: mod-info end
       end
       b = C.module-bind(C.bo-global(some(origin), origin.uri-of-definition, origin.original-name), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)

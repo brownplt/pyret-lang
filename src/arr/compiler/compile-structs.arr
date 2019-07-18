@@ -180,8 +180,11 @@ sharing:
 
       | none => none
       | some(ve) =>
-        cases(ValueExport) ve:
+        cases(ValueExport) ve block:
           | v-alias(origin, shadow name) =>
+            when uri == origin.uri-of-definition:
+              raise("Self-referential alias for " + name + " in module " + uri)
+            end
             self.value-by-uri(origin.uri-of-definition, name)
           | else => some(ve)
         end
@@ -194,19 +197,7 @@ sharing:
     end
   end,
   method resolve-value-by-uri(self, uri :: String, name :: String):
-    cases(Option) self.all-modules
-      .get-value-now(uri)
-      .provides.values
-      .get(name):
-
-      | none => none
-      | some(ve) =>
-        cases(ValueExport) ve:
-          | v-alias(origin, shadow name) =>
-            self.resolve-value-by-uri(origin.uri-of-definition, name)
-          | else => some({name; ve})
-        end
-    end
+    self.value-by-uri(uri, name).and-then(lam(ve): {name; ve} end)
   end,
   method resolve-value-by-uri-value(self, uri :: String, name :: String):
     cases(Option) self.resolve-value-by-uri(uri, name):

@@ -1,4 +1,3 @@
-
 provide *
 import ast as A
 import base as _
@@ -15,150 +14,25 @@ import file("./compile-lib.arr") as CL
 import file("./type-structs.arr") as TS
 import file("./ast-util.arr") as AU
 
-type Either = E.Either
-
-standard-import-names = S.list-to-tree-set(
-  for map(ei from CS.standard-imports.imports):
-    ei.as-name
-  end
-)
-
-fun is-standard-import(imp :: CS.ExtraImport):
-  standard-import-names.member(imp.as-name)
-end
-fun maybe-add-asname(spec-names, namespec):
-  cases(A.NameSpec) namespec:
-    | s-module-ref(l, _, as-name) =>
-      cases(Option) as-name:
-        | some(n) => link(n, spec-names)
-        | none => spec-names
-      end
-    | s-remote-ref(_, _, _, n) => link(n, spec-names)
-    | s-local-ref(_, _, n) => link(n, spec-names)
-    | s-star(_, _) => spec-names
-  end
-end
-
-fun get-defined-ids(p, imports, body, extras):
-  ids = A.toplevel-ids(p)
-  import-ids = for filter(imp from imports): A.is-s-import(imp) end
-  extra-ids = for map(imp from extras.imports):
-    A.s-name(p.l, imp.as-name)
-  end
-  shadow import-ids = import-ids.map(_.name) + extra-ids
-  value-names = for fold(names from empty, imp from imports):
-    cases(A.Import) imp:
-      | s-import(_, _, _) => names
-      | s-import-fields(_, imp-names, _) => names + imp-names
-      | s-include(_, _) => names
-      | s-include-from(_, _, specs) =>
-        for fold(spec-names from names, s from specs):
-          cases(A.IncludeSpec) s:
-            | s-include-name(_, namespec) => maybe-add-asname(spec-names, namespec)
-            | else => spec-names
-          end
-        end
-      | else => raise("Unknown import type: " + torepr(imp))
-    end
-  end
-  ids-plus-imported-names = value-names + ids
-  type-ids = A.block-type-ids(body).map(_.name)
-  {
-    import-ids: import-ids.filter(lam(id): not(A.is-s-underscore(id)) end),
-    ids: ids-plus-imported-names.filter(lam(id): not(A.is-s-underscore(id)) end),
-    type-ids: type-ids.filter(lam(id): not(A.is-s-underscore(id)) end)
-  }
-end
-
-fun df(l, name):
-  shadow l = if l.contains(name.l): name.l else: l end
-  A.s-data-field(l, name.toname(), A.s-id(l, name))
-end
-
-fun af(l,  name):
-  shadow l = if l.contains(name.l): name.l else: l end
-  A.a-field(l, name.toname(), A.a-name(l, name))
-end
-
-fun make-provide-for-repl(p :: A.Program, extras):
-  #### WORRYING: extras is not used here at all
-  ### JOE -- Look here :)
+fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
     | s-program(l, _, _, _, imports, body) =>
-      defined-ids = get-defined-ids(p, imports, body, CS.extra-imports(empty))
-      repl-provide = for map(n from defined-ids.ids): df(l, n) end
-      repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
-      repl-mod-provide = for map(n from defined-ids.import-ids):
-        shadow l = if l.contains(n.l): n.l else: l end
-        A.s-provide-module(l, A.s-module-ref(l, [list: n], none))
-      end
       A.s-program(l,
-          A.s-provide(l, A.s-obj(l, repl-provide)),
-          A.s-provide-types(l, repl-type-provide),
-          [list: A.s-provide-block(l, empty, repl-mod-provide) ],
+          A.s-provide-none(l),
+          A.s-provide-types-none(l),
+          [list: A.s-provide-block(l, empty, [list:
+            A.s-provide-name(l, A.s-star(l, empty)),
+            A.s-provide-type(l, A.s-star(l, empty)),
+            A.s-provide-module(l, A.s-star(l, empty))
+            # Adding s-provide-data for imports would be redundant because the
+            # name/type exports will refer to the data anyway
+            ])],
           imports,
           body)
   end
 end
 
-fun make-provide-for-repl-main-env(p :: A.Program, env :: CS.CompileEnvironment):
-  make-provide-for-repl-main(p, env.globals)
-end
-
-fun make-provide-for-repl-main(p :: A.Program, globals :: CS.Globals, extras):
-  doc: "Make the program simply provide all (for the repl)"
-  cases(A.Program) p:
-    | s-program(l, _, _, _, imports, body) =>
-      defined-ids = get-defined-ids(p, imports, body, extras) #<<--
-      repl-provide = for map(n from defined-ids.ids): df(l, n) end
-      #|
-      spy "make-provide-for-repl-main":
-        defined-ids,
-        repl-provide
-      end
-      |#
-      repl-type-provide = for map(n from defined-ids.type-ids): af(l, n) end
-      #|
-      # THESE APPEAR TO BE UNUSED
-      env-provide = for SD.fold-keys(flds from repl-provide, name from globals.values):
-        link(df(l, A.s-name(l, name)), flds)
-      end
-      env-type-provide = for SD.fold-keys(flds from repl-type-provide, name from globals.types):
-        link(af(l, A.s-name(l, name)), flds)
-      end
-      |#
-      repl-mod-provide = for map(i from defined-ids.import-ids):
-        shadow l = if l.contains(i.l): i.l else: l end
-        A.s-provide-module(l, A.s-module-ref(l, [list: i], none))
-      end
-      A.s-program(l,
-          A.s-provide(l, A.s-obj(l, repl-provide)),
-          A.s-provide-types(l, repl-type-provide),
-          [list: A.s-provide-block(l, empty, repl-mod-provide)],
-          imports,
-          body)
-  end
-end
-
-
-fun make-definitions-finder(import-types :: SD.StringDict, make-builtin):
-  fun definitions-finder(context, dep):
-    l = cases(CS.Dependency) dep:
-      | builtin(name) => make-builtin(name)
-      | dependency(protocol, arguments) =>
-        cases(Option) import-types.get(protocol):
-          | none => raise("Cannot find module: " + torepr(dep))
-          | some(handler) => handler(context, arguments)
-        end
-    end
-    CL.located(l, context)
-  end
-  definitions-finder
-end
-
-
-fun filter-env-by-imports(post-env :: CS.ComputedEnvironment, g :: CS.Globals) -> CS.Globals:
-
+fun add-globals-from-env(post-env :: CS.ComputedEnvironment, g :: CS.Globals) -> CS.Globals:
   module-env = post-env.module-env
   val-env = post-env.env
   type-env = post-env.type-env
@@ -185,7 +59,6 @@ fun make-repl<a>(
 
   var globals = CS.standard-globals
   var current-compile-options = CS.default-compile-options
-  var extra-imports = CS.standard-imports
   var current-modules = modules
   var current-realm = realm
   var locator-cache = SD.make-mutable-string-dict()
@@ -206,7 +79,7 @@ fun make-repl<a>(
   fun update-env(result, loc, cr) block:
     dep = CS.dependency("repl", [list: loc.uri()])
 
-    new-globals = filter-env-by-imports(cr.post-compile-env, globals)
+    new-globals = add-globals-from-env(cr.post-compile-env, globals)
     globals := new-globals
 
     locator-cache.set-now(loc.uri(), loc)
@@ -214,95 +87,31 @@ fun make-repl<a>(
 
   end
   fun restart-interactions(defs-locator :: CL.Locator, options :: CS.CompileOptions) block:
-    #|
-    spy "restart-interaction#beginning":
-      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
-        prov = current-modules.get-value-now(k).provides
-        if prov.values.has-key("some"):
-          d.set(k, prov)
-        else:
-          d
-        end
-      end
-    end
-    |#
     current-interaction := 0
     current-compile-options := options
     current-realm := realm
     locator-cache := SD.make-mutable-string-dict()
     current-modules := modules.freeze().unfreeze() # Make a copy
-    extra-imports := CS.standard-imports
     current-finder := make-finder()
     globals := defs-locator.get-globals()
-    worklist = CL.compile-worklist-known-modules(finder, defs-locator, compile-context, current-modules)
-    compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
-    for SD.each-key-now(k from compiled.modules):
-      current-modules.set-now(k, compiled.modules.get-value-now(k))
-    end
-    result = CL.run-program(worklist, compiled, current-realm, runtime, current-compile-options)
-    cases(Either) result:
-      | right(answer) =>
-        when L.is-success-result(answer):
-          update-env(answer, defs-locator, compiled.loadables.last())
-        end
-      | left(err) =>
-        nothing
-    end
-    #|
-    spy "restart-interaction#end":
-      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
-        prov = current-modules.get-value-now(k).provides
-        if prov.values.has-key("some"):
-          d.set(k, prov)
-        else:
-          d
-        end
-      end
-    end
-    |#
-    result
+    run-interaction(defs-locator)
   end
 
-  fun run-interaction(repl-locator :: CL.Locator) block:
-    #|
-    spy "run-interaction#start":
-      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
-        prov = current-modules.get-value-now(k).provides
-        if prov.values.has-key("some"):
-          d.set(k, prov)
-        else:
-          d
-        end
-      end
-    end
-    |#
-    worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
+  fun run-interaction(locator :: CL.Locator) block:
+    worklist = CL.compile-worklist-known-modules(finder, locator, compile-context, current-modules)
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules) block:
-      m = compiled.modules.get-value-now(k)
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end
     result = CL.run-program(worklist, compiled, current-realm, runtime, current-compile-options)
-    cases(Either) result:
+    cases(E.Either) result:
       | right(answer) =>
         when L.is-success-result(answer):
-          update-env(answer, repl-locator, compiled.loadables.last())
+          update-env(answer, locator, compiled.loadables.last())
         end
       | left(err) =>
         nothing
     end
-    #|
-    spy "run-interaction#end":
-      current-modules: for SD.fold-keys-now(d from [SD.string-dict:], k from current-modules):
-        prov = current-modules.get-value-now(k).provides
-        if prov.values.has-key("some"):
-          d.set(k, prov)
-        else:
-          d
-        end
-      end
-    end
-    |#
     result
   end
 
@@ -315,18 +124,10 @@ fun make-repl<a>(
       when ast == nothing block:
         interactions = get-interactions()
         parsed = P.surface-parse(interactions, uri)
-        ast := make-provide-for-repl(parsed, extra-imports)
+        ast := make-provide-for-repl(parsed)
       end
       ast
     end
-    # Strip names from these, since they will be provided
-    extras-now = CS.extra-imports(for lists.map(ei from extra-imports.imports):
-      if is-standard-import(ei):
-        ei
-      else:
-        CS.extra-import(ei.dependency, "_", ei.values, ei.types)
-      end
-    end)
     globals-now = globals
     {
       method get-uncached(self): none end,
@@ -356,8 +157,7 @@ fun make-repl<a>(
       when ast == nothing block:
         initial-definitions = get-defs()
         parsed = P.surface-parse(initial-definitions, "definitions://")
-        provided = make-provide-for-repl-main(parsed, globals, extra-imports)
-        ast := provided
+        ast := make-provide-for-repl(parsed)
       end
       ast
     end
@@ -368,9 +168,7 @@ fun make-repl<a>(
       method get-options(self, options): options end,
       method get-native-modules(self): [list:] end,
       method get-module(self): CL.pyret-ast(get-ast()) end,
-      method get-extra-imports(self):
-        CS.standard-imports
-      end,
+      method get-extra-imports(self): CS.standard-imports end,
       method get-dependencies(self):
         CL.get-standard-dependencies(self.get-module(), self.uri())
       end,
