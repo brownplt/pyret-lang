@@ -607,13 +607,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # TODO: table.makeTable is only temporary, change later
       func = j-raw-code("table.makeTable")
 
-      js-headers = for fold(list from cl-empty, h from headers):
-	      cl-concat( list, cl-sing( j-str(h.name) ) )
+      js-headers = for fold(the-list from cl-empty, h from headers):
+	      cl-cons( the-list, cl-sing( j-str(h.name) ) )
 	    end
 
       { js-rows; js-row-stmts } = for fold({ value-list; stmt-list } from { cl-empty; cl-empty }, r from rows):
         row-elems = r.elems
-        { elem-values; elem-stmts } = for fold({ elem-values; elem-stmts },  row-expr from row-elems.elems):
+        { elem-values; elem-stmts } = for fold({ elem-values; elem-stmts } from { cl-empty; cl-empty }, row-expr from row-elems.elems):
           { v; stmts } = compile-expr(context, row-expr)
           { cl-append(elem-values, cl-sing(v)); cl-append(elem-stmts, stmts) }
         end
