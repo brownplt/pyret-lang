@@ -23,13 +23,11 @@ BrowserFS.configure({
 
 const theFs = BrowserFS.BFSRequire("fs");
 
-// createFileNode : string -> dom element
-//
 // Creates a list item for the file system viewer. If the
 // item is clicked on it expands to either a list of
 // files (if path refers to a directory), or the contents
 // of a file (if path refers to a file).
-const createFileNode = (path) => {
+const createFileNode = (path : string): HTMLLIElement => {
   const fileNode = document.createElement("li");
 
   theFs.stat(path, (err, stats) => {
