@@ -78,6 +78,14 @@
       };
     }
 
+    function dataRefinement(basetype, variant) {
+      return {
+        tag: "data-refinement",
+        basetype: basetype,
+        variant: variant
+      };
+    }
+
     function dataType(name, params, variants, methods) {
       return {
         tag: "data",
@@ -216,6 +224,12 @@
           return O({
             tag: "record",
             fields: L(Object.keys(typ.fields).map(function(f) { return O({ tag: "member", name: f, value: tp(typ.fields[f]) }); })),
+          });
+        case "data-refinement":
+          return O({
+            tag: "data-refinement",
+            basetype: tp(typ.basetype),
+            variant: typ.variant
           });
         case "name":
           return O({
@@ -431,6 +445,13 @@
             return {
               tag: "record",
               fields: expandRecord(typ[1], shorthands)
+            };
+          }
+          else if(head === "data%") {
+            return {
+              tag: "data-refinement",
+              basetype: expandType(typ[1], shorthands),
+              variant: typ[2]
             };
           }
           else if(head === "tyapp") {
