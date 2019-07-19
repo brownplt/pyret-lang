@@ -620,7 +620,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         js-row = j-list(false, elem-values)
         
         # CList<CList<JExpr>> (CList<CList<j-list>>)
-        { cl-append(value-list; cl-sing(js-row)); cl-append(stmt-list; elem-stmts) }
+        { cl-append(value-list, cl-sing(js-row)); cl-append(stmt-list, elem-stmts) }
       end
 
       args = cl-cons(js-headers, cl-sing(j-list(false, js-rows)))
