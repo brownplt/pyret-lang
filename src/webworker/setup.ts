@@ -85,6 +85,7 @@ const createFileNode = (path) => {
             overflowDiv.style["max-height"] = "200px";
             overflowDiv.style["border"] = "2px solid black";
             overflowDiv.style["padding"] = "5px";
+            overflowDiv.style["font-family"] = "monospace";
             const codeElement = document.createElement("p");
             overflowDiv.appendChild(codeElement);
             codeElement.style["white-space"] = "pre-wrap";
