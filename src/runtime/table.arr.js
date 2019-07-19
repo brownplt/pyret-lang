@@ -1,5 +1,3 @@
-var table = require();
-
 function _makeTable(headers, rows) {
 
 }
