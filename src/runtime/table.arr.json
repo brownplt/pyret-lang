@@ -1,0 +1,20 @@
+{
+  "requires": [ ],
+  "provides": {},
+    "values": {
+      "_makeTable":  {"bind": "fun",
+                  "flatness": false,
+                  "name": "_makeTable",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]}
+    },
+    "aliases": {
+      "Table": "Table"
+    },
+    "datatypes": {
+      "Table": ["data", "Table", [], [], {
+        "_makeTable": ["arrow", ["Table"], "Table"]
+      }]
+    }
+  }
+}
+
