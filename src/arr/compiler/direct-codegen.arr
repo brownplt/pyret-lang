@@ -611,7 +611,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 	      cl-concat( list, cl-sing( j-str(h.name) ) )
 	    end
 
-      { js-rows; js-row-stmts } = for fold({ value-list; stmt-list } from { cl-empty, cl-empty }, r from rows):
+      { js-rows; js-row-stmts } = for fold({ value-list; stmt-list } from { cl-empty; cl-empty }, r from rows):
         row-elems = r.elems
         { elem-values; elem-stmts } = for fold({ elem-values; elem-stmts },  row-expr from row-elems.elems):
           { v; stmts } = compile-expr(context, row-expr)
