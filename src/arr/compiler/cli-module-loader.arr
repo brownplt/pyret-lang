@@ -466,13 +466,13 @@ fun run(path, options, subsequent-command-line-arguments):
 end
 
 fun copy-js-dependency( dep-path, uri, dirs, options ) block:
-  spy "copying": dep-path end
+  spy "copying": dep-path, uri, dirs, options end
   { base-dir; project-dir; builtin-dir } = dirs
   {save-path; cutoff} = ask block:
     | string-index-of( uri, "builtin://" ) == 0 then:
       {
          builtin-dir;
-         string-substring( dep-path, string-length(options.builtin-js-dirs.first), string-length(dep-path))
+         string-substring( dep-path, string-length(P.resolve(options.builtin-js-dirs.first)), string-length(dep-path))
       }
     | (string-index-of( uri, "jsfile://" ) == 0) or ( string-index-of( uri, "file://" ) == 0 ) then:
        { project-dir;
@@ -506,7 +506,7 @@ fun copy-js-dependencies( wl, options ) block:
   for each( tc from arr-js-modules ):
     code-path = tc.locator.get-compiled( options ).code-file
 
-    deps = DT.get-dependencies( code-path )
+    deps = DT.get-dependencies( P.resolve(code-path) )
     spy: deps end
     deps-list = raw-array-to-list( deps )
 

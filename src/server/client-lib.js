@@ -194,7 +194,8 @@ function start(options) {
       serverModule,
       ["-serve", "--port", port],
       {
-        stdio: [0, 1, 2, 'ipc'],
+        detached: true,
+        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
         execArgv: ["-max-old-space-size=8192"]
       } // To send messages on completion of startup
     );
