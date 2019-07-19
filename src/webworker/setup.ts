@@ -24,9 +24,8 @@ BrowserFS.configure({
 
 const theFS = BrowserFS.BFSRequire("fs");
 
-// create root node for the file system browser.
 const filesystemBrowser = document.getElementById('filesystemBrowser');
-filesystemBrowser.appendChild(FilesystemBrowser.createFileNode(theFS, "/"));
+FilesystemBrowser.createBrowser(theFS, "/", filesystemBrowser);
 
 var styler = document.createElement('style');
 styler.type = 'text/css';
