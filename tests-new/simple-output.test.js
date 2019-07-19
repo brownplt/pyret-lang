@@ -26,7 +26,7 @@ describe("testing simple-output programs", () => {
       const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/simple-output/**${basename}.js`)[0];
 
       const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
-      assert(runProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}\n${runProcess.stdout}\n${runProcess.stderr}`);
+      assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
       assert(runProcess.stdout.indexOf(expect) !== -1, `${runProcess.stdout} should contain ${expect}`);
     });
   });
