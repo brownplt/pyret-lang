@@ -754,6 +754,7 @@ fun node-prelude(prog, provides, env, options) block:
   global-names = AU.get-globals(prog)
   uri-to-local-js-name = [D.mutable-string-dict:]
 
+  # TODO(alex): Track the features/libraries used to emit the minimum imports
   # manually emit global import
   global-import = J.j-var(GLOBAL, 
                           j-app(j-id(const-id("require")), 
