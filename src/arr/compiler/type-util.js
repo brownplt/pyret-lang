@@ -197,11 +197,13 @@
             tag: "variant",
             name: typ.name,
             vmembers: L(typ.vmembers.map(tp)),
+            withmembers: L([]),   // TODO(alex): Handle variant withmembers 
           });
         case "singleton-variant":
           return O({
             tag: "singleton-variant",
-            name: typ.name
+            name: typ.name,
+            withmembers: L([]),   // TODO(alex): Handle variant withmembers 
           });
         case "variant-member":
           return O({
