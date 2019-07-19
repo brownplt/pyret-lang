@@ -13,4 +13,4 @@ G.assert( L.at( D.values( dict ), 3 ), 'da', "Non-matching value" )
 
 fresh-dict = D.insert( dict, "e", 'ea' )
 
-G.console-log( D.keys( fresh-dict ) )
+G.console-log( G.js-to-string(D.keys( fresh-dict )) )

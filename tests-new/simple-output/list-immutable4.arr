@@ -16,4 +16,4 @@ empty-list = L.empty-list()
 
 G.assert( L.length( empty-list ), 0, "Not empty lists" )
 
-G.console-log(L.concat( L.concat( list, left-list ), filtered-list ))
+G.console-log(G.js-to-string(L.concat( L.concat( list, left-list ), filtered-list )))

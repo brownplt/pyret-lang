@@ -4,8 +4,12 @@
     "shorthands": {
       "dOfA": ["tyapp", ["local", "StringDict"], [["tid", "a"]]],
       "dOfI": ["tyapp", ["local", "StringDict"], ["Number"]],
-      "lOfA": ["tyapp", ["local", "List"], [["tid", "a"]]],
-      "lOfS": ["tyapp", ["local", "List"], ["String"]],
+      "lOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list-immutable" },
+                "name": "List" }, [["tid", "a"]]],
+      "lOfS": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list-immutable" },
+                "name": "List" }, ["String"]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"]
     },
@@ -23,8 +27,7 @@
       "is-dict": ["arrow", ["tany"], "Boolean"]
     },
     "datatypes": {
-      "StringDict": ["data", "StringDict", ["a"], [], {}],
-      "List": ["data", "List", ["a"], [], {}]
+      "StringDict": ["data", "StringDict", ["a"], [], {}]
     }
   }
 }

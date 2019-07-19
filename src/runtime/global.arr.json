@@ -6,6 +6,7 @@
     },
     "values": {
       "display-string": ["arrow", ["String"], "Nothing"],
+      "js-to-string": ["arrow", ["Any"], "String"],
       "num-to-str": ["arrow", ["Number"], "String"],
       "raw-array": "tany",
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],

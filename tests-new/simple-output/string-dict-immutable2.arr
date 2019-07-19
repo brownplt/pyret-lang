@@ -9,4 +9,4 @@ dict = D.count( member-list )
 G.assert( D.size( dict ), 3, "Incorrect key count" )
 G.assert( D.get( dict, "c" ), 1, "Incorrect key-value pair" )
 
-G.console-log( D.keys( dict ) )
+G.console-log( G.js-to-string(D.keys( dict ) ))

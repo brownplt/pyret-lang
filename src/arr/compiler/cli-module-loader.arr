@@ -506,6 +506,7 @@ fun copy-js-dependencies( wl, options ) block:
   for each( tc from arr-js-modules ):
     code-path = tc.locator.get-compiled( options ).code-file
 
+    spy "About to get deps": code-path end
     deps = DT.get-dependencies( P.resolve(code-path) )
     spy: deps end
     deps-list = raw-array-to-list( deps )

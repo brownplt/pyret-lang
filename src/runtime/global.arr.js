@@ -26,10 +26,18 @@ function timeNow( otherTime = undefined ) {
 module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,
+  'js-to-string': function(v) { return String(v); },
   'raw-array': array['raw-array'],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
-//  'assert': function( lv, rv, msg ) { assert.strictEqual( lv, rv, msg ) },
+  'assert': function( lv, rv, msg ) {
+    if(!(lv === rv)) {
+      throw new Error(msg);
+    }
+    else {
+      return true;
+    }
+  },
   print: function(v) {
     process.stdout.write(String(v));
   },
