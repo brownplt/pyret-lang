@@ -1,5 +1,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
+var table = require('./table.arr.js');
 //var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
@@ -49,6 +50,7 @@ module.exports = {
   '_greaterthan': _greaterthan,
   '_lessequal': _lessequal,
   '_greaterequal': _greaterequal,
+  '_makeTable': table._makeTable,
   'equal-always': runtime['py_equal'],
   'trace-value': runtime['trace-value'],
 };
