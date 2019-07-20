@@ -12,6 +12,7 @@
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
       "time-now": ["arrow", ["tany"], "tany"],
+      "_makeTable": ["arrow", ["tany", "tany"], "tany"],
       "console-log": ["arrow", ["tany"], "Nothing"],
       "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
       "_plus":   {"bind": "fun",
@@ -76,6 +77,7 @@
                     "name": "Table" }
     },
     "datatypes": {
+      "Table": ["data", "Table", [], [], {}],
       "Number": ["data", "Number", [], [], {
         "_plus": ["arrow", ["Number"], "Number"],
         "_times": ["arrow", ["Number"], "Number"],
