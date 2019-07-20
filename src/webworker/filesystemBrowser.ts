@@ -126,6 +126,8 @@ export const createListElement = (theFs: any, path: string): HTMLLIElement => {
 //        BrowserFS.BFSRequire("fs").
 // path: a path string to either a file or a directory. Use "/" for the root
 //       node of the file system.
+// element: the "ul" (unordered list) element which the file system will be
+//          attached to as a child.
 export const createBrowser = (theFS: any, path: string, element: HTMLUListElement): void => {
   element.appendChild(createListElement(theFS, path));
 }
