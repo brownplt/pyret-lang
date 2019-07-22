@@ -47,6 +47,7 @@ function _makeTable(headers, rows) {
   return {
     '_headers-raw-array': headers,
     '_rows-raw-array': rows,
+    'length': function(key) { return rows.length; },
     $brand: '$table'
   };
 }
