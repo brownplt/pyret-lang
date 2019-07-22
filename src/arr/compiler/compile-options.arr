@@ -1,3 +1,5 @@
+provide *
+
 import pathlib as P
 import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
@@ -26,7 +28,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
 
   add-profiling = dictionary.has-key("profile")
   allow-shadowed = dictionary.has-key("allow-shadow")
-  base-dir = dictionary.get-value("base-dir").or-else(compile-opts.get-value("base-dir"))
+  base-dir = dictionary.get("base-dir").or-else(compile-opts.base-dir)
   build-runnable = dictionary.get("build-runnable").or-else("none")
   # TODO(alex): module dir somehwere
   # module-dir = dictionary.get-value("module-load-dir")
@@ -47,12 +49,6 @@ fun populate-options(dictionary, this-pyret-dir) block:
   log-error = dictionary.get("log-error").or-else(compile-opts.log-error)
   log = dictionary.get("log").or-else(compile-opts.log)
   module-eval = not(dictionary.has-key("no-module-eval"))
-  outfile = 
-    if dictionary.has-key("outfile"):
-      dictionary.get-value("outfile")
-    else:
-      dictionary.get-value("build-runnable") + ".jarr"
-    end
   require-config = dictionary.get("require-config")
     .or-else(P.resolve(P.join(this-pyret-dir, "config.json")))
   runtime-annotations = not(dictionary.has-key("no-runtime-annotations"))
