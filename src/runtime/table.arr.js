@@ -1,5 +1,7 @@
 function _makeTable(headers, rows) {
-  console.log("Ahoy, a table");
+  return {
+    $brand: '$table'
+  };
 }
 
 module.exports = {
