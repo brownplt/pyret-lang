@@ -11,6 +11,7 @@ import file("compile-structs.arr") as CS
 import file("file.arr") as F
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
+import file("compile-options.arr") as CO
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
@@ -113,25 +114,7 @@ fun main(args :: List<String>) -> Number block:
       else:
         empty
       end
-      enable-spies = not(r.has-key("no-spies"))
-      allow-shadowed = r.has-key("allow-shadow")
-      module-dir = r.get-value("module-load-dir")
-      inline-case-body-limit = r.get-value("inline-case-body-limit")
-      type-check = r.has-key("type-check")
-      tail-calls = not(r.has-key("improper-tail-calls"))
-      compiled-dir = r.get-value("compiled-dir")
-      standalone-file = r.get-value("standalone-file")
-      add-profiling = r.has-key("profile")
-      display-progress = not(r.has-key("no-display-progress"))
-      html-file = if r.has-key("html-file"):
-            some(r.get-value("html-file"))
-          else:
-            none
-          end
-      module-eval = not(r.has-key("no-module-eval"))
-      user-annotations = not(r.has-key("no-user-annotations"))
-      runtime-annotations = not(r.has-key("no-runtime-annotations"))
-      builtin-build = r.has-key("builtin-build")
+      
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -164,28 +147,8 @@ fun main(args :: List<String>) -> Number block:
                   r.get-value("build-runnable"),
                   r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
                   outfile,
-                  compile-opts.{
-                    this-pyret-dir: this-pyret-dir,
-                    standalone-file: standalone-file,
-                    checks : checks,
-                    type-check : type-check,
-                    allow-shadowed : allow-shadowed,
-                    collect-all: false,
-                    collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
-                    ignore-unbound: false,
-                    proper-tail-calls: tail-calls,
-                    compiled-cache: compiled-dir,
-                    compiled-read-only: r.get("compiled-read-only-dir").or-else(empty),
-                    display-progress: display-progress,
-                    inline-case-body-limit: inline-case-body-limit,
-                    deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
-                    html-file: html-file,
-                    module-eval: module-eval,
-                    user-annotations: user-annotations,
-                    runtime-annotations: runtime-annotations,
-                    builtin-js-dirs: compile-opts.builtin-js-dirs.append(builtin-js-dirs),
-                    runtime-builtin-relative-path: r.get("runtime-builtin-relative-path").or-else(compile-opts.runtime-builtin-relative-path)
-                  })
+                  CO.populate-options(r, this-pyret-dir)
+              )
               success-code
             else if r.has-key("serve"):
               port = r.get-value("port")
@@ -215,12 +178,7 @@ fun main(args :: List<String>) -> Number block:
                 else:
                   rest.rest
                 end
-              result = CLI.run(r.get-value("run"), CS.default-compile-options.{
-                  standalone-file: standalone-file,
-                  display-progress: display-progress,
-                  checks: checks,
-                  builtin-js-dirs: builtin-js-dirs,
-                }, run-args)
+              result = CLI.run(r.get-value("run"), CO.populate-options(r, this-pyret-dir), run-args)
               _ = print(result.message + "\n")
               result.exit-code
             else:
