@@ -52,6 +52,5 @@ function _makeTable(headers, rows) {
 }
 
 module.exports = {
-  'length': length
   '_makeTable': _makeTable
 };
