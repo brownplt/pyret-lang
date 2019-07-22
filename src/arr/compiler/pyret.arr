@@ -165,6 +165,7 @@ fun main(args :: List<String>) -> Number block:
                   r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
                   outfile,
                   compile-opts.{
+                    enable-spies: enable-spies,
                     this-pyret-dir: this-pyret-dir,
                     standalone-file: standalone-file,
                     checks : checks,

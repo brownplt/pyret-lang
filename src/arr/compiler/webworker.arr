@@ -83,6 +83,7 @@ compile-handler = lam(msg, send-message) block:
     d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
     send-message(J.j-obj(d).serialize())
   end
+  enable-spies = not(opts.has-key("no-spies"))
   with-logger = opts.set("log", log)
   with-error = with-logger.set("log-error", err)
   with-pyret-dir = with-error.set("this-pyret-dir", pyret-dir)
@@ -100,6 +101,7 @@ compile-handler = lam(msg, send-message) block:
     opts.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
 
   with-builtin-js-dirs = with-require-config.set("builtin-js-dirs", builtin-js-dirs)
+  with-spies-flag = with-builtin-js-dirs.set("enable-spies", with-spies-flag)
 
   result = run-task(lam():
     compile(with-builtin-js-dirs)
