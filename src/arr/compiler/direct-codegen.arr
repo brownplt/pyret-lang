@@ -25,6 +25,7 @@ cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
 j-fun = J.j-fun
+j-anon-fun = J.j-anon-fun
 j-var = J.j-var
 j-id = J.j-id
 j-method = J.j-method
@@ -633,7 +634,51 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-table-extract(l, column, table) => nyi("s-table-extract")
     | s-table-order(l, table, ordering) => nyi("s-table-order")
     | s-table-filter(l, column-binds, predicate) => nyi("s-table-filter")
-    | s-spy-block(l, message, contents) => nyi("s-spy-block")
+    | s-spy-block(loc, message, contents) =>
+
+      # TODO(alex): make code generation aware of spy block options
+      # Emit with a special do-print/do-eval flag
+      # Do not emit
+
+      # Model each spy block as a spy block object
+      # SpyBlockObject {
+      #   message: () -> String
+      #   loc: String
+      #   exprs: List<{ label: String, value: () -> JSValue, loc: String }>
+      # }
+      { js-message-value; js-message-stmts } = cases(Option) message:
+        | some(message-expr) => compile-expr(context, message-expr)
+        | none => { j-null; cl-empty }
+      end
+      js-message-return = j-return(js-message-value)
+      js-message-func-block = j-block(cl-append(js-message-stmts, cl-sing(js-message-return)))
+      js-message-func = j-anon-fun("0", cl-empty, js-message-func-block)
+
+      js-spy-fields = for fold(js-spy-fields from cl-empty, pyret-spy-field from contents):
+        { js-spy-value; js-spy-stmts } = compile-expr(context, pyret-spy-field.value)
+
+        # TODO(alex): what are j-fun.id / j-anon-fun.id for?
+        js-spy-return = j-return(js-spy-value)
+        js-spy-expr-func-block = j-block(cl-append(js-spy-stmts, cl-sing(js-spy-return)))
+        js-spy-expr-fun = j-anon-fun("0", cl-empty, js-spy-expr-func-block)
+
+        js-spy-key = j-field("key", j-str(pyret-spy-field.name))
+        js-spy-expr = j-field("expr", js-spy-expr-fun)
+        js-spy-loc = j-field("loc", j-str(pyret-spy-field.l.format(true)))
+        js-spy-expr-obj = j-obj(cl-cons(js-spy-key, cl-cons(js-spy-expr, cl-sing(js-spy-loc))))
+        cl-append(js-spy-fields, cl-sing(js-spy-expr-obj))
+      end
+      
+      js-spy-fields-list = j-list(false, js-spy-fields)
+      spy-block-obj = j-obj(cl-cons(j-field("message", js-message-func),
+                              cl-sing(j-field("exprs", js-spy-fields-list))
+                              )
+                            )
+
+      spy-func = j-raw-code("$spy")
+      spy-call = j-expr(j-app(spy-func, cl-sing(spy-block-obj)))
+
+      { j-undefined; cl-sing(spy-call) }
     | else => raise("NYI (compile): " + torepr(expr))
   end
 
