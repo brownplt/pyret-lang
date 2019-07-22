@@ -426,6 +426,26 @@ data JExpr:
       header = PP.group(PP.str("function") + arglist)
       PP.surround(INDENT, 1, header + PP.str(" {"), self.body.tosource(), PP.str("}"))
     end
+  | j-anon-fun(id :: String, args :: CList<A.Name>, body :: JBlock) with:
+    # TODO(alex) is j-anon-fun.id necessary?
+    method label(self): "j-anon-fun" end,
+    method print-ugly-source(self, printer) block:
+      printer("function")
+      printer("(")
+      for CL.each_n(n from 0, arg from self.args) block:
+        when n > 0: printer(",") end
+        printer(arg.tosourcestring())
+      end
+      printer(") {\n")
+      self.body.print-ugly-source(printer)
+      printer("}")
+    end,
+    method tosource(self):
+      arglist = PP.nest(INDENT, PP.surround-separate(INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen, self.args.map-to-list(_.to-compiled-source())))
+      header = PP.group(PP.str("function") + arglist)
+      PP.surround(INDENT, 1, header + PP.str(" {"), self.body.tosource(), PP.str("}"))
+    end
+
   | j-new(func :: JExpr, args :: CList<JExpr>) with:
     method label(self): "j-new" end,
     method print-ugly-source(self, printer) block:
