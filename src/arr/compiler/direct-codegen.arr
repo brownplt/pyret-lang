@@ -605,15 +605,16 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) =>
       # TODO: table.makeTable is only temporary, change later
-      func = j-raw-code("_makeTable")
+
+      func = j-bracket(j-id(GLOBAL), j-str("_makeTable"))
 
       js-headers = for fold(the-list from cl-empty, h from headers):
-	      cl-cons( the-list, cl-sing( j-str(h.name) ) )
+	      cl-append( the-list, cl-sing( j-str(h.name) ) )
 	    end
 
       { js-rows; js-row-stmts } = for fold({ value-list; stmt-list } from { cl-empty; cl-empty }, r from rows):
         row-elems = r.elems
-        { elem-values; elem-stmts } = for fold({ elem-values; elem-stmts } from { cl-empty; cl-empty }, row-expr from row-elems.elems):
+        { elem-values; elem-stmts } = for fold({ elem-values; elem-stmts } from { cl-empty; cl-empty }, row-expr from row-elems ):
           { v; stmts } = compile-expr(context, row-expr)
           { cl-append(elem-values, cl-sing(v)); cl-append(elem-stmts, stmts) }
         end
@@ -623,7 +624,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { cl-append(value-list, cl-sing(js-row)); cl-append(stmt-list, elem-stmts) }
       end
 
-      args = cl-cons(js-headers, cl-sing(j-list(false, js-rows)))
+      args = cl-cons(j-list(false, js-headers), cl-sing(j-list(false, js-rows)))
 
       { j-app(func, args); js-row-stmts }
 
