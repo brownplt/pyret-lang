@@ -1,3 +1,4 @@
+import pathlib as P
 import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 
@@ -26,6 +27,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
   add-profiling = dictionary.has-key("profile")
   allow-shadowed = dictionary.has-key("allow-shadow")
   base-dir = dictionary.get-value("base-dir").or-else(compile-opts.get-value("base-dir"))
+  build-runnable = dictionary.get("build-runnable").or-else("none")
   # TODO(alex): module dir somehwere
   # module-dir = dictionary.get-value("module-load-dir")
   check-mode = not(dictionary.get("no-check-mode").or-else(false))
@@ -51,6 +53,8 @@ fun populate-options(dictionary, this-pyret-dir) block:
     else:
       dictionary.get-value("build-runnable") + ".jarr"
     end
+  require-config = dictionary.get("require-config")
+    .or-else(P.resolve(P.join(this-pyret-dir, "config.json")))
   runtime-annotations = not(dictionary.has-key("no-runtime-annotations"))
   runtime-builtin-relative-path = dictionary.get("runtime-builtin-relative-path")
     .or-else(compile-opts.runtime-builtin-relative-path)
@@ -69,11 +73,12 @@ fun populate-options(dictionary, this-pyret-dir) block:
   when dictionary.has-key("allow-builtin-overrides"):
     B.set-allow-builtin-overrides(dictionary.get-value("allow-builtin-overrides"))
   end
-
+  
   compile-opts.{
     add-profiling: add-profiling,
     allow-shadowed : allow-shadowed,
     base-dir: base-dir,
+    build-runnable: build-runnable,
     builtin-js-dirs: compile-opts.builtin-js-dirs.append(builtin-js-dirs),
     checks : checks,
     check-mode : check-mode,
@@ -91,6 +96,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     log: log,
     module-eval: module-eval,
     proper-tail-calls: tail-calls,
+    require-config: require-config,
     runtime-annotations: runtime-annotations,
     runtime-builtin-relative-path: runtime-builtin-relative-path,
     standalone-file: standalone-file,
