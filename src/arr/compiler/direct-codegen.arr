@@ -605,7 +605,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) =>
       # TODO: table.makeTable is only temporary, change later
-      func = j-raw-code("table.makeTable")
+      func = j-raw-code("_makeTable")
 
       js-headers = for fold(the-list from cl-empty, h from headers):
 	      cl-cons( the-list, cl-sing( j-str(h.name) ) )
