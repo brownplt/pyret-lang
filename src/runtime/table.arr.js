@@ -31,7 +31,6 @@ function _makeTable(headers, rows) {
     return getRowContentAsRecordFromHeaders(headers, raw_row);
   }
 
-  /* TODO: finish changes */
   function getRowContentAsGetter(headers, raw_row) {
     var obj = getRowContentAsRecordFromHeaders(headers, raw_row);
     obj["get-value"] = function(key) {
@@ -42,10 +41,8 @@ function _makeTable(headers, rows) {
         throw("Not found: " + key);
       }
     };
-    return runtime.makeObject(obj);
+    return obj;
   }
-
-
 
   return {
     '_headers-raw-array': headers,
@@ -55,5 +52,6 @@ function _makeTable(headers, rows) {
 }
 
 module.exports = {
+  'length': length
   '_makeTable': _makeTable
 };
