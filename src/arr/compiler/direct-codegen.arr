@@ -604,8 +604,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) =>
-      # TODO: table.makeTable is only temporary, change later
-
       func = j-bracket(j-id(GLOBAL), j-str("_makeTable"))
 
       js-headers = for fold(the-list from cl-empty, h from headers):
