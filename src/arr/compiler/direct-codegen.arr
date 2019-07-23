@@ -725,7 +725,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
-    | s-check(l, name, body, keyword-check) => nyi("s-check")
+    | s-check(l, name, body, keyword-check) => 
+
+      { check-block-val; check-block-stmts } = compile-expr(context, body)
+      # TODO(alex): insert test scaffolding here
+      # TODO(alex): insert check blocks inline or in a separate area?
+      # TODO(alex): check block returns?
+
+      { j-undefined; cl-append(check-block-stmts, cl-sing(j-expr(check-block-val))) }
     | s-check-test(l, op, refinement, left, right) =>
       desugared-test = DH.desugar-s-check-test(l, op, refinement, left, right)
 
