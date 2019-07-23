@@ -726,7 +726,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
     | s-check(l, name, body, keyword-check) => nyi("s-check")
-    | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
+    | s-check-test(l, op, refinement, left, right) =>
+      desugared-test = DH.desugar-s-check-test(l, op, refinement, left, right)
+
+      # TODO(alex): insert test scaffolding here?
+
+      compile-expr(context, desugared-test)
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(
         l :: Loc,
