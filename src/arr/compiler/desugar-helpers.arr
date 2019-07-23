@@ -103,6 +103,26 @@ fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann
          )
 end
 
+data CheckDesugarResult:
+  | binop-result(op, negate)
+  | refinement-result(refinement, negate)
+  | predicate-result(predicate)
+end
+
+fun desugar-s-check-test(l, check-op, refinement, left, right):
+  result = cases(A.CheckOp) check-op:
+    | s-op-is(_) => binop-result("op==", false)
+    | s-op-is-not(_) => binop-result("op==", true)
+    | else => raise("NYI check op ID")
+  end
+
+  cases(CheckDesugarResult) result:
+    | binop-result(op, negate) => raise("NYI check binop")
+    | refinement-result(the-refinement, negate) => raise("NYI check refinement")
+    | predicate-result(predicate) => raise("NYI check predicate")
+  end
+end
+
 fun desugar-s-op(loc, op-l, op, l, r):
   ask:
     | op == "op==" then:
