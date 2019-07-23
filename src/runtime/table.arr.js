@@ -1,6 +1,6 @@
 function _makeTable(headers, rows) {
   var headerIndex = {};
-      
+
   for (var i = 0; i < headers.length; i++) {
     headerIndex["column:" + headers[i]] = i;
   }
@@ -47,7 +47,6 @@ function _makeTable(headers, rows) {
   return {
     '_headers-raw-array': headers,
     '_rows-raw-array': rows,
-
     'length': function(_) { return rows.length; },
     'select-columns': function(self, colnames) {
       //var colnamesList = ffi.toArray(colnames);
@@ -77,6 +76,30 @@ function _makeTable(headers, rows) {
   };
 }
 
+// _tableFilter :: Table -> (Array -> Boolean) -> Void
+// Applies predicate to each row in table, removing the row if predicate returns
+// false.
+function _tableFilter(table, predicate) {
+  table["_rows-raw-array"] = table["_rows-raw-array"].filter(predicate);
+}
+
+// _tableGetColumnIndex :: Table -> String -> Integer
+// Returns the index of column_name, or throws an error if column_name is not a
+// column in table.
+function _tableGetColumnIndex(table, column_name) {
+  const headers = table["_headers-raw-array"];
+
+  for (let index = 0; index < headers.length; index++) {
+    if (headers[index] === column_name) {
+      return index;
+    }
+  }
+
+  throw "not a valid column";
+}
+
 module.exports = {
-  '_makeTable': _makeTable
+  '_makeTable': _makeTable,
+  '_tableFilter': _tableFilter,
+  '_tableGetColumnIndex': _tableGetColumnIndex
 };

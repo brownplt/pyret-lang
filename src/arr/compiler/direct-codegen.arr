@@ -625,7 +625,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       args = cl-cons(j-list(false, js-headers), cl-sing(j-list(false, js-rows)))
 
       { j-app(func, args); js-row-stmts }
-
     | s-paren(l, e) => 
         { e-ans; e-stmts } = compile-expr(context, e)
         { j-parens(e-ans); e-stmts }
@@ -639,7 +638,98 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-table-select(l, columns, table) => nyi("s-table-select")
     | s-table-extract(l, column, table) => nyi("s-table-extract")
     | s-table-order(l, table, ordering) => nyi("s-table-order")
-    | s-table-filter(l, column-binds, predicate) => nyi("s-table-filter")
+    | s-table-filter(l, column-binds, predicate) => 
+      ## l :: Loc
+      ## column-binds :: (l :: Loc, binds :: List<Bind>, table :: Expr)
+      ## predicate :: Expr
+
+      # table-expr :: JExpr
+      # table-stmts :: CList<JStmt>
+      {table-expr; table-stmts} = compile-expr(context, column-binds.table)
+
+      # fun-id :: String
+      fun-id = "0"
+
+      # fun-name :: String
+      fun-name = fresh-id(compiler-name("s-table-filter")).toname()
+
+      # row-name :: A.Name
+      row-name = fresh-id(compiler-name("row"))
+
+      # fun-args :: CList<A.Name>
+      fun-args = cl-sing(row-name)
+
+      # block-row-element-stmts :: CList<JStmt>
+      block-row-element-stmts = for fold(
+          stmts from cl-empty,
+          bind from column-binds.binds):
+        # app-func :: JExpr
+        app-func = j-bracket(j-id(GLOBAL), j-str("_tableGetColumnIndex"))
+
+        # app-args :: Clist<JExpr>
+        app-args = cl-cons(table-expr, cl-sing(j-str(bind.id.toname())))
+
+        # column-index-expr :: JExpr
+        column-index-expr = j-app(app-func, app-args)
+
+        # column-index-id :: A.Name
+        column-index-id = fresh-id(compiler-name("index"))
+
+        # column-index-stmt :: JStmt
+        column-index-stmt = j-var(column-index-id, column-index-expr)
+
+        # var-stmt :: JStmt
+        var-stmt = j-var(js-id-of(bind.id), j-bracket(j-id(row-name), j-id(column-index-id)))
+
+        cl-append(stmts, cl-cons(column-index-stmt, cl-sing(var-stmt)))
+      end
+
+      spy "block-row-element-stmts": block-row-element-stmts end
+
+      # predicate-expr :: J.JExpr
+      # predicate-stmts :: CList<J.JStmt>
+      {predicate-expr; predicate-stmts} = compile-expr(context, predicate)
+
+      # block-return-stmt :: JStmt
+      block-return-stmt = j-return(predicate-expr)
+
+      # block-stmts :: CList<JStmt>
+      block-stmts = cl-append(block-row-element-stmts, cl-sing(block-return-stmt))
+
+      # j-block(stmts :: CList<JStmt>
+      # fun-body :: JBlock
+      fun-body = j-block(block-stmts)
+
+      # j-fun (id :: String, name :: String, args :: CList<A.Name>, body :: JBlock)
+      filter-fun = j-fun(fun-id, fun-name, fun-args, fun-body)
+
+      # j-bracket(obj :: JExpr, field :: JExpr)
+      # app-func :: JExpr
+      app-func = j-bracket(j-id(GLOBAL), j-str("_tableFilter"))
+
+      # _table-filter :: Table -> (TableRow -> Boolean) -> Void
+
+      # app-args :: CList<JExpr>
+      app-args = cl-cons(table-expr, cl-sing(filter-fun))
+
+      # j-app(func :: JExpr, args :: CList<JExpr>) with:
+      # apply :: JExpr
+      apply = j-app(app-func, app-args)
+
+      # return-expr :: J.JExpr
+      return-expr = apply
+
+      # return-stmts :: CList<J.JStmt>
+      return-stmts = cl-append(predicate-stmts, table-stmts)
+
+      { return-expr; return-stmts }
+
+      #function name(row) {
+      #  var aIndex = lookupColumnIndex("a");
+      #  var a = row[aIndex];
+      #  return a == 1;
+      #}
+
     | s-spy-block(l, message, contents) => nyi("s-spy-block")
     | else => raise("NYI (compile): " + torepr(expr))
   end

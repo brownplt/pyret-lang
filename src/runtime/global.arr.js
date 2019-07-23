@@ -51,6 +51,8 @@ module.exports = {
   '_lessequal': _lessequal,
   '_greaterequal': _greaterequal,
   '_makeTable': table._makeTable,
+  '_tableFilter': table._tableFilter,
+  '_tableGetColumnIndex': table._tableGetColumnIndex,
   'equal-always': runtime['py_equal'],
   'trace-value': runtime['trace-value'],
 };
