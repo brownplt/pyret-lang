@@ -1146,9 +1146,14 @@
           }
         },
         'app-expr': function(node) {
-          // (app-expr f args)
-          return RUNTIME.getField(ast, 's-app')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          if (node.kids.length > 2) {
+            RUNTIME.ffi.throwParseErrorBadApp(pos(node.kids[0].pos),
+                                              pos2(node.kids[1].pos, node.kids[node.kids.length - 1].pos));
+          } else {
+            // (app-expr f args)
+            return RUNTIME.getField(ast, 's-app')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          }
         },
         'id-expr': function(node) {
           // (id-expr x)

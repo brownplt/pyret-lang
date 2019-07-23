@@ -2431,6 +2431,34 @@ data RuntimeError:
 end
 
 data ParseError:
+  | parse-error-bad-app(a, b) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.a) and src-available(self.b):
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks this code is probably a function call:")],
+          ED.cmcode(self.a + self.b),
+          [ED.para:
+            ED.text("Function calls must not have space between the "),
+            ED.highlight(ED.text("function expression"), [ED.locs: self.a], 0),
+            ED.text(" and the "),
+            ED.highlight(ED.text("arguments"), [ED.locs: self.b], 1),
+            ED.text(".")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
+            ED.text(" is probably a function call, but there should be no space"),
+            ED.text(" between the function and its arguments.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
+          ED.text(" is probably a function call, but there should be no space"),
+          ED.text(" between the function and its arguments.")]]
+    end
   | parse-error-next-token(loc, next-token :: String) with:
     method render-fancy-reason(self, src-available):
       if src-available(self.loc):
@@ -2526,7 +2554,7 @@ data ParseError:
             ED.text("Pyret thinks the string ")],
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+            ED.text("is not finished; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
             ED.code(ED.text("```")),
             ED.text(" instead of quotation marks.")]]
       else:
@@ -2534,7 +2562,7 @@ data ParseError:
           [ED.para:
             ED.text("Pyret thinks the string at "),
             ED.loc(self.loc),
-            ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+            ED.text("is not finished; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
             ED.code(ED.text("```")),
             ED.text(" instead of quotation marks.")]]
       end

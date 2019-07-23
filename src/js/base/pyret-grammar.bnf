@@ -177,6 +177,13 @@ lambda-expr: LBRACE fun-header (BLOCK|COLON) doc-string block where-clause RBRAC
 method-expr: METHOD fun-header (BLOCK|COLON) doc-string block where-clause END
 
 app-expr: expr app-args
+# These two productions are carefully rigged to *not* parse unary `f (x)`
+# otherwise, we'd admit ambiguous parses.  Instead, parse-pyret detects these
+# two cases and produces a parse error, while well-formedness detects the unary
+# case and produces a well-formedness error with a similar message.
+     | expr PARENSPACE RPAREN
+     | expr PARENSPACE binop-expr COMMA binop-expr (COMMA binop-expr)* RPAREN
+     
 # application must have the function expression immediately adjacent to
 # the argument list, so as not to be confused with parenthesized exprs
 app-args: PARENNOSPACE opt-comma-binops RPAREN

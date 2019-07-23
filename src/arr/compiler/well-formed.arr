@@ -4,6 +4,7 @@ provide {
 provide-types *
 
 import ast as A
+import file("ast-util.arr") as AU
 import srcloc as SL
 import error-display as ED
 import file("compile-structs.arr") as C
@@ -240,7 +241,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
                 if A.is-s-template(first) and prev-is-template:
                   add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
-                  add-error(C.same-line(loc, first.l))
+                  add-error(C.same-line(loc, first.l, A.is-s-paren(AU.unwrap-if-wrapped(first))))
                 else:
                   nothing
                 end

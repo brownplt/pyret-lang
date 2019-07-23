@@ -474,6 +474,9 @@
         runtime.makeSrcloc(col_loc)));
     }
 
+    function throwParseErrorBadApp(fun_loc, args_loc) {
+      raise(err("parse-error-bad-app")(fun_loc, args_loc));
+    }
     function throwParseErrorNextToken(loc, nextToken) {
       raise(err("parse-error-next-token")(loc, nextToken));
     }
@@ -650,6 +653,7 @@
       throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
 
+      throwParseErrorBadApp: throwParseErrorBadApp,
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorColonColon: throwParseErrorColonColon,
       throwParseErrorEOF: throwParseErrorEOF,

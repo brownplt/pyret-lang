@@ -1866,7 +1866,7 @@ data CompileError:
           ED.text(".")],
         [ED.para: ED.text("Pick a different name for one of them.")]]
     end
-  | same-line(a :: Loc, b :: Loc) with:
+  | same-line(a :: Loc, b :: Loc, b-is-paren :: Boolean) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1875,8 +1875,16 @@ data CompileError:
           ED.highlight(ED.text("another expression"), [list: self.b], 1),
           ED.text(":")],
         ED.cmcode(self.a + self.b),
-        [ED.para:
-          ED.text("Each expression within a block should be on its own line.")]]
+        if self.b-is-paren:
+          [ED.para:
+            ED.text("Each expression within a block should be on its own line.  "),
+            ED.text("If you meant to write a function call, there should be no space between the "),
+            ED.highlight(ED.text("function expression"), [list: self.a], 0),
+            ED.text(" and the "), ED.highlight(ED.text("arguments"), [list: self.b], 1), ED.text(".")]
+        else:
+          [ED.para:
+            ED.text("Each expression within a block should be on its own line.")]
+        end]
     end,
     method render-reason(self):
       [ED.error:
