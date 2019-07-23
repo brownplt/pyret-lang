@@ -25,7 +25,7 @@ fun compile(options, this-pyret-dir):
   compile-opts = CO.populate-options(options, this-pyret-dir)
   CLI.build-runnable-standalone(
     options.get-value("program"),
-    options.get-value("require-config"),
+    compile-opts.require-config,
     outfile,
     compile-opts
   )
