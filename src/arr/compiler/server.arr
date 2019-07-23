@@ -9,37 +9,21 @@ import js-file("server") as S
 import file("./cli-module-loader.arr") as CLI
 import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
+import file("compile-options.arr") as CO
 
 fun compile(options):
   outfile = cases(Option) options.get("outfile"):
     | some(v) => v
     | none => options.get-value("program") + ".jarr"
   end
-  compile-opts = CS.make-default-compile-options(options.get-value("this-pyret-dir"))
+  
+  compile-opts = CO.populate-options(options, options.get-value("this-pyret-dir"))
   CLI.build-runnable-standalone(
     options.get-value("program"),
-    options.get-value("require-config"),
+    compile-opts.require-config,
     outfile,
-    compile-opts.{
-      base-dir: options.get-value("base-dir"),
-      this-pyret-dir : options.get-value("this-pyret-dir"),
-      check-mode : not(options.get("no-check-mode").or-else(false)),
-      type-check : options.get("type-check").or-else(false),
-      allow-shadowed : options.get("allow-shadowed").or-else(false),
-      collect-all: options.get("collect-all").or-else(false),
-      ignore-unbound: options.get("ignore-unbound").or-else(false),
-      proper-tail-calls: options.get("improper-tail-calls").or-else(true),
-      compiled-cache: options.get("compiled-dir").or-else("./compiled"),
-      compiled-read-only: options.get("compiled-read-only").or-else(empty),
-      standalone-file: options.get("standalone-file").or-else(compile-opts.standalone-file),
-      checks: options.get-value("checks"),
-      display-progress: options.get("display-progress").or-else(true),
-      log: options.get("log").or-else(compile-opts.log),
-      log-error: options.get("log-error").or-else(compile-opts.log-error),
-      deps-file: options.get("deps-file").or-else(compile-opts.deps-file),
-      user-annotations: options.get("user-annotations").or-else(compile-opts.user-annotations),
-      builtin-js-dirs: compile-opts.builtin-js-dirs.append(options.get-value("builtin-js-dirs"))
-    })
+    compile-opts
+    )
 end
 
 fun serve(port, pyret-dir):
@@ -48,25 +32,6 @@ fun serve(port, pyret-dir):
     opts = J.read-json(msg).native()
     # print(torepr(opts))
     # print("\n")
-    builtin-js-dirs = if opts.has-key("builtin-js-dir"):
-      if is-List(opts.get-value("builtin-js-dir")):
-        opts.get-value("builtin-js-dir")
-      else:
-        [list: opts.get-value("builtin-js-dir")]
-      end
-    else:
-      empty
-    end
-    when opts.has-key("builtin-arr-dir"):
-      if is-List(opts.get-value("builtin-arr-dir")):
-        B.set-builtin-arr-dirs(opts.get-value("builtin-arr-dir"))
-      else:
-        B.set-builtin-arr-dirs([list: opts.get-value("builtin-arr-dir")])
-      end
-    end
-    when opts.has-key("allow-builtin-overrides"):
-      B.set-allow-builtin-overrides(opts.get-value("allow-builtin-overrides"))
-    end
     fun log(s, to-clear):
       d = [SD.string-dict: "type", J.j-str("echo-log"), "contents", J.j-str(s)]
       with-clear = cases(Option) to-clear:
@@ -92,13 +57,9 @@ fun serve(port, pyret-dir):
           link(P.resolve(P.join(pyret-dir, "../../src/runtime")), empty)
         )
       end
-    with-require-config = with-compiled-read-only-dirs.set("require-config",
-      opts.get("require-config").or-else(P.resolve(P.join(pyret-dir, "config.json"))))
-
-    with-builtin-js-dirs = with-require-config.set("builtin-js-dirs", builtin-js-dirs)
 
     result = run-task(lam():
-      compile(with-builtin-js-dirs)
+      compile(with-compiled-read-only-dirs)
     end)
     cases(E.Either) result block:
       | right(exn) =>
