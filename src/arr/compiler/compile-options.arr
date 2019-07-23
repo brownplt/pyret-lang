@@ -59,7 +59,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
   tail-calls = not(dictionary.has-key("improper-tail-calls"))
   type-check = dictionary.has-key("type-check")
   user-annotations = not(dictionary.has-key("no-user-annotations"))
-    compiled-read-only = dictionary.get("compiled-read-only-dir").or-else(empty)
+  compiled-read-only = dictionary.get("compiled-read-only-dir").or-else(empty)
 
   # TODO(alex): builtin arr files no longer supported; precompile them
   when dictionary.has-key("builtin-arr-dir"):
