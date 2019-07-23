@@ -117,7 +117,12 @@ fun desugar-s-check-test(l, check-op, refinement, left, right):
   end
 
   cases(CheckDesugarResult) result:
-    | binop-result(op, negate) => raise("NYI check binop")
+    | binop-result(op, negate) =>
+      if negate:
+        raise("NYI check op negation")
+      else:
+        A.s-op(l, l, op, left, right)
+      end
     | refinement-result(the-refinement, negate) => raise("NYI check refinement")
     | predicate-result(predicate) => raise("NYI check predicate")
   end
