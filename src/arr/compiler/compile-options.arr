@@ -35,7 +35,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
   check-mode = not(dictionary.get("no-check-mode").or-else(false))
   collect-all = dictionary.get("collect-all").or-else(false)
   collect-times = dictionary.has-key("collect-times") and dictionary.get-value("collect-times")
-  compiled-dir = dictionary.get-value("compiled-dir") 
+  compiled-dir = dictionary.get("compiled-dir").or-else("compiled")
   deps-file = dictionary.get("deps-file").or-else(compile-opts.deps-file)
   display-progress = not(dictionary.has-key("no-display-progress"))
   enable-spies = not(dictionary.has-key("no-spies"))
@@ -45,7 +45,8 @@ fun populate-options(dictionary, this-pyret-dir) block:
     else:
       none
     end
-  inline-case-body-limit = dictionary.get-value("inline-case-body-limit")
+  inline-case-body-limit = dictionary.get("inline-case-body-limit")
+    .or-else(compile-opts.inline-case-body-limit)
   log-error = dictionary.get("log-error").or-else(compile-opts.log-error)
   log = dictionary.get("log").or-else(compile-opts.log)
   module-eval = not(dictionary.has-key("no-module-eval"))
@@ -80,6 +81,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     check-mode : check-mode,
     collect-all: collect-all,
     collect-times: collect-times,
+    compiled-dir: compiled-dir,
     compiled-cache: compiled-dir,
     compiled-read-only: compiled-read-only,
     deps-file: deps-file,
