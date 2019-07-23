@@ -25,7 +25,6 @@ cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
 j-fun = J.j-fun
-j-anon-fun = J.j-anon-fun
 j-var = J.j-var
 j-id = J.j-id
 j-method = J.j-method
@@ -652,17 +651,22 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | some(message-expr) => compile-expr(context, message-expr)
           | none => { j-null; cl-empty }
         end
+
+        js-message-func-name = fresh-id(compiler-name("spy-message"))
+
         js-message-return = j-return(js-message-value)
         js-message-func-block = j-block(cl-append(js-message-stmts, cl-sing(js-message-return)))
-        js-message-func = j-anon-fun("0", cl-empty, js-message-func-block)
+        js-message-func = j-fun("0", js-message-func-name.to-compiled(), cl-empty, js-message-func-block)
 
         js-spy-fields = for fold(js-spy-fields from cl-empty, pyret-spy-field from contents):
           { js-spy-value; js-spy-stmts } = compile-expr(context, pyret-spy-field.value)
 
+          js-spy-expr-func-name = fresh-id(compiler-name("spy-expr"))
+
           # TODO(alex): what are j-fun.id / j-anon-fun.id for?
           js-spy-return = j-return(js-spy-value)
           js-spy-expr-func-block = j-block(cl-append(js-spy-stmts, cl-sing(js-spy-return)))
-          js-spy-expr-fun = j-anon-fun("0", cl-empty, js-spy-expr-func-block)
+          js-spy-expr-fun = j-fun("0", js-spy-expr-func-name.to-compiled(), cl-empty, js-spy-expr-func-block)
 
           js-spy-key = j-field("key", j-str(pyret-spy-field.name))
           js-spy-expr = j-field("expr", js-spy-expr-fun)
