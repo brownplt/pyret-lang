@@ -642,7 +642,20 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(l, column-binds, extensions) => nyi("s-table-extend")
     | s-table-update(l, column-binds, updates) => nyi("s-table-update")
-    | s-table-select(l, columns, table) => nyi("s-table-select")
+    | s-table-select(l, columns, table) =>
+      func = j-bracket(j-id(GLOBAL), j-str("_selectColumns"))
+     
+      js-columns = for fold(the-list from cl-empty, c from columns):
+	      cl-append( the-list, cl-sing( j-str(c.toname()) ) )
+	    end
+ 
+      { js-table; js-table-stmts } = compile-expr(context, table)
+
+      args = cl-cons( js-table, cl-sing(j-list(false, js-columns)) )
+
+      # select-columns(table, colnames)
+      { j-app(func, args); js-table-stmts }
+
     | s-table-extract(l, column, table) => nyi("s-table-extract")
     | s-table-order(l, table, ordering) => nyi("s-table-order")
     | s-table-filter(

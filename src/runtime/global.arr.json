@@ -15,6 +15,7 @@
       "_makeTable": ["arrow", ["tany", "tany"], "tany"],
       "_tableFilter": ["arrow", ["Any", "Any"], "tany"],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
+      "_selectColumns": ["arrow", ["tany", "tany"], "tany"],
       "console-log": ["arrow", ["tany"], "Nothing"],
       "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
       "_plus":   {"bind": "fun",

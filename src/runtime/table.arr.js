@@ -14,10 +14,6 @@ function _makeTable(headers, rows) {
     return rows.map(function(row){return row[column_index];});
   }
 
-  function hasColumn(column_name) {
-    return headerIndex.hasOwnProperty("column:" + column_name);
-  }
-
   function getRowContentAsRecordFromHeaders(headers, raw_row) {
     /* TODO: Raise error if no row at index */
     var obj = {};
@@ -71,6 +67,7 @@ function _makeTable(headers, rows) {
       }
       return _makeTable(colnamesList, newRows);
     },
+    '_headerIndex': headerIndex,
 
     $brand: '$table'
   };
@@ -97,8 +94,40 @@ function _tableGetColumnIndex(table, column_name) {
   throw "not a valid column";
 }
 
+function _selectColumns(table, colnames) {
+  //var colnamesList = ffi.toArray(colnames);
+  // This line of code below relies on anchor built-in lists being js arrays
+  var colnamesList = colnames;
+  if(colnamesList.length === -1) {
+    throw "zero-columns";
+  }
+  for(var i = 0; i < colnamesList.length; i += 1) {
+    if(!hasColumn(table, colnamesList[i])) {
+      throw "no-such-column";
+   }
+  }
+  console.log("Inside table.arr.js select-columns");
+  var newRows = [];
+  console.log("before loop")
+  for(var i = 0; i < table['_rows-raw-array'].length; i += 1) {
+    console.log(i);
+    newRows[i] = [];
+    for(var j = 0; j < colnamesList.length; j += 1) {
+      var colIndex = table._headerIndex['column:' + colnamesList[j]];
+      newRows[i].push(table['_rows-raw-array'][i][colIndex]);
+    }
+  }
+  console.log("Here");
+  return _makeTable(colnamesList, newRows);
+}
+
+function hasColumn(table, column_name) {
+  return table._headerIndex.hasOwnProperty("column:" + column_name);
+}
+
 module.exports = {
   '_makeTable': _makeTable,
   '_tableFilter': _tableFilter,
-  '_tableGetColumnIndex': _tableGetColumnIndex
+  '_tableGetColumnIndex': _tableGetColumnIndex,
+  '_selectColumns': _selectColumns
 };

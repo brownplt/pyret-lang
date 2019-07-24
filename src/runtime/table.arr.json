@@ -4,7 +4,8 @@
     "values": {
       "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
-      "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"]
+      "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
+      "_selectColumns": ["arrow", ["Any", "Any"], ["local", "Table"] ]
     },
     "aliases": {
       "Table": "Table"

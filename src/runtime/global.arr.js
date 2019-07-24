@@ -56,6 +56,7 @@ module.exports = {
   '_makeTable': table._makeTable,
   '_tableFilter': table._tableFilter,
   '_tableGetColumnIndex': table._tableGetColumnIndex,
+  '_selectColumns': table._selectColumns,
   'equal-always': runtime['py_equal'],
   'trace-value': runtime['trace-value'],
 };
