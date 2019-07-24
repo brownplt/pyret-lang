@@ -1,0 +1,11 @@
+{
+  "requires": [],
+  "provides": {
+    "shorthands": {},
+    "values": {
+      "_objectDeepEqual": ["arrow", ["tany", "tany"], "Boolean"]
+    },
+    "aliases": {},
+    "datatypes": {}
+  }
+}
