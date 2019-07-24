@@ -44,29 +44,6 @@ function _makeTable(headers, rows) {
     '_headers-raw-array': headers,
     '_rows-raw-array': rows,
     'length': function(_) { return rows.length; },
-    'select-columns': function(self, colnames) {
-      //var colnamesList = ffi.toArray(colnames);
-      // This line of code below relies on anchor built-in lists being js arrays
-      var colnamesList = colnames;
-      if(colnamesList.length === 0) {
-        throw "zero-columns";
-      }
-      for(var i = 0; i < colnamesList.length; i += 1) {
-        runtime.checkString(colnamesList[i]);
-        if(!hasColumn(colnamesList[i])) {
-          throw "no-such-column";
-        }
-      }
-      var newRows = [];
-      for(var i = 0; i < rows.length; i += 1) {
-        newRows[i] = [];
-        for(var j = 0; j < colnamesList.length; j += 1) {
-          var colIndex = headerIndex['column:' + colnamesList[j]];
-          newRows[i].push(rows[i][colIndex]);
-        }
-      }
-      return _makeTable(colnamesList, newRows);
-    },
     '_headerIndex': headerIndex,
 
     $brand: '$table'
