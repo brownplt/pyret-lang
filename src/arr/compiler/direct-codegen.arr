@@ -145,6 +145,10 @@ fun compiler-name(id):
 end
 
 GLOBAL = const-id("_global")
+TABLE = const-id("_table")
+REACTOR = const-id("_reactor")
+SPY = const-id("_spy")
+NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
 RUNTIME = j-id(const-id("R"))
