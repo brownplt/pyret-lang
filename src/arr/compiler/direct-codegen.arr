@@ -15,6 +15,7 @@ import sha as sha
 import string-dict as D
 
 type Expr = A.Expr
+type DesugarResult = DH.DesugarResult
 
 flat-prim-app = A.prim-app-info-c(false)
 
@@ -741,11 +742,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                    left :: Expr, 
                    right :: Option<Expr>, 
                    cause :: Option<Expr>) =>
-      desugared-test = DH.desugar-s-check-test(l, op, refinement, left, right)
+
+      desugar-result = DH.desugar-s-check-test(l, op, refinement, left, right)
+      { raw-js-test-val; raw-js-test-stmts } = cases(DesugarResult) desugar-result:
+        | pyret(desugared-ast :: Expr) => compile-expr(context, desugared-ast)
+        | js(ast :: J.JExpr) => { ast; cl-empty }
+      end
 
       # TODO(alex): insert test scaffolding here?
-
-      compile-expr(context, desugared-test)
+      { raw-js-test-val; raw-js-test-stmts }
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(
         l :: Loc,
