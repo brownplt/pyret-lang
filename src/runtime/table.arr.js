@@ -76,11 +76,23 @@ function _makeTable(headers, rows) {
   };
 }
 
-// _tableFilter :: Table -> (Array -> Boolean) -> Void
-// Applies predicate to each row in table, removing the row if predicate returns
-// false.
+// _tableFilter :: Table -> (Array -> Boolean) -> Table
+// Creates a new Table which contains the rows from table that satisfy predicate.
 function _tableFilter(table, predicate) {
-  table["_rows-raw-array"] = table["_rows-raw-array"].filter(predicate);
+  let newHeaders = [];
+  let newRows = [];
+
+  for (let i = 0; i < table["_headers-raw-array"].length; i++) {
+    const row = table["_rows-raw-array"][i];
+    const header = table["_headers-raw-array"][i];
+
+    if (predicate(row)) {
+      newRows.push(row);
+      newHeaders.push(header);
+    }
+  }
+
+  return _makeTable(newHeaders, newRows);
 }
 
 // _tableGetColumnIndex :: Table -> String -> Integer

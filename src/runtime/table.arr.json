@@ -2,8 +2,8 @@
   "requires": [ ],
   "provides": {
     "values": {
-      "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"] ],
-      "_tableFilter": ["arrow", ["Any", "Any"], "Nothing"]
+      "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
+      "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"]
     },
     "aliases": {
