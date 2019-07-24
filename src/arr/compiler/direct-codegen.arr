@@ -743,7 +743,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                    right :: Option<Expr>, 
                    cause :: Option<Expr>) =>
 
-      desugar-result = DH.desugar-s-check-test(l, op, refinement, left, right)
+      desugar-result = DH.desugar-s-check-test(l, op, refinement, left, right, cause)
       { raw-js-test-val; raw-js-test-stmts } = cases(DesugarResult) desugar-result:
         | pyret(desugared-ast :: Expr) => compile-expr(context, desugared-ast)
         | js(ast :: J.JExpr) => { ast; cl-empty }
