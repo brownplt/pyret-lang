@@ -106,9 +106,7 @@ function _selectColumns(table, colnames) {
       throw "no-such-column";
    }
   }
-  console.log("Inside table.arr.js select-columns");
   var newRows = [];
-  console.log("before loop")
   for(var i = 0; i < table['_rows-raw-array'].length; i += 1) {
     console.log(i);
     newRows[i] = [];
@@ -117,7 +115,6 @@ function _selectColumns(table, colnames) {
       newRows[i].push(table['_rows-raw-array'][i][colIndex]);
     }
   }
-  console.log("Here");
   return _makeTable(colnamesList, newRows);
 }
 
