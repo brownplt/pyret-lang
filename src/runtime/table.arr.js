@@ -69,7 +69,7 @@ function _makeTable(headers, rows) {
           newRows[i].push(rows[i][colIndex]);
         }
       }
-      return makeTable(colnamesList, newRows);
+      return _makeTable(colnamesList, newRows);
     },
 
     $brand: '$table'
