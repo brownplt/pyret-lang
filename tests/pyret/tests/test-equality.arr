@@ -5,6 +5,8 @@ import equality as E
 check "numbers":
   identical(1, 1) is true
   identical(1, 2) is false
+  identical(4/5, 4/5) is true
+  identical(4/5, 3/5) is false
   equal-always(1, 1) is true
   equal-always(1, 2) is false
   equal-now(1, 1) is true
