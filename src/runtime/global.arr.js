@@ -12,6 +12,8 @@ function _greaterthan(l, r) { return l > r; }
 function _lessequal(l, r) { return l <= r; }
 function _greaterequal(l, r) { return l >= r; }
 
+function _not(x) { return !x; }
+
 function numToString(n) {
   return String(n);
 }
@@ -50,6 +52,7 @@ module.exports = {
   '_greaterthan': _greaterthan,
   '_lessequal': _lessequal,
   '_greaterequal': _greaterequal,
+  '_not': _not,
   '_makeTable': table._makeTable,
   '_tableFilter': table._tableFilter,
   '_tableGetColumnIndex': table._tableGetColumnIndex,
