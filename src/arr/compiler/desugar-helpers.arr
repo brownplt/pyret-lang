@@ -133,7 +133,10 @@ fun desugar-s-check-test(l :: Loc,
       if negate:
         raise("NYI check op negation")
       else:
-        pyret(A.s-op(l, l, op, left, right))
+        cases(Option) right:
+          | some(right-expr) => pyret(A.s-op(l, l, op, left, right))
+          | none => raise("Attempting to use a binary check op without the RHS")
+        end
       end
     | refinement-result(the-refinement, negate) => raise("NYI check refinement")
     | predicate-result(predicate) => raise("NYI check predicate")
