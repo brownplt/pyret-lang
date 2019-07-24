@@ -12,6 +12,8 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
+type Expr = A.Expr
+type Loc = SL.Srcloc
 flat-prim-app = A.prim-app-info-c(false)
 
 type CList = CL.ConcatList
@@ -109,7 +111,12 @@ data CheckDesugarResult:
   | predicate-result(predicate)
 end
 
-fun desugar-s-check-test(l, check-op, refinement, left, right):
+fun desugar-s-check-test(l :: Loc, 
+                         check-op :: A.CheckOp, 
+                         refinement :: Option<Expr>, 
+                         left :: Expr, 
+                         right :: Option<Expr>, 
+                         cause :: Option<Expr>):
   result = cases(A.CheckOp) check-op:
     | s-op-is(_) => binop-result("op==", false)
     | s-op-is-not(_) => binop-result("op==", true)

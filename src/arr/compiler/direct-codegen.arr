@@ -14,6 +14,8 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
+type Expr = A.Expr
+
 flat-prim-app = A.prim-app-info-c(false)
 
 type Ann = A.Ann
@@ -725,7 +727,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
-    | s-check(l, name, body, keyword-check) => 
+    | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) => 
 
       { check-block-val; check-block-stmts } = compile-expr(context, body)
       # TODO(alex): insert test scaffolding here
@@ -733,7 +735,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # TODO(alex): check block returns?
 
       { j-undefined; cl-append(check-block-stmts, cl-sing(j-expr(check-block-val))) }
-    | s-check-test(l, op, refinement, left, right) =>
+    | s-check-test(l :: Loc, 
+                   op :: A.CheckOp, 
+                   refinement :: Option<Expr>, 
+                   left :: Expr, 
+                   right :: Option<Expr>, 
+                   cause :: Option<Expr>) =>
       desugared-test = DH.desugar-s-check-test(l, op, refinement, left, right)
 
       # TODO(alex): insert test scaffolding here?
