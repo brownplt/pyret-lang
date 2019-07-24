@@ -12,7 +12,7 @@ my-table = table: a, b, c
   row: 7, 8, 9
 end
 
-my-select-table = select a, c my-table end
+my-select-table = select a, c from my-table end
 
 my-correct-select-table = table: a, c
   row: 1, 3
