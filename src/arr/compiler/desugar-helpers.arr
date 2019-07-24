@@ -78,6 +78,11 @@ j-for = J.j-for
 j-raw-code = J.j-raw-code
 
 
+data DesugarResult:
+  | pyret(ast)
+  | js(ast)
+end
+
 fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr):
   # Split binds and their values
   { binds; args } = for fold({ bl; el } from { empty; empty }, fb from bindings):
@@ -105,7 +110,7 @@ fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann
          )
 end
 
-data CheckDesugarResult:
+data CheckDesugarResultInternal:
   | binop-result(op, negate)
   | refinement-result(refinement, negate)
   | predicate-result(predicate)
@@ -116,19 +121,19 @@ fun desugar-s-check-test(l :: Loc,
                          refinement :: Option<Expr>, 
                          left :: Expr, 
                          right :: Option<Expr>, 
-                         cause :: Option<Expr>):
+                         cause :: Option<Expr>) -> DesugarResult:
   result = cases(A.CheckOp) check-op:
     | s-op-is(_) => binop-result("op==", false)
     | s-op-is-not(_) => binop-result("op==", true)
     | else => raise("NYI check op ID")
   end
 
-  cases(CheckDesugarResult) result:
+  cases(CheckDesugarResultInternal) result:
     | binop-result(op, negate) =>
       if negate:
         raise("NYI check op negation")
       else:
-        A.s-op(l, l, op, left, right)
+        pyret(A.s-op(l, l, op, left, right))
       end
     | refinement-result(the-refinement, negate) => raise("NYI check refinement")
     | predicate-result(predicate) => raise("NYI check predicate")
