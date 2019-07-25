@@ -667,7 +667,7 @@ fun gen-tuple-bind(context, fields, as-name, value):
 end
 
 
-fun node-prelude(prog, provides, env, options) block:
+fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   runtime-builtin-relative-path = options.runtime-builtin-relative-path
   fun get-base-dir( source, build-dir ):
     source-head = ask:
@@ -745,14 +745,35 @@ fun node-prelude(prog, provides, env, options) block:
   global-names = AU.get-globals(prog)
   uri-to-local-js-name = [D.mutable-string-dict:]
 
-  # manually emit global import
-  global-import = J.j-var(GLOBAL, 
-                          j-app(j-id(const-id("require")), 
-                                [clist: j-str( relative-path + runtime-builtin-relative-path + "global.arr.js")]))
+  fun import-builtin(name :: String):
+    J.j-var(GLOBAL, 
+            j-app(j-id(const-id("require")), 
+                  [clist: 
+                    j-str( relative-path + runtime-builtin-relative-path + name)]))
+  end
+
+  global-import = import-builtin("global.arr.js")
 
   nothing-import = J.j-var(NOTHING, j-undefined)
 
+  table-import = import-builtin("table.arr.js")
+  reactor-import = import-builtin("reactor.arr.js")
+
+  # Always emit global import
   manual-imports = [clist: global-import, nothing-import]
+
+  shadow manual-imports = if import-flags.table-import:
+    cl-append(manual-imports, cl-sing(table-import))
+  else:
+    manual-imports
+  end
+  shadow manual-imports = if import-flags.reactor-import:
+    # TODO(alex): Implement reactor.arr.js
+    # cl-append(manual-imports, cl-sing(reactor-import))
+    raise("reactor.arr.js NYI")
+  else:
+    manual-imports
+  end
 
   # We create a JS require() statement for each import in the Pyret program
   # and bind it to a unique name. dep-to-local-js-names helps us look
@@ -822,7 +843,7 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
     post-env: post-env,
   }, prog.block)
 
-  prelude = node-prelude(prog, provides, env, options)
+  prelude = create-prelude(prog, provides, env, options, import-flags)
 
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
   module-body = J.j-block(prelude + stmts + [clist: j-return(ans)])
