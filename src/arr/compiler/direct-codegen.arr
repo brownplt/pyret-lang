@@ -756,6 +756,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
 
   nothing-import = J.j-var(NOTHING, j-undefined)
 
+  array-import = import-builtin("array.arr.js")
   table-import = import-builtin("table.arr.js")
   reactor-import = import-builtin("reactor.arr.js")
 
@@ -771,6 +772,13 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
     # TODO(alex): Implement reactor.arr.js
     # cl-append(manual-imports, cl-sing(reactor-import))
     raise("reactor.arr.js NYI")
+  else:
+    manual-imports
+  end
+  shadow manual-imports = if import-flags.array-import:
+    # TODO(alex): Implement reactor.arr.js
+    # cl-append(manual-imports, cl-sing(reactor-import))
+    raise("array.arr.js NYI")
   else:
     manual-imports
   end
