@@ -8,7 +8,7 @@
       "_selectColumns": ["arrow", ["Any", "Any"], ["local", "Table"] ]
     },
     "aliases": {
-      "Table": "Table"
+      "Table": ["local", "Table"]
     },
     "datatypes": {
       "Table": ["data", "Table", [], [], {}]
