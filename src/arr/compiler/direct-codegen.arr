@@ -102,10 +102,10 @@ end
 type Loc = SL.Srcloc
 
 default-import-flags = {
+  array-import: false,
+  number-import: false,
   reactor-import: false,
   table-import: false,
-  spy-import: false,
-  number-import: false,
 }
 
 # Update by 'import-flags := import-flags.{ flags to change here }'
