@@ -50,6 +50,7 @@ build/release
 build/phaseA/program-require.js
 build/phaseA/program.js
 build/bundled-node-deps.js
+build/runtime
 deps/closure-compiler
 node_modules/
 *#
