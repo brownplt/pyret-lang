@@ -629,7 +629,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
 
-      func = j-bracket(j-id(GLOBAL), j-str("_makeTable"))
+      func = j-bracket(j-id(TABLE), j-str("_makeTable"))
 
       js-headers = for fold(the-list from cl-empty, h from headers):
 	      cl-append( the-list, cl-sing( j-str(h.name) ) )
@@ -664,7 +664,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
 
-      func = j-bracket(j-id(GLOBAL), j-str("_selectColumns"))
+      func = j-bracket(j-id(TABLE), j-str("_selectColumns"))
      
       js-columns = for fold(the-list from cl-empty, c from columns):
 	      cl-append( the-list, cl-sing( j-str(c.toname()) ) )
@@ -718,7 +718,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       block-row-element-stmts :: CList<JStmt> =
         # generate the `var index = _tableGetColumnIndex(myTable, "b");` lines.
         for fold(stmts from cl-empty, bind from column-binds.binds):
-        app-func :: JExpr = j-bracket(j-id(GLOBAL), j-str("_tableGetColumnIndex"))
+        app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
         app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(bind.id.toname())))
 
         # generate the `var b = row[index];` lines.
@@ -740,7 +740,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       fun-body :: JBlock = j-block(block-stmts)
       filter-fun :: JExpr = j-fun(fun-id, fun-name, fun-args, fun-body)
 
-      app-func :: JExpr = j-bracket(j-id(GLOBAL), j-str("_tableFilter"))
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableFilter"))
       app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(filter-fun))
       apply :: JExpr = j-app(app-func, app-args)
 
