@@ -128,10 +128,10 @@ define("pyret-base/js/js-numbers", function() {
       }
 
       if (typeof(x) === 'number') {
-        x = liftFixnumInteger(x, y);
+        x = liftFixnumInteger(x, y, errbacks);
       }
       if (typeof(y) === 'number') {
-        y = liftFixnumInteger(y, x);
+        y = liftFixnumInteger(y, x, errbacks);
       }
 
       if (x instanceof Roughnum) {
@@ -177,7 +177,7 @@ define("pyret-base/js/js-numbers", function() {
       if (match) {
         var afterDecimal = parseInt(match[2]);
         var factorToInt = Math.pow(10, match[2].length);
-        var extraFactor = _integerGcd(factorToInt, afterDecimal);
+        var extraFactor = _integerGcd(factorToInt, afterDecimal, errbacks);
         var multFactor = factorToInt / extraFactor;
         return Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
       } else {
@@ -304,10 +304,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   // toFixnum: pyretnum -> javascript-number
-  var toFixnum = function(n) {
+  var toFixnum = function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
-    return n.toFixnum();
+    return n.toFixnum(errbacks);
   };
 
   // toRational: pyretnum -> pyretnum
@@ -337,7 +337,7 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       sum = x + y;
       if (isOverflow(sum)) {
-        return (makeBignum(x)).add(makeBignum(y));
+        return (makeBignum(x)).add(makeBignum(y), errbacks);
       }
       else {
         return sum;
@@ -350,19 +350,19 @@ define("pyret-base/js/js-numbers", function() {
     function(x, y, errbacks) {
       var sum = x + y;
       if (isOverflow(sum)) {
-        return (makeBignum(x)).add(makeBignum(y));
+        return (makeBignum(x)).add(makeBignum(y), errbacks);
       } else {
         return sum;
       }
     },
     function(x, y, errbacks) {
-      return x.add(y);
+      return x.add(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
-      return isInteger(x) && _integerIsZero(x) },
+      return isInteger(x) && _integerIsZero(x, errbacks) },
      onXSpecialCase: function(x, y, errbacks) { return y; },
      isYSpecialCase: function(y, errbacks) {
-       return isInteger(y) && _integerIsZero(y) },
+       return isInteger(y) && _integerIsZero(y, errbacks) },
      onYSpecialCase: function(x, y, errbacks) { return x; }
     });
 
@@ -370,7 +370,7 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       var diff = x - y;
       if (isOverflow(diff)) {
-        return (makeBignum(x)).subtract(makeBignum(y));
+        return (makeBignum(x)).subtract(makeBignum(y), errbacks);
       } else {
         return diff;
       }
@@ -383,19 +383,19 @@ define("pyret-base/js/js-numbers", function() {
     function(x, y, errbacks) {
       var diff = x - y;
       if (isOverflow(diff)) {
-        return (makeBignum(x)).subtract(makeBignum(y));
+        return (makeBignum(x)).subtract(makeBignum(y), errbacks);
       } else {
         return diff;
       }
     },
     function(x, y, errbacks) {
-      return x.subtract(y);
+      return x.subtract(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
-      return isInteger(x) && _integerIsZero(x) },
+      return isInteger(x) && _integerIsZero(x, errbacks) },
      onXSpecialCase: function(x, y, errbacks) { return negate(y, errbacks); },
      isYSpecialCase: function(y, errbacks) {
-       return isInteger(y) && _integerIsZero(y) },
+       return isInteger(y) && _integerIsZero(y, errbacks) },
      onYSpecialCase: function(x, y, errbacks) { return x; }
     });
 
@@ -405,7 +405,7 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       prod = x * y;
       if (isOverflow(prod)) {
-        return (makeBignum(x)).multiply(makeBignum(y));
+        return (makeBignum(x)).multiply(makeBignum(y), errbacks);
       } else {
         return prod;
       }
@@ -426,24 +426,24 @@ define("pyret-base/js/js-numbers", function() {
     },
     {isXSpecialCase: function(x, errbacks) {
       return (isInteger(x) &&
-              (_integerIsZero(x) || _integerIsOne(x) || _integerIsNegativeOne(x))) },
+              (_integerIsZero(x, errbacks) || _integerIsOne(x, errbacks) || _integerIsNegativeOne(x, errbacks))) },
      onXSpecialCase: function(x, y, errbacks) {
-       if (_integerIsZero(x))
+       if (_integerIsZero(x, errbacks))
          return 0;
-       if (_integerIsOne(x))
+       if (_integerIsOne(x, errbacks))
          return y;
-       if (_integerIsNegativeOne(x))
+       if (_integerIsNegativeOne(x, errbacks))
          return negate(y, errbacks);
      },
      isYSpecialCase: function(y, errbacks) {
        return (isInteger(y) &&
-               (_integerIsZero(y) || _integerIsOne(y) || _integerIsNegativeOne(y)))},
+               (_integerIsZero(y, errbacks) || _integerIsOne(y, errbacks) || _integerIsNegativeOne(y, errbacks)))},
      onYSpecialCase: function(x, y, errbacks) {
-       if (_integerIsZero(y))
+       if (_integerIsZero(y, errbacks))
          return 0;
-       if (_integerIsOne(y))
+       if (_integerIsOne(y, errbacks))
          return x;
-       if (_integerIsNegativeOne(y))
+       if (_integerIsNegativeOne(y, errbacks))
          return negate(x, errbacks);
      }
     });
@@ -451,7 +451,7 @@ define("pyret-base/js/js-numbers", function() {
   // divide: pyretnum pyretnum -> pyretnum
   var divide = makeNumericBinop(
     function(x, y, errbacks) {
-      if (_integerIsZero(y))
+      if (_integerIsZero(y, errbacks))
         errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
       var div = x / y;
       if (isOverflow(div)) {
@@ -698,7 +698,7 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwDomainError('modulo: the second argument '
                                 + n + " is not an integer.", m, n);
     }
-    if (_integerIsZero(n)) {
+    if (_integerIsZero(n, errbacks)) {
       errbacks.throwDomainError('modulo: the second argument is zero');
     }
     var result;
@@ -716,7 +716,7 @@ define("pyret-base/js/js-numbers", function() {
           return result;
       }
     }
-    result = _integerModulo(floor(m), floor(n));
+    result = _integerModulo(floor(m, errbacks), floor(n, errbacks), errbacks);
     // The sign of the result should match the sign of n.
     if (lessThan(n, 0, errbacks)) {
       if (lessThanOrEqual(result, 0, errbacks)) {
@@ -736,14 +736,14 @@ define("pyret-base/js/js-numbers", function() {
   var numerator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
-    return n.numerator();
+    return n.numerator(errbacks);
   };
 
   // denominator: pyretnum -> pyretnum
   var denominator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return 1;
-    return n.denominator();
+    return n.denominator(errbacks);
   };
 
   // sqrt: pyretnum -> pyretnum
@@ -935,10 +935,10 @@ define("pyret-base/js/js-numbers", function() {
         errbacks.throwDomainError('gcd: the argument ' + b.toString() +
                                   " is not an integer.", b);
       }
-      while (! _integerIsZero(b)) {
+      while (! _integerIsZero(b, errbacks)) {
         t = a;
         a = b;
-        b = _integerModulo(t, b);
+        b = _integerModulo(t, b, errbacks);
       }
     }
     return a;
@@ -951,14 +951,14 @@ define("pyret-base/js/js-numbers", function() {
                                 " is not an integer.", first);
     }
     var result = abs(first, errbacks);
-    if (_integerIsZero(result)) { return 0; }
+    if (_integerIsZero(result, errbacks)) { return 0; }
     for (var i = 0; i < rest.length; i++) {
       if (! isInteger(rest[i])) {
         errbacks.throwDomainError('lcm: the argument ' + rest[i].toString() +
                                   " is not an integer.", rest[i]);
       }
-      var divisor = _integerGcd(result, rest[i]);
-      if (_integerIsZero(divisor)) {
+      var divisor = _integerGcd(result, rest[i], errbacks);
+      if (_integerIsZero(divisor, errbacks)) {
         return 0;
       }
       result = divide(multiply(result, rest[i], errbacks), divisor, errbacks);
@@ -975,21 +975,21 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwDomainError('quotient: the second argument ' + y.toString() +
                                 " is not an integer.", y);
     }
-    return _integerQuotient(x, y);
+    return _integerQuotient(x, y, errbacks);
   };
 
   var remainder = function(x, y, errbacks) {
     if (isInteger(x) && isInteger(y)) {
-      return _integerRemainder(x, y);
+      return _integerRemainder(x, y, errbacks);
     } else if (isRational(x) && isRational(y)) {
-      var xn = numerator(x); var xd = denominator(x);
-      var yn = numerator(y); var yd = denominator(y);
+      var xn = numerator(x, errbacks); var xd = denominator(x, errbacks);
+      var yn = numerator(y, errbacks); var yd = denominator(y, errbacks);
       var new_d = lcm(xd, [yd], errbacks);
       var new_xn = multiply(xn, divide(new_d, xd, errbacks), errbacks);
       var new_yn = multiply(yn, divide(new_d, yd, errbacks), errbacks);
       return divide(remainder(new_xn, new_yn, errbacks), new_d, errbacks);
     } else {
-      var res = toFixnum(x) % toFixnum(y);
+      var res = toFixnum(x, errbacks) % toFixnum(y, errbacks);
       return Roughnum.makeInstance(res, errbacks);
     }
   };
@@ -1027,7 +1027,7 @@ define("pyret-base/js/js-numbers", function() {
   var fastExpt = function(n, k, errbacks) {
     var acc = 1;
     while (true) {
-      if (_integerIsZero(k)) {
+      if (_integerIsZero(k, errbacks)) {
         return acc;
       }
       if (equals(modulo(k, 2, errbacks), 0, errbacks)) {
@@ -1054,13 +1054,13 @@ define("pyret-base/js/js-numbers", function() {
   // common type before doing an operation.
   var makeIntegerBinop = function(onFixnums, onBignums, options) {
     options = options || {};
-    return (function(m, n) {
+    return (function(m, n, errbacks) {
       if (m instanceof Rational) {
-        m = numerator(m);
+        m = numerator(m, errbacks);
       }
 
       if (n instanceof Rational) {
-        n = numerator(n);
+        n = numerator(n, errbacks);
       }
 
       if (typeof(m) === 'number' && typeof(n) === 'number') {
@@ -1072,7 +1072,7 @@ define("pyret-base/js/js-numbers", function() {
       }
       if (m instanceof Roughnum || n instanceof Roughnum) {
         return Roughnum.makeInstance(
-          onFixnums(toFixnum(m), toFixnum(n)), errbacks);
+          onFixnums(toFixnum(m, errbacks), toFixnum(n, errbacks)), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
@@ -1084,27 +1084,27 @@ define("pyret-base/js/js-numbers", function() {
     });
   };
 
-  var makeIntegerUnOp = function(onFixnums, onBignums, options, errbacks) {
+  var makeIntegerUnOp = function(onFixnums, onBignums, options) {
     options = options || {};
-    return (function(m) {
+    return (function(m, errbacks) {
       if (m instanceof Rational) {
-        m = numerator(m);
+        m = numerator(m, errbacks);
       }
 
       if (typeof(m) === 'number') {
-        var result = onFixnums(m);
+        var result = onFixnums(m, errbacks);
         if (! isOverflow(result) ||
             (options.ignoreOverflow)) {
           return result;
         }
       }
       if (m instanceof Roughnum) {
-        return Roughnum.makeInstance(onFixnums(toFixnum(m)), errbacks);
+        return Roughnum.makeInstance(onFixnums(toFixnum(m, errbacks)), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
       }
-      return onBignums(m);
+      return onBignums(m, errbacks);
     });
   };
 
@@ -1439,18 +1439,18 @@ define("pyret-base/js/js-numbers", function() {
 
     if (d === undefined) { d = 1; }
 
-    if (_integerLessThan(d, 0)) {
+    if (_integerLessThan(d, 0, errbacks)) {
       n = negate(n, errbacks);
       d = negate(d, errbacks);
     }
 
-    var divisor = _integerGcd(abs(n, errbacks), abs(d, errbacks));
-    n = _integerQuotient(n, divisor);
-    d = _integerQuotient(d, divisor);
+    var divisor = _integerGcd(abs(n, errbacks), abs(d, errbacks), errbacks);
+    n = _integerQuotient(n, divisor, errbacks);
+    d = _integerQuotient(d, divisor, errbacks);
 
     // Optimization: if we can get around construction the rational
     // in favor of just returning n, do it:
-    if (_integerIsOne(d) || _integerIsZero(n)) {
+    if (_integerIsOne(d, errbacks) || _integerIsZero(n, errbacks)) {
       return n;
     }
 
@@ -1471,8 +1471,8 @@ define("pyret-base/js/js-numbers", function() {
 
   Rational.prototype.equals = function(other, errbacks) {
     return (other instanceof Rational &&
-            _integerEquals(this.n, other.n) &&
-            _integerEquals(this.d, other.d));
+            _integerEquals(this.n, other.n, errbacks) &&
+            _integerEquals(this.d, other.d, errbacks));
   };
 
   Rational.prototype.isInteger = function() {
@@ -1511,15 +1511,15 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.add = function(other, errbacks) {
-    return Rational.makeInstance(_integerAdd(_integerMultiply(this.n, other.d),
-                                             _integerMultiply(this.d, other.n)),
-                                 _integerMultiply(this.d, other.d), errbacks);
+    return Rational.makeInstance(_integerAdd(_integerMultiply(this.n, other.d, errbacks),
+                                             _integerMultiply(this.d, other.n, errbacks), errbacks),
+                                 _integerMultiply(this.d, other.d, errbacks), errbacks);
   };
 
   Rational.prototype.subtract = function(other, errbacks) {
-    return Rational.makeInstance(_integerSubtract(_integerMultiply(this.n, other.d),
-                                                  _integerMultiply(this.d, other.n)),
-                                 _integerMultiply(this.d, other.d), errbacks);
+    return Rational.makeInstance(_integerSubtract(_integerMultiply(this.n, other.d, errbacks),
+                                                  _integerMultiply(this.d, other.n, errbacks), errbacks),
+                                 _integerMultiply(this.d, other.d, errbacks), errbacks);
   };
 
   Rational.prototype.negate = function(errbacks) {
@@ -1527,16 +1527,16 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.multiply = function(other, errbacks) {
-    return Rational.makeInstance(_integerMultiply(this.n, other.n),
-                                 _integerMultiply(this.d, other.d), errbacks);
+    return Rational.makeInstance(_integerMultiply(this.n, other.n, errbacks),
+                                 _integerMultiply(this.d, other.d, errbacks), errbacks);
   };
 
   Rational.prototype.divide = function(other, errbacks) {
-    if (_integerIsZero(this.d) || _integerIsZero(other.n)) {  // dead code!
+    if (_integerIsZero(this.d, errbacks) || _integerIsZero(other.n, errbacks)) {  // dead code!
       errbacks.throwDivByZero("/: division by zero", this, other);
     }
-    return Rational.makeInstance(_integerMultiply(this.n, other.d),
-                                 _integerMultiply(this.d, other.n), errbacks);
+    return Rational.makeInstance(_integerMultiply(this.n, other.d, errbacks),
+                                 _integerMultiply(this.d, other.n, errbacks), errbacks);
   };
 
   Rational.prototype.toRational = function() {
@@ -1546,53 +1546,53 @@ define("pyret-base/js/js-numbers", function() {
   Rational.prototype.toExact = Rational.prototype.toRational;
 
 
-  Rational.prototype.toFixnum = function() {
-    return _integerDivideToFixnum(this.n, this.d);
+  Rational.prototype.toFixnum = function(errbacks) {
+    return _integerDivideToFixnum(this.n, this.d, errbacks);
   };
 
   Rational.prototype.toRoughnum = function(errbacks) {
-    return Roughnum.makeInstance(this.toFixnum(), errbacks);
+    return Roughnum.makeInstance(this.toFixnum(errbacks), errbacks);
   };
 
-  Rational.prototype.numerator = function() {
+  Rational.prototype.numerator = function(errbacks) {
     return this.n;
   };
 
-  Rational.prototype.denominator = function() {
+  Rational.prototype.denominator = function(errbacks) {
     return this.d;
   };
 
   Rational.prototype.greaterThan = function(other, errbacks) {
-    return _integerGreaterThan(_integerMultiply(this.n, other.d),
-                               _integerMultiply(this.d, other.n));
+    return _integerGreaterThan(_integerMultiply(this.n, other.d, errbacks),
+                               _integerMultiply(this.d, other.n, errbacks), errbacks);
   };
 
   Rational.prototype.greaterThanOrEqual = function(other, errbacks) {
-    return _integerGreaterThanOrEqual(_integerMultiply(this.n, other.d),
-                                      _integerMultiply(this.d, other.n));
+    return _integerGreaterThanOrEqual(_integerMultiply(this.n, other.d, errbacks),
+                                      _integerMultiply(this.d, other.n, errbacks), errbacks);
   };
 
   Rational.prototype.lessThan = function(other, errbacks) {
-    return _integerLessThan(_integerMultiply(this.n, other.d),
-                            _integerMultiply(this.d, other.n));
+    return _integerLessThan(_integerMultiply(this.n, other.d, errbacks),
+                            _integerMultiply(this.d, other.n, errbacks), errbacks);
   };
 
   Rational.prototype.lessThanOrEqual = function(other, errbacks) {
-    return _integerLessThanOrEqual(_integerMultiply(this.n, other.d),
-                                   _integerMultiply(this.d, other.n));
+    return _integerLessThanOrEqual(_integerMultiply(this.n, other.d, errbacks),
+                                   _integerMultiply(this.d, other.n, errbacks), errbacks);
   };
 
   Rational.prototype.integerSqrt = function(errbacks) {
-    var result = sqrt(this);
+    var result = sqrt(this, errbacks);
     return toRational(floor(result, errbacks), errbacks);
   };
 
   Rational.prototype.sqrt = function(errbacks) {
-    var newN = sqrt(this.n);
-    var newD = sqrt(this.d);
+    var newN = sqrt(this.n, errbacks);
+    var newD = sqrt(this.d, errbacks);
     if (isRational(newN) && isRational(newD) &&
-        equals(floor(newN), newN) &&
-        equals(floor(newD), newD)) {
+        equals(floor(newN, errbacks), newN, errbacks) &&
+        equals(floor(newD, errbacks), newD, errbacks)) {
       return Rational.makeInstance(newN, newD, errbacks);
     } else {
       return divide(newN, newD, errbacks);
@@ -1605,8 +1605,8 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.floor = function(errbacks) {
-    var quotient = _integerQuotient(this.n, this.d);
-    if (_integerLessThan(this.n, 0)) {
+    var quotient = _integerQuotient(this.n, this.d, errbacks);
+    if (_integerLessThan(this.n, 0, errbacks)) {
       return subtract(quotient, 1, errbacks);
     } else {
       return quotient;
@@ -1614,8 +1614,8 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.ceiling = function(errbacks) {
-    var quotient = _integerQuotient(this.n, this.d);
-    if (_integerLessThan(this.n, 0)) {
+    var quotient = _integerQuotient(this.n, this.d, errbacks);
+    if (_integerLessThan(this.n, 0, errbacks)) {
       return quotient;
     } else {
       return add(quotient, 1, errbacks);
@@ -1623,20 +1623,20 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.round = function(errbacks) {
-    var halfintp = equals(this.d, 2);
-    var negativep = _integerLessThan(this.n, 0);
+    var halfintp = equals(this.d, 2, errbacks);
+    var negativep = _integerLessThan(this.n, 0, errbacks);
     var n = this.n;
     if (negativep) {
       n = negate(n, errbacks);
     }
-    var quo = _integerQuotient(n, this.d);
+    var quo = _integerQuotient(n, this.d, errbacks);
     if (halfintp) {
       // rounding half to away from 0
       // uncomment following if rounding half to even
-      // if (_integerIsOne(_integerModulo(quo, 2)))
+      // if (_integerIsOne(_integerModulo(quo, 2, errbacks)))
       quo = add(quo, 1, errbacks);
     } else {
-      var rem = _integerRemainder(n, this.d);
+      var rem = _integerRemainder(n, this.d, errbacks);
       if (greaterThan(multiply(rem, 2, errbacks), this.d, errbacks)) {
         quo = add(quo, 1, errbacks);
       }
@@ -1650,15 +1650,15 @@ define("pyret-base/js/js-numbers", function() {
   Rational.prototype.roundEven = function(errbacks) {
     // rounds half-integers to even
     var halfintp = equals(this.d, 2, errbacks);
-    var negativep = _integerLessThan(this.n, 0);
+    var negativep = _integerLessThan(this.n, 0, errbacks);
     var n = this.n;
     if (negativep) n = negate(n, errbacks);
-    var quo = _integerQuotient(n, this.d);
+    var quo = _integerQuotient(n, this.d, errbacks);
     if (halfintp) {
-      if (_integerIsOne(_integerModulo(quo, 2)))
+      if (_integerIsOne(_integerModulo(quo, 2, errbacks)))
         quo = add(quo, 1, errbacks);
     } else {
-      var rem = _integerRemainder(n, this.d);
+      var rem = _integerRemainder(n, this.d, errbacks);
       if (greaterThan(multiply(rem, 2, errbacks), this.d, errbacks))
         quo = add(quo, 1, errbacks);
     }
@@ -1667,23 +1667,23 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.log = function(errbacks){
-    return Roughnum.makeInstance(Math.log(this.toFixnum()), errbacks);
+    return Roughnum.makeInstance(Math.log(this.toFixnum(errbacks)), errbacks);
   };
 
   Rational.prototype.tan = function(errbacks){
-    return Roughnum.makeInstance(Math.tan(this.toFixnum()), errbacks);
+    return Roughnum.makeInstance(Math.tan(this.toFixnum(errbacks)), errbacks);
   };
 
   Rational.prototype.atan = function(errbacks){
-    return Roughnum.makeInstance(Math.atan(this.toFixnum()), errbacks);
+    return Roughnum.makeInstance(Math.atan(this.toFixnum(errbacks)), errbacks);
   };
 
   Rational.prototype.cos = function(errbacks){
-    return Roughnum.makeInstance(Math.cos(this.toFixnum()), errbacks);
+    return Roughnum.makeInstance(Math.cos(this.toFixnum(errbacks)), errbacks);
   };
 
   Rational.prototype.sin = function(errbacks){
-    return Roughnum.makeInstance(Math.sin(this.toFixnum()), errbacks);
+    return Roughnum.makeInstance(Math.sin(this.toFixnum(errbacks)), errbacks);
   };
 
   var integerNthRoot = function(n, m, errbacks) {
@@ -1710,33 +1710,33 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var nthRoot = function(n, m, errbacks) {
-    var mNeg = (sign(m) < 0);
+    var mNeg = (sign(m, errbacks) < 0);
     var mAbs = (mNeg ? abs(m, errbacks) : m);
     var approx;
 
-    if (mNeg && _integerModulo(n, 2) === 0)
+    if (mNeg && _integerModulo(n, 2, errbacks) === 0)
       errbacks.throwDomainError('expt: taking even (' + n + ') root of negative integer ' + m);
 
     approx = integerNthRoot(n, mAbs, errbacks);
     if (mNeg) approx = negate(approx, errbacks);
     if (eqv(expt(approx, n, errbacks), m, errbacks)) return approx;
 
-    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs),
-                                            toFixnum(divide(1,n, errbacks))), errbacks);
+    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs, errbacks),
+                                            toFixnum(divide(1,n, errbacks), errbacks)), errbacks);
     return (mNeg ? negate(approx, errbacks) : approx);
   };
 
   Rational.prototype.expt = function(a, errbacks) {
     if (isInteger(a) && greaterThanOrEqual(a, 0, errbacks)) {
       return fastExpt(this, a, errbacks);
-    } else if (_integerLessThanOrEqual(a.d, 8)) {
+    } else if (_integerLessThanOrEqual(a.d, 8, errbacks)) {
       var nRaisedToAn = expt(this.n, a.n, errbacks);
       var dRaisedToAn = expt(this.d, a.n, errbacks);
       var newN = nthRoot(a.d, nRaisedToAn, errbacks);
       var newD = nthRoot(a.d, dRaisedToAn, errbacks);
       if (isRational(newN) && isRational(newD) &&
-          equals(floor(newN), newN, errbacks) &&
-          equals(floor(newD), newD, errbacks)) {
+          equals(floor(newN, errbacks), newN, errbacks) &&
+          equals(floor(newD, errbacks), newD, errbacks)) {
         return Rational.makeInstance(newN, newD, errbacks);
       } else {
         return divide(newN, newD, errbacks);
@@ -1744,23 +1744,23 @@ define("pyret-base/js/js-numbers", function() {
     } else {
       if (this.isNegative() && !a.isInteger())
         errbacks.throwDomainError('expt: raising negative number ' + this + ' to nonintegral power ' + a);
-      return Roughnum.makeInstance(Math.pow(this.toFixnum(), a.toFixnum()), errbacks);
+      return Roughnum.makeInstance(Math.pow(this.toFixnum(errbacks), a.toFixnum(errbacks)), errbacks);
     }
   };
 
   Rational.prototype.exp = function(errbacks){
-    var res = Math.exp(this.toFixnum());
+    var res = Math.exp(this.toFixnum(errbacks));
     if (!isFinite(res))
       errbacks.throwDomainError('exp: argument too large: ' + this);
     return Roughnum.makeInstance(res, errbacks);
   };
 
   Rational.prototype.acos = function(errbacks){
-    return acos(this.toFixnum(), errbacks);
+    return acos(this.toFixnum(errbacks), errbacks);
   };
 
   Rational.prototype.asin = function(errbacks){
-    return asin(this.toFixnum(), errbacks);
+    return asin(this.toFixnum(errbacks), errbacks);
   };
 
   // sign: Number -> {-1, 0, 1}
@@ -1867,7 +1867,7 @@ define("pyret-base/js/js-numbers", function() {
     return Roughnum.makeInstance(this.n / other.n, errbacks);
   };
 
-  Roughnum.prototype.toFixnum = function() {
+  Roughnum.prototype.toFixnum = function(errbacks) {
     return this.n;
   };
 
@@ -1875,13 +1875,13 @@ define("pyret-base/js/js-numbers", function() {
     return this;
   };
 
-  Roughnum.prototype.numerator = function() {
+  Roughnum.prototype.numerator = function(errbacks) {
     var stringRep = this.n.toString();
     var match = stringRep.match(/^(.*)\.(.*)$/);
     if (match) {
       var afterDecimal = parseInt(match[2]);
       var factorToInt = Math.pow(10, match[2].length);
-      var extraFactor = _integerGcd(factorToInt, afterDecimal);
+      var extraFactor = _integerGcd(factorToInt, afterDecimal, errbacks);
       var multFactor = factorToInt / extraFactor;
       return Roughnum.makeInstance( Math.round(this.n * multFactor) );
     } else {
@@ -1889,13 +1889,13 @@ define("pyret-base/js/js-numbers", function() {
     }
   };
 
-  Roughnum.prototype.denominator = function() {
+  Roughnum.prototype.denominator = function(errbacks) {
     var stringRep = this.n.toString();
     var match = stringRep.match(/^(.*)\.(.*)$/);
     if (match) {
       var afterDecimal = parseInt(match[2]);
       var factorToInt = Math.pow(10, match[2].length);
-      var extraFactor = _integerGcd(factorToInt, afterDecimal);
+      var extraFactor = _integerGcd(factorToInt, afterDecimal, errbacks);
       return Roughnum.makeInstance( Math.round(factorToInt/extraFactor) );
     } else {
       return Roughnum.makeInstance(1);
@@ -2075,16 +2075,16 @@ define("pyret-base/js/js-numbers", function() {
       }
 
       var finalDen = denominatorTen;
-      var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen), afterDecimal);
+      var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen, errbacks), afterDecimal, errbacks);
       if (negativeP) {
         finalNum = negate(finalNum, errbacks);
       }
       //
-      if (!equals(exponent, 1)) {
+      if (!equals(exponent, 1, errbacks)) {
         if (exponentNegativeP) {
-          finalDen = _integerMultiply(finalDen, exponent);
+          finalDen = _integerMultiply(finalDen, exponent, errbacks);
         } else {
-          finalNum = _integerMultiply(finalNum, exponent);
+          finalNum = _integerMultiply(finalNum, exponent, errbacks);
         }
       }
       return Rational.makeInstance(finalNum, finalDen, errbacks);
@@ -2092,7 +2092,7 @@ define("pyret-base/js/js-numbers", function() {
 
     aMatch = x.match(roughnumRatRegexp);
     if (aMatch) {
-      return toRoughnum(Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])),
+      return toRoughnum(Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2]), errbacks),
         errbacks);
     }
 
@@ -3651,7 +3651,7 @@ define("pyret-base/js/js-numbers", function() {
 
   BigInteger.prototype.toExact = BigInteger.prototype.toRational;
 
-  BigInteger.prototype.toFixnum = function() {
+  BigInteger.prototype.toFixnum = function(errbacks) {
     var a = splitIntIntoMantissaExpt(this);
     //console.log('bigint.tofixnum of', this);
     //console.log('split = ', a);
@@ -3661,7 +3661,7 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   BigInteger.prototype.toRoughnum = function(errbacks) {
-    return Roughnum.makeInstance(this.toFixnum(), errbacks);
+    return Roughnum.makeInstance(this.toFixnum(errbacks), errbacks);
   };
 
   BigInteger.prototype.greaterThan = function(other, errbacks) {
@@ -3693,11 +3693,11 @@ define("pyret-base/js/js-numbers", function() {
     }
   };
 
-  BigInteger.prototype.numerator = function() {
+  BigInteger.prototype.numerator = function(errbacks) {
     return this;
   };
 
-  BigInteger.prototype.denominator = function() {
+  BigInteger.prototype.denominator = function(errbacks) {
     return 1;
   };
 
@@ -3718,7 +3718,7 @@ define("pyret-base/js/js-numbers", function() {
     // integerSqrt: -> pyretnum
     BigInteger.prototype.integerSqrt = function(errbacks) {
       var n;
-      if(sign(this) >= 0) {
+      if(sign(this, errbacks) >= 0) {
         return searchIter(this, this, errbacks);
       } else {
         errbacks.throwDomainError('integerSqrt of negative bignum ' + this);
@@ -3734,7 +3734,7 @@ define("pyret-base/js/js-numbers", function() {
       if (eqv(sqr(approx, errbacks), this, errbacks)) {
         return approx;
       }
-      fix = toFixnum(this);
+      fix = toFixnum(this, errbacks);
       if (isFinite(fix)) {
         return Roughnum.makeInstance(Math.sqrt(fix), errbacks);
       } else {
@@ -3761,42 +3761,42 @@ define("pyret-base/js/js-numbers", function() {
 
   // round: -> pyretnum
   // Round to the nearest integer.
-  BigInteger.prototype.round = function(n, errbacks) {
+  BigInteger.prototype.round = function(errbacks) {
     return this;
   };
 
-  BigInteger.prototype.roundEven = function(n, errbacks) {
+  BigInteger.prototype.roundEven = function(errbacks) {
     return this;
   };
 
   // log: -> pyretnum
   // Produce the log.
-  BigInteger.prototype.log = function(n, errbacks) {
-    return log(this.toFixnum(), errbacks);
+  BigInteger.prototype.log = function(errbacks) {
+    return log(this.toFixnum(errbacks), errbacks);
   };
 
   // tan: -> pyretnum
   // Produce the tan.
-  BigInteger.prototype.tan = function(n, errbacks) {
-    return tan(this.toFixnum(), errbacks);
+  BigInteger.prototype.tan = function(errbacks) {
+    return tan(this.toFixnum(errbacks), errbacks);
   };
 
   // atan: -> pyretnum
   // Produce the arc tangent.
-  BigInteger.prototype.atan = function(n, errbacks) {
-    return atan(this.toFixnum(), errbacks);
+  BigInteger.prototype.atan = function(errbacks) {
+    return atan(this.toFixnum(errbacks), errbacks);
   };
 
   // cos: -> pyretnum
   // Produce the cosine.
-  BigInteger.prototype.cos = function(n, errbacks) {
-    return cos(this.toFixnum(), errbacks);
+  BigInteger.prototype.cos = function(errbacks) {
+    return cos(this.toFixnum(errbacks), errbacks);
   };
 
   // sin: -> pyretnum
   // Produce the sine.
-  BigInteger.prototype.sin = function(n, errbacks) {
-    return sin(this.toFixnum(), errbacks);
+  BigInteger.prototype.sin = function(errbacks) {
+    return sin(this.toFixnum(errbacks), errbacks);
   };
 
   // expt: pyretnum -> pyretnum
@@ -3808,7 +3808,7 @@ define("pyret-base/js/js-numbers", function() {
   // exp: -> pyretnum
   // Produce e raised to the given power.
   BigInteger.prototype.exp = function(errbacks) {
-    var res = Math.exp(this.toFixnum());
+    var res = Math.exp(this.toFixnum(errbacks));
     if (!isFinite(res))
       errbacks.throwDomainError('exp: argument too large: ' + this);
     return Roughnum.makeInstance(res, errbacks);
@@ -3816,14 +3816,14 @@ define("pyret-base/js/js-numbers", function() {
 
   // acos: -> pyretnum
   // Produce the arc cosine.
-  BigInteger.prototype.acos = function(n, errbacks) {
-    return acos(this.toFixnum(), errbacks);
+  BigInteger.prototype.acos = function(errbacks) {
+    return acos(this.toFixnum(errbacks), errbacks);
   };
 
   // asin: -> pyretnum
   // Produce the arc sine.
-  BigInteger.prototype.asin = function(n, errbacks) {
-    return asin(this.toFixnum(), errbacks);
+  BigInteger.prototype.asin = function(errbacks) {
+    return asin(this.toFixnum(errbacks), errbacks);
   };
 
   //////////////////////////////////////////////////////////////////////
@@ -3872,7 +3872,7 @@ define("pyret-base/js/js-numbers", function() {
           multiply(r, 10, errbacks),
           d, errbacks);
         repeatingDigits.push(nextDigit.toString());
-        if (equals(nextRemainder, firstRepeatingRemainder)) {
+        if (equals(nextRemainder, firstRepeatingRemainder, errbacks)) {
           break;
         } else {
           r = nextRemainder;
@@ -3914,7 +3914,7 @@ define("pyret-base/js/js-numbers", function() {
       if (lessThan(d, 0, errbacks)) {
         errbacks.throwDomainError('toRepeatingDecimal: d < 0');
       }
-      var sign = (lessThan(n, 0) ? "-" : "");
+      var sign = (lessThan(n, 0, errbacks) ? "-" : "");
       n = abs(n, errbacks);
       var beforeDecimalPoint = sign + quotient(n, d, errbacks);
       var afterDecimals = getResidue(remainder(n, d, errbacks), d, limit, errbacks);
@@ -3938,7 +3938,7 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
     }
     var tenDigits = expt(10, digits, errbacks);
-    var d = toFixnum(digits);
+    var d = toFixnum(digits, errbacks);
     n = divide(round(multiply(n, tenDigits, errbacks), errbacks), tenDigits, errbacks);
     if (isInteger(n)) {
       var ans = n.toString();
@@ -3951,7 +3951,7 @@ define("pyret-base/js/js-numbers", function() {
       return ans;
     }
     // n is not an integer implies that d >= 1
-    var decimal = toRepeatingDecimal(n.numerator(), n.denominator(), undefined, errbacks);
+    var decimal = toRepeatingDecimal(n.numerator(errbacks), n.denominator(errbacks), undefined, errbacks);
     var ans = decimal[1].toString();
     while (ans.length < d) {
       ans += decimal[2];
