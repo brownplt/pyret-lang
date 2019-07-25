@@ -18,6 +18,8 @@ flat-prim-app = A.prim-app-info-c(false)
 
 type Name = A.Name
 type ColumnBinds = A.ColumnBinds
+type ColumnSort = A.ColumnSort
+type ColumnSortOrder = A.ColumnSortOrder
 type Expr = A.Expr
 
 type CList = CL.ConcatList
@@ -31,6 +33,7 @@ cl-snoc = CL.concat-snoc
 type JExpr = J.JExpr
 type JStmt = J.JStmt
 type JBlock = J.JBlock
+type JField = J.JField
 j-fun = J.j-fun
 j-var = J.j-var
 j-id = J.j-id
@@ -678,7 +681,73 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-app(func, args); js-table-stmts }
 
     | s-table-extract(l, column, table) => nyi("s-table-extract")
-    | s-table-order(l, table, ordering) => nyi("s-table-order")
+    | s-table-order(
+        l :: Loc,
+        table :: Any,
+        ordering :: List<ColumnSort>) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `order` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #   | my-table = table: name, age, favorite-color
+      #   |   row: "Bob", 12, "blue"
+      #   |   row: "Alice", 12, "green"
+      #   |   row: "Eve", 13, "red"
+      #   | end
+      #   |
+      # * | name-ordered = order my-table:
+      # * |   age descending,
+      # * |   name ascending
+      # * | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # * | var nameOrdered = _tableOrder(
+      # * |   myTable,
+      # * |   [{"column": "age", "direction": "descending"},
+      # * |    {"column": "name", "direction": "ascending"}]);
+      #
+      # The actual "ordering" work is done by _tableOrder at runtime.
+
+      {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
+        compile-expr(context, table)
+
+      ordering-list-elements :: CList<JExpr> =
+        for fold(elements from cl-empty, the-order from ordering):
+          the-order-column :: Name = the-order.column
+          the-order-direction :: ColumnSortOrder = the-order.direction
+
+          order-column-field :: JField =
+            j-field("column", j-str(the-order-column.toname()))
+          order-direction-field :: JField =
+            j-field(
+              "direction",
+              j-str(
+                cases (ColumnSortOrder) the-order-direction block:
+                  | ASCENDING => "ascending"
+                  | DESCENDING => "descending"
+                end))
+
+          order-fields :: CList<JField> =
+            cl-cons(order-column-field, cl-sing(order-direction-field))
+          order-obj :: JExpr = j-obj(order-fields)
+
+          cl-append(elements, cl-sing(order-obj))
+        end
+
+      ordering-list-expr :: JExpr = j-list(false, ordering-list-elements)
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableOrder"))
+      app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(ordering-list-expr))
+      apply :: JExpr = j-app(app-func, app-args)
+
+      return-expr :: JExpr = apply
+      return-stmts :: CList<JStmt> = table-stmts
+
+      { return-expr; return-stmts }
     | s-table-filter(
         l :: Loc,
         column-binds :: ColumnBinds,

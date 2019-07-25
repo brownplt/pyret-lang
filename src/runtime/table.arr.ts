@@ -71,6 +71,49 @@ function _tableGetColumnIndex(table, column_name) {
   throw "not a valid column";
 }
 
+// _tableOrder : Table -> List<{'column': String, 'direction': String} -> Table
+//   where in `'direction': x`, x can be either "ascending" or "descending".
+// Creates a Table that is like table, except that its rows are sorted according
+// to columnOrders. An element in columnOrders specifies a column name and an
+// ordering, either ascending or descending.
+function _tableOrder(table: any, columnOrders: any): any {
+  const headers = table["_headers-raw-array"];
+  const rows = table["_rows-raw-array"];
+
+  function ordering(a: any, b: any): number {
+    for (let i = 0; i < columnOrders.length; i++) {
+      const columnOrder = columnOrders[i];
+      const name = columnOrder["column"];
+      const order = columnOrder["direction"];
+      const index = _tableGetColumnIndex(table, name);
+      const elemA = a[index];
+      const elemB = b[index];
+
+      if (order === "ascending") {
+        if (elemA < elemB) {
+          return -1;
+        } else if (elemA > elemB) {
+          return 1;
+        }
+      } else if (order === "descending") {
+        if (elemA < elemB) {
+          return 1;
+        } else if (elemA > elemB) {
+          return -1;
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  // Array.prototype.sort() mutates the array it sorts, so we need to create a
+  // copy with Array.prototype.slice() first.
+  let sortedRows = rows.slice().sort(ordering);
+
+  return _makeTable(headers, sortedRows);
+}
+
 function _selectColumns(table, colnames) {
   //var colnamesList = ffi.toArray(colnames);
   // This line of code below relies on anchor built-in lists being js arrays
@@ -103,5 +146,6 @@ module.exports = {
   '_makeTable': _makeTable,
   '_tableFilter': _tableFilter,
   '_tableGetColumnIndex': _tableGetColumnIndex,
+  '_tableOrder': _tableOrder,
   '_selectColumns': _selectColumns
 };
