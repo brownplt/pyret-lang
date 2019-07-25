@@ -746,20 +746,20 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   global-names = AU.get-globals(prog)
   uri-to-local-js-name = [D.mutable-string-dict:]
 
-  fun import-builtin(name :: String):
-    J.j-var(GLOBAL, 
+  fun import-builtin(bind-name :: A.Name, name :: String):
+    J.j-var(bind-name, 
             j-app(j-id(const-id("require")), 
                   [clist: 
                     j-str( relative-path + runtime-builtin-relative-path + name)]))
   end
 
-  global-import = import-builtin("global.arr.js")
+  global-import = import-builtin(GLOBAL, "global.arr.js")
 
   nothing-import = J.j-var(NOTHING, j-undefined)
 
-  array-import = import-builtin("array.arr.js")
-  table-import = import-builtin("table.arr.js")
-  reactor-import = import-builtin("reactor.arr.js")
+  array-import = import-builtin(ARRAY, "array.arr.js")
+  table-import = import-builtin(TABLE, "table.arr.js")
+  reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import
   manual-imports = [clist: global-import, nothing-import]
