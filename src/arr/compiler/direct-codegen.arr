@@ -101,6 +101,16 @@ end
 
 type Loc = SL.Srcloc
 
+default-import-flags = {
+  array-import: false,
+  number-import: false,
+  reactor-import: false,
+  table-import: false,
+}
+
+# Update by 'import-flags := import-flags.{ flags to change here }'
+var import-flags = default-import-flags
+
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
 effective-ids = D.make-mutable-string-dict()
@@ -135,6 +145,11 @@ fun compiler-name(id):
 end
 
 GLOBAL = const-id("_global")
+ARRAY = const-id("_array")
+TABLE = const-id("_table")
+REACTOR = const-id("_reactor")
+SPY = const-id("_spy")
+NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
 RUNTIME = j-id(const-id("R"))
@@ -653,7 +668,7 @@ fun gen-tuple-bind(context, fields, as-name, value):
 end
 
 
-fun node-prelude(prog, provides, env, options) block:
+fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   runtime-builtin-relative-path = options.runtime-builtin-relative-path
   fun get-base-dir( source, build-dir ):
     source-head = ask:
@@ -731,14 +746,43 @@ fun node-prelude(prog, provides, env, options) block:
   global-names = AU.get-globals(prog)
   uri-to-local-js-name = [D.mutable-string-dict:]
 
-  # manually emit global import
-  global-import = J.j-var(GLOBAL, 
-                          j-app(j-id(const-id("require")), 
-                                [clist: j-str( relative-path + runtime-builtin-relative-path + "global.arr.js")]))
+  fun import-builtin(bind-name :: A.Name, name :: String):
+    J.j-var(bind-name, 
+            j-app(j-id(const-id("require")), 
+                  [clist: 
+                    j-str( relative-path + runtime-builtin-relative-path + name)]))
+  end
+
+  global-import = import-builtin(GLOBAL, "global.arr.js")
 
   nothing-import = J.j-var(NOTHING, j-undefined)
 
+  array-import = import-builtin(ARRAY, "array.arr.js")
+  table-import = import-builtin(TABLE, "table.arr.js")
+  reactor-import = import-builtin(REACTOR,"reactor.arr.js")
+
+  # Always emit global import
   manual-imports = [clist: global-import, nothing-import]
+
+  shadow manual-imports = if import-flags.table-import:
+    cl-append(manual-imports, cl-sing(table-import))
+  else:
+    manual-imports
+  end
+  shadow manual-imports = if import-flags.reactor-import:
+    # TODO(alex): Implement reactor.arr.js
+    # cl-append(manual-imports, cl-sing(reactor-import))
+    raise("reactor.arr.js NYI")
+  else:
+    manual-imports
+  end
+  shadow manual-imports = if import-flags.array-import:
+    # TODO(alex): Implement reactor.arr.js
+    # cl-append(manual-imports, cl-sing(reactor-import))
+    raise("array.arr.js NYI")
+  else:
+    manual-imports
+  end
 
   # We create a JS require() statement for each import in the Pyret program
   # and bind it to a unique name. dep-to-local-js-names helps us look
@@ -787,6 +831,9 @@ fun node-prelude(prog, provides, env, options) block:
 end
 
 fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) block:
+  # Reset import flags between compile-program calls
+  import-flags := default-import-flags
+
   # TODO(alex): Find out if a uri is actually required by AU.data-expr-to-datatype
 
   # Translate datatypes from Expr form to Type form in order to be useful for cases expressions
@@ -805,7 +852,7 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
     post-env: post-env,
   }, prog.block)
 
-  prelude = node-prelude(prog, provides, env, options)
+  prelude = create-prelude(prog, provides, env, options, import-flags)
 
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
   module-body = J.j-block(prelude + stmts + [clist: j-return(ans)])
