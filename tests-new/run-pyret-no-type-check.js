@@ -16,7 +16,7 @@ client.start({
     'type-check': false,
     'checks': 'none',
     'program': process.argv[2],
-    'builtin-js-dir': 'src/runtime',
+    'builtin-js-dir': 'build/runtime',
     'base-dir': path.resolve(path.join(__dirname, "/../"))
   }
 });
