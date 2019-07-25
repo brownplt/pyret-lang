@@ -4,6 +4,7 @@
 # Basic `table:` and `row:` syntax
 
 import global as g
+import table as t
 
 my-table = table: name :: String, age :: Number, favorite-color :: String
   row: "Bob", 12, "Blue"
