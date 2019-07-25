@@ -6,6 +6,7 @@
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
       "_tableOrder": ["arrow", ["Any", "Any"], ["local", "Table"]],
+      "_tableExtractColumn": ["arrow", ["Any", "Any"], "Any"],
       "_selectColumns": ["arrow", ["Any", "Any"], ["local", "Table"] ]
     },
     "aliases": {

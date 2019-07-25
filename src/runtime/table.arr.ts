@@ -1,3 +1,5 @@
+const List = require("./list.arr.js");
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -138,6 +140,19 @@ function _selectColumns(table, colnames) {
   return _makeTable(colnamesList, newRows);
 }
 
+function _tableExtractColumn(table: any, columnName: string): any {
+  const index = _tableGetColumnIndex(table, columnName);
+  const rows = table["_rows-raw-array"];
+  const extracted = List["empty-list"]();
+
+  for (let i = 0; i < rows.length; i++) {
+    const element = rows[i][index];
+    List.push(extracted, element);
+  }
+
+  return extracted;
+}
+
 function hasColumn(table, column_name) {
   return table._headerIndex.hasOwnProperty("column:" + column_name);
 }
@@ -147,5 +162,6 @@ module.exports = {
   '_tableFilter': _tableFilter,
   '_tableGetColumnIndex': _tableGetColumnIndex,
   '_tableOrder': _tableOrder,
+  '_tableExtractColumn': _tableExtractColumn,
   '_selectColumns': _selectColumns
 };
