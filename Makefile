@@ -5,7 +5,7 @@ all: build parser
 build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
-test: build
+test: build runtime
 	jest --verbose test
 
 RUNTIME_SRC_DIR := src/runtime
