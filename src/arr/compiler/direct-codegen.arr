@@ -626,6 +626,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
     | s-table(l, headers, rows) =>
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
       func = j-bracket(j-id(GLOBAL), j-str("_makeTable"))
 
       js-headers = for fold(the-list from cl-empty, h from headers):
@@ -658,6 +661,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-table-extend(l, column-binds, extensions) => nyi("s-table-extend")
     | s-table-update(l, column-binds, updates) => nyi("s-table-update")
     | s-table-select(l, columns, table) =>
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
       func = j-bracket(j-id(GLOBAL), j-str("_selectColumns"))
      
       js-columns = for fold(the-list from cl-empty, c from columns):
@@ -677,6 +683,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         l :: Loc,
         column-binds :: ColumnBinds,
         predicate :: Expr) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
 
       # This case handles `sieve` syntax. The starred lines in the following
       # Pyret code,
