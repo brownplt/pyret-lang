@@ -8,11 +8,26 @@ build: src/arr/compiler/pyret-parser.js
 test: build
 	jest --verbose test
 
-runtime-arr: build src/runtime-arr/*.arr
-	# Necessary to make relative require paths correct
-	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/src/runtime" --runtime-builtin-relative-path "./" -type-check
+RUNTIME_SRC_DIR := src/runtime
+RUNTIME_BUILD_DIR := build/runtime
+RUNTIME_JS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.js)
+RUNTIME_JSON_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.json)
+RUNTIME_TS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.ts)
+RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.arr.ts=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
-web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime-arr
+build/runtime/%.arr.js : src/runtime/%.arr.ts
+	tsc --outFile $@ $<
+
+runtime-src-dir:
+	mkdir -p $(RUNTIME_SRC_DIR)
+
+runtime: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
+	cp $(RUNTIME_JS_SRCS) $(RUNTIME_BUILD_DIR)
+	cp $(RUNTIME_JSON_SRCS) $(RUNTIME_BUILD_DIR)
+	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" -type-check
+	mv src/runtime-arr/compiled/* $(RUNTIME_BUILD_DIR)
+
+web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime
 	mkdir -p build/worker; 
 	make build/worker/bundled-node-compile-deps.js
 	make build/worker/runtime-files.json
@@ -21,7 +36,7 @@ web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime-arr
 	pyret --checks none --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.arr.j*
-	node build/worker/runtime-bundler.js src/runtime/ src/runtime-arr/compiled/project/ build/worker/runtime-files.json
+	node build/worker/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/runtime-bundler.js: src/webworker/scripts/runtime-bundler.ts
 	tsc src/webworker/scripts/runtime-bundler.ts --outFile $@
@@ -75,5 +90,5 @@ build/worker/page.html: src/webworker/page.html
 clean:
 	rm -r -f build/phaseA build/worker
 	rm -f src/arr/compiler/pyret-parser.js
-	rm -r -f src/arr/runtime-arr/compiled
 	rm -r -f tests-new/.pyret
+	rm -r -f build/runtime
