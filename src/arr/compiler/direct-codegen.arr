@@ -145,6 +145,7 @@ fun compiler-name(id):
 end
 
 GLOBAL = const-id("_global")
+ARRAY = const-id("_array")
 TABLE = const-id("_table")
 REACTOR = const-id("_reactor")
 SPY = const-id("_spy")
