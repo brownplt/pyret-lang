@@ -677,7 +677,42 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # select-columns(table, colnames)
       { j-app(func, args); js-table-stmts }
 
-    | s-table-extract(l, column, table) => nyi("s-table-extract")
+    | s-table-extract(
+        l :: Loc,
+        column :: Name,
+        table :: Expr) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `extract` syntax. The starred line in the following
+      # Pyret code,
+      #
+      #   | my-table = table: a, b, c
+      #   |   row: 1, 2, 3
+      #   |   row: 4, 5, 6
+      #   |   row: 7, 8, 9
+      #   | end
+      #   |
+      # * | column-b = extract b from my-table end
+      #
+      # compiles into JavaScript code that resembles the following:
+      #
+      # * | var columnB = _tableExtractColumn(myTable, "b");
+      #
+      # The actual "extracting" work is done by _tableExtractColumn at runtime.
+
+      {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
+        compile-expr(context, table)
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableExtractColumn"))
+      app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(column.toname())))
+      apply :: JExpr = j-app(app-func, app-args)
+
+      return-expr :: JExpr = apply
+      return-stmts :: CList<JStmt> = table-stmts
+
+      { return-expr; return-stmts }
     | s-table-order(l, table, ordering) => nyi("s-table-order")
     | s-table-filter(
         l :: Loc,

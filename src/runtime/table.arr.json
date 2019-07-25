@@ -5,6 +5,7 @@
       "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
+      "_tableExtractColumn": ["arrow", ["Any", "Any"], "Any"],
       "_selectColumns": ["arrow", ["Any", "Any"], ["local", "Table"] ]
     },
     "aliases": {
