@@ -4,7 +4,7 @@
 # `extract` syntax.
 
 import global as G
-import table as T
+import tables as T
 import list as L
 import js-file("../object-equality-helper") as helper
 

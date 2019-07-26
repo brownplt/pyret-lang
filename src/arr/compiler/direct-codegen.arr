@@ -976,7 +976,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   nothing-import = J.j-var(NOTHING, j-undefined)
 
   array-import = import-builtin(ARRAY, "array.arr.js")
-  table-import = import-builtin(TABLE, "table.arr.js")
+  table-import = import-builtin(TABLE, "tables.arr.js")
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import
