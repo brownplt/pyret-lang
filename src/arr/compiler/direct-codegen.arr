@@ -662,7 +662,72 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(l, column-binds, extensions) => nyi("s-table-extend")
-    | s-table-update(l, column-binds, updates) => nyi("s-table-update")
+    | s-table-update(
+        l :: Loc,
+        column-binds :: ColumnBinds,
+        updates :: List<A.Member>) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `transform` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #   | my-table = table: name, age, favorite-color
+      #   |   row: "Bob", 12, "blue"
+      #   |   row: "Alice", 17, "green"
+      #   |   row: "Eve", 14, "red"
+      #   | end
+      #   |
+      # * | age-fixed = transform my-table using age:
+      # * |   age: age + 1
+      # * | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # * | var ageFixed = _tableTransform(
+      # * |   myTable,
+      # * |   ["age"],
+      # * |   []
+      # * | );
+      #
+      # The actual "transforming" work is done by _tableTransform at runtime.
+
+      { table-expr :: JExpr; table-stmts :: CList<JStmt> } =
+        compile-expr(context, column-binds.table)
+
+      # makes a list of strings (column names)
+      list-colnames :: CList<JExpr> = for fold(col-list from cl-empty, u from updates):
+	      cl-append( col-list, cl-sing( j-str(u.name) ) )
+	    end
+
+      spy: column-binds, updates end
+
+      # makes a list of functions
+      fun-id :: String = "0"
+      fun-name :: String = fresh-id(compiler-name("s-table-transform")).toname()
+      list-updates :: CList<JExpr> = for fold(update-list from cl-empty, u from updates):
+        
+        # TODO: line below: u.name is a String not a Name
+        fun-args :: CList<A.Name> = cl-sing(u.name)
+
+	      { u-value-expr; u-value-stmts } = compile-expr(context, u.value)
+        block-return-stmt :: JStmt = j-return(u-value-expr)
+        block-stmts :: CList<JStmt> = cl-append(table-stmts, cl-sing(block-return-stmt))
+        fun-body :: JBlock = j-block(block-stmts)
+        u-fun :: JExpr = j-fun(fun-id, fun-name, fun-args, fun-body)
+        cl-append( update-list, cl-sing( u-fun ) )
+	    end
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableTransform"))
+      app-args :: CList<JExpr> = cl-cons( table-expr, 
+        cl-cons( j-list(false, list-colnames), cl-sing(j-list(false, list-updates ))) )
+
+      return-expr :: JExpr = j-app(app-func, app-args)
+      return-stmts :: CList<JStmt> = table-stmts
+
+      # tableTansform(table, colnames, updates)
+      { return-expr; return-stmts }
     | s-table-select(l, columns, table) =>
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
@@ -677,7 +742,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       args = cl-cons( js-table, cl-sing(j-list(false, js-columns)) )
 
-      # select-columns(table, colnames)
+      # selectColumns(table, colnames)
       { j-app(func, args); js-table-stmts }
     | s-table-extract(
         l :: Loc,

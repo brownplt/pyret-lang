@@ -52,6 +52,41 @@ function _makeTable(headers, rows) {
   };
 }
 
+// _transformColumnMutable :: (Table, String, Function) -> none
+// Changes the elements of a table in the specified column using the given function
+function transformColumnMutable(table, colname, func) {
+  if(!hasColumn(table, colname)) {
+    throw "transformColumnMutable: tried changing the column " + colname + " but it doesn't exist";
+  }
+
+  // index of the column to change
+  var i = table["_headerIndex"]['column:' + colname];
+
+  table["_rows-raw-array"].forEach((row) =>
+    row[i] = func(row[i])
+  );
+}
+
+// _tableTransform :: (Table, Array<String>, Array<Function>) -> Table
+// Creates a new table and mutates the specified columns with the given functions
+function _tableTransform(table, colnames, updates) {
+  var newTable = _makeTable(table["_headers-raw-array"], table["_rows-raw-array"]);
+
+  for (let i = 0; i < colnames.length; i++) {
+    transformColumnMutable(newTable, colnames[i], updates[i]);
+  }
+
+  return newTable;
+}
+
+// transformColumn :: (Table, String, Function) -> Table
+// Creates a new table that mutates the specified column for the given function
+function transformColumn(table, colname, update) {
+  var newTable = _makeTable(table["_headers-raw-array"], table["_rows-raw-array"]);
+  transformColumnMutable(newTable, colname, update);
+  return newTable;
+}
+
 // _tableFilter :: Table -> (Array -> Boolean) -> Table
 // Creates a new Table which contains the rows from table that satisfy predicate.
 function _tableFilter(table, predicate) {
@@ -163,5 +198,7 @@ module.exports = {
   '_tableGetColumnIndex': _tableGetColumnIndex,
   '_tableOrder': _tableOrder,
   '_tableExtractColumn': _tableExtractColumn,
-  '_selectColumns': _selectColumns
+  '_tableTransform': _tableTransform,
+  '_selectColumns': _selectColumns,
+  'transformColumn': transformColumn
 };
