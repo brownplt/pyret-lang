@@ -642,7 +642,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Model each spy block as a spy block object
       # SpyBlockObject {
       #   message: () -> String,
-      #   exprs: List<{ label: String, value: () -> JSValue, loc: String }>
+      #   exprs: List<{ key: String, expr: () -> JSValue, loc: String }>
       # }
       #
       # Translate spy blocks into:
