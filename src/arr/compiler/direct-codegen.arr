@@ -642,6 +642,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Model each spy block as a spy block object
       # SpyBlockObject {
       #   message: () -> String,
+      #   loc: String,
       #   exprs: List<{ key: String, expr: () -> JSValue, loc: String }>
       # }
       #
@@ -684,11 +685,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
           cl-append(js-spy-fields, cl-sing(js-spy-expr-obj))
         end
+
+        js-spy-loc = j-str(loc.format(true))
         
         # Create the SpyBlockObject
         js-spy-fields-list = j-list(false, js-spy-fields)
         spy-block-obj = j-obj(cl-cons(j-field("message", js-message-func),
-                                cl-sing(j-field("exprs", js-spy-fields-list))
+                                cl-cons(j-field("loc", js-spy-loc),
+                                  cl-sing(j-field("exprs", js-spy-fields-list))
+                                  )
                                 )
                               )
 
