@@ -701,17 +701,20 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 	      cl-append( col-list, cl-sing( j-str(u.name) ) )
 	    end
 
-      spy: column-binds, updates end
+      column-update-zip :: List<{ A.Binds; A.Expr}> = map2(lam(cb, up): { cb; up.value } end,
+                               column-binds.binds,
+                               updates)
 
       # makes a list of functions
       fun-id :: String = "0"
       fun-name :: String = fresh-id(compiler-name("s-table-transform")).toname()
-      list-updates :: CList<JExpr> = for fold(update-list from cl-empty, u from updates):
+      list-updates :: CList<JExpr> = for fold(update-list from cl-empty, 
+                                              { bind; update-expr} from column-update-zip):
         
-        # TODO: line below: u.name is a String not a Name
-        fun-args :: CList<A.Name> = cl-sing(u.name)
+        # Use the Bind in ColumnBind as the parameter in the generated function
+        fun-args :: CList<A.Name> = cl-sing(bind.id)
 
-	      { u-value-expr; u-value-stmts } = compile-expr(context, u.value)
+	      { u-value-expr; u-value-stmts } = compile-expr(context, update-expr)
         block-return-stmt :: JStmt = j-return(u-value-expr)
         block-stmts :: CList<JStmt> = cl-append(table-stmts, cl-sing(block-return-stmt))
         fun-body :: JBlock = j-block(block-stmts)
