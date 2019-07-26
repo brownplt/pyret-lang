@@ -730,12 +730,40 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-var(l, name, value) => raise("desugared into s-let-expr")
     | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) => 
 
+      # Currently makes no assumpetions and takes no actions about where the check block is
+      #   i.e. the check blocks are NOT moved to the end of a block direct-codegen.arr
+      #
+      # Emits:
+      #   checkBlockTestRunner("TEST NAME", function() { compiled-body });
+      #
+
       { check-block-val; check-block-stmts } = compile-expr(context, body)
       # TODO(alex): insert test scaffolding here
       # TODO(alex): insert check blocks inline or in a separate area?
       # TODO(alex): check block returns?
 
-      { j-undefined; cl-append(check-block-stmts, cl-sing(j-expr(check-block-val))) }
+      # Wrap the check block into a function (check-block)
+      js-check-block-func-name = cases(Option) name:
+        | some(string) => fresh-id(compiler-name("check-block-" + string))
+        | none => fresh-id(compiler-name("check-block"))
+      end
+
+      js-check-block-func-block = j-block(cl-append(check-block-stmts, 
+                                                    cl-sing(j-expr(check-block-val))))
+      js-check-block-func = j-fun("0", js-check-block-func-name.to-compiled(), 
+                                  cl-empty, js-check-block-func-block)
+
+      test-block-name = cases(Option) name:
+        | some(string) => j-str(string)
+        | none => j-str(js-check-block-func-name.to-compiled())
+      end
+
+      # Pass function check-block and the name to the test runner
+      tester-func = j-raw-code("$checkBlock")
+      tester-call = j-expr(j-app(tester-func, 
+                                 cl-cons(test-block-name, cl-sing(js-check-block-func))))
+
+      { j-undefined; cl-sing(tester-call) }
     | s-check-test(l :: Loc, 
                    op :: A.CheckOp, 
                    refinement :: Option<Expr>, 
@@ -743,14 +771,25 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                    right :: Option<Expr>, 
                    cause :: Option<Expr>) =>
 
+      # Emits:
+      #   left-statements
+      #   right-statements
+      #   checkTestRunner(check-op(left-value, right-value));
+      #
+      
+      # Desugar the test to run to direct JS code or to other Pyret code
       desugar-result = DH.desugar-s-check-test(l, op, refinement, left, right, cause)
+
+      # Get the raw test statements and expressions
       { raw-js-test-val; raw-js-test-stmts } = cases(DesugarResult) desugar-result:
         | pyret(desugared-ast :: Expr) => compile-expr(context, desugared-ast)
         | js(ast :: J.JExpr) => { ast; cl-empty }
       end
 
-      # TODO(alex): insert test scaffolding here?
-      { raw-js-test-val; raw-js-test-stmts }
+      # TODO(alex): insert test scaffolding here
+      tester-func = j-raw-code("$check")
+      tester-call = j-expr(j-app(tester-func, cl-sing(raw-js-test-val)))
+      { j-undefined; cl-append(raw-js-test-stmts, cl-sing(tester-call)) }
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(
         l :: Loc,
