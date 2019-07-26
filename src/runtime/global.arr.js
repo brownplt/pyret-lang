@@ -23,6 +23,22 @@ function timeNow( otherTime = undefined ) {
   }
 }
 
+function _spy(spyObject) {
+  const message = spyObject.message();
+  if (message != null) {
+    console.log("Spy message: " + message);
+  }
+
+  const exprs = spyObject.exprs;
+  for (let i = 0; i < exprs.length; i++) {
+    const key = exprs[i].key;
+    const loc = exprs[i].loc;
+    const value = exprs[i].expr();
+    console.log("Spying " + key + " at " + loc);
+    console.log(key + ":" + value);
+  }
+}
+
 module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,
@@ -51,5 +67,6 @@ module.exports = {
   '_greaterequal': _greaterequal,
   'equal-always': runtime['py_equal'],
   'trace-value': runtime['trace-value'],
+  '$spy': _spy,
 };
 
