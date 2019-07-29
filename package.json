@@ -47,7 +47,8 @@
     "jshint": "^2.9.5",
     "module-deps": "^6.2.1",
     "pyret-npm": "^0.0.15",
-    "typescript": "^3.4.5"
+    "typescript": "^3.4.5",
+    "selenium-webdriver": "4.0.0-alpha.4"
   },
   "scripts": {
     "build": "make build",
