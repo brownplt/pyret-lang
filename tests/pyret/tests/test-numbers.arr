@@ -335,3 +335,10 @@ check "rough fractions -- proper, improper, integral -- recognized, provided den
   num-is-roughnum(~-10/2) is true
   ~-10/2 is%(within(0.1)) ~-5
 end
+
+check "overflow on large roughnums":
+  ~1e+308 + ~1e+308 raises "roughnum overflow"
+  ~1e+308 - ~-1e+308 raises "roughnum overflow"
+  ~1e+308 * ~1e+308 raises "roughnum overflow"
+  ~1e+308 / ~1e-308 raises "roughnum overflow"
+end

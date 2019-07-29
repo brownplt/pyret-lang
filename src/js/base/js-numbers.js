@@ -356,7 +356,7 @@ define("pyret-base/js/js-numbers", function() {
       }
     },
     function(x, y, errbacks) {
-      return x.add(y);
+      return x.add(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
@@ -389,7 +389,7 @@ define("pyret-base/js/js-numbers", function() {
       }
     },
     function(x, y, errbacks) {
-      return x.subtract(y);
+      return x.subtract(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
