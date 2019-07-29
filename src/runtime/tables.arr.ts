@@ -235,6 +235,14 @@ function renameColumn(table, old_name, new_name) {
   return newTable;
 }
 
+// empty :: () -> Table
+// returns an empty Table with the same column headers
+function empty(table) {
+  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newTable = _makeTable(newHeaders, []);
+  return newTable;
+}
+
 module.exports = {
   '_makeTable': _makeTable,
   '_tableFilter': _tableFilter,
@@ -243,6 +251,7 @@ module.exports = {
   '_tableExtractColumn': _tableExtractColumn,
   '_tableTransform': _tableTransform,
   '_selectColumns': _selectColumns,
+  'empty': empty,
   '_length': _length,
   'renameColumn': renameColumn,
   'transformColumn': transformColumn
