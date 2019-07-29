@@ -9,7 +9,7 @@ if (process.env.FIREFOX_BINARY) {
   PATH_TO_FF = process.env.FIREFOX_BINARY;
 }
 else {
-  throw "You can set FIREFOX_BINARY to the path to your Chrome install if this path isn't for your machine work");
+  throw "You can set FIREFOX_BINARY to the path to your Firefox install if this path isn't for your machine work";
 }
 
 let leave_open = process.env.LEAVE_OPEN === "true" || false;
