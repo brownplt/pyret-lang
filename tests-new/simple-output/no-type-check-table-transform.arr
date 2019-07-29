@@ -1,10 +1,10 @@
 ### true
 
 # no-type-check-table-transform.arr
-# `sieve` syntax.
+# `transform` syntax.
 
 import global as g
-import table as t
+import tables as t
 import js-file("../object-equality-helper") as helper
 
 my-table = table: name, age, favNum

@@ -7,15 +7,6 @@ function _makeTable(headers, rows) {
     headerIndex["column:" + headers[i]] = i;
   }
 
-  function getColumn(column_name) {
-    /* TODO: Raise error if table lacks column */
-    var column_index;
-    Object.keys(headers).forEach(function(i) {
-      if(headers[i] == column_name) { column_index = i; }
-    });
-    return rows.map(function(row){return row[column_index];});
-  }
-
   function getRowContentAsRecordFromHeaders(headers, raw_row) {
     /* TODO: Raise error if no row at index */
     var obj = {};
@@ -170,6 +161,7 @@ function _tableOrder(table: any, columnOrders: any): any {
   return _makeTable(headers, sortedRows);
 }
 
+// _selectColumns :: (Table, Array<String>) -> Table
 function _selectColumns(table, colnames) {
   //var colnamesList = ffi.toArray(colnames);
   // This line of code below relies on anchor built-in lists being js arrays
@@ -211,6 +203,38 @@ function hasColumn(table, column_name) {
   return table._headerIndex.hasOwnProperty("column:" + column_name);
 }
 
+function getColumn(table, column_name) {
+  // Raise error if table lacks column
+  if ( !hasColumn(table, column_name) ) {
+    throw "no such column";
+  }
+
+  var column_index;
+  Object.keys(table["_headers-raw-array"]).forEach(function(i) {
+    if(table["_headers-raw-array"][i] == column_name) { column_index = i; }
+  });
+  return table["_rows-raw-array"].map(function(row){return row[column_index];});
+}
+
+function _length(table) {
+  return table["_rows-raw-array"].length;
+}
+
+// renameColumn :: ( Table, String, String ) -> Table
+// creates a new table with a column renamed
+function renameColumn(table, old_name, new_name) {
+  // check if old_name exists
+  if ( !hasColumn(table, old_name) ) {
+    throw "no such column"
+  }
+  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var colIndex = table._headerIndex['column:' + old_name];
+  newHeaders[colIndex] = new_name;
+  var newTable = _makeTable(newHeaders, newRows);
+  return newTable;
+}
+
 module.exports = {
   '_makeTable': _makeTable,
   '_tableFilter': _tableFilter,
@@ -219,5 +243,7 @@ module.exports = {
   '_tableExtractColumn': _tableExtractColumn,
   '_tableTransform': _tableTransform,
   '_selectColumns': _selectColumns,
+  '_length': _length,
+  'renameColumn': renameColumn,
   'transformColumn': transformColumn
 };
