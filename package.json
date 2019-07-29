@@ -48,7 +48,8 @@
     "module-deps": "^6.2.1",
     "pyret-npm": "^0.0.15",
     "typescript": "^3.4.5",
-    "selenium-webdriver": "4.0.0-alpha.4"
+    "selenium-webdriver": "4.0.0-alpha.4",
+    "geckodriver": "^1.16.2"
   },
   "scripts": {
     "build": "make build",
