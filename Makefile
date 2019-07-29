@@ -5,6 +5,9 @@ all: build parser
 build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
+web-test: web
+	node tests-web/tests/basic.js
+
 test: build runtime
 	jest --verbose test
 

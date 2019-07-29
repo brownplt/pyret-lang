@@ -55,7 +55,8 @@
     "build": "make build",
     "web": "make web",
     "test": "make test",
-    "runtime": "make runtime"
+    "runtime": "make runtime",
+    "web-test": "make web-test"
   },
   "repository": {
     "type": "git",
