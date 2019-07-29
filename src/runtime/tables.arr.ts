@@ -54,7 +54,7 @@ function _makeTable(headers, rows) {
 
 // _transformColumnMutable :: (Table, String, Function) -> none
 // Changes the elements of a table in the specified column using the given function
-function transformColumnMutable(table, colname, func) {
+function _transformColumnMutable(table, colname, func) {
   if(!hasColumn(table, colname)) {
     throw "transformColumnMutable: tried changing the column " + colname + " but it doesn't exist";
   }
@@ -70,10 +70,12 @@ function transformColumnMutable(table, colname, func) {
 // _tableTransform :: (Table, Array<String>, Array<Function>) -> Table
 // Creates a new table and mutates the specified columns with the given functions
 function _tableTransform(table, colnames, updates) {
-  var newTable = _makeTable(table["_headers-raw-array"], table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newTable = _makeTable(newHeaders, newRows);
 
   for (let i = 0; i < colnames.length; i++) {
-    transformColumnMutable(newTable, colnames[i], updates[i]);
+    _transformColumnMutable(newTable, colnames[i], updates[i]);
   }
 
   return newTable;
@@ -82,9 +84,26 @@ function _tableTransform(table, colnames, updates) {
 // transformColumn :: (Table, String, Function) -> Table
 // Creates a new table that mutates the specified column for the given function
 function transformColumn(table, colname, update) {
-  var newTable = _makeTable(table["_headers-raw-array"], table["_rows-raw-array"]);
-  transformColumnMutable(newTable, colname, update);
+  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newTable = _makeTable(newHeaders, newRows);
+  _transformColumnMutable(newTable, colname, update);
   return newTable;
+}
+
+// returns a deep copy of (nested) arrays
+function _deepCopy(arr) {
+  var i, copy;
+
+  if ( Array.isArray(arr) ) {
+    copy = arr.slice(0);
+    for ( i = 0; i < copy.length; i++ ) {
+      copy[i] = _deepCopy(copy[i]);
+    }
+    return copy;
+  } else {
+    return arr;
+  }
 }
 
 // _tableFilter :: Table -> (Array -> Boolean) -> Table

@@ -712,7 +712,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                                               { bind; update-expr} from column-update-zip):
         
         # Use the Bind in ColumnBind as the parameter in the generated function
-        fun-args :: CList<A.Name> = cl-sing(bind.id)
+        fun-args :: CList<A.Name> = cl-sing(js-id-of(bind.id))
+
+        spy: id: bind.id end
 
 	      { u-value-expr; u-value-stmts } = compile-expr(context, update-expr)
         block-return-stmt :: JStmt = j-return(u-value-expr)

@@ -1,4 +1,8 @@
 ### [ 1, 2, 3, 4, 5, 2, 3, 4 ]
+
+# Console log implementation may split long arrays across multiple lines causing a fail
+# This test passes
+
 import list as L
 import global as G
 
