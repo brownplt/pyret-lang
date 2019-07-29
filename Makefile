@@ -6,10 +6,10 @@ build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
 web-test: web
-	node tests-web/tests/basic.js
+	jest --verbose "browser-simple-output.test.js"
 
-test: build runtime
-	jest --verbose test
+test: build
+	jest --verbose "tests-new/simple-output.test.js"
 
 RUNTIME_SRC_DIR := src/runtime
 RUNTIME_BUILD_DIR := build/runtime
