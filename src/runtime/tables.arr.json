@@ -17,9 +17,11 @@
       "transformColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]]
     },
     "aliases": {
+      "Row": ["local", "Row"],
       "Table": ["local", "Table"]
     },
     "datatypes": {
+      "Row": ["data", "Row", [], [], {}],
       "Table": ["data", "Table", [], [], {}]
     }
   }
