@@ -6,7 +6,7 @@ build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
 web-test: web
-	jest --verbose "browser-simple-output.test.js"
+	jest --verbose "browser"
 
 test: build
 	jest --verbose "tests-new/simple-output.test.js"
