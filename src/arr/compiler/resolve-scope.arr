@@ -948,6 +948,45 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       end
     end
 
+    fun add-data-spec(envs, name-spec):
+      cases(A.NameSpec) name-spec block:
+        | s-star(l, _) =>
+          datatype-names = mod-info.data-definitions.keys-list()
+          for fold(shadow envs from envs, dname from datatype-names):
+            add-data-spec(envs, A.s-module-ref(l, [list: A.s-name(l, dname)], none))
+          end
+        | s-module-ref(l, path, as-name) =>
+          maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
+          shadow mod-info = cases(Option) maybe-uri:
+            | none => raise("Could not find module " + to-repr(path))
+            | some(p-uri) => initial-env.provides-by-uri-value(p-uri)
+          end
+          # NOTE(joe): the module-ref can't possibly have an as-name for data
+          # based on how the grammar is defined; we simply re-use s-module-ref
+          # rather than introduce a new variant.
+          shadow as-name = cases(Option) as-name:
+            | none => path.last()
+            | some(n) => n
+          end
+          dname = path.last().toname()
+          maybe-dt-export = initial-env.resolve-datatype-by-uri(mod-info.from-uri, dname)
+          cases(Option) maybe-dt-export:
+            | none => raise("Cannot find datatype name " + dname + " in " + mod-info.from-uri)
+            | some(typ) =>
+              {imp-e-dts; imp-te-dts} = envs
+              shadow imp-e-dts = for fold(shadow imp-e-dts from imp-e-dts, v from typ.variants):
+                constructor-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, v.name)], none)
+                checker-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, A.make-checker-name(v.name))], none)
+                env1 = add-name-spec(constructor-ref, mod-info.values, imp-e-dts, add-value-name)
+                add-name-spec(checker-ref, mod-info.values, env1, add-value-name)
+              end
+              typ-alias-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, dname)], none)
+              shadow imp-te-dts = add-name-spec(typ-alias-ref, mod-info.aliases, imp-te-dts, add-type-name)
+              { imp-e-dts; imp-te-dts}
+          end
+      end
+    end
+
     cases(A.IncludeSpec) spec:
       | s-include-name(l, name-spec) =>
         new-env = add-name-spec(name-spec, mod-info.values, imp-e, add-value-name)
@@ -958,7 +997,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-include-module(l, name-spec) =>
         new-module-env = add-name-spec(name-spec, mod-info.modules, imp-me, add-module-name)
         { imp-e; imp-te; new-module-env; imp-imps }
-      | s-include-data(l, name-spec, hidings) => acc # MARK(joe): Importing datatypes once provided
+      | s-include-data(l, name-spec, hidings) =>
+        { imp-e-dts; imp-te-dts } = add-data-spec({imp-e; imp-te}, name-spec)
+        { imp-e-dts; imp-te-dts; imp-me; imp-imps }
     end
   end
 
