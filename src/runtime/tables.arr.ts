@@ -406,7 +406,46 @@ function rawRow(elements: [string, any][]): Row {
   return result;
 }
 
+function _arraysEqual(xs: any[], ys: any[]): boolean {
+  if (xs === ys) {
+    return true;
+  }
+
+  if (xs.length !== ys.length) {
+    return false;
+  }
+
+  for (let i = 0; i < xs.length; i++) {
+    if (xs[i] !== ys[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function tableFromRows(rows: Row[]): any {
+  if (rows.length === 0) {
+    throw "table-from-rows: expected one or more rows";
+  }
+
+  const headers: string[][] = rows.map(row => row._headers);
+
+  for (let i = 0; i < headers.length; i++) {
+    if (!_arraysEqual(headers[i], headers[0])) {
+      throw "table-from-rows: row name mismatch";
+    }
+  }
+
+  const elements: any[][] = rows.map(row => row._elements);
+
+  return _makeTable(headers[0], elements);
+}
+
 module.exports = {
+  'table-from-rows': {
+    'make': tableFromRows
+  },
   'raw-row': {
     'make': rawRow
   },

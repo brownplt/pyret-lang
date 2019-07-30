@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "table-from-rows": ["arrow", ["Any"], ["local", "Table"]],
       "raw-row": ["arrow", ["Any"], ["local", "Row"]],
       "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
