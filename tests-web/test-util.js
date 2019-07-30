@@ -23,24 +23,16 @@ ffCapabilities.set('moz:firefoxOptions', {
 });
 
 function setup() {
-  setupWithName.call(this, undefined)
-}
-
-function setupWithName(name) {
-  if(this.currentTest) { name = this.currentTest.title; }
-  this.base = process.env.BASE_URL;
-  this.browser = new webdriver.Builder()
+  return new webdriver.Builder()
     .forBrowser("firefox")
+    .setProxy(null)
     .withCapabilities(ffCapabilities).build();
-
-//  this.browser.manage().window().maximize();
-
-  return;
 }
 
 function pyretLoaded(driver) {
   return driver.findElement(webdriver.By.id("consoleList"))
-    .then(function(el) { return el.search(/Worker setup done/); });
+    .getAttribute("innerHTML")
+    .then((innerHTML) => innerHTML.search(/Worker setup done/))
 }
 
 function waitForPyretLoad(driver, timeout) {
@@ -52,9 +44,9 @@ function prepareExpectedOutput(rawExpectedOutput) {
   return rawExpectedOutput;
 }
 
-function teardown() {
-  if(!(this.currentTest.state === 'failed' || leave_open)) {
-    return this.browser.quit();
+function teardown(browser) {
+  if(!leave_open) {
+    return browser.quit();
   }
 }
 
@@ -62,6 +54,5 @@ module.exports = {
   pyretLoaded: pyretLoaded,
   waitForPyretLoad: waitForPyretLoad,
   setup: setup,
-  setupWithName: setupWithName,
   teardown: teardown,
 };

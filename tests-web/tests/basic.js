@@ -2,24 +2,28 @@ var assert = require("assert");
 var tester = require("../test-util.js");
 var webdriver = require("selenium-webdriver");
 
-describe("Basic page loads", function() {
-  beforeEach(tester.setup);
-  afterEach(tester.teardown);
+function test() {
+  let driver = tester.setup();
+  let base = process.env.BASE_URL;
 
 /*
   it("should load the index", function(done) {
     this.timeout(10000);
-    this.browser.get(this.base);
-    var headline = this.browser.findElement(webdriver.By.id('right'));
-    this.browser.call(done);
+    this.driver.get(this.base);
+    var headline = this.driver.findElement(webdriver.By.id('right'));
+    this.driver.call(done);
   });
 */
 
-  it("should load the editor", function(done) {
-    this.timeout(80000);
-    var self = this;
-    this.browser.get(this.base + "/page.html");
-    this.browser.wait(function() { return tester.pyretLoaded(self.browser); });
-    this.browser.call(done);
-  });
-});
+  console.log(base);
+  driver.get(base + "/page.html");
+  let result = tester.pyretLoaded(driver);
+  console.log("Result: " + result);
+  if (result === false) {
+    throw "\"Worker setup done\" message not ofund";
+  }
+
+  tester.teardown(driver);
+}
+
+test();
