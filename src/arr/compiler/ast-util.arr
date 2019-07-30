@@ -1188,13 +1188,11 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                # dp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
-                # raise("Cannot alias data right now")
-
-                dp #NOTE(joe): the type alias does the work here, and datatypes are ONLY stored on the module in which they are defined
+                # TODO(joe): do remote lookup here to get a better location than SL.builtin for the origin
+                dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
-                dp.set(exp.name, data-expr-to-datatype(exp))
+                dp.set(as-name.toname(), CS.d-type(CS.bind-origin(l, exp.l, true, uri, name), data-expr-to-datatype(exp)))
             end
           end
           provs = CS.provides(
@@ -1223,6 +1221,13 @@ fun canonicalize-variant(v :: T.TypeVariant, uri :: URI, tn :: NameChanger) -> T
       T.t-variant(name, canonicalize-fields(fields, uri, tn), c(with-fields), l)
     | t-singleton-variant(name, with-fields, l) =>
       T.t-singleton-variant(name, c(with-fields), l)
+  end
+end
+
+fun canonicalize-data-export(de :: CS.DataExport, uri :: URI, tn :: NameChanger) -> CS.DataExport:
+  cases(CS.DataExport) de:
+    | d-alias(origin, name) => de
+    | d-type(origin, typ) => CS.d-type(origin, canonicalize-data-type(typ, uri, tn))
   end
 end
 
@@ -1286,7 +1291,7 @@ end
 
 transform-value-dict = transform-dict-helper(canonicalize-value-export)
 transform-dict = transform-dict-helper(canonicalize-names)
-transform-data-dict = transform-dict-helper(canonicalize-data-type)
+transform-data-dict = transform-dict-helper(canonicalize-data-export)
 
 fun transform-provides(provides, compile-env, transformer):
   cases(CS.Provides) provides:
@@ -1418,13 +1423,12 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                # dp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
-                # raise("Cannot alias data right now")
-
-                dp #NOTE(joe): the type alias does the work here, and datatypes are ONLY stored on the module in which they are defined
-              | s-local-ref(l, name, _) =>
+                # TODO(joe): Get better location information for SL.builtin(uri)
+                dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
+              | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
-                dp.set(exp.name, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer))
+                origin = CS.bind-origin(l, exp.l, true, uri, name)
+                dp.set(as-name.toname(), CS.d-type(origin, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer)))
                 
             end
           end

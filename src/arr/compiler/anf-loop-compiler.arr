@@ -2056,18 +2056,28 @@ fun compile-type-member(name, typ):
   j-field(name, compile-provided-type(typ))
 end
 
-fun compile-provided-data(typ :: T.DataType):
-  cases(T.DataType) typ:
-    | t-data(name, params, variants, members, l) =>
+fun compile-provided-data(de :: CS.DataExport):
+  cases(CS.DataExport) de: 
+    | d-alias(origin, name) =>
       j-list(false,
-        [clist: j-str("data"), j-str(name),
-          j-list(false, for CL.map_list(p from params):
-              j-str(p.id.key())
-            end),
-          j-list(false, CL.map_list(compile-type-variant, variants)),
-          j-obj(for cl-map-sd(mem-name from members):
-            compile-type-member(mem-name, members.get-value(mem-name))
-          end)])
+        [clist: j-str("data-alias"),
+          compile-origin(origin),
+          j-str(name)])
+    | d-type(origin, typ) =>
+      cases(T.DataType) typ:
+        | t-data(name, params, variants, members, l) =>
+          j-list(false,
+            [clist: j-str("data"),
+              compile-origin(origin),
+              j-str(name),
+              j-list(false, for CL.map_list(p from params):
+                  j-str(p.id.key())
+                end),
+              j-list(false, CL.map_list(compile-type-variant, variants)),
+              j-obj(for cl-map-sd(mem-name from members):
+                compile-type-member(mem-name, members.get-value(mem-name))
+              end)])
+    end
   end
 end
 

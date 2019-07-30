@@ -1162,9 +1162,8 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               | none =>
                 for each(shadow k from which-env.keys-list()):
                   bind = which-env.get-value(k)
-                  when(bind.origin.new-definition):
-                    # TODO(joe): check hiding
-                    which-dict.set-now(bind.atom.toname(), {l; none; bind.atom})
+                  when(bind.origin.new-definition and not(is-hidden(hidden, bind.atom.toname()))):
+                    maybe-add(hidden, which-dict, bind.atom.toname(), {l; none; bind.atom})
                   end
                 end
               | some(uri) =>
@@ -1199,17 +1198,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       fun expand-data-spec(val-env, type-env, spec, pre-path, hidden):
         cases(A.NameSpec) spec:
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
-
             # TODO(joe): need to condition on pre-path being empty/referring to
             # another module as above in expand-name-spec
             for each(k from datatypes.keys-list-now()):
               data-expr = datatypes.get-value-now(k)
-
-              # NOTE(joe): Trying this as a nice collapsing of cases
               expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
-
-              # TODO(joe): need to check datatypes from elsewhere with .new-definition?
-              # provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); data-expr.namet})
             end
           | s-module-ref(shadow l, path, as-name) =>
             maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
@@ -1234,7 +1227,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               | some(uri) =>
                 datatype-name = path.last().toname()
                 providing-module = initial-env.provides-by-uri-value(uri)
-                maybe-datatype = providing-module.data-definitions.get(datatype-name)
+                maybe-datatype = initial-env.resolve-datatype-by-uri(uri, datatype-name)
                 { datatype-uri; datatype } = cases(Option) maybe-datatype:
                   | none => 
                     cases(Option) providing-module.aliases.get(datatype-name):
@@ -1259,7 +1252,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                     maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
                   end
                 end
-                # maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
+                maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
                 add-value-if-defined(A.make-checker-name(datatype-name))
                 when(providing-module.aliases.has-key(datatype-name)):
                   maybe-add(hidden, provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})

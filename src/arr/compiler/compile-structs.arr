@@ -205,6 +205,24 @@ sharing:
       | some(v) => v
     end
   end,
+  method resolve-datatype-by-uri(self, uri, name):
+    cases(Option) self.all-modules
+      .get-value-now(uri)
+      .provides.data-definitions
+      .get(name):
+
+      | none => none
+      | some(de) =>
+        cases(DataExport) de block:
+          | d-alias(origin, shadow name) =>
+            when uri == origin.uri-of-definition:
+              raise("Self-referential alias for " + name + " in module " + uri)
+            end
+            self.resolve-datatype-by-uri(origin.uri-of-definition, name)
+          | d-type(origin, typ) => some(typ)
+        end
+    end
+  end,
   method value-by-origin(self, origin):
     self.value-by-uri(origin.uri-of-definition, origin.original-name.toname())
   end,
@@ -360,13 +378,18 @@ data ValueExport:
   | v-fun(origin :: BindOrigin, t :: T.Type, name :: String, flatness :: Option<Number>)
 end
 
+data DataExport:
+  | d-alias(origin :: BindOrigin, name :: String)
+  | d-type(origin :: BindOrigin, typ :: T.DataType)
+end
+
 data Provides:
   | provides(
       from-uri :: URI,
       modules :: StringDict<URI>,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
-      data-definitions :: StringDict<T.DataType>
+      data-definitions :: StringDict<DataExport>
     )
 end
 
@@ -460,10 +483,10 @@ end
 fun datatype-from-raw(uri, datatyp):
   l = SL.builtin(uri)
 
-  if datatyp.tag == "any":
-    # TODO(joe): this will be replaced when datatypes have a settled format
-    t-top
-  else:
+  if datatyp.tag == "data-alias":
+    origin = origin-from-raw(uri, datatyp.origin, datatyp.name)
+    d-alias(origin, datatyp.name)
+  else if datatyp.tag == "data":
     pdict = for fold(pdict from SD.make-string-dict(), a from datatyp.params):
       tvn = A.global-names.make-atom(a)
       pdict.set(a, tvn)
@@ -475,7 +498,10 @@ fun datatype-from-raw(uri, datatyp):
     members = datatyp.methods.foldl(lam(tm, members):
       members.set(tm.name, type-from-raw(uri, tm.value, pdict))
     end, [string-dict: ])
-    t-data(datatyp.name, params, variants, members)
+    origin = origin-from-raw(uri, datatyp.origin, datatyp.name)
+    d-type(origin, t-data(datatyp.name, params, variants, members))
+  else:
+    raise("Unknown format for data export in " + uri + ": " + to-repr(datatyp))
   end
 end
 

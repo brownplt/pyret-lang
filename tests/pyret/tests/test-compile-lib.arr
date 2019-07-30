@@ -355,6 +355,7 @@ check "raw-provide-syntax":
         name: "Ither",
         typ: {
           tag: "data",
+          origin: {provided: false},
           name: "Ither",
           params: [list: "a", "b"],
           variants: [list:

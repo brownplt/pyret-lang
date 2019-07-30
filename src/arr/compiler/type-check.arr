@@ -215,14 +215,23 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
         end
         sd.set(k, typ)
       end
+      dts-dict = for SD.fold-keys(sd from [string-dict:], shadow k from mod.data-definitions):
+        de = mod.data-definitions.get-value(k)
+        typ = cases(C.DataExport) de:
+          | d-alias(origin, name) =>
+            compile-env.resolve-datatype-by-uri(origin.uri-of-definition, origin.original-name.toname())
+          | d-type(origin, typ) => typ
+        end
+        sd.set(k, typ)
+      end
       val-provides = t-record(vals-types-dict, program.l, false)
       module-type = t-module(key,
                              val-provides,
-                             mod.data-definitions,
+                             dts-dict,
                              mod.aliases)
       shadow context = context.set-modules(context.modules.set(key, module-type))
       mod.data-definitions.fold-keys(lam(d, shadow context):
-        context.set-data-types(context.data-types.set(d, mod.data-definitions.get-value(d)))
+        context.set-data-types(context.data-types.set(d, compile-env.resolve-datatype-by-uri(mod.from-uri, d)))
       end, context)
     end
   end, context)
