@@ -356,7 +356,60 @@ function empty(table) {
   return newTable;
 }
 
+interface Row {
+  '_headers': string[],
+  '_elements': any[],
+  'get-column-names': () => string[],
+  'get-value': (columnName: string) => any,
+//  'get': (columnName: string) => any;
+}
+
+function getColumnNames(row: Row): string[] {
+  return List.list.make(row._headers);
+}
+
+function getValue(row: Row, columnName: string): any {
+  const columnIndex: number = row._headers.indexOf(columnName);
+  if (columnIndex === -1) {
+    throw "get-value: column does not exist";
+  }
+  return row._elements[columnIndex];
+}
+
+//function rowGet(row: Row, columnName: string): any {
+//  const columnIndex: number = row._headers.indexOf(columnName);
+//
+//  if (columnIndex === -1) {
+//    return none;
+//  } else {
+//    return some(row._elements[columnIndex]);
+//  }
+//}
+
+function rawRow(elements: [string, any][]): Row {
+  const headers: string[] = [];
+  const rowElements: any[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const [h, e] = elements[i];
+    headers.push(h);
+    rowElements.push(e);
+  }
+
+  const result = {
+    '_headers': headers,
+    '_elements': rowElements,
+    'get-column-names': () => getColumnNames(result),
+    'get-value': (columnName: string) => getValue(result, columnName),
+//    'get': (columnName: string) => rowGet(result, columnName)
+  };
+
+  return result;
+}
+
 module.exports = {
+  'raw-row': {
+    'make': rawRow
+  },
   '_makeTable': _makeTable,
   '_tableFilter': _tableFilter,
   '_tableGetColumnIndex': _tableGetColumnIndex,

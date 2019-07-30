@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "raw-row": ["arrow", ["Any"], ["local", "Row"]],
       "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
