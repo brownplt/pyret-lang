@@ -16,11 +16,14 @@ import string-dict as D
 
 flat-prim-app = A.prim-app-info-c(false)
 
+type Ann = A.Ann
+type Bind = A.Bind
 type Name = A.Name
 type ColumnBinds = A.ColumnBinds
 type ColumnSort = A.ColumnSort
 type ColumnSortOrder = A.ColumnSortOrder
 type Expr = A.Expr
+type TableExtendField = A.TableExtendField
 
 type CList = CL.ConcatList
 clist = CL.clist
@@ -661,7 +664,197 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-check(l, name, body, keyword-check) => nyi("s-check")
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
     | s-load-table(l, headers, spec) => nyi("s-load-table")
-    | s-table-extend(l, column-binds, extensions) => nyi("s-table-extend")
+    | s-table-extend(
+        l :: Loc,
+        column-binds :: ColumnBinds,
+        extensions :: List<TableExtendField>) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `extend` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #        | my-table = table: a, b, c
+      #        |   row: 1, 2, 3
+      #        |   row: 4, 5, 6
+      #        |   row: 7, 8, 9
+      #        | end
+      #        |
+      # *      | my-extended-table = extend my-table using a, b
+      # *(Map) |   d: a / 2,           # a "Mapping" extension
+      # *(Red) |   e: running-sum of b # a "Reducer"
+      # *      | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # *      | var myExtendedTable = _tableReduce(
+      # *      |   myTable,
+      # *      |   [
+      # *(Map) |     { "type": "map",
+      # *(Map) |       "reduce": (rowNumber) => {
+      # *(Map) |         var columnNumberB = _tableGetColumnIndex(myTable, "b");
+      # *(Map) |         var b = myTable["_rows-raw-array"][rowNumber][columnNumberB];
+      # *(Map) |         var columnNumberA = _tableGetColumnIndex(myTable, "a");
+      # *(Map) |         var a = myTable["_rows-raw-array"][rowNumber][columnNumberA];
+      # *(Map) |         return a / 2; },
+      # *(Map) |       "extending": "d" },
+      # *(Red) |     { "type": "reduce",
+      # *(Red) |       "one": runningSum["one"],
+      # *(Red) |       "reduce": runningSum["reduce"],
+      # *(Red) |       "using": "b",
+      # *(Red) |       "extending": "e" }
+      # *      |   ]);
+      #
+      # The actual "extending" work is done by _tableReduce at runtime.
+
+      column-binds-l :: Loc = column-binds.l
+      column-binds-binds :: List<Bind> = column-binds.binds
+      column-binds-table :: Expr = column-binds.table
+      { table-expr :: JExpr;
+        table-stmts :: CList<JStmt> } =
+        compile-expr(context, column-binds-table)
+
+      { reducer-exprs :: CList<JExpr>;
+        reducer-stmts :: CList<JStmt> } =
+        for fold(
+            { acc-exprs; acc-stmts } from { cl-empty; cl-empty },
+            extension from extensions):
+          cases (TableExtendField) extension block:
+            | s-table-extend-reducer(
+                shadow l :: Loc,
+                name :: String,
+                reducer :: Expr,
+                col :: Name,
+                ann :: Ann) =>
+
+              # Handles Reducer forms, like `e: running-sum of b`.
+
+              { reducer-expr :: JExpr;
+                reducer-stmts :: CList<JStmt> } =
+                compile-expr(context, reducer)
+
+              type-field-name :: String = "type"
+              type-field-value :: JExpr = j-str("reduce")
+              type-field :: JField = j-field(type-field-name, type-field-value)
+
+              one-field-name :: String = "one"
+              one-field-value-obj :: JExpr = reducer-expr
+              one-field-value-field :: JExpr = j-str("one")
+              one-field-value :: JExpr =
+                j-bracket(one-field-value-obj, one-field-value-field)
+              one-field :: JField = j-field(one-field-name, one-field-value)
+
+              reduce-field-name :: String = "reduce"
+              reduce-field-value-obj :: JExpr = reducer-expr
+              reduce-field-value-field :: JExpr = j-str("reduce")
+              reduce-field-value :: JExpr =
+                j-bracket(reduce-field-value-obj, reduce-field-value-field)
+              reduce-field :: JField =
+                j-field(reduce-field-name, reduce-field-value)
+
+              using-field-name :: String = "using"
+              using-field-value :: JExpr = j-str(col.toname())
+              using-field :: JField =
+                j-field(using-field-name, using-field-value)
+
+              extending-field-name :: String = "extending"
+              extending-field-value :: JExpr = j-str(name)
+              extending-field :: JField =
+                j-field(extending-field-name, extending-field-value)
+
+              reducer-object-fields :: CList<JExpr> =
+                cl-cons(type-field,
+                  cl-cons(one-field,
+                    cl-cons(reduce-field,
+                      cl-cons(using-field,
+                        cl-sing(extending-field)))))
+              reducer-object :: JExpr = j-obj(reducer-object-fields)
+
+              { cl-append(acc-exprs, cl-sing(reducer-object));
+                cl-append(acc-stmts, reducer-stmts)}
+            | s-table-extend-field(
+                shadow l :: Loc,
+                name :: String, # name of the new column
+                value :: Expr,  # value of the element of the column in this row
+                ann :: Ann) =>
+
+              # Handles Mapping forms, like `d: a / 2`.
+
+              type-field-name :: String = "type"
+              type-field-value :: JExpr = j-str("map")
+              type-field :: JField = j-field(type-field-name, type-field-value)
+
+              reduce-field-name :: String = "reduce"
+
+              fun-id :: String = "0"
+              fun-name :: String = fresh-id(compiler-name("s-table-extend-field")).toname()
+              row-number-name :: Name = fresh-id(compiler-name("row-number"))
+              fun-args :: CList<Name> = cl-sing(row-number-name)
+              indexing-stmts :: CList<JStmt> =
+                for fold(stmts from cl-empty, bind from column-binds.binds):
+                  bind-id :: Name = bind.id
+
+                  get-index-name :: Name = fresh-id(compiler-name("column-number"))
+                  get-column-index :: JExpr =
+                    j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
+                  column-index-args :: CList<JExpr> =
+                    cl-cons(table-expr, cl-sing(j-str(bind-id.toname())))
+                  get-index-rhs :: JExpr = j-app(get-column-index, column-index-args)
+                  get-index-stmt :: JStmt = j-var(get-index-name, get-index-rhs)
+
+                  index-name :: Name = bind-id
+                  table-rows :: JExpr = j-bracket(table-expr, j-str("_rows-raw-array"))
+                  current-row :: JExpr = j-bracket(table-rows, j-id(row-number-name))
+                  index-rhs :: JExpr = j-bracket(current-row, j-id(get-index-name))
+                  assign-index-stmt :: JStmt = j-var(js-id-of(index-name), index-rhs)
+
+                  cl-append(stmts, cl-cons(get-index-stmt, cl-sing(assign-index-stmt)))
+                end
+
+              { return-expr :: JExpr;
+                return-compiled-stmts :: CList<JStmt> } =
+                compile-expr(context, value)
+              return-stmt :: JStmt = j-return(return-expr)
+
+              body-stmts :: CList<JStmt> =
+                cl-append(indexing-stmts, cl-sing(return-stmt))
+              fun-body :: JBlock = j-block(body-stmts)
+
+              reduce-field-value :: JExpr =
+                j-fun(fun-id, fun-name, fun-args, fun-body)
+              reduce-field :: JField =
+                j-field(reduce-field-name, reduce-field-value)
+
+              extending-field-name :: String = "extending"
+              extending-field-value :: JExpr = j-str(name)
+              extending-field :: JField =
+                j-field(extending-field-name, extending-field-value)
+
+              mapping-object-fields :: CList<JExpr> =
+                cl-cons(type-field,
+                  cl-cons(reduce-field,
+                    cl-sing(extending-field)))
+              mapping-object :: JExpr = j-obj(mapping-object-fields)
+
+              { cl-append(
+                  acc-exprs,
+                  cl-append(return-compiled-stmts, cl-sing(mapping-object)));
+                acc-stmts}
+          end
+        end
+
+      expr-func-obj :: JExpr = j-id(TABLE)
+      expr-func-field :: JExpr = j-str("_tableReduce")
+      apply-expr-func :: JExpr = j-bracket(expr-func-obj, expr-func-field)
+      apply-expr-args :: CList<JExpr> =
+        cl-cons(table-expr, cl-sing(j-list(false, reducer-exprs)))
+      apply-expr :: JExpr = j-app(apply-expr-func, apply-expr-args)
+
+      apply-stmts :: CList<JStmt> =
+        cl-append(table-stmts, reducer-stmts)
+
+      { apply-expr; apply-stmts }
     | s-table-update(
         l :: Loc,
         column-binds :: ColumnBinds,

@@ -12,6 +12,8 @@
       "empty": ["arrow", ["Any"], ["local", "Table"]],
       "_length": ["arrow", ["Any"], "Number"],
       "renameColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]],
+      "_tableReduce": ["arrow", [["local", "Table"], "Any"], ["local", "Table"]],
+      "running-sum": "Any",
       "transformColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]]
     },
     "aliases": {
