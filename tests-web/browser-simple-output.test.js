@@ -34,5 +34,27 @@ describe("Testing browser simple-output programs", () => {
 
       tester.teardown(driver, done);
     });
+
+    test("should inject program text", async function(done) {
+      let setup = tester.setup();
+      let driver = setup.driver;
+      let baseURL = setup.baseURL;
+      
+      await driver.get(baseURL + "/page.html")
+      let loaded = await tester.pyretCompilerLoaded(driver);
+
+      expect(loaded).toBeTruthy();
+
+      await driver.executeScript(function() {
+        document.getElementById("program").value = "FOO BAR";
+      });
+
+      let programInput = await driver.findElement({ id: "program" });
+      let value = await programInput.getAttribute("value");
+
+      expect(value).toEqual("FOO BAR");
+
+      tester.teardown(driver, done);
+    })
   });
 });
