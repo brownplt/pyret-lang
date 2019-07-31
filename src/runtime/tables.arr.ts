@@ -408,6 +408,13 @@ function decreasingBy(table, colname) {
   return newTable;
 }
 
+// order-by :: (Table, String, Boolean) -> Table
+// orders a column ascending or descending depending on the boolean
+function orderBy(table, colname, asc) {
+  if (asc) { return increasingBy(table, colname); }
+  else { return decreasingBy(table, colname); }
+}
+
 // empty :: (Table) -> Table
 // returns an empty Table with the same column headers
 function empty(table) {
@@ -566,6 +573,7 @@ module.exports = {
   'get-column': getColumn,
   'increasing-by': increasingBy,
   '_length': _length,
+  'order-by': orderBy,
   'rename-column': renameColumn,
   'select-columns': _selectColumns,
   'stack': stack,
