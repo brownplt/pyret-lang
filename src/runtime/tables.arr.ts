@@ -73,8 +73,99 @@ function zip<X, Y>(xs: X[], ys: Y[]): [X, Y][] {
 }
 
 function _row(table: any, ...columns: any[]): any {
-  const elements: [string, any[]][] = zip(table["_headers-raw-array"], columns);
+  const elements: [string, any[]][] = zip(table._headers, columns);
   return rawRow(elements);
+}
+
+function _buildColumn(table: any, columnName: string, computeNewVal: (arg0: Row) => any): any {
+  const headers = _deepCopy(table._headers);
+  const newHeaders = headers.slice();
+  newHeaders.push(columnName);
+  const rows = _deepCopy(table._rows);
+
+  rows.forEach((row: any[]) => {
+    row.push(computeNewVal(rawRow(zip(headers, row))));
+  });
+
+  return _makeTable(newHeaders, rows);
+}
+
+function _addColumn(table: any, columnName: string, newVals: any[]): any {
+  const headers = _deepCopy(table._headers);
+
+  for (let i = 0; i < headers.length; i++) {
+    if (headers[i] === columnName) {
+      throw new Error("duplicate column name: " + columnName);
+    }
+  }
+
+  const rows = _deepCopy(table._rows);
+
+  if (rows.length !== newVals.length) {
+    throw new Error("length of new column is different than the length of the table");
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    rows[i].push(newVals[i]);
+  }
+
+  headers.push(columnName);
+
+  return _makeTable(headers, rows);
+}
+
+function _addRow(table: any, row: Row): any {
+  const tableHeaders = _deepCopy(table._headers);
+  const rowHeaders = row._headers;
+
+  if (!_arraysEqual(tableHeaders, rowHeaders)) {
+    throw new Error("table does not have the same column names as the new row");
+  }
+
+  const tableRows = _deepCopy(table._rows);
+  tableRows.push(row._elements);
+
+  return _makeTable(tableHeaders, tableRows);
+}
+
+function _rowN(table: any, index: number): Row {
+  if (index >= table._rows.length) {
+    throw new Error("index " + index + " out of bounds in table rows");
+  }
+
+  return rawRow(zip(table._headers, table._rows[index]));
+}
+
+function _columnN(table: any, index: number): any[] {
+  if (index >= table._headers.length) {
+    throw new Error("index " + index + " out of bounds in table columns");
+  }
+
+  return List.list.make(table._rows.map((row) => row[index]));
+}
+
+function _columnNames(table: any): string[] {
+  return List.list.make(table._headers);
+}
+
+function _allRows(table: any): Row[] {
+  return List.list.make(table._rows
+                        .map((row) =>
+                             rawRow(zip(table._headers, row))));
+}
+
+function _allColumns(table: any): any[][] {
+  const rows = table._rows;
+  const headers = table._headers;
+  const columns = headers.map((_) => []);
+
+  for (let i = 0; i < columns.length; i++) {
+    for (let j = 0; j < rows.length; j++) {
+      columns[i].push(rows[j][i]);
+    }
+  }
+
+  return columns;
 }
 
 function _makeTable(headers, rows) {
@@ -111,8 +202,16 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
-    '_headers-raw-array': headers,
-    '_rows-raw-array': rows,
+    'all-columns': () => _allColumns(table),
+    'all-rows': () => _allRows(table),
+    'column-names': () => _columnNames(table),
+    'column-n': (index) => _columnN(table, index),
+    'row-n': (index) => _rowN(table, index),
+    'add-row': (row) => _addRow(table, row),
+    'add-column': (columnName, newVals) => _addColumn(table, columnName, newVals),
+    'build-column': (columName, computeNewVal) => _buildColumn(table, columName, computeNewVal),
+    '_headers': headers,
+    '_rows': rows,
     'length': function(_) { return rows.length; },
     '_headerIndex': headerIndex,
     'row': (...columns) => _row(table, ...columns),
@@ -132,7 +231,7 @@ function _transformColumnMutable(table, colname, func) {
   // index of the column to change
   var i = table["_headerIndex"]['column:' + colname];
 
-  table["_rows-raw-array"].forEach((row) =>
+  table._rows.forEach((row) =>
     row[i] = func(row[i])
   );
 }
@@ -140,8 +239,8 @@ function _transformColumnMutable(table, colname, func) {
 // _tableTransform :: (Table, Array<String>, Array<Function>) -> Table
 // Creates a new table and mutates the specified columns with the given functions
 function _tableTransform(table, colnames, updates) {
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
+  var newRows = _deepCopy(table._rows);
   var newTable = _makeTable(newHeaders, newRows);
 
   for (let i = 0; i < colnames.length; i++) {
@@ -154,8 +253,8 @@ function _tableTransform(table, colnames, updates) {
 // transformColumn :: (Table, String, Function) -> Table
 // Creates a new table that mutates the specified column for the given function
 function transformColumn(table, colname, update) {
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
+  var newRows = _deepCopy(table._rows);
   var newTable = _makeTable(newHeaders, newRows);
   _transformColumnMutable(newTable, colname, update);
   return newTable;
@@ -179,14 +278,14 @@ function _deepCopy(arr) {
 // _tableFilter :: Table -> (Array -> Boolean) -> Table
 // Creates a new Table which contains the rows from table that satisfy predicate.
 function _tableFilter(table, predicate) {
-  return _makeTable(table["_headers-raw-array"], table["_rows-raw-array"].filter(predicate));
+  return _makeTable(table._headers, table._rows.filter(predicate));
 }
 
 // _tableGetColumnIndex :: Table -> String -> Integer
 // Returns the index of column_name, or throws an error if column_name is not a
 // column in table.
 function _tableGetColumnIndex(table, column_name) {
-  const headers = table["_headers-raw-array"];
+  const headers = table._headers;
 
   for (let index = 0; index < headers.length; index++) {
     if (headers[index] === column_name) {
@@ -203,8 +302,8 @@ function _tableGetColumnIndex(table, column_name) {
 // to columnOrders. An element in columnOrders specifies a column name and an
 // ordering, either ascending or descending.
 function _tableOrder(table: any, columnOrders: any): any {
-  const headers = table["_headers-raw-array"];
-  const rows = table["_rows-raw-array"];
+  const headers = table._headers;
+  const rows = table._rows;
 
   function ordering(a: any, b: any): number {
     for (let i = 0; i < columnOrders.length; i++) {
@@ -254,12 +353,12 @@ function _selectColumns(table, colnames) {
    }
   }
   var newRows = [];
-  for(var i = 0; i < table['_rows-raw-array'].length; i += 1) {
+  for(var i = 0; i < table['_rows'].length; i += 1) {
     console.log(i);
     newRows[i] = [];
     for(var j = 0; j < colnamesList.length; j += 1) {
       var colIndex = table._headerIndex['column:' + colnamesList[j]];
-      newRows[i].push(table['_rows-raw-array'][i][colIndex]);
+      newRows[i].push(table['_rows'][i][colIndex]);
     }
   }
   return _makeTable(colnamesList, newRows);
@@ -267,7 +366,7 @@ function _selectColumns(table, colnames) {
 
 function _tableExtractColumn(table: any, columnName: string): any {
   const index = _tableGetColumnIndex(table, columnName);
-  const rows = table["_rows-raw-array"];
+  const rows = table._rows;
   const extracted = List["empty-list"]();
 
   for (let i = 0; i < rows.length; i++) {
@@ -324,8 +423,8 @@ function isMappingExtension(x: TableExtension): x is MappingExtension<any> {
 // Creates a new Table that is like table, except that it has one or more new columns,
 // as specified by the supplied TableExtensions.
 function _tableReduce(table: any, extensions: Array<TableExtension>): any {
-  const headers = table['_headers-raw-array'];
-  const rows = table['_rows-raw-array'];
+  const headers = table['_headers'];
+  const rows = table['_rows'];
   const extendedColumns =
     extensions.map((extension: TableExtension) => extension.extending);
   const newHeaders = headers.concat(extendedColumns);
@@ -402,14 +501,14 @@ function getColumn(table, column_name) {
   }
 
   var column_index;
-  Object.keys(table["_headers-raw-array"]).forEach(function(i) {
-    if(table["_headers-raw-array"][i] == column_name) { column_index = i; }
+  Object.keys(table._headers).forEach(function(i) {
+    if(table._headers[i] == column_name) { column_index = i; }
   });
-  return table["_rows-raw-array"].map(function(row){return row[column_index];});
+  return table._rows.map(function(row){return row[column_index];});
 }
 
 function _length(table) {
-  return table["_rows-raw-array"].length;
+  return table._rows.length;
 }
 
 // renameColumn :: ( Table, String, String ) -> Table
@@ -419,8 +518,8 @@ function renameColumn(table, old_name, new_name) {
   if ( !hasColumn(table, old_name) ) {
     throw "no such column";
   }
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
+  var newRows = _deepCopy(table._rows);
   var colIndex = table._headerIndex['column:' + old_name];
   newHeaders[colIndex] = new_name;
   var newTable = _makeTable(newHeaders, newRows);
@@ -435,8 +534,8 @@ function increasingBy(table, colname) {
     throw new Error("no such column");
   }
 
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
+  var newRows = _deepCopy(table._rows);
   var colIndex = table._headerIndex['column:' + colname];
 
   function ordering(a: any, b: any): number {
@@ -464,8 +563,8 @@ function decreasingBy(table, colname) {
     throw new Error("no such column");
   }
 
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
+  var newRows = _deepCopy(table._rows);
   var colIndex = table._headerIndex['column:' + colname];
 
   function ordering(a: any, b: any): number {
@@ -494,8 +593,8 @@ function orderBy(table, colname, asc) {
 
 // order-by-columns :: (Table, List<{String; Boolean}>) -> Table
 function orderByColumns(table, cols) {
-  const headers = table["_headers-raw-array"];
-  const rows = table["_rows-raw-array"];
+  const headers = table._headers;
+  const rows = table._rows;
 
   function ordering(a: any, b: any): number {
     for (let i = 0; i < cols.length; i++) {
@@ -534,7 +633,7 @@ function orderByColumns(table, cols) {
 // empty :: (Table) -> Table
 // returns an empty Table with the same column headers
 function empty(table) {
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
   var newTable = _makeTable(newHeaders, []);
   return newTable;
 }
@@ -546,8 +645,8 @@ function drop(table, colname) {
   if ( !hasColumn(table, colname) ) {
     throw "no such column";
   }
-  var newHeaders = _deepCopy(table["_headers-raw-array"]);
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newHeaders = _deepCopy(table._headers);
+  var newRows = _deepCopy(table._rows);
   var colIndex = table._headerIndex['column:' + colname];
   newHeaders.splice(colIndex, 1);
   for ( let i = 0; i < newRows.length; i++ ) {
@@ -560,19 +659,19 @@ function drop(table, colname) {
 // stack :: (Table, Table) -> Table
 // returns a new table with elements of both tables
 function stack(table, bot) {
-  var tableHeaders = _deepCopy(table["_headers-raw-array"]);
-  var headersToSort = _deepCopy(table["_headers-raw-array"]);
-  var botHeaders = _deepCopy(bot["_headers-raw-array"]);
+  var tableHeaders = _deepCopy(table._headers);
+  var headersToSort = _deepCopy(table._headers);
+  var botHeaders = _deepCopy(bot._headers);
   if ( !(_arraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
     throw new Error("headers do not match");
   }
 
-  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var newRows = _deepCopy(table._rows);
 
-  for ( let i = 0; i < bot["_rows-raw-array"].length; i++ ) {
+  for ( let i = 0; i < bot._rows.length; i++ ) {
     newRows.push([]);
     for ( let j = 0; j < tableHeaders.length; j++ ) {
-      newRows[ newRows.length - 1 ].push(bot["_rows-raw-array"][i]
+      newRows[ newRows.length - 1 ].push(bot._rows[i]
         [ bot._headerIndex['column:' + tableHeaders[j]] ]);
     }
   }
