@@ -415,6 +415,45 @@ function orderBy(table, colname, asc) {
   else { return decreasingBy(table, colname); }
 }
 
+// order-by-columns :: (Table, List<{String; Boolean}>) -> Table
+function orderByColumns(table, cols) {
+  const headers = table["_headers-raw-array"];
+  const rows = table["_rows-raw-array"];
+
+  function ordering(a: any, b: any): number {
+    for (let i = 0; i < cols.length; i++) {
+      const columnOrder = cols[i];
+      const name = columnOrder[0];
+      const order = columnOrder[1];
+      const index = _tableGetColumnIndex(table, name);
+      const elemA = a[index];
+      const elemB = b[index];
+
+      if (order === true) {
+        if (elemA < elemB) {
+          return -1;
+        } else if (elemA > elemB) {
+          return 1;
+        }
+      } else if (order === false) {
+        if (elemA < elemB) {
+          return 1;
+        } else if (elemA > elemB) {
+          return -1;
+        }
+      }
+    }
+
+    return 0;
+  }
+
+  // Array.prototype.sort() mutates the array it sorts, so we need to create a
+  // copy with Array.prototype.slice() first.
+  let sortedRows = rows.slice().sort(ordering);
+
+  return _makeTable(headers, sortedRows);
+}
+
 // empty :: (Table) -> Table
 // returns an empty Table with the same column headers
 function empty(table) {
@@ -574,6 +613,7 @@ module.exports = {
   'increasing-by': increasingBy,
   '_length': _length,
   'order-by': orderBy,
+  'order-by-columns': orderByColumns,
   'rename-column': renameColumn,
   'select-columns': _selectColumns,
   'stack': stack,
