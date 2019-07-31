@@ -376,6 +376,30 @@ function drop(table, colname) {
   return newTable;
 }
 
+// stack :: (Table, Table) -> Table
+// returns a new table with elements of both tables
+function stack(table, bot) {
+  var tableHeaders = _deepCopy(table["_headers-raw-array"]);
+  var headersToSort = _deepCopy(table["_headers-raw-array"]);
+  var botHeaders = _deepCopy(bot["_headers-raw-array"]);
+  if ( !(_arraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
+    throw new Error("headers do not match");
+  }
+
+  var newRows = _deepCopy(table["_rows-raw-array"]);
+
+  for ( let i = 0; i < bot["_rows-raw-array"].length; i++ ) {
+    newRows.push([]);
+    for ( let j = 0; j < tableHeaders.length; j++ ) {
+      newRows[ newRows.length - 1 ].push(bot["_rows-raw-array"][i]
+        [ bot._headerIndex['column:' + tableHeaders[j]] ]);
+    }
+  }
+
+  var newTable = _makeTable(tableHeaders, newRows);
+  return newTable;
+}
+
 interface Row {
   '_headers': string[],
   '_elements': any[],
@@ -482,6 +506,7 @@ module.exports = {
   'empty': empty,
   '_length': _length,
   'renameColumn': renameColumn,
+  'stack': stack,
   'transformColumn': transformColumn,
   '_tableReduce': _tableReduce,
   'running-sum': runningSum

@@ -17,6 +17,7 @@
       "renameColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]],
       "_tableReduce": ["arrow", [["local", "Table"], "Any"], ["local", "Table"]],
       "running-sum": "Any",
+      "stack": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "transformColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]]
     },
     "aliases": {
