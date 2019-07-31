@@ -85,13 +85,16 @@ worker.onmessage = function(e) {
         if (runChoice === 'sync') {
           runChoice = 'none';
           console.log("Running...");
-          const start = window.performance.now();
-          const result = runner.makeRequire("/compiled/project")("program.arr.js");
-          const end = window.performance.now();
-          console.log("Run complete with: ", result);
-          printTimes();
-        }
-        else if (runChoice === 'async') {
+          try {
+            const start = window.performance.now();
+            const result = runner.makeRequire("/compiled/project")("program.arr.js");
+            const end = window.performance.now();
+            console.log("Run complete with: ", result);
+            printTimes();
+          } catch (err) {
+            setup.workerError(err);
+          }
+        } else if (runChoice === 'async') {
           runChoice = 'none';
           const entry = runner.makeRequireAsync("/compiled/project");
           const resultP = entry("program.arr.js");
