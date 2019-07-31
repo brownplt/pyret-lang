@@ -4,19 +4,22 @@ const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
 const stream = require('stream');
+const tester = require("./test-util.js");
 
+const TEST_TIMEOUT = 20000;
 const COMPILER_TIMEOUT = 10000; // ms, for each compiler run (including startup)
 const RUN_TIMEOUT = 5000; // ms, for each program execution
 
 describe("testing simple-output programs", () => {
 
+  jest.setTimeout(TEST_TIMEOUT)
+  const baseURL = process.env.BASE_URL;
+
   describe("Basic page loads", function() {
-    var tester = require("./test-util.js");
     
-    jest.setTimeout(20000)
     test("should load the editor", async function(done) {
       let driver = tester.setup();
-      await driver.get("http://127.0.0.1:8080/page.html")
+      await driver.get(baseURL + "/page.html")
 
       let cl = await driver.findElement({ id: "consoleList" });
 
