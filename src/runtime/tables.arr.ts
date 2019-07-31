@@ -338,7 +338,7 @@ function _length(table) {
 function renameColumn(table, old_name, new_name) {
   // check if old_name exists
   if ( !hasColumn(table, old_name) ) {
-    throw "no such column"
+    throw "no such column";
   }
   var newHeaders = _deepCopy(table["_headers-raw-array"]);
   var newRows = _deepCopy(table["_rows-raw-array"]);
@@ -348,11 +348,29 @@ function renameColumn(table, old_name, new_name) {
   return newTable;
 }
 
-// empty :: () -> Table
+// empty :: (Table) -> Table
 // returns an empty Table with the same column headers
 function empty(table) {
   var newHeaders = _deepCopy(table["_headers-raw-array"]);
   var newTable = _makeTable(newHeaders, []);
+  return newTable;
+}
+
+// drop :: (Table, String) -> Table
+// returns a new table without the specified column
+function drop(table, colname) {
+  // check if colname exists
+  if ( !hasColumn(table, colname) ) {
+    throw "no such column";
+  }
+  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var colIndex = table._headerIndex['column:' + colname];
+  newHeaders.splice(colIndex, 1);
+  for ( let i = 0; i < newRows.length; i++ ) {
+    newRows[i].splice(colIndex, 1);
+  }
+  var newTable = _makeTable(newHeaders, newRows);
   return newTable;
 }
 
@@ -364,6 +382,7 @@ module.exports = {
   '_tableExtractColumn': _tableExtractColumn,
   '_tableTransform': _tableTransform,
   '_selectColumns': _selectColumns,
+  'drop': drop,
   'empty': empty,
   '_length': _length,
   'renameColumn': renameColumn,
