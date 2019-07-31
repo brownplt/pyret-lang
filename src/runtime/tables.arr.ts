@@ -488,7 +488,47 @@ function tableFromRows(rows: Row[]): any {
   return _makeTable(headers[0], elements);
 }
 
+interface Column {
+  tuples: [string, any[]][]
+}
+
+function tableFromColumns(columns: Column[]): any {
+  if (columns.length === 0) {
+    throw new Error("expected at least one column");
+  }
+
+  const headers = columns.map(column => column[0]);
+  const sortedHeaders = headers.slice().sort();
+
+  for (let i = 0; i < sortedHeaders.length - 1; i++) {
+    if (sortedHeaders[i] === sortedHeaders[i + 1]) {
+      throw new Error("duplicate header: " + sortedHeaders[i]);
+    }
+  }
+
+  const rowLength = columns[0][1].length
+
+  for (let i = 0; i < columns.length; i++) {
+    if (columns[i][1].length !== rowLength) {
+      throw new Error("columns must have the same number of elements");
+    }
+  }
+
+  const rows = columns[0][1].map(() => []);
+
+  for (let i = 0; i < columns.length; i++) {
+    for (let j = 0; j < columns[i][1].length; j++) {
+      rows[j].push(columns[i][1][j]);
+    }
+  }
+
+  return _makeTable(headers, rows);
+}
+
 module.exports = {
+  'table-from-columns': {
+    'make': tableFromColumns
+  },
   'table-from-rows': {
     'make': tableFromRows
   },
