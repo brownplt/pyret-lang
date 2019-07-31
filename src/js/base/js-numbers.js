@@ -1113,7 +1113,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m % n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnMod.call(m, n);
     });
 
@@ -1128,7 +1128,7 @@ define("pyret-base/js/js-numbers", function() {
       }
       return a;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnGCD.call(m, n);
     });
 
@@ -1166,7 +1166,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m + n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnAdd.call(m, n);
     });
 
@@ -1175,7 +1175,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m - n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnSubtract.call(m, n);
     });
 
@@ -1184,7 +1184,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m * n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnMultiply.call(m, n);
     });
 
@@ -1193,7 +1193,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return ((m - (m % n))/ n);
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnDivide.call(m, n);
     });
 
@@ -1201,7 +1201,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m % n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnRemainder.call(m, n);
     });
 
@@ -1277,7 +1277,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m === n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnEquals.call(m, n);
     },
     {doNotCoerceToFloating: true});
@@ -1287,7 +1287,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m > n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) > 0;
     },
     {doNotCoerceToFloating: true});
@@ -1297,7 +1297,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m < n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) < 0;
     },
     {doNotCoerceToFloating: true});
@@ -1307,7 +1307,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m >= n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) >= 0;
     },
     {doNotCoerceToFloating: true});
@@ -1317,7 +1317,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m <= n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) <= 0;
     },
     {doNotCoerceToFloating: true});
