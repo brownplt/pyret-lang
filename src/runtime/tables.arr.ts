@@ -488,9 +488,7 @@ function tableFromRows(rows: Row[]): any {
   return _makeTable(headers[0], elements);
 }
 
-interface Column {
-  tuples: [string, any[]][]
-}
+type Column = [string, any[]];
 
 function tableFromColumns(columns: Column[]): any {
   if (columns.length === 0) {
@@ -525,7 +523,13 @@ function tableFromColumns(columns: Column[]): any {
   return _makeTable(headers, rows);
 }
 
+function tableFromColumn(columnName: string, values: any[]): any {
+  const col: Column = [columnName, values];
+  return tableFromColumns([col]);
+}
+
 module.exports = {
+  'table-from-column': tableFromColumn,
   'table-from-columns': {
     'make': tableFromColumns
   },

@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "table-from-column": ["arrow", ["String", "Any"], ["local", "Table"]],
       "table-from-columns": "Any",
       "table-from-rows": "Any",
       "raw-row": "Any",
