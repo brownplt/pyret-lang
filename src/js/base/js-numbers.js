@@ -191,19 +191,38 @@ define("pyret-base/js/js-numbers", function() {
     var match = s.match(scientificPattern), mantissaChunks, exponent;
     if (match) {
       mantissaChunks = match[1].match(/^([^.]*)(.*)$/);
-      exponent = Number(match[2]); //possible, but not probable, fixnum overflow!
+      exponent = Number(match[2]);
 
-      if (mantissaChunks[2].length === 0) {
-        return mantissaChunks[1] + zfill(exponent);
-      }
+      if (typeof(exponent) === 'number' && isFinite(exponent)) {
+          if (mantissaChunks[2].length === 0) {
+            return mantissaChunks[1] + zfill(exponent);
+          }
 
-      if (exponent >= mantissaChunks[2].length - 1) {
-        return (mantissaChunks[1] +
-                mantissaChunks[2].substring(1) +
-                zfill(exponent - (mantissaChunks[2].length - 1)));
+          if (exponent >= mantissaChunks[2].length - 1) {
+            return (mantissaChunks[1] +
+              mantissaChunks[2].substring(1) +
+              zfill(exponent - (mantissaChunks[2].length - 1)));
+          } else {
+            return (mantissaChunks[1] +
+              mantissaChunks[2].substring(1, 1+exponent));
+          }
       } else {
-        return (mantissaChunks[1] +
-                mantissaChunks[2].substring(1, 1+exponent));
+        //possible, but not probable, fixnum overflow!
+          //Pyret chokes on large fixnum exponents well before we get here!
+          exponent = new BigInteger(match[2], 10);
+        if (mantissaChunks[2].length === 0) {
+          return mantissaChunks[1] + zfillBignum(exponent);
+        }
+
+        if (exponent.greaterThanOrEqual(mantissaChunks[2].length - 1)) {
+          return (mantissaChunks[1] +
+            mantissaChunks[2].substring(1) +
+            zfillBignum(exponent.subtract(mantissaChunks[2].length - 1)));
+        } else {
+          // not possible, as bigint can't be less than fixnum, but still
+          return (mantissaChunks[1] +
+            mantissaChunks[2].substring(1, 1+exponent));
+        }
       }
     } else {
       return s;
@@ -220,6 +239,17 @@ define("pyret-base/js/js-numbers", function() {
     }
     return buffer.join('');
   };
+
+  // zfillBignum: {fixnum | bigint} -> string
+  // builds a string of "0"'s of length n, where n can be fixnum or bigint.
+  function zfillBignum(n) {
+    if (typeof(n) === 'number' && isFinite(n)) {
+      return zfill(n);
+    } else {
+      return zfillBignum(n.subtract(MAX_FIXNUM)).concat(
+        zfill(MAX_FIXNUM));
+    }
+  }
 
   // liftFixnumInteger: fixnum-integer boxed-pyretnum -> boxed-pyretnum
   // Lifts up fixnum integers to a boxed type.
