@@ -9,6 +9,7 @@ const tester = require("./test-util.js");
 const TEST_TIMEOUT = 20000;
 const COMPILER_TIMEOUT = 10000; // ms, for each compiler run (including startup)
 const RUN_TIMEOUT = 5000; // ms, for each program execution
+const STARTUP_TIMEOUT = 5000;
 
 describe("Testing browser simple-output programs", () => {
 
@@ -26,7 +27,7 @@ describe("Testing browser simple-output programs", () => {
       
       await driver.get(baseURL + "/page.html")
 
-      let loaded = await tester.pyretCompilerLoaded(driver);
+      let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
       expect(loaded).toBeTruthy();
 
       // Testing program input works correctly

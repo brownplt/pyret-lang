@@ -50,14 +50,14 @@ async function compileRun(driver) {
   await runButton.click();
 }
 
-async function pyretCompilerLoaded(driver) {
+async function pyretCompilerLoaded(driver, timeout) {
   let cl = await driver.findElement({ id: "consoleList" });
 
   let result = await driver.wait(async () => {
     let innerHTML = await cl.getAttribute("innerHTML");
     let index = innerHTML.search(/Worker setup done/);
     return index !== -1;
-  }, 5000);
+  }, timeout);
 
   return result;
 }
