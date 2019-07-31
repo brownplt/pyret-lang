@@ -1,3 +1,5 @@
+// @ts-ignore
+const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
 
 function _makeTable(headers, rows) {
@@ -376,15 +378,17 @@ function getValue(row: Row, columnName: string): any {
   return row._elements[columnIndex];
 }
 
-//function rowGet(row: Row, columnName: string): any {
-//  const columnIndex: number = row._headers.indexOf(columnName);
-//
-//  if (columnIndex === -1) {
-//    return none;
-//  } else {
-//    return some(row._elements[columnIndex]);
-//  }
-//}
+function rowGet(row: Row, columnName: string): any {
+  const columnIndex: number = row._headers.indexOf(columnName);
+
+  if (columnIndex === -1) {
+    // @ts-ignore
+    return PyretOption.none;
+  } else {
+    // @ts-ignore
+    return PyretOption.some(row._elements[columnIndex]);
+  }
+}
 
 function rawRow(elements: [string, any][]): Row {
   const headers: string[] = [];
@@ -400,7 +404,7 @@ function rawRow(elements: [string, any][]): Row {
     '_elements': rowElements,
     'get-column-names': () => getColumnNames(result),
     'get-value': (columnName: string) => getValue(result, columnName),
-//    'get': (columnName: string) => rowGet(result, columnName)
+    'get': (columnName: string) => rowGet(result, columnName)
   };
 
   return result;
