@@ -62,6 +62,14 @@ async function pyretCompilerLoaded(driver, timeout) {
   return result;
 }
 
+async function searchOutput(driver, pattern) {
+  let cl = await driver.findElement({ id: "consoleList" });
+  let innerHTML = await cl.getAttribute("innerHTML");
+
+  // -1 if pattern not found
+  return innerHTML.search(pattern);
+}
+
 function prepareExpectedOutput(rawExpectedOutput) {
   // TODO(alex): Remove leading '###' and trim
   return rawExpectedOutput;
@@ -81,4 +89,5 @@ module.exports = {
   teardown: teardown,
   beginSetInputText: beginSetInputText,
   compileRun: compileRun,
+  searchOutput: searchOutput,
 };
