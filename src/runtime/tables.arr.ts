@@ -379,6 +379,35 @@ function increasingBy(table, colname) {
   return newTable;
 }
 
+// decreasing-by :: (Table, String) -> Table
+// orders column in descending order
+function decreasingBy(table, colname) {
+  // check if colname exists
+  if ( !hasColumn(table, colname) ) {
+    throw new Error("no such column");
+  }
+
+  var newHeaders = _deepCopy(table["_headers-raw-array"]);
+  var newRows = _deepCopy(table["_rows-raw-array"]);
+  var colIndex = table._headerIndex['column:' + colname];
+
+  function ordering(a: any, b: any): number {
+    const elemA = a[colIndex];
+    const elemB = b[colIndex];
+    if (elemA < elemB) {
+      return 1;
+    } else if (elemA > elemB) {
+      return -1;
+    }
+    return 0;
+  }
+
+  var sortedRows = newRows.slice().sort(ordering);
+
+  var newTable = _makeTable(newHeaders, sortedRows);
+  return newTable;
+}
+
 // empty :: (Table) -> Table
 // returns an empty Table with the same column headers
 function empty(table) {
@@ -531,6 +560,7 @@ module.exports = {
   '_tableExtractColumn': _tableExtractColumn,
   '_tableTransform': _tableTransform,
   '_selectColumns': _selectColumns,
+  'decreasing-by': decreasingBy,
   'drop': drop,
   'empty': empty,
   'get-column': getColumn,

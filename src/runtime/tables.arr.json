@@ -11,6 +11,7 @@
       "_tableExtractColumn": ["arrow", ["Any", "Any"], "Any"],
       "_tableTransform": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]],
       "_selectColumns": ["arrow", ["Any", "Any"], ["local", "Table"]],
+      "decreasing-by": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "drop": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "empty": ["arrow", ["Any"], ["local", "Table"]],
       "get-column": ["arrow", ["Any", "Any"], "Any"],
