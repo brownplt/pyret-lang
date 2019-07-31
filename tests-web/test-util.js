@@ -36,14 +36,16 @@ function setup() {
   };
 }
 
-function pyretLoaded(driver) {
-  return driver.findElement(webdriver.By.id("consoleList"))
-    .getAttribute("innerHTML")
-    .then((innerHTML) => innerHTML.search(/Worker setup done/))
-}
+async function pyretCompilerLoaded(driver) {
+  let cl = await driver.findElement({ id: "consoleList" });
 
-function waitForPyretLoad(driver, timeout) {
-  return driver.wait(function() { return pyretLoaded(driver); }, timeout);
+  let result = await driver.wait(async () => {
+    let innerHTML = await cl.getAttribute("innerHTML");
+    let index = innerHTML.search(/Worker setup done/);
+    return index !== -1;
+  }, 5000);
+
+  return result;
 }
 
 function prepareExpectedOutput(rawExpectedOutput) {
@@ -60,8 +62,7 @@ function teardown(browser, done) {
 }
 
 module.exports = {
-  pyretLoaded: pyretLoaded,
-  waitForPyretLoad: waitForPyretLoad,
+  pyretCompilerLoaded: pyretCompilerLoaded,
   setup: setup,
   teardown: teardown,
 };
