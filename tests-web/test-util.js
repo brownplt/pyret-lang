@@ -23,6 +23,7 @@ ffCapabilities.set('moz:firefoxOptions', {
 });
 
 const INPUT_ID = "program";
+const COMPILE_RUN_BUTTON = "compileRun";
 
 function setup() {
   let driver = new webdriver.Builder()
@@ -42,6 +43,11 @@ function beginSetInputText(driver, unquotedInput) {
   return driver.executeScript(
     "document.getElementById(\"" + INPUT_ID + "\").value = \"" + unquotedInput + "\";"
   );
+}
+
+async function compileRun(driver) {
+  let runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
+  await runButton.click();
 }
 
 async function pyretCompilerLoaded(driver) {
@@ -74,4 +80,5 @@ module.exports = {
   setup: setup,
   teardown: teardown,
   beginSetInputText: beginSetInputText,
+  compileRun: compileRun,
 };
