@@ -431,7 +431,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                type-checked := nothing
                 var dp-ast = DP.desugar-post-tc(tc-ast, env)
                 tc-ast := nothing
                 var cleaned = dp-ast
@@ -441,7 +440,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                             .visit(AU.set-recursive-visitor)
                             .visit(AU.set-tail-visitor)
                 add-phase("Cleaned AST", cleaned)
-                provides := AU.get-named-provides(named-result, locator.uri(), env)
+                when not(options.type-check) block:
+                  provides := AU.get-named-provides(named-result, locator.uri(), env)
+                end
                 {final-provides; cr} = JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
