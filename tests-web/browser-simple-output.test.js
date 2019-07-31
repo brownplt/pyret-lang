@@ -42,4 +42,28 @@ describe("Testing browser simple-output programs", () => {
       await done();
     });
   });
+
+  /*
+  // const files = glob.sync("tests-new/simple-output/*.arr", {});
+  const files = glob.sync("tests-new/simple-output/if.arr", {});
+  files.forEach(f => {
+    test(`${f}`, async function(done) {
+
+      const contents = String(fs.readFileSync(f));
+      const firstLine = contents.split("\n")[0];
+      const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
+
+      await tester.beginSetInputText(driver, contents)
+        .then(tester.compileRun(driver));
+
+      let indexResult = await searchOutput(driver, new RegExp(contents));
+
+      let result = indexResult !== -1;
+
+      expect(result).toBeTruthy();
+
+      await done();
+    });
+  });
+  */
 });
