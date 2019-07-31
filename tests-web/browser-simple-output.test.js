@@ -15,39 +15,35 @@ describe("Testing browser simple-output programs", () => {
   jest.setTimeout(TEST_TIMEOUT)
 
   describe("Basic page loads", function() {
-    
+    let setup = tester.setup();
+    let driver = setup.driver;
+    let baseURL = setup.baseURL;
+
+    afterAll(() => { 
+      return driver.quit();
+    })
     test("should load the webworker compiler", async function(done) {
-      let setup = tester.setup();
-      let driver = setup.driver;
-      let baseURL = setup.baseURL;
+      
       await driver.get(baseURL + "/page.html")
 
       let loaded = await tester.pyretCompilerLoaded(driver);
       expect(loaded).toBeTruthy();
 
-      tester.teardown(driver, done);
+      await done();
     });
 
     test("should inject program text", async function(done) {
-      let setup = tester.setup();
-      let driver = setup.driver;
-      let baseURL = setup.baseURL;
-      
-      await driver.get(baseURL + "/page.html")
-      let loaded = await tester.pyretCompilerLoaded(driver);
-
-      expect(loaded).toBeTruthy();
-
+            
+      let myValue = "FOO BAR";
       await driver.executeScript(function() {
-        document.getElementById("program").value = "FOO BAR";
+        document.getElementById("program").value = myValue;
       });
 
       let programInput = await driver.findElement({ id: "program" });
       let value = await programInput.getAttribute("value");
 
       expect(value).toEqual("FOO BAR");
-
-      tester.teardown(driver, done);
+      await done();
     })
   });
 });
