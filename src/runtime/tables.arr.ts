@@ -77,6 +77,19 @@ function _row(table: any, ...columns: any[]): any {
   return rawRow(elements);
 }
 
+function _buildColumn(table: any, columnName: string, computeNewVal: (arg0: Row) => any): any {
+  const headers = _deepCopy(table["_headers-raw-array"]);
+  const newHeaders = headers.slice();
+  newHeaders.push(columnName);
+  const rows = _deepCopy(table["_rows-raw-array"]);
+
+  rows.forEach((row: any[]) => {
+    row.push(computeNewVal(rawRow(zip(headers, row))));
+  });
+
+  return _makeTable(newHeaders, rows);
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -111,6 +124,7 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
+    'build-column': (columName, computeNewVal) => _buildColumn(table, columName, computeNewVal),
     '_headers-raw-array': headers,
     '_rows-raw-array': rows,
     'length': function(_) { return rows.length; },
