@@ -13,7 +13,7 @@ my-table = table: name, age, favNum
   row: "Eve", 13, 3
 end
 
-my-renamed-table = t.renameColumn(my-table, "age", "theirAge")
+my-renamed-table = t.rename-column(my-table, "age", "theirAge")
 
 my-correct-renamed-table = table: name, theirAge, favNum
   row: "Bob", 12, 1

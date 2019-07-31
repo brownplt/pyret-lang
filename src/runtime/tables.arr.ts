@@ -504,10 +504,12 @@ module.exports = {
   '_selectColumns': _selectColumns,
   'drop': drop,
   'empty': empty,
+  'get-column': getColumn,
   '_length': _length,
-  'renameColumn': renameColumn,
+  'rename-column': renameColumn,
+  'select-columns': _selectColumns,
   'stack': stack,
-  'transformColumn': transformColumn,
+  'transform-column': transformColumn,
   '_tableReduce': _tableReduce,
   'running-sum': runningSum
 };

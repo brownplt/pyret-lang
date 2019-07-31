@@ -13,12 +13,14 @@
       "_selectColumns": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "drop": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "empty": ["arrow", ["Any"], ["local", "Table"]],
+      "get-column": ["arrow", ["Any", "Any"], "Any"],
       "_length": ["arrow", ["Any"], "Number"],
-      "renameColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]],
+      "rename-column": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]],
       "_tableReduce": ["arrow", [["local", "Table"], "Any"], ["local", "Table"]],
       "running-sum": "Any",
+      "select-columns": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "stack": ["arrow", ["Any", "Any"], ["local", "Table"]],
-      "transformColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]]
+      "transform-column": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]]
     },
     "aliases": {
       "Row": ["local", "Row"],
