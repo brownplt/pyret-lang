@@ -16,7 +16,7 @@ describe("Testing browser simple-output programs", () => {
 
   describe("Basic page loads", function() {
     
-    test("should load the webworker ocmpiler", async function(done) {
+    test("should load the webworker compiler", async function(done) {
       let setup = tester.setup();
       let driver = setup.driver;
       let baseURL = setup.baseURL;
