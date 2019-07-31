@@ -414,7 +414,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             add-phase("Fully desugared", desugared.ast)
             var type-checked =
               if is-link(any-errors):
-                CS.err(any-errors)
+                CS.err(unique(any-errors))
               else if options.type-check:
                 type-checked = T.type-check(desugared.ast, env, modules)
                 if CS.is-ok(type-checked) block:
