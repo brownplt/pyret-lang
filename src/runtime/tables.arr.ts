@@ -2,6 +2,81 @@
 const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
 
+interface Row {
+  '_headers': string[],
+  '_elements': any[],
+  'get-column-names': () => string[],
+  'get-value': (columnName: string) => any,
+  'get': (columnName: string) => any;
+}
+
+function getColumnNames(row: Row): string[] {
+  return List.list.make(row._headers);
+}
+
+function getValue(row: Row, columnName: string): any {
+  const columnIndex: number = row._headers.indexOf(columnName);
+  if (columnIndex === -1) {
+    throw "get-value: column does not exist";
+  }
+  return row._elements[columnIndex];
+}
+
+function rowGet(row: Row, columnName: string): any {
+  const columnIndex: number = row._headers.indexOf(columnName);
+
+  if (columnIndex === -1) {
+    // @ts-ignore
+    return PyretOption.none;
+  } else {
+    // @ts-ignore
+    return PyretOption.some(row._elements[columnIndex]);
+  }
+}
+
+function rawRow(elements: [string, any][]): Row {
+  const headers: string[] = [];
+  const rowElements: any[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const [h, e] = elements[i];
+    headers.push(h);
+    rowElements.push(e);
+  }
+
+  const result = {
+    '_headers': headers,
+    '_elements': rowElements,
+    'get-column-names': () => getColumnNames(result),
+    'get-value': (columnName: string) => getValue(result, columnName),
+    'get': (columnName: string) => rowGet(result, columnName)
+  };
+
+  return result;
+}
+
+function zipWith<X, Y, Z>(f: (arg0: X, arg1: Y) => Z, xs: X[], ys: Y[]): Z[] {
+  if (xs.length !== ys.length) {
+    throw new Error("can't zipWith arrays of different lengths");
+  }
+
+  const result: Z[] = [];
+
+  for (let i = 0; i < xs.length; i++) {
+    result.push(f(xs[i], ys[i]));
+  }
+
+  return result;
+}
+
+function zip<X, Y>(xs: X[], ys: Y[]): [X, Y][] {
+  return zipWith((x, y) => [x, y], xs, ys);
+}
+
+function _row(table: any, ...columns: any[]): any {
+  const elements: [string, any[]][] = zip(table["_headers-raw-array"], columns);
+  return rawRow(elements);
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -35,14 +110,16 @@ function _makeTable(headers, rows) {
     return obj;
   }
 
-  return {
+  const table = {
     '_headers-raw-array': headers,
     '_rows-raw-array': rows,
     'length': function(_) { return rows.length; },
     '_headerIndex': headerIndex,
-
+    'row': (...columns) => _row(table, ...columns),
     $brand: '$table'
   };
+
+  return table;
 }
 
 // _transformColumnMutable :: (Table, String, Function) -> none
@@ -504,58 +581,6 @@ function stack(table, bot) {
   return newTable;
 }
 
-interface Row {
-  '_headers': string[],
-  '_elements': any[],
-  'get-column-names': () => string[],
-  'get-value': (columnName: string) => any,
-  'get': (columnName: string) => any;
-}
-
-function getColumnNames(row: Row): string[] {
-  return List.list.make(row._headers);
-}
-
-function getValue(row: Row, columnName: string): any {
-  const columnIndex: number = row._headers.indexOf(columnName);
-  if (columnIndex === -1) {
-    throw "get-value: column does not exist";
-  }
-  return row._elements[columnIndex];
-}
-
-function rowGet(row: Row, columnName: string): any {
-  const columnIndex: number = row._headers.indexOf(columnName);
-
-  if (columnIndex === -1) {
-    // @ts-ignore
-    return PyretOption.none;
-  } else {
-    // @ts-ignore
-    return PyretOption.some(row._elements[columnIndex]);
-  }
-}
-
-function rawRow(elements: [string, any][]): Row {
-  const headers: string[] = [];
-  const rowElements: any[] = [];
-  for (let i = 0; i < elements.length; i++) {
-    const [h, e] = elements[i];
-    headers.push(h);
-    rowElements.push(e);
-  }
-
-  const result = {
-    '_headers': headers,
-    '_elements': rowElements,
-    'get-column-names': () => getColumnNames(result),
-    'get-value': (columnName: string) => getValue(result, columnName),
-    'get': (columnName: string) => rowGet(result, columnName)
-  };
-
-  return result;
-}
-
 function _arraysEqual(xs: any[], ys: any[]): boolean {
   if (xs === ys) {
     return true;
@@ -592,7 +617,51 @@ function tableFromRows(rows: Row[]): any {
   return _makeTable(headers[0], elements);
 }
 
+type Column = [string, any[]];
+
+function tableFromColumns(columns: Column[]): any {
+  if (columns.length === 0) {
+    throw new Error("expected at least one column");
+  }
+
+  const headers = columns.map(column => column[0]);
+  const sortedHeaders = headers.slice().sort();
+
+  for (let i = 0; i < sortedHeaders.length - 1; i++) {
+    if (sortedHeaders[i] === sortedHeaders[i + 1]) {
+      throw new Error("duplicate header: " + sortedHeaders[i]);
+    }
+  }
+
+  const rowLength = columns[0][1].length
+
+  for (let i = 0; i < columns.length; i++) {
+    if (columns[i][1].length !== rowLength) {
+      throw new Error("columns must have the same number of elements");
+    }
+  }
+
+  const rows = columns[0][1].map(() => []);
+
+  for (let i = 0; i < columns.length; i++) {
+    for (let j = 0; j < columns[i][1].length; j++) {
+      rows[j].push(columns[i][1][j]);
+    }
+  }
+
+  return _makeTable(headers, rows);
+}
+
+function tableFromColumn(columnName: string, values: any[]): any {
+  const col: Column = [columnName, values];
+  return tableFromColumns([col]);
+}
+
 module.exports = {
+  'table-from-column': tableFromColumn,
+  'table-from-columns': {
+    'make': tableFromColumns
+  },
   'table-from-rows': {
     'make': tableFromRows
   },
