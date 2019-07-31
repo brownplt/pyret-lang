@@ -193,17 +193,36 @@ define("pyret-base/js/js-numbers", function() {
       mantissaChunks = match[1].match(/^([^.]*)(.*)$/);
       exponent = Number(match[2]);
 
-      if (mantissaChunks[2].length === 0) {
-        return mantissaChunks[1] + zfill(exponent);
-      }
+      if (typeof(exponent) === 'number' && isFinite(exponent)) {
+          if (mantissaChunks[2].length === 0) {
+            return mantissaChunks[1] + zfill(exponent);
+          }
 
-      if (exponent >= mantissaChunks[2].length - 1) {
-        return (mantissaChunks[1] +
-                mantissaChunks[2].substring(1) +
-                zfill(exponent - (mantissaChunks[2].length - 1)));
+          if (exponent >= mantissaChunks[2].length - 1) {
+            return (mantissaChunks[1] +
+              mantissaChunks[2].substring(1) +
+              zfill(exponent - (mantissaChunks[2].length - 1)));
+          } else {
+            return (mantissaChunks[1] +
+              mantissaChunks[2].substring(1, 1+exponent));
+          }
       } else {
-        return (mantissaChunks[1] +
-                mantissaChunks[2].substring(1, 1+exponent));
+        //possible, but not probable, fixnum overflow!
+          //Pyret chokes on large fixnum exponents well before we get here!
+          exponent = new BigInteger(match[2], 10);
+        if (mantissaChunks[2].length === 0) {
+          return mantissaChunks[1] + zfillBignum(exponent);
+        }
+
+        if (exponent.greaterThanOrEqual(mantissaChunks[2].length - 1)) {
+          return (mantissaChunks[1] +
+            mantissaChunks[2].substring(1) +
+            zfillBignum(exponent.subtract(mantissaChunks[2].length - 1)));
+        } else {
+          // not possible, as bigint can't be less than fixnum, but still
+          return (mantissaChunks[1] +
+            mantissaChunks[2].substring(1, 1+exponent));
+        }
       }
     } else {
       return s;
@@ -220,6 +239,17 @@ define("pyret-base/js/js-numbers", function() {
     }
     return buffer.join('');
   };
+
+  // zfillBignum: {fixnum | bigint} -> string
+  // builds a string of "0"'s of length n, where n can be fixnum or bigint.
+  function zfillBignum(n) {
+    if (typeof(n) === 'number' && isFinite(n)) {
+      return zfill(n);
+    } else {
+      return zfillBignum(n.subtract(MAX_FIXNUM)).concat(
+        zfill(MAX_FIXNUM));
+    }
+  }
 
   // liftFixnumInteger: fixnum-integer boxed-pyretnum -> boxed-pyretnum
   // Lifts up fixnum integers to a boxed type.
@@ -1080,7 +1110,7 @@ define("pyret-base/js/js-numbers", function() {
       if (typeof(n) === 'number') {
         n = makeBignum(n);
       }
-      return onBignums(m, n);
+      return onBignums(m, n, errbacks);
     });
   };
 
@@ -1113,7 +1143,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m % n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnMod.call(m, n);
     });
 
@@ -1128,7 +1158,7 @@ define("pyret-base/js/js-numbers", function() {
       }
       return a;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnGCD.call(m, n);
     });
 
@@ -1166,7 +1196,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m + n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnAdd.call(m, n);
     });
 
@@ -1175,7 +1205,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m - n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnSubtract.call(m, n);
     });
 
@@ -1184,7 +1214,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m * n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnMultiply.call(m, n);
     });
 
@@ -1193,7 +1223,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return ((m - (m % n))/ n);
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnDivide.call(m, n);
     });
 
@@ -1201,7 +1231,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m % n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnRemainder.call(m, n);
     });
 
@@ -1257,11 +1287,14 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m / n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       var xm = splitIntIntoMantissaExpt(m);
       var xn = splitIntIntoMantissaExpt(n);
       var r = Number(String(xm[0] / xn[0]) + 'e' + 
         String(xm[1] - xn[1]));
+      if (typeof(r) === 'number' && !isFinite(r)) {
+        errbacks.throwDomainError('fixnum overflow error');
+      }
       return r;
     },
     { ignoreOverflow: false,
@@ -1274,7 +1307,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m === n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnEquals.call(m, n);
     },
     {doNotCoerceToFloating: true});
@@ -1284,7 +1317,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m > n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) > 0;
     },
     {doNotCoerceToFloating: true});
@@ -1294,7 +1327,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m < n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) < 0;
     },
     {doNotCoerceToFloating: true});
@@ -1304,7 +1337,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m >= n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) >= 0;
     },
     {doNotCoerceToFloating: true});
@@ -1314,7 +1347,7 @@ define("pyret-base/js/js-numbers", function() {
     function(m, n) {
       return m <= n;
     },
-    function(m, n) {
+    function(m, n, errbacks) {
       return bnCompareTo.call(m, n) <= 0;
     },
     {doNotCoerceToFloating: true});
@@ -1883,7 +1916,7 @@ define("pyret-base/js/js-numbers", function() {
       var factorToInt = Math.pow(10, match[2].length);
       var extraFactor = _integerGcd(factorToInt, afterDecimal, errbacks);
       var multFactor = factorToInt / extraFactor;
-      return Roughnum.makeInstance( Math.round(this.n * multFactor) );
+      return Roughnum.makeInstance( Math.round(this.n * multFactor), errbacks);
     } else {
       return this;
     }
@@ -1896,9 +1929,9 @@ define("pyret-base/js/js-numbers", function() {
       var afterDecimal = parseInt(match[2]);
       var factorToInt = Math.pow(10, match[2].length);
       var extraFactor = _integerGcd(factorToInt, afterDecimal, errbacks);
-      return Roughnum.makeInstance( Math.round(factorToInt/extraFactor) );
+      return Roughnum.makeInstance( Math.round(factorToInt/extraFactor), errbacks);
     } else {
-      return Roughnum.makeInstance(1);
+      return Roughnum.makeInstance(1, errbacks);
     }
   };
 
@@ -2000,7 +2033,7 @@ define("pyret-base/js/js-numbers", function() {
     var res = Math.exp(this.n);
     if (!isFinite(res))
       errbacks.throwDomainError('exp: argument too large: ' + this);
-    return Roughnum.makeInstance(res);
+    return Roughnum.makeInstance(res, errbacks);
   };
 
   Roughnum.prototype.acos = function(errbacks){
@@ -2278,7 +2311,8 @@ define("pyret-base/js/js-numbers", function() {
             x === '+inf.0' ||
             x === '-inf.0' ||
             x === '-0.0') {
-          return Roughnum.makeInstance(Infinity);
+          //are we allowing roughnum infinity for Scheme?
+          return Roughnum.makeInstance(Infinity, errbacks); 
         }
 
 	var fMatch = x.match(schemeFlonumRegexp(digitsForRadix(radix, errbacks)))
@@ -2311,7 +2345,7 @@ define("pyret-base/js/js-numbers", function() {
 	    } else if (exactness.intAsExactp()) {
 		return n;
 	    } else {
-		return Roughnum.makeInstance(n)
+		return Roughnum.makeInstance(n, errbacks)
 	    }
 	} else if (mustBeANumberp) {
 	    if(x.length===0) errbacks.throwGeneralError("no digits");
@@ -3657,6 +3691,9 @@ define("pyret-base/js/js-numbers", function() {
     //console.log('split = ', a);
     var r = Number(String(a[0]) + 'e' + String(a[1]));
     //console.log('returning', r);
+    if (typeof(r) === 'number' && !isFinite(r)) {
+      errbacks.throwDomainError('fixnum overflow error');
+    }
     return r;
   }
 

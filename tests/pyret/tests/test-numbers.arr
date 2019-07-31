@@ -336,6 +336,12 @@ check "rough fractions -- proper, improper, integral -- recognized, provided den
   ~-10/2 is%(within(0.1)) ~-5
 end
 
+check "num-to-fixnum":
+  num-to-fixnum(2) is 2
+  num-to-fixnum(num-to-fixnum(2e308)) raises "fixnum overflow error"
+  num-to-fixnum(5e308 / 7e-308) raises "fixnum overflow error"
+end
+
 check "overflow":
   ~1e+308 + ~1e+308 raises "roughnum overflow error"
   ~1e+308 - ~-1e+308 raises "roughnum overflow error"
