@@ -22,15 +22,8 @@ describe("Testing browser simple-output programs", () => {
       let baseURL = setup.baseURL;
       await driver.get(baseURL + "/page.html")
 
-      let cl = await driver.findElement({ id: "consoleList" });
-
-      let result = await driver.wait(async () => {
-        let innerHTML = await cl.getAttribute("innerHTML");
-        let index = innerHTML.search(/Worker setup done/);
-        return index !== -1;
-      }, 5000);
-
-      expect(result).toBeTruthy();
+      let loaded = await tester.pyretCompilerLoaded(driver);
+      expect(loaded).toBeTruthy();
 
       tester.teardown(driver, done);
     });
