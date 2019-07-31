@@ -13,12 +13,13 @@ const RUN_TIMEOUT = 5000; // ms, for each program execution
 describe("testing simple-output programs", () => {
 
   jest.setTimeout(TEST_TIMEOUT)
-  const baseURL = process.env.BASE_URL;
 
   describe("Basic page loads", function() {
     
     test("should load the editor", async function(done) {
-      let driver = tester.setup();
+      let setup = tester.setup();
+      let driver = setup.driver;
+      let baseURL = setup.baseURL;
       await driver.get(baseURL + "/page.html")
 
       let cl = await driver.findElement({ id: "consoleList" });
@@ -31,8 +32,7 @@ describe("testing simple-output programs", () => {
      
       // let result = await tester.waitForPyretLoad(driver, 5000);
       expect(result != -1).toEqual(true)
-      driver.quit();
-      done()
+      driver.quit().then(done);
     });
   });
 });

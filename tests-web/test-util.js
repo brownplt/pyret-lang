@@ -23,10 +23,17 @@ ffCapabilities.set('moz:firefoxOptions', {
 });
 
 function setup() {
-  return new webdriver.Builder()
+  let driver = new webdriver.Builder()
     .forBrowser("firefox")
     .setProxy(null)
     .withCapabilities(ffCapabilities).build();
+
+  let url = process.env.BASE_URL;
+
+  return {
+    driver: driver,
+    baseURL: url
+  };
 }
 
 function pyretLoaded(driver) {
