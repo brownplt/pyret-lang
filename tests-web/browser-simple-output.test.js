@@ -29,21 +29,16 @@ describe("Testing browser simple-output programs", () => {
       let loaded = await tester.pyretCompilerLoaded(driver);
       expect(loaded).toBeTruthy();
 
-      await done();
-    });
-
-    test("should inject program text", async function(done) {
-            
+      // Testing program input works correctly
       let myValue = "FOO BAR";
-      await driver.executeScript(function() {
-        document.getElementById("program").value = myValue;
-      });
+      await tester.beginSetInputText(driver, myValue);
 
       let programInput = await driver.findElement({ id: "program" });
       let value = await programInput.getAttribute("value");
 
       expect(value).toEqual("FOO BAR");
+
       await done();
-    })
+    });
   });
 });
