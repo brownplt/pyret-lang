@@ -24,14 +24,13 @@ describe("testing simple-output programs", () => {
 
       let cl = await driver.findElement({ id: "consoleList" });
 
+      let result = await driver.wait(async () => {
+        let innerHTML = await cl.getAttribute("innerHTML");
+        return innerHTML.search(/Worker setup done/) !== -1;
+      }, 5000);
 
-      await driver.sleep(4000);
-      let innerHTML = await cl.getAttribute("innerHTML");
-
-      let result = innerHTML.search(/Worker setup done/);
-     
-      // let result = await tester.waitForPyretLoad(driver, 5000);
-      expect(result != -1).toEqual(true);
+      console.log(result);
+      expect(result !== -1).toEqual(true);
 
       tester.teardown(driver, done);
     });
