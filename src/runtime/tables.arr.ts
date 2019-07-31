@@ -1,3 +1,5 @@
+// @ts-ignore
+const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
 
 function _makeTable(headers, rows) {
@@ -374,7 +376,101 @@ function drop(table, colname) {
   return newTable;
 }
 
+interface Row {
+  '_headers': string[],
+  '_elements': any[],
+  'get-column-names': () => string[],
+  'get-value': (columnName: string) => any,
+//  'get': (columnName: string) => any;
+}
+
+function getColumnNames(row: Row): string[] {
+  return List.list.make(row._headers);
+}
+
+function getValue(row: Row, columnName: string): any {
+  const columnIndex: number = row._headers.indexOf(columnName);
+  if (columnIndex === -1) {
+    throw "get-value: column does not exist";
+  }
+  return row._elements[columnIndex];
+}
+
+function rowGet(row: Row, columnName: string): any {
+  const columnIndex: number = row._headers.indexOf(columnName);
+
+  if (columnIndex === -1) {
+    // @ts-ignore
+    return PyretOption.none;
+  } else {
+    // @ts-ignore
+    return PyretOption.some(row._elements[columnIndex]);
+  }
+}
+
+function rawRow(elements: [string, any][]): Row {
+  const headers: string[] = [];
+  const rowElements: any[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const [h, e] = elements[i];
+    headers.push(h);
+    rowElements.push(e);
+  }
+
+  const result = {
+    '_headers': headers,
+    '_elements': rowElements,
+    'get-column-names': () => getColumnNames(result),
+    'get-value': (columnName: string) => getValue(result, columnName),
+    'get': (columnName: string) => rowGet(result, columnName)
+  };
+
+  return result;
+}
+
+function _arraysEqual(xs: any[], ys: any[]): boolean {
+  if (xs === ys) {
+    return true;
+  }
+
+  if (xs.length !== ys.length) {
+    return false;
+  }
+
+  for (let i = 0; i < xs.length; i++) {
+    if (xs[i] !== ys[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function tableFromRows(rows: Row[]): any {
+  if (rows.length === 0) {
+    throw "table-from-rows: expected one or more rows";
+  }
+
+  const headers: string[][] = rows.map(row => row._headers);
+
+  for (let i = 0; i < headers.length; i++) {
+    if (!_arraysEqual(headers[i], headers[0])) {
+      throw "table-from-rows: row name mismatch";
+    }
+  }
+
+  const elements: any[][] = rows.map(row => row._elements);
+
+  return _makeTable(headers[0], elements);
+}
+
 module.exports = {
+  'table-from-rows': {
+    'make': tableFromRows
+  },
+  'raw-row': {
+    'make': rawRow
+  },
   '_makeTable': _makeTable,
   '_tableFilter': _tableFilter,
   '_tableGetColumnIndex': _tableGetColumnIndex,

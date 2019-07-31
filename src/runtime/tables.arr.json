@@ -2,6 +2,8 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "table-from-rows": ["arrow", ["Any"], ["local", "Table"]],
+      "raw-row": ["arrow", ["Any"], ["local", "Row"]],
       "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
@@ -18,9 +20,11 @@
       "transformColumn": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]]
     },
     "aliases": {
+      "Row": ["local", "Row"],
       "Table": ["local", "Table"]
     },
     "datatypes": {
+      "Row": ["data", "Row", [], [], {}],
       "Table": ["data", "Table", [], [], {}]
     }
   }
