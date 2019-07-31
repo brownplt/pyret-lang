@@ -7,7 +7,7 @@ const stream = require('stream');
 const tester = require("./test-util.js");
 
 const TEST_TIMEOUT = 20000;
-const COMPILER_TIMEOUT = 10000; // ms, for each compiler run (including startup)
+const COMPILER_TIMEOUT = 10000; // ms, for each compiler run
 const RUN_TIMEOUT = 5000; // ms, for each program execution
 const STARTUP_TIMEOUT = 5000;
 
@@ -46,18 +46,20 @@ describe("Testing browser simple-output programs", () => {
     });
   });
 
-  /*
-  // const files = glob.sync("tests-new/simple-output/*.arr", {});
-  const files = glob.sync("tests-new/simple-output/if.arr", {});
+  const files = glob.sync("tests-new/simple-output/*.arr", {});
   files.forEach(f => {
     test(`${f}`, async function(done) {
+
+      let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
+      expect(loaded).toBeTruthy();
 
       const contents = String(fs.readFileSync(f));
       const firstLine = contents.split("\n")[0];
       const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
 
       await tester.beginSetInputText(driver, contents)
-        .then(tester.compileRun(driver));
+        .then(tester.compileRun(driver))
+        .then(driver.sleep(COMPILER_TIMEOUT + RUN_TIMEOUT));
 
       let indexResult = await searchOutput(driver, new RegExp(contents));
 
@@ -68,5 +70,4 @@ describe("Testing browser simple-output programs", () => {
       await done();
     });
   });
-  */
 });
