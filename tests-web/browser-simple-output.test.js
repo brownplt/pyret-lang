@@ -20,12 +20,15 @@ describe("Testing browser simple-output programs", () => {
     let driver = setup.driver;
     let baseURL = setup.baseURL;
 
+    beforeAll(() => {
+      return driver.get(baseURL + "/page.html");
+    });
+
     afterAll(() => { 
       return driver.quit();
-    })
+    });
+
     test("should load the webworker compiler", async function(done) {
-      
-      await driver.get(baseURL + "/page.html")
 
       let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
       expect(loaded).toBeTruthy();
