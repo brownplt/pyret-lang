@@ -22,6 +22,8 @@ ffCapabilities.set('moz:firefoxOptions', {
   'args': args
 });
 
+const INPUT_ID = "program";
+
 function setup() {
   let driver = new webdriver.Builder()
     .forBrowser("firefox")
@@ -34,6 +36,12 @@ function setup() {
     driver: driver,
     baseURL: url
   };
+}
+
+function beginSetInputText(driver, unquotedInput) {
+  return driver.executeScript(
+    "document.getElementById(\"" + INPUT_ID + "\").value = \"" + unquotedInput + "\";"
+  );
 }
 
 async function pyretCompilerLoaded(driver) {
@@ -65,4 +73,5 @@ module.exports = {
   pyretCompilerLoaded: pyretCompilerLoaded,
   setup: setup,
   teardown: teardown,
+  beginSetInputText: beginSetInputText,
 };
