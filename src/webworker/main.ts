@@ -74,7 +74,13 @@ worker.onmessage = function(e) {
         console.log("Compilation succeeded!");
         if (shouldRun) {
           console.log("Running...");
-          runner.makeRequire("/compiled/project")("program.arr.js");
+
+          try {
+            runner.makeRequire("/compiled/project")("program.arr.js");
+          } catch (err) {
+            setup.workerError(err);
+          }
+
           shouldRun = false;
         }
       } else {

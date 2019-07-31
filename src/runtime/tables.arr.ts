@@ -405,7 +405,7 @@ interface Row {
   '_elements': any[],
   'get-column-names': () => string[],
   'get-value': (columnName: string) => any,
-//  'get': (columnName: string) => any;
+  'get': (columnName: string) => any;
 }
 
 function getColumnNames(row: Row): string[] {
