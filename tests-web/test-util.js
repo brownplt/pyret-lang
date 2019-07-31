@@ -51,10 +51,12 @@ function prepareExpectedOutput(rawExpectedOutput) {
   return rawExpectedOutput;
 }
 
-function teardown(browser) {
+function teardown(browser, done) {
   if(!leave_open) {
-    return browser.quit();
+    return browser.quit().then(done);
   }
+
+  return done;
 }
 
 module.exports = {

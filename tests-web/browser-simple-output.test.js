@@ -31,8 +31,9 @@ describe("testing simple-output programs", () => {
       let result = innerHTML.search(/Worker setup done/);
      
       // let result = await tester.waitForPyretLoad(driver, 5000);
-      expect(result != -1).toEqual(true)
-      driver.quit().then(done);
+      expect(result != -1).toEqual(true);
+
+      tester.teardown(driver, done);
     });
   });
 });
