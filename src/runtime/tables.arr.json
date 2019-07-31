@@ -14,6 +14,7 @@
       "drop": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "empty": ["arrow", ["Any"], ["local", "Table"]],
       "get-column": ["arrow", ["Any", "Any"], "Any"],
+      "increasing-by": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_length": ["arrow", ["Any"], "Number"],
       "rename-column": ["arrow", ["Any", "Any", "Any"], ["local", "Table"]],
       "_tableReduce": ["arrow", [["local", "Table"], "Any"], ["local", "Table"]],
