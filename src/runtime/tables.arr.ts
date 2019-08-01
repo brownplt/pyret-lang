@@ -90,6 +90,30 @@ function _buildColumn(table: any, columnName: string, computeNewVal: (arg0: Row)
   return _makeTable(newHeaders, rows);
 }
 
+function _addColumn(table: any, columnName: string, newVals: any[]): any {
+  const headers = _deepCopy(table["_headers-raw-array"]);
+
+  for (let i = 0; i < headers.length; i++) {
+    if (headers[i] === columnName) {
+      throw new Error("duplicate column name: " + columnName);
+    }
+  }
+
+  const rows = _deepCopy(table["_rows-raw-array"]);
+
+  if (rows.length !== newVals.length) {
+    throw new Error("length of new column is different than the length of the table");
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    rows[i].push(newVals[i]);
+  }
+
+  headers.push(columnName);
+
+  return _makeTable(headers, rows);
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -124,6 +148,7 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
+    'add-column': (columnName, newVals) => _addColumn(table, columnName, newVals),
     'build-column': (columName, computeNewVal) => _buildColumn(table, columName, computeNewVal),
     '_headers-raw-array': headers,
     '_rows-raw-array': rows,
