@@ -13,21 +13,27 @@ const STARTUP_TIMEOUT = 5000;
 
 describe("Testing browser simple-output programs", () => {
 
-  jest.setTimeout(TEST_TIMEOUT)
+  jest.setTimeout(TEST_TIMEOUT);
+
+  let setup;
+  let driver;
+  let baseURL;
+
+  beforeAll(() => {
+    setup = tester.setup();
+    driver = setup.driver;
+    baseURL = setup.baseURL;
+  });
+
+  beforeEach(() => {
+    return driver.get(baseURL + "/page.html");
+  });
+
+  afterAll(() => { 
+    return driver.quit();
+  });
 
   describe("Basic page loads", function() {
-    let setup = tester.setup();
-    let driver = setup.driver;
-    let baseURL = setup.baseURL;
-
-    beforeAll(() => {
-      return driver.get(baseURL + "/page.html");
-    });
-
-    afterAll(() => { 
-      return driver.quit();
-    });
-
     test("should load the webworker compiler", async function(done) {
 
       let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
@@ -46,28 +52,34 @@ describe("Testing browser simple-output programs", () => {
     });
   });
 
-  const files = glob.sync("tests-new/simple-output/*.arr", {});
-  files.forEach(f => {
-    test(`${f}`, async function(done) {
+  describe("Testing simple output", function() {
+    const files = glob.sync("tests-new/simple-output/*.arr", {});
+    files.forEach(f => {
+      test(`${f}`, async function(done) {
 
-      let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
-      expect(loaded).toBeTruthy();
+        let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
+        expect(loaded).toBeTruthy();
 
-      const contents = String(fs.readFileSync(f));
-      const firstLine = contents.split("\n")[0];
-      const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
+        console.log(loaded);
+        const contents = String(fs.readFileSync(f));
+        const firstLine = contents.split("\n")[0];
+        const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
+        console.log(expectedOutput);
 
-      await tester.beginSetInputText(driver, contents)
-        .then(tester.compileRun(driver))
-        .then(driver.sleep(COMPILER_TIMEOUT + RUN_TIMEOUT));
+        console.log(contents);
 
-      let indexResult = await searchOutput(driver, new RegExp(contents));
+        await tester.beginSetInputText(driver, contents);
+          //.then(tester.compileRun(driver))
+          //.then(driver.sleep(COMPILER_TIMEOUT + RUN_TIMEOUT));
 
-      let result = indexResult !== -1;
+        let indexResult = await tester.searchOutput(driver, new RegExp(expectedOutput));
 
-      expect(result).toBeTruthy();
+        let result = indexResult !== -1;
 
-      await done();
+        expect(result).toBeTruthy();
+
+        await done();
+      });
     });
   });
 });
