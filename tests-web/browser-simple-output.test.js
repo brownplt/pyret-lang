@@ -54,6 +54,14 @@ describe("Testing browser simple-output programs", () => {
 
   describe("Testing simple output", function() {
     const files = glob.sync("tests-new/simple-output/*.arr", {});
+
+    // According to beforeEach(), webdriver reopens the editor
+    // This clears the console and resets the compiler
+    // Used for simplicity's sake and in the event of mutating tests with overlapping variables
+    // NOTE(alex): Reloading before each test is necessary because I can't find a source guarenteeing
+    //   test run order beyond using test sequencers. Otherwise, define basic page loads to go first
+    //   and execute simple output tests.
+    //   Maybe use test sequencers in the future?
     files.forEach(f => {
       test(`${f}`, async function(done) {
 
@@ -65,12 +73,10 @@ describe("Testing browser simple-output programs", () => {
         const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
 
         await tester.beginSetInputText(driver, contents)
-          .then(tester.compileRun(driver))
-          .then(driver.sleep(COMPILER_TIMEOUT + RUN_TIMEOUT));
+          .then(tester.compileRun(driver));
 
-        let indexResult = await tester.searchOutput(driver, new RegExp(expectedOutput));
-
-        let result = indexResult !== -1;
+        // Does not work when in .then()
+        let result = await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT));
 
         expect(result).toBeTruthy();
 
