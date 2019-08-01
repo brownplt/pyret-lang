@@ -1,6 +1,7 @@
 var assert = require("assert");
 var webdriver = require("selenium-webdriver");
 var fs = require("fs");
+const jsesc = require("jsesc");
 const ffdriver = require('geckodriver');
 
 let PATH_TO_FF;
@@ -41,7 +42,8 @@ function setup() {
 
 function beginSetInputText(driver, unescapedInput) {
   // TODO(alex): Find a way to properly escape
-  let escapedInput = unescapedInput.replace(/\n|\r\n|\r/g, '\\n');
+  let escapedInput = jsesc(unescapedInput, {quotes: "double"});
+  console.log(escapedInput);
   return driver.executeScript(
     "document.getElementById(\"" + INPUT_ID + "\").value = \"" + escapedInput + "\";"
   );
