@@ -694,9 +694,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # *(Map) |     { "type": "map",
       # *(Map) |       "reduce": (rowNumber) => {
       # *(Map) |         var columnNumberB = _tableGetColumnIndex(myTable, "b");
-      # *(Map) |         var b = myTable["_rows-raw-array"][rowNumber][columnNumberB];
+      # *(Map) |         var b = myTable["_rows"][rowNumber][columnNumberB];
       # *(Map) |         var columnNumberA = _tableGetColumnIndex(myTable, "a");
-      # *(Map) |         var a = myTable["_rows-raw-array"][rowNumber][columnNumberA];
+      # *(Map) |         var a = myTable["_rows"][rowNumber][columnNumberA];
       # *(Map) |         return a / 2; },
       # *(Map) |       "extending": "d" },
       # *(Red) |     { "type": "reduce",
@@ -804,7 +804,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                   get-index-stmt :: JStmt = j-var(get-index-name, get-index-rhs)
 
                   index-name :: Name = bind-id
-                  table-rows :: JExpr = j-bracket(table-expr, j-str("_rows-raw-array"))
+                  table-rows :: JExpr = j-bracket(table-expr, j-str("_rows"))
                   current-row :: JExpr = j-bracket(table-rows, j-id(row-number-name))
                   index-rhs :: JExpr = j-bracket(current-row, j-id(get-index-name))
                   assign-index-stmt :: JStmt = j-var(js-id-of(index-name), index-rhs)
