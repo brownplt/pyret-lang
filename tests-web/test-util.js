@@ -64,6 +64,24 @@ async function pyretCompilerLoaded(driver, timeout) {
   return result;
 }
 
+async function searchForRunningOutput(driver, toSearch, timeout) {
+  let cl = await driver.findElement({ id: "consoleList" });
+
+  let result = await driver.wait(async () => {
+    let innerHTML = await cl.getAttribute("innerHTML");
+    let runningIndex = innerHTML.search(/Running/);
+    
+    if (runningIndex !== -1) {
+      let toSearchIndex = innerHTML.substring(runningIndex).search(toSearch);
+      return toSearchIndex !== -1;
+    } else {
+      return false;
+    }
+  }, timeout);
+
+  return result === null ? false : result;
+};
+
 async function searchOutput(driver, pattern) {
   let cl = await driver.findElement({ id: "consoleList" });
   let innerHTML = await cl.getAttribute("innerHTML");
@@ -92,4 +110,5 @@ module.exports = {
   beginSetInputText: beginSetInputText,
   compileRun: compileRun,
   searchOutput: searchOutput,
+  searchForRunningOutput: searchForRunningOutput,
 };
