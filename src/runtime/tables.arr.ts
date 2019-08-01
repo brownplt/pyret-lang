@@ -144,6 +144,10 @@ function _columnN(table: any, index: number): any[] {
   return List.list.make(table["_rows-raw-array"].map((row) => row[index]));
 }
 
+function _columnNames(table: any): string[] {
+  return List.list.make(table["_headers-raw-array"]);
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -178,6 +182,7 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
+    'column-names': () => _columnNames(table),
     'column-n': (index) => _columnN(table, index),
     'row-n': (index) => _rowN(table, index),
     'add-row': (row) => _addRow(table, row),
