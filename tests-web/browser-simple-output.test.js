@@ -60,17 +60,13 @@ describe("Testing browser simple-output programs", () => {
         let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
         expect(loaded).toBeTruthy();
 
-        console.log(loaded);
         const contents = String(fs.readFileSync(f));
         const firstLine = contents.split("\n")[0];
         const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
-        console.log(expectedOutput);
 
-        console.log(contents);
-
-        await tester.beginSetInputText(driver, contents);
-          //.then(tester.compileRun(driver))
-          //.then(driver.sleep(COMPILER_TIMEOUT + RUN_TIMEOUT));
+        await tester.beginSetInputText(driver, contents)
+          .then(tester.compileRun(driver))
+          .then(driver.sleep(COMPILER_TIMEOUT + RUN_TIMEOUT));
 
         let indexResult = await tester.searchOutput(driver, new RegExp(expectedOutput));
 
