@@ -1,10 +1,71 @@
 const assert = require('assert');
 const browserFS = window['BrowserFS'].BFSRequire('fs');
 const path = window['BrowserFS'].BFSRequire('path');
+const stopify = require('stopify');
+window['stopify'] = stopify;
 
 const nodeModules = {
   'assert': assert
 };
+
+function makeRequireAsync(basePath : string) {
+  let cwd = basePath;
+  let currentRunner = null;
+
+  function requireAsyncMain(importPath : string) {
+    return new Promise(function (resolve, reject) {
+      if(importPath in nodeModules) {
+        return nodeModules[importPath];
+      }
+      const oldWd = cwd;
+      const nextPath = path.join(cwd, importPath);
+      cwd = path.parse(nextPath).dir;
+      if(!browserFS.existsSync(nextPath)) {
+        throw new Error("Path did not exist in requireSync: " + nextPath);
+      }
+      const contents = String(browserFS.readFileSync(nextPath));
+      const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
+      const module = {exports: false};
+      runner.g = { stopify, require: requireAsync, module };
+      runner.path = nextPath;
+      currentRunner = runner;
+      runner.run((result) => {
+        cwd = oldWd;
+        const toReturn = module.exports ? module.exports : result;
+        resolve(toReturn);
+      });
+    });
+  }
+
+  function requireAsync(importPath : string) {
+    if(importPath in nodeModules) {
+      return nodeModules[importPath];
+    }
+    const oldWd = cwd;
+    const nextPath = path.join(cwd, importPath);
+    cwd = path.parse(nextPath).dir;
+    if(!browserFS.existsSync(nextPath)) {
+      throw new Error("Path did not exist in requireSync: " + nextPath);
+    }
+    const contents = String(browserFS.readFileSync(nextPath));
+    const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
+    const module = {exports: false};
+    runner.g = { stopify, require: requireAsync, module, console };
+    runner.path = nextPath;
+    currentRunner.pauseImmediate(() => {
+      const oldRunner = currentRunner;
+      currentRunner = runner;
+      runner.run((result) => {
+        cwd = oldWd;
+        const toReturn = module.exports ? module.exports : result.value;
+        currentRunner = oldRunner;
+        oldRunner.continueImmediate({ type: 'normal', value: toReturn });
+      });
+    });
+  }
+
+  return requireAsyncMain;
+}
 
 function makeRequire(basePath : string) {
   var cwd = basePath;
@@ -40,5 +101,4 @@ function makeRequire(basePath : string) {
   return requireSync;
 }
 
-window['makeRequire'] = makeRequire;
-module.exports = { makeRequire };
+module.exports = { makeRequire, makeRequireAsync };

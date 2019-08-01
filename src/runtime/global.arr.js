@@ -15,7 +15,7 @@ function numToString(n) {
   return String(n);
 }
 
-function timeNow( otherTime = undefined ) {
+function timeNow( otherTime ) {
   if ( otherTime === undefined ) {
     return process.hrtime();
   } else {

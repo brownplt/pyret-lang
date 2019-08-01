@@ -8,10 +8,11 @@ const worker = setup.worker;
 const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
 const compileRun = document.getElementById("compileRun");
+const compileRunStopify = document.getElementById("compileRunStopify");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
-var shouldRun = false;
+var runChoice = 'none';
 
 function compileProgram() {
   fs.writeFileSync("./projects/program.arr", input.value);
@@ -31,7 +32,11 @@ compile.onclick = compileProgram;
 
 compileRun.onclick = function() {
   compileProgram();
-  shouldRun = true;
+  runChoice = 'sync';
+};
+compileRunStopify.onclick = function() {
+  compileProgram();
+  runChoice = 'async';
 };
 
 worker.onmessage = function(e) {
@@ -72,10 +77,26 @@ worker.onmessage = function(e) {
         setup.workerError("Compilation failure");
       } else if (msgType == "compile-success") {
         console.log("Compilation succeeded!");
-        if (shouldRun) {
+        const start = window.performance.now();
+        function printTimes() {
+          const end = window.performance.now();
+          console.log("Running took: ", end - start);
+        }
+        if (runChoice === 'sync') {
+          runChoice = 'none';
           console.log("Running...");
-          runner.makeRequire("/compiled/project")("program.arr.js");
-          shouldRun = false;
+          const start = window.performance.now();
+          const result = runner.makeRequire("/compiled/project")("program.arr.js");
+          const end = window.performance.now();
+          console.log("Run complete with: ", result);
+          printTimes();
+        }
+        else if (runChoice === 'async') {
+          runChoice = 'none';
+          const entry = runner.makeRequireAsync("/compiled/project");
+          const resultP = entry("program.arr.js");
+          resultP.catch((e) => { console.log("Run failed with: ", e); printTimes(); });
+          resultP.then((r) => { console.log("Run complete with: " , r); printTimes(); });
         }
       } else {
         setup.workerLog(e.data);
@@ -83,6 +104,6 @@ worker.onmessage = function(e) {
 
     }
   } catch(error) {
-    setup.workerLog(e.data);
+    setup.workerLog("Error occurred: ", error, e.data);
   }
 };
