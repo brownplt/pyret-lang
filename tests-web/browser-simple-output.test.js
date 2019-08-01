@@ -76,9 +76,10 @@ describe("Testing browser simple-output programs", () => {
           .then(tester.compileRun(driver));
 
         // Does not work when in .then()
-        let result = await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
+        let foundOutput = 
+          await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
 
-        expect(result).toBeTruthy();
+        expect(foundOutput).toBeTruthy();
 
         await done();
       });
