@@ -136,6 +136,14 @@ function _rowN(table: any, index: number): Row {
   return rawRow(zip(table["_headers-raw-array"], table["_rows-raw-array"][index]));
 }
 
+function _columnN(table: any, index: number): any[] {
+  if (index >= table["_headers-raw-array"].length) {
+    throw new Error("index " + index + " out of bounds in table columns");
+  }
+
+  return List.list.make(table["_rows-raw-array"].map((row) => row[index]));
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -170,6 +178,7 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
+    'column-n': (index) => _columnN(table, index),
     'row-n': (index) => _rowN(table, index),
     'add-row': (row) => _addRow(table, row),
     'add-column': (columnName, newVals) => _addColumn(table, columnName, newVals),
