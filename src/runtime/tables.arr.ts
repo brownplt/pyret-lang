@@ -154,6 +154,20 @@ function _allRows(table: any): Row[] {
                              rawRow(zip(table["_headers-raw-array"], row))));
 }
 
+function _allColumns(table: any): any[][] {
+  const rows = table["_rows-raw-array"];
+  const headers = table["_headers-raw-array"];
+  const columns = headers.map((_) => []);
+
+  for (let i = 0; i < columns.length; i++) {
+    for (let j = 0; j < rows.length; j++) {
+      columns[i].push(rows[j][i]);
+    }
+  }
+
+  return columns;
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -188,6 +202,7 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
+    'all-columns': () => _allColumns(table),
     'all-rows': () => _allRows(table),
     'column-names': () => _columnNames(table),
     'column-n': (index) => _columnN(table, index),
