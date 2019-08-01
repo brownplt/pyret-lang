@@ -2,6 +2,23 @@
 const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
 
+interface Table {
+  'all-columns': () => any[][],
+  'all-rows': () => Row[],
+  'column-names': () => string[],
+  'column-n': (index: number) => any[],
+  'row-n': (index: number) => Row,
+  'add-row': (row: Row) => Table,
+  'add-column': (columnName: string, newVals: any[]) => Table,
+  'build-column': (columName: string,
+                   computeNewVal: (row: Row) => any) => Table,
+  '_headers': string[],
+  '_rows': any[],
+  'length': () => number,
+  'row': (...columns: any[]) => Row,
+  '$brand': string
+}
+
 interface Row {
   '_headers': string[],
   '_elements': any[],
@@ -72,12 +89,14 @@ function zip<X, Y>(xs: X[], ys: Y[]): [X, Y][] {
   return zipWith((x, y) => [x, y], xs, ys);
 }
 
-function _row(table: any, ...columns: any[]): any {
+function _row(table: any, ...columns: any[]): Row {
   const elements: [string, any[]][] = zip(table._headers, columns);
   return rawRow(elements);
 }
 
-function _buildColumn(table: any, columnName: string, computeNewVal: (arg0: Row) => any): any {
+function _buildColumn(table: any,
+                      columnName: string,
+                      computeNewVal: (arg0: Row) => any): Table {
   const headers = _deepCopy(table._headers);
   const newHeaders = headers.slice();
   newHeaders.push(columnName);
@@ -90,7 +109,7 @@ function _buildColumn(table: any, columnName: string, computeNewVal: (arg0: Row)
   return _makeTable(newHeaders, rows);
 }
 
-function _addColumn(table: any, columnName: string, newVals: any[]): any {
+function _addColumn(table: any, columnName: string, newVals: any[]): Table {
   const headers = _deepCopy(table._headers);
 
   for (let i = 0; i < headers.length; i++) {
@@ -114,7 +133,7 @@ function _addColumn(table: any, columnName: string, newVals: any[]): any {
   return _makeTable(headers, rows);
 }
 
-function _addRow(table: any, row: Row): any {
+function _addRow(table: any, row: Row): Table {
   const tableHeaders = _deepCopy(table._headers);
   const rowHeaders = row._headers;
 
@@ -168,37 +187,11 @@ function _allColumns(table: any): any[][] {
   return columns;
 }
 
-function _makeTable(headers, rows) {
+function _makeTable(headers: string[], rows: any[][]): Table {
   var headerIndex = {};
 
   for (var i = 0; i < headers.length; i++) {
     headerIndex["column:" + headers[i]] = i;
-  }
-
-  function getRowContentAsRecordFromHeaders(headers, raw_row) {
-    /* TODO: Raise error if no row at index */
-    var obj = {};
-    for(var i = 0; i < headers.length; i++) {
-      obj[headers[i]] = raw_row[i];
-    }
-    return obj;
-  }
-
-  function getRowContentAsRecord(raw_row) {
-    return getRowContentAsRecordFromHeaders(headers, raw_row);
-  }
-
-  function getRowContentAsGetter(headers, raw_row) {
-    var obj = getRowContentAsRecordFromHeaders(headers, raw_row);
-    obj["get-value"] = function(key) {
-      if(obj.hasOwnProperty(key)) {
-        return obj[key];
-      }
-      else {
-        throw "Not found: " + key;
-      }
-    };
-    return obj;
   }
 
   const table = {
@@ -212,18 +205,19 @@ function _makeTable(headers, rows) {
     'build-column': (columName, computeNewVal) => _buildColumn(table, columName, computeNewVal),
     '_headers': headers,
     '_rows': rows,
-    'length': function(_) { return rows.length; },
+    'length': function() { return rows.length; },
     '_headerIndex': headerIndex,
     'row': (...columns) => _row(table, ...columns),
-    $brand: '$table'
+    '$brand': '$table'
   };
 
   return table;
 }
 
-// _transformColumnMutable :: (Table, String, Function) -> none
 // Changes the elements of a table in the specified column using the given function
-function _transformColumnMutable(table, colname, func) {
+function _transformColumnMutable(table: Table,
+                                 colname: string,
+                                 func: (element: any) => any): void {
   if(!hasColumn(table, colname)) {
     throw "transformColumnMutable: tried changing the column " + colname + " but it doesn't exist";
   }
@@ -236,9 +230,10 @@ function _transformColumnMutable(table, colname, func) {
   );
 }
 
-// _tableTransform :: (Table, Array<String>, Array<Function>) -> Table
 // Creates a new table and mutates the specified columns with the given functions
-function _tableTransform(table, colnames, updates) {
+function _tableTransform(table: Table,
+                         colnames: string[],
+                         updates: ((element: any) => any)[]) {
   var newHeaders = _deepCopy(table._headers);
   var newRows = _deepCopy(table._rows);
   var newTable = _makeTable(newHeaders, newRows);
@@ -252,7 +247,7 @@ function _tableTransform(table, colnames, updates) {
 
 // transformColumn :: (Table, String, Function) -> Table
 // Creates a new table that mutates the specified column for the given function
-function transformColumn(table, colname, update) {
+function transformColumn(table: Table, colname: string, update: (element: any) => any) {
   var newHeaders = _deepCopy(table._headers);
   var newRows = _deepCopy(table._rows);
   var newTable = _makeTable(newHeaders, newRows);
@@ -261,7 +256,7 @@ function transformColumn(table, colname, update) {
 }
 
 // returns a deep copy of (nested) arrays
-function _deepCopy(arr) {
+function _deepCopy(arr: any): any {
   var i, copy;
 
   if ( Array.isArray(arr) ) {
@@ -277,7 +272,7 @@ function _deepCopy(arr) {
 
 // _tableFilter :: Table -> (Array -> Boolean) -> Table
 // Creates a new Table which contains the rows from table that satisfy predicate.
-function _tableFilter(table, predicate) {
+function _tableFilter(table: Table, predicate: (row: any[]) => boolean): Table {
   var headers = _deepCopy(table._headers);
   var rows = _deepCopy(table._rows);
   return _makeTable(headers, rows.filter(predicate));
@@ -320,7 +315,7 @@ function filterBy(table, colname, predicate) {
 // _tableGetColumnIndex :: Table -> String -> Integer
 // Returns the index of column_name, or throws an error if column_name is not a
 // column in table.
-function _tableGetColumnIndex(table, column_name) {
+function _tableGetColumnIndex(table: Table, column_name: string): number {
   const headers = table._headers;
 
   for (let index = 0; index < headers.length; index++) {
@@ -332,12 +327,15 @@ function _tableGetColumnIndex(table, column_name) {
   throw "not a valid column";
 }
 
-// _tableOrder : Table -> List<{'column': String, 'direction': String} -> Table
-//   where in `'direction': x`, x can be either "ascending" or "descending".
+interface Ordering {
+  'column': string,
+  'direction': 'ascending' | 'descending'
+}
+
 // Creates a Table that is like table, except that its rows are sorted according
 // to columnOrders. An element in columnOrders specifies a column name and an
 // ordering, either ascending or descending.
-function _tableOrder(table: any, columnOrders: any): any {
+function _tableOrder(table: Table, columnOrders: Ordering[]): Table {
   const headers = table._headers;
   const rows = table._rows;
 
@@ -376,7 +374,7 @@ function _tableOrder(table: any, columnOrders: any): any {
 }
 
 // _selectColumns :: (Table, Array<String>) -> Table
-function _selectColumns(table, colnames) {
+function _selectColumns(table: Table, colnames: string[]): Table {
   //var colnamesList = ffi.toArray(colnames);
   // This line of code below relies on anchor built-in lists being js arrays
   var colnamesList = colnames;
@@ -393,14 +391,14 @@ function _selectColumns(table, colnames) {
     console.log(i);
     newRows[i] = [];
     for(var j = 0; j < colnamesList.length; j += 1) {
-      var colIndex = table._headerIndex['column:' + colnamesList[j]];
+      var colIndex = _tableGetColumnIndex(table, colnamesList[j]);
       newRows[i].push(table['_rows'][i][colIndex]);
     }
   }
   return _makeTable(colnamesList, newRows);
 }
 
-function _tableExtractColumn(table: any, columnName: string): any {
+function _tableExtractColumn(table: Table, columnName: string): any[] {
   const index = _tableGetColumnIndex(table, columnName);
   const rows = table._rows;
   const extracted = List["empty-list"]();
@@ -458,7 +456,7 @@ function isMappingExtension(x: TableExtension): x is MappingExtension<any> {
 
 // Creates a new Table that is like table, except that it has one or more new columns,
 // as specified by the supplied TableExtensions.
-function _tableReduce(table: any, extensions: Array<TableExtension>): any {
+function _tableReduce(table: Table, extensions: Array<TableExtension>): Table {
   const headers = table['_headers'];
   const rows = table['_rows'];
   const extendedColumns =
@@ -526,11 +524,11 @@ function _tableReduce(table: any, extensions: Array<TableExtension>): any {
   return _makeTable(newHeaders, newRows);
 }
 
-function hasColumn(table, column_name) {
-  return table._headerIndex.hasOwnProperty("column:" + column_name);
+function hasColumn(table: Table, column_name: string): boolean {
+  return table._headers.includes(column_name);
 }
 
-function getColumn(table, column_name) {
+function getColumn(table: Table, column_name: string): any[] {
   // Raise error if table lacks column
   if ( !hasColumn(table, column_name) ) {
     throw "no such column";
@@ -543,28 +541,26 @@ function getColumn(table, column_name) {
   return table._rows.map(function(row){return row[column_index];});
 }
 
-function _length(table) {
+function _length(table: Table): number {
   return table._rows.length;
 }
 
-// renameColumn :: ( Table, String, String ) -> Table
 // creates a new table with a column renamed
-function renameColumn(table, old_name, new_name) {
+function renameColumn(table: Table, old_name: string, new_name: string): Table {
   // check if old_name exists
   if ( !hasColumn(table, old_name) ) {
     throw "no such column";
   }
   var newHeaders = _deepCopy(table._headers);
   var newRows = _deepCopy(table._rows);
-  var colIndex = table._headerIndex['column:' + old_name];
+  var colIndex = _tableGetColumnIndex(table, old_name);
   newHeaders[colIndex] = new_name;
   var newTable = _makeTable(newHeaders, newRows);
   return newTable;
 }
 
-// increasing-by :: (Table, String) -> Table
 // orders column in ascending order
-function increasingBy(table, colname) {
+function increasingBy(table: Table, colname: string): Table {
   // check if colname exists
   if ( !hasColumn(table, colname) ) {
     throw new Error("no such column");
@@ -572,7 +568,7 @@ function increasingBy(table, colname) {
 
   var newHeaders = _deepCopy(table._headers);
   var newRows = _deepCopy(table._rows);
-  var colIndex = table._headerIndex['column:' + colname];
+  var colIndex = _tableGetColumnIndex(table, colname);
 
   function ordering(a: any, b: any): number {
     const elemA = a[colIndex];
@@ -591,9 +587,8 @@ function increasingBy(table, colname) {
   return newTable;
 }
 
-// decreasing-by :: (Table, String) -> Table
 // orders column in descending order
-function decreasingBy(table, colname) {
+function decreasingBy(table: Table, colname: string): Table {
   // check if colname exists
   if ( !hasColumn(table, colname) ) {
     throw new Error("no such column");
@@ -601,7 +596,7 @@ function decreasingBy(table, colname) {
 
   var newHeaders = _deepCopy(table._headers);
   var newRows = _deepCopy(table._rows);
-  var colIndex = table._headerIndex['column:' + colname];
+  var colIndex = _tableGetColumnIndex(table, colname);
 
   function ordering(a: any, b: any): number {
     const elemA = a[colIndex];
@@ -620,15 +615,13 @@ function decreasingBy(table, colname) {
   return newTable;
 }
 
-// order-by :: (Table, String, Boolean) -> Table
 // orders a column ascending or descending depending on the boolean
-function orderBy(table, colname, asc) {
+function orderBy(table: Table, colname: string, asc: boolean): Table {
   if (asc) { return increasingBy(table, colname); }
   else { return decreasingBy(table, colname); }
 }
 
-// order-by-columns :: (Table, List<{String; Boolean}>) -> Table
-function orderByColumns(table, cols) {
+function orderByColumns(table: Table, cols: [string, boolean][]): Table {
   const headers = table._headers;
   const rows = table._rows;
 
@@ -666,24 +659,22 @@ function orderByColumns(table, cols) {
   return _makeTable(headers, sortedRows);
 }
 
-// empty :: (Table) -> Table
 // returns an empty Table with the same column headers
-function empty(table) {
+function empty(table: Table): Table {
   var newHeaders = _deepCopy(table._headers);
   var newTable = _makeTable(newHeaders, []);
   return newTable;
 }
 
-// drop :: (Table, String) -> Table
 // returns a new table without the specified column
-function drop(table, colname) {
+function drop(table: Table, colname: string): Table {
   // check if colname exists
   if ( !hasColumn(table, colname) ) {
     throw "no such column";
   }
   var newHeaders = _deepCopy(table._headers);
   var newRows = _deepCopy(table._rows);
-  var colIndex = table._headerIndex['column:' + colname];
+  var colIndex = _tableGetColumnIndex(table, colname);
   newHeaders.splice(colIndex, 1);
   for ( let i = 0; i < newRows.length; i++ ) {
     newRows[i].splice(colIndex, 1);
@@ -692,9 +683,8 @@ function drop(table, colname) {
   return newTable;
 }
 
-// stack :: (Table, Table) -> Table
 // returns a new table with elements of both tables
-function stack(table, bot) {
+function stack(table: Table, bot: Table): Table {
   var tableHeaders = _deepCopy(table._headers);
   var headersToSort = _deepCopy(table._headers);
   var botHeaders = _deepCopy(bot._headers);
@@ -707,8 +697,8 @@ function stack(table, bot) {
   for ( let i = 0; i < bot._rows.length; i++ ) {
     newRows.push([]);
     for ( let j = 0; j < tableHeaders.length; j++ ) {
-      newRows[ newRows.length - 1 ].push(bot._rows[i]
-        [ bot._headerIndex['column:' + tableHeaders[j]] ]);
+      newRows[ newRows.length - 1 ]
+        .push(bot._rows[i][_tableGetColumnIndex(bot, tableHeaders[j])]);
     }
   }
 
@@ -734,7 +724,7 @@ function _arraysEqual(xs: any[], ys: any[]): boolean {
   return true;
 }
 
-function tableFromRows(rows: Row[]): any {
+function tableFromRows(rows: Row[]): Table {
   if (rows.length === 0) {
     throw "table-from-rows: expected one or more rows";
   }
@@ -754,7 +744,7 @@ function tableFromRows(rows: Row[]): any {
 
 type Column = [string, any[]];
 
-function tableFromColumns(columns: Column[]): any {
+function tableFromColumns(columns: Column[]): Table {
   if (columns.length === 0) {
     throw new Error("expected at least one column");
   }
@@ -787,7 +777,7 @@ function tableFromColumns(columns: Column[]): any {
   return _makeTable(headers, rows);
 }
 
-function tableFromColumn(columnName: string, values: any[]): any {
+function tableFromColumn(columnName: string, values: any[]): Table {
   const col: Column = [columnName, values];
   return tableFromColumns([col]);
 }
