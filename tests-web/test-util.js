@@ -39,9 +39,11 @@ function setup() {
   };
 }
 
-function beginSetInputText(driver, unquotedInput) {
+function beginSetInputText(driver, unescapedInput) {
+  // TODO(alex): Find a way to properly escape
+  let escapedInput = unescapedInput.replace(/\n|\r\n|\r/g, '\\n');
   return driver.executeScript(
-    "document.getElementById(\"" + INPUT_ID + "\").value = \"" + unquotedInput + "\";"
+    "document.getElementById(\"" + INPUT_ID + "\").value = \"" + escapedInput + "\";"
   );
 }
 
