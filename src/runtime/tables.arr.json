@@ -5,7 +5,7 @@
       "table-from-column": ["arrow", ["String", "Any"], ["local", "Table"]],
       "table-from-columns": "Any",
       "table-from-rows": "Any",
-      "raw-row": "Any",
+      "raw-row": ["Maker", "Any", ["local", "Row"]],
       "_makeTable":  ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableFilter": ["arrow", ["Any", "Any"], ["local", "Table"]],
       "_tableGetColumnIndex": ["arrow", ["Any", "Any"], "Boolean"],
