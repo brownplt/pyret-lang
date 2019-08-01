@@ -114,6 +114,20 @@ function _addColumn(table: any, columnName: string, newVals: any[]): any {
   return _makeTable(headers, rows);
 }
 
+function _addRow(table: any, row: Row): any {
+  const tableHeaders = _deepCopy(table["_headers-raw-array"]);
+  const rowHeaders = row._headers;
+
+  if (!_arraysEqual(tableHeaders, rowHeaders)) {
+    throw new Error("table does not have the same column names as the new row");
+  }
+
+  const tableRows = _deepCopy(table["_rows-raw-array"]);
+  tableRows.push(row._elements);
+
+  return _makeTable(tableHeaders, tableRows);
+}
+
 function _makeTable(headers, rows) {
   var headerIndex = {};
 
@@ -148,6 +162,7 @@ function _makeTable(headers, rows) {
   }
 
   const table = {
+    'add-row': (row) => _addRow(table, row),
     'add-column': (columnName, newVals) => _addColumn(table, columnName, newVals),
     'build-column': (columName, computeNewVal) => _buildColumn(table, columName, computeNewVal),
     '_headers-raw-array': headers,
