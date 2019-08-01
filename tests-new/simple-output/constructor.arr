@@ -7,5 +7,4 @@ counter = {
 
 c = [counter: "a", "b", "c"]
 
-G.display-string(G.num-to-str(c))
-
+G.console-log(G.num-to-str(c))
