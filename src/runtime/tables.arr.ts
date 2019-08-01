@@ -278,7 +278,43 @@ function _deepCopy(arr) {
 // _tableFilter :: Table -> (Array -> Boolean) -> Table
 // Creates a new Table which contains the rows from table that satisfy predicate.
 function _tableFilter(table, predicate) {
-  return _makeTable(table._headers, table._rows.filter(predicate));
+  var headers = _deepCopy(table._headers);
+  var rows = _deepCopy(table._rows);
+  return _makeTable(headers, rows.filter(predicate));
+}
+
+// filter :: (Table, (Row -> Boolean)) -> Table
+// creates a new table containing only the rows for which the predicate
+// returned true
+function filter(table, predicate) {
+  var headers = _deepCopy(table._headers);
+  var rows = _deepCopy(table._rows);
+  var newRows = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    if (predicate(_rowN(table, i))) {
+      newRows.push(rows[i]);
+    }
+  }
+
+  return _makeTable(headers, newRows);
+}
+
+// filter-by :: (Table, String, (Col -> Boolean)) -> Table
+// creates a new table containing only the rows for which the predicate
+// returned true for that column
+function filterBy(table, colname, predicate) {
+  var headers = _deepCopy(table._headers);
+  var newRows = [];
+  var column = getColumn(table, colname);
+
+  for ( let i = 0; i < column.length; i++ ) {
+    if ( predicate(column[i]) ) {
+      newRows.push(table._rows[i]);
+    }
+  }
+
+  return _makeTable(headers, newRows);
 }
 
 // _tableGetColumnIndex :: Table -> String -> Integer
@@ -777,6 +813,8 @@ module.exports = {
   'decreasing-by': decreasingBy,
   'drop': drop,
   'empty': empty,
+  'filter': filter,
+  'filter-by': filterBy,
   'get-column': getColumn,
   'increasing-by': increasingBy,
   '_length': _length,
