@@ -13,7 +13,7 @@ expected-column-names = [L.list: "a", "b", "c"]
 actual-column-names = my-row.get-column-names()
 
 column-names-okay =
-  T._primitiveArraysEqual(expected-column-names, actual-column-names)
+  T._primitiveEqual(expected-column-names, actual-column-names)
 
 expected-first-value = 1
 expected-second-value = 2
