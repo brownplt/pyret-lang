@@ -39,13 +39,13 @@ function _primitiveArraysEqual(a1: any[], a2: any[]): boolean {
 
 function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   if (t1.$brand !== '$table') {
-    throw new Error("expected an object with the field '$brand': '$table', but"
-                    + "received " + t1 + " instead");
+    throw new Error("expected an object with the field '$brand': '$table',"
+                    + " but received " + t1 + " instead");
   }
 
   if (t2.$brand !== '$table') {
-    throw new Error("expected an object with the field '$brand': '$table', but"
-                    + "received " + t2 + " instead");
+    throw new Error("expected an object with the field '$brand': '$table',"
+                    + " but received " + t2 + " instead");
   }
 
   const t1_headers = t1._headers;
