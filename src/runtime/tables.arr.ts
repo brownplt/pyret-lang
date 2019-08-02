@@ -58,7 +58,7 @@ function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   const t1_rows = t1._rows;
   const t2_rows = t2._rows;
 
-  if (!_primitiveArraysEqual(t1_rows, t2_rows)) {
+  if (t1_rows.length !== t2_rows.length) {
     return false;
   }
 
