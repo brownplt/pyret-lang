@@ -2,9 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
-      "_primitiveNestedArraysEqual": ["arrow", ["Any", "Any"], "Boolean"],
-      "_primitiveArraysEqual": ["arrow", ["Any", "Any"], "Boolean"],
-      "_primitiveTablesEqual": ["arrow", [["local", "Table"], ["local", "Table"]], "Boolean"],
+      "_primitiveEqual": ["arrow", ["Any", "Any"], "Boolean"],
       "table-from-column": ["arrow", ["String", "Any"], ["local", "Table"]],
       "table-from-columns": "Any",
       "table-from-rows": "Any",

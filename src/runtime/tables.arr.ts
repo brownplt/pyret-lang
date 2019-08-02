@@ -19,30 +19,46 @@ interface Table {
   '$brand': string
 }
 
-// Returns true if a1 and a2 contain identical primitive values, false
-// otherwise. Equality is undefined for non-primitives, e.g., objects.
-function _primitiveArraysEqual(a1: any[], a2: any[]): boolean {
-  if (a1 === a2) {
-    return true;
+function _primitiveEqual(a1: any, a2: any): boolean {
+  if (Array.isArray(a1) && Array.isArray(a2)) {
+    return _primitiveArraysEqual(a1, a2);
   }
 
-  if (a1.length !== a2.length) {
+  if (a1.$brand === '$table' && a2.$brand === '$table') {
+    return _primitiveTablesEqual(a1, a2);
+  }
+
+  if (a1.$brand === '$row' && a2.$brand === '$row') {
+    return _primitiveRowsEqual(a1, a2);
+  }
+
+  return a1 === a2;
+}
+
+function _primitiveRowsEqual(a1: Row, a2: Row): boolean {
+  if (a1.$brand !== '$row') {
+    throw new Error("expected an object with the field '$brand': '$row',"
+                    + " but received " + JSON.stringify(a1)+ " instead");
+  }
+
+  if (a2.$brand !== '$row') {
+    throw new Error("expected an object with the field '$brand': '$row',"
+                    + " but received " + JSON.stringify(a2) + " instead");
+  }
+
+  if (!_primitiveEqual(a1._headers, a2._headers)) {
     return false;
   }
 
-  for (let i = 0; i < a1.length; i++) {
-    if (a1[i] !== a2[i]) {
-      return false;
-    }
+  if (!_primitiveEqual(a1._elements, a2._elements)) {
+    return false;
   }
 
   return true;
 }
 
-// Returns true if a1 and a2 contain identical primitive values (or nested
-// primitive values), false otherwise. Equality is undefined for
-// non-primitives, e.g., non-array objects.
-function _primitiveNestedArraysEqual(a1: any, a2: any): boolean {
+// Returns true if a1 and a2 contain identical primitive values.
+function _primitiveArraysEqual(a1: any, a2: any): boolean {
   if (a1 === a2) {
     return true;
   }
@@ -61,7 +77,7 @@ function _primitiveNestedArraysEqual(a1: any, a2: any): boolean {
   }
 
   for (let i = 0; i < a1.length; i++) {
-    if (!_primitiveNestedArraysEqual(a1[i], a2[i])) {
+    if (!_primitiveEqual(a1[i], a2[i])) {
       return false;
     }
   }
@@ -69,16 +85,15 @@ function _primitiveNestedArraysEqual(a1: any, a2: any): boolean {
   return true;
 }
 
-// Return
 function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   if (t1.$brand !== '$table') {
     throw new Error("expected an object with the field '$brand': '$table',"
-                    + " but received " + t1 + " instead");
+                    + " but received " + JSON.stringify(t1) + " instead");
   }
 
   if (t2.$brand !== '$table') {
     throw new Error("expected an object with the field '$brand': '$table',"
-                    + " but received " + t2 + " instead");
+                    + " but received " + JSON.stringify(t2) + " instead");
   }
 
   const t1_headers = t1._headers;
@@ -96,7 +111,7 @@ function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   }
 
   for (let i = 0; i < t1_rows.length; i++) {
-    if (!_primitiveArraysEqual(t1_rows[i], t2_rows[i])) {
+    if (!_primitiveEqual(t1_rows[i], t2_rows[i])) {
       return false;
     }
   }
@@ -109,7 +124,8 @@ interface Row {
   '_elements': any[],
   'get-column-names': () => string[],
   'get-value': (columnName: string) => any,
-  'get': (columnName: string) => any;
+  'get': (columnName: string) => any,
+  '$brand': string
 }
 
 function getColumnNames(row: Row): string[] {
@@ -150,7 +166,8 @@ function rawRow(elements: [string, any][]): Row {
     '_elements': rowElements,
     'get-column-names': () => getColumnNames(result),
     'get-value': (columnName: string) => getValue(result, columnName),
-    'get': (columnName: string) => rowGet(result, columnName)
+    'get': (columnName: string) => rowGet(result, columnName),
+    '$brand': '$row'
   };
 
   return result;
@@ -850,9 +867,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
-  '_primitiveNestedArraysEqual': _primitiveNestedArraysEqual,
-  '_primitiveArraysEqual': _primitiveArraysEqual,
-  '_primitiveTablesEqual': _primitiveTablesEqual,
+  '_primitiveEqual': _primitiveEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {
     'make': tableFromColumns
