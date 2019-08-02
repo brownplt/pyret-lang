@@ -23,6 +23,40 @@ BrowserFS.configure({
 });
 
 const theFS = BrowserFS.BFSRequire("fs");
+const thePath = BrowserFS.BFSRequire("path");
+
+function deleteDir(dir) {
+  // console.log("Entering:", dir);
+  theFS.readdir(dir, function(err, files) {
+    if (err) {
+      throw err;
+    }
+
+    let count = files.length;
+    files.forEach(function(file) {
+      let filePath = thePath.join(dir, file);
+      
+      theFS.stat(filePath, function(err, stats) {
+        if (err) {
+          throw err;
+        }
+
+        if (stats.isDirectory()) {
+          deleteDir(filePath);
+        } else {
+          theFS.unlink(filePath, function(err) {
+            if (err) {
+              throw err;
+            }
+
+            console.log("Deleted:", filePath);
+          });
+        }
+      });
+    });
+  });
+}
+
 
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(theFS, "/", filesystemBrowser);
@@ -46,6 +80,11 @@ const oldError = console.error;
 const clearLogsButton = document.getElementById("clearLogs");
 clearLogsButton.onclick = function() {
   outputList.innerHTML = "";
+}
+
+const clearFSButton = document.getElementById("clearFS");
+clearFSButton.onclick = function() {
+  deleteDir("/");
 }
 
 const genericLog = function(prefix, className, ...args: any[]) {
