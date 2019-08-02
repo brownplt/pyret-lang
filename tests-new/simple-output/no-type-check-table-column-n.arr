@@ -23,10 +23,10 @@ expected-column-1 = [L.list: 2, 5, 8]
 expected-column-2 = [L.list: 3, 6, 9]
 
 passes-when-true =
-  Eq._objectDeepEqual(expected-column-0, column-0)
+  T._primitiveEqual(expected-column-0, column-0)
   and
-  Eq._objectDeepEqual(expected-column-1, column-1)
+  T._primitiveEqual(expected-column-1, column-1)
   and
-  Eq._objectDeepEqual(expected-column-2, column-2)
+  T._primitiveEqual(expected-column-2, column-2)
 
 G.console-log(passes-when-true)
