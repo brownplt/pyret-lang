@@ -19,6 +19,43 @@ interface Table {
   '$brand': string
 }
 
+// Returns true if t1 is "equal" to t2. Equality is defined
+// only on tables whose rows contain primitive types, e.g.,
+// strings, booleans, numbers---anything but objects.
+function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
+  if (t1.$brand !== '$table') {
+    throw new Error("expected an object with the field '$brand': '$table', but"
+                    + "received " + t1 + " instead");
+  }
+
+  if (t2.$brand !== '$table') {
+    throw new Error("expected an object with the field '$brand': '$table', but"
+                    + "received " + t2 + " instead");
+  }
+
+  const t1_headers = t1._headers;
+  const t2_headers = t2._headers;
+
+  if (!_arraysEqual(t1_headers, t2_headers)) {
+    return false;
+  }
+
+  const t1_rows = t1._rows;
+  const t2_rows = t2._rows;
+
+  if (!_arraysEqual(t1_rows, t2_rows)) {
+    return false;
+  }
+
+  for (let i = 0; i < t1_rows.length; i++) {
+    if (!_arraysEqual(t1_rows[i], t2_rows[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 interface Row {
   '_headers': string[],
   '_elements': any[],
@@ -783,6 +820,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_primitiveTablesEqual': _primitiveTablesEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {
     'make': tableFromColumns
