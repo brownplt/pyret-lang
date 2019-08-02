@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "_primitiveArraysEqual": ["arrow", ["Any", "Any"], "Boolean"],
       "_primitiveTablesEqual": ["arrow", [["local", "Table"], ["local", "Table"]], "Boolean"],
       "table-from-column": ["arrow", ["String", "Any"], ["local", "Table"]],
       "table-from-columns": "Any",

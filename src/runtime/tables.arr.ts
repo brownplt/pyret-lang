@@ -817,6 +817,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_primitiveArraysEqual': _primitiveArraysEqual,
   '_primitiveTablesEqual': _primitiveTablesEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {
