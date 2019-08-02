@@ -1,9 +1,18 @@
 const BrowserFS = require("browserfs");
+window["BrowserFS"] = BrowserFS;
+
 const FilesystemBrowser = require("./filesystemBrowser.ts");
+const loader = require("./runtime-loader.ts");
 
 const myWorker = new Worker('pyret.jarr');
 
 window["projectsDir"] = "./projects";
+
+function loadBuiltins() {
+  console.log("LOADING RUNTIME FILES");
+  loader();
+  console.log("FINISHED LOADING RUNTIME FILES");
+}
 
 // How to use BrowserFS with Web Workers: https://github.com/jvilk/BrowserFS/issues/210
 BrowserFS.install(window);
@@ -87,6 +96,11 @@ clearFSButton.onclick = function() {
   deleteDir("/");
 }
 
+const loadBuiltinsButton = document.getElementById("loadBuiltins");
+loadBuiltinsButton.onclick = function() {
+  loadBuiltins();
+}
+
 const genericLog = function(prefix, className, ...args: any[]) {
   var outputLine = prefix;
   let logArgs = args[0];
@@ -136,7 +150,7 @@ const workerError = function(...args) {
   oldError.apply(console, args);
 };
 
-window["BrowserFS"] = BrowserFS;
+loadBuiltins();
 module.exports = {
   BrowserFS: BrowserFS,
   worker: myWorker,
