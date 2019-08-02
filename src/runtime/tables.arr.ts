@@ -19,9 +19,24 @@ interface Table {
   '$brand': string
 }
 
-// Returns true if t1 is "equal" to t2. Equality is defined
-// only on tables whose rows contain primitive types, e.g.,
-// strings, booleans, numbers---anything but objects.
+function _primitiveArraysEqual(a1: any[], a2: any[]): boolean {
+  if (a1 === a2) {
+    return true;
+  }
+
+  if (a1.length !== a2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a1.length; i++) {
+    if (a1[i] !== a2[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   if (t1.$brand !== '$table') {
     throw new Error("expected an object with the field '$brand': '$table', but"
@@ -36,19 +51,19 @@ function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   const t1_headers = t1._headers;
   const t2_headers = t2._headers;
 
-  if (!_arraysEqual(t1_headers, t2_headers)) {
+  if (!_primitiveArraysEqual(t1_headers, t2_headers)) {
     return false;
   }
 
   const t1_rows = t1._rows;
   const t2_rows = t2._rows;
 
-  if (!_arraysEqual(t1_rows, t2_rows)) {
+  if (!_primitiveArraysEqual(t1_rows, t2_rows)) {
     return false;
   }
 
   for (let i = 0; i < t1_rows.length; i++) {
-    if (!_arraysEqual(t1_rows[i], t2_rows[i])) {
+    if (!_primitiveArraysEqual(t1_rows[i], t2_rows[i])) {
       return false;
     }
   }
@@ -174,7 +189,7 @@ function _addRow(table: any, row: Row): Table {
   const tableHeaders = _deepCopy(table._headers);
   const rowHeaders = row._headers;
 
-  if (!_arraysEqual(tableHeaders, rowHeaders)) {
+  if (!_primitiveArraysEqual(tableHeaders, rowHeaders)) {
     throw new Error("table does not have the same column names as the new row");
   }
 
@@ -725,7 +740,7 @@ function stack(table: Table, bot: Table): Table {
   var tableHeaders = _deepCopy(table._headers);
   var headersToSort = _deepCopy(table._headers);
   var botHeaders = _deepCopy(bot._headers);
-  if ( !(_arraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
+  if ( !(_primitiveArraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
     throw new Error("headers do not match");
   }
 
@@ -743,24 +758,6 @@ function stack(table: Table, bot: Table): Table {
   return newTable;
 }
 
-function _arraysEqual(xs: any[], ys: any[]): boolean {
-  if (xs === ys) {
-    return true;
-  }
-
-  if (xs.length !== ys.length) {
-    return false;
-  }
-
-  for (let i = 0; i < xs.length; i++) {
-    if (xs[i] !== ys[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 function tableFromRows(rows: Row[]): Table {
   if (rows.length === 0) {
     throw "table-from-rows: expected one or more rows";
@@ -769,7 +766,7 @@ function tableFromRows(rows: Row[]): Table {
   const headers: string[][] = rows.map(row => row._headers);
 
   for (let i = 0; i < headers.length; i++) {
-    if (!_arraysEqual(headers[i], headers[0])) {
+    if (!_primitiveArraysEqual(headers[i], headers[0])) {
       throw "table-from-rows: row name mismatch";
     }
   }
