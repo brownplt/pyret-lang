@@ -19,6 +19,8 @@ interface Table {
   '$brand': string
 }
 
+// Returns true if a1 and a2 contain identical primitive values, false
+// otherwise. Equality is undefined for non-primitives, e.g., objects.
 function _primitiveArraysEqual(a1: any[], a2: any[]): boolean {
   if (a1 === a2) {
     return true;
@@ -37,6 +39,37 @@ function _primitiveArraysEqual(a1: any[], a2: any[]): boolean {
   return true;
 }
 
+// Returns true if a1 and a2 contain identical primitive values (or nested
+// primitive values), false otherwise. Equality is undefined for
+// non-primitives, e.g., non-array objects.
+function _primitiveNestedArraysEqual(a1: any, a2: any): boolean {
+  if (a1 === a2) {
+    return true;
+  }
+
+  if (!Array.isArray(a1)) {
+    throw new Error("found non-array object: " + a1);
+  }
+
+
+  if (!Array.isArray(a2)) {
+    throw new Error("found non-array object: " + a2);
+  }
+
+  if (a1.length !== a2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a1.length; i++) {
+    if (!_primitiveNestedArraysEqual(a1[i], a2[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Return
 function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
   if (t1.$brand !== '$table') {
     throw new Error("expected an object with the field '$brand': '$table',"
@@ -817,6 +850,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_primitiveNestedArraysEqual': _primitiveNestedArraysEqual,
   '_primitiveArraysEqual': _primitiveArraysEqual,
   '_primitiveTablesEqual': _primitiveTablesEqual,
   'table-from-column': tableFromColumn,
