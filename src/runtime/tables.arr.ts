@@ -24,12 +24,8 @@ function _primitiveEqual(a1: any, a2: any): boolean {
     return true;
   }
 
-  if (a1 === null && a2 === null) {
-    return true;
-  }
-
-  if (a1 === undefined && a2 === undefined) {
-    return true;
+  if (a1 == null || a2 == null) {
+    return false;
   }
 
   if (Array.isArray(a1) && Array.isArray(a2)) {
