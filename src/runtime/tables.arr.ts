@@ -20,6 +20,10 @@ interface Table {
 }
 
 function _primitiveEqual(a1: any, a2: any): boolean {
+  if (a1 === a2) {
+    return true;
+  }
+
   if (a1 === null && a2 === null) {
     return true;
   }
@@ -40,7 +44,7 @@ function _primitiveEqual(a1: any, a2: any): boolean {
     return _primitiveRowsEqual(a1, a2);
   }
 
-  return a1 === a2;
+  return false;
 }
 
 function _primitiveRowsEqual(a1: Row, a2: Row): boolean {
