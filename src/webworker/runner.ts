@@ -1,11 +1,13 @@
 const assert = require('assert');
+const immutable = require('immutable');
 const browserFS = window['BrowserFS'].BFSRequire('fs');
 const path = window['BrowserFS'].BFSRequire('path');
 const stopify = require('stopify');
 window['stopify'] = stopify;
 
 const nodeModules = {
-  'assert': assert
+  'assert': assert,
+  'immutable': immutable,
 };
 
 function makeRequireAsync(basePath : string) {
