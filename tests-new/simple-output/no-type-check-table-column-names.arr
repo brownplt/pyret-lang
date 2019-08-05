@@ -6,7 +6,6 @@
 import global as G
 import tables as T
 import list as L
-import js-file("../object-equality-helper") as Eq
 
 my-table = table: a, b, c
   row: 1, 2, 3
