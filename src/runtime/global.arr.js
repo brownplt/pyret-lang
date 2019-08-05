@@ -1,6 +1,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
-//var assert = require('assert');
+var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
