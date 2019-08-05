@@ -207,7 +207,7 @@ function _row(table: any, ...columns: any[]): Row {
 function _buildColumn(table: any,
                       columnName: string,
                       computeNewVal: (arg0: Row) => any): Table {
-  if (table._headers.indexOf(columnName) === -1) {
+  if (table._headers.indexOf(columnName) !== -1) {
     throw new Error("duplicate column name: " + columnName);
   }
   const headers = _deepCopy(table._headers);
@@ -312,14 +312,14 @@ function _makeTable(headers: string[], rows: any[][]): Table {
     'add-row': (row) => _addRow(table, row),
     'all-columns': () => _allColumns(table),
     'all-rows': () => _allRows(table),
-    'build-column': (columnName, computeNewVal) => _buildColumn(table, columName, computeNewVal),
+    'build-column': (columnName, computeNewVal) => _buildColumn(table, columnName, computeNewVal),
     'column-n': (index) => _columnN(table, index),
     'column-names': () => _columnNames(table),
     'decreading-by': (columnName) => decreasingBy(table, columnName),
     'drop': (columnName) => drop(table, columnName),
-    'empty': () => _empty(table),
+    'empty': () => empty(table),
     'filter': (predicate) => filter(table, predicate),
-    'filter-by': (predicate) => filterBy(table, predicate),
+    'filter-by': (columnName, predicate) => filterBy(table, columnName, predicate),
     'get-column': (columnName) => getColumn(table, columnName),
     'has-column': (columnName) => hasColumn(table, columnName),
     'increasing-by': (columnName) => increasingBy(table, columnName),
@@ -698,7 +698,7 @@ function increasingBy(table: Table, colname: string): Table {
     throw new Error("no such column");
   }
 
-  var headers = table._headers);
+  var headers = table._headers;
   var newRows = _deepCopy(table._rows);
   var colIndex = _tableGetColumnIndex(table, colname);
 
