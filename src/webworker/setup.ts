@@ -1,9 +1,18 @@
 const BrowserFS = require("browserfs");
+window["BrowserFS"] = BrowserFS;
+
 const FilesystemBrowser = require("./filesystemBrowser.ts");
+const loader = require("./runtime-loader.ts");
 
 const myWorker = new Worker('pyret.jarr');
 
 window["projectsDir"] = "./projects";
+
+function loadBuiltins() {
+  console.log("LOADING RUNTIME FILES");
+  loader();
+  console.log("FINISHED LOADING RUNTIME FILES");
+}
 
 // How to use BrowserFS with Web Workers: https://github.com/jvilk/BrowserFS/issues/210
 BrowserFS.install(window);
@@ -23,6 +32,40 @@ BrowserFS.configure({
 });
 
 const theFS = BrowserFS.BFSRequire("fs");
+const thePath = BrowserFS.BFSRequire("path");
+
+function deleteDir(dir) {
+  // console.log("Entering:", dir);
+  theFS.readdir(dir, function(err, files) {
+    if (err) {
+      throw err;
+    }
+
+    let count = files.length;
+    files.forEach(function(file) {
+      let filePath = thePath.join(dir, file);
+      
+      theFS.stat(filePath, function(err, stats) {
+        if (err) {
+          throw err;
+        }
+
+        if (stats.isDirectory()) {
+          deleteDir(filePath);
+        } else {
+          theFS.unlink(filePath, function(err) {
+            if (err) {
+              throw err;
+            }
+
+            console.log("Deleted:", filePath);
+          });
+        }
+      });
+    });
+  });
+}
+
 
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(theFS, "/", filesystemBrowser);
@@ -46,6 +89,16 @@ const oldError = console.error;
 const clearLogsButton = document.getElementById("clearLogs");
 clearLogsButton.onclick = function() {
   outputList.innerHTML = "";
+}
+
+const clearFSButton = document.getElementById("clearFS");
+clearFSButton.onclick = function() {
+  deleteDir("/");
+}
+
+const loadBuiltinsButton = document.getElementById("loadBuiltins");
+loadBuiltinsButton.onclick = function() {
+  loadBuiltins();
 }
 
 const genericLog = function(prefix, className, ...args: any[]) {
@@ -97,7 +150,7 @@ const workerError = function(...args) {
   oldError.apply(console, args);
 };
 
-window["BrowserFS"] = BrowserFS;
+loadBuiltins();
 module.exports = {
   BrowserFS: BrowserFS,
   worker: myWorker,
