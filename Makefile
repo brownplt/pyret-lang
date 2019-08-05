@@ -8,7 +8,7 @@ build: src/arr/compiler/pyret-parser.js
 web-test: web
 	jest --verbose --runInBand "browser"
 
-test: build
+test: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
 
 RUNTIME_SRC_DIR := src/runtime
