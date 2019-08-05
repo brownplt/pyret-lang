@@ -79,7 +79,7 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
       let runningIndex = innerHTML.search(/Running/);
       
       if (runningIndex !== -1) {
-        let toSearchIndex = innerHTML.substring(runningIndex).search(toSearch);
+        let toSearchIndex = innerHTML.substring(runningIndex).includes(toSearch);
         return toSearchIndex !== -1;
       } else {
         return false;
