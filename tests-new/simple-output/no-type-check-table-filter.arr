@@ -2,9 +2,8 @@
 
 # no-type-check-filter.arr
 
-import global as g
-import tables as t
-import js-file("../object-equality-helper") as helper
+import global as G
+import tables as T
 
 my-table = table: name, age, favorite-color
   row: "Bob", 13, "blue"
@@ -17,16 +16,16 @@ fun predicate(row):
   row.get-value("age") == 13
 end
 
-my-filtered-table = t.filter(my-table, predicate)
+my-filtered-table = T.filter(my-table, predicate)
 
 my-correct-table = table: name, age, favorite-color
   row: "Bob", 13, "blue"
   row: "Frank", 13, "yellow"
 end
 
-are-equal = helper._objectDeepEqual(my-correct-table, my-filtered-table)
-are-not-equal = helper._objectDeepEqual(my-correct-table, my-table)
+are-equal = T._primitiveEqual(my-correct-table, my-filtered-table)
+are-not-equal = T._primitiveEqual(my-correct-table, my-table)
 
-passes-when-true = are-equal and g._not(are-not-equal)
+passes-when-true = are-equal and G._not(are-not-equal)
 
-g.console-log(passes-when-true)
+G.console-log(passes-when-true)

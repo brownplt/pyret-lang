@@ -5,7 +5,6 @@
 
 import global as G
 import tables as T
-import js-file("../object-equality-helper") as O
 
 my-table = table: a, b, c
   row: 2, 2, 1
@@ -34,6 +33,6 @@ my-correct-extended-table = table: a, b, c, d, e, f, g
 end
 
 passes-when-true =
-  O._objectDeepEqual(my-correct-extended-table, my-extended-table)
+  T._primitiveEqual(my-correct-extended-table, my-extended-table)
 
 G.console-log(passes-when-true)

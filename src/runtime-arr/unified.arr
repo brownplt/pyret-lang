@@ -1,1 +1,1 @@
-import file("./option.arr") as _
+import global as G

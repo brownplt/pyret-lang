@@ -6,7 +6,6 @@
 import global as G
 import tables as T
 import list as L
-import js-file("../object-equality-helper") as Eq
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -23,10 +22,10 @@ expected-row-1 = [T.raw-row: {"a"; 4}, {"b"; 5}, {"c"; 6}]
 expected-row-2 = [T.raw-row: {"a"; 7}, {"b"; 8}, {"c"; 9}]
 
 passes-when-true =
-  Eq._objectDeepEqual(expected-row-0, row-0)
+  T._primitiveEqual(expected-row-0, row-0)
   and
-  Eq._objectDeepEqual(expected-row-1, row-1)
+  T._primitiveEqual(expected-row-1, row-1)
   and
-  Eq._objectDeepEqual(expected-row-2, row-2)
+  T._primitiveEqual(expected-row-2, row-2)
 
 G.console-log(passes-when-true)

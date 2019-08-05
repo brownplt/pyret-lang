@@ -3,9 +3,8 @@
 # no-type-check-table-sieve.arr
 # `sieve` syntax.
 
-import global as g
-import tables as t
-import js-file("../object-equality-helper") as helper
+import global as G
+import tables as T
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -22,10 +21,10 @@ my-correct-sieved-table = table: a, b, c
   row: 7, 8, 9
 end
 
-are-equal = helper._objectDeepEqual(my-correct-sieved-table, my-sieved-table)
+are-equal = T._primitiveEqual(my-correct-sieved-table, my-sieved-table)
 
-are-not-equal = helper._objectDeepEqual(my-correct-sieved-table, my-table)
+are-not-equal = T._primitiveEqual(my-correct-sieved-table, my-table)
 
-passes-when-true = are-equal and g._not(are-not-equal)
+passes-when-true = are-equal and G._not(are-not-equal)
 
-g.console-log(passes-when-true)
+G.console-log(passes-when-true)

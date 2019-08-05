@@ -3,9 +3,8 @@
 # no-type-check-table-select-columns.arr
 # `select` syntax.
 
-import global as g
-import tables as t
-import js-file("../object-equality-helper") as helper
+import global as G
+import tables as T
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -21,10 +20,10 @@ my-correct-select-table = table: a, c
   row: 7, 9
 end
 
-are-equal = helper._objectDeepEqual(my-correct-select-table, my-select-table)
+are-equal = T._primitiveEqual(my-correct-select-table, my-select-table)
 
-are-not-equal = helper._objectDeepEqual(my-correct-select-table, my-table)
+are-not-equal = T._primitiveEqual(my-correct-select-table, my-table)
 
-passes-when-true = are-equal and g._not(are-not-equal)
+passes-when-true = are-equal and G._not(are-not-equal)
 
-g.console-log(passes-when-true)
+G.console-log(passes-when-true)

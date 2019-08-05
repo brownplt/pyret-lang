@@ -6,7 +6,6 @@
 import global as G
 import tables as T
 import list as L
-import js-file("../object-equality-helper") as helper
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -22,9 +21,9 @@ correct-a = [L.list: 1, 4, 7]
 correct-b = [L.list: 2, 5, 8]
 correct-c = [L.list: 3, 6, 9]
 
-a-equal = helper._objectDeepEqual(column-a, correct-a)
-b-equal = helper._objectDeepEqual(column-b, correct-b)
-c-equal = helper._objectDeepEqual(column-c, correct-c)
+a-equal = T._primitiveEqual(column-a, correct-a)
+b-equal = T._primitiveEqual(column-b, correct-b)
+c-equal = T._primitiveEqual(column-c, correct-c)
 
 passes-when-true = a-equal and b-equal and c-equal
 

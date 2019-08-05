@@ -2,10 +2,9 @@
 
 # no-type-check-order-by-columns.arr
 
-import global as g
-import tables as t
-import list as l
-import js-file("../object-equality-helper") as helper
+import global as G
+import tables as T
+import list as L
 
 my-table = table: name, age, favorite-color
   row: "Bob", 12, "blue"
@@ -15,9 +14,9 @@ my-table = table: name, age, favorite-color
   row: "Eve", 13, "red"
 end
 
-cols = [l.list: {"age"; true}, {"name"; false}]
+cols = [L.list: {"age"; true}, {"name"; false}]
 
-my-ordered-table = t.order-by-columns(my-table, cols)
+my-ordered-table = T.order-by-columns(my-table, cols)
 
 my-correct-ordered-table = table: name, age, favorite-color
   row: "Bob", 12, "blue"
@@ -27,9 +26,9 @@ my-correct-ordered-table = table: name, age, favorite-color
   row: "Alice", 17, "green"
 end
 
-are-equal = helper._objectDeepEqual(my-correct-ordered-table, my-ordered-table)
-are-not-equal = helper._objectDeepEqual(my-correct-ordered-table, my-table)
+are-equal = T._primitiveEqual(my-correct-ordered-table, my-ordered-table)
+are-not-equal = T._primitiveEqual(my-correct-ordered-table, my-table)
 
-passes-when-true = are-equal and g._not(are-not-equal)
+passes-when-true = are-equal and G._not(are-not-equal)
 
-g.console-log(passes-when-true)
+G.console-log(passes-when-true)

@@ -5,7 +5,6 @@
 
 import global as G
 import tables as T
-import js-file("../object-equality-helper") as Eq
 
 my-table = table: a, b
   row: 1, 2
@@ -25,6 +24,6 @@ expected-table = table: a, b, c
   row: 5, 6, 11
 end
 
-passes-when-true = Eq._objectDeepEqual(expected-table, my-new-table)
+passes-when-true = T._primitiveEqual(expected-table, my-new-table)
 
 G.console-log(passes-when-true)

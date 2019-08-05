@@ -19,12 +19,121 @@ interface Table {
   '$brand': string
 }
 
+function _primitiveEqual(a1: any, a2: any): boolean {
+  if (a1 === a2) {
+    return true;
+  }
+
+  if (a1 == null || a2 == null) {
+    return false;
+  }
+
+  if (Array.isArray(a1) && Array.isArray(a2)) {
+    return _primitiveArraysEqual(a1, a2);
+  }
+
+  if (a1.$brand === '$table' && a2.$brand === '$table') {
+    return _primitiveTablesEqual(a1, a2);
+  }
+
+  if (a1.$brand === '$row' && a2.$brand === '$row') {
+    return _primitiveRowsEqual(a1, a2);
+  }
+
+  return false;
+}
+
+function _primitiveRowsEqual(a1: Row, a2: Row): boolean {
+  if (a1.$brand !== '$row') {
+    throw new Error("expected an object with the field '$brand': '$row',"
+                    + " but received " + JSON.stringify(a1)+ " instead");
+  }
+
+  if (a2.$brand !== '$row') {
+    throw new Error("expected an object with the field '$brand': '$row',"
+                    + " but received " + JSON.stringify(a2) + " instead");
+  }
+
+  if (!_primitiveEqual(a1._headers, a2._headers)) {
+    return false;
+  }
+
+  if (!_primitiveEqual(a1._elements, a2._elements)) {
+    return false;
+  }
+
+  return true;
+}
+
+// Returns true if a1 and a2 contain identical primitive values.
+function _primitiveArraysEqual(a1: any, a2: any): boolean {
+  if (a1 === a2) {
+    return true;
+  }
+
+  if (!Array.isArray(a1)) {
+    throw new Error("found non-array object: " + a1);
+  }
+
+
+  if (!Array.isArray(a2)) {
+    throw new Error("found non-array object: " + a2);
+  }
+
+  if (a1.length !== a2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a1.length; i++) {
+    if (!_primitiveEqual(a1[i], a2[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
+  if (t1.$brand !== '$table') {
+    throw new Error("expected an object with the field '$brand': '$table',"
+                    + " but received " + JSON.stringify(t1) + " instead");
+  }
+
+  if (t2.$brand !== '$table') {
+    throw new Error("expected an object with the field '$brand': '$table',"
+                    + " but received " + JSON.stringify(t2) + " instead");
+  }
+
+  const t1_headers = t1._headers;
+  const t2_headers = t2._headers;
+
+  if (!_primitiveArraysEqual(t1_headers, t2_headers)) {
+    return false;
+  }
+
+  const t1_rows = t1._rows;
+  const t2_rows = t2._rows;
+
+  if (t1_rows.length !== t2_rows.length) {
+    return false;
+  }
+
+  for (let i = 0; i < t1_rows.length; i++) {
+    if (!_primitiveEqual(t1_rows[i], t2_rows[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 interface Row {
   '_headers': string[],
   '_elements': any[],
   'get-column-names': () => string[],
   'get-value': (columnName: string) => any,
-  'get': (columnName: string) => any
+  'get': (columnName: string) => any,
+  '$brand': string
 }
 
 function getColumnNames(row: Row): string[] {
@@ -65,7 +174,8 @@ function rawRow(elements: [string, any][]): Row {
     '_elements': rowElements,
     'get-column-names': () => getColumnNames(result),
     'get-value': (columnName: string) => getValue(result, columnName),
-    'get': (columnName: string) => rowGet(result, columnName)
+    'get': (columnName: string) => rowGet(result, columnName),
+    '$brand': '$row'
   };
 
   return result;
@@ -140,7 +250,7 @@ function _addRow(table: any, row: Row): Table {
   const tableHeaders = table._headers;
   const rowHeaders = row._headers;
 
-  if (!_arraysEqual(tableHeaders, rowHeaders)) {
+  if (!_primitiveArraysEqual(tableHeaders, rowHeaders)) {
     throw new Error("table does not have the same column names as the new row");
   }
 
@@ -713,7 +823,7 @@ function stack(table: Table, bot: Table): Table {
   var tableHeaders = table._headers;
   var headersToSort = _deepCopy(table._headers);
   var botHeaders = _deepCopy(bot._headers);
-  if ( !(_arraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
+  if ( !(_primitiveArraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
     throw new Error("headers do not match");
   }
 
@@ -731,24 +841,6 @@ function stack(table: Table, bot: Table): Table {
   return newTable;
 }
 
-function _arraysEqual(xs: any[], ys: any[]): boolean {
-  if (xs === ys) {
-    return true;
-  }
-
-  if (xs.length !== ys.length) {
-    return false;
-  }
-
-  for (let i = 0; i < xs.length; i++) {
-    if (xs[i] !== ys[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 function tableFromRows(rows: Row[]): Table {
   if (rows.length === 0) {
     throw new Error("table-from-rows: expected one or more rows");
@@ -757,7 +849,7 @@ function tableFromRows(rows: Row[]): Table {
   const headers: string[][] = rows.map(row => row._headers);
 
   for (let i = 0; i < headers.length; i++) {
-    if (!_arraysEqual(headers[i], headers[0])) {
+    if (!_primitiveArraysEqual(headers[i], headers[0])) {
       throw "table-from-rows: row name mismatch";
     }
   }
@@ -808,6 +900,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_primitiveEqual': _primitiveEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {
     'make': tableFromColumns

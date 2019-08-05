@@ -2,9 +2,8 @@
 
 # no-type-check-decreasing-by.arr
 
-import global as g
-import tables as t
-import js-file("../object-equality-helper") as helper
+import global as G
+import tables as T
 
 my-table = table: name, age, favorite-color
   row: "Bob", 10, "blue"
@@ -12,7 +11,7 @@ my-table = table: name, age, favorite-color
   row: "Eve", 13, "red"
 end
 
-my-ordered-table = t.decreasing-by(my-table, "age")
+my-ordered-table = T.decreasing-by(my-table, "age")
 
 my-correct-ordered-table = table: name, age, favorite-color
   row: "Eve", 13, "red"
@@ -20,9 +19,9 @@ my-correct-ordered-table = table: name, age, favorite-color
   row: "Bob", 10, "blue"
 end
 
-are-equal = helper._objectDeepEqual(my-correct-ordered-table, my-ordered-table)
-are-not-equal = helper._objectDeepEqual(my-correct-ordered-table, my-table)
+are-equal = T._primitiveEqual(my-correct-ordered-table, my-ordered-table)
+are-not-equal = T._primitiveEqual(my-correct-ordered-table, my-table)
 
-passes-when-true = are-equal and g._not(are-not-equal)
+passes-when-true = are-equal and G._not(are-not-equal)
 
-g.console-log(passes-when-true)
+G.console-log(passes-when-true)

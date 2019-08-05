@@ -18,6 +18,6 @@ names = my-table.column-names()
 
 expected-names = [L.list: "a", "b", "c"]
 
-passes-when-true = Eq._objectDeepEqual(expected-names, names)
+passes-when-true = T._primitiveEqual(expected-names, names)
 
 G.console-log(passes-when-true)

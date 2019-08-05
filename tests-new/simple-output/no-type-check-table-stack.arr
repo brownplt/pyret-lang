@@ -5,7 +5,6 @@
 
 import global as G
 import tables as T
-import js-file("../object-equality-helper") as helper
 
 my-table = table: name, age, favNum
   row: "Bob", 12, 1
@@ -28,9 +27,9 @@ my-correct-table = table: name, age, favNum
   row: "Frank", 15, 5
 end
 
-are-equal = helper._objectDeepEqual(my-correct-table, my-stacked-table)
+are-equal = T._primitiveEqual(my-correct-table, my-stacked-table)
 
-are-not-equal = helper._objectDeepEqual(my-correct-table, my-table)
+are-not-equal = T._primitiveEqual(my-correct-table, my-table)
 
 passes-when-true = are-equal and G._not(are-not-equal)
 
