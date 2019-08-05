@@ -65,6 +65,17 @@ describe("Testing browser simple-output programs", () => {
     files.forEach(f => {
       test(`${f}`, async function(done) {
 
+        let typeCheck;
+        if (f.match(/no-type-check/) !== null) {
+          typeCheck = false;
+          compileProcess = cp.spawnSync(
+            "node",
+            ["tests-new/run-pyret-no-type-check.js", f],
+            {stdio: "pipe", timeout: COMPILER_TIMEOUT});
+        } else {
+          typeCheck = true;
+        }
+
         let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
         expect(loaded).toBeTruthy();
 
@@ -73,7 +84,9 @@ describe("Testing browser simple-output programs", () => {
         const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
 
         await tester.beginSetInputText(driver, contents)
-          .then(tester.compileRun(driver));
+          .then(tester.compileRun(driver, { 
+            'type-check': typeCheck
+          }));
 
         // Does not work when in .then()
         let foundOutput = 

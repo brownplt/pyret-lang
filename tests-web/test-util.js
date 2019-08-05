@@ -32,6 +32,7 @@ ffCapabilities.set('moz:firefoxOptions', {
 
 const INPUT_ID = "program";
 const COMPILE_RUN_BUTTON = "compileRun";
+const TYPE_CHECK_CHECKBOX = "typeCheck";
 
 function setup() {
   let driver = new webdriver.Builder()
@@ -53,7 +54,13 @@ function beginSetInputText(driver, unescapedInput) {
   );
 }
 
-async function compileRun(driver) {
+async function compileRun(driver, options) {
+  if (options["type-check"] === false) {
+    let tc = await driver.findElement({ id: TYPE_CHECK_CHECKBOX });
+    if (tc.isSelected()) {
+      await tc.click();
+    }
+  }
   let runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
   await runButton.click();
 }
