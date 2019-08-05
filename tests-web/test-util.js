@@ -13,6 +13,13 @@ else {
   throw "You can set FIREFOX_BINARY to the path to your Firefox install if this path isn't for your machine work";
 }
 
+let BASE_URL;
+if (process.env.BASE_URL) {
+  BASE_URL = process.env.BASE_URL;
+} else {
+  throw "Set BASE_URL to be the root of the compiler directory";
+}
+
 let leave_open = process.env.LEAVE_OPEN === "true" || false;
 
 let args = [];
@@ -32,11 +39,9 @@ function setup() {
     .setProxy(null)
     .withCapabilities(ffCapabilities).build();
 
-  let url = process.env.BASE_URL;
-
   return {
     driver: driver,
-    baseURL: url
+    baseURL: BASE_URL,
   };
 }
 
