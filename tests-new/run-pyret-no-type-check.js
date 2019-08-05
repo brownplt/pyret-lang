@@ -13,7 +13,7 @@ client.start({
     norun: true
   },
   "pyret-options": {
-    'type-check': true,
+    'type-check': false,
     'checks': 'none',
     'program': process.argv[2],
     'builtin-js-dir': 'build/runtime',

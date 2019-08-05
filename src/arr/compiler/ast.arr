@@ -1191,7 +1191,11 @@ data Expr:
     # s-table-update not yet implemented
   | s-table-update(l :: Loc,
       column-binds :: ColumnBinds,
-      updates :: List<Member>)
+      updates :: List<Member>) with:
+    method label(self): "s-table-update" end #,
+    #method tosource(self):
+    #  PP.flow()
+    #end
   | s-table-select(l :: Loc,
       columns :: List<Name>,
       table   :: Expr) with:

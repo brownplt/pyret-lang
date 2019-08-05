@@ -12,10 +12,20 @@ describe("testing simple-output programs", () => {
   const files = glob.sync("tests-new/simple-output/*.arr", {});
   files.forEach(f => {
     test(`${f}`, () => {
+      let compileProcess;
 
-      const compileProcess = cp.spawnSync("node",
-        [ "tests-new/run-pyret.js", f], {stdio: 'pipe', timeout: COMPILER_TIMEOUT});
-        
+      if (f.match(/no-type-check/) !== null) {
+        compileProcess = cp.spawnSync(
+          "node",
+          ["tests-new/run-pyret-no-type-check.js", f],
+          {stdio: "pipe", timeout: COMPILER_TIMEOUT});
+      } else {
+        compileProcess = cp.spawnSync(
+          "node",
+          ["tests-new/run-pyret.js", f],
+          {stdio: "pipe", timeout: COMPILER_TIMEOUT});
+      }
+
       assert(compileProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}`);
 
       const contents = String(fs.readFileSync(f));

@@ -16,6 +16,15 @@ import string-dict as D
 
 flat-prim-app = A.prim-app-info-c(false)
 
+type Ann = A.Ann
+type Bind = A.Bind
+type Name = A.Name
+type ColumnBinds = A.ColumnBinds
+type ColumnSort = A.ColumnSort
+type ColumnSortOrder = A.ColumnSortOrder
+type Expr = A.Expr
+type TableExtendField = A.TableExtendField
+
 type CList = CL.ConcatList
 clist = CL.clist
 cl-empty = CL.concat-empty
@@ -24,6 +33,10 @@ cl-append = CL.concat-append
 cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
+type JExpr = J.JExpr
+type JStmt = J.JStmt
+type JBlock = J.JBlock
+type JField = J.JField
 j-fun = J.j-fun
 j-var = J.j-var
 j-id = J.j-id
@@ -618,7 +631,31 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-ref(l, ann) => nyi("s-ref")
     | s-reactor(l, fields) => nyi("s-reactor")
-    | s-table(l, headers, rows) => nyi("s-table")
+    | s-table(l, headers, rows) =>
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      func = j-bracket(j-id(TABLE), j-str("_makeTable"))
+
+      js-headers = for fold(the-list from cl-empty, h from headers):
+	      cl-append( the-list, cl-sing( j-str(h.name) ) )
+	    end
+
+      { js-rows; js-row-stmts } = for fold({ value-list; stmt-list } from { cl-empty; cl-empty }, r from rows):
+        row-elems = r.elems
+        { elem-values; elem-stmts } = for fold({ elem-values; elem-stmts } from { cl-empty; cl-empty }, row-expr from row-elems ):
+          { v; stmts } = compile-expr(context, row-expr)
+          { cl-append(elem-values, cl-sing(v)); cl-append(elem-stmts, stmts) }
+        end
+        js-row = j-list(false, elem-values)
+        
+        # CList<CList<JExpr>> (CList<CList<j-list>>)
+        { cl-append(value-list, cl-sing(js-row)); cl-append(stmt-list, elem-stmts) }
+      end
+
+      args = cl-cons(j-list(false, js-headers), cl-sing(j-list(false, js-rows)))
+
+      { j-app(func, args); js-row-stmts }
     | s-paren(l, e) => 
         { e-ans; e-stmts } = compile-expr(context, e)
         { j-parens(e-ans); e-stmts }
@@ -627,12 +664,456 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-check(l, name, body, keyword-check) => nyi("s-check")
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
     | s-load-table(l, headers, spec) => nyi("s-load-table")
-    | s-table-extend(l, column-binds, extensions) => nyi("s-table-extend")
-    | s-table-update(l, column-binds, updates) => nyi("s-table-update")
-    | s-table-select(l, columns, table) => nyi("s-table-select")
-    | s-table-extract(l, column, table) => nyi("s-table-extract")
-    | s-table-order(l, table, ordering) => nyi("s-table-order")
-    | s-table-filter(l, column-binds, predicate) => nyi("s-table-filter")
+    | s-table-extend(
+        l :: Loc,
+        column-binds :: ColumnBinds,
+        extensions :: List<TableExtendField>) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `extend` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #        | my-table = table: a, b, c
+      #        |   row: 1, 2, 3
+      #        |   row: 4, 5, 6
+      #        |   row: 7, 8, 9
+      #        | end
+      #        |
+      # *      | my-extended-table = extend my-table using a, b
+      # *(Map) |   d: a / 2,           # a "Mapping" extension
+      # *(Red) |   e: running-sum of b # a "Reducer"
+      # *      | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # *      | var myExtendedTable = _tableReduce(
+      # *      |   myTable,
+      # *      |   [
+      # *(Map) |     { "type": "map",
+      # *(Map) |       "reduce": (rowNumber) => {
+      # *(Map) |         var columnNumberB = _tableGetColumnIndex(myTable, "b");
+      # *(Map) |         var b = myTable["_rows"][rowNumber][columnNumberB];
+      # *(Map) |         var columnNumberA = _tableGetColumnIndex(myTable, "a");
+      # *(Map) |         var a = myTable["_rows"][rowNumber][columnNumberA];
+      # *(Map) |         return a / 2; },
+      # *(Map) |       "extending": "d" },
+      # *(Red) |     { "type": "reduce",
+      # *(Red) |       "one": runningSum["one"],
+      # *(Red) |       "reduce": runningSum["reduce"],
+      # *(Red) |       "using": "b",
+      # *(Red) |       "extending": "e" }
+      # *      |   ]);
+      #
+      # The actual "extending" work is done by _tableReduce at runtime.
+
+      column-binds-l :: Loc = column-binds.l
+      column-binds-binds :: List<Bind> = column-binds.binds
+      column-binds-table :: Expr = column-binds.table
+      { table-expr :: JExpr;
+        table-stmts :: CList<JStmt> } =
+        compile-expr(context, column-binds-table)
+
+      { reducer-exprs :: CList<JExpr>;
+        reducer-stmts :: CList<JStmt> } =
+        for fold(
+            { acc-exprs; acc-stmts } from { cl-empty; cl-empty },
+            extension from extensions):
+          cases (TableExtendField) extension block:
+            | s-table-extend-reducer(
+                shadow l :: Loc,
+                name :: String,
+                reducer :: Expr,
+                col :: Name,
+                ann :: Ann) =>
+
+              # Handles Reducer forms, like `e: running-sum of b`.
+
+              { reducer-expr :: JExpr;
+                reducer-stmts :: CList<JStmt> } =
+                compile-expr(context, reducer)
+
+              type-field-name :: String = "type"
+              type-field-value :: JExpr = j-str("reduce")
+              type-field :: JField = j-field(type-field-name, type-field-value)
+
+              one-field-name :: String = "one"
+              one-field-value-obj :: JExpr = reducer-expr
+              one-field-value-field :: JExpr = j-str("one")
+              one-field-value :: JExpr =
+                j-bracket(one-field-value-obj, one-field-value-field)
+              one-field :: JField = j-field(one-field-name, one-field-value)
+
+              reduce-field-name :: String = "reduce"
+              reduce-field-value-obj :: JExpr = reducer-expr
+              reduce-field-value-field :: JExpr = j-str("reduce")
+              reduce-field-value :: JExpr =
+                j-bracket(reduce-field-value-obj, reduce-field-value-field)
+              reduce-field :: JField =
+                j-field(reduce-field-name, reduce-field-value)
+
+              using-field-name :: String = "using"
+              using-field-value :: JExpr = j-str(col.toname())
+              using-field :: JField =
+                j-field(using-field-name, using-field-value)
+
+              extending-field-name :: String = "extending"
+              extending-field-value :: JExpr = j-str(name)
+              extending-field :: JField =
+                j-field(extending-field-name, extending-field-value)
+
+              reducer-object-fields :: CList<JExpr> =
+                cl-cons(type-field,
+                  cl-cons(one-field,
+                    cl-cons(reduce-field,
+                      cl-cons(using-field,
+                        cl-sing(extending-field)))))
+              reducer-object :: JExpr = j-obj(reducer-object-fields)
+
+              { cl-append(acc-exprs, cl-sing(reducer-object));
+                cl-append(acc-stmts, reducer-stmts)}
+            | s-table-extend-field(
+                shadow l :: Loc,
+                name :: String, # name of the new column
+                value :: Expr,  # value of the element of the column in this row
+                ann :: Ann) =>
+
+              # Handles Mapping forms, like `d: a / 2`.
+
+              type-field-name :: String = "type"
+              type-field-value :: JExpr = j-str("map")
+              type-field :: JField = j-field(type-field-name, type-field-value)
+
+              reduce-field-name :: String = "reduce"
+
+              fun-id :: String = "0"
+              fun-name :: String = fresh-id(compiler-name("s-table-extend-field")).toname()
+              row-number-name :: Name = fresh-id(compiler-name("row-number"))
+              fun-args :: CList<Name> = cl-sing(row-number-name)
+              indexing-stmts :: CList<JStmt> =
+                for fold(stmts from cl-empty, bind from column-binds.binds):
+                  bind-id :: Name = bind.id
+
+                  get-index-name :: Name = fresh-id(compiler-name("column-number"))
+                  get-column-index :: JExpr =
+                    j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
+                  column-index-args :: CList<JExpr> =
+                    cl-cons(table-expr, cl-sing(j-str(bind-id.toname())))
+                  get-index-rhs :: JExpr = j-app(get-column-index, column-index-args)
+                  get-index-stmt :: JStmt = j-var(get-index-name, get-index-rhs)
+
+                  index-name :: Name = bind-id
+                  table-rows :: JExpr = j-bracket(table-expr, j-str("_rows"))
+                  current-row :: JExpr = j-bracket(table-rows, j-id(row-number-name))
+                  index-rhs :: JExpr = j-bracket(current-row, j-id(get-index-name))
+                  assign-index-stmt :: JStmt = j-var(js-id-of(index-name), index-rhs)
+
+                  cl-append(stmts, cl-cons(get-index-stmt, cl-sing(assign-index-stmt)))
+                end
+
+              { return-expr :: JExpr;
+                return-compiled-stmts :: CList<JStmt> } =
+                compile-expr(context, value)
+              return-stmt :: JStmt = j-return(return-expr)
+
+              body-stmts :: CList<JStmt> =
+                cl-append(indexing-stmts, cl-sing(return-stmt))
+              fun-body :: JBlock = j-block(body-stmts)
+
+              reduce-field-value :: JExpr =
+                j-fun(fun-id, fun-name, fun-args, fun-body)
+              reduce-field :: JField =
+                j-field(reduce-field-name, reduce-field-value)
+
+              extending-field-name :: String = "extending"
+              extending-field-value :: JExpr = j-str(name)
+              extending-field :: JField =
+                j-field(extending-field-name, extending-field-value)
+
+              mapping-object-fields :: CList<JExpr> =
+                cl-cons(type-field,
+                  cl-cons(reduce-field,
+                    cl-sing(extending-field)))
+              mapping-object :: JExpr = j-obj(mapping-object-fields)
+
+              { cl-append(
+                  acc-exprs,
+                  cl-append(return-compiled-stmts, cl-sing(mapping-object)));
+                acc-stmts}
+          end
+        end
+
+      expr-func-obj :: JExpr = j-id(TABLE)
+      expr-func-field :: JExpr = j-str("_tableReduce")
+      apply-expr-func :: JExpr = j-bracket(expr-func-obj, expr-func-field)
+      apply-expr-args :: CList<JExpr> =
+        cl-cons(table-expr, cl-sing(j-list(false, reducer-exprs)))
+      apply-expr :: JExpr = j-app(apply-expr-func, apply-expr-args)
+
+      apply-stmts :: CList<JStmt> =
+        cl-append(table-stmts, reducer-stmts)
+
+      { apply-expr; apply-stmts }
+    | s-table-update(
+        l :: Loc,
+        column-binds :: ColumnBinds,
+        updates :: List<A.Member>) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `transform` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #   | my-table = table: name, age, favorite-color
+      #   |   row: "Bob", 12, "blue"
+      #   |   row: "Alice", 17, "green"
+      #   |   row: "Eve", 14, "red"
+      #   | end
+      #   |
+      # * | age-fixed = transform my-table using age:
+      # * |   age: age + 1
+      # * | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # * | var ageFixed = _tableTransform(
+      # * |   myTable,
+      # * |   ["age"],
+      # * |   []
+      # * | );
+      #
+      # The actual "transforming" work is done by _tableTransform at runtime.
+
+      { table-expr :: JExpr; table-stmts :: CList<JStmt> } =
+        compile-expr(context, column-binds.table)
+
+      # makes a list of strings (column names)
+      list-colnames :: CList<JExpr> = for fold(col-list from cl-empty, u from updates):
+	      cl-append( col-list, cl-sing( j-str(u.name) ) )
+	    end
+
+      column-update-zip :: List<{ A.Binds; A.Expr}> = map2(lam(cb, up): { cb; up.value } end,
+                               column-binds.binds,
+                               updates)
+
+      # makes a list of functions
+      fun-id :: String = "0"
+      fun-name :: String = fresh-id(compiler-name("s-table-transform")).toname()
+      list-updates :: CList<JExpr> = for fold(update-list from cl-empty, 
+                                              { bind; update-expr} from column-update-zip):
+        
+        # Use the Bind in ColumnBind as the parameter in the generated function
+        fun-args :: CList<A.Name> = cl-sing(js-id-of(bind.id))
+
+        spy: id: bind.id end
+
+	      { u-value-expr; u-value-stmts } = compile-expr(context, update-expr)
+        block-return-stmt :: JStmt = j-return(u-value-expr)
+        block-stmts :: CList<JStmt> = cl-append(table-stmts, cl-sing(block-return-stmt))
+        fun-body :: JBlock = j-block(block-stmts)
+        u-fun :: JExpr = j-fun(fun-id, fun-name, fun-args, fun-body)
+        cl-append( update-list, cl-sing( u-fun ) )
+	    end
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableTransform"))
+      app-args :: CList<JExpr> = cl-cons( table-expr, 
+        cl-cons( j-list(false, list-colnames), cl-sing(j-list(false, list-updates ))) )
+
+      return-expr :: JExpr = j-app(app-func, app-args)
+      return-stmts :: CList<JStmt> = table-stmts
+
+      # tableTansform(table, colnames, updates)
+      { return-expr; return-stmts }
+    | s-table-select(l, columns, table) =>
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      func = j-bracket(j-id(TABLE), j-str("_selectColumns"))
+     
+      js-columns = for fold(the-list from cl-empty, c from columns):
+	      cl-append( the-list, cl-sing( j-str(c.toname()) ) )
+	    end
+ 
+      { js-table; js-table-stmts } = compile-expr(context, table)
+
+      args = cl-cons( js-table, cl-sing(j-list(false, js-columns)) )
+
+      # selectColumns(table, colnames)
+      { j-app(func, args); js-table-stmts }
+    | s-table-extract(
+        l :: Loc,
+        column :: Name,
+        table :: Expr) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `extract` syntax. The starred line in the following
+      # Pyret code,
+      #
+      #   | my-table = table: a, b, c
+      #   |   row: 1, 2, 3
+      #   |   row: 4, 5, 6
+      #   |   row: 7, 8, 9
+      #   | end
+      #   |
+      # * | column-b = extract b from my-table end
+      #
+      # compiles into JavaScript code that resembles the following:
+      #
+      # * | var columnB = _tableExtractColumn(myTable, "b");
+      #
+      # The actual "extracting" work is done by _tableExtractColumn at runtime.
+
+      {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
+        compile-expr(context, table)
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableExtractColumn"))
+      app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(column.toname())))
+      apply :: JExpr = j-app(app-func, app-args)
+
+      return-expr :: JExpr = apply
+      return-stmts :: CList<JStmt> = table-stmts
+
+      { return-expr; return-stmts }
+    | s-table-order(
+        l :: Loc,
+        table :: Any,
+        ordering :: List<ColumnSort>) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `order` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #   | my-table = table: name, age, favorite-color
+      #   |   row: "Bob", 12, "blue"
+      #   |   row: "Alice", 12, "green"
+      #   |   row: "Eve", 13, "red"
+      #   | end
+      #   |
+      # * | name-ordered = order my-table:
+      # * |   age descending,
+      # * |   name ascending
+      # * | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # * | var nameOrdered = _tableOrder(
+      # * |   myTable,
+      # * |   [{"column": "age", "direction": "descending"},
+      # * |    {"column": "name", "direction": "ascending"}]);
+      #
+      # The actual "ordering" work is done by _tableOrder at runtime.
+
+      {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
+        compile-expr(context, table)
+
+      ordering-list-elements :: CList<JExpr> =
+        for fold(elements from cl-empty, the-order from ordering):
+          the-order-column :: Name = the-order.column
+          the-order-direction :: ColumnSortOrder = the-order.direction
+
+          order-column-field :: JField =
+            j-field("column", j-str(the-order-column.toname()))
+          order-direction-field :: JField =
+            j-field(
+              "direction",
+              j-str(
+                cases (ColumnSortOrder) the-order-direction block:
+                  | ASCENDING => "ascending"
+                  | DESCENDING => "descending"
+                end))
+
+          order-fields :: CList<JField> =
+            cl-cons(order-column-field, cl-sing(order-direction-field))
+          order-obj :: JExpr = j-obj(order-fields)
+
+          cl-append(elements, cl-sing(order-obj))
+        end
+
+      ordering-list-expr :: JExpr = j-list(false, ordering-list-elements)
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableOrder"))
+      app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(ordering-list-expr))
+      apply :: JExpr = j-app(app-func, app-args)
+
+      return-expr :: JExpr = apply
+      return-stmts :: CList<JStmt> = table-stmts
+
+      { return-expr; return-stmts }
+    | s-table-filter(
+        l :: Loc,
+        column-binds :: ColumnBinds,
+        predicate :: Expr) =>
+
+      # Set the table-import flag
+      import-flags := import-flags.{ table-import: true }
+
+      # This case handles `sieve` syntax. The starred lines in the following
+      # Pyret code,
+      #
+      #   | my-table = table: a, b, c
+      #   |   row: 1, 2, 3
+      #   |   row: 4, 5, 6
+      #   |   row: 7, 8, 9
+      #   | end
+      #   | 
+      # * | my-filtered-table = sieve my-table using b:
+      # * |   (b / 4) == 2
+      # * | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # * | var myFilteredTable = _tableFilter(myTable, function sTableFilter(row) {
+      # * |     var index = _tableGetColumnIndex(myTable, "b");
+      # * |     var b = row[index];
+      # * |     return (b / 4) == 2;
+      # * | }
+      #
+      # The actual "sieving" work is done by _tableFilter at runtime.
+
+      {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
+        compile-expr(context, column-binds.table)
+
+      row-name :: Name = fresh-id(compiler-name("row"))
+
+      block-row-element-stmts :: CList<JStmt> =
+        # generate the `var index = _tableGetColumnIndex(myTable, "b");` lines.
+        for fold(stmts from cl-empty, bind from column-binds.binds):
+        app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
+        app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(bind.id.toname())))
+
+        # generate the `var b = row[index];` lines.
+        column-index-expr :: JExpr = j-app(app-func, app-args)
+        column-index-id :: Name = fresh-id(compiler-name("index"))
+        column-index-stmt :: JStmt = j-var(column-index-id, column-index-expr)
+        var-stmt :: JStmt = j-var(js-id-of(bind.id), j-bracket(j-id(row-name), j-id(column-index-id)))
+
+        cl-append(stmts, cl-cons(column-index-stmt, cl-sing(var-stmt)))
+      end
+
+      fun-id :: String = "0"
+      fun-name :: String = fresh-id(compiler-name("s-table-filter")).toname()
+      fun-args :: CList<Name> = cl-sing(row-name)
+
+      {predicate-expr :: JExpr; predicate-stmts :: CList<JStmt>} = compile-expr(context, predicate)
+      block-return-stmt :: JStmt = j-return(predicate-expr)
+      block-stmts :: CList<JStmt> = cl-append(block-row-element-stmts, cl-sing(block-return-stmt))
+      fun-body :: JBlock = j-block(block-stmts)
+      filter-fun :: JExpr = j-fun(fun-id, fun-name, fun-args, fun-body)
+
+      app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableFilter"))
+      app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(filter-fun))
+      apply :: JExpr = j-app(app-func, app-args)
+
+      return-expr :: JExpr = apply
+      return-stmts :: CList<JStmt> = cl-append(predicate-stmts, table-stmts)
+
+      { return-expr; return-stmts }
     | s-spy-block(l, message, contents) => nyi("s-spy-block")
     | else => raise("NYI (compile): " + torepr(expr))
   end
@@ -758,7 +1239,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   nothing-import = J.j-var(NOTHING, j-undefined)
 
   array-import = import-builtin(ARRAY, "array.arr.js")
-  table-import = import-builtin(TABLE, "table.arr.js")
+  table-import = import-builtin(TABLE, "tables.arr.js")
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import

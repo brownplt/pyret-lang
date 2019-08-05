@@ -46,7 +46,8 @@
                   "flatness": false,
                   "name": "_plus",
                   "typ": ["arrow", ["Any", "Any"], "Boolean"]},
-      "equal-always": ["arrow", ["Any", "Any"], "Boolean"]
+      "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
+      "_not": ["arrow", ["Boolean"], "Boolean"]
     },
     "aliases": {
       "Any": "tany",
