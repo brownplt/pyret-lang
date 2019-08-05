@@ -9,7 +9,27 @@
   theModule: function(runtime, _, _, moduleDeps, JSONStream, path) {
     function getDeps(path) {
       return runtime.pauseStack(function(restarter) {
-        var tree = moduleDeps();
+
+        /*
+         * Ignore requires on node modules (only available through builtins).
+         * Delay resolution to runtime (where it may throw a runtime error).
+         *
+         * Needed so that required node modules are ignored in the browser when
+         *  compiling a user's program.
+         * Required node modules are provided by the webpage at runtime.
+         */
+        // TODO(alex): Make this a flag or something
+        let nativeRequiresToIgnore = ["assert", "immutable"];
+
+        let opts = {
+          filter: function(id) {
+            // Return true to include as a dependency
+            // Return false to exclude
+            return !nativeRequiresToIgnore.includes(id);
+          }
+        };
+
+        var tree = moduleDeps(opts);
         
         var dataCollector = tree.pipe(JSONStream.stringify());
 
