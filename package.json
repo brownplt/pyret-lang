@@ -55,9 +55,9 @@
   "scripts": {
     "build": "make build",
     "web": "make web",
-    "test": "make test",
     "runtime": "make runtime",
-    "web-test": "make web-test"
+    "web-tests": "make web-tests",
+    "offline-tests": "make offline-tests"
   },
   "repository": {
     "type": "git",

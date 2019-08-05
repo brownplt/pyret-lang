@@ -5,10 +5,10 @@ all: build parser
 build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
-web-test: web
+web-tests: web
 	jest --verbose --runInBand "browser"
 
-test: build runtime
+offline-tests: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
 
 RUNTIME_SRC_DIR := src/runtime
