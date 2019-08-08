@@ -356,52 +356,6 @@ function _makeTable(headers: string[], rows: any[][]): Table {
   return table;
 }
 
-function _makeTableFromCSVString(s: string): Table {
-  const headers = [];
-
-  const csv = parse(s, {
-    columns: (header: string[]) => {
-      return header.map((column: string) => {
-        headers.push(column);
-        return column;
-      });
-    }
-  })
-
-  const rows: any[][] = csv.map((row: object) => {
-    const result = [];
-
-    for (let i = 0; i < headers.length; i++) {
-      result.push(row[headers[i]]);
-    }
-
-    return result;
-  });
-
-  return _makeTable(headers, rows);
-}
-
-function _makeTableFromCSVFile(path: string): Table {
-  const contents = fs.readFileSync(path, { encoding: "utf-8" });
-  return _makeTableFromCSVString(contents);
-}
-
-// Changes the elements of a table in the specified column using the given function
-function _transformColumnMutable(table: Table,
-                                 columnName: string,
-                                 func: (element: any) => any): void {
-  if(!hasColumn(table, columnName)) {
-    throw new Error("transformColumnMutable: tried changing the column " + columnName + " but it doesn't exist");
-  }
-
-  // index of the column to change
-  var i = table["_headerIndex"]['column:' + columnName];
-
-  table._rows.forEach((row) =>
-    row[i] = func(row[i])
-  );
-}
-
 type TableSkeleton = { headers: string[], rows: any[][] };
 
 function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
@@ -429,9 +383,39 @@ function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
   return { headers: headers, rows: rows };
 }
 
-function _csvOpen(path: string): TableSkeleton {
+function _makeTableSkeletonFromCSVFile(path: string): TableSkeleton {
   const contents = fs.readFileSync(path, { encoding: "utf-8" });
   return _makeTableSkeletonFromCSVString(contents);
+}
+
+function _makeTableFromTableSkeleton(s: TableSkeleton): Table {
+  return _makeTable(s.headers, s.rows);
+}
+
+function _makeTableFromCSVString(s: string): Table {
+  const skeleton = _makeTableSkeletonFromCSVString(s);
+  return _makeTableFromTableSkeleton(skeleton);
+}
+
+function _makeTableFromCSVFile(path: string): Table {
+  const contents = fs.readFileSync(path, { encoding: "utf-8" });
+  return _makeTableFromCSVString(contents);
+}
+
+// Changes the elements of a table in the specified column using the given function
+function _transformColumnMutable(table: Table,
+                                 columnName: string,
+                                 func: (element: any) => any): void {
+  if(!hasColumn(table, columnName)) {
+    throw new Error("transformColumnMutable: tried changing the column " + columnName + " but it doesn't exist");
+  }
+
+  // index of the column to change
+  var i = table["_headerIndex"]['column:' + columnName];
+
+  table._rows.forEach((row) =>
+    row[i] = func(row[i])
+  );
 }
 
 // Creates a new table and mutates the specified columns with the given functions
@@ -977,7 +961,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
-  'csv-open': _csvOpen,
+  'csv-open': _makeTableSkeletonFromCSVFile,
   '_makeTableFromCSVFile': _makeTableFromCSVFile,
   '_makeTableFromCSVString': _makeTableFromCSVString,
   '_primitiveEqual': _primitiveEqual,
