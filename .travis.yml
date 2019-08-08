@@ -4,6 +4,7 @@ env:
   - BROWSER_BINARY=/usr/bin/google-chrome
   - BROWSER="chrome"
   - SHOW_BROWSER="false"
+  - BASE_URL="http://localhost:8080"
 git:
   submodules: false
 language: node_js
@@ -13,11 +14,15 @@ install:
 - npm install
 before_script:
 - npm run build
+- npm run http-server build/worker -p 8080 &
+- sleep 5
 script:
 - npm run all-tests
 notifications:
   slack:
     secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
+addons:
+  chrome: stable
 after_failure:
   - sleep 10
   - echo "--actual end of .travis script--"
