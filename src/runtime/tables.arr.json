@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "_makeTableFromCSVString": ["arrow", ["String"], ["local", "Table"]],
       "_primitiveEqual": ["arrow", ["Any", "Any"], "Boolean"],
       "table-from-column": ["arrow", ["String", "Any"], ["local", "Table"]],
       "table-from-columns": "Any",
