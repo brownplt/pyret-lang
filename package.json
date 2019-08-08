@@ -58,7 +58,8 @@
     "web": "make web",
     "runtime": "make runtime",
     "web-tests": "make web-tests",
-    "offline-tests": "make offline-tests"
+    "offline-tests": "make offline-tests",
+    "all-tests": "make all-tests"
   },
   "repository": {
     "type": "git",
