@@ -9,7 +9,7 @@ all-tests: build runtime web
 	jest --verbose
 
 web-tests: web
-	jest --verbose --runInBand "browser"
+	jest --verbose "browser"
 
 offline-tests: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
