@@ -5,7 +5,8 @@ all: build parser
 build: src/arr/compiler/pyret-parser.js
 	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
 
-all-tests: offline-tests web-tests
+all-tests: build runtime web
+	jest --verbose
 
 web-tests: web
 	jest --verbose --runInBand "browser"
