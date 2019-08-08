@@ -2,6 +2,7 @@
 const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
 const parse = require("csv-parse/lib/sync")
+const fs = require("fs");
 
 interface Table {
   'add-column': (columnName: string, newVals: any[]) => Table,
@@ -378,6 +379,11 @@ function _makeTableFromCSVString(s: string): Table {
   });
 
   return _makeTable(headers, rows);
+}
+
+function _makeTableFromCSVFile(path: string): Table {
+  const contents = fs.readFileSync(path, { encoding: "utf-8" });
+  return _makeTableFromCSVString(contents);
 }
 
 // Changes the elements of a table in the specified column using the given function
@@ -939,6 +945,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_makeTableFromCSVFile': _makeTableFromCSVFile,
   '_makeTableFromCSVString': _makeTableFromCSVString,
   '_primitiveEqual': _primitiveEqual,
   'table-from-column': tableFromColumn,

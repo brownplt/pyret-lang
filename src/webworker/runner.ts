@@ -7,7 +7,8 @@ window['stopify'] = stopify;
 
 const nodeModules = {
   'assert': assert,
-  'csv-parse/lib/sync': csv
+  'csv-parse/lib/sync': csv,
+  'fs': browserFS
 };
 
 function makeRequireAsync(basePath : string) {
