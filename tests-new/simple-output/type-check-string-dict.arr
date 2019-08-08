@@ -1,4 +1,4 @@
-### { z: 3, y: 2, x: 1 }
+### [string-dict: "z", 3, "y", 2, "x", 1 ]
 
 import string-dict as D
 import global as G

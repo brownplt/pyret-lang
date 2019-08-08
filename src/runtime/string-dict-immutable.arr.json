@@ -26,6 +26,9 @@
       "values": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
       "is-dict": ["arrow", ["tany"], "Boolean"]
     },
+    "aliases": {
+      "StringDict": ["local", "StringDict"]
+    },
     "datatypes": {
       "StringDict": ["data", "StringDict", ["a"], [], {}]
     }
