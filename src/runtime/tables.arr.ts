@@ -358,6 +358,17 @@ function _makeTable(headers: string[], rows: any[][]): Table {
 
 type TableSkeleton = { headers: string[], rows: any[][] };
 
+function _tableSkeletonChangeHeaders(
+  skeleton: TableSkeleton,
+  newHeaders: string[]): TableSkeleton {
+  if (newHeaders.length !== skeleton.headers.length) {
+    throw new Error("Expected " + skeleton.headers.length + " headers, but got "
+                    + newHeaders.length + " in " + newHeaders);
+  }
+
+  return { headers: newHeaders, rows: skeleton.rows };
+}
+
 function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
   const headers = [];
 
@@ -961,6 +972,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_tableSkeletonChangeHeaders': _tableSkeletonChangeHeaders,
   'csv-open': _makeTableSkeletonFromCSVFile,
   '_makeTableFromCSVFile': _makeTableFromCSVFile,
   '_makeTableFromCSVString': _makeTableFromCSVString,
