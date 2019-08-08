@@ -29,6 +29,9 @@
       "concat": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "lOfA"]],
       "is-list": ["forall", ["a"], ["arrow", ["lOfA"], "Boolean"]]
     },
+    "aliases": {
+      "List": ["local", "List"]
+    },
     "datatypes": {
       "List": ["data", "List", ["a"], [], {}]
     }
