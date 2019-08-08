@@ -14,7 +14,7 @@ install:
 - npm install
 before_script:
 - npm run build
-- npm run http-server build/worker -p 8080 &
+- node_modules/.bin/http-server build/worker -p 8080 &
 - sleep 5
 script:
 - npm run all-tests
