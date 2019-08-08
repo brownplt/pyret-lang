@@ -14,6 +14,8 @@ const createFileListElement = (theFS: any, path: string): HTMLLIElement => {
 
   fileListElement.innerHTML = path;
 
+  fileListElement.style["cursor"] = "pointer";
+
   fileListElement.onclick = (e) => {
     e.stopPropagation();
 
@@ -37,6 +39,10 @@ const createFileListElement = (theFS: any, path: string): HTMLLIElement => {
         overflowDiv.appendChild(codeElement);
         codeElement.style["white-space"] = "pre-wrap";
         codeElement.innerHTML = contents;
+
+        // NOTE(joe): Stopping propagation here so that the outer element
+        // doesn't trigger and close the window when we try to select code.
+        codeElement.onclick = (e) => { e.stopPropagation(); }
       });
     } else {
       while (fileListElement.firstChild) {
@@ -63,6 +69,8 @@ const createDirectoryListElement = (theFS: any, path: string): HTMLLIElement => 
   if (path !== "/") {
     path = path + "/";
   }
+
+  directoryListElement.style["cursor"] = "pointer";
 
   directoryListElement.onclick = (e) => {
     e.stopPropagation();
