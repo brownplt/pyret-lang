@@ -402,6 +402,38 @@ function _transformColumnMutable(table: Table,
   );
 }
 
+type TableSkeleton = { headers: string[], rows: any[][] };
+
+function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
+  const headers = [];
+
+  const csv = parse(s, {
+    columns: (header: string[]) => {
+      return header.map((column: string) => {
+        headers.push(column);
+        return column;
+      });
+    }
+  })
+
+  const rows: any[][] = csv.map((row: object) => {
+    const result = [];
+
+    for (let i = 0; i < headers.length; i++) {
+      result.push(row[headers[i]]);
+    }
+
+    return result;
+  });
+
+  return { headers: headers, rows: rows };
+}
+
+function _csvOpen(path: string): TableSkeleton {
+  const contents = fs.readFileSync(path, { encoding: "utf-8" });
+  return _makeTableSkeletonFromCSVString(contents);
+}
+
 // Creates a new table and mutates the specified columns with the given functions
 function _tableTransform(table: Table,
                          columnNames: string[],
@@ -945,6 +977,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  'csv-open': _csvOpen,
   '_makeTableFromCSVFile': _makeTableFromCSVFile,
   '_makeTableFromCSVString': _makeTableFromCSVString,
   '_primitiveEqual': _primitiveEqual,
