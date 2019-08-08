@@ -972,6 +972,7 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_makeTableFromTableSkeleton': _makeTableFromTableSkeleton,
   '_tableSkeletonChangeHeaders': _tableSkeletonChangeHeaders,
   'csv-open': _makeTableSkeletonFromCSVFile,
   '_makeTableFromCSVFile': _makeTableFromCSVFile,
