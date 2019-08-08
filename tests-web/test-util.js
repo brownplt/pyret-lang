@@ -1,16 +1,36 @@
+// BROWSER = firefox | chrome
+// BROWSER_BINARY
+// BASE_URL
+// SHOW_BROWSER = true | false
+
 var assert = require("assert");
 var webdriver = require("selenium-webdriver");
+var seleniumChrome = require("selenium-webdriver/chrome");
 var fs = require("fs");
 const jsesc = require("jsesc");
 const ffdriver = require('geckodriver');
+const chromedriver = require('chromedriver');
 
-let PATH_TO_FF;
+let kindFF = "firefox";
+let kindChrome = "chrome";
+
 // Used by Travis
-if (process.env.FIREFOX_BINARY) {
-  PATH_TO_FF = process.env.FIREFOX_BINARY;
+let BROWSER;
+if (process.env.BROWSER) {
+  BROWSER = process.env.BROWSER;
+  if (BROWSER !== kindFF && BROWSER !== kindChrome) {
+    throw `Unknown browser: ${BROWSER}. Set BROWSER to either \"${kindFF}\" or \"${kindChrome}\"`
+  }
+} else {
+  throw `Set BROWSER to either \"${kindFF}\" or \"${kindChrome}\"`
 }
-else {
-  throw "You can set FIREFOX_BINARY to the path to your Firefox install if this path isn't for your machine work";
+
+// Used by Travis
+let PATH_TO_BROWSER;
+if (process.env.BROWSER_BINARY) {
+  PATH_TO_BROWSER = process.env.BROWSER_BINARY;
+} else {
+  throw "Set BROWSER_BINARY to the path to your browser install";
 }
 
 let BASE_URL;
@@ -22,12 +42,27 @@ if (process.env.BASE_URL) {
 
 let leave_open = process.env.LEAVE_OPEN === "true" || false;
 
-let args = [];
+var chromeOptions = new seleniumChrome
+  .Options();
+if (process.env.SHOW_BROWSER === "false") {
+  chromeOptions = chromeOptions.headless();
+}
 
+if(!process.env.SHOW_BROWSER) {
+  console.log("Running headless (may not work with Firefox). You can set SHOW_BROWSER=true to see what's going on");
+}
+
+let args = [];
 const ffCapabilities = webdriver.Capabilities.firefox();
 ffCapabilities.set('moz:firefoxOptions', {
-  binary: PATH_TO_FF,
+  binary: PATH_TO_BROWSER,
   'args': args
+});
+
+// Working from https://developers.google.com/web/updates/2017/04/headless-chrome#drivers
+const chromeCapabilities = webdriver.Capabilities.chrome();
+chromeCapabilities.set('chromeOptions', {
+  binary: PATH_TO_BROWSER,
 });
 
 const INPUT_ID = "program";
@@ -35,10 +70,22 @@ const COMPILE_RUN_BUTTON = "compileRun";
 const TYPE_CHECK_CHECKBOX = "typeCheck";
 
 function setup() {
-  let driver = new webdriver.Builder()
-    .forBrowser("firefox")
-    .setProxy(null)
-    .withCapabilities(ffCapabilities).build();
+
+  let driver;
+  if (BROWSER === kindFF) {
+    driver = new webdriver.Builder()
+      .forBrowser("firefox")
+      .withCapabilities(ffCapabilities)
+      .build();
+  } else if (BROWSER === kindChrome) {
+    driver = new webdriver.Builder()
+      .forBrowser("chrome")
+      .setChromeOptions(chromeOptions)
+      .withCapabilities(chromeCapabilities)
+      .build();
+  } else {
+    throw `Unknown browser: ${BROWSER}`;
+  }
 
   return {
     driver: driver,
