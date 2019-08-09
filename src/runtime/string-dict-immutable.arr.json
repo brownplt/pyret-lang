@@ -14,7 +14,7 @@
       "tvb": ["tid", "b"]
     },
     "values": {
-      "string-dict": ["forall", ["a"], ["Maker", ["tid", "a"], "dOfA"]],
+      "string-dict": ["forall", ["a"], ["Maker", "tany", "dOfA"]],
       "make-string-dict": ["forall", ["a"], ["arrow", [], "dOfA"]],
       "count": ["arrow", ["lOfS"], "dOfI"],
       "apply": ["forall", ["a"], ["arrow", ["lOfS", ["arrow", ["String"], "tva"]], "dOfA"]],
