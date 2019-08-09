@@ -35,7 +35,7 @@ runtime-src-dir:
 runtime: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
 	cp $(RUNTIME_JS_SRCS) $(RUNTIME_BUILD_DIR)
 	cp $(RUNTIME_JSON_SRCS) $(RUNTIME_BUILD_DIR)
-	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" -type-check
+	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
 	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
 
 web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime
