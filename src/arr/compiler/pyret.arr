@@ -143,7 +143,6 @@ fun main(args :: List<String>) -> Number block:
               else:
                 r.get-value("build-runnable") + ".jarr"
               end
-              compile-opts = CS.make-default-compile-options(this-pyret-dir)
               CLI.build-runnable-standalone(
                   r.get-value("build-runnable"),
                   r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
