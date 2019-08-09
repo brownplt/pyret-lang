@@ -1,5 +1,5 @@
 var runtime = require('./runtime.js');
-var array = require('./array.js');
+//var array = require('./array.js');
 var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
@@ -29,7 +29,7 @@ module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
-  'raw-array': array['raw-array'],
+  //'raw-array': array['raw-array'],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
   'assert': function( lv, rv, msg ) {

@@ -8,7 +8,6 @@
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
       "num-to-str": ["arrow", ["Number"], "String"],
-      "raw-array": "tany",
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
       "time-now": ["arrow", ["tany"], "tany"],
@@ -66,9 +65,6 @@
       "Number": "Number",
       "String": "String",
       "Nothing": "Nothing",
-      "RawArray": { "tag": "name", 
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
-                    "name": "RawArray" },
       "Row": { "tag": "name", 
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "Row" },
@@ -91,10 +87,7 @@
         "_plus": ["arrow", ["String"], "String"]
       }],
       "Boolean": ["data", "Boolean", [], [], {}],
-      "Nothing": ["data", "Nothing", [], [], {}],
-      "RawArray": ["data", "RawArray", ["a"], [], {
-        "length": "Number"
-      }]
+      "Nothing": ["data", "Nothing", [], [], {}]
     }
   }
 }

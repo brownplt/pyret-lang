@@ -1,0 +1,15 @@
+{
+  "requires": [ ],
+  "provides": {
+    "shorthands": { },
+    "values": { },
+    "aliases": {
+      "RawArray": ["local", "RawArray"]
+    },
+    "datatypes": {
+      "RawArray": ["data", "RawArray", ["a"], [], {
+        "length": "Number"
+      }]
+    }
+  }
+}
