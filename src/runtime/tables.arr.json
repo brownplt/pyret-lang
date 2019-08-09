@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "values": {
+      "_makeTableSkeletonFromCSVString": ["arrow", ["String"], "Any"],
       "_makeTableFromTableSkeleton": ["arrow", ["Any"], ["local", "Table"]],
       "_tableSkeletonChangeHeaders": ["arrow", ["Any", "Any"], "Any"],
       "csv-open": ["arrow", ["String"], "Any"],
