@@ -39,7 +39,7 @@ web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime
 	make build/worker/runtime-files.json
 	make build/worker/page.html
 	make build/worker/main.js
-	pyret --checks none --standalone-file src/webworker/worker-standalone.js --deps-file build/worker/bundled-node-compile-deps.js -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
+	pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.arr.j*
 	node build/worker/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
