@@ -15,6 +15,7 @@ import file("compile-options.arr") as CO
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
+DEFAULT-TYPE-CHECK = true
 
 success-code = 0
 failure-code = 1
@@ -73,7 +74,7 @@ fun main(args :: List<String>) -> Number block:
     "collect-times",
       C.flag(C.once, "Collect timing information about compilation"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation"),
+      C.next-val-default(C.Bool, DEFAULT-TYPE-CHECK, none, C.once, "Type-check the program during compilation"),
     "inline-case-body-limit",
       C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
     "deps-file",

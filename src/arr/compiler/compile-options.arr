@@ -57,7 +57,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     .or-else(compile-opts.runtime-builtin-relative-path)
   standalone-file = dictionary.get("standalone-file").or-else(compile-opts.standalone-file)
   tail-calls = not(dictionary.has-key("improper-tail-calls"))
-  type-check = dictionary.has-key("type-check")
+  type-check = dictionary.get("type-check").or-else(false)
   user-annotations = not(dictionary.has-key("no-user-annotations"))
   compiled-read-only = dictionary.get("compiled-read-only-dir").or-else(empty)
 
