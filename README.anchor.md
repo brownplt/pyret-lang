@@ -48,3 +48,9 @@ Next, start the server.
 ```
 
 Once the server starts, navigate to http://0.0.0.0:8000 in a web browser.
+
+### Compiling a program locally
+Outputs a 'compiled' directory into the current working directory
+``` shell
+node /path/to/pyret-lang/build/phaseA --builtin-js-dir /path/to/pyret-lang/runtime --build-runnable /path/to/pyret/local-program
+```
