@@ -2,6 +2,7 @@
   "requires": [ ],
   "provides": {
     "shorthands": {
+      "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
       "tva":      ["tid", "a"]
     },
     "values": {
@@ -10,6 +11,7 @@
       "num-to-str": ["arrow", ["Number"], "String"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
+      "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
       "time-now": ["arrow", ["tany"], "tany"],
       "console-log": ["arrow", ["tany"], "Nothing"],
       "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
@@ -65,6 +67,9 @@
       "Number": "Number",
       "String": "String",
       "Nothing": "Nothing",
+      "RawArray": { "tag": "name", 
+                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "name": "RawArray" },
       "Row": { "tag": "name", 
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "Row" },
@@ -87,7 +92,10 @@
         "_plus": ["arrow", ["String"], "String"]
       }],
       "Boolean": ["data", "Boolean", [], [], {}],
-      "Nothing": ["data", "Nothing", [], [], {}]
+      "Nothing": ["data", "Nothing", [], [], {}],
+      "RawArray": ["data", "RawArray", ["a"], [], {
+        "length": "Number"
+      }]
     }
   }
 }
