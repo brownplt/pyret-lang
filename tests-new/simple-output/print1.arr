@@ -2,4 +2,4 @@
 
 import global as G
 
-G.print(5)
+G.console-log(5)

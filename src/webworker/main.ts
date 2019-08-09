@@ -9,6 +9,7 @@ const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
 const compileRun = document.getElementById("compileRun");
 const compileRunStopify = document.getElementById("compileRunStopify");
+const typeCheck = <HTMLInputElement>document.getElementById("typeCheck");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
@@ -23,6 +24,7 @@ function compileProgram() {
       "base-dir": "/projects",
       "builtin-js-dir": "/prewritten/",
       checks: "none",
+      'type-check': typeCheck.checked,
     }
   };
   worker.postMessage(message);

@@ -1,6 +1,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
-//var assert = require('assert');
+var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -17,12 +17,8 @@ function numToString(n) {
   return String(n);
 }
 
-function timeNow( otherTime ) {
-  if ( otherTime === undefined ) {
-    return process.hrtime();
-  } else {
-    return process.hrtime( otherTime );
-  }
+function timeNow() {
+  return new Date().getTime();
 }
 
 module.exports = {

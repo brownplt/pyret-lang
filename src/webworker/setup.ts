@@ -81,8 +81,7 @@ document.getElementsByTagName('head')[0].appendChild(styler);
 // Setup HTML output
 // NOTE(alex): May need to CTRL + F5 (refresh and clear cache) in order to see HTML logs
 var consoleOutputElement = document.getElementById("consoleOut");
-var outputList = document.createElement("ul");
-consoleOutputElement.appendChild(outputList);
+var outputList = document.getElementById("consoleList");
 const oldLog = console.log;
 const oldError = console.error;
 
