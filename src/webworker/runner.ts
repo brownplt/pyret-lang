@@ -2,7 +2,7 @@ const assert = require('assert');
 const immutable = require('immutable');
 const browserFS = window['BrowserFS'].BFSRequire('fs');
 const path = window['BrowserFS'].BFSRequire('path');
-const stopify = require('stopify');
+const stopify = require('@stopify/stopify');
 window['stopify'] = stopify;
 
 const nodeModules = {
