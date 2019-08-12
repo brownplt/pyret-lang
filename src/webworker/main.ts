@@ -1,9 +1,10 @@
-const setup = require("./setup.ts");
+const consoleSetup = require("./console-setup.ts");
+const bfsSetup = require("./browserfs-setup.ts");
 const runner = require("./runner.ts");
 const pyretApi = require("./pyret-api.ts");
 
-const fs = setup.BrowserFS.BFSRequire("fs");
-const worker = setup.worker;
+const fs = bfsSetup.BrowserFS.BFSRequire("fs");
+const worker = bfsSetup.worker;
 
 const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
@@ -63,20 +64,20 @@ worker.onmessage = function(e) {
     var tag = msgObject["tag"];
     if (tag !== undefined) {
       if (tag === "log") {
-        setup.workerLog(msgObject.data);
+        consoleSetup.workerLog(msgObject.data);
       } else if (tag === "error") {
-        setup.workerError(msgObject.data);
+        consoleSetup.workerError(msgObject.data);
       } else {
-        setup.workerLog(msgObject.data);
+        consoleSetup.workerLog(msgObject.data);
       }
     } else {
       var msgType = msgObject["type"];
       if (msgType == "echo-log") {
-        setup.workerLog(msgObject.contents);
+        consoleSetup.workerLog(msgObject.contents);
       } else if (msgType == "echo-err") {
-        setup.workerError(msgObject.contents);
+        consoleSetup.workerError(msgObject.contents);
       } else if (msgType == "compile-failure") {
-        setup.workerError("Compilation failure");
+        consoleSetup.workerError("Compilation failure");
       } else if (msgType == "compile-success") {
         console.log("Compilation succeeded!");
         const start = window.performance.now();
@@ -94,7 +95,7 @@ worker.onmessage = function(e) {
             console.log("Run complete with: ", result);
             printTimes();
           } catch (err) {
-            setup.workerError(err);
+            consoleSetup.workerError(err);
           }
         } else if (runChoice === 'async') {
           runChoice = 'none';
@@ -104,11 +105,11 @@ worker.onmessage = function(e) {
           resultP.then((r) => { console.log("Run complete with: " , r); printTimes(); });
         }
       } else {
-        setup.workerLog(e.data);
+        consoleSetup.workerLog(e.data);
       }
 
     }
   } catch(error) {
-    setup.workerLog("Error occurred: ", error, e.data);
+    consoleSetup.workerLog("Error occurred: ", error, e.data);
   }
 };
