@@ -11,7 +11,7 @@ language: node_js
 node_js:
 - 8.11.3
 install:
-- npm install
+- npm ci
 before_script:
 - npm run build
 - node_modules/.bin/http-server build/worker -p 8080 &
