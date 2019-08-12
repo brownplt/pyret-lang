@@ -1,5 +1,5 @@
 var runtime = require('./runtime.js');
-var array = require('./array.arr.js');
+var array = require('./array.js');
 var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
