@@ -3,6 +3,16 @@
     padding: 0;
 }
 
+.code {
+    font-family: monospace;
+    font-size: 16px;
+}
+
+.prose {
+    font-family: sans-serif;
+    font-size: 16px;
+}
+
 html, body {
     height: 100%;
 }
