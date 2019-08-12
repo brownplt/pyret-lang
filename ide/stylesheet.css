@@ -39,22 +39,28 @@ html, body {
 }
 
 #definitions-container {
-    background: white;
     width: 50%;
 }
 
 #separator {
-    background: black;
-    width: 5px;
+    background: gray;
+    width: 0.5em;
 }
 
 #interactions-container {
-    background: orange;
     width: 50%
 }
 
 #definitions-area {
+    border: none;
+    background: white;
     height: 100%;
     width: 100%;
     resize: none;
+}
+
+#interactions-area {
+    background: white;
+    height: 100%;
+    width: 100%;
 }
