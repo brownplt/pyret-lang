@@ -1,12 +1,7 @@
 const BrowserFS = require("browserfs");
 window["BrowserFS"] = BrowserFS;
 
-
 const myWorker = new Worker('pyret.jarr');
-
-window["projectsDir"] = "./projects";
-
-
 
 // How to use BrowserFS with Web Workers: https://github.com/jvilk/BrowserFS/issues/210
 BrowserFS.install(window);
