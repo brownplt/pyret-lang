@@ -14,7 +14,7 @@ html, body {
 }
 
 #header {
-    background: green;
+    background: lightgray;
     height: 4.0rem;
     flex: none;
 }
@@ -33,7 +33,7 @@ html, body {
 }
 
 #footer {
-    background: purple;
+    background: lightgray;
     height: 2.5rem;
     flex: none;
 }
@@ -50,7 +50,7 @@ html, body {
 }
 
 #separator {
-    background: gray;
+    background: lightgray;
     width: 0.5em;
 }
 
