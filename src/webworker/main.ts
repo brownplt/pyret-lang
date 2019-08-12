@@ -3,6 +3,7 @@ const bfsSetup = require("./browserfs-setup.ts");
 const runner = require("./runner.ts");
 const pyretApi = require("./pyret-api.ts");
 
+const loader = require("./runtime-loader.ts");
 const fs = bfsSetup.BrowserFS.BFSRequire("fs");
 const worker = bfsSetup.worker;
 
@@ -56,6 +57,19 @@ const clearFSButton = document.getElementById("clearFS");
 clearFSButton.onclick = function() {
   deleteDir("/");
 }
+
+function loadBuiltins() {
+  console.log("LOADING RUNTIME FILES");
+  loader();
+  console.log("FINISHED LOADING RUNTIME FILES");
+}
+
+const loadBuiltinsButton = document.getElementById("loadBuiltins");
+loadBuiltinsButton.onclick = function() {
+  loadBuiltins();
+}
+
+loadBuiltins();
 
 var runChoice = 'none';
 
