@@ -1,8 +1,12 @@
 const myWorker = new Worker("pyret.jarr");
 const projectsDir = "/projects";
+const prewritten = "/prewritten";
+const uncompiled = "/uncompiled";
 
 const consoleSetup = require("./console-setup.ts");
 const bfsSetup = require("./browserfs-setup.ts")(myWorker, projectsDir);
+const BrowserFS = bfsSetup.BrowserFS;
+
 const runner = require("./runner.ts");
 const pyretApi = require("./pyret-api.ts");
 
@@ -63,7 +67,7 @@ clearFSButton.onclick = function() {
 
 function loadBuiltins() {
   console.log("LOADING RUNTIME FILES");
-  loader();
+  loader(BrowserFS, prewritten, uncompiled);
   console.log("FINISHED LOADING RUNTIME FILES");
 }
 

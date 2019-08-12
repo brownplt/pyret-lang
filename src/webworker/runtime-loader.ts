@@ -1,24 +1,24 @@
-let files = require("../../build/worker/runtime-files.json");
+const runtimeFiles = require("../../build/worker/runtime-files.json");
 
 
-function load(): void {
-  let bfs = window["BrowserFS"];
+function load(bfs, prewrittenDirectory, uncompiledDirectory): void {
   let fs = bfs.BFSRequire("fs");
 
-  let prewritten = "./prewritten";
-  let uncompiled = "./uncompiled";
+  let prewritten = prewrittenDirectory;
   if (fs.existsSync(prewritten) === false) {
     fs.mkdirSync(prewritten);
   }
 
+  // TODO(alex): uncompiled no longer used
+  let uncompiled = uncompiledDirectory;
   if (fs.existsSync(uncompiled) === false) {
     fs.mkdirSync(uncompiled);
   }
 
-  for (var index in files) {
-    var path = files[index].key;
-    var content = files[index].content;
-    var canonicalTimestamp = files[index].timestamp;
+  for (var index in runtimeFiles) {
+    var path = runtimeFiles[index].key;
+    var content = runtimeFiles[index].content;
+    var canonicalTimestamp = runtimeFiles[index].timestamp;
     if (fs.existsSync(path)) {
       let statResult = fs.statSync(path);
       let localTimestamp = statResult.mtime.getTime();
