@@ -14,6 +14,10 @@ const typeCheck = <HTMLInputElement>document.getElementById("typeCheck");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
+const FilesystemBrowser = require("./filesystemBrowser.ts");
+const filesystemBrowser = document.getElementById('filesystemBrowser');
+FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
+
 var runChoice = 'none';
 
 function compileProgram() {

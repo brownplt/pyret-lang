@@ -1,7 +1,6 @@
 const BrowserFS = require("browserfs");
 window["BrowserFS"] = BrowserFS;
 
-const FilesystemBrowser = require("./filesystemBrowser.ts");
 const loader = require("./runtime-loader.ts");
 
 const myWorker = new Worker('pyret.jarr');
@@ -65,10 +64,6 @@ function deleteDir(dir) {
     });
   });
 }
-
-
-const filesystemBrowser = document.getElementById('filesystemBrowser');
-FilesystemBrowser.createBrowser(theFS, "/", filesystemBrowser);
 
 loadBuiltins();
 module.exports = {
