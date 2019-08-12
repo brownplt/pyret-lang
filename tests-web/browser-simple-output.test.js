@@ -8,8 +8,7 @@ const tester = require("./test-util.js");
 
 const TEST_TIMEOUT = 20000;
 const COMPILER_TIMEOUT = 10000; // ms, for each compiler run
-const RUN_TIMEOUT = 5000; // ms, for each program execution
-const STARTUP_TIMEOUT = 5000;
+const STARTUP_TIMEOUT = 6000;
 
 describe("Testing browser simple-output programs", () => {
 
@@ -68,10 +67,6 @@ describe("Testing browser simple-output programs", () => {
         let typeCheck;
         if (f.match(/no-type-check/) !== null) {
           typeCheck = false;
-          compileProcess = cp.spawnSync(
-            "node",
-            ["tests-new/run-pyret-no-type-check.js", f],
-            {stdio: "pipe", timeout: COMPILER_TIMEOUT});
         } else {
           typeCheck = true;
         }
