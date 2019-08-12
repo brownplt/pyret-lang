@@ -1,0 +1,54 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+}
+
+#outer-box {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+#header {
+    background: green;
+    height: 4.0rem;
+    flex: none;
+}
+
+#main {
+    background: gray;
+    height: 100%;
+    flex: auto;
+}
+
+#footer {
+    background: purple;
+    height: 2.5rem;
+    flex: none;
+}
+
+#edit-box {
+    display: flex;
+    flex-flow: row;
+    width: 100%;
+    height: 100%;
+}
+
+#definitions-area {
+    background: white;
+    width: 50%;
+}
+
+#separator {
+    background: black;
+    width: 5px;
+}
+
+#interactions-area {
+    background: orange;
+    width: 50%
+}
