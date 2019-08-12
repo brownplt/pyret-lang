@@ -38,7 +38,7 @@ html, body {
     height: 100%;
 }
 
-#definitions-area {
+#definitions-container {
     background: white;
     width: 50%;
 }
@@ -48,7 +48,13 @@ html, body {
     width: 5px;
 }
 
-#interactions-area {
+#interactions-container {
     background: orange;
     width: 50%
+}
+
+#definitions-area {
+    height: 100%;
+    width: 100%;
+    resize: none;
 }
