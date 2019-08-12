@@ -1,5 +1,8 @@
+const myWorker = new Worker("pyret.jarr");
+const projectsDir = "/projects";
+
 const consoleSetup = require("./console-setup.ts");
-const bfsSetup = require("./browserfs-setup.ts");
+const bfsSetup = require("./browserfs-setup.ts")(myWorker, projectsDir);
 const runner = require("./runner.ts");
 const pyretApi = require("./pyret-api.ts");
 
