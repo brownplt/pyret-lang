@@ -19,6 +19,13 @@ html, body {
     flex: none;
 }
 
+#run {
+    float: right;
+    height: 100%;
+    width: 10em;
+    border: none;
+}
+
 #main {
     background: gray;
     height: 100%;
