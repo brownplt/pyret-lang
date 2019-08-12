@@ -18,6 +18,45 @@ const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
 
+const thePath = BrowserFS.BFSRequire("path");
+
+function deleteDir(dir) {
+  // console.log("Entering:", dir);
+  fs.readdir(dir, function(err, files) {
+    if (err) {
+      throw err;
+    }
+
+    let count = files.length;
+    files.forEach(function(file) {
+      let filePath = thePath.join(dir, file);
+      
+      fs.stat(filePath, function(err, stats) {
+        if (err) {
+          throw err;
+        }
+
+        if (stats.isDirectory()) {
+          deleteDir(filePath);
+        } else {
+          fs.unlink(filePath, function(err) {
+            if (err) {
+              throw err;
+            }
+
+            console.log("Deleted:", filePath);
+          });
+        }
+      });
+    });
+  });
+}
+
+const clearFSButton = document.getElementById("clearFS");
+clearFSButton.onclick = function() {
+  deleteDir("/");
+}
+
 var runChoice = 'none';
 
 function compileProgram() {

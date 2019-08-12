@@ -30,41 +30,6 @@ BrowserFS.configure({
   }
 });
 
-const theFS = BrowserFS.BFSRequire("fs");
-const thePath = BrowserFS.BFSRequire("path");
-
-function deleteDir(dir) {
-  // console.log("Entering:", dir);
-  theFS.readdir(dir, function(err, files) {
-    if (err) {
-      throw err;
-    }
-
-    let count = files.length;
-    files.forEach(function(file) {
-      let filePath = thePath.join(dir, file);
-      
-      theFS.stat(filePath, function(err, stats) {
-        if (err) {
-          throw err;
-        }
-
-        if (stats.isDirectory()) {
-          deleteDir(filePath);
-        } else {
-          theFS.unlink(filePath, function(err) {
-            if (err) {
-              throw err;
-            }
-
-            console.log("Deleted:", filePath);
-          });
-        }
-      });
-    });
-  });
-}
-
 loadBuiltins();
 module.exports = {
   BrowserFS: BrowserFS,
