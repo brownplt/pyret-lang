@@ -19,7 +19,7 @@ const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
 
-const thePath = BrowserFS.BFSRequire("path");
+const thePath = bfsSetup.BrowserFS.BFSRequire("path");
 
 function deleteDir(dir) {
   // console.log("Entering:", dir);
