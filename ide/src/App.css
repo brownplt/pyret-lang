@@ -67,7 +67,6 @@ html, body, #root {
 }
 
 #definitions-area {
-    padding: 1em;
     border: none;
     background: white;
     height: 100%;
@@ -76,7 +75,6 @@ html, body, #root {
 }
 
 #interactions-area {
-    padding: 1em;
     background: white;
     height: 100%;
     width: 100%;
