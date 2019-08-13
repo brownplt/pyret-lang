@@ -17,15 +17,29 @@ describe("Testing browser simple-output programs", () => {
   let setup;
   let driver;
   let baseURL;
+  let refreshPagePerTest;
 
   beforeAll(() => {
     setup = tester.setup();
     driver = setup.driver;
     baseURL = setup.baseURL;
+    refreshPagePerTest = setup.refreshPagePerTest;
+
+    if (refreshPagePerTest === false) {
+      return driver.get(baseURL + "/page.html");
+    }
   });
 
   beforeEach(() => {
-    return driver.get(baseURL + "/page.html");
+    if (refreshPagePerTest === true) {
+      return driver.get(baseURL + "/page.html");
+    }
+  });
+
+  afterEach(() => {
+    if (refreshPagePerTest === false) {
+      return tester.clearLogs(driver);
+    }
   });
 
   afterAll(() => { 
@@ -71,8 +85,10 @@ describe("Testing browser simple-output programs", () => {
           typeCheck = true;
         }
 
-        let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
-        expect(loaded).toBeTruthy();
+        if (refreshPagePerTest === true) {
+          let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
+          expect(loaded).toBeTruthy();
+        }
 
         const contents = String(fs.readFileSync(f));
         const firstLine = contents.split("\n")[0];
