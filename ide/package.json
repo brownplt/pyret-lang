@@ -11,6 +11,7 @@
     "babel-loader": "8.0.6",
     "babel-plugin-named-asset-import": "^0.3.3",
     "babel-preset-react-app": "^9.0.1",
+    "browserfs": "^1.4.3",
     "camelcase": "^5.2.0",
     "case-sensitive-paths-webpack-plugin": "2.2.0",
     "css-loader": "2.1.1",
