@@ -17,23 +17,25 @@ BrowserFS.configure(
 
 const fs = BrowserFS.BFSRequire('fs');
 
+const programCacheFile = '/program-cache.arr';
+
 class DefinitionsArea extends React.Component {
     constructor(props) {
         super(props);
 
-        if (!fs.existsSync('/program-cache.arr')) {
-            fs.writeFileSync('/program-cache.arr', "provide *");
+        if (!fs.existsSync(programCacheFile)) {
+            fs.writeFileSync(programCacheFile, "provide *");
         }
 
         this.state = {
-            value: fs.readFileSync('/program-cache.arr')
-        }
-    }
+            value: fs.readFileSync(programCacheFile)
+        };
+    };
 
     saveDefinitions = (e) => {
         this.setState({value: e.target.value});
-        fs.writeFileSync('/program-cache.arr', e.target.value);
-    }
+        fs.writeFileSync(programCacheFile, e.target.value);
+    };
 
     render() {
         return (
@@ -46,28 +48,50 @@ class DefinitionsArea extends React.Component {
     };
 }
 
-function App() {
-    return (
-        <div id="outer-box">
-            <div id="header">
-                <button id="run" className="prose">
-                    Run
-                </button>
-            </div>
-            <div id="main">
-                <div id="edit-box">
-                    <div id="definitions-container">
-                        <DefinitionsArea/>
-                    </div>
-                    <div id="separator"></div>
-                    <div id="interactions-container">
-                        <pre id="interactions-area" className="code"></pre>
+class App extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            interactions: ""
+        };
+    };
+
+    run = () => {
+        this.setState(
+            {
+                interactions: fs.readFileSync(programCacheFile, {encoding: 'utf-8'})
+            }
+        );
+    }
+
+    render() {
+        return (
+            <div id="outer-box">
+                <div id="header">
+                    <button id="run"
+                            className="prose"
+                            onClick={this.run}>
+                        Run
+                    </button>
+                </div>
+                <div id="main">
+                    <div id="edit-box">
+                        <div id="definitions-container">
+                            <DefinitionsArea />
+                        </div>
+                        <div id="separator"></div>
+                        <div id="interactions-container">
+                            <pre id="interactions-area"
+                                 className="code">
+                                {this.state.interactions}
+                            </pre>
+                        </div>
                     </div>
                 </div>
+                <div id="footer"> </div>
             </div>
-            <div id="footer"> </div>
-        </div>
-    );
+        );
+    };
 }
 
 export default App;
