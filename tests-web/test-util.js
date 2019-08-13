@@ -68,6 +68,7 @@ chromeCapabilities.set('chromeOptions', {
 const INPUT_ID = "program";
 const COMPILE_RUN_BUTTON = "compileRun";
 const TYPE_CHECK_CHECKBOX = "typeCheck";
+const CLEAR_LOGS = "clearLogs";
 
 function setup() {
 
@@ -99,6 +100,11 @@ function beginSetInputText(driver, unescapedInput) {
   return driver.executeScript(
     "document.getElementById(\"" + INPUT_ID + "\").value = \"" + escapedInput + "\";"
   );
+}
+
+async function clearLogs(driver) {
+  let clearButton = await driver.findElement({ id: CLEAR_LOGS });
+  await clearButton.click();
 }
 
 async function compileRun(driver, options) {
