@@ -1,33 +1,89 @@
-.App {
-  text-align: center;
+* {
+    margin: 0;
+    padding: 0;
 }
 
-.App-logo {
-  animation: App-logo-spin infinite 20s linear;
-  height: 40vmin;
-  pointer-events: none;
+.code {
+    font-family: monospace;
+    font-size: 16px;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.prose {
+    font-family: sans-serif;
+    font-size: 16px;
 }
 
-.App-link {
-  color: #61dafb;
+html, body, #root {
+    height: 100%;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+#outer-box {
+    display: flex;
+    flex-flow: column;
+    height: 100%;
+}
+
+#header {
+    background: lightgray;
+    height: 4.0rem;
+    flex: none;
+}
+
+#run {
+    float: right;
+    height: 100%;
+    width: 10em;
+    border: none;
+}
+
+#main {
+    background: gray;
+    height: 100%;
+    flex: auto;
+}
+
+#edit-box {
+    display: flex;
+    flex-flow: row;
+    width: 100%;
+    height: 100%;
+    background: white;
+}
+
+#definitions-container {
+    width: 50%;
+}
+
+#separator {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+    border-radius: 1em;
+    background: lightgray;
+    width: 0.5em;
+}
+
+#interactions-container {
+    width: 50%
+}
+
+#definitions-area {
+    padding: 1em;
+    border: none;
+    background: white;
+    height: 100%;
+    width: 100%;
+    resize: none;
+}
+
+#interactions-area {
+    padding: 1em;
+    background: white;
+    height: 100%;
+    width: 100%;
+}
+
+#footer {
+    background: lightgray;
+    height: 2.5rem;
+    flex: none;
 }
