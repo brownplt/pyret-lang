@@ -7,6 +7,8 @@ const consoleSetup = require("./console-setup.ts");
 const bfsSetup = require("./browserfs-setup.ts")(myWorker, projectsDir);
 const BrowserFS = bfsSetup.BrowserFS;
 
+const backend = require("./backend.ts");
+
 const runner = require("./runner.ts");
 const pyretApi = require("./pyret-api.ts");
 
@@ -25,6 +27,11 @@ const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
+
+const myProgram = "program.arr";
+const baseDir = "/projects";
+const builtinJSDir = "/prewritten/";
+const checks = "none";
 
 const thePath = bfsSetup.BrowserFS.BFSRequire("path");
 
@@ -80,29 +87,38 @@ loadBuiltins();
 
 var runChoice = 'none';
 
-function compileProgram() {
-  fs.writeFileSync("./projects/program.arr", input.value);
-  let message = {
-    _parley: true,
-    options: {
-      program: "program.arr",
-      "base-dir": "/projects",
-      "builtin-js-dir": "/prewritten/",
-      checks: "none",
-      'type-check': typeCheck.checked,
-    }
-  };
-  worker.postMessage(message);
+compile.onclick = function() {
+
+  var typeCheck = typeCheck.checked;
+
+  backend.compileProgram(myWorker, {
+    program: myProgram,
+    baseDir: baseDir,
+    builtinJSDir: builtinJSDir,
+    checks: checks,
+    typeCheck: typeCheck,
+  });
 }
 
-compile.onclick = compileProgram;
-
 compileRun.onclick = function() {
-  compileProgram();
+  backend.compileProgram(myWorker, {
+    program: myProgram,
+    baseDir: baseDir,
+    builtinJSDir: builtinJSDir,
+    checks: checks,
+    typeCheck: typeCheck,
+  });
   runChoice = 'sync';
 };
+
 compileRunStopify.onclick = function() {
-  compileProgram();
+  backend.compileProgram(myWorker, {
+    program: myProgram,
+    baseDir: baseDir,
+    builtinJSDir: builtinJSDir,
+    checks: checks,
+    typeCheck: typeCheck,
+  });
   runChoice = 'async';
 };
 
