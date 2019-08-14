@@ -8,7 +8,7 @@ BrowserFS.configure(
     {
         fs: "LocalStorage"
     },
-    function(e) {
+    function(e: any) {
         if (e) {
             throw e;
         }
@@ -19,7 +19,13 @@ const fs = BrowserFS.BFSRequire('fs');
 
 const programCacheFile = '/program-cache.arr';
 
-function pyretCompile(path, callback) {
+type CompileResult = CompileSuccess | CompileFailure;
+type CompileSuccess = {
+    path: string;
+};
+type CompileFailure = string;
+
+function pyretCompile(path: string, callback: (result: CompileResult) => void): void {
 
     // We don't have the infrastructure in place to compile or run Pyret programs at the
     // moment, so just echo back the path of the file as a placeholder.
@@ -27,7 +33,14 @@ function pyretCompile(path, callback) {
     callback({path: path});
 }
 
-function pyretRun(compileSuccess, callback) {
+type RunResult = RunSuccess | RunFailure;
+type RunSuccess = {
+    answer: any;
+};
+type RunFailure = string;
+
+function pyretRun(compileSuccess: CompileSuccess,
+                  callback: (result: RunResult) => void): void {
     const contents = fs.readFileSync(programCacheFile, {encoding: 'utf-8'});
 
     // We don't have the infrastructure in place to compile or run Pyret programs at the
@@ -36,8 +49,13 @@ function pyretRun(compileSuccess, callback) {
     callback({answer: {stringContents: contents}});
 }
 
-class DefinitionsArea extends React.Component {
-    constructor(props) {
+type DefinitionsAreaProps = {};
+type DefinitionsAreaState = {
+    value: string;
+};
+
+class DefinitionsArea extends React.Component<DefinitionsAreaProps, DefinitionsAreaState> {
+    constructor(props: DefinitionsAreaProps) {
         super(props);
 
         if (!fs.existsSync(programCacheFile)) {
@@ -49,7 +67,7 @@ class DefinitionsArea extends React.Component {
         };
     };
 
-    saveDefinitions = (e) => {
+    saveDefinitions = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.setState({value: e.target.value});
         fs.writeFileSync(programCacheFile, e.target.value);
     };
@@ -65,7 +83,7 @@ class DefinitionsArea extends React.Component {
     };
 }
 
-function isCompileSuccess(x) {
+function isCompileSuccess(x: any): x is CompileSuccess {
     if (x.path) {
         return true;
     }
@@ -73,7 +91,7 @@ function isCompileSuccess(x) {
     return false;
 }
 
-function isRunSuccess(x) {
+function isRunSuccess(x: any): x is RunSuccess {
     if (x.answer) {
         return true;
     }
@@ -81,8 +99,13 @@ function isRunSuccess(x) {
     return false;
 }
 
-class App extends React.Component {
-    constructor(props) {
+type AppProps = {};
+type AppState = {
+    interactions: string;
+};
+
+class App extends React.Component<AppProps, AppState> {
+    constructor(props: AppProps) {
         super(props);
         this.state = {
             interactions: ""
