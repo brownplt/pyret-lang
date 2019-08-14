@@ -20,7 +20,7 @@ const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
 const compileRun = document.getElementById("compileRun");
 const compileRunStopify = document.getElementById("compileRunStopify");
-const typeCheck = <HTMLInputElement>document.getElementById("typeCheck");
+const typeCheckBox = <HTMLInputElement>document.getElementById("typeCheck");
 
 const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
@@ -87,9 +87,9 @@ loadBuiltins();
 
 var runChoice = 'none';
 
-compile.onclick = function() {
-
-  var typeCheck = typeCheck.checked;
+function compileHelper() {
+  fs.writeFileSync("./projects/program.arr", input.value);
+  var typeCheck = typeCheckBox.checked;
 
   backend.compileProgram(myWorker, {
     program: myProgram,
@@ -100,25 +100,15 @@ compile.onclick = function() {
   });
 }
 
+compile.onclick = compileHelper;
+
 compileRun.onclick = function() {
-  backend.compileProgram(myWorker, {
-    program: myProgram,
-    baseDir: baseDir,
-    builtinJSDir: builtinJSDir,
-    checks: checks,
-    typeCheck: typeCheck,
-  });
+  compileHelper();
   runChoice = 'sync';
 };
 
 compileRunStopify.onclick = function() {
-  backend.compileProgram(myWorker, {
-    program: myProgram,
-    baseDir: baseDir,
-    builtinJSDir: builtinJSDir,
-    checks: checks,
-    typeCheck: typeCheck,
-  });
+  compileHelper();
   runChoice = 'async';
 };
 

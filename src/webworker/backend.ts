@@ -7,7 +7,6 @@ export interface CompileOptions {
 }
 
 export function compileProgram(compilerWorker, options: CompileOptions) {
-  fs.writeFileSync("./projects/program.arr", input.value);
   let message = {
     _parley: true,
     options: {
@@ -19,5 +18,5 @@ export function compileProgram(compilerWorker, options: CompileOptions) {
     }
   };
 
-  worker.postMessage(message);
+  compilerWorker.postMessage(message);
 }
