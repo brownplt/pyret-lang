@@ -2,6 +2,8 @@ import React from 'react';
 import './App.css';
 const BrowserFS = require('browserfs');
 
+const worker = new Worker('pyret.jarr');
+
 BrowserFS.install(window);
 
 BrowserFS.configure(
@@ -9,6 +11,7 @@ BrowserFS.configure(
         fs: "LocalStorage"
     },
     function(e: any) {
+        BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
         if (e) {
             throw e;
         }
@@ -16,6 +19,8 @@ BrowserFS.configure(
 );
 
 const fs = BrowserFS.BFSRequire('fs');
+
+worker.onmessage = (e) => console.log(e.data);
 
 const programCacheFile = '/program-cache.arr';
 
@@ -27,8 +32,16 @@ type CompileFailure = string;
 
 function pyretCompile(path: string, callback: (result: CompileResult) => void): void {
 
-    // We don't have the infrastructure in place to compile or run Pyret programs at the
-    // moment, so just echo back the path of the file as a placeholder.
+    worker.postMessage({
+        _parley: true,
+        options: {
+            program: 'program-cache.arr',
+            "base-dir": '/',
+            "builtin-js-dir": '/',
+            checks: "none",
+            'type-check': true,
+        }
+    });
 
     callback({path: path});
 }
