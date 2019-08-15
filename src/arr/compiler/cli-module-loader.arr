@@ -173,11 +173,8 @@ fun get-cached-if-available(basedir, loc) block:
   uri = loc.uri()
   name = loc.name()
   saved-path = P.join(basedir, uri-to-path(uri, name))
-  spy: saved-path end
   mtime = loc.get-modified-time()
-  spy: uri, name, mtime end
   cached-type = cached-available(basedir, uri, name, mtime)
-  spy: cached-type end
   cases(Option) cached-type:
     | none => loc
     | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct)
@@ -267,8 +264,6 @@ fun setup-compiled-dirs( options ) block:
 	mkdirp( project-dir )
 	mkdirp( builtin-dir )
 
-  spy "end of setup compiled-dirs": base-dir, project-dir, builtin-dir end
-
   # TODO(joe, anchor, May '19): sort this out for builtins needed by generated code
   #when not(FS.exists(P.join(compiled-dir, "node_modules"))):
   #  FS.symlink(P.join(options.this-pyret-dir, "../../node_modules"), P.join(compiled-dir, "node_modules"), "dir")
@@ -277,19 +272,20 @@ fun setup-compiled-dirs( options ) block:
   {base-dir; project-dir; builtin-dir}
 end
 
+fun time-or-0(p):
+  if F.file-exists(p): F.file-times(p).mtime
+  else: 0
+  end
+end
+
 fun set-loadable(options, locator, loadable) block:
   doc: "Returns the module path of the cached file"
   { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
 
-  spy: project-base, project-dir, builtin-dir end
   locuri = loadable.provides.from-uri
-
-  spy "locuri": locuri end
 
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
-
-      spy: ccp end
 
       uri = locator.uri()
 
@@ -318,21 +314,22 @@ fun set-loadable(options, locator, loadable) block:
       save-static-path = save-path + static-ext
       save-code-path = save-path + code-ext
 
-      fs = F.output-file(save-static-path, false)
-      fr = F.output-file(save-code-path, false)
+      when (time-or-0(save-static-path) <= locator.get-modified-time())  or (time-or-0(save-code-path) <= locator.get-modified-time()) block:
+        fs = F.output-file(save-static-path, false)
+        fr = F.output-file(save-code-path, false)
 
-      ccp.print-js-static(fs.display)
-      ccp.print-js-runnable(fr.display)
+        ccp.print-js-static(fs.display)
+        ccp.print-js-runnable(fr.display)
 
-      fs.flush()
-      fs.close-file()
-      fr.flush()
-      fr.close-file()
+        fs.flush()
+        fs.close-file()
+        fr.flush()
+        fr.close-file()
+      end
 
       {save-static-path; save-code-path}
 
     | err(_) =>
-      spy: loadable end
       {""; ""}
   end
 end
@@ -378,7 +375,6 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         if F.file-exists(real-path):
           CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
         else:
-          spy: ctxt, this-path, real-path end
           raise("Cannot find import " + torepr(dep) + ", looking at " + real-path)
         end
       else if protocol == "builtin-test":
@@ -466,7 +462,6 @@ fun run(path, options, subsequent-command-line-arguments):
 end
 
 fun copy-js-dependency( dep-path, uri, dirs, options ) block:
-  spy "copying": dep-path, uri, dirs, options end
   { base-dir; project-dir; builtin-dir } = dirs
   {save-path; cutoff} = ask block:
     | string-index-of( uri, "builtin://" ) == 0 then:
@@ -483,20 +478,24 @@ fun copy-js-dependency( dep-path, uri, dirs, options ) block:
   save-code-path = P.join( save-path, cutoff )
   mkdirp( P.resolve( P.dirname( save-code-path ) ) )
 
-  fc = F.output-file( save-code-path, false )
+  if not(F.file-exists(save-code-path)) or (F.mtimes(save-code-path).mtime < F.mtimes(dep-path).mtime) block:
+    spy "Copying js dependency": save-code-path, dep-path end
+    fc = F.output-file( save-code-path, false )
 
-  file-content = F.file-to-string( dep-path )
-  fc.display( file-content )
-  
-  fc.flush()
-  fc.close-file()
+    file-content = F.file-to-string( dep-path )
+    fc.display( file-content )
+    
+    fc.flush()
+    fc.close-file()
+  else:
+    spy "Skipping js dependency": save-code-path, dep-path end
+  end
 
   save-code-path
 end
 
 fun copy-js-dependencies( wl, options ) block:
   dirs = setup-compiled-dirs( options )
-  spy: dirs end
   arr-js-modules = for filter( tc from wl ):
     CL.is-arr-js-file( tc.locator.get-compiled( options ) )
   end
@@ -506,9 +505,7 @@ fun copy-js-dependencies( wl, options ) block:
   for each( tc from arr-js-modules ):
     code-path = tc.locator.get-compiled( options ).code-file
 
-    spy "About to get deps": code-path end
     deps = DT.get-dependencies( P.resolve(code-path) )
-    spy: deps end
     deps-list = raw-array-to-list( deps )
 
     for each( dep-path from deps-list ):
@@ -517,8 +514,6 @@ fun copy-js-dependencies( wl, options ) block:
       end
     end
   end
-
-  spy: paths end
 
   for each( dep-path from paths.keys-list-now() ):
     copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs, options )
@@ -548,10 +543,8 @@ fun build-program(path, options, stats) block:
     compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
     options: options
   }, base-module)
-  spy: base end
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
-  spy "About to copy js deps": wl end
   copy-js-dependencies( wl, options )
   clear-and-print("Loading existing compiled modules...")
   storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
