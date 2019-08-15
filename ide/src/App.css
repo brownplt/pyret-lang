@@ -29,6 +29,13 @@ html, body, #root {
     flex: none;
 }
 
+#open-fs {
+    float: left;
+    height: 100%;
+    width: 10em;
+    border: none;
+}
+
 #run {
     float: right;
     height: 100%;

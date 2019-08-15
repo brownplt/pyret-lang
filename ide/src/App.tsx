@@ -143,6 +143,7 @@ function isRunSuccess(x: any): x is RunSuccess {
 type AppProps = {};
 type AppStateInteractions = {name: string, value:any}[];
 type AppState = {
+    fsBrowserVisible: boolean;
     interactions: AppStateInteractions;
 };
 
@@ -196,12 +197,82 @@ class Interaction extends React.Component<InteractionProps, InteractionState> {
     };
 }
 
+type FSBrowserProps = {
+    fs: any;
+};
+
+type FSBrowserState = {
+    currentDirectory: string;
+    parentDirectory: string | false;
+};
+
+class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
+    constructor(props: FSBrowserProps) {
+        super(props);
+
+        this.state = {
+            currentDirectory: "/",
+            parentDirectory: false
+        };
+    };
+
+    changeDirectory = (newDirectory: string) => {
+        if (newDirectory === "/") {
+            this.setState({
+                currentDirectory: newDirectory,
+                parentDirectory: false
+            });
+        } else {
+            this.setState({
+                currentDirectory: newDirectory,
+                parentDirectory: this.state.currentDirectory
+            });
+        }
+    };
+
+    render() {
+        return (
+            <ul>
+                {this.state.parentDirectory ? (
+                    <li onClick={() => {
+                        if (this.state.parentDirectory) {
+                            this.changeDirectory(this.state.parentDirectory);
+                        }
+                    }}>
+                        ..
+                    </li>
+                ) : (
+                    null
+                )}
+                {
+                    this.props.fs
+                        .readdirSync(this.state.currentDirectory)
+                        .map((file: string) => {
+                            return (
+                                <li onClick={() => this.changeDirectory(file)}>
+                                    {file}
+                                </li>
+                            );
+                        })
+                }
+            </ul>
+        );
+    }
+}
+
 class App extends React.Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
+            fsBrowserVisible: false,
             interactions: []
         };
+    };
+
+    toggleFSBrowser = () => {
+        this.setState({
+            fsBrowserVisible: !this.state.fsBrowserVisible
+        });
     };
 
     run = () => {
@@ -234,6 +305,11 @@ class App extends React.Component<AppProps, AppState> {
         return (
             <div id="outer-box">
                 <div id="header">
+                    <button id="open-fs"
+                            className="prose"
+                            onClick={this.toggleFSBrowser}>
+                        File System
+                    </button>
                     <button id="run"
                             className="prose"
                             onClick={this.run}>
@@ -242,6 +318,11 @@ class App extends React.Component<AppProps, AppState> {
                 </div>
                 <div id="main">
                     <div id="edit-box">
+                        {this.state.fsBrowserVisible ? (
+                            <FSBrowser fs={fs} />
+                        ) : (
+                            <div></div>
+                        )}
                         <div id="definitions-container">
                             <DefinitionsArea />
                         </div>
