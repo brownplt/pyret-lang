@@ -138,6 +138,7 @@ function compileSuccess() {
         console.log("Run complete with: ", result.result);
         console.log("Run complete in: ", result.time);
       });
+    runChoice = NO_RUNS;
   }
 }
 const backendMessageHandler = 
