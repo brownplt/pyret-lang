@@ -25,10 +25,19 @@ function makeRequireAsync(basePath : string) {
       if(!browserFS.existsSync(nextPath)) {
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
-      const contents = String(browserFS.readFileSync(nextPath));
-      const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()", {});
+      const stoppedPath = nextPath + ".stopped";
+      let runner = null;
+      if(browserFS.existsSync(stoppedPath) && (browserFS.statSync(stoppedPath).mtime > browserFS.statSync(nextPath).mtime)) {
+        const stopifiedCode = String(browserFS.readFileSync(stoppedPath));
+        runner = new stopify.Runner(stopifiedCode, {});
+      }
+      else {
+        const contents = String(browserFS.readFileSync(nextPath));
+        runner = stopify.stopifyLocally("(function() { " + contents + "})()", {});
+        if(runner.kind !== "ok") { reject(runner); }
+        browserFS.writeFileSync(stoppedPath, runner.code);
+      }
       const module = {exports: false};
-      if(runner.kind !== "ok") { reject(runner); }
       runner.g = { stopify, require: requireAsync, module, String, $STOPIFY: runner, setTimeout: setTimeout, console: console };
       runner.path = nextPath;
       currentRunner = runner;
@@ -54,46 +63,33 @@ function makeRequireAsync(basePath : string) {
     if(!browserFS.existsSync(nextPath)) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
-    const contents = String(browserFS.readFileSync(nextPath));
+    const stoppedPath = nextPath + ".stopped";
     currentRunner.pauseK((kontinue) => {
       const lastPath = currentRunner.path;
       const module = {exports: false};
+      const lastModule = currentRunner.g.module;
       currentRunner.g.module = module;
       currentRunner.path = nextPath;
-      currentRunner.evalAsync(String(contents), (result) => {
+      let stopifiedCode = "";
+      if(browserFS.existsSync(stoppedPath) && (browserFS.statSync(stoppedPath).mtime > browserFS.statSync(nextPath).mtime)) {
+        stopifiedCode = String(browserFS.readFileSync(stoppedPath));
+      }
+      else {
+        const contents = String(browserFS.readFileSync(nextPath));
+        stopifiedCode = currentRunner.compile(contents);
+        browserFS.writeFileSync(stoppedPath, stopifiedCode);
+      }
+      currentRunner.evalCompiled(stopifiedCode, (result) => {
         if(result.type !== "value") {
           kontinue(result);
           return;
         }
         const toReturn = module.exports ? module.exports : result.value;
         currentRunner.path = lastPath;
-        module.exports = false;
+        currentRunner.module = lastModule;
         kontinue({ type: 'normal', value: toReturn });
       });
     });
-    /*
-    const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()", {});
-    const module = {exports: false};
-    runner.g = { stopify, require: requireAsync, module, console, String, $STOPIFY: runner, setTimeout: setTimeout };
-    runner.path = nextPath;
-    currentRunner.pauseImmediate(() => {
-      const oldRunner = currentRunner;
-      currentRunner = runner;
-      if(runner.kind !== "ok") {
-        currentRunner.continueImmediate({type: 'error', value: runner});
-        return;
-      }
-      browserFS.writeFileSync(nextPath + ".stopped", runner.code);
-      runner.run((result) => {
-        cwd = oldWd;
-        const toReturn = module.exports ? module.exports : result.value;
-        currentRunner = oldRunner;
-        console.log(String(runner));
-        oldRunner.continueImmediate({ type: 'normal', value: toReturn });
-        return;
-      });
-    });
-    */
   }
 
   return requireAsyncMain;
