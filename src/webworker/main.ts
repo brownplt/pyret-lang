@@ -113,7 +113,37 @@ compileRunStopify.onclick = function() {
   runChoice = 'ASYNC';
 };
 
-worker.onmessage = function(e) {
+function echoLog(contents) {
+  consoleSetup.workerLog(contents);
+}
+
+function echoErr(contents) {
+  consoleSetup.workerError(contents);
+}
+
+function compileFailure() {
+  consoleSetup.workerError("Compilation failure");
+}
+
+function compileSuccess() {
+  console.log("Compilation succeeded!");
+
+  if (runChoice !== NO_RUNS) {
+    console.log("Running...");
+    backend.runProgram("/compiled/project", "program.arr.js", runChoice)
+      .catch(function(error) {
+        console.error("Run failed with: ", error);
+      })
+      .then((result) => {
+        console.log("Run complete with: ", result.result);
+        console.log("Run complete in: ", result.time);
+      });
+  }
+}
+const backendMessageHandler = 
+  backend.makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess);
+
+worker.onmessage = function(e) { 
 
   // Handle BrowserFS messages
   if (e.data.browserfsMessage === true && showBFS.checked === false) {
@@ -142,31 +172,9 @@ worker.onmessage = function(e) {
         consoleSetup.workerLog(msgObject.data);
       }
     } else {
-      var msgType = msgObject["type"];
-      if (msgType == "echo-log") {
-        consoleSetup.workerLog(msgObject.contents);
-      } else if (msgType == "echo-err") {
-        consoleSetup.workerError(msgObject.contents);
-      } else if (msgType == "compile-failure") {
-        consoleSetup.workerError("Compilation failure");
-      } else if (msgType == "compile-success") {
-        console.log("Compilation succeeded!");
-
-        if (runChoice !== NO_RUNS) {
-          console.log("Running...");
-          backend.runProgram("/compiled/project", "program.arr.js", runChoice)
-            .catch(function(error) {
-              console.error("Run failed with: ", error);
-            })
-            .then((result) => {
-              console.log("Run complete with: ", result.result);
-              console.log("Run complete in: ", result.time);
-            });
-        }
-      } else {
-        consoleSetup.workerLog(e.data);
+      if (backendMessageHandler(e) === null) {
+        consoleSetup.workerLog("FALLEN THROUGH:", e.data);
       }
-
     }
   } catch(error) {
     consoleSetup.workerLog("Error occurred: ", error, e.data);
