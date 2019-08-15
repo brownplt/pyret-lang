@@ -104,12 +104,12 @@ compile.onclick = compileHelper;
 
 compileRun.onclick = function() {
   compileHelper();
-  runChoice = 'sync';
+  runChoice = 'SYNC';
 };
 
 compileRunStopify.onclick = function() {
   compileHelper();
-  runChoice = 'async';
+  runChoice = 'ASYNC';
 };
 
 worker.onmessage = function(e) {
@@ -150,30 +150,15 @@ worker.onmessage = function(e) {
         consoleSetup.workerError("Compilation failure");
       } else if (msgType == "compile-success") {
         console.log("Compilation succeeded!");
-        const start = window.performance.now();
-        function printTimes() {
-          const end = window.performance.now();
-          console.log("Running took: ", end - start);
-        }
-        if (runChoice === 'sync') {
-          runChoice = 'none';
-          console.log("Running...");
-          try {
-            const start = window.performance.now();
-            const result = runner.makeRequire("/compiled/project")("program.arr.js");
-            const end = window.performance.now();
-            console.log("Run complete with: ", result);
-            printTimes();
-          } catch (err) {
-            consoleSetup.workerError(err);
-          }
-        } else if (runChoice === 'async') {
-          runChoice = 'none';
-          const entry = runner.makeRequireAsync("/compiled/project");
-          const resultP = entry("program.arr.js");
-          resultP.catch((e) => { console.log("Run failed with: ", e); printTimes(); });
-          resultP.then((r) => { console.log("Run complete with: " , r); printTimes(); });
-        }
+        console.log("Running...");
+        backend.runProgram("/compiled/project", "program.arr.js", runChoice)
+          .catch(function(error) {
+            console.error("Run failed with: ", error);
+          })
+          .then((result) => {
+            console.log("Run complete with: ", result.result);
+            console.log("Run complete in: ", result.time);
+          });
       } else {
         consoleSetup.workerLog(e.data);
       }
