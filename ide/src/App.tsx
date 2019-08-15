@@ -50,8 +50,11 @@ function pyretRun(compileSuccess: CompileSuccess,
 }
 
 const mockRunOutput = {
-    "y": 9,
-    "x": 5
+    "a": 9,
+    "b": 5,
+    "c": true,
+    "d": false,
+    "e": "Ahoy, world!"
 };
 
 const mockRunResult: RunResult = {
@@ -72,8 +75,11 @@ provide-types *
 
 import global as G
 
-x :: Number = 2 + 3
-y :: Number = 4 + 5`)
+a = 2 + 3
+b = 4 + 5
+c = true
+d = false
+e = "Ahoy, world!"`);
 
         //if (!fs.existsSync(programCacheFile)) {
         //    fs.writeFileSync(programCacheFile, "provide *");
@@ -131,6 +137,41 @@ function makeResult(result: any): {name: string, value: any}[] {
     });
 }
 
+type InteractionProps = {
+    name: string,
+    value: any
+};
+
+type InteractionState = {};
+
+class Interaction extends React.Component<InteractionProps, InteractionState> {
+    format = (name: string, value: any) => {
+        return (
+            <div>
+                {name} = {value}
+            </div>
+        );
+    };
+
+    convert = (name: string, value: any) => {
+        if (typeof value === 'number') {
+            return this.format(name, value.toString());
+        } else if (typeof value === 'string') {
+            return this.format(name, `"${value}"`);
+        } else if (typeof value === 'boolean') {
+            return this.format(name, value.toString());
+        }
+    };
+
+    render() {
+        return (
+            <div>
+                {this.convert(this.props.name, this.props.value)}
+            </div>
+        )
+    };
+}
+
 class App extends React.Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
@@ -163,7 +204,7 @@ class App extends React.Component<AppProps, AppState> {
                     // there was an issue at compile time.
                 }
             });
-    }
+    };
 
     render() {
         return (
@@ -187,10 +228,8 @@ class App extends React.Component<AppProps, AppState> {
                                  className="code">
                                 {
                                     this.state.interactions.map(
-                                        (interaction) => {
-                                            return <div key={interaction.name}>
-                                                {interaction.name} = {JSON.stringify(interaction.value)}
-                                            </div>;
+                                        (i) => {
+                                            return <Interaction key={i.name} name={i.name} value={i.value} />
                                         })
                                 }
                             </pre>
