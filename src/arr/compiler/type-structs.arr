@@ -130,13 +130,8 @@ fun dep-error(no :: NameOrigin):
   raise("Should not get dependency in typechecker: " + torepr(no))
 end
 
-data DataVisibility:
-  | d-opaque
-  | d-all
-end
-
 data DataType:
-  | t-data(name :: String, visibility :: DataVisibility, params :: List<Type>, variants :: List<TypeVariant>, fields :: TypeMembers, l :: Loc)
+  | t-data(name :: String, visibility :: A.DataVisibility, params :: List<Type>, variants :: List<TypeVariant>, fields :: TypeMembers, l :: Loc)
 sharing:
   method get-variant(self, variant-name :: String) -> Option<TypeVariant>:
     self.variants.find(lam(tv): tv.name == variant-name end)

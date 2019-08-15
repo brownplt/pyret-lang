@@ -481,8 +481,8 @@ fun tvariant-from-raw(uri, tvariant, env):
 end
 
 fun visibility(v):
-  if v == "all": T.d-all
-  else: T.d-opaque
+  if v == "all": A.d-all
+  else: A.d-opaque
   end
 end
 

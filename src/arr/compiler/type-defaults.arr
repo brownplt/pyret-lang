@@ -22,7 +22,7 @@ t-forall                  = TS.t-forall(_, _, A.dummy-loc, false)
 t-data-refinement         = TS.t-data-refinement(_, _, A.dummy-loc, false)
 t-tuple                   = TS.t-tuple(_, A.dummy-loc, false)
 
-t-data                    = TS.t-data(_, TS.d-all, _, _, _, A.dummy-loc)
+t-data                    = TS.t-data(_, A.d-all, _, _, _, A.dummy-loc)
 
 t-number                  = TS.t-number(A.dummy-loc)
 t-string                  = TS.t-string(A.dummy-loc)

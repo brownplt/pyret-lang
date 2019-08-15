@@ -1136,12 +1136,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               raise("The rhs of an object provide was not an id: " + to-repr(f))
             end
             A.s-provide-name(f.l, A.s-module-ref(f.l, [list: f.value.id], some(A.s-name(f.l, f.name))))
-          end + [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:])]
+          end + [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-all)]
           A.s-provide-block(l, empty, specs)
         | s-provide-all(shadow l) =>
           A.s-provide-block(l, empty, [list:
             A.s-provide-name(l, A.s-star(l, [list:])),
-            A.s-provide-data(l, A.s-star(l, [list:]), [list:])])
+            A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-all)])
         | s-provide-none(shadow l) =>
           A.s-provide-block(l, empty, [list:])
       end
@@ -1152,12 +1152,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             when not(A.is-a-name(a.ann)): raise("Cannot use a non-name as a provided type") end
             A.s-provide-type(l, A.s-module-ref(a.ann.l, [list: a.ann.id], some(A.s-name(a.l, a.name))))
           end +
-          [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:])])
+          [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-all)])
         | s-provide-types-none(shadow l) =>
           A.s-provide-block(l, empty, [list:])
         | s-provide-types-all(shadow l) =>
           A.s-provide-block(l, empty, [list:
-            A.s-provide-data(l, A.s-star(l, [list:]), [list:]),
+            A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-all),
             A.s-provide-type(l, A.s-star(l, [list:]))])
       end
       
@@ -1179,7 +1179,16 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       provided-modules = [SD.mutable-string-dict:]
       provided-values = [SD.mutable-string-dict:]
       provided-types = [SD.mutable-string-dict:]
-      provided-datatypes = [SD.mutable-string-dict:]
+
+      # provided-datatypes holds an extra piece of information, which is
+      # whether the datatype should have its details be *visible* outside this
+      # module. They are always at least provided as *opaque*, so that any
+      # referents can find the underlying type for type equality. However, they
+      # don't necessarily have their variants and fields exposed, which is
+      # controlled by what the user provides. This information needs to be
+      # tracked here.
+      provided-datatypes :: SD.MutableStringDict<{S.Loc; Option<String>; A.Name; T.DataVisibility}>
+        = [SD.mutable-string-dict:]
 
       fun is-hidden(hidden :: List<A.Name>, maybe-hidden-name :: String):
         for lists.any(h from hidden):
@@ -1251,7 +1260,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               | none => # path must be a single element if there's no URI of a remote module
                         # e.g. provide: D end   NOT    provide: M.D end
                 data-expr = datatypes.get-value-now(path.first.toname())
-                maybe-add(hidden, provided-datatypes, data-expr.name, {l; none; data-expr.namet})
+                maybe-add(hidden, provided-datatypes, data-expr.name, {l; none; data-expr.namet; A.d-all})
                 data-checker-name = A.make-checker-name(data-expr.name)
                 data-checker-vb = val-env.get-value(data-checker-name)
                 maybe-add(hidden, provided-values, data-checker-name, {l; none; data-checker-vb.atom})
@@ -1290,10 +1299,10 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 end
                 fun add-value-if-defined(name):
                   when(providing-module.values.has-key(name)):
-                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
+                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name); A.d-all})
                   end
                 end
-                maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
+                maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name); A.d-all})
                 add-value-if-defined(A.make-checker-name(datatype-name))
                 when(providing-module.aliases.has-key(datatype-name)):
                   maybe-add(hidden, provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})
@@ -1313,7 +1322,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             expand-name-spec(provided-types, type-bindings, final-visitor.type-env, _.aliases, name-spec, path)
           | s-provide-module(shadow l, name-spec) =>
             expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, _.modules, name-spec, path)
-          | s-provide-data(shadow l, name-spec, hidden) =>
+          | s-provide-data(shadow l, name-spec, hidden, visibility) =>
             expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden)
           | else => nothing
         end
@@ -1333,9 +1342,20 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         maker(name-spec)
       end
 
+      fun make-data-provide-spec({shadow l; maybe-uri; atom; vis}, k, maker):
+        name-spec = cases(Option) maybe-uri:
+          | none => A.s-local-ref(l, atom, A.s-name(l, k))
+          | some(uri) => A.s-remote-ref(l, uri, atom, A.s-name(l, k))
+        end
+        maker(name-spec, vis)
+      end
+
+
       for each(k from datatypes.keys-list-now()):
         dt = datatypes.get-value-now(k)
-        provided-datatypes.set-now(k, {dt.l; none; dt.namet})
+        when not(provided-datatypes.has-key-now(k)):
+          provided-datatypes.set-now(k, {dt.l; none; dt.namet; A.d-opaque})
+        end
       end
 
       final-val-provides = for map(k from provided-values.keys-list-now()):
@@ -1348,7 +1368,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         make-provide-spec(provided-modules.get-value-now(k), k, A.s-provide-module(l, _))
       end
       final-datatype-provides = for map(k from provided-datatypes.keys-list-now()):
-        make-provide-spec(provided-datatypes.get-value-now(k), k, A.s-provide-data(l, _, empty))
+        make-data-provide-spec(provided-datatypes.get-value-now(k), k, A.s-provide-data(l, _, empty, _))
       end
 
       one-true-provide = [list: A.s-provide-block(l, empty, final-val-provides + final-type-provides + final-module-provides + final-datatype-provides)]
