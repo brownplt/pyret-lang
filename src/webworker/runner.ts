@@ -26,13 +26,18 @@ function makeRequireAsync(basePath : string) {
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
       const contents = String(browserFS.readFileSync(nextPath));
-      const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
+      const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()", {});
       const module = {exports: false};
-      runner.g = { stopify, require: requireAsync, module };
+      if(runner.kind !== "ok") { reject(runner); }
+      runner.g = { stopify, require: requireAsync, module, String, $STOPIFY: runner, setTimeout: setTimeout, console: console };
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result) => {
         cwd = oldWd;
+        if(result.type !== "normal") {
+          reject(result);
+          return;
+        }
         const toReturn = module.exports ? module.exports : result;
         resolve(toReturn);
       });
@@ -50,20 +55,45 @@ function makeRequireAsync(basePath : string) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const contents = String(browserFS.readFileSync(nextPath));
-    const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
+    currentRunner.pauseK((kontinue) => {
+      const lastPath = currentRunner.path;
+      const module = {exports: false};
+      currentRunner.g.module = module;
+      currentRunner.path = nextPath;
+      currentRunner.evalAsync(String(contents), (result) => {
+        if(result.type !== "value") {
+          kontinue(result);
+          return;
+        }
+        const toReturn = module.exports ? module.exports : result.value;
+        currentRunner.path = lastPath;
+        module.exports = false;
+        kontinue({ type: 'normal', value: toReturn });
+      });
+    });
+    /*
+    const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()", {});
     const module = {exports: false};
-    runner.g = { stopify, require: requireAsync, module, console };
+    runner.g = { stopify, require: requireAsync, module, console, String, $STOPIFY: runner, setTimeout: setTimeout };
     runner.path = nextPath;
     currentRunner.pauseImmediate(() => {
       const oldRunner = currentRunner;
       currentRunner = runner;
+      if(runner.kind !== "ok") {
+        currentRunner.continueImmediate({type: 'error', value: runner});
+        return;
+      }
+      browserFS.writeFileSync(nextPath + ".stopped", runner.code);
       runner.run((result) => {
         cwd = oldWd;
         const toReturn = module.exports ? module.exports : result.value;
         currentRunner = oldRunner;
+        console.log(String(runner));
         oldRunner.continueImmediate({ type: 'normal', value: toReturn });
+        return;
       });
     });
+    */
   }
 
   return requireAsyncMain;
