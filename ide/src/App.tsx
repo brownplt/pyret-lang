@@ -321,7 +321,7 @@ class App extends React.Component<AppProps, AppState> {
                         {this.state.fsBrowserVisible ? (
                             <FSBrowser fs={fs} />
                         ) : (
-                            <div></div>
+                            null
                         )}
                         <div id="definitions-container">
                             <DefinitionsArea />
