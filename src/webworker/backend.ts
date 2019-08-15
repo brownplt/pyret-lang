@@ -18,6 +18,43 @@ export interface RunResult {
   result: any,
 }
 
+export function makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess) {
+  function backendMessageHandler(e) {
+    if (e.data.browserfsMessage === true) {
+      console.log("BFS");
+      return null;
+    }
+
+    try {
+      console.log(e.data);
+      var msgObject = JSON.parse(e.data);
+    
+      var msgType = msgObject["type"];
+      if (msgType === undefined) {
+        console.log("UNDEF");
+        return null;
+      } else if (msgType === "echo-log") {
+        echoLog(msgObject.contents);
+      } else if (msgType === "echo-err") {
+        echoErr(msgObject.contents);
+      } else if (msgType === "compile-failure") {
+        compileFailure();
+      } else if (msgType === "compile-success") {
+        compileSuccess();
+      } else {
+        console.log("BACKEND FALL THROUGH");
+        return null;
+      }
+
+    } catch(e) {
+      console.log("PARSE ERR:", e);
+      return null;
+    }
+  }
+
+  return backendMessageHandler;
+}
+
 export function compileProgram(compilerWorker, options: CompileOptions) {
   let message = {
     _parley: true,
