@@ -49,6 +49,15 @@ function pyretRun(compileSuccess: CompileSuccess,
     callback({answer: {stringContents: contents}});
 }
 
+const mockRunOutput = {
+    "y": 9,
+    "x": 5
+};
+
+const mockRunResult: RunResult = {
+    answer: mockRunOutput
+};
+
 type DefinitionsAreaProps = {};
 type DefinitionsAreaState = {
     value: string;
@@ -58,9 +67,17 @@ class DefinitionsArea extends React.Component<DefinitionsAreaProps, DefinitionsA
     constructor(props: DefinitionsAreaProps) {
         super(props);
 
-        if (!fs.existsSync(programCacheFile)) {
-            fs.writeFileSync(programCacheFile, "provide *");
-        }
+        fs.writeFileSync(programCacheFile, `provide *
+provide-types *
+
+import global as G
+
+x :: Number = 2 + 3
+y :: Number = 4 + 5`)
+
+        //if (!fs.existsSync(programCacheFile)) {
+        //    fs.writeFileSync(programCacheFile, "provide *");
+        //}
 
         this.state = {
             value: fs.readFileSync(programCacheFile)
@@ -100,15 +117,25 @@ function isRunSuccess(x: any): x is RunSuccess {
 }
 
 type AppProps = {};
+type AppStateInteractions = {name: string, value:any}[];
 type AppState = {
-    interactions: string;
+    interactions: AppStateInteractions;
 };
+
+function makeResult(result: any): {name: string, value: any}[] {
+    return Object.keys(result).map((key) => {
+        return {
+            name: key,
+            value: result[key]
+        }
+    });
+}
 
 class App extends React.Component<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
-            interactions: ""
+            interactions: []
         };
     };
 
@@ -120,10 +147,12 @@ class App extends React.Component<AppProps, AppState> {
                     pyretRun(
                         compileResult,
                         (runResult) => {
-                            if (isRunSuccess(runResult)) {
+                            //if (isRunSuccess(runResult)) {
+                            if (isRunSuccess(mockRunResult)) {
                                 this.setState(
                                     {
-                                        interactions: runResult.answer.stringContents
+                                        //interactions: runResult.answer.stringContents
+                                        interactions: makeResult(mockRunResult.answer)
                                     }
                                 );
                             } else {
@@ -151,12 +180,19 @@ class App extends React.Component<AppProps, AppState> {
                         <div id="definitions-container">
                             <DefinitionsArea />
                         </div>
-                        <div id="separator" >
+                        <div id="separator">
                         </div>
                         <div id="interactions-container">
                             <pre id="interactions-area"
                                  className="code">
-                                {this.state.interactions}
+                                {
+                                    this.state.interactions.map(
+                                        (interaction) => {
+                                            return <div key={interaction.name}>
+                                                {interaction.name} = {JSON.stringify(interaction.value)}
+                                            </div>;
+                                        })
+                                }
                             </pre>
                         </div>
                     </div>
