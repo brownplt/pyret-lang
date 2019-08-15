@@ -2056,6 +2056,13 @@ fun compile-type-member(name, typ):
   j-field(name, compile-provided-type(typ))
 end
 
+fun compile-visibility(v):
+  cases(T.DataVisibility) v:
+    | d-all => j-str("all")
+    | d-opaque => j-str("opaque")
+  end
+end
+
 fun compile-provided-data(de :: CS.DataExport):
   cases(CS.DataExport) de: 
     | d-alias(origin, name) =>
@@ -2065,11 +2072,12 @@ fun compile-provided-data(de :: CS.DataExport):
           j-str(name)])
     | d-type(origin, typ) =>
       cases(T.DataType) typ:
-        | t-data(name, params, variants, members, l) =>
+        | t-data(name, visibility, params, variants, members, l) =>
           j-list(false,
             [clist: j-str("data"),
               compile-origin(origin),
               j-str(name),
+              compile-visibility(visibility),
               j-list(false, for CL.map_list(p from params):
                   j-str(p.id.key())
                 end),

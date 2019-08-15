@@ -25,7 +25,7 @@ t-var = T.t-var(_, A.dummy-loc, false)
 t-array = T.t-array(_, A.dummy-loc)
 t-string = T.t-string(A.dummy-loc)
 t-option = T.t-option(_, A.dummy-loc)
-t-data = T.t-data(_, _, _, _, A.dummy-loc)
+t-data = T.t-data(_, _, _, _, _, A.dummy-loc)
 t-variant = T.t-variant(_, _, _, A.dummy-loc)
 t-singleton-variant = T.t-singleton-variant(_, _, A.dummy-loc)
 t-app = T.t-app(_, _, A.dummy-loc, false)
@@ -480,6 +480,12 @@ fun tvariant-from-raw(uri, tvariant, env):
   end
 end
 
+fun visibility(v):
+  if v == "all": T.d-all
+  else: T.d-opaque
+  end
+end
+
 fun datatype-from-raw(uri, datatyp):
   l = SL.builtin(uri)
 
@@ -499,7 +505,7 @@ fun datatype-from-raw(uri, datatyp):
       members.set(tm.name, type-from-raw(uri, tm.value, pdict))
     end, [string-dict: ])
     origin = origin-from-raw(uri, datatyp.origin, datatyp.name)
-    d-type(origin, t-data(datatyp.name, params, variants, members))
+    d-type(origin, t-data(datatyp.name, visibility(datatyp.visibility), params, variants, members))
   else:
     raise("Unknown format for data export in " + uri + ": " + to-repr(datatyp))
   end

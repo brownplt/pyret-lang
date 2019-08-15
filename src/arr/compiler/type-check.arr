@@ -1036,7 +1036,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
         end, bindings, context).bind(lam(new-bindings, shadow context):
           map-fold-result(collect-variant, variants, context).bind(lam(shadow initial-variant-types, shadow context):
             collect-members(fields, true, context).bind(lam(initial-shared-field-types, shadow context):
-              initial-data-type = t-data(name, t-vars, initial-variant-types, initial-shared-field-types, l)
+              initial-data-type = t-data(name, TS.d-all, t-vars, initial-variant-types, initial-shared-field-types, l)
               shadow context = context.set-data-types(context.data-types.set(namet.key(), initial-data-type))
               shadow context = merge-common-fields(initial-variant-types, l, context)
               map-fold-result(lam(variant, shadow context):
@@ -1059,7 +1059,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                 extended-shared-field-types = variants-meet.fold-keys(lam(key, extended-shared-field-types):
                   extended-shared-field-types.set(key, variants-meet.get-value(key))
                 end, initial-shared-field-types)
-                shared-data-type = t-data(name, t-vars, new-variant-types, extended-shared-field-types, l)
+                shared-data-type = t-data(name, TS.d-all, t-vars, new-variant-types, extended-shared-field-types, l)
                 shadow context = context.set-data-types(context.data-types.set(namet.key(), shared-data-type))
                 foldr-fold-result(lam(field, shadow context, new-shared-field-types):
                   check-shared-field(field, initial-shared-field-types, applied-brander-type, context).bind(lam(field-type, shadow context):
@@ -1069,7 +1069,7 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
                   final-shared-field-types = variants-meet.fold-keys(lam(key, final-shared-field-types):
                     final-shared-field-types.set(key, variants-meet.get-value(key))
                   end, new-shared-field-types)
-                  final-data-type = t-data(name, t-vars, new-variant-types, final-shared-field-types, l)
+                  final-data-type = t-data(name, TS.d-all, t-vars, new-variant-types, final-shared-field-types, l)
                   context.solve-level().bind(lam(solution, shadow context):
                     solved-data-type = solution.apply-data-type(final-data-type)
                     shadow context = context.set-data-types(context.data-types.set(namet.key(), solved-data-type))
