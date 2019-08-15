@@ -28,6 +28,9 @@ const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
 
+const NO_RUNS = "none";
+var runChoice = NO_RUNS;
+
 const myProgram = "program.arr";
 const baseDir = "/projects";
 const builtinJSDir = "/prewritten/";
@@ -85,8 +88,6 @@ loadBuiltinsButton.onclick = function() {
 
 loadBuiltins();
 
-var runChoice = 'none';
-
 function compileHelper() {
   fs.writeFileSync("./projects/program.arr", input.value);
   var typeCheck = typeCheckBox.checked;
@@ -104,15 +105,46 @@ compile.onclick = compileHelper;
 
 compileRun.onclick = function() {
   compileHelper();
-  runChoice = 'sync';
+  runChoice = 'SYNC';
 };
 
 compileRunStopify.onclick = function() {
   compileHelper();
-  runChoice = 'async';
+  runChoice = 'ASYNC';
 };
 
-worker.onmessage = function(e) {
+function echoLog(contents) {
+  consoleSetup.workerLog(contents);
+}
+
+function echoErr(contents) {
+  consoleSetup.workerError(contents);
+}
+
+function compileFailure() {
+  consoleSetup.workerError("Compilation failure");
+}
+
+function compileSuccess() {
+  console.log("Compilation succeeded!");
+
+  if (runChoice !== NO_RUNS) {
+    console.log("Running...");
+    backend.runProgram("/compiled/project", "program.arr.js", runChoice)
+      .catch(function(error) {
+        console.error("Run failed with: ", error);
+      })
+      .then((result) => {
+        console.log("Run complete with: ", result.result);
+        console.log("Run complete in: ", result.time);
+      });
+    runChoice = NO_RUNS;
+  }
+}
+const backendMessageHandler = 
+  backend.makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess);
+
+worker.onmessage = function(e) { 
 
   // Handle BrowserFS messages
   if (e.data.browserfsMessage === true && showBFS.checked === false) {
@@ -141,43 +173,9 @@ worker.onmessage = function(e) {
         consoleSetup.workerLog(msgObject.data);
       }
     } else {
-      var msgType = msgObject["type"];
-      if (msgType == "echo-log") {
-        consoleSetup.workerLog(msgObject.contents);
-      } else if (msgType == "echo-err") {
-        consoleSetup.workerError(msgObject.contents);
-      } else if (msgType == "compile-failure") {
-        consoleSetup.workerError("Compilation failure");
-      } else if (msgType == "compile-success") {
-        console.log("Compilation succeeded!");
-        const start = window.performance.now();
-        function printTimes() {
-          const end = window.performance.now();
-          console.log("Running took: ", end - start);
-        }
-        if (runChoice === 'sync') {
-          runChoice = 'none';
-          console.log("Running...");
-          try {
-            const start = window.performance.now();
-            const result = runner.makeRequire("/compiled/project")("program.arr.js");
-            const end = window.performance.now();
-            console.log("Run complete with: ", result);
-            printTimes();
-          } catch (err) {
-            consoleSetup.workerError(err);
-          }
-        } else if (runChoice === 'async') {
-          runChoice = 'none';
-          const entry = runner.makeRequireAsync("/compiled/project");
-          const resultP = entry("program.arr.js");
-          resultP.catch((e) => { console.log("Run failed with: ", e); printTimes(); });
-          resultP.then((r) => { console.log("Run complete with: " , r); printTimes(); });
-        }
-      } else {
-        consoleSetup.workerLog(e.data);
+      if (backendMessageHandler(e) === null) {
+        consoleSetup.workerLog("FALLEN THROUGH:", e.data);
       }
-
     }
   } catch(error) {
     consoleSetup.workerLog("Error occurred: ", error, e.data);
