@@ -28,6 +28,9 @@ const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
 FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
 
+const NO_RUNS = "none";
+var runChoice = NO_RUNS;
+
 const myProgram = "program.arr";
 const baseDir = "/projects";
 const builtinJSDir = "/prewritten/";
@@ -84,8 +87,6 @@ loadBuiltinsButton.onclick = function() {
 }
 
 loadBuiltins();
-
-var runChoice = 'none';
 
 function compileHelper() {
   fs.writeFileSync("./projects/program.arr", input.value);
@@ -150,15 +151,18 @@ worker.onmessage = function(e) {
         consoleSetup.workerError("Compilation failure");
       } else if (msgType == "compile-success") {
         console.log("Compilation succeeded!");
-        console.log("Running...");
-        backend.runProgram("/compiled/project", "program.arr.js", runChoice)
-          .catch(function(error) {
-            console.error("Run failed with: ", error);
-          })
-          .then((result) => {
-            console.log("Run complete with: ", result.result);
-            console.log("Run complete in: ", result.time);
-          });
+
+        if (runChoice !== NO_RUNS) {
+          console.log("Running...");
+          backend.runProgram("/compiled/project", "program.arr.js", runChoice)
+            .catch(function(error) {
+              console.error("Run failed with: ", error);
+            })
+            .then((result) => {
+              console.log("Run complete with: ", result.result);
+              console.log("Run complete in: ", result.time);
+            });
+        }
       } else {
         consoleSetup.workerLog(e.data);
       }
