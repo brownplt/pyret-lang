@@ -54,7 +54,9 @@ const mockRunOutput = {
     "b": 5,
     "c": true,
     "d": false,
-    "e": "Ahoy, world!"
+    "e": "Ahoy, world!",
+    "f": ((x: any) => x),
+    "g": {"Ahoy": "World!"}
 };
 
 const mockRunResult: RunResult = {
@@ -79,7 +81,10 @@ a = 2 + 3
 b = 4 + 5
 c = true
 d = false
-e = "Ahoy, world!"`);
+e = "Ahoy, world!"
+f = lam(x): x end,
+g = {Ahoy: "World!"}
+`);
 
         //if (!fs.existsSync(programCacheFile)) {
         //    fs.writeFileSync(programCacheFile, "provide *");
@@ -160,6 +165,12 @@ class Interaction extends React.Component<InteractionProps, InteractionState> {
             return this.format(name, `"${value}"`);
         } else if (typeof value === 'boolean') {
             return this.format(name, value.toString());
+        } else if (typeof value === 'function') {
+            // TODO(michael) can we display more info than just <function> ?
+            return this.format(name, "<function>");
+        } else if (typeof value === 'object') {
+            // TODO(michael) palceholder for better object display
+            return this.format(name, JSON.stringify(value));
         }
     };
 
