@@ -7,12 +7,12 @@ const $UnknownTag = 2;
 
 type UndefBool = undefined | boolean
 
-interface Equal { 
+export interface Equal { 
   $brand: any,
   $tag: number,
 }
 
-interface NotEqual {
+export interface NotEqual {
   $brand: any,
   $tag: number,
   reason: string,
@@ -196,7 +196,7 @@ function equalAlways3(e1: any, e2: any) {
   return EqualityResult.Equal;
 }
 
-function traceValue(loc, value) {
+export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
   return value;
 }
