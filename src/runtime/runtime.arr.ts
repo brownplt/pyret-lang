@@ -1,3 +1,11 @@
+/*
+ * 'export named-js-value' desugars into 'exports.name = js-value'
+ * 'exports' is set to 'module.exports'
+ *
+ * https://stackoverflow.com/questions/16383795/difference-between-module-exports-and-exports-in-the-commonjs-module-system
+ *
+ */
+
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
 const $UnknownBrand = {"names":["reason","value1","value2"]};
