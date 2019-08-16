@@ -18,52 +18,6 @@ type CompileSuccess = {
 };
 type CompileFailure = string;
 
-function pyretCompile(path: string, callback: (result: CompileResult) => void): void {
-
-    worker.postMessage({
-        _parley: true,
-        options: {
-            "program": 'program-cache.arr',
-            "base-dir": '/',
-            "builtin-js-dir": '/prewritten/',
-            "checks": "none",
-            'type-check': true,
-        }
-    });
-
-    callback({path: path});
-}
-
-worker.onmessage = (e) => {
-    console.log(e);
-
-    if (e.data.browserfsMessage === true) {
-        return null;
-    }
-
-    try {
-        var msgObject = JSON.parse(e.data);
-
-        var msgType = msgObject["type"];
-        if (msgType === undefined) {
-            return null;
-        } else if (msgType === "echo-log") {
-            console.log(msgObject.contents);
-        } else if (msgType === "echo-err") {
-            console.log(msgObject.contents);
-        } else if (msgType === "compile-failure") {
-            console.log();
-        } else if (msgType === "compile-success") {
-            pyretRun({path: programCacheFile}, (e) => console.log(e));
-        } else {
-            return null;
-        }
-
-    } catch(e) {
-        return null;
-    }
-}
-
 type RunResult = RunSuccess | RunFailure;
 
 type RunSuccess = {
@@ -107,14 +61,6 @@ export function runProgram(baseDir: string, program: string, runKind: RunKind): 
 
         return wrapper();
     }
-}
-
-function pyretRun(compileSuccess: CompileSuccess,
-                  callback: (result: any) => void): void
-{
-    runProgram("/compiled/project", 'program-cache.arr.js', RunKind.Sync)
-        .catch(callback)
-        .then(callback);
 }
 
 function isCompileSuccess(x: any): x is CompileSuccess {
@@ -195,6 +141,7 @@ type EditorProps = {
     fs: any;
     openFilePath: string;
     contents: string;
+    worker: Worker;
 };
 
 type EditorState = {
@@ -231,6 +178,44 @@ class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
 
+        this.props.worker.onmessage = (e) => {
+            if (e.data.browserfsMessage === true) {
+                return null;
+            }
+
+            try {
+                var msgObject = JSON.parse(e.data);
+
+                var msgType = msgObject["type"];
+                if (msgType === undefined) {
+                    return null;
+                } else if (msgType === "echo-log") {
+                    console.log(msgObject.contents);
+                } else if (msgType === "echo-err") {
+                    console.log(msgObject.contents);
+                } else if (msgType === "compile-failure") {
+                    console.log();
+                } else if (msgType === "compile-success") {
+                    this.pyretRun((runResult) => {
+                                      if (isRunSuccess(runResult)) {
+                                          this.setState(
+                                              {
+                                                  interactions: makeResult(runResult.result)
+                                              }
+                                          );
+                                      } else {
+                                          // there was an issue at run time
+                                      }
+                                  });
+                } else {
+                    return null;
+                }
+
+            } catch(e) {
+                return null;
+            }
+        }
+
         this.state = {
             fsBrowserVisible: false,
             interactions: [{
@@ -243,33 +228,29 @@ class Editor extends React.Component<EditorProps, EditorState> {
         };
     };
 
+    pyretRun = (callback: (result: any) => void): void => {
+        runProgram("/compiled/project", 'program-cache.arr.js', RunKind.Sync)
+            .catch(callback)
+            .then(callback);
+    }
+
     static isPyretFile(path: string) {
         return /\.arr$/.test(path);
     }
 
     run = () => {
         if (Editor.isPyretFile(this.state.openFilePath)) {
-            pyretCompile(
-                this.state.openFilePath,
-                (compileResult) => {
-                    if (isCompileSuccess(compileResult)) {
-                        pyretRun(
-                            compileResult,
-                            (runResult) => {
-                                if (isRunSuccess(runResult)) {
-                                    this.setState(
-                                        {
-                                            interactions: makeResult(runResult.result)
-                                        }
-                                    );
-                                } else {
-                                    // there was an issue at run time
-                                }
-                            })
-                    } else {
-                        // there was an issue at compile time.
-                    }
-                });
+
+            worker.postMessage({
+                _parley: true,
+                options: {
+                    "program": this.state.openFilePath,
+                    "base-dir": this.currentDirectory,
+                    "builtin-js-dir": '/prewritten/',
+                    "checks": "none",
+                    'type-check': true,
+                }
+            });
         } else {
             this.setState({
                 interactions: [
@@ -468,7 +449,8 @@ class App extends React.Component<AppProps, AppState> {
         return (
             <Editor fs={BrowserFS.fs}
                     openFilePath={programCacheFile}
-                    contents={this.state.editorContents} />
+                    contents={this.state.editorContents}
+                    worker={worker}/>
         );
     };
 }
