@@ -54,13 +54,13 @@ type RunFailure = string;
 
 function pyretRun(compileSuccess: CompileSuccess,
                   callback: (result: RunResult) => void): void {
-    const contents = fs.readFileSync(programCacheFile, {encoding: 'utf-8'});
+                      const contents = fs.readFileSync(programCacheFile, {encoding: 'utf-8'});
 
-    // We don't have the infrastructure in place to compile or run Pyret programs at the
-    // moment, so just echo back the contents of the file as a placeholder.
+                      // We don't have the infrastructure in place to compile or run Pyret programs at the
+                      // moment, so just echo back the contents of the file as a placeholder.
 
-    callback({answer: {stringContents: contents}});
-}
+                      callback({answer: {stringContents: contents}});
+                  }
 
 const mockRunOutput = {
     "a": 9,
@@ -161,6 +161,7 @@ type EditorState = {
     openFilePath: string;
     contents: string;
     interactions: {name: string, value: any}[];
+    fsBrowserVisible: boolean;
 };
 
 type FSItemProps = {
@@ -190,6 +191,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         this.state = {
+            fsBrowserVisible: false,
             interactions: [],
             path: [],
             openFilePath: this.props.openFilePath,
@@ -312,52 +314,77 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
+
+    toggleFSBrowser = () => {
+        this.setState({
+            fsBrowserVisible: !this.state.fsBrowserVisible
+        });
+    };
+
     render() {
         return (
-            <div id="edit-box">
-                <button id="run"
-                        className="prose"
-                        onClick={this.run}>
-                    Run
-                </button>
-                <ul id="fs-browser">
-                    {(this.state.path.length !== 0) ? (
-                        <li onClick={() => {
-                            this.traverseUp();
-                        }}
-                            className="fs-browser-item">
-                            ..
-                        </li>
-                    ) : (
-                        null
-                    )}
-                    {
-                        this.props.fs
-                            .readdirSync(this.currentDirectory)
-                            .map(this.createFSItemPair)
-                            .sort(this.compareFSItemPair)
-                            .map((x: [string, FSItem]) => x[1])
-                    }
-                </ul>
-                <div id="definitions-container">
-                    <textarea className="editor"
-                              value={this.state.contents}
-                              onChange={this.autosave}>
-                    </textarea>
+            <div id="outer-box">
+                <div id="header">
+                    <button id="run"
+                            className="prose"
+                            onClick={this.run}>
+                        Run
+                    </button>
+                    <button id="open-fs"
+                            className="prose"
+                            onClick={this.toggleFSBrowser}>
+                        File System
+                    </button>
                 </div>
-                <div id="separator">
-                </div>
-                <div id="interactions-container">
-                    <pre id="interactions-area"
-                         className="code">
+                <div id="main">
+                    <div id="edit-box">
                         {
-                            this.state.interactions.map(
-                                (i) => {
-                                    return <Interaction key={i.name} name={i.name} value={i.value} />
-                                })
+                            (this.state.fsBrowserVisible ? (
+                                <ul id="fs-browser">
+                                    {(this.state.path.length !== 0) ? (
+                                        <li onClick={() => {
+                                            this.traverseUp();
+                                        }}
+                                            className="fs-browser-item">
+                                            ..
+                                        </li>
+                                    ) : (
+                                        null
+                                    )}
+                                    {
+                                        this.props.fs
+                                            .readdirSync(this.currentDirectory)
+                                            .map(this.createFSItemPair)
+                                            .sort(this.compareFSItemPair)
+                                            .map((x: [string, FSItem]) => x[1])
+                                    }
+                                </ul>
+                            ) : (
+                                null
+                            ))
                         }
-                    </pre>
+                        <div id="definitions-container">
+                            <textarea className="editor"
+                                      value={this.state.contents}
+                                      onChange={this.autosave}>
+                            </textarea>
+                        </div>
+                        <div id="separator">
+                        </div>
+                        <div id="interactions-container">
+                            <pre id="interactions-area"
+                                 className="code">
+                                {
+                                    this.state.interactions.map(
+                                        (i) => {
+                                            return <Interaction key={i.name} name={i.name} value={i.value} />
+                                        })
+                                }
+                            </pre>
+                        </div>
+                    </div>
                 </div>
+                <div id="footer"></div>
             </div>
         );
     }
@@ -373,12 +400,6 @@ class App extends React.Component<AppProps, AppState> {
         };
     };
 
-    toggleEditor = () => {
-        this.setState({
-            fsBrowserVisible: !this.state.fsBrowserVisible
-        });
-    };
-
     static openOrCreateFile(fs: any, path: string): string {
         if (fs.existsSync(path)) {
             return fs.readFileSync(path);
@@ -390,21 +411,9 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <div id="outer-box">
-                <div id="header">
-                    <button id="open-fs"
-                            className="prose"
-                            onClick={this.toggleEditor}>
-                        File System
-                    </button>
-                </div>
-                <div id="main">
-                    <Editor fs={fs}
-                            openFilePath={programCacheFile}
-                            contents={this.state.editorContents} />
-                </div>
-                <div id="footer"> </div>
-            </div>
+            <Editor fs={fs}
+                    openFilePath={programCacheFile}
+                    contents={this.state.editorContents} />
         );
     };
 }
