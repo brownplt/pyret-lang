@@ -79,6 +79,7 @@ const mockRunResult: RunResult = {
 type EditorProps = {
     fs: any;
     path: string;
+    contents: string;
 };
 
 type EditorState = {
@@ -90,23 +91,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         this.state = {
-            contents: this.openOrCreate()
-        }
-    };
-
-    openOrCreate = () => {
-        if (this.props.fs.existsSync(this.props.path)) {
-            return this.props.fs.readFileSync(this.props.path);
-        } else {
-            this.props.fs.writeFileSync(this.props.path, "");
-            return "";
-        }
-    };
+            contents: this.props.contents
+        };
+    }
 
     autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.setState({contents: e.target.value});
         this.props.fs.writeFileSync(this.props.path, e.target.value);
-    };
+    }
 
     render() {
         return (
@@ -115,7 +107,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                       onChange={this.autosave}>
             </textarea>
         );
-    };
+    }
 }
 
 function isCompileSuccess(x: any): x is CompileSuccess {
@@ -139,6 +131,7 @@ type AppStateInteractions = {name: string, value:any}[];
 type AppState = {
     fsBrowserVisible: boolean;
     interactions: AppStateInteractions;
+    editorContents: string;
 };
 
 function makeResult(result: any): {name: string, value: any}[] {
@@ -193,11 +186,14 @@ class Interaction extends React.Component<InteractionProps, InteractionState> {
 
 type FSBrowserProps = {
     fs: any;
-    onOpenFile: (path: string) => void;
+    openFilePath: string;
+    contents: string;
 };
 
 type FSBrowserState = {
     path: string[];
+    openFilePath: string;
+    contents: string;
 };
 
 class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
@@ -206,8 +202,15 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
         this.state = {
             path: [],
+            openFilePath: this.props.openFilePath,
+            contents: this.props.contents
         };
     };
+
+    autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        this.setState({contents: e.target.value});
+        this.props.fs.writeFileSync(this.state.openFilePath, e.target.value);
+    }
 
     traverseDown(childDirectory: string) {
         const newPath = this.state.path.slice();
@@ -251,37 +254,49 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         if (stats.isDirectory()) {
             this.traverseDown(child);
         } else if (stats.isFile()) {
-            this.props.onOpenFile(this.fullPathTo(child));
+            this.setState({
+                contents: this.props.fs.readFileSync(this.fullPathTo(child))
+            });
         }
     }
 
     render() {
         return (
-            <ul id="fs-browser">
-                {(this.state.path.length !== 0) ? (
-                    <li onClick={() => {
-                        this.traverseUp();
-                    }}
-                        className="fs-browser-item">
-                        ..
-                    </li>
-                ) : (
-                    null
-                )}
-                {
-                    this.props.fs
-                        .readdirSync(this.currentDirectory)
-                        .map((child: string) => {
-                            return (
-                                <li key={child}
-                                    onClick={() => this.expandChild(child)}
-                                    className="fs-browser-item">
-                                    {child}
-                                </li>
-                            );
-                        })
-                }
-            </ul>
+            <div id="edit-box">
+                <ul id="fs-browser">
+                    {(this.state.path.length !== 0) ? (
+                        <li onClick={() => {
+                            this.traverseUp();
+                        }}
+                            className="fs-browser-item">
+                            ..
+                        </li>
+                    ) : (
+                        null
+                    )}
+                    {
+                        this.props.fs
+                            .readdirSync(this.currentDirectory)
+                            .map((child: string) => {
+                                return (
+                                    <li key={child}
+                                        onClick={() => this.expandChild(child)}
+                                        className="fs-browser-item">
+                                        {child}
+                                    </li>
+                                );
+                            })
+                    }
+                </ul>
+                <div id="definitions-container">
+                    <textarea className="editor"
+                              value={this.state.contents}
+                              onChange={this.autosave}>
+                    </textarea>
+                </div>
+                <div id="separator">
+                </div>
+            </div>
         );
     }
 }
@@ -291,7 +306,8 @@ class App extends React.Component<AppProps, AppState> {
         super(props);
         this.state = {
             fsBrowserVisible: false,
-            interactions: []
+            interactions: [],
+            editorContents: App.openOrCreateFile(fs, programCacheFile)
         };
     };
 
@@ -300,6 +316,15 @@ class App extends React.Component<AppProps, AppState> {
             fsBrowserVisible: !this.state.fsBrowserVisible
         });
     };
+
+    static openOrCreateFile(fs: any, path: string): string {
+        if (fs.existsSync(path)) {
+            return fs.readFileSync(path);
+        } else {
+            fs.writeFileSync(path, "");
+            return "";
+        }
+    }
 
     run = () => {
         pyretCompile(
@@ -343,30 +368,21 @@ class App extends React.Component<AppProps, AppState> {
                     </button>
                 </div>
                 <div id="main">
-                    <div id="edit-box">
-                        {this.state.fsBrowserVisible ? (
-                            <FSBrowser fs={fs}
-                                       onOpenFile={(f) => console.log(f)} />
-                        ) : (
-                            null
-                        )}
-                        <div id="definitions-container">
-                            <Editor path={programCacheFile}
-                                    fs={fs} />
-                        </div>
-                        <div id="separator">
-                        </div>
-                        <div id="interactions-container">
-                            <pre id="interactions-area"
-                                 className="code">
-                                {
-                                    this.state.interactions.map(
-                                        (i) => {
-                                            return <Interaction key={i.name} name={i.name} value={i.value} />
-                                        })
-                                }
-                            </pre>
-                        </div>
+                    <FSBrowser fs={fs}
+                               openFilePath={programCacheFile}
+                               contents={this.state.editorContents} />
+                    <div id="separator">
+                    </div>
+                    <div id="interactions-container">
+                        <pre id="interactions-area"
+                             className="code">
+                            {
+                                this.state.interactions.map(
+                                    (i) => {
+                                        return <Interaction key={i.name} name={i.name} value={i.value} />
+                                    })
+                            }
+                        </pre>
                     </div>
                 </div>
                 <div id="footer"> </div>
