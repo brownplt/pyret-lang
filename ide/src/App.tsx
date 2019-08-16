@@ -76,49 +76,43 @@ const mockRunResult: RunResult = {
     answer: mockRunOutput
 };
 
-type DefinitionsAreaProps = {};
-type DefinitionsAreaState = {
-    value: string;
+type EditorProps = {
+    fs: any;
+    path: string;
 };
 
-class DefinitionsArea extends React.Component<DefinitionsAreaProps, DefinitionsAreaState> {
-    constructor(props: DefinitionsAreaProps) {
+type EditorState = {
+    contents: string;
+};
+
+class Editor extends React.Component<EditorProps, EditorState> {
+    constructor(props: EditorProps) {
         super(props);
 
-        fs.writeFileSync(programCacheFile, `provide *
-provide-types *
-
-import global as G
-
-a = 2 + 3
-b = 4 + 5
-c = true
-d = false
-e = "Ahoy, world!"
-f = lam(x): x end,
-g = {Ahoy: "World!"}
-`);
-
-        //if (!fs.existsSync(programCacheFile)) {
-        //    fs.writeFileSync(programCacheFile, "provide *");
-        //}
-
         this.state = {
-            value: fs.readFileSync(programCacheFile)
-        };
+            contents: this.openOrCreate()
+        }
     };
 
-    saveDefinitions = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this.setState({value: e.target.value});
-        fs.writeFileSync(programCacheFile, e.target.value);
+    openOrCreate = () => {
+        if (this.props.fs.existsSync(this.props.path)) {
+            return this.props.fs.readFileSync(this.props.path);
+        } else {
+            this.props.fs.writeFileSync(this.props.path, "");
+            return "";
+        }
+    };
+
+    autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        this.setState({contents: e.target.value});
+        this.props.fs.writeFileSync(this.props.path, e.target.value);
     };
 
     render() {
         return (
-            <textarea id="definitions-area"
-                      value={this.state.value}
-                      className="code"
-                      onChange={this.saveDefinitions}>
+            <textarea className="editor"
+                      value={this.state.contents}
+                      onChange={this.autosave}>
             </textarea>
         );
     };
@@ -326,7 +320,7 @@ class App extends React.Component<AppProps, AppState> {
                             null
                         )}
                         <div id="definitions-container">
-                            <DefinitionsArea />
+                            <Editor path={programCacheFile} fs={fs} />
                         </div>
                         <div id="separator">
                         </div>
