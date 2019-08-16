@@ -200,7 +200,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.props.fs.writeFileSync(this.state.openFilePath, e.target.value);
     }
 
-    traverseDown(childDirectory: string) {
+    traverseDown = (childDirectory: string) => {
         const newPath = this.state.path.slice();
         newPath.push(childDirectory);
 
@@ -209,7 +209,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     }
 
-    traverseUp() {
+    traverseUp = () => {
         const newPath = this.state.path.slice();
         newPath.pop();
 
@@ -232,11 +232,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
-    fullPathTo(file: string) {
+    fullPathTo = (file: string) => {
         return `${this.currentDirectory}${file}`;
     }
 
-    expandChild(child: string) {
+    expandChild = (child: string) => {
         const stats = this.props.fs.statSync(this.fullPathTo(child));
 
         if (stats.isDirectory()) {
@@ -286,7 +286,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         this.props.fs
                             .readdirSync(this.currentDirectory)
                             .map(this.createFSItemPair)
-                            .sort(this.compareFSItemPair).map((x: [string, FSItem]) => x[1])
+                            .sort(this.compareFSItemPair)
+                            .map((x: [string, FSItem]) => x[1])
                     }
                 </ul>
                 <div id="definitions-container">
