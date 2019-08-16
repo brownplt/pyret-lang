@@ -104,13 +104,20 @@ function isMethod(obj: any): boolean { return typeof obj === "function"; }
 function isNothing(obj: any): boolean { return obj === undefined };
 
 // TODO(alex): Identify opaque types
-function isOpaque(val: any) { return false; }
+function isOpaque(val: any): boolean { return false; }
 
 // TODO(alex): Handle Pyret numbers
-function isNumber(val: any) {
-   return typeof val === "number";
+function isNumber(val: any): boolean {
+  return typeof val === "number";
 }
 
+function isBoolean(val: any): boolean {
+  return typeof val === "boolean";
+}
+
+function isBrandedObject(val: any): boolean {
+  return (typeof val === "object") && ("$brand" in val);
+}
 
 function identical3(v1: any, v2: any): TypeEqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
@@ -133,27 +140,60 @@ function identical(v1: any, v2: any): boolean {
   return equalityResultToBool(ans);
 }
 
-function py_equal(e1, e2) {
-  if(e1 === e2) { return true; }
-  var worklist = [[e1,e2]];
-  while(worklist.length > 0) {
-    var curr = worklist.pop();
-    var v1 = curr[0];
-    var v2 = curr[1];
-    if(v1 === v2) { continue; }
-    if(v1.$brand && v1.$brand === v2.$brand) {
-      var fields1 = v1.$brand.names;
-      var fields2 = v2.$brand.names;
-      if(fields1.length !== fields2.length) { return false; }
-      for(var i = 0; i < fields1.length; i += 1) {
-        if(fields1[i] != fields2[i]) { return false; }
-        worklist.push([v1[fields1[i]], v2[fields2[i]]]);
-      }
-      continue;
-    }
-    return false;
+function equalAlways3(e1: any, e2: any) {
+  if (EqualityResult["is-Equal"](identical3(e1, e2))) {
+    // Identical so must always be equal
+    return EqualityResult.Equal;
   }
-  return true;
+
+  var worklist = [[e1, e2]];
+  while (worklist.length > 0) {
+    var curr = worklist.pop();
+    var v1: any = curr[0];
+    var v2: any = curr[1];
+
+    if (EqualityResult["is-Equal"](identical3(e1, e2))) {
+      // Identical so must always be equal
+      continue; 
+    }
+
+    if (isNumber(v1) && isNumber(v2)) {
+      // TODO(alex): Assuming JS numbers. Create helper that abstracts over either
+      if (v1 !== v2) { return EqualityResult.NotEqual; }
+      continue;
+
+    } else if (isBoolean(v1) && isBoolean(v2)) {
+      if (v1 !== v2) { return EqualityResult.NotEqual; }
+
+    } else if (isFunction(v1) && isFunction(v2)) {
+      // Cannot compare functions for equality
+      return EqualityResult.Unknown("Functions", v1, v2);
+
+    } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
+      // TODO(alex): Check for _equal method
+      if(v1.$brand && v1.$brand === v2.$brand) {
+        var fields1 = v1.$brand.names;
+        var fields2 = v2.$brand.names;
+
+        if(fields1.length !== fields2.length) { 
+          // Not the same brand
+          return EqualityResult.NotEqual;
+        }
+        for(var i = 0; i < fields1.length; i += 1) {
+          if(fields1[i] != fields2[i]) { 
+            // Not the same brand
+            return EqualityResult.NotEqual;
+          }
+          worklist.push([v1[fields1[i]], v2[fields2[i]]]);
+        }
+        continue;
+      }
+    } else {
+      return EqualityResult.NotEqual("", e1, e2);
+    }
+  }
+
+  return EqualityResult.Equal;
 }
 
 function traceValue(loc, value) {
@@ -162,7 +202,8 @@ function traceValue(loc, value) {
 }
 
 module.exports = {
-  py_equal: py_equal,
+  equalAlways3: equalAlways3,
+  // py_equal: py_equal,
   "trace-value": traceValue,
   "Equal": EqualityResult["Equal"],
   "NotEqual": EqualityResult["NotEqual"],
