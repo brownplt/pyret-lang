@@ -96,6 +96,22 @@ function identical3(v1: any, v2: any): TypeEqualityResult {
   }
 }
 
+function identical(v1: any, v2: any): boolean {
+  let ans: TypeEqualityResult = identical3(v1, v2);
+  if (EqualityResult["is-Equal"](ans)) { 
+    return true; 
+  } else if (EqualityResult["is-NotEqual"](ans)) { 
+    return false; 
+  } else if (EqualityResult["is-Unknown"](ans)) {
+    let unknownVariant = ans as Unknown;
+    throw {
+      reason: unknownVariant.reason,
+      value1: unknownVariant.value1,
+      value2: unknownVariant.value2,
+    };
+  }
+}
+
 function py_equal(e1, e2) {
   if(e1 === e2) { return true; }
   var worklist = [[e1,e2]];
