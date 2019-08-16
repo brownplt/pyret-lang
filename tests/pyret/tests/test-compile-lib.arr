@@ -357,7 +357,6 @@ check "raw-provide-syntax":
           tag: "data",
           origin: {provided: false},
           name: "Ither",
-          visibility: "all",
           params: [list: "a", "b"],
           variants: [list:
             {
@@ -465,7 +464,7 @@ check:
           # MARK(joe/ben): modules
           CM.provides("builtin://global", mt, mt, mt,
             [SD.string-dict:
-              "Number", T.t-data("Number", T.all, empty, empty, SD.make-string-dict(), A.dummy-loc)]),
+              "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)]),
           CM.no-builtins,
           CM.computed-none,
           CM.ok("dummy")

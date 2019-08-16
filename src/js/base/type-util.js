@@ -86,7 +86,6 @@ define("pyret-base/js/type-util", [], function() {
     return {
       tag: "data",
       origin: origin,
-      visibility: "all",
       name: name,
       params: params,
       variants: variants,
@@ -200,7 +199,6 @@ define("pyret-base/js/type-util", [], function() {
           tag: "data",
           origin: origin,
           name: typ.name,
-          visibility: typ.visibility || "all",
           params: L(typ.params),
           variants: L(typ.variants.map(tp)),
           methods: L(methods)
@@ -428,15 +426,14 @@ define("pyret-base/js/type-util", [], function() {
             elts: typ[1].map(function(t) { return expandType(t, shorthands); })
           };
         }
-        else if(head === "data" && typ.length === 7 && iA(typ[4]) && iA(typ[5]) && iO(typ[6])) {
+        else if(head === "data" && typ.length === 6 && iA(typ[3]) && iA(typ[4]) && iO(typ[5])) {
           return {
             tag: "data",
             origin: typ[1],
             name: typ[2],
-            visibility: typ[3],
-            params: typ[4],
-            variants: typ[5].map(function(v) { return expandVariant(v, shorthands); }),
-            methods: expandRecord(typ[6], shorthands)
+            params: typ[3],
+            variants: typ[4].map(function(v) { return expandVariant(v, shorthands); }),
+            methods: expandRecord(typ[5], shorthands)
           };
         }
         else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
@@ -444,7 +441,6 @@ define("pyret-base/js/type-util", [], function() {
             tag: "data",
             origin: {provided: false},
             name: typ[1],
-            visibility: "all",
             params: typ[2],
             variants: typ[3].map(function(v) { return expandVariant(v, shorthands); }),
             methods: expandRecord(typ[4], shorthands)

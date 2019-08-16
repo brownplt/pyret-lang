@@ -1115,7 +1115,6 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
 
         T.t-data(
           name,
-          T.d-all,
           tvars,
           tvariants,
           all-shared-fields,
@@ -1234,10 +1233,9 @@ end
 
 fun canonicalize-data-type(dtyp :: T.DataType, uri :: URI, tn :: NameChanger) -> T.DataType:
   cases(T.DataType) dtyp:
-    | t-data(name, visibility, params, variants, fields, l) =>
+    | t-data(name, params, variants, fields, l) =>
       T.t-data(
           name,
-          visibility,
           params,
           map(canonicalize-variant(_, uri, tn), variants),
           canonicalize-members(fields, uri, tn),

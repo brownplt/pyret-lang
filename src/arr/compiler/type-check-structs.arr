@@ -254,9 +254,8 @@ sharing:
   end,
   method apply-data-type(self, data-type :: DataType) -> DataType:
     cases(DataType) data-type:
-      | t-data(name, visibility, params, variants, fields, l) =>
+      | t-data(name, params, variants, fields, l) =>
         t-data(name,
-              visibility,
               params,
               variants.map(self.apply-variant),
               TS.type-member-map(fields, lam(_, x):
@@ -1285,7 +1284,6 @@ fun instantiate-data-type(typ :: Type, context :: Context) -> FoldResult<DataTyp
                   new-data-type.substitute(arg, type-var)
                 end, data-type, args, data-type.params)
                 fold-result(t-data(new-data-type.name,
-                                   data-type.visibility,
                                    [list: ],
                                    new-data-type.variants,
                                    new-data-type.fields,
@@ -1309,7 +1307,7 @@ fun instantiate-data-type(typ :: Type, context :: Context) -> FoldResult<DataTyp
           new-fields = variant.fields.foldl(lam({field-name; field-type}, new-fields):
             new-fields.set(field-name, field-type)
           end, new-with-fields)
-          new-data-type = t-data(data-type.name, data-type.visibility, data-type.params, data-type.variants, new-fields, data-type.l)
+          new-data-type = t-data(data-type.name, data-type.params, data-type.variants, new-fields, data-type.l)
           fold-result(new-data-type, context)
         end)
       | t-forall(_, _, _, _) =>
