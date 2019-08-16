@@ -1,8 +1,6 @@
 const runtimeFiles = require("./runtime-files.json");
 
-function load(bfs: any, prewrittenDirectory: any): void {
-  let fs = bfs.BFSRequire("fs");
-
+function load(fs: any, prewrittenDirectory: any): void {
   let prewritten = prewrittenDirectory;
   if (fs.existsSync(prewritten) === false) {
     fs.mkdirSync(prewritten);

@@ -1,30 +1,19 @@
 import React from 'react';
 import './App.css';
-const BrowserFS = require('browserfs');
+const BrowserFS = require('./BrowserFS.ts');
 const RuntimeLoader = require('./runtime-loader.ts');
 const worker = new Worker('pyret.jarr');
 
-BrowserFS.install(window);
+BrowserFS.install();
+BrowserFS.configure(worker);
 
-BrowserFS.configure(
-    {
-        fs: "LocalStorage"
-    },
-    function(e: any) {
-        BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
-        if (e) {
-            throw e;
-        }
-    }
-);
-
-(window as any)['BrowserFS'] = BrowserFS;
+(window as any)['BrowserFS'] = BrowserFS.BrowserFS;
 
 const runner = require('./runner.ts');
 
-RuntimeLoader(BrowserFS, '/prewritten');
+RuntimeLoader(BrowserFS.fs, '/prewritten');
 
-const fs = BrowserFS.BFSRequire('fs');
+const fs = BrowserFS.fs;
 
 const programCacheFile = '/program-cache.arr';
 
