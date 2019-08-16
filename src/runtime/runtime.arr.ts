@@ -30,62 +30,51 @@ interface Unknown {
 
 type TypeEqualityResult = Equal | NotEqual | Unknown;
 
-interface IEqualityResult {
-  Equal: Equal,
-  NotEqual: (reason: string, value1: any, value2: any) => NotEqual,
-  Unknown: (reason: string, value1: any, value2: any) => Unknown,
-  "is-Equal": (val: any) => boolean,
-  "is-NotEqual": (val: any) => boolean,
-  "is-Unknown": (val: any) => boolean,
-}
-
-const EqualityResult: IEqualityResult = {
-  // TODO(alex): implement is-EqualityResult
-
-  "Equal": {
+export function Equal(): Equal {
+  return {
     "$brand": $EqualBrand,
     "$tag": $EqualTag,
-  },
+  };
+}
 
-  "NotEqual": function NotEqual(reason: string, value1: any, value2: any): NotEqual {
-    return {
-      "$brand": $NotEqualBrand,
-      "$tag": $NotEqualTag,
-      "reason": reason,
-      "value1": value1,
-      "value2": value2,
-    };
-  },
+export function NotEqual(reason: string, value1: any, value2: any): NotEqual {
+  return {
+    "$brand": $NotEqualBrand,
+    "$tag": $NotEqualTag,
+    "reason": reason,
+    "value1": value1,
+    "value2": value2,
+  };
+}
 
-  "Unknown": function Unknown(reason: string, value1: any, value2: any): Unknown {
-    return {
-      "$brand": $UnknownBrand,
-      "$tag": $UnknownTag,
-      "reason": reason,
-      "value1": value1,
-      "value2": value2,
-    };
-  },
+export function Unknown(reason: string, value1: any, value2: any): Unknown {
+  return {
+    "$brand": $UnknownBrand,
+    "$tag": $UnknownTag,
+    "reason": reason,
+    "value1": value1,
+    "value2": value2,
+  };
+}
 
-  "is-Equal": function Equal(val: any): boolean{
-    return val.$brand === $EqualBrand;
-  },
+export function isEqual(val: any): boolean{
+  return val.$brand === $EqualBrand;
+}
 
-  "is-NotEqual": function NotEqual(val: any): boolean {
-    return val.$brand === $NotEqualBrand;
-  },
+export function isNotEqual(val: any): boolean {
+  return val.$brand === $NotEqualBrand;
+}
 
-  "is-Unknown": function Unknown(val: any): boolean {
-    return val.$brand === $UnknownBrand;
-  }
-};
+export function isUnknown(val: any): boolean {
+  return val.$brand === $UnknownBrand;
+}
 
 function equalityResultToBool(ans: TypeEqualityResult): boolean {
-  if (EqualityResult["is-Equal"](ans)) { 
+  if (isEqual(ans)) { 
     return true; 
-  } else if (EqualityResult["is-NotEqual"](ans)) { 
+  } else if (isNotEqual(ans)) { 
     return false; 
-  } else if (EqualityResult["is-Unknown"](ans)) {
+  } else if (isUnknown(ans)) {
     let unknownVariant = ans as Unknown;
     throw {
       reason: unknownVariant.reason,
@@ -121,7 +110,7 @@ function isBrandedObject(val: any): boolean {
 
 export function identical3(v1: any, v2: any): TypeEqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
-    return EqualityResult.Unknown("Function", v1, v2);
+    return Unknown("Function", v1, v2);
   // TODO(alex): Handle/detect methods
   // } else if (isMethod(v1) && isMethod(v2)) {
   //  return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
@@ -129,9 +118,9 @@ export function identical3(v1: any, v2: any): TypeEqualityResult {
   // } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
   //  return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
   } else if (v1 === v2) {
-    return EqualityResult.Equal;
+    return Equal();
   } else {
-    return EqualityResult.NotEqual("", v1, v2);
+    return NotEqual("", v1, v2);
   }
 }
 
@@ -141,9 +130,9 @@ export function identical(v1: any, v2: any): boolean {
 }
 
 export function equalAlways3(e1: any, e2: any) {
-  if (EqualityResult["is-Equal"](identical3(e1, e2))) {
+  if (isEqual(identical3(e1, e2))) {
     // Identical so must always be equal
-    return EqualityResult.Equal;
+    return Equal;
   }
 
   var worklist = [[e1, e2]];
@@ -152,22 +141,22 @@ export function equalAlways3(e1: any, e2: any) {
     var v1: any = curr[0];
     var v2: any = curr[1];
 
-    if (EqualityResult["is-Equal"](identical3(e1, e2))) {
+    if (isEqual(identical3(e1, e2))) {
       // Identical so must always be equal
       continue; 
     }
 
     if (isNumber(v1) && isNumber(v2)) {
       // TODO(alex): Assuming JS numbers. Create helper that abstracts over either
-      if (v1 !== v2) { return EqualityResult.NotEqual; }
+      if (v1 !== v2) { return NotEqual("Numbers", v1, v2); }
       continue;
 
     } else if (isBoolean(v1) && isBoolean(v2)) {
-      if (v1 !== v2) { return EqualityResult.NotEqual; }
+      if (v1 !== v2) { return NotEqual("Booleans", v1, v2); }
 
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
-      return EqualityResult.Unknown("Functions", v1, v2);
+      return Unknown("Functions", v1, v2);
 
     } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
       // TODO(alex): Check for _equal method
@@ -177,38 +166,26 @@ export function equalAlways3(e1: any, e2: any) {
 
         if(fields1.length !== fields2.length) { 
           // Not the same brand
-          return EqualityResult.NotEqual;
+          return NotEqual("Object Brands", v1, v2);
         }
         for(var i = 0; i < fields1.length; i += 1) {
           if(fields1[i] != fields2[i]) { 
             // Not the same brand
-            return EqualityResult.NotEqual;
+            return NotEqual("Field Brands", fields1[i], fields2[i]);
           }
           worklist.push([v1[fields1[i]], v2[fields2[i]]]);
         }
         continue;
       }
     } else {
-      return EqualityResult.NotEqual("", e1, e2);
+      return NotEqual("", e1, e2);
     }
   }
 
-  return EqualityResult.Equal;
+  return Equal();
 }
 
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
   return value;
 }
-
-module.exports = {
-  equalAlways3: equalAlways3,
-  // py_equal: py_equal,
-  "trace-value": traceValue,
-  "Equal": EqualityResult["Equal"],
-  "NotEqual": EqualityResult["NotEqual"],
-  "Unknown": EqualityResult["Unknown"],
-  "is-Equal": EqualityResult["is-Equal"],
-  "is-NotEqual": EqualityResult["is-NotEqual"],
-  "is-Unknown": EqualityResult["is-Unknown"],
-};
