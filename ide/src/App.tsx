@@ -13,41 +13,10 @@ RuntimeLoader(BrowserFS.fs, '/prewritten');
 
 const programCacheFile = '/program-cache.arr';
 
-type CompileResult = CompileSuccess | CompileFailure;
-type CompileSuccess = {
-    path: string;
-};
-type CompileFailure = string;
-
-type RunResult = RunSuccess | RunFailure;
-
-type RunSuccess = {
-    time: number;
-    result: any;
-};
-
-type RunFailure = string;
-
 enum RunKind {
     Sync = "SYNC",
     Async = "ASYNC"
 };
-
-function isCompileSuccess(x: any): x is CompileSuccess {
-    if (x.path) {
-        return true;
-    }
-
-    return false;
-}
-
-function isRunSuccess(x: any): x is RunSuccess {
-    if (x.result) {
-        return true;
-    }
-
-    return false;
-}
 
 type AppProps = {};
 type AppStateInteractions = {name: string, value:any}[];
@@ -156,15 +125,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 () => { return; },
                 () => {
                     this.pyretRun((runResult) => {
-                        if (isRunSuccess(runResult)) {
-                            this.setState(
-                                {
-                                    interactions: makeResult(runResult.result)
-                                }
-                            );
-                        } else {
-                            // there was an issue at run time
-                        }
+                        this.setState(
+                            {
+                                interactions: makeResult(runResult.result)
+                            }
+                        );
                     });
                 });
 
@@ -188,7 +153,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             RunKind.Sync)
                .catch(callback)
                .then(callback);
-    }
+    };
 
     static isPyretFile(path: string) {
         return /\.arr$/.test(path);
