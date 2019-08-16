@@ -242,16 +242,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
     run = () => {
         if (Editor.isPyretFile(this.state.openFilePath)) {
 
-            worker.postMessage({
-                _parley: true,
-                options: {
+            backend.compileProgram(
+                this.props.worker,
+                {
                     "program": this.state.openFilePath,
-                    "base-dir": this.currentDirectory,
-                    "builtin-js-dir": '/prewritten/',
+                    "baseDir": this.currentDirectory,
+                    "builtinJSDir": "/prewritten",
                     "checks": "none",
-                    'type-check': true,
-                }
-            });
+                    "typeCheck": true
+                });
         } else {
             this.setState({
                 interactions: [
