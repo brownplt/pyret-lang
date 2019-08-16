@@ -2,6 +2,54 @@
 */
 "use strict";
 
+const $EqualBrand = {"names":false};
+const $NotEqualBrand = {"names":["reason","value1","value2"]};
+const $UnknownBrand = {"names":["reason","value1","value2"]};
+const $EqualTag = 0;
+const $NotEqualTag = 1;
+const $UnknownTag = 2;
+
+const EqualityResult = {
+  // TODO(alex): implement is-EqualityResult
+
+  "Equal": {
+    "$brand": $EqualBrand,
+    "$tag": $EqualTag,
+  },
+
+  "NotEqual": function NotEqual(reason, value1, value2) {
+    return {
+      "$brand": $NotEqualBrand,
+      "$tag": $NotEqualTag,
+      "reason": reason,
+      "value1": value1,
+      "value2": value2,
+    };
+  },
+
+  "Unknown": function Unknown(reason, value1, value2) {
+    return {
+      "$brand": $UnknownBrand,
+      "$tag": $UnknownTag,
+      "reason": reason,
+      "value1": value1,
+      "value2": value2,
+    };
+  },
+
+  "is-Equal":function Equal(val) {
+    return val.$brand === $EqualBrand;
+  },
+
+  "is-NotEqual":function NotEqual(val) {
+    return val.$brand === $NotEqualBrand;
+  },
+
+  "is-Unknown":function Unknown(val) {
+    return val.$brand === $UnknownBrand;
+  }
+};
+
 function py_equal(e1, e2) {
   if(e1 === e2) { return true; }
   var worklist = [[e1,e2]];
@@ -33,4 +81,10 @@ function traceValue(loc, value) {
 module.exports = {
   py_equal: py_equal,
   "trace-value": traceValue,
+  "Equal": EqualityResult["Equal"],
+  "NotEqual": EqualityResult["NotEqual"],
+  "Unknown": EqualityResult["Unknown"],
+  "is-Equal": EqualityResult["is-Equal"],
+  "is-NotEqual": EqualityResult["is-NotEqual"],
+  "is-Unknown": EqualityResult["is-Unknown"],
 };

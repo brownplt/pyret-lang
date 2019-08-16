@@ -4,10 +4,33 @@
     "shorthands": {
     },
     "values": {
+      "is-Equal": ["arrow", ["Any"], "Boolean"],
+      "is-NotEqual": ["arrow", ["Any"], "Boolean"],
+      "is-Unknown": ["arrow", ["Any"], "Boolean"]
     },
     "aliases": {
+      "EqualityResult": ["local", "EqualityResult"]
     },
     "datatypes": {
+      "EqualityResult": [
+        "data", "EqualityResult", [], [
+          ["Equal", {}],
+          ["NotEqual",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ],
+          ["Unknown",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ]
+        ], {}
+      ]
 
     }
   }
