@@ -1,15 +1,15 @@
 import React from 'react';
 import './App.css';
-const BrowserFS = require('./BrowserFS.ts');
+const bfsSetup = require('./browserfs-setup.ts');
 const RuntimeLoader = require('./runtime-loader.ts');
 const worker = new Worker('pyret.jarr');
-const runner = require('./runner.ts')(BrowserFS.fs, BrowserFS.path);
+const runner = require('./runner.ts')(bfsSetup.fs, bfsSetup.path);
 const backend = require('./backend.ts');
 
-BrowserFS.install();
-BrowserFS.configure(worker);
+bfsSetup.install();
+bfsSetup.configure(worker);
 
-RuntimeLoader(BrowserFS.fs, '/prewritten');
+RuntimeLoader(bfsSetup.fs, '/prewritten');
 
 const programCacheFile = '/program-cache.arr';
 
@@ -352,7 +352,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(BrowserFS.fs, programCacheFile)
+            editorContents: App.openOrCreateFile(bfsSetup.fs, programCacheFile)
         };
     };
 
@@ -367,7 +367,7 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <Editor fs={BrowserFS.fs}
+            <Editor fs={bfsSetup.fs}
                     openFilePath={programCacheFile}
                     contents={this.state.editorContents}
                     worker={worker}
