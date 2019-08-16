@@ -157,6 +157,7 @@ fun compiler-name(id):
   const-id(string-append("$",id))
 end
 
+EQUAL-ALWAYS = const-id("equal-always")
 GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
@@ -338,7 +339,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op<" then: j-binop(lv, J.j-lt, rv)
         | op == "op>" then: j-binop(lv, J.j-gt, rv)
         # TODO(alex): Use equal-always, equal-now, etc
-        | op == "op==" then: j-binop(lv, J.j-eq, rv)
+        # Call Global.py_equal
+        | op == "op==" then: j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
         | op == "opor" then: j-binop(lv, J.j-or, rv)
