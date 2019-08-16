@@ -1,10 +1,6 @@
-
-module.exports = function(browserFS){ 
-
+module.exports = function(fs: any, path: any){
   const assert = require('assert');
   const immutable = require('immutable');
-  const fs = browserFS.BFSRequire('fs');
-  const path = browserFS.BFSRequire('path');
   const stopify = require('@stopify/stopify');
 
   const nodeModules = {
@@ -14,12 +10,12 @@ module.exports = function(browserFS){
 
   function makeRequireAsync(basePath : string) {
     let cwd = basePath;
-    let currentRunner = null;
+    let currentRunner: any = null;
 
     function requireAsyncMain(importPath : string) {
       return new Promise(function (resolve, reject) {
         if(importPath in nodeModules) {
-          return nodeModules[importPath];
+          return (nodeModules as any)[importPath];
         }
         const oldWd = cwd;
         const nextPath = path.join(cwd, importPath);
@@ -33,7 +29,7 @@ module.exports = function(browserFS){
         runner.g = { stopify, require: requireAsync, module };
         runner.path = nextPath;
         currentRunner = runner;
-        runner.run((result) => {
+        runner.run((result: any) => {
           cwd = oldWd;
           const toReturn = module.exports ? module.exports : result;
           resolve(toReturn);
@@ -43,7 +39,7 @@ module.exports = function(browserFS){
 
     function requireAsync(importPath : string) {
       if(importPath in nodeModules) {
-        return nodeModules[importPath];
+        return (nodeModules as any)[importPath];
       }
       const oldWd = cwd;
       const nextPath = path.join(cwd, importPath);
@@ -59,7 +55,7 @@ module.exports = function(browserFS){
       currentRunner.pauseImmediate(() => {
         const oldRunner = currentRunner;
         currentRunner = runner;
-        runner.run((result) => {
+        runner.run((result: any) => {
           cwd = oldWd;
           const toReturn = module.exports ? module.exports : result.value;
           currentRunner = oldRunner;
@@ -86,7 +82,7 @@ module.exports = function(browserFS){
     */
     function requireSync(importPath : string) {
       if(importPath in nodeModules) {
-        return nodeModules[importPath];
+        return (nodeModules as any)[importPath];
       }
       const oldWd = cwd;
       const nextPath = path.join(cwd, importPath);
@@ -106,7 +102,7 @@ module.exports = function(browserFS){
   }
 
   return {
-    makeRequire: makeRequire, 
+    makeRequire: makeRequire,
     makeRequireAsync: makeRequireAsync,
     stopify: stopify,
   };

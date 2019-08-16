@@ -9,7 +9,7 @@ const BrowserFS = bfsSetup.BrowserFS;
 
 const backend = require("./backend.ts");
 
-const runner = require("./runner.ts")(BrowserFS);
+const runner = require("./runner.ts")(BrowserFS.BFSRequire('fs'), BrowserFS.BFSRequire('path'));
 const pyretApi = require("./pyret-api.ts");
 
 const loader = require("./runtime-loader.ts");
