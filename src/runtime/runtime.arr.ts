@@ -119,7 +119,7 @@ function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
 
-function identical3(v1: any, v2: any): TypeEqualityResult {
+export function identical3(v1: any, v2: any): TypeEqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
     return EqualityResult.Unknown("Function", v1, v2);
   // TODO(alex): Handle/detect methods
@@ -135,12 +135,12 @@ function identical3(v1: any, v2: any): TypeEqualityResult {
   }
 }
 
-function identical(v1: any, v2: any): boolean {
+export function identical(v1: any, v2: any): boolean {
   let ans: TypeEqualityResult = identical3(v1, v2);
   return equalityResultToBool(ans);
 }
 
-function equalAlways3(e1: any, e2: any) {
+export function equalAlways3(e1: any, e2: any) {
   if (EqualityResult["is-Equal"](identical3(e1, e2))) {
     // Identical so must always be equal
     return EqualityResult.Equal;
