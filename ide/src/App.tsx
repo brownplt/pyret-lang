@@ -160,6 +160,7 @@ type EditorState = {
     path: string[];
     openFilePath: string;
     contents: string;
+    interactions: {name: string, value: any}[];
 };
 
 type FSItemProps = {
@@ -189,10 +190,53 @@ class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         this.state = {
+            interactions: [],
             path: [],
             openFilePath: this.props.openFilePath,
             contents: this.props.contents
         };
+    };
+
+    static isPyretFile(path: string) {
+        return /\.arr$/.test(path);
+    }
+
+    run = () => {
+        if (Editor.isPyretFile(this.state.openFilePath)) {
+            pyretCompile(
+                this.state.openFilePath,
+                (compileResult) => {
+                    if (isCompileSuccess(compileResult)) {
+                        pyretRun(
+                            compileResult,
+                            (runResult) => {
+                                if (isRunSuccess(mockRunResult)) {
+                                    this.setState(
+                                        {
+                                            interactions: makeResult(mockRunResult.answer)
+                                        }
+                                    );
+                                } else {
+                                    // there was an issue at run time
+                                }
+                            })
+                    } else {
+                        // there was an issue at compile time.
+                    }
+                });
+        } else {
+            this.setState({
+                interactions: [
+                    {
+                        name: "Error",
+                        value: "Run is not supported on this file type"
+                    },
+                    {
+                        name: "File",
+                        value: this.state.openFilePath
+                    }]
+            });
+        }
     };
 
     autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -271,6 +315,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
     render() {
         return (
             <div id="edit-box">
+                <button id="run"
+                        className="prose"
+                        onClick={this.run}>
+                    Run
+                </button>
                 <ul id="fs-browser">
                     {(this.state.path.length !== 0) ? (
                         <li onClick={() => {
@@ -297,6 +346,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     </textarea>
                 </div>
                 <div id="separator">
+                </div>
+                <div id="interactions-container">
+                    <pre id="interactions-area"
+                         className="code">
+                        {
+                            this.state.interactions.map(
+                                (i) => {
+                                    return <Interaction key={i.name} name={i.name} value={i.value} />
+                                })
+                        }
+                    </pre>
                 </div>
             </div>
         );
@@ -328,32 +388,6 @@ class App extends React.Component<AppProps, AppState> {
         }
     }
 
-    run = () => {
-        pyretCompile(
-            programCacheFile,
-            (compileResult) => {
-                if (isCompileSuccess(compileResult)) {
-                    pyretRun(
-                        compileResult,
-                        (runResult) => {
-                            //if (isRunSuccess(runResult)) {
-                            if (isRunSuccess(mockRunResult)) {
-                                this.setState(
-                                    {
-                                        //interactions: runResult.answer.stringContents
-                                        interactions: makeResult(mockRunResult.answer)
-                                    }
-                                );
-                            } else {
-                                // there was an issue at run time
-                            }
-                        })
-                } else {
-                    // there was an issue at compile time.
-                }
-            });
-    };
-
     render() {
         return (
             <div id="outer-box">
@@ -363,29 +397,11 @@ class App extends React.Component<AppProps, AppState> {
                             onClick={this.toggleEditor}>
                         File System
                     </button>
-                    <button id="run"
-                            className="prose"
-                            onClick={this.run}>
-                        Run
-                    </button>
                 </div>
                 <div id="main">
                     <Editor fs={fs}
                             openFilePath={programCacheFile}
                             contents={this.state.editorContents} />
-                    <div id="separator">
-                    </div>
-                    <div id="interactions-container">
-                        <pre id="interactions-area"
-                             className="code">
-                            {
-                                this.state.interactions.map(
-                                    (i) => {
-                                        return <Interaction key={i.name} name={i.name} value={i.value} />
-                                    })
-                            }
-                        </pre>
-                    </div>
                 </div>
                 <div id="footer"> </div>
             </div>
