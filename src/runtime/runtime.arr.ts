@@ -69,6 +69,24 @@ const EqualityResult = {
   }
 };
 
+function isFunction(obj: any): boolean { return typeof obj === "function"; }
+
+function identical3(v1: any, v2: any): TypeEqualityResult {
+  if (isFunction(v1) && isFunction(v2)) {
+    return EqualityResult.Unknown("Function", v1, v2);
+  // TODO(alex): Handle/detect methods
+  // } else if (isMethod(v1) && isMethod(v2)) {
+  //  return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
+  //  TODO(alex): Handle/detect rough numbers
+  // } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
+  //  return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
+  } else if (v1 === v2) {
+    return EqualityResult.Equal;
+  } else {
+    return EqualityResult.NotEqual("", v1, v2);
+  }
+}
+
 function py_equal(e1, e2) {
   if(e1 === e2) { return true; }
   var worklist = [[e1,e2]];
