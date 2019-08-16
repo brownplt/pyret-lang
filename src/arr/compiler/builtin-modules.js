@@ -16,6 +16,8 @@
     var F = RUNTIME.makeFunction;
 
     function builtinLocatorFromString(codeContent, headerContent) {
+      console.log("HEADER CONTENT", headerContent);
+
       var staticInfo = JSON.parse(headerContent);
 
       return RUNTIME.makeObject({

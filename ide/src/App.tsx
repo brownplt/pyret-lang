@@ -1,7 +1,7 @@
 import React from 'react';
 import './App.css';
 const BrowserFS = require('browserfs');
-
+const RuntimeLoader = require('./runtime-loader.ts');
 const worker = new Worker('pyret.jarr');
 
 BrowserFS.install(window);
@@ -18,9 +18,13 @@ BrowserFS.configure(
     }
 );
 
-const fs = BrowserFS.BFSRequire('fs');
+(window as any)['BrowserFS'] = BrowserFS;
 
-worker.onmessage = (e) => console.log(e.data);
+const runner = require('./runner.ts');
+
+RuntimeLoader(BrowserFS, '/prewritten');
+
+const fs = BrowserFS.BFSRequire('fs');
 
 const programCacheFile = '/program-cache.arr';
 
@@ -35,10 +39,10 @@ function pyretCompile(path: string, callback: (result: CompileResult) => void): 
     worker.postMessage({
         _parley: true,
         options: {
-            program: 'program-cache.arr',
+            "program": 'program-cache.arr',
             "base-dir": '/',
-            "builtin-js-dir": '/',
-            checks: "none",
+            "builtin-js-dir": '/prewritten/',
+            "checks": "none",
             'type-check': true,
         }
     });
@@ -46,35 +50,88 @@ function pyretCompile(path: string, callback: (result: CompileResult) => void): 
     callback({path: path});
 }
 
+worker.onmessage = (e) => {
+    console.log(e);
+
+    if (e.data.browserfsMessage === true) {
+        return null;
+    }
+
+    try {
+        var msgObject = JSON.parse(e.data);
+
+        var msgType = msgObject["type"];
+        if (msgType === undefined) {
+            return null;
+        } else if (msgType === "echo-log") {
+            console.log(msgObject.contents);
+        } else if (msgType === "echo-err") {
+            console.log(msgObject.contents);
+        } else if (msgType === "compile-failure") {
+            console.log();
+        } else if (msgType === "compile-success") {
+            pyretRun({path: programCacheFile}, (e) => console.log(e));
+        } else {
+            return null;
+        }
+
+    } catch(e) {
+        return null;
+    }
+}
+
 type RunResult = RunSuccess | RunFailure;
+
 type RunSuccess = {
-    answer: any;
+    time: number;
+    result: any;
 };
+
 type RunFailure = string;
 
+enum RunKind {
+    Sync = "SYNC",
+    Async = "ASYNC"
+};
+
+export function runProgram(baseDir: string, program: string, runKind: RunKind): Promise<RunSuccess> {
+    if (runKind === RunKind.Sync) {
+        const start = window.performance.now();
+        const result = runner.makeRequire(baseDir)(program);
+        // const result = runner.makeRequire("/compiled/project")("program.arr.js");
+        const end = window.performance.now();
+
+        return Promise.resolve({
+            time: end - start,
+            result: result
+        });
+    } else {
+        const entry = runner.makeRequireAsync(baseDir);
+        // const entry = runner.makeRequireAsync("/compiled/project");
+        const resultP = entry(program);
+
+        let wrapper = async function() {
+            const start = window.performance.now();
+            let result = await resultP();
+            const end = window.performance.now();
+
+            return {
+                time: end - start,
+                result: result,
+            };
+        };
+
+        return wrapper();
+    }
+}
+
 function pyretRun(compileSuccess: CompileSuccess,
-                  callback: (result: RunResult) => void): void {
-                      const contents = fs.readFileSync(programCacheFile, {encoding: 'utf-8'});
-
-                      // We don't have the infrastructure in place to compile or run Pyret programs at the
-                      // moment, so just echo back the contents of the file as a placeholder.
-
-                      callback({answer: {stringContents: contents}});
-                  }
-
-const mockRunOutput = {
-    "a": 9,
-    "b": 5,
-    "c": true,
-    "d": false,
-    "e": "Ahoy, world!",
-    "f": ((x: any) => x),
-    "g": {"Ahoy": "World!"}
-};
-
-const mockRunResult: RunResult = {
-    answer: mockRunOutput
-};
+                  callback: (result: any) => void): void
+{
+    runProgram("/compiled/project", 'program-cache.arr.js', RunKind.Sync)
+        .catch(callback)
+        .then(callback);
+}
 
 function isCompileSuccess(x: any): x is CompileSuccess {
     if (x.path) {
@@ -85,7 +142,7 @@ function isCompileSuccess(x: any): x is CompileSuccess {
 }
 
 function isRunSuccess(x: any): x is RunSuccess {
-    if (x.answer) {
+    if (x.result) {
         return true;
     }
 
@@ -215,10 +272,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         pyretRun(
                             compileResult,
                             (runResult) => {
-                                if (isRunSuccess(mockRunResult)) {
+                                if (isRunSuccess(runResult)) {
                                     this.setState(
                                         {
-                                            interactions: makeResult(mockRunResult.answer)
+                                            interactions: makeResult(runResult.result)
                                         }
                                     );
                                 } else {
