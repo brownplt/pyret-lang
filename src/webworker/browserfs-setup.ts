@@ -1,6 +1,5 @@
 function setup(worker, projectsDir) {
   const BrowserFS = require("browserfs");
-  window["BrowserFS"] = BrowserFS;
 
   // How to use BrowserFS with Web Workers: https://github.com/jvilk/BrowserFS/issues/210
   BrowserFS.install(window);
@@ -18,10 +17,12 @@ function setup(worker, projectsDir) {
       throw e;
     }
   });
+
+  return BrowserFS;
 }
 
 module.exports = function(worker, projectsDir) {
-  setup(worker, projectsDir);
+  let BrowserFS = setup(worker, projectsDir);
   return {
     BrowserFS: BrowserFS,
     worker: worker,

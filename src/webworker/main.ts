@@ -9,7 +9,7 @@ const BrowserFS = bfsSetup.BrowserFS;
 
 const backend = require("./backend.ts");
 
-const runner = require("./runner.ts");
+const runner = require("./runner.ts")(BrowserFS);
 const pyretApi = require("./pyret-api.ts");
 
 const loader = require("./runtime-loader.ts");
@@ -130,7 +130,7 @@ function compileSuccess() {
 
   if (runChoice !== NO_RUNS) {
     console.log("Running...");
-    backend.runProgram("/compiled/project", "program.arr.js", runChoice)
+    backend.runProgram(runner, "/compiled/project", "program.arr.js", runChoice)
       .catch(function(error) {
         console.error("Run failed with: ", error);
       })

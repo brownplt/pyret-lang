@@ -1,5 +1,3 @@
-const runner = require("./runner.ts");
-
 export interface CompileOptions {
   program: string,
   baseDir: string,
@@ -30,7 +28,6 @@ export function makeBackendMessageHandler(echoLog, echoErr, compileFailure, comp
     }
 
     try {
-      console.log(e.data);
       var msgObject = JSON.parse(e.data);
     
       var msgType = msgObject["type"];
@@ -49,6 +46,7 @@ export function makeBackendMessageHandler(echoLog, echoErr, compileFailure, comp
       }
 
     } catch(e) {
+      console.err(e);
       return null;
     }
   }
@@ -71,7 +69,7 @@ export function compileProgram(compilerWorker, options: CompileOptions) {
   compilerWorker.postMessage(message);
 }
 
-export function runProgram(baseDir: string, program: string, runKind: RunKind): Promise<RunResult> {
+export function runProgram(runner: any, baseDir: string, program: string, runKind: RunKind): Promise<RunResult> {
   if (runKind === RunKind.Sync) {
     const start = window.performance.now();
     const result = runner.makeRequire(baseDir)(program);
