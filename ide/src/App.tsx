@@ -76,16 +76,6 @@ const mockRunResult: RunResult = {
     answer: mockRunOutput
 };
 
-type EditorProps = {
-    fs: any;
-    path: string;
-    contents: string;
-};
-
-type EditorState = {
-    contents: string;
-};
-
 function isCompileSuccess(x: any): x is CompileSuccess {
     if (x.path) {
         return true;
@@ -160,20 +150,20 @@ class Interaction extends React.Component<InteractionProps, InteractionState> {
     };
 }
 
-type FSBrowserProps = {
+type EditorProps = {
     fs: any;
     openFilePath: string;
     contents: string;
 };
 
-type FSBrowserState = {
+type EditorState = {
     path: string[];
     openFilePath: string;
     contents: string;
 };
 
-class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
-    constructor(props: FSBrowserProps) {
+class Editor extends React.Component<EditorProps, EditorState> {
+    constructor(props: EditorProps) {
         super(props);
 
         this.state = {
@@ -288,7 +278,7 @@ class App extends React.Component<AppProps, AppState> {
         };
     };
 
-    toggleFSBrowser = () => {
+    toggleEditor = () => {
         this.setState({
             fsBrowserVisible: !this.state.fsBrowserVisible
         });
@@ -335,7 +325,7 @@ class App extends React.Component<AppProps, AppState> {
                 <div id="header">
                     <button id="open-fs"
                             className="prose"
-                            onClick={this.toggleFSBrowser}>
+                            onClick={this.toggleEditor}>
                         File System
                     </button>
                     <button id="run"
@@ -345,9 +335,9 @@ class App extends React.Component<AppProps, AppState> {
                     </button>
                 </div>
                 <div id="main">
-                    <FSBrowser fs={fs}
-                               openFilePath={programCacheFile}
-                               contents={this.state.editorContents} />
+                    <Editor fs={fs}
+                            openFilePath={programCacheFile}
+                            contents={this.state.editorContents} />
                     <div id="separator">
                     </div>
                     <div id="interactions-container">
