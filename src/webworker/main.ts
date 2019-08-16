@@ -4,17 +4,18 @@ const prewritten = "/prewritten";
 const uncompiled = "/uncompiled";
 
 const consoleSetup = require("./console-setup.ts");
-const bfsSetup = require("./browserfs-setup.ts")(myWorker, projectsDir);
-const BrowserFS = bfsSetup.BrowserFS;
+
+const bfsSetup = require("./browserfs-setup.ts");
+bfsSetup.install();
+bfsSetup.configure(myWorker);
 
 const backend = require("./backend.ts");
 
-const runner = require("./runner.ts")(BrowserFS.BFSRequire('fs'), BrowserFS.BFSRequire('path'));
+const runner = require("./runner.ts")(bfsSetup.fs, bfsSetup.path);
 const pyretApi = require("./pyret-api.ts");
 
 const loader = require("./runtime-loader.ts");
-const fs = bfsSetup.BrowserFS.BFSRequire("fs");
-const worker = bfsSetup.worker;
+const worker = myWorker;
 
 const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
@@ -26,7 +27,7 @@ const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
 const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
-FilesystemBrowser.createBrowser(fs, "/", filesystemBrowser);
+FilesystemBrowser.createBrowser(bfsSetup.fs, "/", filesystemBrowser);
 
 const NO_RUNS = "none";
 var runChoice = NO_RUNS;
@@ -36,11 +37,11 @@ const baseDir = "/projects";
 const builtinJSDir = "/prewritten/";
 const checks = "none";
 
-const thePath = bfsSetup.BrowserFS.BFSRequire("path");
+const thePath = bfsSetup.path;
 
 function deleteDir(dir) {
   // console.log("Entering:", dir);
-  fs.readdir(dir, function(err, files) {
+  bfsSetup.fs.readdir(dir, function(err, files) {
     if (err) {
       throw err;
     }
@@ -49,7 +50,7 @@ function deleteDir(dir) {
     files.forEach(function(file) {
       let filePath = thePath.join(dir, file);
       
-      fs.stat(filePath, function(err, stats) {
+      bfsSetup.fs.stat(filePath, function(err, stats) {
         if (err) {
           throw err;
         }
@@ -57,7 +58,7 @@ function deleteDir(dir) {
         if (stats.isDirectory()) {
           deleteDir(filePath);
         } else {
-          fs.unlink(filePath, function(err) {
+          bfsSetup.fs.unlink(filePath, function(err) {
             if (err) {
               throw err;
             }
@@ -77,7 +78,7 @@ clearFSButton.onclick = function() {
 
 function loadBuiltins() {
   console.log("LOADING RUNTIME FILES");
-  loader(BrowserFS, prewritten, uncompiled);
+  loader(bfsSetup.BrowserFS, prewritten, uncompiled);
   console.log("FINISHED LOADING RUNTIME FILES");
 }
 
@@ -89,7 +90,7 @@ loadBuiltinsButton.onclick = function() {
 loadBuiltins();
 
 function compileHelper() {
-  fs.writeFileSync("./projects/program.arr", input.value);
+  bfsSetup.fs.writeFileSync("./projects/program.arr", input.value);
   var typeCheck = typeCheckBox.checked;
 
   backend.compileProgram(myWorker, {
