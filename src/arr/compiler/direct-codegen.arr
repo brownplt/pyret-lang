@@ -340,7 +340,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op>" then: j-binop(lv, J.j-gt, rv)
         # TODO(alex): Use equal-always, equal-now, etc
         # Call Global.py_equal
-        | op == "op==" then: j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
+        | op == "op==" then: 
+          argvs = cl-cons(lv, cl-sing(rv))
+          j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
         | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
         | op == "opor" then: j-binop(lv, J.j-or, rv)
