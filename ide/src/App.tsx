@@ -192,7 +192,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         this.state = {
             fsBrowserVisible: false,
-            interactions: [],
+            interactions: [{
+                name: "Note",
+                value: "Press Run to compile and run"
+            }],
             path: [],
             openFilePath: this.props.openFilePath,
             contents: this.props.contents
@@ -289,6 +292,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
             this.traverseDown(child);
         } else if (stats.isFile()) {
             this.setState({
+                interactions: [{
+                    name: "Note",
+                    value: "Press Run to compile and run"
+                }],
                 openFilePath: this.fullPathTo(child),
                 contents: this.props.fs.readFileSync(this.fullPathTo(child))
             });
