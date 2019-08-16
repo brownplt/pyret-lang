@@ -231,6 +231,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             this.traverseDown(child);
         } else if (stats.isFile()) {
             this.setState({
+                openFilePath: this.fullPathTo(child),
                 contents: this.props.fs.readFileSync(this.fullPathTo(child))
             });
         }
