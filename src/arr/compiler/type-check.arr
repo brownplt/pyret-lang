@@ -1373,68 +1373,62 @@ fun handle-cases(l :: Loc, ann :: A.Ann, val :: Expr, branches :: List<A.CasesBr
       | some(typ) =>
         shadow context = context.add-level()
         add-existentials-to-data-name(typ, context).typing-bind(lam(cases-type, shadow context):
-          spy: cases-type end
-          cases(A.DataVisibility) context.get-data-type(cases-type).and-then(_.visibility).or-else(A.d-all):
-            | d-opaque => typing-error([list: C.cant-typecheck("The datatype " + to-repr(cases-type) + " cannot be used in cases.", cases-type.l)])
-            | d-all => 
-              spy: dt: context.get-data-type(cases-type) end
-              synthesis(val, false, context).bind(lam(new-val, val-type, shadow context):
-                shadow context = context.add-constraint(val-type, cases-type)
-                typing-result(new-val, val-type, context)
-              end).solve-bind().bind(lam(new-val, val-type, shadow context):
-                instantiate-data-type(val-type, context).typing-bind(lam(data-type, shadow context):
-                  branch-tracker = track-branches(data-type)
-                  temp-result = map-fold-result(lam(branch, shadow context):
-                    maybe-key-to-update = cases(Expr) val:
-                      | s-id(_, val-id) =>
-                        some(val-id.key())
-                      | s-id-var(_, val-id) =>
-                        some(val-id.key())
-                      | s-id-letrec(_, val-id, _) =>
-                        some(val-id.key())
-                      | else =>
-                        none
-                    end
-                    shadow context = cases(Option<String>) maybe-key-to-update:
-                      | some(key-to-update) =>
-                        context.add-binding(key-to-update, t-data-refinement(val-type, branch.name, l, true))
-                      | none =>
-                        context
-                    end
-                    branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
-                    branch-result.bind(lam(branch-type-pair, shadow context):
-                      shadow context = cases(Option<String>) maybe-key-to-update:
-                        | some(key-to-update) =>
-                          context.add-binding(key-to-update, val-type)
-                        | none =>
-                          context
-                      end
-                      fold-result(branch-type-pair, context)
-                    end)
-                  end, branches, context)
-
-                  temp-result.typing-bind(lam(result, shadow context):
-                    split-result = split(result)
-                    remaining-branches = branch-tracker.get().to-list()
-                    cases(Option<A.Expr>) maybe-else:
-                      | some(_else) =>
-                        if is-empty(remaining-branches):
-                          typing-error([list: C.unnecessary-else-branch(tostring(typ), l)])
-                        else:
-                          has-else(l, ann, new-val, split-result, _else, context)
-                        end
-                      | none =>
-                        if is-empty(remaining-branches):
-                          no-else(l, ann, new-val, split-result, context)
-                        else:
-                          # TODO(MATT): more appropriate error here
-                          typing-error([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
-                        end
-                    end
-                  end)
+          synthesis(val, false, context).bind(lam(new-val, val-type, shadow context):
+            shadow context = context.add-constraint(val-type, cases-type)
+            typing-result(new-val, val-type, context)
+          end).solve-bind().bind(lam(new-val, val-type, shadow context):
+            instantiate-data-type(val-type, context).typing-bind(lam(data-type, shadow context):
+              branch-tracker = track-branches(data-type)
+              temp-result = map-fold-result(lam(branch, shadow context):
+                maybe-key-to-update = cases(Expr) val:
+                  | s-id(_, val-id) =>
+                    some(val-id.key())
+                  | s-id-var(_, val-id) =>
+                    some(val-id.key())
+                  | s-id-letrec(_, val-id, _) =>
+                    some(val-id.key())
+                  | else =>
+                    none
+                end
+                shadow context = cases(Option<String>) maybe-key-to-update:
+                  | some(key-to-update) =>
+                    context.add-binding(key-to-update, t-data-refinement(val-type, branch.name, l, true))
+                  | none =>
+                    context
+                end
+                branch-result = handle-branch(data-type, l, branch, maybe-expect, branch-tracker.remove, context)
+                branch-result.bind(lam(branch-type-pair, shadow context):
+                  shadow context = cases(Option<String>) maybe-key-to-update:
+                    | some(key-to-update) =>
+                      context.add-binding(key-to-update, val-type)
+                    | none =>
+                      context
+                  end
+                  fold-result(branch-type-pair, context)
                 end)
+              end, branches, context)
+
+              temp-result.typing-bind(lam(result, shadow context):
+                split-result = split(result)
+                remaining-branches = branch-tracker.get().to-list()
+                cases(Option<A.Expr>) maybe-else:
+                  | some(_else) =>
+                    if is-empty(remaining-branches):
+                      typing-error([list: C.unnecessary-else-branch(tostring(typ), l)])
+                    else:
+                      has-else(l, ann, new-val, split-result, _else, context)
+                    end
+                  | none =>
+                    if is-empty(remaining-branches):
+                      no-else(l, ann, new-val, split-result, context)
+                    else:
+                      # TODO(MATT): more appropriate error here
+                      typing-error([list: C.non-exhaustive-pattern(remaining-branches, tostring(typ), l)])
+                    end
+                end
               end)
-          end
+            end)
+          end)
         end)
       | none =>
         typing-error([list: C.cant-typecheck("Could not resolve type on cases statement", l)])

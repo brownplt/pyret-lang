@@ -1136,7 +1136,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               raise("The rhs of an object provide was not an id: " + to-repr(f))
             end
             A.s-provide-name(f.l, A.s-module-ref(f.l, [list: f.value.id], some(A.s-name(f.l, f.name))))
-          end + [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-opaque)]
+          end + [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-all)]
           A.s-provide-block(l, empty, specs)
         | s-provide-all(shadow l) =>
           A.s-provide-block(l, empty, [list:
@@ -1152,7 +1152,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             when not(A.is-a-name(a.ann)): raise("Cannot use a non-name as a provided type") end
             A.s-provide-type(l, A.s-module-ref(a.ann.l, [list: a.ann.id], some(A.s-name(a.l, a.name))))
           end +
-          [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-opaque)])
+          [list: A.s-provide-data(l, A.s-star(l, [list:]), [list:], A.d-all)])
         | s-provide-types-none(shadow l) =>
           A.s-provide-block(l, empty, [list:])
         | s-provide-types-all(shadow l) =>
@@ -1187,7 +1187,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       # don't necessarily have their variants and fields exposed, which is
       # controlled by what the user provides. This information needs to be
       # tracked here.
-      provided-datatypes :: SD.MutableStringDict<{S.Loc; Option<String>; A.Atom; T.DataVisibility}>
+      provided-datatypes :: SD.MutableStringDict<{S.Loc; Option<String>; A.Name; T.DataVisibility}>
         = [SD.mutable-string-dict:]
 
       fun is-hidden(hidden :: List<A.Name>, maybe-hidden-name :: String):
@@ -1299,7 +1299,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 end
                 fun add-value-if-defined(name):
                   when(providing-module.values.has-key(name)):
-                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name) })
+                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name); A.d-all})
                   end
                 end
                 maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name); A.d-all})
