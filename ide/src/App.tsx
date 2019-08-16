@@ -88,7 +88,7 @@ type AppState = {
 };
 
 function makeResult(result: any): {name: string, value: any}[] {
-    return Object.keys(result).map((key) => {
+    return Object.keys(result).sort().map((key) => {
         return {
             name: key,
             value: result[key]
