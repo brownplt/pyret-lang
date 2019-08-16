@@ -22,7 +22,7 @@ RUNTIME_TS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.ts)
 RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.arr.ts=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 build/runtime/%.arr.js : src/runtime/%.arr.ts
-	tsc --outFile $@ $<
+	tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 runtime-src-dir:
 	mkdir -p $(RUNTIME_SRC_DIR)
@@ -45,7 +45,7 @@ build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.a
 	node build/worker/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/runtime-bundler.js: src/webworker/scripts/runtime-bundler.ts
-	tsc src/webworker/scripts/runtime-bundler.ts --outFile $@
+	tsc src/webworker/scripts/runtime-bundler.ts --outDir $(RUNTIME_BUILD_DIR)
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	browserify src/js/trove/require-node-compile-dependencies.js -o $@
@@ -64,25 +64,25 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
 parser: src/arr/compiler/pyret-parser.js
 
 build/worker/runtime-loader.js: src/webworker/runtime-loader.ts
-	tsc $< --outFile $@
+	tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 build/worker/pyret-api.js: build/worker/pyret-api.ts.js build/worker/runtime-loader.js
 	browserify build/worker/pyret-api.ts.js -o $@
 
 build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts
-	tsc src/webworker/pyret-api.ts --outFile $@
+	tsc src/webworker/pyret-api.ts --outDir $(RUNTIME_BUILD_DIR)
 
 build/worker/runner.js: build/worker/runner.ts.js
 	browserify build/worker/runner.ts.js -o $@
 
 build/worker/runner.ts.js: src/webworker/runner.ts
-	tsc src/webworker/runner.ts --outFile $@
+	tsc src/webworker/runner.ts --outDir $(RUNTIME_BUILD_DIR)
 
 build/worker/setup.js: build/worker/setup.ts.js
 	browserify build/worker/setup.ts.js -o $@
 
 build/worker/setup.ts.js: src/webworker/setup.ts
-	tsc $< --outFile $@
+	tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 build/worker/main.js: src/webworker/*.ts
 	browserify src/webworker/main.ts -p [ tsify ] -o build/worker/main.js
