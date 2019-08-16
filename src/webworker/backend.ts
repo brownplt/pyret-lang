@@ -46,7 +46,7 @@ export function makeBackendMessageHandler(echoLog, echoErr, compileFailure, comp
       }
 
     } catch(e) {
-      console.err(e);
+      console.log(e);
       return null;
     }
   }
