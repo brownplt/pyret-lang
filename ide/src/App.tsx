@@ -162,6 +162,28 @@ type EditorState = {
     contents: string;
 };
 
+type FSItemProps = {
+    onClick: () => void;
+    contents: string;
+};
+
+type FSItemState = {};
+
+class FSItem extends React.Component<FSItemProps, FSItemState> {
+    get contents() {
+        return this.props.contents;
+    }
+
+    render() {
+        return (
+            <li onClick={this.props.onClick}
+                className="fs-browser-item">
+                {this.props.contents}
+            </li>
+        );
+    }
+}
+
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
@@ -227,6 +249,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
+    createFSItemPair = (filePath: string) => {
+        return [
+            filePath,
+            <FSItem key={filePath}
+                    onClick={() => this.expandChild(filePath)}
+                    contents={filePath} />
+        ];
+    };
+
+    compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]) => {
+        if (a[0] < b[0]) {
+            return -1;
+        } else if (a[0] > b[0]) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
     render() {
         return (
             <div id="edit-box">
@@ -244,15 +285,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {
                         this.props.fs
                             .readdirSync(this.currentDirectory)
-                            .map((child: string) => {
-                                return (
-                                    <li key={child}
-                                        onClick={() => this.expandChild(child)}
-                                        className="fs-browser-item">
-                                        {child}
-                                    </li>
-                                );
-                            })
+                            .map(this.createFSItemPair)
+                            .sort(this.compareFSItemPair).map((x: [string, FSItem]) => x[1])
                     }
                 </ul>
                 <div id="definitions-container">
