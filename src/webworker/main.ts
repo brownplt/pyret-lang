@@ -7,14 +7,17 @@ const consoleSetup = require("./console-setup.ts");
 
 const bfsSetup = require("./browserfs-setup.ts");
 bfsSetup.install();
-bfsSetup.configure(myWorker);
+bfsSetup.configure(myWorker, projectsDir);
 
 const backend = require("./backend.ts");
 
 const runner = require("./runner.ts")(bfsSetup.fs, bfsSetup.path);
 const pyretApi = require("./pyret-api.ts");
 
-const loader = require("./runtime-loader.ts");
+const runtimeFiles = require("../../build/worker/runtime-files.json");
+const runtimeLoader = require("./runtime-loader.ts");
+const loader = runtimeLoader.load;
+
 const worker = myWorker;
 
 const input = <HTMLInputElement>document.getElementById("program");
@@ -78,7 +81,7 @@ clearFSButton.onclick = function() {
 
 function loadBuiltins() {
   console.log("LOADING RUNTIME FILES");
-  loader(bfsSetup.BrowserFS, prewritten, uncompiled);
+  loader(bfsSetup.fs, prewritten, uncompiled, runtimeFiles);
   console.log("FINISHED LOADING RUNTIME FILES");
 }
 

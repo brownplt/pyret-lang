@@ -1,18 +1,11 @@
-const runtimeFiles = require("../../build/worker/runtime-files.json");
+const load = (
+  fs: any,
+  prewrittenDirectory: string,
+  uncompiledDirectory: string,
+  runtimeFiles: any): void => {
 
-
-function load(bfs, prewrittenDirectory, uncompiledDirectory): void {
-  let fs = bfs.BFSRequire("fs");
-
-  let prewritten = prewrittenDirectory;
-  if (fs.existsSync(prewritten) === false) {
-    fs.mkdirSync(prewritten);
-  }
-
-  // TODO(alex): uncompiled no longer used
-  let uncompiled = uncompiledDirectory;
-  if (fs.existsSync(uncompiled) === false) {
-    fs.mkdirSync(uncompiled);
+  if (!fs.existsSync(prewrittenDirectory)) {
+    fs.mkdirSync(prewrittenDirectory);
   }
 
   for (var index in runtimeFiles) {
@@ -32,4 +25,6 @@ function load(bfs, prewrittenDirectory, uncompiledDirectory): void {
   }
 }
 
-module.exports = load;
+module.exports = {
+  load: load
+};

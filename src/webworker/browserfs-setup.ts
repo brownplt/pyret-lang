@@ -8,12 +8,16 @@ const install = (): void => {
   BrowserFS.install(window);
 };
 
-const configure = (worker: Worker): void => {
+const configure = (worker: Worker, projectsDirectory: string): void => {
   BrowserFS.configure({
     fs: "LocalStorage"
   }, function(e: any) {
     if (e) {
       throw e;
+    }
+
+    if (!fs.existsSync(projectsDirectory)) {
+      fs.mkdirSync(projectsDirectory);
     }
 
     BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);

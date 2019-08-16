@@ -1,15 +1,16 @@
 import React from 'react';
 import './App.css';
 const bfsSetup = require('./browserfs-setup.ts');
-const RuntimeLoader = require('./runtime-loader.ts');
+const runtimeFiles = require('./runtime-files.json');
+const runtimeLoader = require('./runtime-loader.ts');
 const worker = new Worker('pyret.jarr');
 const runner = require('./runner.ts')(bfsSetup.fs, bfsSetup.path);
 const backend = require('./backend.ts');
 
 bfsSetup.install();
-bfsSetup.configure(worker);
+bfsSetup.configure(worker, './projects');
 
-RuntimeLoader(bfsSetup.fs, '/prewritten');
+runtimeLoader.load(bfsSetup.fs, '/prewritten', '/uncompiled', runtimeFiles);
 
 const programCacheFile = '/program-cache.arr';
 
