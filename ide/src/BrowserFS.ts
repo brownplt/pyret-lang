@@ -1,5 +1,8 @@
 export const BrowserFS = require('browserfs');
 
+export const fs = BrowserFS.BFSRequire('fs');
+export const path = BrowserFS.BFSRequire('path');
+
 export const install = () => {
   BrowserFS.install(window);
 };
@@ -10,12 +13,11 @@ export const configure = (worker: Worker) => {
       fs: "LocalStorage"
     },
     (e: any) => {
-      BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
       if (e) {
         throw e;
       }
+
+      BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
     }
   );
 };
-
-export const fs = BrowserFS.BFSRequire('fs');

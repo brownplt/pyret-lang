@@ -3,17 +3,12 @@ import './App.css';
 const BrowserFS = require('./BrowserFS.ts');
 const RuntimeLoader = require('./runtime-loader.ts');
 const worker = new Worker('pyret.jarr');
+const runner = require('./runner.ts')(BrowserFS.fs, BrowserFS.path);
 
 BrowserFS.install();
 BrowserFS.configure(worker);
 
-(window as any)['BrowserFS'] = BrowserFS.BrowserFS;
-
-const runner = require('./runner.ts');
-
 RuntimeLoader(BrowserFS.fs, '/prewritten');
-
-const fs = BrowserFS.fs;
 
 const programCacheFile = '/program-cache.arr';
 
@@ -456,7 +451,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(fs, programCacheFile)
+            editorContents: App.openOrCreateFile(BrowserFS.fs, programCacheFile)
         };
     };
 
@@ -471,7 +466,7 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <Editor fs={fs}
+            <Editor fs={BrowserFS.fs}
                     openFilePath={programCacheFile}
                     contents={this.state.editorContents} />
         );
