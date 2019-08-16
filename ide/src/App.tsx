@@ -193,11 +193,11 @@ class Interaction extends React.Component<InteractionProps, InteractionState> {
 
 type FSBrowserProps = {
     fs: any;
+    onOpenFile: (path: string) => void;
 };
 
 type FSBrowserState = {
-    currentDirectory: string;
-    parentDirectory: string | false;
+    path: string[];
 };
 
 class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
@@ -205,33 +205,62 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         super(props);
 
         this.state = {
-            currentDirectory: "/",
-            parentDirectory: false
+            path: [],
         };
     };
 
-    changeDirectory = (newDirectory: string) => {
-        if (newDirectory === "/") {
-            this.setState({
-                currentDirectory: newDirectory,
-                parentDirectory: false
-            });
+    traverseDown(childDirectory: string) {
+        const newPath = this.state.path.slice();
+        newPath.push(childDirectory);
+
+        this.setState({
+            path: newPath
+        });
+    }
+
+    traverseUp() {
+        const newPath = this.state.path.slice();
+        newPath.pop();
+
+        this.setState({
+            path: newPath
+        });
+    }
+
+    get currentDirectory() {
+        if (this.state.path.length === 0) {
+            return "/";
         } else {
-            this.setState({
-                currentDirectory: newDirectory,
-                parentDirectory: this.state.currentDirectory
-            });
+            const path = this.state.path
+                             .reduce(
+                                 (acc, v) => {
+                                     return `${acc}/${v}`;
+                                 },
+                                 "");
+            return `${path}/`;
         }
-    };
+    }
+
+    fullPathTo(file: string) {
+        return `${this.currentDirectory}${file}`;
+    }
+
+    expandChild(child: string) {
+        const stats = this.props.fs.statSync(this.fullPathTo(child));
+
+        if (stats.isDirectory()) {
+            this.traverseDown(child);
+        } else if (stats.isFile()) {
+            this.props.onOpenFile(this.fullPathTo(child));
+        }
+    }
 
     render() {
         return (
             <ul id="fs-browser">
-                {this.state.parentDirectory ? (
+                {(this.state.path.length !== 0) ? (
                     <li onClick={() => {
-                        if (this.state.parentDirectory) {
-                            this.changeDirectory(this.state.parentDirectory);
-                        }
+                        this.traverseUp();
                     }}
                         className="fs-browser-item">
                         ..
@@ -241,12 +270,13 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 )}
                 {
                     this.props.fs
-                        .readdirSync(this.state.currentDirectory)
-                        .map((file: string) => {
+                        .readdirSync(this.currentDirectory)
+                        .map((child: string) => {
                             return (
-                                <li onClick={() => this.changeDirectory(file)}
+                                <li key={child}
+                                    onClick={() => this.expandChild(child)}
                                     className="fs-browser-item">
-                                    {file}
+                                    {child}
                                 </li>
                             );
                         })
@@ -315,12 +345,14 @@ class App extends React.Component<AppProps, AppState> {
                 <div id="main">
                     <div id="edit-box">
                         {this.state.fsBrowserVisible ? (
-                            <FSBrowser fs={fs} />
+                            <FSBrowser fs={fs}
+                                       onOpenFile={(f) => console.log(f)} />
                         ) : (
                             null
                         )}
                         <div id="definitions-container">
-                            <Editor path={programCacheFile} fs={fs} />
+                            <Editor path={programCacheFile}
+                                    fs={fs} />
                         </div>
                         <div id="separator">
                         </div>
