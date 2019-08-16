@@ -1193,6 +1193,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
+                spy: d end
                 dp.set(as-name.toname(), CS.d-type(CS.bind-origin(l, exp.l, true, uri, name), data-expr-to-datatype(exp, d.visibility)))
             end
           end
@@ -1228,13 +1229,13 @@ end
 fun canonicalize-data-export(de :: CS.DataExport, uri :: URI, tn :: NameChanger) -> CS.DataExport:
   cases(CS.DataExport) de:
     | d-alias(origin, name) => de
-    | d-type(origin, typ) => CS.d-type(origin, canonicalize-data-type(typ, uri, tn))
+    | d-type(origin, typ) => CS.d-type(origin, canonicalize-data-type(typ, uri, typ.visibility, tn))
   end
 end
 
-fun canonicalize-data-type(dtyp :: T.DataType, uri :: URI, tn :: NameChanger) -> T.DataType:
+fun canonicalize-data-type(dtyp :: T.DataType, uri :: URI, visibility, tn :: NameChanger) -> T.DataType:
   cases(T.DataType) dtyp:
-    | t-data(name, visibility, params, variants, fields, l) =>
+    | t-data(name, _, params, variants, fields, l) =>
       T.t-data(
           name,
           visibility,
@@ -1430,7 +1431,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
                 origin = CS.bind-origin(l, exp.l, true, uri, name)
-                dp.set(as-name.toname(), CS.d-type(origin, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer)))
+                dp.set(as-name.toname(), CS.d-type(origin, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, d.visibility, transformer)))
                 
             end
           end
