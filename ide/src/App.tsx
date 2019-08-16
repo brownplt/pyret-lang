@@ -86,30 +86,6 @@ type EditorState = {
     contents: string;
 };
 
-class Editor extends React.Component<EditorProps, EditorState> {
-    constructor(props: EditorProps) {
-        super(props);
-
-        this.state = {
-            contents: this.props.contents
-        };
-    }
-
-    autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this.setState({contents: e.target.value});
-        this.props.fs.writeFileSync(this.props.path, e.target.value);
-    }
-
-    render() {
-        return (
-            <textarea className="editor"
-                      value={this.state.contents}
-                      onChange={this.autosave}>
-            </textarea>
-        );
-    }
-}
-
 function isCompileSuccess(x: any): x is CompileSuccess {
     if (x.path) {
         return true;
