@@ -232,13 +232,14 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     render() {
         return (
-            <ul>
+            <ul id="fs-browser">
                 {this.state.parentDirectory ? (
                     <li onClick={() => {
                         if (this.state.parentDirectory) {
                             this.changeDirectory(this.state.parentDirectory);
                         }
-                    }}>
+                    }}
+                        className="fs-browser-item">
                         ..
                     </li>
                 ) : (
@@ -249,7 +250,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                         .readdirSync(this.state.currentDirectory)
                         .map((file: string) => {
                             return (
-                                <li onClick={() => this.changeDirectory(file)}>
+                                <li onClick={() => this.changeDirectory(file)}
+                                    className="fs-browser-item">
                                     {file}
                                 </li>
                             );

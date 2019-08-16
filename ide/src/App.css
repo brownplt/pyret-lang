@@ -91,3 +91,14 @@ html, body, #root {
     height: 2.5rem;
     flex: none;
 }
+
+.fs-browser-item {
+    margin-top: 0.2em;
+    background: white;
+}
+
+#fs-browser {
+    background: lightgray;
+    overflow-y: scroll;
+    width: 20em;
+}
