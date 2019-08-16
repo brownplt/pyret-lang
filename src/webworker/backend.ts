@@ -83,7 +83,6 @@ export function runProgram(runner: any, baseDir: string, program: string, runKin
   if (runKind === RunKind.Sync) {
     const start = window.performance.now();
     const result = runner.makeRequire(baseDir)(program);
-    // const result = runner.makeRequire("/compiled/project")("program.arr.js");
     const end = window.performance.now();
 
     return Promise.resolve({
@@ -92,7 +91,6 @@ export function runProgram(runner: any, baseDir: string, program: string, runKin
       });
   } else if (runKind === RunKind.Async) {
     const entry = runner.makeRequireAsync(baseDir);
-    // const entry = runner.makeRequireAsync("/compiled/project");
     const resultP = entry(program);
 
     let wrapper = async function() {

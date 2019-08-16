@@ -33,37 +33,6 @@ enum RunKind {
     Async = "ASYNC"
 };
 
-export function runProgram(baseDir: string, program: string, runKind: RunKind): Promise<RunSuccess> {
-    if (runKind === RunKind.Sync) {
-        const start = window.performance.now();
-        const result = runner.makeRequire(baseDir)(program);
-        // const result = runner.makeRequire("/compiled/project")("program.arr.js");
-        const end = window.performance.now();
-
-        return Promise.resolve({
-            time: end - start,
-            result: result
-        });
-    } else {
-        const entry = runner.makeRequireAsync(baseDir);
-        // const entry = runner.makeRequireAsync("/compiled/project");
-        const resultP = entry(program);
-
-        let wrapper = async function() {
-            const start = window.performance.now();
-            let result = await resultP();
-            const end = window.performance.now();
-
-            return {
-                time: end - start,
-                result: result,
-            };
-        };
-
-        return wrapper();
-    }
-}
-
 function isCompileSuccess(x: any): x is CompileSuccess {
     if (x.path) {
         return true;
@@ -143,6 +112,7 @@ type EditorProps = {
     openFilePath: string;
     contents: string;
     worker: Worker;
+    runner: any;
 };
 
 type EditorState = {
@@ -211,9 +181,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     pyretRun = (callback: (result: any) => void): void => {
-        runProgram("/compiled/project", 'program-cache.arr.js', RunKind.Sync)
-            .catch(callback)
-            .then(callback);
+        backend.runProgram(
+            this.props.runner,
+            "/compiled/project",
+            'program-cache.arr.js',
+            RunKind.Sync)
+               .catch(callback)
+               .then(callback);
     }
 
     static isPyretFile(path: string) {
@@ -431,7 +405,8 @@ class App extends React.Component<AppProps, AppState> {
             <Editor fs={BrowserFS.fs}
                     openFilePath={programCacheFile}
                     contents={this.state.editorContents}
-                    worker={worker}/>
+                    worker={worker}
+                    runner={runner}/>
         );
     };
 }
