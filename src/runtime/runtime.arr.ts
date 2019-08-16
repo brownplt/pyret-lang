@@ -28,7 +28,16 @@ interface Unknown {
 
 type TypeEqualityResult = Equal | NotEqual | Unknown;
 
-const EqualityResult = {
+interface IEqualityResult {
+  Equal: Equal,
+  NotEqual: (reason: string, value1: any, value2: any) => NotEqual,
+  Unknown: (reason: string, value1: any, value2: any) => Unknown,
+  "is-Equal": (val: any) => boolean,
+  "is-NotEqual": (val: any) => boolean,
+  "is-Unknown": (val: any) => boolean,
+}
+
+const EqualityResult: IEqualityResult = {
   // TODO(alex): implement is-EqualityResult
 
   "Equal": {
