@@ -179,43 +179,24 @@ class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
 
-        this.props.worker.onmessage = (e) => {
-            if (e.data.browserfsMessage === true) {
-                return null;
-            }
-
-            try {
-                var msgObject = JSON.parse(e.data);
-
-                var msgType = msgObject["type"];
-                if (msgType === undefined) {
-                    return null;
-                } else if (msgType === "echo-log") {
-                    console.log(msgObject.contents);
-                } else if (msgType === "echo-err") {
-                    console.log(msgObject.contents);
-                } else if (msgType === "compile-failure") {
-                    console.log();
-                } else if (msgType === "compile-success") {
+        this.props.worker.onmessage =
+            backend.makeBackendMessageHandler(
+                console.log,
+                console.log,
+                () => { return; },
+                () => {
                     this.pyretRun((runResult) => {
-                                      if (isRunSuccess(runResult)) {
-                                          this.setState(
-                                              {
-                                                  interactions: makeResult(runResult.result)
-                                              }
-                                          );
-                                      } else {
-                                          // there was an issue at run time
-                                      }
-                                  });
-                } else {
-                    return null;
-                }
-
-            } catch(e) {
-                return null;
-            }
-        }
+                        if (isRunSuccess(runResult)) {
+                            this.setState(
+                                {
+                                    interactions: makeResult(runResult.result)
+                                }
+                            );
+                        } else {
+                            // there was an issue at run time
+                        }
+                    });
+                });
 
         this.state = {
             fsBrowserVisible: false,
