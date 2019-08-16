@@ -465,7 +465,7 @@ check:
           # MARK(joe/ben): modules
           CM.provides("builtin://global", mt, mt, mt,
             [SD.string-dict:
-              "Number", T.t-data("Number", A.d-all, empty, empty, SD.make-string-dict(), A.dummy-loc)]),
+              "Number", T.t-data("Number", T.all, empty, empty, SD.make-string-dict(), A.dummy-loc)]),
           CM.no-builtins,
           CM.computed-none,
           CM.ok("dummy")

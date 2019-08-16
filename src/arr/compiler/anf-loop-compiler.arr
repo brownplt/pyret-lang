@@ -2057,7 +2057,7 @@ fun compile-type-member(name, typ):
 end
 
 fun compile-visibility(v):
-  cases(A.DataVisibility) v:
+  cases(T.DataVisibility) v:
     | d-all => j-str("all")
     | d-opaque => j-str("opaque")
   end

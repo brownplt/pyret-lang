@@ -384,16 +384,11 @@ sharing:
   end
 end
 
-data DataVisibility:
-  | d-opaque
-  | d-all
-end
-
 data ProvideSpec:
   | s-provide-name(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-provide-name" end,
     method tosource(self): self.name-spec.tosource() end
-  | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>, visibility :: DataVisibility) with:
+  | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
     method label(self): "s-provide-data" end,
     method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
   | s-provide-type(l :: Loc, name-spec :: NameSpec) with:
@@ -1945,8 +1940,8 @@ default-map-visitor = {
   method s-provide-name(self, l, name-spec):
     s-provide-name(l, name-spec.visit(self))
   end,
-  method s-provide-data(self, l, name-spec, hidden, visibility):
-    s-provide-data(l, name-spec.visit(self), hidden.map(_.visit(self)), visibility)
+  method s-provide-data(self, l, name-spec, hidden):
+    s-provide-data(l, name-spec.visit(self), hidden.map(_.visit(self)))
   end,
   method s-provide-type(self, l, name-spec):
     s-provide-type(l, name-spec.visit(self))
@@ -2556,7 +2551,7 @@ default-iter-visitor = {
   method s-provide-name(self, l, name-spec):
     name-spec.visit(self)
   end,
-  method s-provide-data(self, l, name-spec, hidden, _):
+  method s-provide-data(self, l, name-spec, hidden):
     name-spec.visit(self) and hidden.all(_.visit(self))
   end,
   method s-provide-type(self, l, name-spec):

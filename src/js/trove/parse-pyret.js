@@ -87,7 +87,7 @@
             tr(node.kids[1])
         );
       }
-      function dataIncludeSpec(node, constructor) {
+      function dataSpec(node, constructor) {
         var hidings;
         node.kids[1].name = 'name-spec';
         if(node.kids.length === 2) {
@@ -100,22 +100,6 @@
             pos(node.pos),
             tr(node.kids[1]),
             hidings
-            );
-      }
-      function dataProvideSpec(node, constructor) {
-        var hidings;
-        node.kids[1].name = 'name-spec';
-        if(node.kids.length === 2) {
-          hidings = makeListTr([]);
-        }
-        else {
-          hidings = tr(node.kids[2]);
-        }
-        return RUNTIME.getField(ast, constructor).app(
-            pos(node.pos),
-            tr(node.kids[1]),
-            hidings,
-            RUNTIME.getField(ast, "d-all")
             );
       }
       function moduleSpec(node, constructor) {
@@ -219,7 +203,7 @@
           return tr(node.kids[0]);
         },
         'include-data-spec': function(node) {
-          return dataIncludeSpec(node, 's-include-data');
+          return dataSpec(node, 's-include-data');
         },
         'include-type-spec': function(node) {
           return typeSpec(node, 's-include-type');
@@ -265,7 +249,7 @@
           return nameSpec(node, 's-provide-name');
         },
         'provide-data-spec': function(node) {
-          return dataProvideSpec(node, 's-provide-data');
+          return dataSpec(node, 's-provide-data');
         },
         'provide-type-spec': function(node) {
           return typeSpec(node, 's-provide-type');
