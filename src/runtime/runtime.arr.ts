@@ -5,6 +5,29 @@ const $EqualTag = 0;
 const $NotEqualTag = 1;
 const $UnknownTag = 2;
 
+interface Equal { 
+  $brand: any,
+  $tag: number,
+}
+
+interface NotEqual {
+  $brand: any,
+  $tag: number,
+  reason: string,
+  value1: any,
+  value2: any,
+}
+
+interface Unknown {
+  $brand: any,
+  $tag: number,
+  reason: string,
+  value1: any,
+  value2: any,
+}
+
+type TypeEqualityResult = Equal | NotEqual | Unknown;
+
 const EqualityResult = {
   // TODO(alex): implement is-EqualityResult
 
@@ -13,7 +36,7 @@ const EqualityResult = {
     "$tag": $EqualTag,
   },
 
-  "NotEqual": function NotEqual(reason, value1, value2) {
+  "NotEqual": function NotEqual(reason: string, value1: any, value2: any): NotEqual {
     return {
       "$brand": $NotEqualBrand,
       "$tag": $NotEqualTag,
@@ -23,7 +46,7 @@ const EqualityResult = {
     };
   },
 
-  "Unknown": function Unknown(reason, value1, value2) {
+  "Unknown": function Unknown(reason: string, value1: any, value2: any): Unknown {
     return {
       "$brand": $UnknownBrand,
       "$tag": $UnknownTag,
@@ -33,15 +56,15 @@ const EqualityResult = {
     };
   },
 
-  "is-Equal":function Equal(val) {
+  "is-Equal": function Equal(val: any): boolean{
     return val.$brand === $EqualBrand;
   },
 
-  "is-NotEqual":function NotEqual(val) {
+  "is-NotEqual": function NotEqual(val: any): boolean {
     return val.$brand === $NotEqualBrand;
   },
 
-  "is-Unknown":function Unknown(val) {
+  "is-Unknown": function Unknown(val: any): boolean {
     return val.$brand === $UnknownBrand;
   }
 };
