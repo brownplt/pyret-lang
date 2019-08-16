@@ -363,24 +363,31 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 null
                             ))
                         }
-                        <div id="definitions-container">
-                            <textarea className="editor"
-                                      value={this.state.contents}
-                                      onChange={this.autosave}>
-                            </textarea>
-                        </div>
-                        <div id="separator">
-                        </div>
-                        <div id="interactions-container">
-                            <pre id="interactions-area"
-                                 className="code">
-                                {
-                                    this.state.interactions.map(
-                                        (i) => {
-                                            return <Interaction key={i.name} name={i.name} value={i.value} />
-                                        })
-                                }
-                            </pre>
+                        <div id="file-container">
+                            <div id="file-name-label">
+                                {this.state.openFilePath}
+                            </div>
+                            <div id="main-container">
+                                <div id="definitions-container">
+                                    <textarea className="editor"
+                                              value={this.state.contents}
+                                              onChange={this.autosave}>
+                                    </textarea>
+                                </div>
+                                <div id="separator">
+                                </div>
+                                <div id="interactions-container">
+                                    <pre id="interactions-area"
+                                         className="code">
+                                        {
+                                            this.state.interactions.map(
+                                                (i) => {
+                                                    return <Interaction key={i.name} name={i.name} value={i.value} />
+                                                })
+                                        }
+                                    </pre>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
