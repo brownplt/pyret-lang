@@ -1,7 +1,3 @@
-/*jshint globalstrict: true, node: true
-*/
-"use strict";
-
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
 const $UnknownBrand = {"names":["reason","value1","value2"]};
