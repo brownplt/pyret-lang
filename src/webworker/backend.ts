@@ -21,15 +21,19 @@ export interface RunResult {
  * Handles Pyret compiler messages ONLY.
  * Ignores all other messages (including BrowserFS messages)
  */
-export function makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess) {
-  function backendMessageHandler(e) {
+export function makeBackendMessageHandler(
+  echoLog: (l: string) => void,
+  echoErr: (e: string) => void,
+  compileFailure: () => void,
+  compileSuccess: () => void) {
+  function backendMessageHandler(e: MessageEvent) {
     if (e.data.browserfsMessage === true) {
       return null;
     }
 
     try {
       var msgObject = JSON.parse(e.data);
-    
+
       var msgType = msgObject["type"];
       if (msgType === undefined) {
         return null;
@@ -54,7 +58,9 @@ export function makeBackendMessageHandler(echoLog, echoErr, compileFailure, comp
   return backendMessageHandler;
 }
 
-export function compileProgram(compilerWorker, options: CompileOptions) {
+export function compileProgram(
+  compilerWorker: Worker,
+  options: CompileOptions) {
   let message = {
     _parley: true,
     options: {
@@ -67,6 +73,10 @@ export function compileProgram(compilerWorker, options: CompileOptions) {
   };
 
   compilerWorker.postMessage(message);
+}
+
+const assertNever = (arg: never): never => {
+  throw new Error('assertNever');
 }
 
 export function runProgram(runner: any, baseDir: string, program: string, runKind: RunKind): Promise<RunResult> {
@@ -97,5 +107,8 @@ export function runProgram(runner: any, baseDir: string, program: string, runKin
     };
 
     return wrapper();
+  } else {
+    // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
+    return assertNever(runKind);
   }
 }

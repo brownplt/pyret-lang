@@ -4,6 +4,7 @@ const BrowserFS = require('./BrowserFS.ts');
 const RuntimeLoader = require('./runtime-loader.ts');
 const worker = new Worker('pyret.jarr');
 const runner = require('./runner.ts')(BrowserFS.fs, BrowserFS.path);
+const backend = require('./backend.ts');
 
 BrowserFS.install();
 BrowserFS.configure(worker);
