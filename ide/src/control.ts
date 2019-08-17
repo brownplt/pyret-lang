@@ -64,3 +64,15 @@ export const compile = (programPath: string): void => {
       "typeCheck": true
     });
 };
+
+export const run = (
+  compiledProgramPath: string,
+  callback: (result: any) => void): void => {
+  backend.runProgram(
+    runner,
+    path.compiledProject,
+    compiledProgramPath,
+    backend.RunKind.Sync)
+    .catch(callback)
+    .then(callback);
+};

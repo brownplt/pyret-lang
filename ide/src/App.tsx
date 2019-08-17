@@ -112,13 +112,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 console.log,
                 () => { return; },
                 () => {
-                    this.pyretRun((runResult) => {
-                        this.setState(
-                            {
-                                interactions: makeResult(runResult.result)
-                            }
-                        );
-                    });
+                    control.run(
+                        control.path.programCacheJS,
+                        (runResult: any) => {
+                            this.setState(
+                                {
+                                    interactions: makeResult(runResult.result)
+                                }
+                            );
+                        });
                 });
 
         this.state = {
@@ -131,16 +133,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
             openFilePath: this.props.openFilePath,
             contents: this.props.contents
         };
-    };
-
-    pyretRun = (callback: (result: any) => void): void => {
-        control.backend.runProgram(
-            this.props.runner,
-            control.path.compiledProject,
-            control.path.programCacheJS,
-            control.backend.RunKind.Sync)
-               .catch(callback)
-               .then(callback);
     };
 
     static isPyretFile(path: string) {
