@@ -1,11 +1,11 @@
 const bfsSetup = require('./browserfs-setup.ts');
 const runtimeFiles = require('./runtime-files.json');
 const runtimeLoader = require('./runtime-loader.ts');
-export const runner = require('./runner.ts');
+const runner = require('./runner.ts');
 export const backend = require('./backend.ts');
 export const path = require('./path.ts');
 
-export const worker = new Worker(path.pyretJarr);
+const worker = new Worker(path.pyretJarr);
 
 export const installFileSystem = () => {
   bfsSetup.install();
