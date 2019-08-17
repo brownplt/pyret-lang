@@ -7,14 +7,14 @@ export const path = require('./path.ts');
 
 export const worker = new Worker(path.pyretJarr);
 
-bfsSetup.install();
-bfsSetup.configure(worker, path.projects);
+export const installFileSystem = () => {
+  bfsSetup.install();
+  bfsSetup.configure(worker, path.projects);
+};
 
 export const loadBuiltins = (): void => {
   runtimeLoader.load(bfsSetup.fs, path.prewritten, path.uncompiled, runtimeFiles);
 };
-
-loadBuiltins();
 
 export const runProgram = backend.runProgram;
 export const compileProgram = backend.compileProgram;

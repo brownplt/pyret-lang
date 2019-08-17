@@ -3,6 +3,9 @@ import './App.css';
 
 const control = require('./control.ts');
 
+control.installFileSystem();
+control.loadBuiltins();
+
 type AppProps = {};
 type AppStateInteractions = {name: string, value:any}[];
 type AppState = {
