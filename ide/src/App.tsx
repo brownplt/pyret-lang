@@ -105,22 +105,21 @@ class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
 
-        this.props.worker.onmessage =
-            control.backend.makeBackendMessageHandler(
-                console.log,
-                console.log,
-                () => { return; },
-                () => {
-                    control.run(
-                        control.path.programCacheJS,
-                        (runResult: any) => {
-                            this.setState(
-                                {
-                                    interactions: makeResult(runResult.result)
-                                }
-                            );
-                        });
-                });
+        control.setupWorkerMessageHandler(
+            console.log,
+            console.log,
+            () => { return; },
+            () => {
+                control.run(
+                    control.path.programCacheJS,
+                    (runResult: any) => {
+                        this.setState(
+                            {
+                                interactions: makeResult(runResult.result)
+                            }
+                        );
+                    });
+            });
 
         this.state = {
             fsBrowserVisible: false,

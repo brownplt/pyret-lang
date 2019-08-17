@@ -76,3 +76,15 @@ export const run = (
     .catch(callback)
     .then(callback);
 };
+
+export const setupWorkerMessageHandler = (
+  onLog: (l: string) => void,
+  onError: (e: string) => void,
+  onCompileFailure: () => void,
+  onCompileSuccess: () => void): void => {
+  worker.onmessage = backend.makeBackendMessageHandler(
+    onLog,
+    onError,
+    onCompileFailure,
+    onCompileSuccess);
+};
