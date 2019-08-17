@@ -257,6 +257,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
+        main.loadBuiltins();
+    };
+
     render() {
         return (
             <div id="outer-box">
@@ -270,6 +274,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             className="prose"
                             onClick={this.toggleFSBrowser}>
                         File System
+                    </button>
+                    <button id="load-builtins"
+                            className="prose"
+                            onClick={this.loadBuiltins}>
+                        Load Builtins
                     </button>
                 </div>
                 <div id="main">
@@ -358,7 +367,8 @@ class App extends React.Component<AppProps, AppState> {
                     openFilePath={programCacheFile}
                     contents={this.state.editorContents}
                     worker={main.worker}
-                    runner={main.runner}/>
+                    runner={main.runner} >
+            </Editor>
         );
     };
 }
