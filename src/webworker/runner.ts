@@ -1,8 +1,7 @@
-module.exports = function(browserFS: any, path: any){
+module.exports = function(fs: any, path: any){
 
   const assert = require('assert');
   const immutable = require('immutable');
-  const fs = browserFS;
   const stopify = require('@stopify/stopify');
 
   const nodeModules = {
