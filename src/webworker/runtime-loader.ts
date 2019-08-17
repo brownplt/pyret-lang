@@ -1,9 +1,8 @@
-const load = (
+export const load = (
   fs: any,
   prewrittenDirectory: string,
   uncompiledDirectory: string,
   runtimeFiles: any): void => {
-
   if (!fs.existsSync(prewrittenDirectory)) {
     fs.mkdirSync(prewrittenDirectory);
   }
@@ -23,8 +22,4 @@ const load = (
       fs.writeFileSync(path, content);
     }
   }
-}
-
-module.exports = {
-  load: load
 };

@@ -1,14 +1,14 @@
-const BrowserFS = require("browserfs");
+export const BrowserFS = require("browserfs");
 
-const fs = BrowserFS.BFSRequire('fs');
+export const fs = BrowserFS.BFSRequire('fs');
 
-const path = BrowserFS.BFSRequire('path');
+export const path = BrowserFS.BFSRequire('path');
 
-const install = (): void => {
+export const install = (): void => {
   BrowserFS.install(window);
 };
 
-const configure = (worker: Worker, projectsDirectory: string): void => {
+export const configure = (worker: Worker, projectsDirectory: string): void => {
   BrowserFS.configure({
     fs: "LocalStorage"
   }, function(e: any) {
@@ -22,12 +22,4 @@ const configure = (worker: Worker, projectsDirectory: string): void => {
 
     BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
   });
-};
-
-module.exports = {
-  BrowserFS: BrowserFS,
-  fs: fs,
-  path: path,
-  install: install,
-  configure: configure
 };

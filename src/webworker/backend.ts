@@ -16,17 +16,16 @@ export interface RunResult {
   result: any,
 }
 
-
 /*
  * Handles Pyret compiler messages ONLY.
  * Ignores all other messages (including BrowserFS messages)
  */
-export function makeBackendMessageHandler(
+export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
   echoErr: (e: string) => void,
   compileFailure: () => void,
-  compileSuccess: () => void) {
-  function backendMessageHandler(e: MessageEvent) {
+  compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
+  const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
       return null;
     }
@@ -53,15 +52,15 @@ export function makeBackendMessageHandler(
       console.log(e);
       return null;
     }
-  }
+  };
 
   return backendMessageHandler;
-}
+};
 
-export function compileProgram(
+export const compileProgram = (
   compilerWorker: Worker,
-  options: CompileOptions) {
-  let message = {
+  options: CompileOptions): void => {
+  const message = {
     _parley: true,
     options: {
       program: options.program,
@@ -73,22 +72,26 @@ export function compileProgram(
   };
 
   compilerWorker.postMessage(message);
-}
+};
 
-const assertNever = (arg: never): never => {
+const assertNever = (_arg: never): never => {
   throw new Error('assertNever');
-}
+};
 
-export function runProgram(runner: any, baseDir: string, program: string, runKind: RunKind): Promise<RunResult> {
+export const runProgram = (
+  runner: any,
+  baseDir: string,
+  program: string,
+  runKind: RunKind): Promise<RunResult> => {
   if (runKind === RunKind.Sync) {
     const start = window.performance.now();
     const result = runner.makeRequire(baseDir)(program);
     const end = window.performance.now();
 
     return Promise.resolve({
-        time: end - start,
-        result: result
-      });
+      time: end - start,
+      result: result
+    });
   } else if (runKind === RunKind.Async) {
     const entry = runner.makeRequireAsync(baseDir);
     const resultP = entry(program);
@@ -109,4 +112,4 @@ export function runProgram(runner: any, baseDir: string, program: string, runKin
     // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
     return assertNever(runKind);
   }
-}
+};
