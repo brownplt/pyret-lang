@@ -1,16 +1,7 @@
 import React from 'react';
 import './App.css';
-const bfsSetup = require('./browserfs-setup.ts');
-const runtimeFiles = require('./runtime-files.json');
-const runtimeLoader = require('./runtime-loader.ts');
-const worker = new Worker('pyret.jarr');
-const runner = require('./runner.ts')(bfsSetup.fs, bfsSetup.path);
-const backend = require('./backend.ts');
 
-bfsSetup.install();
-bfsSetup.configure(worker, './projects');
-
-runtimeLoader.load(bfsSetup.fs, '/prewritten', '/uncompiled', runtimeFiles);
+const main = require('./main.ts');
 
 const programCacheFile = '/program-cache.arr';
 
@@ -120,7 +111,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         this.props.worker.onmessage =
-            backend.makeBackendMessageHandler(
+            main.backend.makeBackendMessageHandler(
                 console.log,
                 console.log,
                 () => { return; },
@@ -147,7 +138,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     pyretRun = (callback: (result: any) => void): void => {
-        backend.runProgram(
+        main.backend.runProgram(
             this.props.runner,
             "/compiled/project",
             'program-cache.arr.js',
@@ -163,7 +154,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     run = () => {
         if (Editor.isPyretFile(this.state.openFilePath)) {
 
-            backend.compileProgram(
+            main.backend.compileProgram(
                 this.props.worker,
                 {
                     "program": this.state.openFilePath,
@@ -353,7 +344,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(bfsSetup.fs, programCacheFile)
+            editorContents: App.openOrCreateFile(main.fs, programCacheFile)
         };
     };
 
@@ -368,11 +359,11 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <Editor fs={bfsSetup.fs}
+            <Editor fs={main.fs}
                     openFilePath={programCacheFile}
                     contents={this.state.editorContents}
-                    worker={worker}
-                    runner={runner}/>
+                    worker={main.worker}
+                    runner={main.runner}/>
         );
     };
 }
