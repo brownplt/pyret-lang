@@ -5,11 +5,6 @@ const main = require('./main.ts');
 
 const programCacheFile = '/program-cache.arr';
 
-enum RunKind {
-    Sync = "SYNC",
-    Async = "ASYNC"
-};
-
 type AppProps = {};
 type AppStateInteractions = {name: string, value:any}[];
 type AppState = {
@@ -142,7 +137,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             this.props.runner,
             "/compiled/project",
             'program-cache.arr.js',
-            RunKind.Sync)
+            main.backend.RunKind.Sync)
                .catch(callback)
                .then(callback);
     };
