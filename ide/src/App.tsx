@@ -249,23 +249,19 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div id="outer-box">
                 <div id="header">
-                    <button id="run"
-                            className="prose"
+                    <button className="right-header-button"
                             onClick={this.run}>
                         Run
                     </button>
-                    <button id="open-fs"
-                            className="prose"
+                    <button className="left-header-button"
                             onClick={this.toggleFSBrowser}>
                         File System
                     </button>
-                    <button id="load-builtins"
-                            className="prose"
+                    <button className="left-header-button"
                             onClick={this.loadBuiltins}>
                         Load Builtins
                     </button>
-                    <button id="remove-root"
-                            className="prose"
+                    <button className="left-header-button"
                             onClick={this.removeRootDirectory}>
                         Remove Root
                     </button>
