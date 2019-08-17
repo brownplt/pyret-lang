@@ -1,9 +1,12 @@
-const bfsSetup = require('./browserfs-setup.ts');
+import * as bfsSetup from './browserfs-setup';
+import * as runtimeLoader from './runtime-loader';
+import * as runner from './runner';
+import * as backend from './backend';
+import * as path from './path';
+
 const runtimeFiles = require('./runtime-files.json');
-const runtimeLoader = require('./runtime-loader.ts');
-const runner = require('./runner.ts');
-export const backend = require('./backend.ts');
-export const path = require('./path.ts');
+
+export {backend, path};
 
 const worker = new Worker(path.pyretJarr);
 
@@ -26,7 +29,6 @@ export const deleteDir = (dir: string): void => {
       throw err;
     }
 
-    let count = files.length;
     files.forEach(function(file: string) {
       let filePath = bfsSetup.path.join(dir, file);
 

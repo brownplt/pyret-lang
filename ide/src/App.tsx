@@ -1,8 +1,7 @@
 import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
-
-const control = require('./control.ts');
+import * as control from './control';
 
 control.installFileSystem();
 control.loadBuiltins();
