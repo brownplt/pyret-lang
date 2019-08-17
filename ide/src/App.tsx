@@ -1,7 +1,7 @@
 import React from 'react';
 import './App.css';
 
-const main = require('./main.ts');
+const control = require('./control.ts');
 
 const programCacheFile = '/program-cache.arr';
 
@@ -106,7 +106,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         this.props.worker.onmessage =
-            main.backend.makeBackendMessageHandler(
+            control.backend.makeBackendMessageHandler(
                 console.log,
                 console.log,
                 () => { return; },
@@ -133,11 +133,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     pyretRun = (callback: (result: any) => void): void => {
-        main.backend.runProgram(
+        control.backend.runProgram(
             this.props.runner,
             "/compiled/project",
             'program-cache.arr.js',
-            main.backend.RunKind.Sync)
+            control.backend.RunKind.Sync)
                .catch(callback)
                .then(callback);
     };
@@ -149,7 +149,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     run = () => {
         if (Editor.isPyretFile(this.state.openFilePath)) {
 
-            main.backend.compileProgram(
+            control.backend.compileProgram(
                 this.props.worker,
                 {
                     "program": this.state.openFilePath,
@@ -258,11 +258,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
-        main.loadBuiltins();
+        control.loadBuiltins();
     };
 
     removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
-        main.removeRootDirectory();
+        control.removeRootDirectory();
     }
 
     render() {
@@ -357,7 +357,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(main.fs, programCacheFile)
+            editorContents: App.openOrCreateFile(control.fs, programCacheFile)
         };
     };
 
@@ -372,11 +372,11 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <Editor fs={main.fs}
+            <Editor fs={control.fs}
                     openFilePath={programCacheFile}
                     contents={this.state.editorContents}
-                    worker={main.worker}
-                    runner={main.runner} >
+                    worker={control.worker}
+                    runner={control.runner} >
             </Editor>
         );
     };
