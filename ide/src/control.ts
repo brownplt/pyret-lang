@@ -53,7 +53,7 @@ export const removeRootDirectory = (): void => {
   deleteDir(path.root);
 };
 
-export const compile = (programPath: string): void => {
+export const compile = (programPath: string, typeCheck: boolean): void => {
   backend.compileProgram(
     worker,
     {
@@ -61,7 +61,7 @@ export const compile = (programPath: string): void => {
       "baseDir": path.root,
       "builtinJSDir": path.prewritten,
       "checks": "none",
-      "typeCheck": true
+      "typeCheck": typeCheck
     });
 };
 

@@ -70,6 +70,7 @@ type EditorProps = {
 };
 
 type EditorState = {
+    typeCheck: boolean;
     path: string[];
     openFilePath: string;
     contents: string;
@@ -120,6 +121,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             });
 
         this.state = {
+            typeCheck: true,
             fsBrowserVisible: false,
             interactions: [{
                 name: "Note",
@@ -137,7 +139,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     run = () => {
         if (Editor.isPyretFile(this.state.openFilePath)) {
-            control.compile(this.state.openFilePath);
+            control.compile(this.state.openFilePath, this.state.typeCheck);
         } else {
             this.setState({
                 interactions: [
@@ -265,6 +267,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             onClick={this.removeRootDirectory}>
                         Remove Root
                     </button>
+                    <div className="header-run-option">
+                        <input type="checkbox"
+                               checked={this.state.typeCheck}
+                               name="typeCheck"
+                               onChange={(e) => {
+                                   this.setState({
+                                       typeCheck: !this.state.typeCheck
+                                   });
+                               }}>
+                        </input>
+                        <label htmlFor="typeCheck">
+                            Type Check
+                        </label>
+                    </div>
                 </div>
                 <div id="main">
                     <div id="edit-box">

@@ -121,3 +121,13 @@ html, body, #root {
     height: 100%;
     background: lightgray;
 }
+
+.header-run-option {
+    float: right;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    background: white;
+    width: 10em;
+    height: 100%;
+}
