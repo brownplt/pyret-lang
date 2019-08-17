@@ -69,7 +69,6 @@ type EditorProps = {
     openFilePath: string;
     contents: string;
     worker: Worker;
-    runner: any;
 };
 
 type EditorState = {
@@ -359,8 +358,7 @@ class App extends React.Component<AppProps, AppState> {
             <Editor fs={control.fs}
                     openFilePath={control.path.programCache}
                     contents={this.state.editorContents}
-                    worker={control.worker}
-                    runner={control.runner} >
+                    worker={control.worker}>
             </Editor>
         );
     };
