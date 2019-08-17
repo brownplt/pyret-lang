@@ -5,13 +5,13 @@ export const runner = require('./runner.ts');
 export const backend = require('./backend.ts');
 export const path = require('./path.ts');
 
-export const worker = new Worker('pyret.jarr');
+export const worker = new Worker(path.pyretJarr);
 
 bfsSetup.install();
-bfsSetup.configure(worker, './projects');
+bfsSetup.configure(worker, path.projects);
 
 export const loadBuiltins = (): void => {
-  runtimeLoader.load(bfsSetup.fs, '/prewritten', '/uncompiled', runtimeFiles);
+  runtimeLoader.load(bfsSetup.fs, path.prewritten, path.uncompiled, runtimeFiles);
 };
 
 loadBuiltins();
@@ -50,5 +50,5 @@ export const deleteDir = (dir: string): void => {
 };
 
 export const removeRootDirectory = (): void => {
-  deleteDir("/");
+  deleteDir(path.root);
 };
