@@ -3,8 +3,6 @@ import './App.css';
 
 const control = require('./control.ts');
 
-const programCacheFile = '/program-cache.arr';
-
 type AppProps = {};
 type AppStateInteractions = {name: string, value:any}[];
 type AppState = {
@@ -135,8 +133,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
     pyretRun = (callback: (result: any) => void): void => {
         control.backend.runProgram(
             this.props.runner,
-            "/compiled/project",
-            'program-cache.arr.js',
+            control.path.compiledProject,
+            control.path.programCacheJS,
             control.backend.RunKind.Sync)
                .catch(callback)
                .then(callback);
@@ -154,7 +152,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 {
                     "program": this.state.openFilePath,
                     "baseDir": this.currentDirectory,
-                    "builtinJSDir": "/prewritten",
+                    "builtinJSDir": control.path.prewritten,
                     "checks": "none",
                     "typeCheck": true
                 });
@@ -357,7 +355,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(control.fs, programCacheFile)
+            editorContents: App.openOrCreateFile(control.fs, control.path.programCache)
         };
     };
 
@@ -373,7 +371,7 @@ class App extends React.Component<AppProps, AppState> {
     render() {
         return (
             <Editor fs={control.fs}
-                    openFilePath={programCacheFile}
+                    openFilePath={control.path.programCache}
                     contents={this.state.editorContents}
                     worker={control.worker}
                     runner={control.runner} >

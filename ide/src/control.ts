@@ -3,6 +3,7 @@ const runtimeFiles = require('./runtime-files.json');
 const runtimeLoader = require('./runtime-loader.ts');
 export const runner = require('./runner.ts');
 export const backend = require('./backend.ts');
+export const path = require('./path.ts');
 
 export const worker = new Worker('pyret.jarr');
 
