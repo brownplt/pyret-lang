@@ -261,6 +261,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
         main.loadBuiltins();
     };
 
+    removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
+        main.removeRootDirectory();
+    }
+
     render() {
         return (
             <div id="outer-box">
@@ -279,6 +283,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             className="prose"
                             onClick={this.loadBuiltins}>
                         Load Builtins
+                    </button>
+                    <button id="remove-root"
+                            className="prose"
+                            onClick={this.removeRootDirectory}>
+                        Remove Root
                     </button>
                 </div>
                 <div id="main">

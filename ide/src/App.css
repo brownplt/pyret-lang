@@ -50,6 +50,13 @@ html, body, #root {
     border: none;
 }
 
+#remove-root {
+    float: left;
+    height: 100%;
+    width: 10em;
+    border: none;
+}
+
 #main {
     background: gray;
     height: 100%;

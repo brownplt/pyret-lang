@@ -19,3 +19,35 @@ export const runProgram = backend.runProgram;
 export const compileProgram = backend.compileProgram;
 export const fs = bfsSetup.fs;
 
+export const deleteDir = (dir: string): void => {
+  bfsSetup.fs.readdir(dir, function(err: any, files: any) {
+    if (err) {
+      throw err;
+    }
+
+    let count = files.length;
+    files.forEach(function(file: string) {
+      let filePath = bfsSetup.path.join(dir, file);
+
+      bfsSetup.fs.stat(filePath, function(err: any, stats: any) {
+        if (err) {
+          throw err;
+        }
+
+        if (stats.isDirectory()) {
+          deleteDir(filePath);
+        } else {
+          bfsSetup.fs.unlink(filePath, function(err: any) {
+            if (err) {
+              throw err;
+            }
+          });
+        }
+      });
+    });
+  });
+};
+
+export const removeRootDirectory = (): void => {
+  deleteDir("/");
+};
