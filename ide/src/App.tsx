@@ -65,7 +65,6 @@ class Interaction extends React.Component<InteractionProps, InteractionState> {
 }
 
 type EditorProps = {
-    fs: any;
     openFilePath: string;
     contents: string;
 };
@@ -156,7 +155,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.setState({contents: e.target.value});
-        this.props.fs.writeFileSync(this.state.openFilePath, e.target.value);
+        control.fs.writeFileSync(this.state.openFilePath, e.target.value);
     }
 
     traverseDown = (childDirectory: string) => {
@@ -196,7 +195,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     expandChild = (child: string) => {
-        const stats = this.props.fs.statSync(this.fullPathTo(child));
+        const stats = control.fs.statSync(this.fullPathTo(child));
 
         if (stats.isDirectory()) {
             this.traverseDown(child);
@@ -207,7 +206,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     value: "Press Run to compile and run"
                 }],
                 openFilePath: this.fullPathTo(child),
-                contents: this.props.fs.readFileSync(this.fullPathTo(child))
+                contents: control.fs.readFileSync(this.fullPathTo(child))
             });
         }
     }
@@ -287,7 +286,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         null
                                     )}
                                     {
-                                        this.props.fs
+                                        control.fs
                                             .readdirSync(this.currentDirectory)
                                             .map(this.createFSItemPair)
                                             .sort(this.compareFSItemPair)
@@ -353,8 +352,7 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <Editor fs={control.fs}
-                    openFilePath={control.path.programCache}
+            <Editor openFilePath={control.path.programCache}
                     contents={this.state.editorContents}>
             </Editor>
         );
