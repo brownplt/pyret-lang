@@ -151,7 +151,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.props.worker,
                 {
                     "program": this.state.openFilePath,
-                    "baseDir": this.currentDirectory,
+                    "baseDir": control.path.root,
                     "builtinJSDir": control.path.prewritten,
                     "checks": "none",
                     "typeCheck": true
