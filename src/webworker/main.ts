@@ -11,7 +11,7 @@ bfsSetup.configure(myWorker, projectsDir);
 
 const backend = require("./backend.ts");
 
-const runner = require("./runner.ts")(bfsSetup.fs, bfsSetup.path);
+const runner = require("./runner.ts");
 const pyretApi = require("./pyret-api.ts");
 
 const runtimeFiles = require("../../build/worker/runtime-files.json");

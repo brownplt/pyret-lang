@@ -1,7 +1,7 @@
 const bfsSetup = require('./browserfs-setup.ts');
 const runtimeFiles = require('./runtime-files.json');
 const runtimeLoader = require('./runtime-loader.ts');
-export const runner = require('./runner.ts')(bfsSetup.fs, bfsSetup.path);
+export const runner = require('./runner.ts');
 export const backend = require('./backend.ts');
 
 export const worker = new Worker('pyret.jarr');
