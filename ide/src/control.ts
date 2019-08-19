@@ -12,11 +12,11 @@ const worker = new Worker(path.pyretJarr);
 
 export const installFileSystem = () => {
   bfsSetup.install();
-  bfsSetup.configure(worker, path.projects);
+  bfsSetup.configure(worker, path.compileBase);
 };
 
 export const loadBuiltins = (): void => {
-  runtimeLoader.load(bfsSetup.fs, path.prewritten, path.uncompiled, runtimeFiles);
+  runtimeLoader.load(bfsSetup.fs, path.compileBuiltinJS, path.uncompiled, runtimeFiles);
 };
 
 export const runProgram = backend.runProgram;
@@ -55,27 +55,31 @@ export const removeRootDirectory = (): void => {
   deleteDir(path.root);
 };
 
-export const compile = (programPath: string, typeCheck: boolean): void => {
+export const compile = (
+  baseDirectory: string,
+  programFileName: string,
+  typeCheck: boolean): void => {
   backend.compileProgram(
     worker,
     {
-      "program": programPath,
-      "baseDir": path.root,
-      "builtinJSDir": path.prewritten,
+      "program": programFileName,
+      "baseDir": baseDirectory,
+      "builtinJSDir": path.compileBuiltinJS,
       "checks": "none",
       "typeCheck": typeCheck
     });
 };
 
 export const run = (
-  compiledProgramPath: string,
+  baseDirectory: string,
+  programFileName: string,
   callback: (result: any) => void): void => {
   backend.runProgram(
     runner,
-    path.compiledProject,
-    compiledProgramPath,
+    baseDirectory,
+    programFileName,
     backend.RunKind.Sync)
-    .catch(callback)
+    .catch(callback) // TODO use something other than callback here
     .then(callback);
 };
 

@@ -69,7 +69,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             () => { return; },
             () => {
                 control.run(
-                    control.path.programCacheJS,
+                    control.path.runBase,
+                    control.path.runProgram,
                     (runResult: any) => {
                         this.setState(
                             {
@@ -98,7 +99,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     run = () => {
         if (Editor.isPyretFile(this.state.openFilePath)) {
-            control.compile(this.state.openFilePath, this.state.typeCheck);
+            control.compile(
+                control.path.compileBase,
+                control.path.compileProgram,
+                this.state.typeCheck);
         } else {
             this.setState({
                 interactions: [
@@ -308,7 +312,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(control.fs, control.path.programCache)
+            editorContents: App.openOrCreateFile(control.fs, control.path.program)
         };
     };
 
@@ -323,7 +327,7 @@ class App extends React.Component<AppProps, AppState> {
 
     render() {
         return (
-            <Editor openFilePath={control.path.programCache}
+            <Editor openFilePath={control.path.program}
                     contents={this.state.editorContents}>
             </Editor>
         );
