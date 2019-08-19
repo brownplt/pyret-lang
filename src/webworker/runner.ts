@@ -27,14 +27,28 @@ export const makeRequireAsync = (
       if(!fs.existsSync(nextPath)) {
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
-      const contents = String(fs.readFileSync(nextPath));
-      const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
+      const stoppedPath = nextPath + ".stopped";
+      let runner = null;
+      if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
+        const stopifiedCode = String(fs.readFileSync(stoppedPath));
+        runner = new stopify.Runner(stopifiedCode, {});
+      }
+      else {
+        const contents = String(fs.readFileSync(nextPath));
+        runner = stopify.stopifyLocally("(function() { " + contents + "})()", {});
+        if(runner.kind !== "ok") { reject(runner); }
+        fs.writeFileSync(stoppedPath, runner.code);
+      }
       const module = {exports: false};
-      runner.g = { stopify, require: requireAsync, module };
+      runner.g = { stopify, require: requireAsync, module, String, $STOPIFY: runner, setTimeout: setTimeout, console: console };
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result: any) => {
         cwd = oldWd;
+        if(result.type !== "normal") {
+          reject(result);
+          return;
+        }
         const toReturn = module.exports ? module.exports : result;
         resolve(toReturn);
       });
@@ -51,19 +65,31 @@ export const makeRequireAsync = (
     if(!fs.existsSync(nextPath)) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
-    const contents = String(fs.readFileSync(nextPath));
-    const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
-    const module = {exports: false};
-    runner.g = { stopify, require: requireAsync, module, console };
-    runner.path = nextPath;
-    currentRunner.pauseImmediate(() => {
-      const oldRunner = currentRunner;
-      currentRunner = runner;
-      runner.run((result: any) => {
-        cwd = oldWd;
+    const stoppedPath = nextPath + ".stopped";
+    currentRunner.pauseK((kontinue: (result: any) => void) => {
+      const lastPath = currentRunner.path;
+      const module = {exports: false};
+      const lastModule = currentRunner.g.module;
+      currentRunner.g.module = module;
+      currentRunner.path = nextPath;
+      let stopifiedCode = "";
+      if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
+        stopifiedCode = String(fs.readFileSync(stoppedPath));
+      }
+      else {
+        const contents = String(fs.readFileSync(nextPath));
+        stopifiedCode = currentRunner.compile(contents);
+        fs.writeFileSync(stoppedPath, stopifiedCode);
+      }
+      currentRunner.evalCompiled(stopifiedCode, (result: any) => {
+        if(result.type !== "value") {
+          kontinue(result);
+          return;
+        }
         const toReturn = module.exports ? module.exports : result.value;
-        currentRunner = oldRunner;
-        oldRunner.continueImmediate({ type: 'normal', value: toReturn });
+        currentRunner.path = lastPath;
+        currentRunner.module = lastModule;
+        kontinue({ type: 'normal', value: toReturn });
       });
     });
   }
