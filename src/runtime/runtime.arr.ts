@@ -62,7 +62,7 @@ export interface Unknown {
 
 export type EqualityResult = Equal | NotEqual | Unknown;
 
-export function Equal(): Equal {
+function Equal(): Equal {
   return {
     "$brand": $EqualBrand,
     "$tag": $EqualTag,
@@ -225,3 +225,13 @@ export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
   return value;
 }
+
+// Hack needed b/c of interactions with the 'export' keyword
+// Pyret instantiates singleton data varaints by taking a reference to the value
+// TODO(alex): Should Pyret perform a function call to create a singleton data variant
+module.exports["Equal"] = Equal();
+
+// Hack needed to match generate Pyret-code
+module.exports["is-Equal"] = isEqual;
+module.exports["is-NotEqual"] = isNotEqual;
+module.exports["is-Unknown"] = isUnknown;
