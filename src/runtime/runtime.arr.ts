@@ -15,6 +15,7 @@ const $UnknownTag = 2;
 
 type UndefBool = undefined | boolean
 
+// ********* EqualityResult Representations *********
 export interface Equal { 
   $brand: any,
   $tag: number,
@@ -36,7 +37,7 @@ export interface Unknown {
   value2: any,
 }
 
-export type TypeEqualityResult = Equal | NotEqual | Unknown;
+export type EqualityResult = Equal | NotEqual | Unknown;
 
 export function Equal(): Equal {
   return {
@@ -77,7 +78,7 @@ export function isUnknown(val: any): boolean {
   return val.$brand === $UnknownBrand;
 }
 
-function equalityResultToBool(ans: TypeEqualityResult): boolean {
+function equalityResultToBool(ans: EqualityResult): boolean {
   if (isEqual(ans)) { 
     return true; 
   } else if (isNotEqual(ans)) { 
@@ -116,7 +117,7 @@ function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
 
-export function identical3(v1: any, v2: any): TypeEqualityResult {
+export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
     return Unknown("Function", v1, v2);
   // TODO(alex): Handle/detect methods
@@ -133,7 +134,7 @@ export function identical3(v1: any, v2: any): TypeEqualityResult {
 }
 
 export function identical(v1: any, v2: any): boolean {
-  let ans: TypeEqualityResult = identical3(v1, v2);
+  let ans: EqualityResult = identical3(v1, v2);
   return equalityResultToBool(ans);
 }
 
