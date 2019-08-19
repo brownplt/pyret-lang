@@ -1,5 +1,10 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Compiling and Running
+
+Run `npm run web` with `pyret-lang/` as your current directory. Then `cd` into `ide/` and run `npm install`.
+Next, proceed with either `npm start` or `npm run build`.
+
 ## `npm start`
 
 Runs the app in the development mode.<br>
