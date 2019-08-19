@@ -13,7 +13,30 @@ const $EqualTag = 0;
 const $NotEqualTag = 1;
 const $UnknownTag = 2;
 
+const $TupleBrand = "tuple";
+
 type UndefBool = undefined | boolean
+
+// ********* Runtime Type Representations (Non-Primitives) *********
+export interface Tuple {
+  $brand: string,
+  [key: string]: any,
+}
+
+export function Tuple(values: any[]): Tuple {
+  values["$brand"] = $TupleBrand;
+
+  return <Tuple><any>values;
+}
+
+export interface DataValue {
+  $brand: any,
+  [key: string]: any
+}
+
+export interface Ref {
+  ref: Object,
+}
 
 // ********* EqualityResult Representations *********
 export interface Equal { 
