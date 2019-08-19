@@ -23,24 +23,25 @@
                     </div>
                 </div>
                 <div style="float: right; width: 50%">
-                    <div style="padding:10px">
-                        <input type="checkbox" id="showBFS" value="show">
-                        <label for="showBFS">Show BFS Messages</label>
-                        <div style="float:right">
-                            <button type="button" id="loadBuiltins">
-                                Load Builtins
-                            </button>
-                            <button type="button" id="clearFS">
-                                Clear Filesystem
-                            </button>
-                            <button type="button" id="clearLogs">
-                                Clear Logs
-                            </button>
-                        </div>
-                    </div>
-                    <div id="consoleOut" style="position: absolute; height: 90%; overflow-y: scroll; white-space:pre-line">
-                      <ul id="consoleList">
-                      </ul>
+                    <div>
+                      <input type="checkbox" id="showBFS" value="show">
+                      <label for="showBFS">Show BFS Messages</label>
+                      <div style="float:right position: absolute">
+                          <button type="button" id="loadBuiltins">
+                              Load Builtins
+                          </button>
+                          <button type="button" id="clearFS">
+                              Clear Filesystem
+                          </button>
+                          <button type="button" id="clearLogs">
+                              Clear Logs
+                          </button>
+                        <div id="consoleOut" style="position: absolute; height: 80%; overflow-y: scroll; overflow-x: scroll; white-space:pre-line; width=100%; float: left">
+                        <ul id="consoleList">
+                        </ul>
+                      </div>
+                      </div>
+                      
                     </div>
                 </div>
             </div>

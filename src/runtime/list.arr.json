@@ -26,6 +26,9 @@
       "concat": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "lOfA"]],
       "concat-push": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "lOfA"]]
     },
+    "aliases": {
+      "List": ["local", "List"]
+    },
     "datatypes": {
       "List": ["data", "List", ["a"], [], {}]
     }

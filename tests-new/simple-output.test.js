@@ -37,7 +37,7 @@ describe("testing simple-output programs", () => {
 
       const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
       assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
-      assert(runProcess.stdout.indexOf(expect) !== -1, `${runProcess.stdout} should contain ${expect}`);
+      assert(runProcess.stdout.indexOf(expect) !== -1, `${runProcess.stdout} should contain ${expect} and stderr was ${runProcess.stderr}`);
     });
   });
 });

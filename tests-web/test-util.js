@@ -40,16 +40,22 @@ if (process.env.BASE_URL) {
   throw "Set BASE_URL to be the root of the compiler directory";
 }
 
+let refreshPagePerTest;
+if (process.env.BROWSER_TEST_REFRESH) {
+  refreshPagePerTest = process.env.BROWSER_TEST_REFRESH;
+} else {
+  refreshPagePerTest = false;
+  console.log("Browser tests occur in the same page instance. To refresh the page between tests, set 'BROWSER_TEST_REFRESH' to 'true'");
+}
+
 let leave_open = process.env.LEAVE_OPEN === "true" || false;
 
 var chromeOptions = new seleniumChrome
   .Options();
 if (process.env.SHOW_BROWSER === "false") {
   chromeOptions = chromeOptions.headless();
-}
-
-if(!process.env.SHOW_BROWSER) {
   console.log("Running headless (may not work with Firefox). You can set SHOW_BROWSER=true to see what's going on");
+
 }
 
 let args = [];
@@ -68,6 +74,7 @@ chromeCapabilities.set('chromeOptions', {
 const INPUT_ID = "program";
 const COMPILE_RUN_BUTTON = "compileRun";
 const TYPE_CHECK_CHECKBOX = "typeCheck";
+const CLEAR_LOGS = "clearLogs";
 
 function setup() {
 
@@ -90,6 +97,7 @@ function setup() {
   return {
     driver: driver,
     baseURL: BASE_URL,
+    refreshPagePerTest: refreshPagePerTest,
   };
 }
 
@@ -101,13 +109,23 @@ function beginSetInputText(driver, unescapedInput) {
   );
 }
 
+async function clearLogs(driver) {
+  let clearButton = await driver.findElement({ id: CLEAR_LOGS });
+  await clearButton.click();
+}
+
 async function compileRun(driver, options) {
-  if (options["type-check"] === false) {
     let tc = await driver.findElement({ id: TYPE_CHECK_CHECKBOX });
-    if (tc.isSelected()) {
-      await tc.click();
+    let checked = await tc.getAttribute("checked");
+    if (options["type-check"] === false) {
+      if (checked) {
+        await tc.click();
+      }
+    } else {
+      if (!checked) {
+        await tc.click();
+      }
     }
-  }
   let runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
   await runButton.click();
 }
@@ -175,4 +193,5 @@ module.exports = {
   compileRun: compileRun,
   searchOutput: searchOutput,
   searchForRunningOutput: searchForRunningOutput,
+  clearLogs: clearLogs,
 };

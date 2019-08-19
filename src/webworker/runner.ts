@@ -1,55 +1,57 @@
 const assert = require('assert');
 const immutable = require('immutable');
-const browserFS = window['BrowserFS'].BFSRequire('fs');
-const path = window['BrowserFS'].BFSRequire('path');
-const stopify = require('@stopify/stopify');
-window['stopify'] = stopify;
+export const stopify = require('@stopify/stopify');
+const browserFS = require('./browserfs-setup.ts');
+
+const fs = browserFS.fs;
+const path = browserFS.path;
 
 const nodeModules = {
   'assert': assert,
   'immutable': immutable,
 };
 
-function makeRequireAsync(basePath : string) {
+export const makeRequireAsync = (
+  basePath: string): ((importPath: string) => Promise<any>) => {
   let cwd = basePath;
-  let currentRunner = null;
+  let currentRunner: any = null;
 
-  function requireAsyncMain(importPath : string) {
+  const requireAsyncMain = (importPath: string) => {
     return new Promise(function (resolve, reject) {
       if(importPath in nodeModules) {
-        return nodeModules[importPath];
+        return (nodeModules as any)[importPath];
       }
       const oldWd = cwd;
       const nextPath = path.join(cwd, importPath);
       cwd = path.parse(nextPath).dir;
-      if(!browserFS.existsSync(nextPath)) {
+      if(!fs.existsSync(nextPath)) {
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
-      const contents = String(browserFS.readFileSync(nextPath));
+      const contents = String(fs.readFileSync(nextPath));
       const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
       const module = {exports: false};
       runner.g = { stopify, require: requireAsync, module };
       runner.path = nextPath;
       currentRunner = runner;
-      runner.run((result) => {
+      runner.run((result: any) => {
         cwd = oldWd;
         const toReturn = module.exports ? module.exports : result;
         resolve(toReturn);
       });
     });
-  }
+  };
 
-  function requireAsync(importPath : string) {
+  const requireAsync = (importPath: string) => {
     if(importPath in nodeModules) {
-      return nodeModules[importPath];
+      return (nodeModules as any)[importPath];
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
     cwd = path.parse(nextPath).dir;
-    if(!browserFS.existsSync(nextPath)) {
+    if(!fs.existsSync(nextPath)) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
-    const contents = String(browserFS.readFileSync(nextPath));
+    const contents = String(fs.readFileSync(nextPath));
     const runner = stopify.stopifyLocally("(function() { " + String(contents) + "})()");
     const module = {exports: false};
     runner.g = { stopify, require: requireAsync, module, console };
@@ -57,7 +59,7 @@ function makeRequireAsync(basePath : string) {
     currentRunner.pauseImmediate(() => {
       const oldRunner = currentRunner;
       currentRunner = runner;
-      runner.run((result) => {
+      runner.run((result: any) => {
         cwd = oldWd;
         const toReturn = module.exports ? module.exports : result.value;
         currentRunner = oldRunner;
@@ -67,9 +69,9 @@ function makeRequireAsync(basePath : string) {
   }
 
   return requireAsyncMain;
-}
+};
 
-function makeRequire(basePath : string) {
+export const makeRequire = (basePath: string): ((importPath: string) => any) => {
   var cwd = basePath;
   /*
     Recursively eval (with this definition of require in scope) all of the
@@ -82,25 +84,24 @@ function makeRequire(basePath : string) {
     Future use of stopify could enable the definition of requireAsync, which
     could pause the stack while requiring and then resume.
   */
-  function requireSync(importPath : string) {
+  const requireSync = (importPath: string) => {
     if(importPath in nodeModules) {
-      return nodeModules[importPath];
+      return (nodeModules as any)[importPath];
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
     cwd = path.parse(nextPath).dir;
-    if(!browserFS.existsSync(nextPath)) {
+    if(!fs.existsSync(nextPath)) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
-    const contents = browserFS.readFileSync(nextPath);
+    const contents = fs.readFileSync(nextPath);
     const f = new Function("require", "module", contents);
     const module = {exports: false};
     const result = f(requireSync, module);
     const toReturn = module.exports ? module.exports : result;
     cwd = oldWd;
     return toReturn;
-  }
-  return requireSync;
-}
+  };
 
-module.exports = { makeRequire, makeRequireAsync };
+  return requireSync;
+};

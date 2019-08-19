@@ -14,7 +14,7 @@
       "tvb": ["tid", "b"]
     },
     "values": {
-      "string-dict": ["forall", ["a"], ["Maker", ["tid", "a"], "dOfA"]],
+      "string-dict": ["forall", ["a"], ["Maker", "tany", "dOfA"]],
       "make-string-dict": ["forall", ["a"], ["arrow", [], "dOfA"]],
       "count": ["arrow", ["lOfS"], "dOfI"],
       "apply": ["forall", ["a"], ["arrow", ["lOfS", ["arrow", ["String"], "tva"]], "dOfA"]],
@@ -25,6 +25,9 @@
       "keys": ["forall", ["a"], ["arrow", ["dOfA"], "String"]],
       "values": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
       "is-dict": ["arrow", ["tany"], "Boolean"]
+    },
+    "aliases": {
+      "StringDict": ["local", "StringDict"]
     },
     "datatypes": {
       "StringDict": ["data", "StringDict", ["a"], [], {}]

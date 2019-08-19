@@ -1,0 +1,9 @@
+export const root = "/";
+export const projects = `${root}projects/`;
+export const prewritten = `${root}prewritten/`;
+export const uncompiled = `${root}uncompiled/`;
+export const compiled = `${root}compiled/`;
+export const compiledProject = `${root}${compiled}project/`;
+export const programCache = `${projects}program.arr`;
+export const programCacheJS = `${projects}program.arr.js`;
+export const pyretJarr = `pyret.jarr`;
