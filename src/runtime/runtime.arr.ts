@@ -101,6 +101,8 @@ export function isUnknown(val: any): boolean {
   return val.$brand === $UnknownBrand;
 }
 
+
+// ********* Helpers *********
 function equalityResultToBool(ans: EqualityResult): boolean {
   if (isEqual(ans)) { 
     return true; 
@@ -140,6 +142,7 @@ function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
 
+// ********* Equality Functions *********
 export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
     return Unknown("Function", v1, v2);
@@ -217,6 +220,7 @@ export function equalAlways3(e1: any, e2: any) {
   return Equal();
 }
 
+// ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
   return value;
