@@ -28,7 +28,7 @@ export interface NotEqual {
   value2: any,
 }
 
-interface Unknown {
+export interface Unknown {
   $brand: any,
   $tag: number,
   reason: string,
@@ -36,7 +36,7 @@ interface Unknown {
   value2: any,
 }
 
-type TypeEqualityResult = Equal | NotEqual | Unknown;
+export type TypeEqualityResult = Equal | NotEqual | Unknown;
 
 export function Equal(): Equal {
   return {
