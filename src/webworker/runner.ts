@@ -96,7 +96,7 @@ export const makeRequireAsync = (
           kontinue(result);
           return;
         }
-        const toReturn = currentRunner.g.module ? currentRunner.g.module : result.value;
+        const toReturn = currentRunner.g.module.exports;
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
         kontinue({ type: 'normal', value: toReturn });
