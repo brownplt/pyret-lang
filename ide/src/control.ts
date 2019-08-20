@@ -6,7 +6,7 @@ import * as path from './path';
 
 const runtimeFiles = require('./runtime-files.json');
 
-export {backend, path};
+export {backend, path, bfsSetup};
 
 const worker = new Worker(path.pyretJarr);
 

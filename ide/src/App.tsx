@@ -19,15 +19,19 @@ function makeResult(result: any): {name: string, value: any}[] {
 }
 
 type EditorProps = {
-    openFilePath: string;
-    contents: string;
+    browseRoot: string;
+    browsePath: string[];
+    currentFileDirectory: string[];
+    currentFileName: string;
 };
 
 type EditorState = {
+    browseRoot: string;
+    browsePath: string[];
+    currentFileDirectory: string[];
+    currentFileName: string;
+    currentFileContents: string;
     typeCheck: boolean;
-    path: string[];
-    openFilePath: string;
-    contents: string;
     interactions: {name: string, value: any}[];
     fsBrowserVisible: boolean;
 };
@@ -76,27 +80,55 @@ class Editor extends React.Component<EditorProps, EditorState> {
             });
 
         this.state = {
+            browseRoot: this.props.browseRoot,
+            browsePath: this.props.browsePath,
+            currentFileDirectory: this.props.currentFileDirectory,
+            currentFileName: this.props.currentFileName,
+            currentFileContents: control.openOrCreateFile(
+                control.bfsSetup.path.join(
+                    ...this.props.currentFileDirectory,
+                    this.props.currentFileName)),
             typeCheck: true,
-            fsBrowserVisible: false,
             interactions: [{
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
-            path: [],
-            openFilePath: this.props.openFilePath,
-            contents: this.props.contents
+            fsBrowserVisible: false,
         };
     };
 
-    static isPyretFile(path: string) {
-        return /\.arr$/.test(path);
+    get isPyretFile() {
+        return /\.arr$/.test(this.currentFile);
+    }
+
+    get browsePath() {
+        return control.bfsSetup.path.join(...this.state.browsePath);
+    }
+
+    get currentFile() {
+        return control.bfsSetup.path.join(
+            ...this.state.currentFileDirectory,
+            this.state.currentFileName);
+    }
+
+    get currentFileName() {
+        return this.state.currentFileName;
+    }
+
+    get currentFileDirectory() {
+        return control.bfsSetup.path.join(...this.state.currentFileDirectory);
+    }
+
+    get browsingRoot() {
+        return control.bfsSetup.path.join(...this.state.browsePath) ===
+            this.state.browseRoot;
     }
 
     run = () => {
-        if (Editor.isPyretFile(this.state.openFilePath)) {
+        if (this.isPyretFile) {
             control.compile(
-                control.path.compileBase,
-                control.path.compileProgram,
+                this.currentFileDirectory,
+                this.currentFileName,
                 this.state.typeCheck);
         } else {
             this.setState({
@@ -107,55 +139,39 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     },
                     {
                         name: "File",
-                        value: this.state.openFilePath
+                        value: this.currentFile
                     }]
             });
         }
     };
 
     autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this.setState({contents: e.target.value});
-        control.fs.writeFileSync(this.state.openFilePath, e.target.value);
+        this.setState({currentFileContents: e.target.value});
+        control.fs.writeFileSync(this.currentFile, e.target.value);
     }
 
     traverseDown = (childDirectory: string) => {
-        const newPath = this.state.path.slice();
+        const newPath = this.state.browsePath.slice();
         newPath.push(childDirectory);
 
         this.setState({
-            path: newPath
+            browsePath: newPath,
         });
     }
 
     traverseUp = () => {
-        const newPath = this.state.path.slice();
+        const newPath = this.state.browsePath.slice();
         newPath.pop();
 
         this.setState({
-            path: newPath
+            browsePath: newPath,
         });
     }
 
-    get currentDirectory() {
-        if (this.state.path.length === 0) {
-            return "/";
-        } else {
-            const path = this.state.path
-                             .reduce(
-                                 (acc, v) => {
-                                     return `${acc}/${v}`;
-                                 },
-                                 "");
-            return `${path}/`;
-        }
-    }
-
-    fullPathTo = (file: string) => {
-        return `${this.currentDirectory}${file}`;
-    }
-
     expandChild = (child: string) => {
-        const stats = control.fs.statSync(this.fullPathTo(child));
+        const fullChildPath =
+            control.bfsSetup.path.join(this.browsePath, child);
+        const stats = control.fs.statSync(fullChildPath);
 
         if (stats.isDirectory()) {
             this.traverseDown(child);
@@ -165,8 +181,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     name: "Note",
                     value: "Press Run to compile and run"
                 }],
-                openFilePath: this.fullPathTo(child),
-                contents: control.fs.readFileSync(this.fullPathTo(child))
+                currentFileDirectory: this.state.browsePath,
+                currentFileName: child,
+                currentFileContents: control.fs.readFileSync(fullChildPath),
             });
         }
     }
@@ -176,7 +193,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             filePath,
             <FSItem key={filePath}
                     onClick={() => this.expandChild(filePath)}
-                    contents={filePath} />
+                    contents={filePath}/>
         ];
     };
 
@@ -188,8 +205,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         } else {
             return 0;
         }
-    }
-
+    };
 
     toggleFSBrowser = () => {
         this.setState({
@@ -245,7 +261,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         {
                             (this.state.fsBrowserVisible ? (
                                 <ul id="fs-browser">
-                                    {(this.state.path.length !== 0) ? (
+                                    {(!this.browsingRoot) ? (
                                         <li onClick={() => {
                                             this.traverseUp();
                                         }}
@@ -257,7 +273,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     )}
                                     {
                                         control.fs
-                                            .readdirSync(this.currentDirectory)
+                                            .readdirSync(this.browsePath)
                                             .map(this.createFSItemPair)
                                             .sort(this.compareFSItemPair)
                                             .map((x: [string, FSItem]) => x[1])
@@ -269,12 +285,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         }
                         <div id="file-container">
                             <div id="file-name-label">
-                                {this.state.openFilePath}
+                                {this.currentFile}
                             </div>
                             <div id="main-container">
                                 <div id="definitions-container">
                                     <textarea className="editor"
-                                              value={this.state.contents}
+                                              value={this.state.currentFileContents}
                                               onChange={this.autosave}>
                                     </textarea>
                                 </div>
@@ -304,8 +320,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
 class App extends React.Component<AppProps, AppState> {
     render() {
         return (
-            <Editor openFilePath={control.path.program}
-                    contents={this.state.editorContents}>
+            <Editor browseRoot="/"
+                    browsePath={["/", "projects"]}
+                    currentFileDirectory={["/", "projects"]}
+                    currentFileName="program.arr">
             </Editor>
         );
     };
