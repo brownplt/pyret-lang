@@ -912,7 +912,10 @@ function tableFromColumn(columnName: string, values: any[]): Table {
   return tableFromColumns([col]);
 }
 
-module.exports = {
+
+// Necessary to work with stopify
+// @ts-ignore
+return module.exports = {
   '_primitiveEqual': _primitiveEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {

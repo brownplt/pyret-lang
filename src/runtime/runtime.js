@@ -30,7 +30,8 @@ function traceValue(loc, value) {
   return value;
 }
 
-module.exports = {
+// Necessary to work with stopify
+return module.exports = {
   py_equal: py_equal,
   "trace-value": traceValue,
 };

@@ -1,4 +1,5 @@
-module.exports = {
+// Necessary to work with stopify
+return module.exports = {
   'list': {
     'make': function( list ) {
       return list;

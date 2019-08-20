@@ -1,4 +1,5 @@
-module.exports = {
+// Necessary to work with stopify
+return module.exports = {
   'length': function( str ) {
     return str.length;
   },
