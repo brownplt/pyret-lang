@@ -35,6 +35,7 @@ type EditorState = {
     interactions: {name: string, value: any}[];
     fsBrowserVisible: boolean;
     runKind: control.backend.RunKind;
+    autoRun: boolean;
 };
 
 type FSItemProps = {
@@ -98,6 +99,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }],
             fsBrowserVisible: false,
             runKind: control.backend.RunKind.Async,
+            autoRun: true,
         };
     };
 
@@ -157,7 +159,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 control.fs.writeFileSync(
                     that.currentFile,
                     that.state.currentFileContents);
-                that.run();
+                if (that.state.autoRun) {
+                    that.run();
+                }
             },
             250);
     };
@@ -285,6 +289,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </input>
                         <label htmlFor="stopify">
                             Stopify
+                        </label>
+                    </div>
+                    <div className="header-run-option">
+                        <input type="checkBox"
+                               checked={this.state.autoRun}
+                               name="autoRun"
+                               onChange={(e) => {
+                                   this.setState({
+                                       autoRun: !this.state.autoRun
+                                   });
+                               }}>
+                        </input>
+                        <label htmlFor="autoRun">
+                            Auto Run
                         </label>
                     </div>
                 </div>
