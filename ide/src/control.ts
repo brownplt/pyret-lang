@@ -73,13 +73,14 @@ export const compile = (
 export const run = (
   baseDirectory: string,
   programFileName: string,
-  callback: (result: any) => void): void => {
+  callback: (result: any) => void,
+  runKind: backend.RunKind): void => {
   backend.runProgram(
     runner,
     baseDirectory,
     programFileName,
-    backend.RunKind.Sync)
-    .catch(callback) // TODO use something other than callback here
+    runKind)
+    .catch((x) => {throw new Error(x)})
     .then(callback);
 };
 
