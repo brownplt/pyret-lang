@@ -45,11 +45,11 @@ export const makeRequireAsync = (
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
       //}
-      const stopifyModule = {exports: false};
+      const stopifyModuleExports = {exports: false};
       runner.g = { 
         stopify, 
         require: requireAsync, 
-        "module": stopifyModule, 
+        "module": stopifyModuleExports, 
         String, 
         $STOPIFY: runner, 
         setTimeout: setTimeout, 
