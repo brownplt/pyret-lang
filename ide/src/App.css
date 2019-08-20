@@ -131,3 +131,8 @@ html, body, #root {
     width: 10em;
     height: 100%;
 }
+
+.interaction {
+    display: flex;
+    flex-direction: row;
+}

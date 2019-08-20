@@ -9,26 +9,18 @@ type InteractionProps = {
 type InteractionState = {};
 
 export class Interaction extends React.Component<InteractionProps, InteractionState> {
-    format = (name: string, value: any) => {
-        return (
-            <div>
-                {name} = {value}
-            </div>
-        );
-    };
-
-    convert = (name: string, value: any) => {
-        if (value == null) {
-            return null;
+    convert = (value: any) => {
+        if (value === undefined) {
+            return "undefined";
         } else if (typeof value === 'number') {
-            return this.format(name, value.toString());
+            return value.toString();
         } else if (typeof value === 'string') {
-            return this.format(name, `"${value}"`);
+            return `"${value}"`;
         } else if (typeof value === 'boolean') {
-            return this.format(name, value.toString());
+            return value.toString();
         } else if (typeof value === 'function') {
             // TODO(michael) can we display more info than just <function> ?
-            return this.format(name, "<function>");
+            return "<function>";
         } else if (value.$brand === '$table') {
             return (
                 <TableWidget headers={value._headers}
@@ -37,14 +29,17 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
             );
         } else if (typeof value === 'object') {
             // TODO(michael) palceholder for better object display
-            return this.format(name, JSON.stringify(value));
+            return JSON.stringify(value);
         }
     };
 
     render() {
         return (
-            <div>
-                {this.convert(this.props.name, this.props.value)}
+            <div className="interaction">
+                <pre>
+                    {this.props.name} =&nbsp;
+                </pre>
+                {this.convert(this.props.value)}
             </div>
         )
     };
