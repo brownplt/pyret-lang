@@ -74,11 +74,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     control.path.runProgram,
                     (runResult: any) => {
                         console.log(runResult);
-                        this.setState(
-                            {
-                                interactions: makeResult(runResult.result)
-                            }
-                        );
+                        if (runResult.result !== undefined) {
+                            this.setState(
+                                {
+                                    interactions: makeResult(runResult.result)
+                                }
+                            );
+                        }
                     },
                     this.state.runKind);
             });
