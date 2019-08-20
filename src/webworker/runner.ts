@@ -60,6 +60,7 @@ export const makeRequireAsync = (
           return;
         }
         const toReturn = runner.g.module.exports ? runner.g.module.exports : result;
+        console.log("MAIN RETURN", toReturn);
         resolve(toReturn);
       });
     });
@@ -76,6 +77,7 @@ export const makeRequireAsync = (
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const stoppedPath = nextPath + ".stopped";
+    console.log("ASYNC IMPORT:", importPath);
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
       const module = {exports: false};
@@ -84,19 +86,23 @@ export const makeRequireAsync = (
       currentRunner.path = nextPath;
       let stopifiedCode = "";
       if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
+        console.log("ASYNC STOPPED:", stoppedPath);
         stopifiedCode = String(fs.readFileSync(stoppedPath));
       }
       else {
         const contents = String(fs.readFileSync(nextPath));
         stopifiedCode = currentRunner.compile(wrapContent(contents));
+        console.log("ASYNC WRAPPED:", stopifiedCode);
         fs.writeFileSync(stoppedPath, stopifiedCode);
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
+        console.log("ASYNC RESULT", result);
         if(result.type !== "value") {
           kontinue(result);
           return;
         }
         const toReturn = currentRunner.g.module.exports;
+        console.log("ASYNC TORETURN:", toReturn);
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
         kontinue({ type: 'normal', value: toReturn });
