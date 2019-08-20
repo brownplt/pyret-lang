@@ -98,7 +98,7 @@ export const runProgram = (
 
     let wrapper = async function() {
       const start = window.performance.now();
-      let result = await resultP();
+      let result = await resultP;
       const end = window.performance.now();
 
       return {
