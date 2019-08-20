@@ -149,11 +149,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
-    autosave = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    onEdit = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
         this.setState({currentFileContents: e.target.value});
         control.fs.writeFileSync(this.currentFile, e.target.value);
         setTimeout(this.run, 250);
-    }
+    };
 
     traverseDown = (childDirectory: string) => {
         const newPath = this.state.browsePath.slice();
@@ -162,7 +162,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState({
             browsePath: newPath,
         });
-    }
+    };
 
     traverseUp = () => {
         const newPath = this.state.browsePath.slice();
@@ -171,7 +171,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState({
             browsePath: newPath,
         });
-    }
+    };
 
     expandChild = (child: string) => {
         const fullChildPath =
@@ -191,7 +191,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 currentFileContents: control.fs.readFileSync(fullChildPath),
             });
         }
-    }
+    };
 
     createFSItemPair = (filePath: string) => {
         return [
@@ -316,7 +316,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 <div id="definitions-container">
                                     <textarea className="editor"
                                               value={this.state.currentFileContents}
-                                              onChange={this.autosave}>
+                                              onChange={this.onEdit}>
                                     </textarea>
                                 </div>
                                 <div id="separator">
