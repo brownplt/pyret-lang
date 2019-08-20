@@ -46,7 +46,15 @@ export const makeRequireAsync = (
       fs.writeFileSync(stoppedPath, runner.code);
       //}
       const stopifyModule = {exports: false};
-      runner.g = { stopify, require: requireAsync, "module": stopifyModule, String, $STOPIFY: runner, setTimeout: setTimeout, console: console, "Object": Object, };
+      runner.g = { 
+        stopify, 
+        require: requireAsync, 
+        "module": stopifyModule, 
+        String, 
+        $STOPIFY: runner, 
+        setTimeout: setTimeout, 
+        console: console 
+      };
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result: any) => {
