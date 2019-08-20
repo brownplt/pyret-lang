@@ -80,7 +80,7 @@ export const run = (
     baseDirectory,
     programFileName,
     runKind)
-    .catch((x) => {throw new Error(x)})
+    .catch((x) => { console.error(x); return {result: {error: String(x.value)}} })
     .then(callback);
 };
 
