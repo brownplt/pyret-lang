@@ -8,7 +8,7 @@ const runtimeFiles = require('./runtime-files.json');
 
 export {backend, path, bfsSetup};
 
-const worker = new Worker(path.pyretJarr);
+export const worker = new Worker(path.pyretJarr);
 
 export const installFileSystem = () => {
   bfsSetup.install();
