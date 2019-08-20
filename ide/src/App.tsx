@@ -7,12 +7,7 @@ control.installFileSystem();
 control.loadBuiltins();
 
 type AppProps = {};
-type AppStateInteractions = {name: string, value:any}[];
-type AppState = {
-    fsBrowserVisible: boolean;
-    interactions: AppStateInteractions;
-    editorContents: string;
-};
+type AppState = {};
 
 function makeResult(result: any): {name: string, value: any}[] {
     return Object.keys(result).sort().map((key) => {
@@ -307,15 +302,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
 }
 
 class App extends React.Component<AppProps, AppState> {
-    constructor(props: AppProps) {
-        super(props);
-        this.state = {
-            fsBrowserVisible: false,
-            interactions: [],
-            editorContents: control.openOrCreateFile(control.path.program)
-        };
-    };
-
     render() {
         return (
             <Editor openFilePath={control.path.program}
