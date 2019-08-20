@@ -10,7 +10,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
     render() {
         return (
             <table>
-                <thead>
+                <thead className="table-widget-header">
                     <tr>
                         {
                             this.props.headers.map((header) => {
@@ -21,7 +21,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                         }
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className="table-widget-body">
                     {
                         this.props.rows.map((row, i) => {
                             return (

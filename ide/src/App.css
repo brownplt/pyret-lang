@@ -136,3 +136,7 @@ html, body, #root {
     display: flex;
     flex-direction: row;
 }
+
+table {
+    border: 1px solid black;
+}
