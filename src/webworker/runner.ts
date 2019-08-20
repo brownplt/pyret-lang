@@ -39,8 +39,7 @@ export const makeRequireAsync = (
       else {*/
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = "(function() { " + contents + "})();";
-      const wrapper = "(function() { console.log(\"BEFORE\", module); let result = " + toStopify + "console.log(\"AFTER\", module); console.log(\"RESULT\", result); return result;})();"
-      runner = stopify.stopifyLocally(wrapper, {});
+      runner = stopify.stopifyLocally(toStopify, {});
       console.log("CONTENTS:", toStopify);
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
