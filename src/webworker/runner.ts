@@ -14,7 +14,7 @@ const nodeModules = {
 };
 
 function wrapContent(content: string): string {
-  return `(function() { $(contents) })();`;
+  return `(function() { ${content} })();`;
 }
 
 export const makeRequireAsync = (
