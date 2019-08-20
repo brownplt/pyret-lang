@@ -1,24 +1,8 @@
-const myWorker = new Worker("pyret.jarr");
-const projectsDir = "/projects";
-const prewritten = "/prewritten";
-const uncompiled = "/uncompiled";
+import * as control from './control';
+
+control.installFileSystem();
 
 const consoleSetup = require("./console-setup.ts");
-
-const bfsSetup = require("./browserfs-setup.ts");
-bfsSetup.install();
-bfsSetup.configure(myWorker, projectsDir);
-
-const backend = require("./backend.ts");
-
-const runner = require("./runner.ts");
-const pyretApi = require("./pyret-api.ts");
-
-const runtimeFiles = require("../../build/worker/runtime-files.json");
-const runtimeLoader = require("./runtime-loader.ts");
-const loader = runtimeLoader.load;
-
-const worker = myWorker;
 
 const input = <HTMLInputElement>document.getElementById("program");
 const compile = document.getElementById("compile");
@@ -30,58 +14,19 @@ const showBFS = <HTMLInputElement>document.getElementById("showBFS");
 
 const FilesystemBrowser = require("./filesystemBrowser.ts");
 const filesystemBrowser = document.getElementById('filesystemBrowser');
-FilesystemBrowser.createBrowser(bfsSetup.fs, "/", filesystemBrowser);
+FilesystemBrowser.createBrowser(control.bfsSetup.fs, "/", filesystemBrowser);
 
 const NO_RUNS = "none";
 var runChoice = NO_RUNS;
 
-const myProgram = "program.arr";
-const baseDir = "/projects";
-const builtinJSDir = "/prewritten/";
-const checks = "none";
-
-const thePath = bfsSetup.path;
-
-function deleteDir(dir) {
-  // console.log("Entering:", dir);
-  bfsSetup.fs.readdir(dir, function(err, files) {
-    if (err) {
-      throw err;
-    }
-
-    let count = files.length;
-    files.forEach(function(file) {
-      let filePath = thePath.join(dir, file);
-      
-      bfsSetup.fs.stat(filePath, function(err, stats) {
-        if (err) {
-          throw err;
-        }
-
-        if (stats.isDirectory()) {
-          deleteDir(filePath);
-        } else {
-          bfsSetup.fs.unlink(filePath, function(err) {
-            if (err) {
-              throw err;
-            }
-
-            console.log("Deleted:", filePath);
-          });
-        }
-      });
-    });
-  });
-}
-
 const clearFSButton = document.getElementById("clearFS");
 clearFSButton.onclick = function() {
-  deleteDir("/");
+  control.removeRootDirectory();
 }
 
 function loadBuiltins() {
   console.log("LOADING RUNTIME FILES");
-  loader(bfsSetup.fs, prewritten, uncompiled, runtimeFiles);
+  control.loadBuiltins();
   console.log("FINISHED LOADING RUNTIME FILES");
 }
 
@@ -93,16 +38,13 @@ loadBuiltinsButton.onclick = function() {
 loadBuiltins();
 
 function compileHelper() {
-  bfsSetup.fs.writeFileSync("./projects/program.arr", input.value);
+  control.bfsSetup.fs.writeFileSync("./projects/program.arr", input.value);
   var typeCheck = typeCheckBox.checked;
 
-  backend.compileProgram(myWorker, {
-    program: myProgram,
-    baseDir: baseDir,
-    builtinJSDir: builtinJSDir,
-    checks: checks,
-    typeCheck: typeCheck,
-  });
+  control.compile(
+    control.path.compileBase,
+    control.path.compileProgram ,
+    typeCheck);
 }
 
 compile.onclick = compileHelper;
@@ -134,21 +76,21 @@ function compileSuccess() {
 
   if (runChoice !== NO_RUNS) {
     console.log("Running...");
-    backend.runProgram(runner, "/compiled/project", "program.arr.js", runChoice)
-      .catch(function(error) {
-        console.error("Run failed with: ", error);
-      })
-      .then((result) => {
+    control.run(
+      "/compiled/project",
+      "program.arr.js",
+      (result) => {
         console.log("Run complete with: ", result.result);
         console.log("Run complete in: ", result.time);
-      });
+      },
+      runChoice === 'ASYNC' ? control.backend.RunKind.Async : control.backend.RunKind.Sync);
     runChoice = NO_RUNS;
   }
 }
-const backendMessageHandler = 
-  backend.makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess);
 
-worker.onmessage = function(e) { 
+const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess);
+
+control.worker.onmessage = function(e) {
 
   // Handle BrowserFS messages
   if (e.data.browserfsMessage === true && showBFS.checked === false) {
@@ -166,7 +108,7 @@ worker.onmessage = function(e) {
       }
 
     } catch(error) { }
-    
+
     var tag = msgObject["tag"];
     if (tag !== undefined) {
       if (tag === "log") {
