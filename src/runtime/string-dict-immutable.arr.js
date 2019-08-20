@@ -1,7 +1,6 @@
 const { Map, List } = require( 'immutable' );
 
-// Necessary to work with stopify
-return module.exports = {
+module.exports = {
   'string-dict': {
     'make': function( list ) {
       return Map( list[0] );

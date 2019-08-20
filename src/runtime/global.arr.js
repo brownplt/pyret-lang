@@ -25,8 +25,7 @@ function timeNow( otherTime ) {
   }
 }
 
-// Necessary to work with stopify
-return module.exports = {
+module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },

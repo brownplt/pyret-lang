@@ -1,10 +1,10 @@
 
 
-// Necessary to work with stopify
-return module.exports = {
+
+module.exports = {
   'raw-array': {
     'make': function(arr) {
       return arr;
     }
   }
-};
+}

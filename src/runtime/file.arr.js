@@ -1,7 +1,6 @@
 const fs = require( 'fs' );
 
-// Necessary to work with stopify
-return module.exports = {
+module.exports = {
   "file-exists": function( path ) {
     return fs.existsSync( path );
   },

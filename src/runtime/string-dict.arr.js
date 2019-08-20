@@ -1,5 +1,4 @@
-// Necessary to work with stopify
-return module.exports = {
+module.exports = {
   'string-dict': {
     'make': function( dict ) {
       return dict[0];
