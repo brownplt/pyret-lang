@@ -13,6 +13,10 @@ const nodeModules = {
   'immutable': immutable,
 };
 
+function wrapContent(content: string): string {
+  return `(function() { $(contents) })();`;
+}
+
 export const makeRequireAsync = (
   basePath: string): ((importPath: string) => Promise<any>) => {
   let cwd = basePath;
@@ -32,7 +36,7 @@ export const makeRequireAsync = (
       const stoppedPath = nextPath + ".stopped";
       let runner = null;
       const contents = String(fs.readFileSync(nextPath));
-      const toStopify = "(function() { " + contents + "})();";
+      const toStopify = wrapContent(contents);
       runner = stopify.stopifyLocally(toStopify, {});
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
@@ -84,7 +88,7 @@ export const makeRequireAsync = (
       }
       else {
         const contents = String(fs.readFileSync(nextPath));
-        stopifiedCode = currentRunner.compile(contents);
+        stopifiedCode = currentRunner.compile(wrapContent(contents));
         fs.writeFileSync(stoppedPath, stopifiedCode);
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
