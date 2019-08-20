@@ -46,7 +46,7 @@ export const makeRequireAsync = (
       fs.writeFileSync(stoppedPath, runner.code);
       //}
       const stopifyModule = {exports: false};
-      runner.g = { stopify, require: requireAsync, "module": stopifyModule, String, $STOPIFY: runner, setTimeout: setTimeout, console: console };
+      runner.g = { stopify, require: requireAsync, "module": stopifyModule, String, $STOPIFY: runner, setTimeout: setTimeout, console: console, "Object": Object, };
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result: any) => {
@@ -55,7 +55,8 @@ export const makeRequireAsync = (
           reject(result);
           return;
         }
-        const toReturn = stopifyModule.exports ? stopifyModule.exports : result;
+        const toReturn = runner.g.module.exports ? runner.g.module.exports : result;
+        console.log("GLOBAL MODULE", runner.g.module);
         console.log("MAIN MODULE EXPORTS", stopifyModule.exports);
         console.log("MAIN RESULT", result);
         console.log("MAIN RETURN", toReturn);
