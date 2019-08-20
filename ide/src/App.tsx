@@ -151,8 +151,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     onEdit = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
         this.setState({currentFileContents: e.target.value});
-        control.fs.writeFileSync(this.currentFile, e.target.value);
-        setTimeout(this.run, 250);
+        const that = this;
+        setTimeout(
+            () => {
+                control.fs.writeFileSync(
+                    that.currentFile,
+                    that.state.currentFileContents);
+                that.run();
+            },
+            250);
     };
 
     traverseDown = (childDirectory: string) => {
