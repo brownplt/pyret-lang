@@ -152,6 +152,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
     autosave = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.setState({currentFileContents: e.target.value});
         control.fs.writeFileSync(this.currentFile, e.target.value);
+        const timer = setTimeout(this.run, 250);
+        return () => clearTimeout(timer);
     }
 
     traverseDown = (childDirectory: string) => {
