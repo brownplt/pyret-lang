@@ -312,18 +312,9 @@ class App extends React.Component<AppProps, AppState> {
         this.state = {
             fsBrowserVisible: false,
             interactions: [],
-            editorContents: App.openOrCreateFile(control.fs, control.path.program)
+            editorContents: control.openOrCreateFile(control.path.program)
         };
     };
-
-    static openOrCreateFile(fs: any, path: string): string {
-        if (fs.existsSync(path)) {
-            return fs.readFileSync(path);
-        } else {
-            fs.writeFileSync(path, "");
-            return "";
-        }
-    }
 
     render() {
         return (
