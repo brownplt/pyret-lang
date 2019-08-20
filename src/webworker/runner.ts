@@ -64,7 +64,6 @@ export const makeRequireAsync = (
         }
         const toReturn = runner.g.module.exports ? runner.g.module.exports : result;
         console.log("GLOBAL MODULE", runner.g.module);
-        console.log("MAIN MODULE EXPORTS", stopifyModule.exports);
         console.log("MAIN RESULT", result);
         console.log("MAIN RETURN", toReturn);
         resolve(toReturn);
