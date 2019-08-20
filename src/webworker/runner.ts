@@ -40,7 +40,6 @@ export const makeRequireAsync = (
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = "(function() { " + contents + "})();";
       runner = stopify.stopifyLocally(toStopify, {});
-      console.log("CONTENTS:", toStopify);
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
       //}
@@ -63,9 +62,6 @@ export const makeRequireAsync = (
           return;
         }
         const toReturn = runner.g.module.exports ? runner.g.module.exports : result;
-        console.log("GLOBAL MODULE", runner.g.module);
-        console.log("MAIN RESULT", result);
-        console.log("MAIN RETURN", toReturn);
         resolve(toReturn);
       });
     });
