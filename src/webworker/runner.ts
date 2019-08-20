@@ -99,8 +99,6 @@ export const makeRequireAsync = (
         const toReturn = module.exports ? module.exports : result.value;
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
-        console.log("Recursive", toReturn);
-        console.log("Recursive result", result);
         kontinue({ type: 'normal', value: toReturn });
       });
     });
