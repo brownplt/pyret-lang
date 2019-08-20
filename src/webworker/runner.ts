@@ -31,18 +31,11 @@ export const makeRequireAsync = (
       }
       const stoppedPath = nextPath + ".stopped";
       let runner = null;
-      /*
-      if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
-        const stopifiedCode = String(fs.readFileSync(stoppedPath));
-        runner = new stopify.Runner(stopifiedCode, {});
-      }
-      else {*/
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = "(function() { " + contents + "})();";
       runner = stopify.stopifyLocally(toStopify, {});
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
-      //}
       const stopifyModuleExports = {exports: false};
       runner.g = { 
         stopify, 
