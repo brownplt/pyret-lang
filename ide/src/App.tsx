@@ -34,6 +34,7 @@ type EditorState = {
     typeCheck: boolean;
     interactions: {name: string, value: any}[];
     fsBrowserVisible: boolean;
+    runKind: control.backend.RunKind;
 };
 
 type FSItemProps = {
@@ -78,7 +79,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             }
                         );
                     },
-                    control.backend.RunKind.Async);
+                    this.state.runKind);
             });
 
         this.state = {
@@ -96,6 +97,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 value: "Press Run to compile and run"
             }],
             fsBrowserVisible: false,
+            runKind: control.backend.RunKind.Async,
         };
     };
 
@@ -255,6 +257,26 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </input>
                         <label htmlFor="typeCheck">
                             Type Check
+                        </label>
+                    </div>
+                    <div className="header-run-option">
+                        <input type="checkBox"
+                               checked={this.state.runKind === control.backend.RunKind.Async}
+                               name="stopify"
+                               onChange={(e) => {
+                                   if (this.state.runKind === control.backend.RunKind.Async) {
+                                       this.setState({
+                                           runKind: control.backend.RunKind.Sync
+                                       });
+                                   } else {
+                                       this.setState({
+                                           runKind: control.backend.RunKind.Async
+                                       })
+                                   }
+                               }}>
+                        </input>
+                        <label htmlFor="stopify">
+                            Stopify
                         </label>
                     </div>
                 </div>
