@@ -49,6 +49,7 @@ export const makeRequireAsync = (
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result: any) => {
+        // TODO(Alex): fix stopify bug where evaled result is not passed to AbstractRunner.onDone callback
         cwd = oldWd;
         if(result.type !== "normal") {
           reject(result);
