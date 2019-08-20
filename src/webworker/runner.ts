@@ -30,7 +30,7 @@ export const makeRequireAsync = (
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
       const stoppedPath = nextPath + ".stopped";
-      let runner = null;
+      let runner: any = null;
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = "(function() { " + contents + "})();";
       runner = stopify.stopifyLocally(toStopify, {});
