@@ -96,9 +96,10 @@ export const runProgram = (
     const entry = runner.makeRequireAsync(baseDir);
     const resultP = entry(program);
 
+    console.log("resultP:", resultP);
     let wrapper = async function() {
       const start = window.performance.now();
-      let result = await resultP();
+      let result = await resultP;
       const end = window.performance.now();
 
       return {

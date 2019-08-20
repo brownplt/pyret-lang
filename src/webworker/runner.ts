@@ -3,6 +3,8 @@ const immutable = require('immutable');
 export const stopify = require('@stopify/stopify');
 const browserFS = require('./browserfs-setup.ts');
 
+(window as any)["stopify"] = stopify;
+
 const fs = browserFS.fs;
 const path = browserFS.path;
 
@@ -29,18 +31,22 @@ export const makeRequireAsync = (
       }
       const stoppedPath = nextPath + ".stopped";
       let runner = null;
+      /*
       if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
         const stopifiedCode = String(fs.readFileSync(stoppedPath));
         runner = new stopify.Runner(stopifiedCode, {});
       }
-      else {
-        const contents = String(fs.readFileSync(nextPath));
-        runner = stopify.stopifyLocally("(function() { " + contents + "})()", {});
-        if(runner.kind !== "ok") { reject(runner); }
-        fs.writeFileSync(stoppedPath, runner.code);
-      }
-      const module = {exports: false};
-      runner.g = { stopify, require: requireAsync, module, String, $STOPIFY: runner, setTimeout: setTimeout, console: console };
+      else {*/
+      const contents = String(fs.readFileSync(nextPath));
+      const toStopify = "(function() { " + contents + "})();";
+      const wrapper = "(function() { console.log(\"BEFORE\", module); let result = " + toStopify + "console.log(\"AFTER\", module); console.log(\"RESULT\", result); return result;})();"
+      runner = stopify.stopifyLocally(wrapper, {});
+      console.log("CONTENTS:", toStopify);
+      if(runner.kind !== "ok") { reject(runner); }
+      fs.writeFileSync(stoppedPath, runner.code);
+      //}
+      const stopifyModule = {exports: false};
+      runner.g = { stopify, require: requireAsync, "module": stopifyModule, String, $STOPIFY: runner, setTimeout: setTimeout, console: console };
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result: any) => {
@@ -49,7 +55,10 @@ export const makeRequireAsync = (
           reject(result);
           return;
         }
-        const toReturn = module.exports ? module.exports : result;
+        const toReturn = stopifyModule.exports ? stopifyModule.exports : result;
+        console.log("MAIN MODULE EXPORTS", stopifyModule.exports);
+        console.log("MAIN RESULT", result);
+        console.log("MAIN RETURN", toReturn);
         resolve(toReturn);
       });
     });
@@ -89,6 +98,8 @@ export const makeRequireAsync = (
         const toReturn = module.exports ? module.exports : result.value;
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
+        console.log("Recursive", toReturn);
+        console.log("Recursive result", result);
         kontinue({ type: 'normal', value: toReturn });
       });
     });
