@@ -94,3 +94,12 @@ export const setupWorkerMessageHandler = (
     onCompileFailure,
     onCompileSuccess);
 };
+
+export const openOrCreateFile = (path: string): string => {
+  if (bfsSetup.fs.existsSync(path)) {
+    return bfsSetup.fs.readFileSync(path);
+  } else {
+    bfsSetup.fs.writeFileSync(path, "");
+    return "";
+  }
+};
