@@ -11,12 +11,13 @@ module.exports = {
     return list.length;
   },
   'contains': function( list, elm ) {
-    return list.some( cur => cur === elm );
+    return list.some( function(cur) { return cur === elm; } );
   },
   'map': function( fun, list ) {
     return list.map( fun );
   },
-  'slice': function( list, start, end = list.length ) {
+  'slice': function( list, start, end) {
+    if(end === undefined) { end = list.length; }
     return list.slice( start, end );
   },
   'push': function( list, elm ) {
@@ -30,16 +31,16 @@ module.exports = {
     return list.reduce( fun, val );
   },
   'sum': function( list ) {
-    return list.reduce( ( x, y ) => x + y, 0 );
+    return list.reduce( function( x, y ) { return x + y; }, 0 );
   },
   'min': function( list ) {
-    return list.reduce( ( x, y ) => Math.min( x, y ), list[0] )
+    return list.reduce( function( x, y ) { return Math.min( x, y ); }, list[0] );
   },
   'max': function( list ) {
-    return list.reduce( ( x, y ) => Math.max( x, y ), list[0] )
+    return list.reduce( function( x, y ) { return Math.max( x, y ); }, list[0] );
   },
   'range': function( start, end ) {
-    list = [];
+    var list = [];
 
     for ( var i = start; i < end; i++ ) {
       list.push( i );
