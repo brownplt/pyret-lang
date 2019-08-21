@@ -291,6 +291,11 @@ export function equalAlways3(e1: any, e2: any) {
   return Equal();
 }
 
+export function equalAlways(v1: any, v2: any): boolean {
+  let ans = equalAlways3(v1, v2);
+  return equalityResultToBool(ans);
+}
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
