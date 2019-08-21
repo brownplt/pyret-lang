@@ -1,4 +1,4 @@
-var runtime = require('./runtime.arr.js');
+var runtime = require('./runtime.js');
 var array = require('./array.js');
 var assert = require('assert');
 
