@@ -222,6 +222,10 @@ export function equalAlways3(e1: any, e2: any) {
       }
       continue;
 
+    } else if (isNothing(v1) && isNothing(v2)) {
+      // TODO(alex): Is equality defined for Pyret Nothing?
+      continue; 
+
     } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
       // TODO(alex): Check for _equal method
       if(v1.$brand && v1.$brand === v2.$brand) {
