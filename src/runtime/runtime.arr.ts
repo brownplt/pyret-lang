@@ -196,6 +196,7 @@ export function equalAlways3(e1: any, e2: any) {
 
     } else if (isBoolean(v1) && isBoolean(v2)) {
       if (v1 !== v2) { return NotEqual("Booleans", v1, v2); }
+      continue;
 
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
@@ -209,6 +210,8 @@ export function equalAlways3(e1: any, e2: any) {
       for (var i = 0; i < v1.length; i++) {
         worklist.push([v1[i], v2[i]]);
       }
+      continue;
+
     } else if (isArray(v1) && isArray(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("Array Length", v1, v2);
@@ -217,6 +220,7 @@ export function equalAlways3(e1: any, e2: any) {
       for (var i = 0; i < v1.length; i++) {
         worklist.push([v1[i], v2[i]]);
       }
+      continue;
 
     } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
       // TODO(alex): Check for _equal method
