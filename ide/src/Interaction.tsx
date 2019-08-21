@@ -1,5 +1,6 @@
 import React from 'react';
 import {TableWidget} from './Table';
+import {ImageWidget} from './Image';
 
 type InteractionProps = {
     name: string,
@@ -26,6 +27,11 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
                 <TableWidget headers={value._headers}
                              rows={value._rows}>
                 </TableWidget>
+            );
+        } else if (value.$brand === 'image') {
+            return (
+                <ImageWidget image={value}>
+                </ImageWidget>
             );
         } else if (typeof value === 'object') {
             // TODO(michael) palceholder for better object display

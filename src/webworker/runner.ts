@@ -41,15 +41,21 @@ export const makeRequireAsync = (
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
       const stopifyModuleExports = {exports: false};
-      runner.g = {
+      runner.g = Object.assign(runner.g, {
+        document,
+        Math,
+        Array,
+        Object,
         stopify,
         require: requireAsync,
         "module": stopifyModuleExports,
         String,
         $STOPIFY: runner,
         setTimeout: setTimeout,
-        console: console
-      };
+        console: console,
+        parseFloat,
+        isNaN
+      });
       runner.path = nextPath;
       currentRunner = runner;
       runner.run((result: any) => {
