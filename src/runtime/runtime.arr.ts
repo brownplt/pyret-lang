@@ -142,6 +142,10 @@ function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
 
+function isTuple(val: any): boolean {
+  return (Array.isArray(val)) && ("$brand" in val) && (val["$brand"] === $TupleBrand);
+}
+
 // ********* Equality Functions *********
 export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
@@ -193,6 +197,14 @@ export function equalAlways3(e1: any, e2: any) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
 
+    } else if (isTuple(v1) && isTuple(v2)) {
+      if (v1.length !== v2.length) {
+        return NotEqual("Tuple Length", v1, v2);
+      }
+
+      for (var i = 0; i < v1.length; i++) {
+        worklist.push([v1[i], v2[i]]);
+      }
     } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
       // TODO(alex): Check for _equal method
       if(v1.$brand && v1.$brand === v2.$brand) {
