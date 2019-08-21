@@ -13,21 +13,21 @@ const $EqualTag = 0;
 const $NotEqualTag = 1;
 const $UnknownTag = 2;
 
-const $TupleBrand = "tuple";
-const $RefBrand = "ref";
+const $PTupleBrand = "tuple";
+const $PRefBrand = "ref";
 
 type UndefBool = undefined | boolean
 
 // ********* Runtime Type Representations (Non-Primitives) *********
-export interface Tuple {
+export interface PTuple {
   $brand: string,
   [key: string]: any,
 }
 
-export function Tuple(values: any[]): Tuple {
-  values["$brand"] = $TupleBrand;
+export function PTuple(values: any[]): PTuple {
+  values["$brand"] = $PTupleBrand;
 
-  return <Tuple><any>values;
+  return <PTuple><any>values;
 }
 
 export interface DataValue {
@@ -35,7 +35,7 @@ export interface DataValue {
   [key: string]: any
 }
 
-export interface Ref {
+export interface PRef {
   $brand: string,
   ref: Object,
 }
@@ -144,16 +144,16 @@ function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
 
-function isTuple(val: any): boolean {
-  return (Array.isArray(val)) && ("$brand" in val) && (val["$brand"] === $TupleBrand);
+function isPTuple(val: any): boolean {
+  return (Array.isArray(val)) && ("$brand" in val) && (val["$brand"] === $PTupleBrand);
 }
 
 function isArray(val: any): boolean {
   return (Array.isArray(val)) && !("$brand" in val);
 }
 
-function isRef(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $RefBrand);
+function isPRef(val: any): boolean {
+  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRefBrand);
 }
 
 // ********* Equality Functions *********
@@ -209,9 +209,9 @@ export function equalAlways3(e1: any, e2: any) {
       return Unknown("Functions", v1, v2);
       
       // TODO(alex): Handle methods
-    } else if (isTuple(v1) && isTuple(v2)) {
+    } else if (isPTuple(v1) && isPTuple(v2)) {
       if (v1.length !== v2.length) {
-        return NotEqual("Tuple Length", v1, v2);
+        return NotEqual("PTuple Length", v1, v2);
       }
 
       for (var i = 0; i < v1.length; i++) {
@@ -233,10 +233,10 @@ export function equalAlways3(e1: any, e2: any) {
       // TODO(alex): Is equality defined for Pyret Nothing?
       continue; 
 
-    } else if (isRef(v1) && isRef(v2)) {
+    } else if (isPRef(v1) && isPRef(v2)) {
       // In equal-always, non-identical refs are not equal
       if (v1.ref !== v2.ref) {
-        return NotEqual("Ref'd Objects", v1, v2);
+        return NotEqual("PRef'd Objects", v1, v2);
       }
       continue;
 
