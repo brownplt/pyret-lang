@@ -194,7 +194,7 @@ export function equalAlways3(e1: any, e2: any) {
     var v1: any = curr[0];
     var v2: any = curr[1];
 
-    if (isEqual(identical3(e1, e2))) {
+    if (isEqual(identical3(v1, v2))) {
       // Identical so must always be equal
       continue; 
     }
