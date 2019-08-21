@@ -52,7 +52,18 @@ module.exports = {
   '_lessequal': _lessequal,
   '_greaterequal': _greaterequal,
   '_not': _not,
-  'equal-always': runtime['py_equal'],
+
+  'Equal': runtime['Equal'],
+  'NotEqual': runtime['NotEqual'],
+  'Unknown': runtime['Unknown'],
+  'is-Equal': runtime['is-Equal'],
+  'is-NotEqual': runtime['is-NotEqual'],
+  'is-Unknown': runtime['is-Unknown'],
+
+  'equal-always': runtime['equalAlways'],
+  'equal-always3': runtime['equalAlways3'],
+  'identical': runtime['identical'],
+  'identical3': runtime['identical3'],
   'trace-value': runtime['trace-value'],
 };
 
