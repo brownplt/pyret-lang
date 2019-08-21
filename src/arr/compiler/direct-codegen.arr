@@ -157,8 +157,8 @@ fun compiler-name(id):
   const-id(string-append("$",id))
 end
 
-EQUAL-ALWAYS = const-id("equal-always")
-IDENTICAL = const-id("identical")
+EQUAL-ALWAYS = "equal-always"
+IDENTICAL = "identical"
 GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
