@@ -28,9 +28,9 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                             return (
                                 <tr key={i}>
                                     {
-                                        row.map((x) => {
+                                        row.map((x, j) => {
                                             return (
-                                                <td key={x}>{this.props.htmlify(x)}</td>
+                                                <td key={`${i}:${j}`}>{this.props.htmlify(x)}</td>
                                             );
                                         })
                                     }
