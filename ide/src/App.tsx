@@ -36,6 +36,7 @@ type EditorState = {
     fsBrowserVisible: boolean;
     runKind: control.backend.RunKind;
     autoRun: boolean;
+    updateTimer: NodeJS.Timer;
 };
 
 type FSItemProps = {
@@ -102,6 +103,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             fsBrowserVisible: false,
             runKind: control.backend.RunKind.Async,
             autoRun: true,
+            updateTimer: setTimeout(this.update, 2000),
         };
     };
 
@@ -153,19 +155,22 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
+    update = (): void => {
+        control.fs.writeFileSync(
+            this.currentFile,
+            this.state.currentFileContents);
+        if (this.state.autoRun) {
+            this.run();
+        }
+    }
+
     onEdit = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-        this.setState({currentFileContents: e.target.value});
-        const that = this;
-        setTimeout(
-            () => {
-                control.fs.writeFileSync(
-                    that.currentFile,
-                    that.state.currentFileContents);
-                if (that.state.autoRun) {
-                    that.run();
-                }
-            },
-            250);
+        clearTimeout(this.state.updateTimer);
+
+        this.setState({
+            currentFileContents: e.target.value,
+            updateTimer: setTimeout(this.update, 250)
+        });
     };
 
     traverseDown = (childDirectory: string) => {
