@@ -201,7 +201,8 @@ export function equalAlways3(e1: any, e2: any) {
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
-
+      
+      // TODO(alex): Handle methods
     } else if (isTuple(v1) && isTuple(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("Tuple Length", v1, v2);
