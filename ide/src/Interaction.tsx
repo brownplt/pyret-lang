@@ -25,7 +25,8 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
         } else if (value.$brand === '$table') {
             return (
                 <TableWidget headers={value._headers}
-                             rows={value._rows}>
+                             rows={value._rows}
+                             htmlify={this.convert}>
                 </TableWidget>
             );
         } else if (value.$brand === 'image') {

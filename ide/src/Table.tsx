@@ -1,6 +1,7 @@
 import React from 'react';
 
 type TableWidgetProps = {
+    htmlify: (x: any) => any;
     headers: string[];
     rows: any[][];
 };
@@ -15,7 +16,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                         {
                             this.props.headers.map((header) => {
                                 return (
-                                    <th key={header}>{header}</th>
+                                    <th key={header}>{this.props.htmlify(header)}</th>
                                 );
                             })
                         }
@@ -29,7 +30,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                                     {
                                         row.map((x) => {
                                             return (
-                                                <td key={x}>{x}</td>
+                                                <td key={x}>{this.props.htmlify(x)}</td>
                                             );
                                         })
                                     }
