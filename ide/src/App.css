@@ -68,7 +68,7 @@ html, body, #root {
 }
 
 #interactions-container {
-    width: 50%
+    width: 50%;
 }
 
 .editor {
@@ -164,5 +164,5 @@ html, body, #root {
 
 .table-light-body-item {
     padding: 1em;
-    background: #f2f2f2;
+    background: rgb(230, 230, 230, 1);
 }
