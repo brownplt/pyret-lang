@@ -158,6 +158,7 @@ fun compiler-name(id):
 end
 
 EQUAL-ALWAYS = const-id("equal-always")
+IDENTICAL = const-id("identical")
 GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
@@ -344,7 +345,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           argvs = cl-cons(lv, cl-sing(rv))
           j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
-        | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
+        | op == "op<=>" then:
+          argvs = cl-cons(lv, cl-sing(rv))
+          j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
         | op == "opor" then: j-binop(lv, J.j-or, rv)
         | op == "opand" then: j-binop(lv, J.j-and, rv)
         | otherwise: nyi(op)
