@@ -19,7 +19,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                                     return (
                                         <th key={header}
                                             className="table-header-item">
-                                            {this.props.htmlify(header)}
+                                            {header}
                                         </th>
                                     );
                                 })
