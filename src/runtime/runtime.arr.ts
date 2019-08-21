@@ -182,10 +182,10 @@ export function identical(v1: any, v2: any): boolean {
   return equalityResultToBool(ans);
 }
 
-export function equalAlways3(e1: any, e2: any) {
+export function equalAlways3(e1: any, e2: any): EqualityResult {
   if (isEqual(identical3(e1, e2))) {
     // Identical so must always be equal
-    return Equal;
+    return Equal();
   }
 
   var worklist = [[e1, e2]];
