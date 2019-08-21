@@ -51,7 +51,7 @@ module.exports = {
   '_greaterthan': _greaterthan,
   '_lessequal': _lessequal,
   '_greaterequal': _greaterequal,
-  '_not': _not,
+  'not': _not,
 
   'Equal': runtime['Equal'],
   'NotEqual': runtime['NotEqual'],

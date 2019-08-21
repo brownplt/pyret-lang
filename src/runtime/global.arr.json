@@ -47,7 +47,7 @@
                   "flatness": false,
                   "name": "_plus",
                   "typ": ["arrow", ["Any", "Any"], "Boolean"]},
-      "_not": ["arrow", ["Boolean"], "Boolean"],
+      "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
       "is-NotEqual": ["arrow", ["Any"], "Boolean"],
