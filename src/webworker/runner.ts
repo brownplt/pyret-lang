@@ -92,11 +92,11 @@ export const makeRequireAsync = (
         fs.writeFileSync(stoppedPath, stopifiedCode);
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
-        if(result.type !== "value") {
+        if(result.type !== "normal") {
           kontinue(result);
           return;
         }
-        const toReturn = module.exports ? module.exports : result.value;
+        const toReturn = currentRunner.g.module.exports;
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
         kontinue({ type: 'normal', value: toReturn });
