@@ -64,6 +64,6 @@ module.exports = {
   'equal-always3': runtime['equalAlways3'],
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
-  'trace-value': runtime['trace-value'],
+  'trace-value': runtime['traceValue'],
 };
 
