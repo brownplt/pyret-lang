@@ -140,6 +140,10 @@ function isBoolean(val: any): boolean {
   return typeof val === "boolean";
 }
 
+function isString(val: any): boolean {
+  return typeof val === "string";
+}
+
 function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
@@ -207,6 +211,10 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
     } else if (isBoolean(v1) && isBoolean(v2)) {
       if (v1 !== v2) { return NotEqual("Booleans", v1, v2); }
       continue;
+
+    } else if (isString(v1) && isString(v2)) {
+      if (v1 !== v2) { return NotEqual("Strings", v1, v2); }
+      continue
 
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
