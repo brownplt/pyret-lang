@@ -159,6 +159,8 @@ end
 
 EQUAL-ALWAYS = "equal-always"
 IDENTICAL = "identical"
+MAKETUPLE = "PTuple"
+
 GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
@@ -167,7 +169,7 @@ SPY = const-id("_spy")
 NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
-RUNTIME = j-id(const-id("R"))
+RUNTIME = j-id(const-id("_global.runtime"))
 NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
 
@@ -627,8 +629,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { cl-cons(val, fieldvs); field-stmts + stmts }
       end
 
-      # Represent tuples as arrays
-      { j-list(false, fieldvs); stmts }
+      # Represent tuples as special arrays with an additional $brand field
+
+      { j-app(j-bracket(RUNTIME, j-str(MAKETUPLE)), fieldvs); stmts }
     | s-tuple-get(l, tup, index, index-loc) => 
 
       {tupv; tup-stmts} = compile-expr(context, tup)
