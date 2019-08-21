@@ -14,6 +14,7 @@ const $NotEqualTag = 1;
 const $UnknownTag = 2;
 
 const $TupleBrand = "tuple";
+const $RefBrand = "ref";
 
 type UndefBool = undefined | boolean
 
@@ -35,6 +36,7 @@ export interface DataValue {
 }
 
 export interface Ref {
+  $brand: string,
   ref: Object,
 }
 
@@ -150,6 +152,10 @@ function isArray(val: any): boolean {
   return (Array.isArray(val)) && !("$brand" in val);
 }
 
+function isRef(val: any): boolean {
+  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $RefBrand);
+}
+
 // ********* Equality Functions *********
 export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
@@ -226,6 +232,13 @@ export function equalAlways3(e1: any, e2: any) {
     } else if (isNothing(v1) && isNothing(v2)) {
       // TODO(alex): Is equality defined for Pyret Nothing?
       continue; 
+
+    } else if (isRef(v1) && isRef(v2)) {
+      // In equal-always, non-identical refs are not equal
+      if (v1.ref !== v2.ref) {
+        return NotEqual("Ref'd Objects", v1, v2);
+      }
+      continue;
 
     } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
       // TODO(alex): Check for _equal method
