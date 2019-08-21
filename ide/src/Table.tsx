@@ -10,36 +10,52 @@ type TableWidgetState = {};
 export class TableWidget extends React.Component<TableWidgetProps, TableWidgetState> {
     render() {
         return (
-            <table>
-                <thead className="table-widget-header">
-                    <tr>
+            <div className="table-container">
+                <table className="table-widget">
+                    <thead className="table-widget-header">
+                        <tr>
+                            {
+                                this.props.headers.map((header) => {
+                                    return (
+                                        <th key={header}
+                                            className="table-header-item">
+                                            {this.props.htmlify(header)}
+                                        </th>
+                                    );
+                                })
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
                         {
-                            this.props.headers.map((header) => {
+                            this.props.rows.map((row, i) => {
                                 return (
-                                    <th key={header}>{this.props.htmlify(header)}</th>
+                                    <tr key={i}>
+                                        {
+                                            (() => {
+                                                let colorClass: string;
+                                                if (i % 2 === 0) {
+                                                    colorClass = "table-body-item";
+                                                } else {
+                                                    colorClass = "table-light-body-item";
+                                                }
+                                                return row.map((x, j) => {
+                                                    return (
+                                                        <td key={`${i}:${j}`}
+                                                            className={`${colorClass} table-body-item`}>
+                                                            {this.props.htmlify(x)}
+                                                        </td>
+                                                    );
+                                                });
+                                            })()
+                                        }
+                                    </tr>
                                 );
                             })
                         }
-                    </tr>
-                </thead>
-                <tbody className="table-widget-body">
-                    {
-                        this.props.rows.map((row, i) => {
-                            return (
-                                <tr key={i}>
-                                    {
-                                        row.map((x, j) => {
-                                            return (
-                                                <td key={`${i}:${j}`}>{this.props.htmlify(x)}</td>
-                                            );
-                                        })
-                                    }
-                                </tr>
-                            );
-                        })
-                    }
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         )
     }
 }
