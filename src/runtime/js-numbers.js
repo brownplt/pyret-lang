@@ -87,6 +87,8 @@ Address all questions regarding this license to:
 
 /*
 
+Modified to be Node-module compatible
+
 No notion of levels (complex, exact, inexact, flonum).
 
 No complex numbers.
@@ -104,7 +106,7 @@ An integer is either a fixnum or a BigInteger.
 
 */
 
-define("pyret-base/js/js-numbers", function() {
+function Number() {
   'use strict';
   // Abbreviation
   var Numbers = {};
@@ -4040,4 +4042,6 @@ define("pyret-base/js/js-numbers", function() {
   Numbers['MAX_FIXNUM'] = MAX_FIXNUM;
 
   return Numbers;
-});
+}
+
+module.exports = Number();
