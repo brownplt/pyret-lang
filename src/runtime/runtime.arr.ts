@@ -144,6 +144,10 @@ function isBrandedObject(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val);
 }
 
+function isRawObject(val: any): boolean {
+  return (typeof val === "object") && !("$brand" in val);
+}
+
 function isPTuple(val: any): boolean {
   return (Array.isArray(val)) && ("$brand" in val) && (val["$brand"] === $PTupleBrand);
 }
@@ -259,6 +263,26 @@ export function equalAlways3(e1: any, e2: any) {
         }
         continue;
       }
+    } else if (isRawObject(v1) && isRawObject(v2)) {
+      let keys1 = Object.keys(v1);
+      let keys2 = Object.keys(v2);
+
+      if (keys1.length !== keys2.length) {
+        return NotEqual("Raw Object Field Count", v1, v2);
+      }
+
+      // Check for matching keys and push field to worklist
+      for (var i = 0; i < keys1.length; i++) {
+        if (!keys2.includes(keys1[i])) {
+          // Key in v1 not found in v2
+          return NotEqual(`Raw Object Missing Field '${keys1[i]}'`, v1, v2);
+        } else {
+          // Push common field to worklist
+          worklist.push([v1[keys1[i]], v2[keys2[i]]]);
+        }
+      }
+
+      continue;
     } else {
       return NotEqual("", e1, e2);
     }
