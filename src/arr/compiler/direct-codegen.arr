@@ -169,7 +169,7 @@ SPY = const-id("_spy")
 NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
-RUNTIME = j-id(const-id("_global.runtime"))
+RUNTIME = const-id("_runtime"))
 NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
 
@@ -1245,7 +1245,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   end
 
   global-import = import-builtin(GLOBAL, "global.arr.js")
-
+  runtime-import = import-builtin(RUNTIME, "runtime.js")
   nothing-import = J.j-var(NOTHING, j-undefined)
 
   array-import = import-builtin(ARRAY, "array.arr.js")
@@ -1253,7 +1253,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import
-  manual-imports = [clist: global-import, nothing-import]
+  manual-imports = [clist: global-import, runtime-import, nothing-import]
 
   shadow manual-imports = if import-flags.table-import:
     cl-append(manual-imports, cl-sing(table-import))
