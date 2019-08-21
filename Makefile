@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web 
+.PHONY: all clean build parser web runtime
 
 all: build parser
 
@@ -21,9 +21,9 @@ RUNTIME_BUILD_DIR := build/runtime
 RUNTIME_JS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.js)
 RUNTIME_JSON_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.json)
 RUNTIME_TS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.ts)
-RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.arr.ts=$(RUNTIME_BUILD_DIR)/%.arr.js)
+RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js)
 
-build/runtime/%.arr.js : src/runtime/%.arr.ts
+build/runtime/%.js : src/runtime/%.ts
 	tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 runtime-src-dir:
