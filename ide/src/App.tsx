@@ -363,7 +363,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                             theme: 'material',
                                             lineNumbers: true
                                         }}
-                                        onChange={this.onEdit}>
+                                        onChange={this.onEdit}
+                                        autoCursor={false}>
                                     </CodeMirror>
                                 </div>
                                 <div id="separator">
