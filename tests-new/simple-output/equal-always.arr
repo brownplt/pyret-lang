@@ -7,6 +7,7 @@ t1 = 5 == 5
 t2 = true == true
 t3 = "string" == "string"
 t4 = { 1; false; "foo" } == { 1; false; "foo" }
+t5 = { foo: 5, bar: false } == { bar: false, foo: 5 }
 
 true-result = t1 
   and t2 
@@ -20,6 +21,7 @@ f4a = { 1; false; "foo" } == { 1; false; "bar" }
 f4b = { 1; false; "foo" } == { 0; false; "foo" }
 f4c = { 1; false; "foo" } == { 1; true; "foo" }
 f4d = { 1; false; "foo" } == { 1; false; "bar"; "baz" }
+f5 = { foo: 5, bar: false } == { bar: true, foo: 5 }
 
 false-result = not(f1) 
   and not(f2) 
@@ -28,5 +30,6 @@ false-result = not(f1)
   and not(f4b)
   and not(f4c)
   and not(f4d)
+  and not(f5)
 
 G.console-log(true-result and false-result)
