@@ -166,3 +166,11 @@ html, body, #root {
     padding: 1em;
     background: rgb(230, 230, 230, 1);
 }
+
+.react-codemirror2 {
+    height: 100%;
+}
+
+.CodeMirror {
+    min-height: 100%;
+}
