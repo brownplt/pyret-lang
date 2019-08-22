@@ -169,7 +169,7 @@ SPY = const-id("_spy")
 NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
-RUNTIME = const-id("_runtime"))
+RUNTIME = const-id("_runtime")
 NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
 
@@ -629,9 +629,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { cl-cons(val, fieldvs); field-stmts + stmts }
       end
 
-      # Represent tuples as special arrays with an additional $brand field
-
-      { j-app(j-bracket(RUNTIME, j-str(MAKETUPLE)), fieldvs); stmts }
+      # Create tuples by calling RUNTIME.MAKETUPLE(js-tuple-array)
+      js-tuple-array = j-list(false, fieldvs)
+      { j-app(j-bracket(j-id(RUNTIME), j-str(MAKETUPLE)), cl-sing(js-tuple-array)); stmts }
     | s-tuple-get(l, tup, index, index-loc) => 
 
       {tupv; tup-stmts} = compile-expr(context, tup)
