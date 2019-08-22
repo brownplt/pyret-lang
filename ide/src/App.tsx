@@ -174,11 +174,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
-    onEdit = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    onEdit = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
         clearTimeout(this.state.updateTimer);
 
         this.setState({
-            currentFileContents: e.target.value,
+            currentFileContents: value,
             updateTimer: setTimeout(this.update, 250)
         });
     };
@@ -362,7 +362,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                             mode: 'pyret',
                                             theme: 'material',
                                             lineNumbers: true
-                                        }}>
+                                        }}
+                                        onChange={this.onEdit}>
                                     </CodeMirror>
                                 </div>
                                 <div id="separator">
