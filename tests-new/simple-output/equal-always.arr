@@ -1,5 +1,6 @@
 ### true
 import global as G
+import list as L
 
 not = G.not
 
@@ -34,6 +35,22 @@ true-result = t1
   and t8
   and t9
 
+if true-result == false:
+  G.console-log([L.list: 
+    t1, 
+    t2, 
+    t3, 
+    t4, 
+    t5, 
+    t6, 
+    t7, 
+    t8, 
+    t9
+  ])
+else:
+  nothing
+end
+
 f1 = 5 == 4
 f2 = true == false
 f3 = "string" == "foo"
@@ -59,5 +76,24 @@ false-result = not(f1)
   and not(f7)
   and not(f8)
   and not(f9)
+
+if false-result == false:
+  G.console-log([L.list: 
+    f1, 
+    f2, 
+    f3, 
+    f4a, 
+    f4b, 
+    f4c, 
+    f4d, 
+    f5, 
+    f6, 
+    f7, 
+    f8, 
+    f9
+  ])
+else:
+  nothing
+end
 
 G.console-log(true-result and false-result)
