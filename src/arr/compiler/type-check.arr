@@ -801,7 +801,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op-l, op, l, r) =>
       desugared = DH.desugar-s-op(loc, op-l, op, l, r)
       cases(Expr) desugared:
-        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(loc, op, op-l, l, r, context)
+        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(top-level, loc, op, op-l, l, r, context)
         | else => synthesis(desugared, top-level, context)
       end
     | s-check-test(loc, op, refinement, l, r, cause) =>
@@ -1590,7 +1590,7 @@ fun synthesis-field(access-loc :: Loc, obj :: Expr, obj-type :: Type, field-name
   end)
 end
 
-fun synthesis-op(app-loc, op, op-loc, left, right, context):
+fun synthesis-op(top-level, app-loc, op, op-loc, left, right, context):
   fun choose-type(method-name :: String) -> FoldResult<Type>:
     obj-exists = new-existential(left.l, false)
     other-type = new-existential(right.l, false)
@@ -1599,19 +1599,35 @@ fun synthesis-op(app-loc, op, op-loc, left, right, context):
     shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc, false))
     fold-result(arrow-type, context)
   end
-  opname = if op == "op+": "_plus"
-    else if op == "op-": "_minus"
-    else if op == "op*": "_times"
-    else if op == "op/": "_divide"
-    else if op == "op<": "_lessthan"
-    else if op == "op>": "_greaterthan"
-    else if op == "op>=": "_greaterequal"
-    else if op == "op<=": "_lessequal"
+  if (op == "opand") or (op == "opor"):
+    # Checking the LHS and RHS of these operators
+    # TODO(alex): define '_and' and '_or' functions?
+    left-result = checking(left, t-boolean(op-loc), top-level, context)
+    cases(TypingResult) left-result:
+      | typing-result(lhs-ast, lhs-ty, lhs-out-context) =>
+        right-result = checking(right, t-boolean(op-loc), top-level, context)
+        cases(TypingResult) right-result:
+        | typing-result(rhs-ast, rhs-ty, rhs-out-context) =>
+          typing-result(A.s-op(app-loc, op-loc, op, lhs-ast, rhs-ast), t-boolean(op-loc), context)
+        | typing-error(rhs-errors) => typing-error(rhs-errors)
+        end
+      | typing-error(lhs-errors) => typing-error(lhs-errors)
     end
-  choose-type(opname)
-    .typing-bind(lam(fun-type, shadow context):
-      synthesis-spine(fun-type, A.s-app(app-loc, A.s-id(op-loc, A.s-global(opname)), _), [list: left, right], app-loc, context)
-    end)
+  else:
+    opname = if op == "op+": "_plus"
+      else if op == "op-": "_minus"
+      else if op == "op*": "_times"
+      else if op == "op/": "_divide"
+      else if op == "op<": "_lessthan"
+      else if op == "op>": "_greaterthan"
+      else if op == "op>=": "_greaterequal"
+      else if op == "op<=": "_lessequal"
+      end
+    choose-type(opname)
+      .typing-bind(lam(fun-type, shadow context):
+        synthesis-spine(fun-type, A.s-app(app-loc, A.s-id(op-loc, A.s-global(opname)), _), [list: left, right], app-loc, context)
+      end)
+  end
 end
 
 fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<Type>:
