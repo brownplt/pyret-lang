@@ -11,6 +11,9 @@ all-tests: build runtime web
 web-tests: web
 	jest --verbose "browser"
 
+stopify-web-tests: web
+	jest --verbose "stopify-browser"
+
 offline-tests: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
 
