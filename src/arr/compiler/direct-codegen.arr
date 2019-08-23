@@ -172,6 +172,7 @@ NOTHING = const-id("_nothing")
 RUNTIME = const-id("_runtime")
 NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
+OBJECT = const-id("Object")
 
 rt-name-map = [D.string-dict:
   "addModuleToNamespace", "aMTN",
@@ -601,7 +602,30 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-bracket(l, obj, key) => nyi("s-bracket")
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
     | s-update(l, obj, fields) => nyi("s-update")
-    | s-extend(l, obj, fields) => nyi("s-extend")
+    | s-extend(l :: Loc, obj :: A.Expr, fields :: List<A.Member>) =>
+
+      # Get the object to extend
+      { to-extend; obj-stmts } = compile-expr(context, obj)
+
+      # Perform a shallow copy of obj with JS(Object.assign)
+      shallow-copy-fn = j-bracket(j-id(OBJECT), j-str("assign"))
+      shallow-copy-name = fresh-id(compiler-name("shallow-copy"))
+      shallow-copy-call = j-app(shallow-copy-fn, cl-sing(to-extend))
+      shallow-copy = j-var(shallow-copy-name, shallow-copy-call)
+
+      prelude-stmts = cl-append(obj-stmts, cl-sing(shallow-copy))
+      # Update the fields
+      extend-stmts = for fold(stmts from prelude-stmts, field from fields) block:
+        # TODO(alex): Assuming A.Member.s-data-field
+        { extend-ans; extend-stmts } = compile-expr(context, field.value)
+        field-extend = j-bracket-assign(j-id(shallow-copy-name), 
+                                        j-str(field.name), 
+                                        extend-ans)
+        cl-append(stmts, cl-sing(j-expr(field-extend)))
+      end
+
+      { j-id(shallow-copy-name); extend-stmts }
+
     | s-for(l, iter, bindings, ann, body, blocky) => 
       compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
     | s-id-var(l, ident) => 
