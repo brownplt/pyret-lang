@@ -43,6 +43,7 @@ type EditorState = {
     currentFileContents: string;
     typeCheck: boolean;
     interactions: {name: string, value: any}[];
+    interactionError: boolean;
     fsBrowserVisible: boolean;
     runKind: control.backend.RunKind;
     autoRun: boolean;
@@ -110,6 +111,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
+            interactionError: false,
             fsBrowserVisible: false,
             runKind: control.backend.RunKind.Async,
             autoRun: true,
@@ -162,6 +164,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         value: this.currentFile
                     }]
             });
+            this.setState({interactionError: true});
         }
     };
 
@@ -379,6 +382,21 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                                 })
                                         }
                                     </pre>
+                                    <pre id="interaction-error">
+                                        {
+                                            (() => {
+                                                console.log(this.state.interactionError);
+                                                return (this.state.interactionError ? (
+                                                    <dl>
+                                                        <dt>Name</dt>
+                                                        <dd>Description</dd>
+                                                    </dl>
+                                                ) : (
+                                                        null
+                                                    ));
+                                            })()
+                                        }
+                                    </pre>
                                 </div>
                             </div>
                         </div>
@@ -394,9 +412,9 @@ class App extends React.Component<AppProps, AppState> {
     render() {
         return (
             <Editor browseRoot="/"
-                    browsePath={["/", "projects"]}
-                    currentFileDirectory={["/", "projects"]}
-                    currentFileName="program.arr">
+                browsePath={["/", "projects"]}
+                currentFileDirectory={["/", "projects"]}
+                currentFileName="program.arr">
             </Editor>
         );
     };
