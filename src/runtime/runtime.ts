@@ -186,6 +186,13 @@ export function identical(v1: any, v2: any): boolean {
   return equalityResultToBool(ans);
 }
 
+/*
+ * Structural equality. Stops at mutable data (refs) and only checks that 
+ * mutable data are identical.
+ *
+ * Data variants and raw (unbranded) objects are NEVER equal.
+ *
+ */
 export function equalAlways3(e1: any, e2: any): EqualityResult {
   if (isEqual(identical3(e1, e2))) {
     // Identical so must always be equal
