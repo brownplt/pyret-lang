@@ -24,6 +24,7 @@ t6 = foo == foo
 t7 = foo == bar
 t8 = foobar(true) == foobar(true)
 t9 = foobar(true) == barfoo(true)
+t10 = foobar(true) == barfoo(false).{x: true}
 
 true-result = t1 
   and t2 
@@ -34,6 +35,7 @@ true-result = t1
   and t7
   and t8
   and t9
+  and t10
 
 if true-result == false:
   G.console-log([L.list: 
@@ -45,7 +47,8 @@ if true-result == false:
     t6, 
     t7, 
     t8, 
-    t9
+    t9,
+    t10,
   ])
 else:
   nothing
@@ -63,6 +66,8 @@ f6 = foo == foobar(true)
 f7 = foobar(true) == foobar(false)
 f8 = foobar(true) == barfoo(false)
 f9 = foobar(true) == barbar(true)
+f10 = foobar(true) == { x: true }
+f11 = foobar(true) == foobar(true).{ x: false }
 
 false-result = not(f1) 
   and not(f2) 
@@ -76,6 +81,8 @@ false-result = not(f1)
   and not(f7)
   and not(f8)
   and not(f9)
+  and not(f10)
+  and not(f11)
 
 if false-result == false:
   G.console-log([L.list: 
@@ -90,7 +97,9 @@ if false-result == false:
     f6, 
     f7, 
     f8, 
-    f9
+    f9,
+    f10,
+    f11,
   ])
 else:
   nothing
