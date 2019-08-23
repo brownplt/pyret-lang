@@ -1,0 +1,20 @@
+{
+  "requires": [ ],
+  "provides": {
+    "shorthands": {
+      "Image": ["local", "Image"]
+    },
+    "values": {
+      "triangle": ["arrow", ["Number", "String", "String"], "Image"]
+    },
+    "aliases": {
+      "Image": { "tag": "name", 
+                 "origin": { "import-type": "uri", "uri": "builtin://image" },
+                 "name": "Image" }
+    },
+    "datatypes": {
+      "Image": ["data", "Image", [], [], {}]
+    }
+  }
+}
+
