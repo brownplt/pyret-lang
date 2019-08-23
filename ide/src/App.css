@@ -68,7 +68,10 @@ html, body, #root {
 }
 
 #interactions-container {
-    width: 50%
+    height: 100%;
+    width: 50%;
+    display: flex;
+    flex-flow: column;
 }
 
 .editor {
@@ -81,8 +84,13 @@ html, body, #root {
 
 #interactions-area {
     background: white;
-    height: 100%;
     width: 100%;
+    flex: 1 1 auto;
+}
+
+#interaction-error {
+    background: rgb(255, 173, 173);
+    flex: 1 1 auto;
 }
 
 #footer {
