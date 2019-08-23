@@ -23,14 +23,15 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                 };
             });
         const maxRowsPerPage = 5;
-        const showPagination = this.props.rows.length > maxRowsPerPage;
-        const defaultPageSize = showPagination ? maxRowsPerPage : this.props.rows.length;
+        const showOptions = this.props.rows.length > maxRowsPerPage;
+        const defaultPageSize = showOptions ? maxRowsPerPage : this.props.rows.length;
         return (
             <ReactTable data={data}
                         columns={columns}
-                        showPagination={showPagination}
+                        showPagination={showOptions}
                         pageSize={defaultPageSize}
-                        showPageSizeOptions={false}/>
+                        showPageSizeOptions={false}
+                        filterable={showOptions}/>
         );
     }
 }
