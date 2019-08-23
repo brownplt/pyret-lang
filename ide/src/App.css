@@ -86,11 +86,13 @@ html, body, #root {
     background: white;
     width: 100%;
     flex: 1 1 auto;
+    min-height: 50%;
 }
 
 #interaction-error {
     background: rgb(255, 173, 173);
     flex: 1 1 auto;
+    max-height: 50%;
 }
 
 #footer {

@@ -147,6 +147,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     run = () => {
+        this.setState({interactionError: false});
         if (this.isPyretFile) {
             control.compile(
                 this.currentFileDirectory,
