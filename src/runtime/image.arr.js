@@ -1,6 +1,7 @@
 
 var hasOwnProperty = {}.hasOwnProperty;
 
+/* @stopify flat */
 function Color(r, g, b, a) {
   this.red = r;
   this.green = g;
@@ -8,10 +9,11 @@ function Color(r, g, b, a) {
   this.alpha = a;
 }
 
+/* @stopify flat */
 function isNum(n) { return typeof n === "number"; }
 
 //////////////////////////////////////////////////////////////////////
-var makeColor = function(r,g,b,a) {
+var makeColor = /* @stopify flat */ function(r,g,b,a) {
   if (a === undefined) { a = 1; }
   if ([r,g,b,a].filter(isNum).length !== 4) {
     throw new Error("Internal error: non-number in makeColor argList ", [r, g, b, a]);
@@ -20,29 +22,29 @@ var makeColor = function(r,g,b,a) {
 };
 
 
-function clamp(num, min, max) {
+function /* @stopify flat */ clamp(num, min, max) {
   if (num < min) { return min; }
   else if (num > max) { return max; }
   else { return num; }
 }
-var isColor = function(c) { return typeof c === "object" && c instanceof Color; };
-var colorRed = function(c) { return clamp(c.red); }
-var colorGreen = function(c) { return clamp(c.green); }
-var colorBlue = function(c) { return clamp(c.blue); }
-var colorAlpha = function(c) { return clamp(c.alpha); }
+var isColor = /* @stopify flat */ function(c) { return typeof c === "object" && c instanceof Color; };
+var colorRed = /* @stopify flat */ function(c) { return clamp(c.red); }
+var colorGreen = /* @stopify flat */ function(c) { return clamp(c.green); }
+var colorBlue = /* @stopify flat */ function(c) { return clamp(c.blue); }
+var colorAlpha = /* @stopify flat */ function(c) { return clamp(c.alpha); }
 
-var convertColor = function(c) {
+var convertColor = /* @stopify flat */ function(c) {
   if(typeof c === "string") { return colorDb.get(c); }
   else { return c; }
 }
 
 // Color database
-var ColorDb = function() {
+var ColorDb = /* @stopify flat */ function() {
   this.colors = {};
   this.colorNames = {};
 };
 
-ColorDb.prototype.put = function(name, color) {
+ColorDb.prototype.put = /* @stopify flat */ function(name, color) {
   this.colors[name] = color;
   var str = // NOTE(ben): Not flooring the numbers here, because they will all be integers anyway
       colorRed(color) + ", " +
@@ -54,11 +56,11 @@ ColorDb.prototype.put = function(name, color) {
   }
 };
 
-ColorDb.prototype.get = function(name) {
+ColorDb.prototype.get = /* @stopify flat */ function(name) {
   return this.colors[name.toString().toUpperCase()];
 };
 
-ColorDb.prototype.colorName = function colorName(colorStr) {
+ColorDb.prototype.colorName = /* @stopify flat */ function colorName(colorStr) {
   var ans = this.colorNames[colorStr];
   if (ans !== undefined) ans = ans.toLowerCase();
   return ans;
@@ -363,13 +365,13 @@ var clone = function (obj) {
   return c;
 };
 // TODO(joe): not sufficient
-var equals = function(v1, v2) { return v1 === v2; };
+var equals = /* @stopify flat */ function(v1, v2) { return v1 === v2; };
 
-var imageEquals = function(left, right) {
+var imageEquals = /* @stopify flat */ function(left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
   return left.equals(right);
 }
-var imageDifference = function(left, right) {
+var imageDifference = /* @stopify flat */ function(left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
   return left.difference(right);
 }
@@ -377,7 +379,7 @@ var imageDifference = function(left, right) {
 
 var heir = Object.create;
 
-var isAngle = function(x) {
+var isAngle = /* @stopify flat */ function(x) {
   return jsnums.isReal(x) &&
     jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
     jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
@@ -385,7 +387,7 @@ var isAngle = function(x) {
 
 // Produces true if the value is a color or a color string.
 // On the Racket side of things, this is exposed as image-color?.
-var isColorOrColorString = function(thing) {
+var isColorOrColorString = /* @stopify flat */ function(thing) {
   return (isColor(thing) ||
           ((RUNTIME.isString(thing) &&
             typeof(colorDb.get(thing)) != 'undefined')));
@@ -395,7 +397,7 @@ var isColorOrColorString = function(thing) {
 // colorString : hexColor Style -> rgba
 // Style can be a number (0-1), "solid", "outline" or null
 // The above value which is non-number is equivalent to a number 255
-var colorString = function(aColor, aStyle) {
+var colorString = /* @stopify flat */ function(aColor, aStyle) {
   var styleAlpha = isNaN(aStyle)? 1.0 : aStyle,
       cAlpha = colorAlpha(aColor);
   // NOTE(ben): Flooring the numbers here so that it's a valid RGBA style string
@@ -454,35 +456,35 @@ function colorToSpokenString(aColor, aStyle){
   var lab1 = RGBtoLAB(colorRed(aColor),
                       colorGreen(aColor),
                       colorBlue(aColor));
-  var distances = colorLabs.map(function(lab2){
+  var distances = colorLabs.map(/* @stopify flat */ function(lab2){
           return {l: lab2.l, a: lab2.a, b:lab2.b, name: lab2.name,
                   d: Math.sqrt(Math.pow(lab1.l-lab2.l,2)
                                 +Math.pow(lab1.a-lab2.a,2)
                                 +Math.pow(lab1.b-lab2.b,2))}});
-  distances = distances.sort(function(a,b){return a.d<b.d? -1 : a.d>b.d? 1 : 0 ;});
+  distances = distances.sort(/* @stopify flat */ function(a,b){return a.d<b.d? -1 : a.d>b.d? 1 : 0 ;});
   var match = distances[0].name;
   var style = isNaN(aStyle)? (aStyle === "solid"? " solid" : "n outline") : " translucent ";
   return style + " " + match.toLowerCase();
 }
 
 
-var isSideCount = function(x) {
+var isSideCount = /* @stopify flat */ function(x) {
   return typeof x === "number" && x >= 3;
   // return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3, RUNTIME.NumberErrbacks);
 };
 
-var isStepCount = function(x) {
+var isStepCount = /* @stopify flat */ function(x) {
   return typeof x === "number" && x >= 1;
   // return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1, RUNTIME.NumberErrbacks);
 };
 
-var isPointsCount = function(x) {
+var isPointsCount = /* @stopify flat */ function(x) {
   return typeof x === "number" && x >= 2;
   // return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2, RUNTIME.NumberErrbacks);
 };
 
 // Produces true if thing is an image-like object.
-var isImage = function(thing) {
+var isImage = /* @stopify flat */ function(thing) {
   if (typeof(thing.getHeight) !== 'function')
     return false;
   if (typeof(thing.getWidth) !== 'function')
@@ -498,64 +500,64 @@ var isImage = function(thing) {
 
 
 // given two arrays of {x,y} structs, determine their equivalence
-var verticesEqual = function(v1, v2){
+var verticesEqual = /* @stopify flat */ function(v1, v2){
     if(v1.length !== v2.length){ return false; }
-    var v1_str = v1.map(function(o){return "x:"+o.x+",y:"+o.y}).join(","),
-        v2_str = v2.map(function(o){return "x:"+o.x+",y:"+o.y}).join(",");
+    var v1_str = v1.map(/* @stopify flat */ function(o){return "x:"+o.x+",y:"+o.y}).join(","),
+        v2_str = v2.map(/* @stopify flat */ function(o){return "x:"+o.x+",y:"+o.y}).join(",");
     // v1 == rot(v2) if append(v1,v1) includes v2
     return (v1_str+","+v1_str).includes(v2_str);
 };
 
 // given an array of (x, y) pairs, unzip them into separate arrays
-var unzipVertices = function(vertices){
-    return {xs: vertices.map(function(v) { return v.x }),
-            ys: vertices.map(function(v) { return v.y })};
+var unzipVertices = /* @stopify flat */ function(vertices){
+    return {xs: vertices.map(/* @stopify flat */ function(v) { return v.x }),
+            ys: vertices.map(/* @stopify flat */ function(v) { return v.y })};
 };
 // given an array of vertices, find the width of the shape
-var findWidth = function(vertices){
+var findWidth = /* @stopify flat */ function(vertices){
     var xs = unzipVertices(vertices).xs;
     return Math.max.apply(Math, xs) - Math.min.apply(Math, xs);
 }
 // given an array of vertices, find the height of the shape
-var findHeight = function(vertices){
+var findHeight = /* @stopify flat */ function(vertices){
     var ys = unzipVertices(vertices).ys;
     return Math.max.apply(Math, ys) - Math.min.apply(Math, ys);
 }
 // given a list of vertices and a translationX/Y, shift them
-var translateVertices = function(vertices) {
+var translateVertices = /* @stopify flat */ function(vertices) {
     var vs = unzipVertices(vertices);
     var translateX = -Math.min.apply( Math, vs.xs );
     var translateY = -Math.min.apply( Math, vs.ys );
-    return vertices.map(function(v) {
+    return vertices.map(/* @stopify flat */ function(v) {
         return {x: v.x + translateX, y: v.y + translateY };
     })
 }
 
 
 // Base class for all images.
-var BaseImage = function() { this.$brand = "image"; };
+var BaseImage = /* @stopify flat */ function() { this.$brand = "image"; };
 
-BaseImage.prototype.updatePinhole = function(x, y) {
+BaseImage.prototype.updatePinhole = /* @stopify flat */ function(x, y) {
   var aCopy = clone(this);
   aCopy.pinholeX = x;
   aCopy.pinholeY = y;
   return aCopy;
 };
 
-BaseImage.prototype.getHeight = function(){
+BaseImage.prototype.getHeight = /* @stopify flat */ function(){
   return Math.round(this.height);
 };
 
-BaseImage.prototype.getWidth = function(){
+BaseImage.prototype.getWidth = /* @stopify flat */ function(){
   return Math.round(this.width);
 };
 
-BaseImage.prototype.getBaseline = function(){
+BaseImage.prototype.getBaseline = /* @stopify flat */ function(){
   return Math.round(this.height);
 };
 
 // return the vertex array if it exists, otherwise make one using height and width
-BaseImage.prototype.getVertices = function(){
+BaseImage.prototype.getVertices = /* @stopify flat */ function(){
   if(this.vertices){ return this.vertices; }
   else{ return [{x:0 , y: 0},
                 {x: this.width, y: 0},
@@ -568,7 +570,7 @@ BaseImage.prototype.getVertices = function(){
 // (x, y).
 // If the image isn't vertex-based, throw an error
 // Otherwise, stroke and fill the vertices.
-BaseImage.prototype.render = function(ctx, x, y) {
+BaseImage.prototype.render = /* @stopify flat */ function(ctx, x, y) {
   if(!this.vertices){
     throw new Error('BaseImage.render is not implemented for this type!');
   }
@@ -593,14 +595,14 @@ BaseImage.prototype.render = function(ctx, x, y) {
 
       // compute 0.5px offsets to ensure that we draw on the pixel
       // and not the pixel boundary
-      vertices = this.vertices.map(function(v){
+      vertices = this.vertices.map(/* @stopify flat */ function(v){
           return {x: v.x + (v.x < midX ? 0.5 : -0.5),
                   y: v.y + (v.y < midY ? 0.5 : -0.5)};
       });
   }
 
   ctx.moveTo( x + vertices[0].x, y + vertices[0].y );
-  vertices.forEach(function(v) { ctx.lineTo( x + v.x, y + v.y); });
+  vertices.forEach(/* @stopify flat */ function(v) { ctx.lineTo( x + v.x, y + v.y); });
   ctx.closePath();
 
   if (isSolid) {
@@ -615,7 +617,7 @@ BaseImage.prototype.render = function(ctx, x, y) {
 
 // makeCanvas: number number -> canvas
 // Constructs a canvas object of a particular width and height.
-var makeCanvas = function(width, height) {
+var makeCanvas = /* @stopify flat */ function(width, height) {
   var canvas = document.createElement("canvas");
   canvas.width  = width;
   canvas.height = height;
@@ -623,14 +625,14 @@ var makeCanvas = function(width, height) {
   canvas.style.height = canvas.height + "px";
   return canvas;
 };
-BaseImage.prototype.toWrittenString = function(cache) { return "<image>"; }
-BaseImage.prototype.toDisplayedString = function(cache) { return "<image>"; }
+BaseImage.prototype.toWrittenString = /* @stopify flat */ function(cache) { return "<image>"; }
+BaseImage.prototype.toDisplayedString = /* @stopify flat */ function(cache) { return "<image>"; }
 
 
 // Best-Guess equivalence for images. If they're vertex-based we're in luck,
 // otherwise we go pixel-by-pixel. It's up to exotic image types to provide
 // more efficient ways of comparing one another
-BaseImage.prototype.equals = function(other) {
+BaseImage.prototype.equals = /* @stopify flat */ function(other) {
   if(this.getWidth()    !== other.getWidth()    ||
       this.getHeight()   !== other.getHeight()){ return false; }
   // if they're both vertex-based images, all we need to compare are
@@ -687,7 +689,7 @@ BaseImage.prototype.equals = function(other) {
 // Draws a triangle with the base = sideC, and the angle between sideC
 // and sideB being angleA
 // See http://docs.racket-lang.org/teachpack/2htdpimage.html#(def._((lib._2htdp/image..rkt)._triangle))
-var TriangleImage = function(sideC, angleA, sideB, style, color) {
+var TriangleImage = /* @stopify flat */ function(sideC, angleA, sideB, style, color) {
   debugger;
   BaseImage.call(this);
   var thirdX = sideB * Math.cos(angleA * Math.PI/180);
@@ -718,7 +720,7 @@ TriangleImage.prototype = heir(BaseImage.prototype);
 
 
 return module.exports = {
-  triangle: function(size, style, color) {
+  triangle: /* @stopify flat */ function(size, style, color) {
     return new TriangleImage(size, 360-60, size, style, convertColor(color));
   }
 }
