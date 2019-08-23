@@ -2004,6 +2004,63 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
             final-fields.set(key, new-members.get-value(key))
           end, t-fields)
           typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
+
+        # NOTE(alex): Only allow extend on data variants iff the field exists and match
+        #   the data variant's field type.
+        # This allows the type of an extend expression on a data variant is that data variant.
+        # Previously, this behavior was not supported and exposed runtime-implementations of
+        #   data variants and removed the type.
+        | t-data-refinement(data-type :: Type, 
+                            variant-name :: String, 
+                            l :: Loc, inferred :: Boolean) =>
+          instantiate-data-type(data-type, context)
+            .typing-bind(lam(shadow concrete-data-type, shadow context):
+              correct-result = 
+                typing-result(A.s-extend(update-loc, obj, fields), 
+                              t-data-refinement(data-type, variant-name, l, inferred), context)
+
+              for fold(result from correct-result, field from fields):
+                #TODO(alex): Assuming A.Member.s-data-field
+                cases(Option<Type>) concrete-data-type.fields.get(field.name):
+
+                  # Found field; check field type is the expected type
+                  | some(field-typ) =>
+                    cases(TypingResult) checking(field.value, field-typ, false, context):
+
+                      # Field matched expected type
+                      | typing-result(_, _, out-context) =>
+                        cases(TypingResult) result:
+                          | typing-result(ast, ty, _) => typing-result(ast, ty, out-context)
+                          | typing-error(_) => result
+                        end
+
+                      # Field did NOT match expected type
+                      | typing-error(field-error-list) =>
+                       cases(TypingResult) result:
+                          | typing-result(ast, ty, _) => typing-error(field-error-list)
+                          | typing-error(result-error-list) => 
+                            typing-error(result-error-list.append(field-error-list))
+                        end 
+                    end
+
+                  # Missing field; update result
+                  | none =>
+                    current-err = C.object-missing-field(
+                                            field.name, 
+                                            tostring(obj-type), 
+                                            obj-type.l, 
+                                            field.l)
+                    cases(TypingResult) result:
+                      | typing-result(_, _, _) => 
+                        typing-error([list: current-err])
+                      | typing-error(error-list) => 
+                        typing-error(error-list.push(current-err))
+                    end
+                end
+
+              end
+              
+            end)
         | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
