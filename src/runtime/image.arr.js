@@ -22,7 +22,8 @@ var makeColor = /* @stopify flat */ function(r,g,b,a) {
 };
 
 
-function /* @stopify flat */ clamp(num, min, max) {
+/* @stopify flat */
+function clamp(num, min, max) {
   if (num < min) { return min; }
   else if (num > max) { return max; }
   else { return num; }
@@ -407,9 +408,10 @@ var colorString = /* @stopify flat */ function(aColor, aStyle) {
                     styleAlpha * cAlpha + ")";
 };
 
+/* @stopify flat */
 function RGBtoLAB(r, g, b){
-  function RGBtoXYZ(r, g, b){
-      function process(v){
+  /* @stopify flat */ function RGBtoXYZ(r, g, b){
+      /* @stopify flat */ function process(v){
         v = parseFloat(v/255);
         return (v>0.04045? Math.pow( (v+0.055)/1.055, 2.4) : v/12.92) * 100;
       }
@@ -421,7 +423,7 @@ function RGBtoLAB(r, g, b){
     return [X, Y, Z];
   }
 
-  function XYZtoLAB(x, y, z){
+  /* @stopify flat */ function XYZtoLAB(x, y, z){
     var var_X = x / 95.047;           //ref_X =  95.047   Observer= 2°, Illuminant= D65
     var var_Y = y / 100.000;          //ref_Y = 100.000
     var var_Z = z / 108.883;          //ref_Z = 108.883
@@ -450,7 +452,7 @@ for (var p in colorRgbs) {
 // colorToSpokenString : hexColor Style -> String
 // Describes the color using the nearest HTML color name
 // Style can be "solid" (1.0), "outline" (1.0), a number (0-1.0) or null (1.0)
-function colorToSpokenString(aColor, aStyle){
+/* @stopify flat */ function colorToSpokenString(aColor, aStyle){
   if(aStyle===0) return " transparent ";
   // NOTE(ben): Not flooring numbers here, since RGBtoLAB supports float values
   var lab1 = RGBtoLAB(colorRed(aColor),
