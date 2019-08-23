@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactTable from 'react-table';
+import 'react-table/react-table.css';
 
 type TableWidgetProps = {
     htmlify: (x: any) => any;
@@ -9,37 +11,26 @@ type TableWidgetState = {};
 
 export class TableWidget extends React.Component<TableWidgetProps, TableWidgetState> {
     render() {
-        return (
-            <table>
-                <thead className="table-widget-header">
-                    <tr>
-                        {
-                            this.props.headers.map((header) => {
-                                return (
-                                    <th key={header}>{this.props.htmlify(header)}</th>
-                                );
-                            })
-                        }
-                    </tr>
-                </thead>
-                <tbody className="table-widget-body">
-                    {
-                        this.props.rows.map((row, i) => {
-                            return (
-                                <tr key={i}>
-                                    {
-                                        row.map((x, j) => {
-                                            return (
-                                                <td key={`${i}:${j}`}>{this.props.htmlify(x)}</td>
-                                            );
-                                        })
-                                    }
-                                </tr>
-                            );
-                        })
+        const data = this.props.rows;
+        const columns = this.props.headers.map(
+            (header: string, index: number) => {
+                return {
+                    id: header,
+                    Header: header,
+                    accessor: (row: any) => {
+                        return this.props.htmlify(row[index]);
                     }
-                </tbody>
-            </table>
-        )
+                };
+            });
+        const maxRowsPerPage = 5;
+        const showPagination = this.props.rows.length > maxRowsPerPage;
+        const defaultPageSize = showPagination ? maxRowsPerPage : this.props.rows.length;
+        return (
+            <ReactTable data={data}
+                        columns={columns}
+                        showPagination={showPagination}
+                        pageSize={defaultPageSize}
+                        showPageSizeOptions={false}/>
+        );
     }
 }

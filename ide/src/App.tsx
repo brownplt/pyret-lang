@@ -2,6 +2,16 @@ import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
 import * as control from './control';
+import {UnControlled as CodeMirror} from 'react-codemirror2';
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/theme/material.css';
+import 'codemirror/mode/javascript/javascript.js';
+
+// pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
+// to be bound to the 'codemirror' import.
+import * as RawCodeMirror from 'codemirror';
+(window as any).CodeMirror = RawCodeMirror;
+require('pyret-codemirror-mode/mode/pyret');
 
 control.installFileSystem();
 control.loadBuiltins();
@@ -167,11 +177,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
-    onEdit = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    onEdit = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
         clearTimeout(this.state.updateTimer);
 
         this.setState({
-            currentFileContents: e.target.value,
+            currentFileContents: value,
             updateTimer: setTimeout(this.update, 250)
         });
     };
@@ -209,7 +219,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 }],
                 currentFileDirectory: this.state.browsePath,
                 currentFileName: child,
-                currentFileContents: control.fs.readFileSync(fullChildPath),
+                currentFileContents: control.fs.readFileSync(fullChildPath, "utf-8"),
             });
         }
     };
@@ -349,10 +359,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             </div>
                             <div id="main-container">
                                 <div id="definitions-container">
-                                    <textarea className="editor"
-                                              value={this.state.currentFileContents}
-                                              onChange={this.onEdit}>
-                                    </textarea>
+                                    <CodeMirror
+                                        value={this.state.currentFileContents}
+                                        options={{
+                                            mode: 'pyret',
+                                            theme: 'material',
+                                            lineNumbers: true
+                                        }}
+                                        onChange={this.onEdit}
+                                        autoCursor={false}>
+                                    </CodeMirror>
                                 </div>
                                 <div id="separator">
                                 </div>

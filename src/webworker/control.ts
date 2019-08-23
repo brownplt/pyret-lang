@@ -98,7 +98,7 @@ export const setupWorkerMessageHandler = (
 
 export const openOrCreateFile = (path: string): string => {
   if (bfsSetup.fs.existsSync(path)) {
-    return bfsSetup.fs.readFileSync(path);
+    return bfsSetup.fs.readFileSync(path, "utf-8");
   } else {
     bfsSetup.fs.writeFileSync(path, "");
     return "";
