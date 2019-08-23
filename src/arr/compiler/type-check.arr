@@ -1999,10 +1999,10 @@ end
 fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
 
   fun field-lookup(shadow obj-type  :: Type, 
-                    correct-result   :: TypingResult, 
+                    correct-result   :: TypingResult,
                     available-fields :: StringDict<Type>) -> TypingResult:
     # Type check fields
-    for fold(result from correct-result, field from available-fields):
+    for fold(result from correct-result, field from fields):
       #TODO(alex): Assuming A.Member.s-data-field
       cases(Option<Type>) available-fields.get(field.name):
 
