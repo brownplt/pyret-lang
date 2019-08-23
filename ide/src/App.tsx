@@ -382,12 +382,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                                 })
                                         }
                                     </pre>
-                                    <pre id="interaction-error">
+                                    <pre>
                                         {
                                             (() => {
                                                 console.log(this.state.interactionError);
                                                 return (this.state.interactionError ? (
-                                                    <dl>
+                                                    <dl id="interaction-error">
                                                         <dt>Name</dt>
                                                         <dd>Description</dd>
                                                     </dl>
