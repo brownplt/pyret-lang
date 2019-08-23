@@ -1,5 +1,6 @@
 ### true
 import global as G
+import list as L
 
 not = G.not
 
@@ -22,5 +23,5 @@ result = not(f2.x) and not(f3.x)
 if result:
   G.console-log(result)
 else:
-  G.console-log([list: f1, f2, f3 ])
+  G.console-log([L.list: f1, f2, f3 ])
 end
