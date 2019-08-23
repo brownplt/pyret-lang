@@ -1997,6 +1997,53 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
 end
 
 fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
+
+  fun field-lookup(shadow obj-type  :: Type, 
+                    correct-result   :: TypingResult, 
+                    available-fields :: StringDict<Type>) -> TypingResult:
+    # Type check fields
+    for fold(result from correct-result, field from available-fields):
+      #TODO(alex): Assuming A.Member.s-data-field
+      cases(Option<Type>) available-fields.get(field.name):
+
+        # Found field; check field type is the expected type
+        | some(field-typ) =>
+          cases(TypingResult) checking(field.value, field-typ, false, context):
+
+            # Field matched expected type
+            | typing-result(_, _, out-context) =>
+              cases(TypingResult) result:
+                | typing-result(ast, ty, _) => typing-result(ast, ty, out-context)
+                | typing-error(_) => result
+              end
+
+            # Field did NOT match expected type
+            | typing-error(field-error-list) =>
+             cases(TypingResult) result:
+                | typing-result(ast, ty, _) => typing-error(field-error-list)
+                | typing-error(result-error-list) => 
+                  typing-error(result-error-list.append(field-error-list))
+              end 
+          end
+
+        # Missing field; update result
+        | none =>
+          current-err = C.object-missing-field(
+                                  field.name, 
+                                  tostring(obj-type), 
+                                  obj-type.l, 
+                                  field.l)
+          cases(TypingResult) result:
+            | typing-result(_, _, _) => 
+              typing-error([list: current-err])
+            | typing-error(error-list) => 
+              typing-error(error-list.push(current-err))
+          end
+      end
+    end
+  end
+
+
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
     instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
       cases(Type) obj-type:
@@ -2048,48 +2095,7 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
                 typing-result(A.s-extend(update-loc, obj, fields), 
                               t-data-refinement(data-type, variant-name, l, inferred), context)
 
-              # Type check fields
-              for fold(result from correct-result, field from fields):
-                #TODO(alex): Assuming A.Member.s-data-field
-                cases(Option<Type>) available-fields.get(field.name):
-
-                  # Found field; check field type is the expected type
-                  | some(field-typ) =>
-                    cases(TypingResult) checking(field.value, field-typ, false, context):
-
-                      # Field matched expected type
-                      | typing-result(_, _, out-context) =>
-                        cases(TypingResult) result:
-                          | typing-result(ast, ty, _) => typing-result(ast, ty, out-context)
-                          | typing-error(_) => result
-                        end
-
-                      # Field did NOT match expected type
-                      | typing-error(field-error-list) =>
-                       cases(TypingResult) result:
-                          | typing-result(ast, ty, _) => typing-error(field-error-list)
-                          | typing-error(result-error-list) => 
-                            typing-error(result-error-list.append(field-error-list))
-                        end 
-                    end
-
-                  # Missing field; update result
-                  | none =>
-                    current-err = C.object-missing-field(
-                                            field.name, 
-                                            tostring(obj-type), 
-                                            obj-type.l, 
-                                            field.l)
-                    cases(TypingResult) result:
-                      | typing-result(_, _, _) => 
-                        typing-error([list: current-err])
-                      | typing-error(error-list) => 
-                        typing-error(error-list.push(current-err))
-                    end
-                end
-
-              end
-              
+              field-lookup(obj-type, correct-result, available-fields)
             end)
         | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
