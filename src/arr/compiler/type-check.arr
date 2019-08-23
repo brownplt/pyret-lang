@@ -13,6 +13,7 @@ import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
 import file("compile-structs.arr") as C
 
+type StringDict = SD.StringDict
 type Type = TS.Type
 type TypeMembers = TS.TypeMembers
 type ConstraintSolution = TCS.ConstraintSolution
@@ -801,7 +802,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-op(loc, op-l, op, l, r) =>
       desugared = DH.desugar-s-op(loc, op-l, op, l, r)
       cases(Expr) desugared:
-        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(loc, op, op-l, l, r, context)
+        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(top-level, loc, op, op-l, l, r, context)
         | else => synthesis(desugared, top-level, context)
       end
     | s-check-test(loc, op, refinement, l, r, cause) =>
@@ -1590,7 +1591,7 @@ fun synthesis-field(access-loc :: Loc, obj :: Expr, obj-type :: Type, field-name
   end)
 end
 
-fun synthesis-op(app-loc, op, op-loc, left, right, context):
+fun synthesis-op(top-level, app-loc, op, op-loc, left, right, context):
   fun choose-type(method-name :: String) -> FoldResult<Type>:
     obj-exists = new-existential(left.l, false)
     other-type = new-existential(right.l, false)
@@ -1599,19 +1600,35 @@ fun synthesis-op(app-loc, op, op-loc, left, right, context):
     shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc, false))
     fold-result(arrow-type, context)
   end
-  opname = if op == "op+": "_plus"
-    else if op == "op-": "_minus"
-    else if op == "op*": "_times"
-    else if op == "op/": "_divide"
-    else if op == "op<": "_lessthan"
-    else if op == "op>": "_greaterthan"
-    else if op == "op>=": "_greaterequal"
-    else if op == "op<=": "_lessequal"
+  if (op == "opand") or (op == "opor"):
+    # Checking the LHS and RHS of these operators
+    # TODO(alex): define '_and' and '_or' functions?
+    left-result = checking(left, t-boolean(op-loc), top-level, context)
+    cases(TypingResult) left-result:
+      | typing-result(lhs-ast, lhs-ty, lhs-out-context) =>
+        right-result = checking(right, t-boolean(op-loc), top-level, context)
+        cases(TypingResult) right-result:
+        | typing-result(rhs-ast, rhs-ty, rhs-out-context) =>
+          typing-result(A.s-op(app-loc, op-loc, op, lhs-ast, rhs-ast), t-boolean(op-loc), context)
+        | typing-error(rhs-errors) => typing-error(rhs-errors)
+        end
+      | typing-error(lhs-errors) => typing-error(lhs-errors)
     end
-  choose-type(opname)
-    .typing-bind(lam(fun-type, shadow context):
-      synthesis-spine(fun-type, A.s-app(app-loc, A.s-id(op-loc, A.s-global(opname)), _), [list: left, right], app-loc, context)
-    end)
+  else:
+    opname = if op == "op+": "_plus"
+      else if op == "op-": "_minus"
+      else if op == "op*": "_times"
+      else if op == "op/": "_divide"
+      else if op == "op<": "_lessthan"
+      else if op == "op>": "_greaterthan"
+      else if op == "op>=": "_greaterequal"
+      else if op == "op<=": "_lessequal"
+      end
+    choose-type(opname)
+      .typing-bind(lam(fun-type, shadow context):
+        synthesis-spine(fun-type, A.s-app(app-loc, A.s-id(op-loc, A.s-global(opname)), _), [list: left, right], app-loc, context)
+      end)
+  end
 end
 
 fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<Type>:
@@ -1980,6 +1997,53 @@ fun synthesis-let-bind(binding :: A.LetBind, context :: Context) -> TypingResult
 end
 
 fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
+
+  fun field-lookup(shadow obj-type  :: Type, 
+                    correct-result   :: TypingResult,
+                    available-fields :: StringDict<Type>) -> TypingResult:
+    # Type check fields
+    for fold(result from correct-result, field from fields):
+      #TODO(alex): Assuming A.Member.s-data-field
+      cases(Option<Type>) available-fields.get(field.name):
+
+        # Found field; check field type is the expected type
+        | some(field-typ) =>
+          cases(TypingResult) checking(field.value, field-typ, false, context):
+
+            # Field matched expected type
+            | typing-result(_, _, out-context) =>
+              cases(TypingResult) result:
+                | typing-result(ast, ty, _) => typing-result(ast, ty, out-context)
+                | typing-error(_) => result
+              end
+
+            # Field did NOT match expected type
+            | typing-error(field-error-list) =>
+             cases(TypingResult) result:
+                | typing-result(ast, ty, _) => typing-error(field-error-list)
+                | typing-error(result-error-list) => 
+                  typing-error(result-error-list.append(field-error-list))
+              end 
+          end
+
+        # Missing field; update result
+        | none =>
+          current-err = C.object-missing-field(
+                                  field.name, 
+                                  tostring(obj-type), 
+                                  obj-type.l, 
+                                  field.l)
+          cases(TypingResult) result:
+            | typing-result(_, _, _) => 
+              typing-error([list: current-err])
+            | typing-error(error-list) => 
+              typing-error(error-list.push(current-err))
+          end
+      end
+    end
+  end
+
+
   collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
     instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
       cases(Type) obj-type:
@@ -1988,6 +2052,62 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
             final-fields.set(key, new-members.get-value(key))
           end, t-fields)
           typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
+
+        | t-name(_, _, _, _) => 
+          instantiate-data-type(obj-type, context)
+            .typing-bind(lam(shadow concrete-data-type, shadow context):
+
+              available-fields = concrete-data-type.fields
+              correct-result = typing-result(A.s-extend(update-loc, obj, fields),
+                                             obj-type,
+                                             context)
+              field-lookup(obj-type, correct-result, available-fields)
+            end)
+
+        # NOTE(alex): Only allow extend on data variants iff the field exists and match
+        #   the data variant's field type.
+        # This allows the type of an extend expression on a data variant is that data variant.
+        # Previously, this behavior was not supported and exposed runtime-implementations of
+        #   data variants and removed the type.
+        | t-data-refinement(data-type :: Type, 
+                            variant-name :: String, 
+                            l :: Loc, inferred :: Boolean) =>
+          instantiate-data-type(data-type, context)
+            .typing-bind(lam(shadow concrete-data-type, shadow context):
+
+              # Allow extends on fields of a specific data variant
+              concrete-variant = for fold(my-variant from none, variant from concrete-data-type.variants):
+                if variant.name == variant-name:
+                  some(variant)
+                else:
+                  my-variant
+                end
+              end
+              shadow concrete-variant = cases(Option) concrete-variant:
+                | some(my-variant) => my-variant
+                | none => raise("Invalid variant: " + variant-name)
+              end
+              # Make any variant-specific fields visible
+              available-fields = cases(TypeVariant) concrete-variant:
+                | t-variant(_name               :: String,
+                            variant-fields      :: List<{String; Type}>,
+                            with-fields         :: StringDict<Type>,
+                            _l                  :: Loc) =>
+                  for fold(available from with-fields, { field-name; field-type } from variant-fields):
+                    available.set(field-name, field-type)
+                  end
+                | t-singleton-variant(
+                            _name       :: String,
+                            with-fields :: StringDict<Type>,
+                            _l          :: Loc) => with-fields
+              end
+
+              correct-result = 
+                typing-result(A.s-extend(update-loc, obj, fields), 
+                              t-data-refinement(data-type, variant-name, l, inferred), context)
+
+              field-lookup(obj-type, correct-result, available-fields)
+            end)
         | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>

@@ -157,6 +157,10 @@ fun compiler-name(id):
   const-id(string-append("$",id))
 end
 
+EQUAL-ALWAYS = "equal-always"
+IDENTICAL = "identical"
+MAKETUPLE = "PTuple"
+
 GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
@@ -165,9 +169,10 @@ SPY = const-id("_spy")
 NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
-RUNTIME = j-id(const-id("R"))
+RUNTIME = const-id("_runtime")
 NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
+OBJECT = const-id("Object")
 
 rt-name-map = [D.string-dict:
   "addModuleToNamespace", "aMTN",
@@ -338,9 +343,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op<" then: j-binop(lv, J.j-lt, rv)
         | op == "op>" then: j-binop(lv, J.j-gt, rv)
         # TODO(alex): Use equal-always, equal-now, etc
-        | op == "op==" then: j-binop(lv, J.j-eq, rv)
+        # Call Global.py_equal
+        | op == "op==" then: 
+          argvs = cl-cons(lv, cl-sing(rv))
+          j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
         | op == "op<>" then: j-binop(lv, J.j-neq, rv)
-        | op == "op<=>" then: j-binop(lv, J.j-eq, rv)
+        | op == "op<=>" then:
+          argvs = cl-cons(lv, cl-sing(rv))
+          j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
         | op == "opor" then: j-binop(lv, J.j-or, rv)
         | op == "opand" then: j-binop(lv, J.j-and, rv)
         | otherwise: nyi(op)
@@ -592,7 +602,30 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-bracket(l, obj, key) => nyi("s-bracket")
     | s-get-bang(l, obj, field) => nyi("s-get-bang")
     | s-update(l, obj, fields) => nyi("s-update")
-    | s-extend(l, obj, fields) => nyi("s-extend")
+    | s-extend(l :: Loc, obj :: A.Expr, fields :: List<A.Member>) =>
+
+      # Get the object to extend
+      { to-extend; obj-stmts } = compile-expr(context, obj)
+
+      # Perform a shallow copy of obj with JS(Object.assign)
+      shallow-copy-fn = j-bracket(j-id(OBJECT), j-str("assign"))
+      shallow-copy-name = fresh-id(compiler-name("shallow-copy"))
+      shallow-copy-call = j-app(shallow-copy-fn, cl-sing(to-extend))
+      shallow-copy = j-var(shallow-copy-name, shallow-copy-call)
+
+      prelude-stmts = cl-append(obj-stmts, cl-sing(shallow-copy))
+      # Update the fields
+      extend-stmts = for fold(stmts from prelude-stmts, field from fields) block:
+        # TODO(alex): Assuming A.Member.s-data-field
+        { extend-ans; extend-stmts } = compile-expr(context, field.value)
+        field-extend = j-bracket-assign(j-id(shallow-copy-name), 
+                                        j-str(field.name), 
+                                        extend-ans)
+        cl-append(stmts, cl-sing(j-expr(field-extend)))
+      end
+
+      { j-id(shallow-copy-name); extend-stmts }
+
     | s-for(l, iter, bindings, ann, body, blocky) => 
       compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
     | s-id-var(l, ident) => 
@@ -620,8 +653,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { cl-cons(val, fieldvs); field-stmts + stmts }
       end
 
-      # Represent tuples as arrays
-      { j-list(false, fieldvs); stmts }
+      # Create tuples by calling RUNTIME.MAKETUPLE(js-tuple-array)
+      js-tuple-array = j-list(false, fieldvs)
+      { j-app(j-bracket(j-id(RUNTIME), j-str(MAKETUPLE)), cl-sing(js-tuple-array)); stmts }
     | s-tuple-get(l, tup, index, index-loc) => 
 
       {tupv; tup-stmts} = compile-expr(context, tup)
@@ -1235,7 +1269,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   end
 
   global-import = import-builtin(GLOBAL, "global.arr.js")
-
+  runtime-import = import-builtin(RUNTIME, "runtime.js")
   nothing-import = J.j-var(NOTHING, j-undefined)
 
   array-import = import-builtin(ARRAY, "array.arr.js")
@@ -1243,7 +1277,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import
-  manual-imports = [clist: global-import, nothing-import]
+  manual-imports = [clist: global-import, runtime-import, nothing-import]
 
   shadow manual-imports = if import-flags.table-import:
     cl-append(manual-imports, cl-sing(table-import))
