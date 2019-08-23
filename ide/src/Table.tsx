@@ -22,8 +22,11 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                     }
                 };
             });
+        const showPagination = this.props.rows.length > 10;
         return (
-            <ReactTable data={data} columns={columns}/>
+            <ReactTable data={data}
+                        columns={columns}
+                        showPagination={showPagination}/>
         );
     }
 }
