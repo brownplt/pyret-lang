@@ -2053,6 +2053,17 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
           end, t-fields)
           typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
 
+        | t-name(_, _, _, _) => 
+          instantiate-data-type(obj-type, context)
+            .typing-bind(lam(shadow concrete-data-type, shadow context):
+
+              available-fields = concrete-data-type.fields
+              correct-result = typing-result(A.s-extend(update-loc, obj, fields),
+                                             obj-type,
+                                             context)
+              field-lookup(obj-type, correct-result, available-fields)
+            end)
+
         # NOTE(alex): Only allow extend on data variants iff the field exists and match
         #   the data variant's field type.
         # This allows the type of an extend expression on a data variant is that data variant.
