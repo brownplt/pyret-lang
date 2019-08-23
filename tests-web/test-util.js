@@ -73,6 +73,7 @@ chromeCapabilities.set('chromeOptions', {
 
 const INPUT_ID = "program";
 const COMPILE_RUN_BUTTON = "compileRun";
+const COMPILE_RUN_STOPIFY_BUTTON = "compileRunStopify";
 const TYPE_CHECK_CHECKBOX = "typeCheck";
 const CLEAR_LOGS = "clearLogs";
 
@@ -127,7 +128,12 @@ async function compileRun(driver, options) {
     }
   }
 
-  let runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
+  let runButton;
+  if (options["stopify"]) {
+    runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
+  } else {
+    runButton = await driver.findElement({ id: COMPILE_RUN_STOPIFY_BUTTON });
+  }
   await runButton.click();
 }
 
