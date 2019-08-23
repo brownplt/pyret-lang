@@ -144,8 +144,8 @@ function isString(val: any): boolean {
   return typeof val === "string";
 }
 
-function isBrandedObject(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val);
+function isDataVariant(val: any): boolean {
+  return (typeof val === "object") && ("$brand" in val) && !(isPTuple(val));
 }
 
 function isRawObject(val: any): boolean {
@@ -259,7 +259,7 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       }
       continue;
 
-    } else if (isBrandedObject(v1) && isBrandedObject(v2)) {
+    } else if (isDataVariant(v1) && isDataVariant(v2)) {
       // TODO(alex): Check for _equal method
       if(v1.$brand && v1.$brand === v2.$brand) {
         var fields1 = v1.$brand.names;
