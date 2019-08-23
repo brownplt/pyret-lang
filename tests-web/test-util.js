@@ -115,17 +115,18 @@ async function clearLogs(driver) {
 }
 
 async function compileRun(driver, options) {
-    let tc = await driver.findElement({ id: TYPE_CHECK_CHECKBOX });
-    let checked = await tc.getAttribute("checked");
-    if (options["type-check"] === false) {
-      if (checked) {
-        await tc.click();
-      }
-    } else {
-      if (!checked) {
-        await tc.click();
-      }
+  let tc = await driver.findElement({ id: TYPE_CHECK_CHECKBOX });
+  let checked = await tc.getAttribute("checked");
+  if (options["type-check"] === false) {
+    if (checked) {
+      await tc.click();
     }
+  } else {
+    if (!checked) {
+      await tc.click();
+    }
+  }
+
   let runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
   await runButton.click();
 }
