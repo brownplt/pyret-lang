@@ -13,6 +13,7 @@ import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
 import file("compile-structs.arr") as C
 
+type StringDict = SD.StringDict
 type Type = TS.Type
 type TypeMembers = TS.TypeMembers
 type ConstraintSolution = TCS.ConstraintSolution
@@ -2015,13 +2016,42 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
                             l :: Loc, inferred :: Boolean) =>
           instantiate-data-type(data-type, context)
             .typing-bind(lam(shadow concrete-data-type, shadow context):
+
+              # Allow extends on fields of a specific data variant
+              concrete-variant = for fold(my-variant from none, variant from concrete-data-type.variants):
+                if variant.name == variant-name:
+                  some(variant)
+                else:
+                  my-variant
+                end
+              end
+              shadow concrete-variant = cases(Option) concrete-variant:
+                | some(my-variant) => my-variant
+                | none => raise("Invalid variant: " + variant-name)
+              end
+              # Make any variant-specific fields visible
+              available-fields = cases(TypeVariant) concrete-variant:
+                | t-variant(_name               :: String,
+                            variant-fields      :: List<{String; Type}>,
+                            with-fields         :: StringDict<Type>,
+                            _l                  :: Loc) =>
+                  for fold(available from with-fields, { field-name; field-type } from variant-fields):
+                    available.set(field-name, field-type)
+                  end
+                | t-singleton-variant(
+                            _name       :: String,
+                            with-fields :: StringDict<Type>,
+                            _l          :: Loc) => with-fields
+              end
+
               correct-result = 
                 typing-result(A.s-extend(update-loc, obj, fields), 
                               t-data-refinement(data-type, variant-name, l, inferred), context)
 
+              # Type check fields
               for fold(result from correct-result, field from fields):
                 #TODO(alex): Assuming A.Member.s-data-field
-                cases(Option<Type>) concrete-data-type.fields.get(field.name):
+                cases(Option<Type>) available-fields.get(field.name):
 
                   # Found field; check field type is the expected type
                   | some(field-typ) =>
