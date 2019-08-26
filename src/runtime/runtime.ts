@@ -134,7 +134,7 @@ function isOpaque(val: any): boolean { return false; }
 
 const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
 const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
-const equals: (val: any) => boolean = _NUMBER["equals"];
+const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boolean = _NUMBER["equals"];
 
 function isBoolean(val: any): boolean {
   return typeof val === "boolean";
@@ -163,6 +163,30 @@ function isArray(val: any): boolean {
 function isPRef(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRefBrand);
 }
+
+export interface NumericErrorCallbacks {
+  throwDivByZero: (msg: any) => void,
+  throwToleranceError: (msg: any) => void,
+  throwRelToleranceError: (msg: any) => void,
+  throwGeneralError: (msg: any) => void,
+  throwDomainError: (msg: any) => void,
+  throwSqrtNegative: (msg: any) => void,
+  throwLogNonPositive: (msg: any) => void,
+  throwIncomparableValues: (msg: any) => void,
+  throwInternalError: (msg: any) => void,
+}
+
+export var NumberErrbacks: NumericErrorCallbacks = {
+  throwDivByZero: function(msg) { throw msg; },
+  throwToleranceError: function(msg) { throw msg; },
+  throwRelToleranceError: function(msg) { throw msg; },
+  throwGeneralError: function(msg) { throw msg; },
+  throwDomainError: function(msg) { throw msg; },
+  throwSqrtNegative: function(msg) { throw msg; },
+  throwLogNonPositive: function(msg) { throw msg; },
+  throwIncomparableValues: function(msg) { throw msg; },
+  throwInternalError: function(msg) { throw msg; },
+};
 
 // ********* Equality Functions *********
 export function identical3(v1: any, v2: any): EqualityResult {
@@ -211,9 +235,13 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
     }
 
     if (isNumber(v1) && isNumber(v2)) {
-      // TODO(alex): Assuming JS numbers. Create helper that abstracts over either
-      if (v1 !== v2) { return NotEqual("Numbers", v1, v2); }
-      continue;
+      if (isRoughNumber(v1) || isRoughNumber(v2)) {
+        return Unknown("Rough Number equal-always", v1, v2);
+      } else if (numericEquals(v1, v2, NumberErrbacks)) {
+        continue;
+      } else {
+        return NotEqual("Numers", v1, v2);
+      }
 
     } else if (isBoolean(v1) && isBoolean(v2)) {
       if (v1 !== v2) { return NotEqual("Booleans", v1, v2); }
