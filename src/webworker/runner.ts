@@ -53,7 +53,8 @@ export const makeRequireAsync = (
         stopify,
         require: requireAsync,
         "module": stopifyModuleExports,
-        "exports": stopifyModuleExports.exports,
+        // TS 'export' syntax desugars to 'exports.name = value;'
+        "exports": stopifyModuleExports.exports,  
         String,
         $STOPIFY: runner,
         setTimeout: setTimeout,
