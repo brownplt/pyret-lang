@@ -2721,6 +2721,8 @@ type CompileOptions = {
   before-compile :: Function
 }
 
+DEFAULT-PYRET-NUMBERS = false
+
 default-compile-options = {
   add-profiling: false,
   base-dir: ".",
@@ -2763,6 +2765,7 @@ default-compile-options = {
   deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js",
   runtime-builtin-relative-path: "../builtin/",
+  pyret-numbers: DEFAULT-PYRET-NUMBERS
 }
 
 fun make-default-compile-options(this-pyret-dir):
