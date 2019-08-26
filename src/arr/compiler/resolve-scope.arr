@@ -1183,7 +1183,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
       fun is-hidden(hidden :: List<A.Name>, maybe-hidden-name :: String):
         for lists.any(h from hidden):
-          h.name == maybe-hidden-name
+          h.toname() == maybe-hidden-name
         end
       end
 

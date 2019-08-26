@@ -54,6 +54,11 @@ check "numeric helpers":
   stdev([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 1.41
   stdev([list: 1, 1, 1, 1]) is-roughly ~0
   stdev([list:]) raises "empty"
+  
+  stdev-sample([list: 3, 4, 5, 6, 7]) is%(within(0.01)) num-sqrt(10 / 4)
+  stdev-sample([list: 3]) raises "division by zero"
+  stdev-sample([list: 1, 1, 1, 1]) is-roughly ~0
+  stdev-sample([list:]) raises "empty"
 
 end
 

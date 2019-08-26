@@ -169,9 +169,6 @@ data CompileEnvironment:
         my-modules :: StringDict<URI>
       )
 sharing:
-  # TODO(joe/ben/jose): Write a recursive lookup here
-  # that fully resolves names (once ValueExport and
-  # friends have that information)
   method value-by-uri(self, uri :: String, name :: String):
     cases(Option) self.all-modules
       .get-value-now(uri)
@@ -1421,7 +1418,7 @@ data CompileError:
                 ED.text(":")],
               ED.cmcode(ldef)]
           else:
-            # MARK(joe/ben): This may be able to use lbind and ldef when they
+            # TODO(joe/ben): This may be able to use lbind and ldef when they
             # are more refined; come back to this
             [ED.error: intro, usage,
               [ED.para:
