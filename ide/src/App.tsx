@@ -43,7 +43,8 @@ type EditorState = {
     currentFileContents: string;
     typeCheck: boolean;
     interactions: {name: string, value: any}[];
-    interactionError: boolean;
+    interactionErrors: string[];
+    interactErrorExists: boolean;
     fsBrowserVisible: boolean;
     runKind: control.backend.RunKind;
     autoRun: boolean;
@@ -78,8 +79,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         control.setupWorkerMessageHandler(
             console.log,
-            console.log,
-            () => { return; },
+            (errors: string[]) => {
+                console.log("Error (App.ts): ", errors);
+                this.setState(
+                    {
+                        interactionErrors: errors,
+                        interactErrorExists: true
+                    }
+                );
+            },
             () => {
                 control.run(
                     control.path.runBase,
@@ -111,7 +119,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
-            interactionError: false,
+            interactionErrors: [],
+            interactErrorExists: false,
             fsBrowserVisible: false,
             runKind: control.backend.RunKind.Async,
             autoRun: true,
@@ -147,7 +156,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     run = () => {
-        this.setState({interactionError: false});
+        this.setState(
+            {
+                interactionErrors: [],
+                interactErrorExists: false
+            }
+        );
         if (this.isPyretFile) {
             control.compile(
                 this.currentFileDirectory,
@@ -163,9 +177,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {
                         name: "File",
                         value: this.currentFile
-                    }]
+                    }],
+                interactionErrors: ["Error: Run is not supported on this file type"],
+                interactErrorExists: true
             });
-            this.setState({interactionError: true});
         }
     };
 
@@ -383,21 +398,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                                 })
                                         }
                                     </pre>
-                                    <pre>
-                                        {
-                                            (() => {
-                                                console.log(this.state.interactionError);
-                                                return (this.state.interactionError ? (
-                                                    <dl id="interaction-error">
-                                                        <dt>Name</dt>
-                                                        <dd>Description</dd>
-                                                    </dl>
-                                                ) : (
-                                                        null
-                                                    ));
-                                            })()
-                                        }
-                                    </pre>
+                                    {
+                                        (() => {
+                                            console.log(this.state.interactErrorExists);
+                                            return (this.state.interactErrorExists ? (
+                                                <div id="interaction-error">
+                                                    <p>{this.state.interactionErrors}</p>
+                                                </div>
+                                            ) : (
+                                                    null
+                                                ));
+                                        })()
+                                    }
                                 </div>
                             </div>
                         </div>

@@ -103,8 +103,8 @@ fun serve(port, pyret-dir):
     cases(E.Either) result block:
       | right(exn) =>
         err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
-        err(err-str + "\n")
-        d = [SD.string-dict: "type", J.j-str("compile-failure")]
+        #err(err-str + "\n")
+        d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-str(err-str)]
         send-message(J.j-obj(d).serialize())
       | left(val) =>
         d = [SD.string-dict: "type", J.j-str("compile-success")]

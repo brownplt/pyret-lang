@@ -112,13 +112,19 @@ compile-handler = lam(msg, send-message) block:
   cases(E.Either) result block:
     | right(exn) =>
       err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
-      err(err-str + "\n")
-      d = [SD.string-dict: "type", J.j-str("compile-failure")]
+      d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-str(err-str)]
       send-message(J.j-obj(d).serialize())
     | left(val) =>
-      d = [SD.string-dict: "type", J.j-str("compile-success")]
-      send-message(J.j-obj(d).serialize())
-      nothing
+      cases(E.Either) val block:
+      | left(errors) =>
+        spy "errors": errors end
+        d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-str("")]
+        send-message(J.j-obj(d).serialize())
+      | right(value) =>
+        d = [SD.string-dict: "type", J.j-str("compile-success")]
+        send-message(J.j-obj(d).serialize())
+        nothing
+      end
   end
 end
 

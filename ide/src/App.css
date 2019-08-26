@@ -85,14 +85,12 @@ html, body, #root {
 #interactions-area {
     background: white;
     width: 100%;
-    flex: 1 1 auto;
-    min-height: 50%;
+    flex-grow: 1;
 }
 
 #interaction-error {
-    background: rgb(255, 173, 173);
-    flex: 1 1 auto;
-    max-height: 50%;
+    background: rgb(255, 202, 202);
+    flex-grow: 1;
 }
 
 #footer {
