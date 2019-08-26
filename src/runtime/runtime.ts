@@ -132,10 +132,9 @@ function isNothing(obj: any): boolean { return obj === undefined };
 // TODO(alex): Identify opaque types
 function isOpaque(val: any): boolean { return false; }
 
-// TODO(alex): Handle Pyret numbers
-function isNumber(val: any): boolean {
-  return typeof val === "number";
-}
+const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
+const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
+const equals: (val: any) => boolean = _NUMBER["equals"];
 
 function isBoolean(val: any): boolean {
   return typeof val === "boolean";
@@ -173,7 +172,7 @@ export function identical3(v1: any, v2: any): EqualityResult {
   // } else if (isMethod(v1) && isMethod(v2)) {
   //  return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
   //  TODO(alex): Handle/detect rough numbers
-  } else if (_NUMBER["isRoughnum"](v1) && _NUMBER["isRoughnum"](v2)) {
+  } else if (isRoughNumber(v1) && isRoughNumber(v2)) {
     return Unknown('Roughnums', v1,  v2);
   } else if (v1 === v2) {
     return Equal();
