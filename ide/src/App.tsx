@@ -4,7 +4,7 @@ import {Interaction} from './Interaction';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
-import 'codemirror/theme/material.css';
+import 'pyret-codemirror-mode/css/pyret.css';
 import 'codemirror/mode/javascript/javascript.js';
 
 // pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
@@ -379,7 +379,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         value={this.state.currentFileContents}
                                         options={{
                                             mode: 'pyret',
-                                            theme: 'material',
+                                            theme: 'default',
                                             lineNumbers: true
                                         }}
                                         onChange={this.onEdit}
