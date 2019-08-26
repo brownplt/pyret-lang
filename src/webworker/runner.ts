@@ -40,7 +40,11 @@ export const makeRequireAsync = (
       runner = stopify.stopifyLocally(toStopify, {});
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
-      const stopifyModuleExports = {exports: false};
+      const stopifyModuleExports = {
+        exports: { 
+          __pyretExports: nextPath,
+        }
+      };
       runner.g = Object.assign(runner.g, {
         document,
         Math,
@@ -49,6 +53,7 @@ export const makeRequireAsync = (
         stopify,
         require: requireAsync,
         "module": stopifyModuleExports,
+        "exports": stopifyModuleExports.exports,
         String,
         $STOPIFY: runner,
         setTimeout: setTimeout,
@@ -65,7 +70,7 @@ export const makeRequireAsync = (
           reject(result);
           return;
         }
-        const toReturn = runner.g.module.exports ? runner.g.module.exports : result;
+        const toReturn = runner.g.module.exports;
         resolve(toReturn);
       });
     });
@@ -84,7 +89,11 @@ export const makeRequireAsync = (
     const stoppedPath = nextPath + ".stopped";
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
-      const module = {exports: false};
+      const module = {
+        exports: { 
+          __pyretExports: nextPath,
+        }
+      };
       const lastModule = currentRunner.g.module;
       currentRunner.g.module = module;
       currentRunner.path = nextPath;
