@@ -97,6 +97,8 @@ export const makeRequireAsync = (
       };
       const lastModule = currentRunner.g.module;
       currentRunner.g.module = module;
+      // Need to set 'exports' global to work with TS export desugaring
+      currentRunner.g.exports = module.exports;
       currentRunner.path = nextPath;
       let stopifiedCode = "";
       if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
@@ -115,6 +117,8 @@ export const makeRequireAsync = (
         const toReturn = currentRunner.g.module.exports;
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
+        // Need to set 'exports' global to work with TS export desugaring
+        currentRunner.module.exports = lastModule.exports;
         kontinue({ type: 'normal', value: toReturn });
       });
     });
