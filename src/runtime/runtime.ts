@@ -5,6 +5,8 @@
  *
  */
 
+const _NUMBER = require("./js-numbers.js");
+
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
 const $UnknownBrand = {"names":["reason","value1","value2"]};
@@ -325,3 +327,6 @@ module.exports["Equal"] = Equal();
 module.exports["is-Equal"] = isEqual;
 module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
+
+// Expected runtime functions
+module.exports["_makeRational"] = _NUMBER["makeRational"];
