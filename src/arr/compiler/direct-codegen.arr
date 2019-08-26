@@ -220,7 +220,7 @@ fun rt-method(name, args):
     | some(short-name) => short-name
   end
 
-  j-method(RUNTIME, rt-name, args)
+  j-app(j-bracket(j-id(RUNTIME), j-str(rt-name)), args)
 end
 
 fun compile-list(context, exprs):
@@ -632,7 +632,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-id(js-id-of(ident)); cl-empty }
     | s-frac(l, num, den) => 
         # Generates a Rational (exact fraction)
-        e = rt-method("_makeRational", [clist: num, den])
+        e = rt-method("_makeRational", [clist: j-num(num), j-num(den)])
         { e; cl-empty }
     | s-rfrac(l, num, den) => 
         compile-expr(context, A.s-frac(l, num, den))
