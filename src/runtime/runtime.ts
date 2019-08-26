@@ -1,6 +1,5 @@
 /*
  * 'export named-js-value' desugars into 'exports.name = js-value'
- * 'exports' is set to 'module.exports'
  *
  * https://stackoverflow.com/questions/16383795/difference-between-module-exports-and-exports-in-the-commonjs-module-system
  *
