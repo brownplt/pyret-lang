@@ -147,9 +147,15 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const contents = fs.readFileSync(nextPath);
-    const f = new Function("require", "module", contents);
-    const module = {exports: false};
-    const result = f(requireSync, module);
+    // TS 'export' syntax desugars to 'exports.name = value;'
+    // Adding an 'exports' parameter simulates the global 'exports' variable
+    const f = new Function("require", "module", "exports", contents);
+    const module = {
+      exports: { 
+        __pyretExports: nextPath,
+      }
+    };
+    const result = f(requireSync, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
     cwd = oldWd;
     return toReturn;
