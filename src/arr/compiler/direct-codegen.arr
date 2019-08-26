@@ -631,9 +631,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-id-var(l, ident) => 
       { j-id(js-id-of(ident)); cl-empty }
     | s-frac(l, num, den) => 
-        # Following the s-num convention of paren wrapping
-        # TODO: Properly generate the Number object
-        { j-parens(j-num(num / den)); cl-empty }
+        # Generates a Rational (exact fraction)
+        e = rt-method("_makeRational", [clist: num, den])
+        { e; cl-empty }
     | s-rfrac(l, num, den) => 
         compile-expr(context, A.s-frac(l, num, den))
     | s-str(l, str) => {j-str( str ); cl-empty}
