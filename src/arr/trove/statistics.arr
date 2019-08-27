@@ -30,40 +30,42 @@ end
 
 fun median(l :: List) -> Number:
   doc: "returns the median element of the list"
+  block:
+    when(is-empty(l)):
+     raise(E.generic-type-mismatch(l, "Non-Empty list")) 
+    end
 
-  fun is-odd(n :: Number) -> Boolean:
-    num-modulo(n, 2) == 1
-  end
-
-  sorted = l.sort()
-  size = length(sorted)
-  index-of-median = num-floor(size / 2)
-  cases (List) sorted:
-    | empty => raise(E.message-exception("The input list is empty"))
-    | link(first, rest) => 
-      if is-odd(size):
-        sorted.get(index-of-median)
+    sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), true)
+    size = raw-array-length(sorted)
+    index-of-median = num-floor(size / 2)
+    if size == 0: raise(E.message-exception("The input list is empty"))
+    else:
+      if num-modulo(size, 2) == 1:
+        raw-array-get(sorted, index-of-median)
       else:
-        (sorted.get(index-of-median) + sorted.get(index-of-median - 1)) / 2
+        (raw-array-get(sorted, index-of-median) + raw-array-get(sorted, index-of-median - 1)) / 2
       end
+    end
   end
 end
 
 fun group-and-count(l :: List<Number>) -> List<{Number; Number}> block:
   doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
   
-  nums-sorted = l.sort()
-  cases(List) nums-sorted:
-    | empty => empty
-    | link(first, rest) =>
-      {front; acc} = for fold({{cur; count}; lst} from {{first; 1}; empty}, n from rest):
+  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), true)
+  size = raw-array-length(sorted)
+
+  if size == 0: empty
+  else:
+    first = raw-array-get(sorted, 0)
+    {front; acc} = for raw-array-fold({{cur; count}; lst} from {{first; 0}; empty}, n from sorted, _ from 0):
         if within(~0.0)(cur, n):
           {{cur; count + 1}; lst}
         else:
           {{n; 1}; link({cur; count}, lst)}
         end
       end
-      link(front, acc)
+    link(front, acc)
   end
 end
   
