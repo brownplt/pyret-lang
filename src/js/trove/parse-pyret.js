@@ -161,43 +161,37 @@
             .app(pos(node.pos), prelude.provides, prelude.provideTypes, prelude.allProvides, prelude.imports, body);
         },
         'prelude': function(node) {
-          var allProvides = tr(node.kids[0]);
-          return {
-            provides: allProvides.values,
-            provideTypes: allProvides.types,
-            allProvides: allProvides.provides,
-            imports: tr(node.kids[1])
-          };
-        },
-        'provide-stmts': function(node) {
-          var provide = undefined;
+          var provides = undefined;
           var provideTypes = undefined;
-          var remaining = [];
+          var allProvides = [];
+          var imports = [];
+
           node.kids.forEach(function(kid) {
             if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
               provideTypes = tr(kid);
             }
-            else if(provide === undefined && kid.kids[0].name === 'provide-vals-stmt') {
-              provide = tr(kid);
+            else if(provides === undefined && kid.kids[0].name === 'provide-vals-stmt') {
+              provides = tr(kid);
             }
-            else {
-              remaining.push(kid);
+            else if (kid.kids[0].name === 'provide-block') {
+              allProvides.push(kid);
+            }
+            else if (kid.kids[0].name === "INCLUDE" || kid.kids[0].name === "IMPORT") {
+              imports.push(kid);
             }
           });
-          if(provide === undefined) {
-            provide = RUNTIME.getField(ast, "s-provide-none").app(pos(node.pos));
+          if(provides === undefined) {
+            provides = RUNTIME.getField(ast, "s-provide-none").app(pos(node.pos));
           }
           if(provideTypes === undefined) {
             provideTypes = RUNTIME.getField(ast, "s-provide-types-none").app(pos(node.pos));
           }
           return {
-            values: provide,
-            types: provideTypes,
-            provides: makeListTr(remaining)
+            provides: provides,
+            provideTypes: provideTypes,
+            allProvides: makeListTr(allProvides),
+            imports: makeListTr(imports)
           };
-        },
-        'import-stmts': function(node) {
-          return makeListTr(node.kids);
         },
         'include-spec': function(node) {
           return tr(node.kids[0]);

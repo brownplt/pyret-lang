@@ -247,6 +247,7 @@ data Program:
           [list:
             self._provide.tosource(),
             self.provided-types.tosource()]
+            + self.provides.map(_.tosource())
             + self.imports.map(_.tosource())
             + [list: self.block.tosource()]
           ))
@@ -377,7 +378,16 @@ end
 data ProvideBlock:
   | s-provide-block(l :: Loc, path :: List<Name>, specs :: List<ProvideSpec>) with:
     method label(self): "s-provide-block" end,
-    method tosource(self): PP.str("provide-block") end
+    method tosource(self):
+      start = 
+        if is-empty(self.path):
+          PP.str("provide:")
+        else:
+          PP.flow([list: PP.str("provide from"), PP.separate(PP.str("."), self.path.map(_.tosource()))]) + str-colon
+        end
+      PP.surround-separate(INDENT, 1, start + str-space + str-end, start, PP.commabreak, str-end,
+        self.specs.map(_.tosource()))
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -390,13 +400,16 @@ data ProvideSpec:
     method tosource(self): self.name-spec.tosource() end
   | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
     method label(self): "s-provide-data" end,
-    method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
+    method tosource(self):
+      PP.flow([list: PP.str("data"), self.name-spec.tosource(), PP.str("hiding"),
+          PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))])
+    end
   | s-provide-type(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-provide-type" end,
-    method tosource(self): self.name-spec.tosource() end
+    method tosource(self): PP.flow([list: PP.str("type"), self.name-spec.tosource()]) end
   | s-provide-module(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-provide-module" end,
-    method tosource(self): self.name-spec.tosource() end
+    method tosource(self): PP.flow([list: PP.str("module"), self.name-spec.tosource()]) end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -406,7 +419,8 @@ end
 data NameSpec:
   | s-star(l :: Loc, hidden :: List<Name>) with:
     method label(self): "s-star" end,
-    method tosource(self): PP.flow([list: PP.str("*"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
+    method tosource(self): PP.flow([list: PP.str("*"), PP.str("hiding"),
+        PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))]) end
   | s-module-ref(l :: Loc, path :: List<Name>, as-name :: Option<Name>) with:
     method label(self): "s-module-ref" end,
     method tosource(self):
