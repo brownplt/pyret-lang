@@ -40,7 +40,11 @@ export const makeRequireAsync = (
       runner = stopify.stopifyLocally(toStopify, {});
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
-      const stopifyModuleExports = {exports: false};
+      const stopifyModuleExports = {
+        exports: { 
+          __pyretExports: nextPath,
+        }
+      };
       runner.g = Object.assign(runner.g, {
         document,
         Math,
@@ -49,6 +53,8 @@ export const makeRequireAsync = (
         stopify,
         require: requireAsync,
         "module": stopifyModuleExports,
+        // TS 'export' syntax desugars to 'exports.name = value;'
+        "exports": stopifyModuleExports.exports,  
         String,
         $STOPIFY: runner,
         setTimeout: setTimeout,
@@ -65,7 +71,7 @@ export const makeRequireAsync = (
           reject(result);
           return;
         }
-        const toReturn = runner.g.module.exports ? runner.g.module.exports : result;
+        const toReturn = runner.g.module.exports;
         resolve(toReturn);
       });
     });
@@ -84,9 +90,15 @@ export const makeRequireAsync = (
     const stoppedPath = nextPath + ".stopped";
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
-      const module = {exports: false};
+      const module = {
+        exports: { 
+          __pyretExports: nextPath,
+        }
+      };
       const lastModule = currentRunner.g.module;
       currentRunner.g.module = module;
+      // Need to set 'exports' global to work with TS export desugaring
+      currentRunner.g.exports = module.exports;
       currentRunner.path = nextPath;
       let stopifiedCode = "";
       if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
@@ -105,6 +117,8 @@ export const makeRequireAsync = (
         const toReturn = currentRunner.g.module.exports;
         currentRunner.path = lastPath;
         currentRunner.module = lastModule;
+        // Need to set 'exports' global to work with TS export desugaring
+        currentRunner.module.exports = lastModule.exports;
         kontinue({ type: 'normal', value: toReturn });
       });
     });
@@ -137,9 +151,15 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const contents = fs.readFileSync(nextPath);
-    const f = new Function("require", "module", contents);
-    const module = {exports: false};
-    const result = f(requireSync, module);
+    // TS 'export' syntax desugars to 'exports.name = value;'
+    // Adding an 'exports' parameter simulates the global 'exports' variable
+    const f = new Function("require", "module", "exports", contents);
+    const module = {
+      exports: { 
+        __pyretExports: nextPath,
+      }
+    };
+    const result = f(requireSync, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
     cwd = oldWd;
     return toReturn;

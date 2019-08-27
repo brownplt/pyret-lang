@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web 
+.PHONY: all clean build parser web runtime
 
 all: build parser
 
@@ -11,18 +11,23 @@ all-tests: build runtime web
 web-tests: web
 	jest --verbose "browser"
 
+stopify-web-tests: web
+	jest --verbose "stopify-browser"
+
 offline-tests: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
 
+WEBWORKER_BUILD_DIR := build/worker
+WEBWORKER_SRC_DIR := src/webworker
 RUNTIME_SRC_DIR := src/runtime
 RUNTIME_BUILD_DIR := build/runtime
 RUNTIME_JS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.js)
 RUNTIME_JSON_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.json)
 RUNTIME_TS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.ts)
-RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.arr.ts=$(RUNTIME_BUILD_DIR)/%.arr.js)
+RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js)
 
-build/runtime/%.arr.js : src/runtime/%.arr.ts
-	tsc --outFile $@ $<
+build/runtime/%.js : src/runtime/%.ts
+	tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 runtime-src-dir:
 	mkdir -p $(RUNTIME_SRC_DIR)
@@ -41,11 +46,9 @@ web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime
 	make build/worker/main.js
 	pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
-build/worker/runtime-files.json: build/worker/runtime-bundler.js src/runtime/*.arr.j*
-	node build/worker/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
-
-build/worker/runtime-bundler.js: src/webworker/scripts/runtime-bundler.ts
-	tsc src/webworker/scripts/runtime-bundler.ts --outFile $@
+build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts runtime
+	tsc $(WEBWORKER_SRC_DIR)/scripts/runtime-bundler.ts --outDir $(WEBWORKER_BUILD_DIR)
+	node $(WEBWORKER_BUILD_DIR)/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	browserify src/js/trove/require-node-compile-dependencies.js -o $@
@@ -63,32 +66,8 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
  
 parser: src/arr/compiler/pyret-parser.js
 
-build/worker/runtime-loader.js: src/webworker/runtime-loader.ts
-	tsc $< --outFile $@
-
-build/worker/pyret-api.js: build/worker/pyret-api.ts.js build/worker/runtime-loader.js
-	browserify build/worker/pyret-api.ts.js -o $@
-
-build/worker/pyret-api.ts.js: src/webworker/pyret-api.ts
-	tsc src/webworker/pyret-api.ts --outFile $@
-
-build/worker/runner.js: build/worker/runner.ts.js
-	browserify build/worker/runner.ts.js -o $@
-
-build/worker/runner.ts.js: src/webworker/runner.ts
-	tsc src/webworker/runner.ts --outFile $@
-
-build/worker/setup.js: build/worker/setup.ts.js
-	browserify build/worker/setup.ts.js -o $@
-
-build/worker/setup.ts.js: src/webworker/setup.ts
-	tsc $< --outFile $@
-
 build/worker/main.js: src/webworker/*.ts
-	browserify src/webworker/main.ts -p [ tsify ] -o build/worker/main.js
-
-#build/worker/main.ts.js: src/webworker/main.ts
-#	tsc $< --outFile $@
+	browserify $(WEBWORKER_SRC_DIR)/main.ts -p [ tsify ] -o $(WEBWORKER_BUILD_DIR)/main.js
 
 build/worker/page.html: src/webworker/page.html
 	cp $< $@

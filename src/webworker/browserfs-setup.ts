@@ -21,5 +21,6 @@ export const configure = (worker: Worker, projectsDirectory: string): void => {
     }
 
     BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
+    window["bfs"] = BrowserFS.BFSRequire("fs");
   });
 };

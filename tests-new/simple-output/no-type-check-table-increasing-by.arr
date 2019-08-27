@@ -22,6 +22,6 @@ end
 are-equal = T._primitiveEqual(my-correct-ordered-table, my-ordered-table)
 are-not-equal = T._primitiveEqual(my-correct-ordered-table, my-table)
 
-passes-when-true = are-equal and G._not(are-not-equal)
+passes-when-true = are-equal and G.not(are-not-equal)
 
 G.console-log(passes-when-true)

@@ -73,6 +73,7 @@ chromeCapabilities.set('chromeOptions', {
 
 const INPUT_ID = "program";
 const COMPILE_RUN_BUTTON = "compileRun";
+const COMPILE_RUN_STOPIFY_BUTTON = "compileRunStopify";
 const TYPE_CHECK_CHECKBOX = "typeCheck";
 const CLEAR_LOGS = "clearLogs";
 
@@ -115,18 +116,24 @@ async function clearLogs(driver) {
 }
 
 async function compileRun(driver, options) {
-    let tc = await driver.findElement({ id: TYPE_CHECK_CHECKBOX });
-    let checked = await tc.getAttribute("checked");
-    if (options["type-check"] === false) {
-      if (checked) {
-        await tc.click();
-      }
-    } else {
-      if (!checked) {
-        await tc.click();
-      }
+  let tc = await driver.findElement({ id: TYPE_CHECK_CHECKBOX });
+  let checked = await tc.getAttribute("checked");
+  if (options["type-check"] === false) {
+    if (checked) {
+      await tc.click();
     }
-  let runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
+  } else {
+    if (!checked) {
+      await tc.click();
+    }
+  }
+
+  let runButton;
+  if (options["stopify"]) {
+    runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
+  } else {
+    runButton = await driver.findElement({ id: COMPILE_RUN_STOPIFY_BUTTON });
+  }
   await runButton.click();
 }
 
