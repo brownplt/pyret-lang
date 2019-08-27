@@ -49,6 +49,7 @@ type EditorState = {
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
+    debug: boolean;
 };
 
 type FSItemProps = {
@@ -125,6 +126,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
+            debug: false,
         };
     };
 
@@ -275,148 +277,152 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     render() {
         return (
-            <div id="outer-box">
-                <div id="header">
-                    <button className="right-header-button"
-                            onClick={this.run}>
-                        Run
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.toggleFSBrowser}>
-                        File System
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.loadBuiltins}>
-                        Load Builtins
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.removeRootDirectory}>
-                        Remove Root
-                    </button>
-                    <div className="header-run-option">
-                        <input type="checkbox"
-                               checked={this.state.typeCheck}
-                               name="typeCheck"
-                               onChange={(e) => {
-                                   this.setState({
-                                       typeCheck: !this.state.typeCheck
-                                   });
-                               }}>
-                        </input>
-                        <label htmlFor="typeCheck">
-                            Type Check
-                        </label>
-                    </div>
-                    <div className="header-run-option">
-                        <input type="checkBox"
-                               checked={this.state.runKind === control.backend.RunKind.Async}
-                               name="stopify"
-                               onChange={(e) => {
-                                   if (this.state.runKind === control.backend.RunKind.Async) {
+            this.state.debug ? (
+                <div id="outer-box">
+                    <div id="header">
+                        <button className="right-header-button"
+                                onClick={this.run}>
+                            Run
+                        </button>
+                        <button className="left-header-button"
+                                onClick={this.toggleFSBrowser}>
+                            File System
+                        </button>
+                        <button className="left-header-button"
+                                onClick={this.loadBuiltins}>
+                            Load Builtins
+                        </button>
+                        <button className="left-header-button"
+                                onClick={this.removeRootDirectory}>
+                            Remove Root
+                        </button>
+                        <div className="header-run-option">
+                            <input type="checkbox"
+                                   checked={this.state.typeCheck}
+                                   name="typeCheck"
+                                   onChange={(e) => {
                                        this.setState({
-                                           runKind: control.backend.RunKind.Sync
+                                           typeCheck: !this.state.typeCheck
                                        });
-                                   } else {
+                                   }}>
+                            </input>
+                            <label htmlFor="typeCheck">
+                                Type Check
+                            </label>
+                        </div>
+                        <div className="header-run-option">
+                            <input type="checkBox"
+                                   checked={this.state.runKind === control.backend.RunKind.Async}
+                                   name="stopify"
+                                   onChange={(e) => {
+                                       if (this.state.runKind === control.backend.RunKind.Async) {
+                                           this.setState({
+                                               runKind: control.backend.RunKind.Sync
+                                           });
+                                       } else {
+                                           this.setState({
+                                               runKind: control.backend.RunKind.Async
+                                           })
+                                       }
+                                   }}>
+                            </input>
+                            <label htmlFor="stopify">
+                                Stopify
+                            </label>
+                        </div>
+                        <div className="header-run-option">
+                            <input type="checkBox"
+                                   checked={this.state.autoRun}
+                                   name="autoRun"
+                                   onChange={(e) => {
                                        this.setState({
-                                           runKind: control.backend.RunKind.Async
-                                       })
-                                   }
-                               }}>
-                        </input>
-                        <label htmlFor="stopify">
-                            Stopify
-                        </label>
+                                           autoRun: !this.state.autoRun
+                                       });
+                                   }}>
+                            </input>
+                            <label htmlFor="autoRun">
+                                Auto Run
+                            </label>
+                        </div>
                     </div>
-                    <div className="header-run-option">
-                        <input type="checkBox"
-                               checked={this.state.autoRun}
-                               name="autoRun"
-                               onChange={(e) => {
-                                   this.setState({
-                                       autoRun: !this.state.autoRun
-                                   });
-                               }}>
-                        </input>
-                        <label htmlFor="autoRun">
-                            Auto Run
-                        </label>
-                    </div>
-                </div>
-                <div id="main">
-                    <div id="edit-box">
-                        {
-                            (this.state.fsBrowserVisible ? (
-                                <ul id="fs-browser">
-                                    {(!this.browsingRoot) ? (
-                                        <li onClick={() => {
-                                            this.traverseUp();
-                                        }}
-                                            className="fs-browser-item">
-                                            ..
-                                        </li>
-                                    ) : (
-                                        null
-                                    )}
-                                    {
-                                        control.fs
-                                            .readdirSync(this.browsePath)
-                                            .map(this.createFSItemPair)
-                                            .sort(this.compareFSItemPair)
-                                            .map((x: [string, FSItem]) => x[1])
-                                    }
-                                </ul>
-                            ) : (
-                                null
-                            ))
-                        }
-                        <div id="file-container">
-                            <div id="file-name-label">
-                                {this.currentFile}
-                            </div>
-                            <div id="main-container">
-                                <div id="definitions-container">
-                                    <CodeMirror
-                                        value={this.state.currentFileContents}
-                                        options={{
-                                            mode: 'pyret',
-                                            theme: 'default',
-                                            lineNumbers: true
-                                        }}
-                                        onChange={this.onEdit}
-                                        autoCursor={false}>
-                                    </CodeMirror>
-                                </div>
-                                <div id="separator">
-                                </div>
-                                <div id="interactions-container">
-                                    <pre id="interactions-area"
-                                         className="code">
+                    <div id="main">
+                        <div id="edit-box">
+                            {
+                                (this.state.fsBrowserVisible ? (
+                                    <ul id="fs-browser">
+                                        {(!this.browsingRoot) ? (
+                                            <li onClick={() => {
+                                                this.traverseUp();
+                                            }}
+                                                className="fs-browser-item">
+                                                ..
+                                            </li>
+                                        ) : (
+                                            null
+                                        )}
                                         {
-                                            this.state.interactions.map(
-                                                (i) => {
-                                                    return <Interaction key={i.name} name={i.name} value={i.value} />
-                                                })
+                                            control.fs
+                                                   .readdirSync(this.browsePath)
+                                                   .map(this.createFSItemPair)
+                                                   .sort(this.compareFSItemPair)
+                                                   .map((x: [string, FSItem]) => x[1])
                                         }
-                                    </pre>
-                                    {
-                                        (() => {
-                                            console.log(this.state.interactErrorExists);
-                                            return (this.state.interactErrorExists ? (
-                                                <div id="interaction-error">
-                                                    <p>{this.state.interactionErrors}</p>
-                                                </div>
-                                            ) : (
+                                    </ul>
+                                ) : (
+                                    null
+                                ))
+                            }
+                            <div id="file-container">
+                                <div id="file-name-label">
+                                    {this.currentFile}
+                                </div>
+                                <div id="main-container">
+                                    <div id="definitions-container">
+                                        <CodeMirror
+                                            value={this.state.currentFileContents}
+                                            options={{
+                                                mode: 'pyret',
+                                                theme: 'default',
+                                                lineNumbers: true
+                                            }}
+                                            onChange={this.onEdit}
+                                            autoCursor={false}>
+                                        </CodeMirror>
+                                    </div>
+                                    <div id="separator">
+                                    </div>
+                                    <div id="interactions-container">
+                                        <pre id="interactions-area"
+                                             className="code">
+                                            {
+                                                this.state.interactions.map(
+                                                    (i) => {
+                                                        return <Interaction key={i.name} name={i.name} value={i.value} />
+                                                    })
+                                            }
+                                        </pre>
+                                        {
+                                            (() => {
+                                                console.log(this.state.interactErrorExists);
+                                                return (this.state.interactErrorExists ? (
+                                                    <div id="interaction-error">
+                                                        <p>{this.state.interactionErrors}</p>
+                                                    </div>
+                                                ) : (
                                                     null
                                                 ));
-                                        })()
-                                    }
+                                            })()
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <div id="footer"></div>
                 </div>
-                <div id="footer"></div>
-            </div>
+            ) : (
+                <div>Ahoy, world!</div>
+            )
         );
     }
 }
@@ -425,9 +431,9 @@ class App extends React.Component<AppProps, AppState> {
     render() {
         return (
             <Editor browseRoot="/"
-                browsePath={["/", "projects"]}
-                currentFileDirectory={["/", "projects"]}
-                currentFileName="program.arr">
+                    browsePath={["/", "projects"]}
+                    currentFileDirectory={["/", "projects"]}
+                    currentFileName="program.arr">
             </Editor>
         );
     };
