@@ -16,6 +16,46 @@ html, body, #root {
     flex: none;
 }
 
+button::-moz-focus-inner {
+    border: none;
+}
+
+.run-option-disabled {
+    height: 100%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+    width: 8em;
+    float: right;
+    background: darkgray;
+    color: #fff;
+}
+
+.run-option-enabled {
+    height: 100%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+    width: 8em;
+    float: right;
+    background: #317bcf;
+    color: #fff;
+}
+
+.run-option-enabled:focus, .run-option-disabled:focus {
+    outline: none;
+}
+
+.run-option-enabled:hover {
+    box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
+    background: #0060ce;
+}
+
+.run-option-disabled:hover {
+    box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
+    background: gray;
+}
+
 .code-container {
     height: 100%;
     width: 100%;

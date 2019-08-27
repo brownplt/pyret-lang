@@ -273,7 +273,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
         control.removeRootDirectory();
-    }
+    };
+
+    makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => {
+        return (
+            <button className= {(enabled ? "run-option-enabled" : "run-option-disabled")}
+                    onClick={onClick}>
+                {text}
+            </button>
+        );
+    };
 
     render() {
         return (
@@ -423,6 +432,37 @@ class Editor extends React.Component<EditorProps, EditorState> {
             ) : (
                 <div className="page-container">
                     <div className="header-container">
+                        {this.makeHeaderButton(
+                            "Type Check",
+                            this.state.typeCheck,
+                            () => {
+                                this.setState({
+                                    typeCheck: !this.state.typeCheck
+                                });
+                            })}
+                        {this.makeHeaderButton(
+                            "Auto Run",
+                            this.state.autoRun,
+                            () => {
+                                this.setState({
+                                    autoRun: !this.state.autoRun
+                                })
+                            })}
+                        {this.makeHeaderButton(
+                            "Stopping",
+                            this.state.runKind === control.backend.RunKind.Async,
+                            () => {
+                                if (this.state.runKind === control.backend.RunKind.Async) {
+                                    this.setState({
+                                        runKind: control.backend.RunKind.Sync
+                                    });
+                                } else {
+                                    this.setState({
+                                        runKind: control.backend.RunKind.Async
+                                    })
+                                }
+                            }
+                        )}
                     </div>
                     <div className="code-container">
                         <div className="edit-area-container">
