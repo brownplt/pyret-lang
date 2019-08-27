@@ -421,7 +421,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     <div id="footer"></div>
                 </div>
             ) : (
-                <div>Ahoy, world!</div>
+                <div className="page-container">
+                    <div className="header-container">
+                    </div>
+                    <div className="code-container">
+                        <div className="edit-area-container">
+                        </div>
+                        <div className="separator">
+                        </div>
+                        <div className="interactions-area-container">
+                        </div>
+                    </div>
+                    <div className="footer-container">
+                    </div>
+                </div>
             )
         );
     }
