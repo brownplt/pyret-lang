@@ -288,209 +288,67 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     render() {
         return (
-            this.state.debug ? (
-                <div id="outer-box">
-                    <div id="header">
-                        <button className="right-header-button"
-                                onClick={this.run}>
+            <div className="page-container">
+                <div className="header-container">
+                    {this.state.runKind === control.backend.RunKind.Async ? (
+                        <button className="stop-available">
+                            Stop
+                        </button>
+                    ) : (
+                        <button className="stop-unavailable">
+                            Stop
+                        </button>
+                    )}
+                    <div className="run-container">
+                        <button className="run-ready">
                             Run
                         </button>
-                        <button className="left-header-button"
-                                onClick={this.toggleFSBrowser}>
-                            File System
-                        </button>
-                        <button className="left-header-button"
-                                onClick={this.loadBuiltins}>
-                            Load Builtins
-                        </button>
-                        <button className="left-header-button"
-                                onClick={this.removeRootDirectory}>
-                            Remove Root
-                        </button>
-                        <div className="header-run-option">
-                            <input type="checkbox"
-                                   checked={this.state.typeCheck}
-                                   name="typeCheck"
-                                   onChange={(e) => {
-                                       this.setState({
-                                           typeCheck: !this.state.typeCheck
-                                       });
-                                   }}>
-                            </input>
-                            <label htmlFor="typeCheck">
-                                Type Check
-                            </label>
-                        </div>
-                        <div className="header-run-option">
-                            <input type="checkBox"
-                                   checked={this.state.runKind === control.backend.RunKind.Async}
-                                   name="stopify"
-                                   onChange={(e) => {
-                                       if (this.state.runKind === control.backend.RunKind.Async) {
-                                           this.setState({
-                                               runKind: control.backend.RunKind.Sync
-                                           });
-                                       } else {
-                                           this.setState({
-                                               runKind: control.backend.RunKind.Async
-                                           })
-                                       }
-                                   }}>
-                            </input>
-                            <label htmlFor="stopify">
-                                Stopify
-                            </label>
-                        </div>
-                        <div className="header-run-option">
-                            <input type="checkBox"
-                                   checked={this.state.autoRun}
-                                   name="autoRun"
-                                   onChange={(e) => {
-                                       this.setState({
-                                           autoRun: !this.state.autoRun
-                                       });
-                                   }}>
-                            </input>
-                            <label htmlFor="autoRun">
-                                Auto Run
-                            </label>
-                        </div>
+                        <button className="run-options">&#8628;</button>
                     </div>
-                    <div id="main">
-                        <div id="edit-box">
-                            {
-                                (this.state.fsBrowserVisible ? (
-                                    <ul id="fs-browser">
-                                        {(!this.browsingRoot) ? (
-                                            <li onClick={() => {
-                                                this.traverseUp();
-                                            }}
-                                                className="fs-browser-item">
-                                                ..
-                                            </li>
-                                        ) : (
-                                            null
-                                        )}
-                                        {
-                                            control.fs
-                                                   .readdirSync(this.browsePath)
-                                                   .map(this.createFSItemPair)
-                                                   .sort(this.compareFSItemPair)
-                                                   .map((x: [string, FSItem]) => x[1])
-                                        }
-                                    </ul>
-                                ) : (
-                                    null
-                                ))
-                            }
-                            <div id="file-container">
-                                <div id="file-name-label">
-                                    {this.currentFile}
-                                </div>
-                                <div id="main-container">
-                                    <div id="definitions-container">
-                                        <CodeMirror
-                                            value={this.state.currentFileContents}
-                                            options={{
-                                                mode: 'pyret',
-                                                theme: 'default',
-                                                lineNumbers: true
-                                            }}
-                                            onChange={this.onEdit}
-                                            autoCursor={false}>
-                                        </CodeMirror>
-                                    </div>
-                                    <div id="separator">
-                                    </div>
-                                    <div id="interactions-container">
-                                        <pre id="interactions-area"
-                                             className="code">
-                                            {
-                                                this.state.interactions.map(
-                                                    (i) => {
-                                                        return <Interaction key={i.name} name={i.name} value={i.value} />
-                                                    })
-                                            }
-                                        </pre>
-                                        {
-                                            (() => {
-                                                console.log(this.state.interactErrorExists);
-                                                return (this.state.interactErrorExists ? (
-                                                    <div id="interaction-error">
-                                                        <p>{this.state.interactionErrors}</p>
-                                                    </div>
-                                                ) : (
-                                                    null
-                                                ));
-                                            })()
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="footer"></div>
-                </div>
-            ) : (
-                <div className="page-container">
-                    <div className="header-container">
-                        {this.state.runKind === control.backend.RunKind.Async ? (
-                            <button className="stop-available">
-                                Stop
-                            </button>
-                        ) : (
-                            <button className="stop-unavailable">
-                                Stop
-                            </button>
-                        )}
-                        <button className="run-queued">
-                            Run
-                        </button>
-                        {this.makeHeaderButton(
-                            "Stopify",
-                            this.state.runKind === control.backend.RunKind.Async,
-                            () => {
-                                if (this.state.runKind === control.backend.RunKind.Async) {
-                                    this.setState({
-                                        runKind: control.backend.RunKind.Sync
-                                    });
-                                } else {
-                                    this.setState({
-                                        runKind: control.backend.RunKind.Async
-                                    })
-                                }
-                            }
-                        )}
-                        {this.makeHeaderButton(
-                            "Auto Run",
-                            this.state.autoRun,
-                            () => {
+                    {this.makeHeaderButton(
+                        "Stopify",
+                        this.state.runKind === control.backend.RunKind.Async,
+                        () => {
+                            if (this.state.runKind === control.backend.RunKind.Async) {
                                 this.setState({
-                                    autoRun: !this.state.autoRun
-                                })
-                            })
-                        }
-                        {this.makeHeaderButton(
-                            "Type Check",
-                            this.state.typeCheck,
-                            () => {
-                                this.setState({
-                                    typeCheck: !this.state.typeCheck
+                                    runKind: control.backend.RunKind.Sync
                                 });
-                            })
+                            } else {
+                                this.setState({
+                                    runKind: control.backend.RunKind.Async
+                                })
+                            }
                         }
-                    </div>
-                    <div className="code-container">
-                        <SplitterLayout vertical={false}
-                                        percentage={true}>
-                            <div className="edit-area-container"></div>
-                            <div className="interactions-area-container"></div>
-                        </SplitterLayout>
-                    </div>
-                    <div className="footer-container">
-                    </div>
+                    )}
+                    {this.makeHeaderButton(
+                        "Auto Run",
+                        this.state.autoRun,
+                        () => {
+                            this.setState({
+                                autoRun: !this.state.autoRun
+                            })
+                        })
+                    }
+                    {this.makeHeaderButton(
+                        "Type Check",
+                        this.state.typeCheck,
+                        () => {
+                            this.setState({
+                                typeCheck: !this.state.typeCheck
+                            });
+                        })
+                    }
                 </div>
-            )
+                <div className="code-container">
+                    <SplitterLayout vertical={false}
+                                    percentage={true}>
+                        <div className="edit-area-container"></div>
+                        <div className="interactions-area-container"></div>
+                    </SplitterLayout>
+                </div>
+                <div className="footer-container">
+                </div>
+            </div>
         );
     }
 }
