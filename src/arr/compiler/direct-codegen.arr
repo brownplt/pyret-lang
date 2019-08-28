@@ -338,12 +338,42 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { lv; lstmts } = compile-expr(context, left)
       { rv; rstmts } = compile-expr(context, right)
       val = ask:
-        | op == "op+" then: j-binop(lv, J.j-plus, rv)
-        | op == "op-" then: j-binop(lv, J.j-minus, rv)
-        | op == "op*" then: j-binop(lv, J.j-times, rv)
-        | op == "op/" then: j-binop(lv, J.j-divide, rv)
-        | op == "op<" then: j-binop(lv, J.j-lt, rv)
-        | op == "op>" then: j-binop(lv, J.j-gt, rv)
+        # Raw JS numbers
+        | (op == "op+") and not(context.options.pyret-numbers) then: 
+          j-binop(lv, J.j-plus, rv)
+        | (op == "op-")  and not(context.options.pyret-numbers) then: 
+          j-binop(lv, J.j-minus, rv)
+        | (op == "op*") and not(context.options.pyret-numbers) then: 
+          j-binop(lv, J.j-times, rv)
+        | (op == "op/") and not(context.options.pyret-numbers) then: 
+          j-binop(lv, J.j-divide, rv)
+        | (op == "op<") and not(context.options.pyret-numbers) then: 
+          j-binop(lv, J.j-lt, rv)
+        | (op == "op>") and not(context.options.pyret-numbers) then:
+          j-binop(lv, J.j-gt, rv)
+
+        # Pyret Numbers
+        | (op == "op+") and context.options.pyret-numbers then: 
+          rt-method("_add", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op-")  and context.options.pyret-numbers then: 
+          rt-method("_subtract", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op*") and context.options.pyret-numbers then: 
+          rt-method("_multiply", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op/") and context.options.pyret-numbers then: 
+          rt-method("_divide", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op<") and context.options.pyret-numbers then: 
+          rt-method("_lessThan", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op>") and context.options.pyret-numbers then:
+          rt-method("_greaterThan", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+
+
+
         # TODO(alex): Use equal-always, equal-now, etc
         # Call Global.py_equal
         | op == "op==" then: 
