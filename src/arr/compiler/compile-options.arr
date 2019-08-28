@@ -4,8 +4,6 @@ import pathlib as P
 import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 
-DEFAULT-PYRET-NUMBERS = false
-
 fun populate-options(dictionary, this-pyret-dir) block:
   compile-opts = CS.make-default-compile-options(this-pyret-dir)
 
@@ -52,8 +50,6 @@ fun populate-options(dictionary, this-pyret-dir) block:
   log-error = dictionary.get("log-error").or-else(compile-opts.log-error)
   log = dictionary.get("log").or-else(compile-opts.log)
   module-eval = not(dictionary.has-key("no-module-eval"))
-  pyret-numbers = dictionary.get("pyret-numbers")
-    .or-else(DEFAULT-PYRET-NUMBERS)
   require-config = dictionary.get("require-config")
     .or-else(P.resolve(P.join(this-pyret-dir, "config.json")))
   runtime-annotations = not(dictionary.has-key("no-runtime-annotations"))
@@ -98,7 +94,6 @@ fun populate-options(dictionary, this-pyret-dir) block:
     log: log,
     module-eval: module-eval,
     proper-tail-calls: tail-calls,
-    pyret-numbers: pyret-numbers,
     require-config: require-config,
     runtime-annotations: runtime-annotations,
     runtime-builtin-relative-path: runtime-builtin-relative-path,

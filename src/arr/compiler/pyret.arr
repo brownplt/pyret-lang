@@ -88,9 +88,7 @@ fun main(args :: List<String>) -> Number block:
     "no-runtime-annotations",
       C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank."),
     "runtime-builtin-relative-path",
-      C.next-val(C.Str, C.once, "Relative path of builtins at runtime. Only used when compiling builtins using anchor."),
-    "pyret-numbers",
-      C.next-val-default(C.Bool, false, none, C.once, "Compile using Pyret's fancy number system"),
+      C.next-val(C.Str, C.once, "Relative path of builtins at runtime. Only used when compiling builtins using anchor.")
   ]
 
   params-parsed = C.parse-args(options, args)
