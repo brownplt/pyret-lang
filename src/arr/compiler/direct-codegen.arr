@@ -370,7 +370,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | op == "op==" then: 
           argvs = cl-cons(lv, cl-sing(rv))
           j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
-        | op == "op<>" then: j-binop(lv, J.j-neq, rv)
+        | op == "op<>" then:
+          # Logical negation of equal-always()
+          argvs = cl-cons(lv, cl-sing(rv))
+          j-unop(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs))
         | op == "op<=>" then:
           argvs = cl-cons(lv, cl-sing(rv))
           j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
