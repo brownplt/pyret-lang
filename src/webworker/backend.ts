@@ -32,15 +32,12 @@ export const makeBackendMessageHandler = (
     try {
       var msgObject: any = JSON.parse(e.data);
 
-      console.log(msgObject)
-
       var msgType = msgObject["type"];
       if (msgType === undefined) {
         return null;
       } else if (msgType === "echo-log") {
         echoLog(msgObject.contents);
       } else if (msgType === "compile-failure") {
-        console.log("\nCOMPILE FAILURE\n");
         compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
         compileSuccess();

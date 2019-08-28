@@ -117,8 +117,11 @@ compile-handler = lam(msg, send-message) block:
     | left(val) =>
       cases(E.Either) val block:
       | left(errors) =>
-        spy "errors": errors end
-        d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-str("")]
+      spy "errors": errors end
+        err-list = for map(e from errors):
+          J.j-str(RED.display-to-string(e.render-reason(), tostring, empty))
+        end
+        d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-arr(err-list)]
         send-message(J.j-obj(d).serialize())
       | right(value) =>
         d = [SD.string-dict: "type", J.j-str("compile-success")]
