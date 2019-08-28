@@ -640,6 +640,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           { j-parens(j-num(num / den)); cl-empty }
         end
     | s-rfrac(l, num, den) => 
+        if context.options.pyret-numbers:
+          # Generates a Roughnum
+          e = rt-method("_makeRoughnum", [clist: j-num(num / den)])
+          { e; cl-empty }
+        else:
+          # Emit raw JS expression
+          { j-parens(j-num(num / den)); cl-empty }
+        end
         compile-expr(context, A.s-frac(l, num, den))
     | s-str(l, str) => {j-str( str ); cl-empty}
     | s-bool(l, bool) =>
