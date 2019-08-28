@@ -338,37 +338,23 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { lv; lstmts } = compile-expr(context, left)
       { rv; rstmts } = compile-expr(context, right)
       val = ask:
-        # Raw JS numbers
-        | (op == "op+") and not(context.options.pyret-numbers) then: 
-          j-binop(lv, J.j-plus, rv)
-        | (op == "op-")  and not(context.options.pyret-numbers) then: 
-          j-binop(lv, J.j-minus, rv)
-        | (op == "op*") and not(context.options.pyret-numbers) then: 
-          j-binop(lv, J.j-times, rv)
-        | (op == "op/") and not(context.options.pyret-numbers) then: 
-          j-binop(lv, J.j-divide, rv)
-        | (op == "op<") and not(context.options.pyret-numbers) then: 
-          j-binop(lv, J.j-lt, rv)
-        | (op == "op>") and not(context.options.pyret-numbers) then:
-          j-binop(lv, J.j-gt, rv)
-
         # Pyret Numbers
-        | (op == "op+") and context.options.pyret-numbers then: 
+        | (op == "op+") then: 
           rt-method("_add", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op-")  and context.options.pyret-numbers then: 
+        | (op == "op-") then: 
           rt-method("_subtract", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op*") and context.options.pyret-numbers then: 
+        | (op == "op*") then: 
           rt-method("_multiply", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op/") and context.options.pyret-numbers then: 
+        | (op == "op/") then:
           rt-method("_divide", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<") and context.options.pyret-numbers then: 
+        | (op == "op<") then:
           rt-method("_lessThan", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>") and context.options.pyret-numbers then:
+        | (op == "op>") then:
           rt-method("_greaterThan", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
 
@@ -663,26 +649,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-id-var(l, ident) => 
       { j-id(js-id-of(ident)); cl-empty }
     | s-frac(l, num, den) => 
-        if context.options.pyret-numbers:
-          # Generates a Rational (exact fraction)
-          e = rt-method("_makeRational", 
-                        [clist: j-num(num), j-num(den), rt-field(NUMBER_ERR_CALLBACKS)])
-          { e; cl-empty }
-        else:
-          # Emit raw JS expression
-          { j-parens(j-binop(j-num(num), J.j-divide, j-num(den))); cl-empty }
-        end
+        # Generates a Rational (exact fraction)
+        e = rt-method("_makeRational", 
+                      [clist: j-num(num), j-num(den), rt-field(NUMBER_ERR_CALLBACKS)])
+        { e; cl-empty }
     | s-rfrac(l, num, den) => 
-        if context.options.pyret-numbers:
-          # Generates a Roughnum
-          e = rt-method("_makeRoughnum", 
-                        [clist: j-num(num / den), rt-field(NUMBER_ERR_CALLBACKS)])
-          { e; cl-empty }
-        else:
-          # Emit raw JS expression
-          { j-parens(j-binop(j-num(num), J.j-divide, j-num(den))); cl-empty }
-        end
-        compile-expr(context, A.s-frac(l, num, den))
+        # Generates a Roughnum
+        e = rt-method("_makeRoughnum", 
+                      [clist: j-num(num / den), rt-field(NUMBER_ERR_CALLBACKS)])
+        { e; cl-empty }
     | s-str(l, str) => {j-str( str ); cl-empty}
     | s-bool(l, bool) =>
         if bool:
