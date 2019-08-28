@@ -637,7 +637,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           { e; cl-empty }
         else:
           # Emit raw JS expression
-          { j-parens(j-num(num / den)); cl-empty }
+          { j-parens(j-binop(j-num(num), J.j-divide, j-num(den))); cl-empty }
         end
     | s-rfrac(l, num, den) => 
         if context.options.pyret-numbers:
@@ -646,7 +646,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           { e; cl-empty }
         else:
           # Emit raw JS expression
-          { j-parens(j-num(num / den)); cl-empty }
+          { j-parens(j-binop(j-num(num), J.j-divide, j-num(den))); cl-empty }
         end
         compile-expr(context, A.s-frac(l, num, den))
     | s-str(l, str) => {j-str( str ); cl-empty}
