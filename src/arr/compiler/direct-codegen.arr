@@ -357,6 +357,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | (op == "op>") then:
           rt-method("_greaterThan", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op<=") then:
+          rt-method("_lessThanOrEqual", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+        | (op == "op>=") then:
+          rt-method("_greaterThanOrEqual", 
+                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+
 
 
 
