@@ -176,7 +176,7 @@ export interface NumericErrorCallbacks {
   throwInternalError: (msg: any) => void,
 }
 
-export var NumberErrbacks: NumericErrorCallbacks = {
+var NumberErrbacks: NumericErrorCallbacks = {
   throwDivByZero: function(msg) { throw msg; },
   throwToleranceError: function(msg) { throw msg; },
   throwRelToleranceError: function(msg) { throw msg; },
@@ -358,3 +358,4 @@ module.exports["is-Unknown"] = isUnknown;
 // Expected runtime functions
 module.exports["_makeRational"] = _NUMBER["makeRational"];
 module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
+module.exports["_errCallbacks"] = NumberErrbacks;
