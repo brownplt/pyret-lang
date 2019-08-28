@@ -359,3 +359,11 @@ module.exports["is-Unknown"] = isUnknown;
 module.exports["_makeRational"] = _NUMBER["makeRational"];
 module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
 module.exports["_errCallbacks"] = NumberErrbacks;
+
+module.exports["_add"] = _NUMBER["add"];
+module.exports["_subtract"] = _NUMBER["subtract"];
+module.exports["_multiply"] = _NUMBER["multiply"];
+module.exports["_divide"] = _NUMBER["divide"];
+
+module.exports["_lessThan"] = _NUMBER["lessThan"];
+module.exports["_greaterThan"] = _NUMBER["greaterThan"];
