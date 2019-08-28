@@ -174,6 +174,8 @@ NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
 OBJECT = const-id("Object")
 
+NUMBER_ERR_CALLBACKS = "_errCallbacks"
+
 rt-name-map = [D.string-dict:
   "addModuleToNamespace", "aMTN",
   "checkArityC", "cAC",
@@ -633,7 +635,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-frac(l, num, den) => 
         if context.options.pyret-numbers:
           # Generates a Rational (exact fraction)
-          e = rt-method("_makeRational", [clist: j-num(num), j-num(den)])
+          e = rt-method("_makeRational", 
+                        [clist: j-num(num), j-num(den), rt-field(NUMBER_ERR_CALLBACKS)])
           { e; cl-empty }
         else:
           # Emit raw JS expression
@@ -642,7 +645,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-rfrac(l, num, den) => 
         if context.options.pyret-numbers:
           # Generates a Roughnum
-          e = rt-method("_makeRoughnum", [clist: j-num(num / den)])
+          e = rt-method("_makeRoughnum", 
+                        [clist: j-num(num / den), rt-field(NUMBER_ERR_CALLBACKS)])
           { e; cl-empty }
         else:
           # Emit raw JS expression
