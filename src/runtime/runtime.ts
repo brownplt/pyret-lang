@@ -357,3 +357,4 @@ module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
 module.exports["_makeRational"] = _NUMBER["makeRational"];
+module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
