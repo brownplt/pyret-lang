@@ -20,6 +20,50 @@ button::-moz-focus-inner {
     border: none;
 }
 
+.stop-available {
+    height: 100%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+    width: 12em;
+    float: right;
+    background: #cf3b31;
+    color: #fff;
+}
+
+.stop-unavailable {
+    height: 100%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+    width: 12em;
+    float: right;
+    background: none;
+    color: rgba(0, 0, 0, 0.26);
+}
+
+.run-ready {
+    height: 100%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+    width: 12em;
+    float: right;
+    background: #317bcf;
+    color: #fff;
+}
+
+.run-queued {
+    height: 100%;
+    cursor: pointer;
+    border: none;
+    transition: box-shadow 0.2s;
+    width: 12em;
+    float: right;
+    background: none;
+    color: rgba(0, 0, 0, 0.26);
+}
+
 .run-option-disabled {
     height: 100%;
     cursor: pointer;
@@ -27,8 +71,8 @@ button::-moz-focus-inner {
     transition: box-shadow 0.2s;
     width: 8em;
     float: right;
-    background: darkgray;
-    color: #fff;
+    background: none;
+    color: rgba(0, 0, 0, 0.26);
     margin-right: 0.5em;
 }
 
@@ -44,16 +88,16 @@ button::-moz-focus-inner {
     margin-right: 0.5em;
 }
 
-.run-option-enabled:focus, .run-option-disabled:focus {
+.run-option-enabled:focus, .run-option-disabled:focus, .run-ready:focus, .run-queued:focus {
     outline: none;
 }
 
-.run-option-enabled:hover {
+.run-option-enabled:hover, .run-ready:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: #0060ce;
 }
 
-.run-option-disabled:hover {
+.run-option-disabled:hover, .run-queued:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: gray;
 }

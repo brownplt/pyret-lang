@@ -432,24 +432,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
             ) : (
                 <div className="page-container">
                     <div className="header-container">
+                        {this.state.runKind === control.backend.RunKind.Async ? (
+                            <button className="stop-available">
+                                Stop
+                            </button>
+                        ) : (
+                            <button className="stop-unavailable">
+                                Stop
+                            </button>
+                        )}
+                        <button className="run-queued">
+                            Run
+                        </button>
                         {this.makeHeaderButton(
-                            "Type Check",
-                            this.state.typeCheck,
-                            () => {
-                                this.setState({
-                                    typeCheck: !this.state.typeCheck
-                                });
-                            })}
-                        {this.makeHeaderButton(
-                            "Auto Run",
-                            this.state.autoRun,
-                            () => {
-                                this.setState({
-                                    autoRun: !this.state.autoRun
-                                })
-                            })}
-                        {this.makeHeaderButton(
-                            "Stopping",
+                            "Stopify",
                             this.state.runKind === control.backend.RunKind.Async,
                             () => {
                                 if (this.state.runKind === control.backend.RunKind.Async) {
@@ -463,6 +459,24 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 }
                             }
                         )}
+                        {this.makeHeaderButton(
+                            "Auto Run",
+                            this.state.autoRun,
+                            () => {
+                                this.setState({
+                                    autoRun: !this.state.autoRun
+                                })
+                            })
+                        }
+                        {this.makeHeaderButton(
+                            "Type Check",
+                            this.state.typeCheck,
+                            () => {
+                                this.setState({
+                                    typeCheck: !this.state.typeCheck
+                                });
+                            })
+                        }
                     </div>
                     <div className="code-container">
                         <div className="edit-area-container">
