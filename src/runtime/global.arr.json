@@ -47,8 +47,16 @@
                   "flatness": false,
                   "name": "_plus",
                   "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "not": ["arrow", ["Boolean"], "Boolean"],
+
+      "is-Equal": ["arrow", ["Any"], "Boolean"],
+      "is-NotEqual": ["arrow", ["Any"], "Boolean"],
+      "is-Unknown": ["arrow", ["Any"], "Boolean"],
+
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
-      "_not": ["arrow", ["Boolean"], "Boolean"]
+      "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+      "identical": ["arrow", ["Any", "Any"], "Boolean"],
+      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]]
     },
     "aliases": {
       "Any": "tany",
@@ -75,9 +83,30 @@
                     "name": "Row" },
       "Table": { "tag": "name", 
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
-                    "name": "Table" }
+                    "name": "Table" },
+      "EqualityResult": ["local", "EqualityResult"]
     },
     "datatypes": {
+      "EqualityResult": [
+        "data", "EqualityResult", [], [
+          ["Equal", {}],
+          ["NotEqual",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ],
+          ["Unknown",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ]
+        ], {}
+      ],
+
       "Number": ["data", "Number", [], [], {
         "_plus": ["arrow", ["Number"], "Number"],
         "_times": ["arrow", ["Number"], "Number"],

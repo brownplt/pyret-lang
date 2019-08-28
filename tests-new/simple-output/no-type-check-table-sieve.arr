@@ -25,6 +25,6 @@ are-equal = T._primitiveEqual(my-correct-sieved-table, my-sieved-table)
 
 are-not-equal = T._primitiveEqual(my-correct-sieved-table, my-table)
 
-passes-when-true = are-equal and G._not(are-not-equal)
+passes-when-true = are-equal and G.not(are-not-equal)
 
 G.console-log(passes-when-true)
