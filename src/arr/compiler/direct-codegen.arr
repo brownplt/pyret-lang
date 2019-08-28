@@ -212,7 +212,7 @@ rt-name-map = [D.string-dict:
   '_checkAnn', '_cA'
 ]
 
-fun rt-field(name): j-dot(RUNTIME, name) end
+fun rt-field(name): j-bracket(j-id(RUNTIME), j-str(name)) end
 
 fun rt-method(name, args):
   rt-name = cases(Option) rt-name-map.get(name):
