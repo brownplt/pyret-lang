@@ -338,7 +338,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { lv; lstmts } = compile-expr(context, left)
       { rv; rstmts } = compile-expr(context, right)
       val = ask:
-        # Pyret Numbers
+        # Pyret number operations compatible with JS numbers
+        # Always assume Pyret numbers when compiling
         | (op == "op+") then: 
           rt-method("_add", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
@@ -363,9 +364,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | (op == "op>=") then:
           rt-method("_greaterThanOrEqual", 
                     [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-
-
-
 
         # TODO(alex): Use equal-always, equal-now, etc
         # Call Global.py_equal
