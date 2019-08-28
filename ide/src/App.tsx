@@ -6,7 +6,8 @@ import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'pyret-codemirror-mode/css/pyret.css';
 import 'codemirror/mode/javascript/javascript.js';
-import SplitPane from 'react-split-pane';
+import SplitterLayout from 'react-splitter-layout';
+import 'react-splitter-layout/lib/index.css';
 
 // pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
 // to be bound to the 'codemirror' import.
@@ -497,8 +498,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     </div>
                     <div className="code-container"
                          ref={this.codeContainerRef}>
-                        <SplitPane split="vertical"
-                                   defaultSize={500}>
+                        <SplitterLayout vertical={false}
+                                        percentage={true}>
                             <div className="edit-area-container"
                                  style={{width: (this.state.splitX === undefined ? (
                                      "50%"
@@ -513,7 +514,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                      this.state.codeContainerWidth! - this.state.splitX
                                  ))}}>
                             </div>
-                        </SplitPane>
+                        </SplitterLayout>
                     </div>
                     <div className="footer-container">
                     </div>
