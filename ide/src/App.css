@@ -29,6 +29,7 @@ button::-moz-focus-inner {
     float: right;
     background: darkgray;
     color: #fff;
+    margin-right: 0.5em;
 }
 
 .run-option-enabled {
@@ -40,6 +41,7 @@ button::-moz-focus-inner {
     float: right;
     background: #317bcf;
     color: #fff;
+    margin-right: 0.5em;
 }
 
 .run-option-enabled:focus, .run-option-disabled:focus {
