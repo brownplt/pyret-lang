@@ -106,7 +106,7 @@ An integer is either a fixnum or a BigInteger.
 
 */
 
-function Number() {
+function ______NumberModule() {
   'use strict';
   // Abbreviation
   var Numbers = {};
@@ -4044,4 +4044,4 @@ function Number() {
   return Numbers;
 }
 
-module.exports = Number();
+module.exports = ______NumberModule();
