@@ -631,9 +631,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-id-var(l, ident) => 
       { j-id(js-id-of(ident)); cl-empty }
     | s-frac(l, num, den) => 
-        # Generates a Rational (exact fraction)
-        e = rt-method("_makeRational", [clist: j-num(num), j-num(den)])
-        { e; cl-empty }
+        if context.options.pyret-numbers:
+          # Generates a Rational (exact fraction)
+          e = rt-method("_makeRational", [clist: j-num(num), j-num(den)])
+          { e; cl-empty }
+        else:
+          # Emit raw JS expression
+          { j-parens(j-num(num / den)); cl-empty }
+        end
     | s-rfrac(l, num, den) => 
         compile-expr(context, A.s-frac(l, num, den))
     | s-str(l, str) => {j-str( str ); cl-empty}
