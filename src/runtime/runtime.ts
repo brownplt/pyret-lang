@@ -380,3 +380,4 @@ module.exports["_lessThan"] = _NUMBER["lessThan"];
 module.exports["_greaterThan"] = _NUMBER["greaterThan"];
 module.exports["_lessThanOrEqual"] = _NUMBER["lessThanOrEqual"];
 module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
+module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
