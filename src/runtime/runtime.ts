@@ -345,6 +345,17 @@ export function traceValue(loc, value) {
   return value;
 }
 
+// Allow '+' for string concat. 
+// Otherwise, defer to the number library.
+function customAdd(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
+  if (typeof(lhs) === "string" && typeof(rhs) === "string") {
+    return lhs + rhs;
+  } else {
+    return _NUMBER["add"];
+  }
+}
+
+
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value
 // TODO(alex): Should Pyret perform a function call to create a singleton data variant
@@ -360,7 +371,7 @@ module.exports["_makeRational"] = _NUMBER["makeRational"];
 module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
 module.exports["_errCallbacks"] = NumberErrbacks;
 
-module.exports["_add"] = _NUMBER["add"];
+module.exports["_add"] = customAdd;
 module.exports["_subtract"] = _NUMBER["subtract"];
 module.exports["_multiply"] = _NUMBER["multiply"];
 module.exports["_divide"] = _NUMBER["divide"];
