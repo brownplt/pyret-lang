@@ -1,0 +1,11 @@
+--langdef=pyret
+--langmap=pyret:.arr
+
+--regex-pyret=/^[ \t]*fun[ \t]+([a-zA-Z0-9_-]+)/\1/f,function/
+--regex-pyret=/^[ \t]*data[ \t]+([a-zA-Z0-9_-]+)/\1/d,data/
+--regex-pyret=/^[ \t]*\|[ \t]*([a-zA-Z0-9_-]+)[^=]*$/\1/d,data/
+--regex-pyret=/^[ \t]*\|[ \t]*([a-zA-Z0-9_-]+)[^=]*$/is-\1/d,data/
+--regex-pyret=/^([a-zA-Z0-9_-]+)[ \t]*=/\1/v,value/
+--regex-pyret=/^([a-zA-Z0-9_-]+)[ \t]*::[ \t]*[a-zA-Z0-9_<>}{. -]+[ \t]*=/\1/v,value/
+--regex-pyret=/^[ \t]*import[ \t]+[a-zA-Z0-9_-]+[ \t]+as[ \t]+([a-zA-Z0-9_-]+)/\1/i,import/
+--regex-pyret=/^[ \t]*import[ \t]+file\([^)]+\)[ \t]+as[ \t]+([a-zA-Z0-9_-]+)/\1/i,import/
