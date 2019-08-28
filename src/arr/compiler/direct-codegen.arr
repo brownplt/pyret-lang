@@ -308,7 +308,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       e = if num-is-fixnum(n):
         j-parens(j-num(n))
       else:
-        rt-method("makeNumberFromString", [clist: j-str(tostring(n))])
+        rt-method("_makeNumberFromString", [clist: j-str(tostring(n)), rt-field(NUMBER_ERR_CALLBACKS)])
       end
       {e; cl-empty}
     | s-id(l, id) => {j-id(js-id-of(id)); cl-empty}
