@@ -26,6 +26,12 @@ r7 = m7 == (3 / 10)
 m8 = ((1 / 10) + (2 / 10)) * (1 / 30)
 r8 = m8 == (1 / 100)
 
+m9 = (12.3 / 5.5)
+r9 = m9 == (123 / 55)
+
+m10 = (1.1 / 34) * 2
+r10 = m10  == (2.2 / 34)
+
 final = r1
   and r2
   and r3
@@ -34,6 +40,8 @@ final = r1
   and r6
   and r7
   and r8
+  and r9
+  and r10
 
 if final:
   G.console-log("pass")
@@ -47,5 +55,7 @@ else:
     r6,
     r7,
     r8,
+    r9,
+    r10,
   ])
 end
