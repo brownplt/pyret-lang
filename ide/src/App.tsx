@@ -52,8 +52,6 @@ type EditorState = {
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
     debug: boolean;
-    codeContainerWidth: undefined | number;
-    splitX: undefined | number;
 };
 
 type FSItemProps = {
@@ -81,8 +79,6 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
-
-        this.codeContainerRef = React.createRef();
 
         control.setupWorkerMessageHandler(
             console.log,
@@ -133,20 +129,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             debug: false,
-            codeContainerWidth: undefined,
-            splitX: undefined,
         };
     };
-
-    componentDidMount() {
-        if (this.codeContainerRef.current != null) {
-            this.setState({
-                codeContainerWidth: this.codeContainerRef.current.clientWidth
-            });
-        }
-    }
-
-    private codeContainerRef: React.RefObject<HTMLDivElement>;
 
     get isPyretFile() {
         return /\.arr$/.test(this.currentFile);
@@ -496,24 +480,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             })
                         }
                     </div>
-                    <div className="code-container"
-                         ref={this.codeContainerRef}>
+                    <div className="code-container">
                         <SplitterLayout vertical={false}
                                         percentage={true}>
-                            <div className="edit-area-container"
-                                 style={{width: (this.state.splitX === undefined ? (
-                                     "50%"
-                                 ) : (
-                                     this.state.splitX
-                                 ))}}>
-                            </div>
-                            <div className="interactions-area-container"
-                                 style={{width: (this.state.splitX === undefined ? (
-                                     "50%"
-                                 ) : (
-                                     this.state.codeContainerWidth! - this.state.splitX
-                                 ))}}>
-                            </div>
+                            <div className="edit-area-container"></div>
+                            <div className="interactions-area-container"></div>
                         </SplitterLayout>
                     </div>
                     <div className="footer-container">
