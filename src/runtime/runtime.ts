@@ -351,7 +351,7 @@ function customAdd(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
   if (typeof(lhs) === "string" && typeof(rhs) === "string") {
     return lhs + rhs;
   } else {
-    return _NUMBER["add"];
+    return _NUMBER["add"](lhs, rhs, errbacks);
   }
 }
 
