@@ -111,10 +111,13 @@ button::-moz-focus-inner {
 
 .edit-area-container {
     height: 100%;
-    width: 50%;
 }
 
-.separator {
+.SplitPane {
+    position: relative;
+}
+
+.Resizer {
     width: 0.5em;
     cursor: ew-resize;
     border: 1px solid #a6a6a6;
@@ -123,7 +126,6 @@ button::-moz-focus-inner {
 
 .interactions-area-container {
     height: 100%;
-    width: 50%;
 }
 
 .footer-container {

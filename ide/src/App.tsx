@@ -6,6 +6,7 @@ import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'pyret-codemirror-mode/css/pyret.css';
 import 'codemirror/mode/javascript/javascript.js';
+import SplitPane from 'react-split-pane';
 
 // pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
 // to be bound to the 'codemirror' import.
@@ -50,6 +51,8 @@ type EditorState = {
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
     debug: boolean;
+    codeContainerWidth: undefined | number;
+    splitX: undefined | number;
 };
 
 type FSItemProps = {
@@ -77,6 +80,8 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
+
+        this.codeContainerRef = React.createRef();
 
         control.setupWorkerMessageHandler(
             console.log,
@@ -127,8 +132,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             debug: false,
+            codeContainerWidth: undefined,
+            splitX: undefined,
         };
     };
+
+    componentDidMount() {
+        if (this.codeContainerRef.current != null) {
+            this.setState({
+                codeContainerWidth: this.codeContainerRef.current.clientWidth
+            });
+        }
+    }
+
+    private codeContainerRef: React.RefObject<HTMLDivElement>;
 
     get isPyretFile() {
         return /\.arr$/.test(this.currentFile);
@@ -478,13 +495,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             })
                         }
                     </div>
-                    <div className="code-container">
-                        <div className="edit-area-container">
-                        </div>
-                        <div className="separator">
-                        </div>
-                        <div className="interactions-area-container">
-                        </div>
+                    <div className="code-container"
+                         ref={this.codeContainerRef}>
+                        <SplitPane split="vertical"
+                                   defaultSize={500}>
+                            <div className="edit-area-container"
+                                 style={{width: (this.state.splitX === undefined ? (
+                                     "50%"
+                                 ) : (
+                                     this.state.splitX
+                                 ))}}>
+                            </div>
+                            <div className="interactions-area-container"
+                                 style={{width: (this.state.splitX === undefined ? (
+                                     "50%"
+                                 ) : (
+                                     this.state.codeContainerWidth! - this.state.splitX
+                                 ))}}>
+                            </div>
+                        </SplitPane>
                     </div>
                     <div className="footer-container">
                     </div>
