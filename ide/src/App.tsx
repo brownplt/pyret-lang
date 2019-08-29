@@ -364,17 +364,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     ) : (
                         null
                     )}
-                    </div>
-                    <div className="code-container">
-                        <SplitterLayout vertical={false}
-                                        percentage={true}>
-                            <div className="edit-area-container"></div>
-                            <div className="interactions-area-container"></div>
-                        </SplitterLayout>
-                    </div>
-                    <div className="footer-container">
-                    </div>
                 </div>
+                <div className="code-container">
+                    <SplitterLayout vertical={false}
+                                    percentage={true}>
+                        <div className="edit-area-container"></div>
+                        <div className="interactions-area-container"></div>
+                    </SplitterLayout>
+                </div>
+                <div className="footer-container">
+                </div>
+            </div>
         );
     }
 }
