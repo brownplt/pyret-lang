@@ -100,6 +100,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     interactions: makeResult(runResult.result)
                                 }
                             );
+                            if (makeResult(runResult.result)[0].name === "error") {
+                                this.setState(
+                                    {
+                                        interactionErrors: runResult.result.error,
+                                        interactErrorExists: true
+                                    }
+                                );
+                            }
                         }
                     },
                     this.state.runKind);
