@@ -772,11 +772,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Emits:
       #   left-statements
       #   right-statements
-      #   checkTestRunner(check-op(left-value, right-value));
+      #   checkTest(check-op(left-value, right-value), loc);
       #
+      # checkTest: (boolean, string[loc]) -> void
       
       # Desugar the test to run to direct JS code or to other Pyret code
       desugar-result = DH.desugar-s-check-test(l, op, refinement, left, right, cause)
+
+      test-loc = j-str(l.format(true))
 
       # Get the raw test statements and expressions
       { raw-js-test-val; raw-js-test-stmts } = cases(DesugarResult) desugar-result:
@@ -785,7 +788,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       # TODO(alex): insert test scaffolding here
-      tester-call = rt-method("_check", [clist: raw-js-test-val])
+      tester-call = rt-method("_check", [clist: raw-js-test-val, test-loc])
 
       { j-undefined; [clist: raw-js-test-stmts, tester-call] }
 
