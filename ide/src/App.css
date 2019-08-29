@@ -24,13 +24,12 @@ html, body, #root {
 }
 
 .run-options {
-    width: 20px;
+    width: 1.5em;
     text-align: center;
-    text-indent: 0;
     border: none;
     font-family: sans-serif;
     font-size: 16px;
-    text-indent: -5px;
+    text-indent: -0.2em;
     cursor: pointer;
     transition: box-shadow 0.2s;
     background: #317bcf;
