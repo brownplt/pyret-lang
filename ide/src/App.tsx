@@ -306,40 +306,40 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         <button className="run-options">&#8628;</button>
                     </div>
                     <div className="run-dropdown">
-                    </div>
-                    {this.makeHeaderButton(
-                        "Stopify",
-                        this.state.runKind === control.backend.RunKind.Async,
-                        () => {
-                            if (this.state.runKind === control.backend.RunKind.Async) {
-                                this.setState({
-                                    runKind: control.backend.RunKind.Sync
-                                });
-                            } else {
-                                this.setState({
-                                    runKind: control.backend.RunKind.Async
-                                })
+                        {this.makeHeaderButton(
+                            "Stopify",
+                            this.state.runKind === control.backend.RunKind.Async,
+                            () => {
+                                if (this.state.runKind === control.backend.RunKind.Async) {
+                                    this.setState({
+                                        runKind: control.backend.RunKind.Sync
+                                    });
+                                } else {
+                                    this.setState({
+                                        runKind: control.backend.RunKind.Async
+                                    })
+                                }
                             }
-                        }
-                    )}
-                    {this.makeHeaderButton(
-                        "Auto Run",
-                        this.state.autoRun,
-                        () => {
-                            this.setState({
-                                autoRun: !this.state.autoRun
+                        )}
+                        {this.makeHeaderButton(
+                            "Auto Run",
+                            this.state.autoRun,
+                            () => {
+                                this.setState({
+                                    autoRun: !this.state.autoRun
+                                })
                             })
-                        })
-                    }
-                    {this.makeHeaderButton(
-                        "Type Check",
-                        this.state.typeCheck,
-                        () => {
-                            this.setState({
-                                typeCheck: !this.state.typeCheck
-                            });
-                        })
-                    }
+                        }
+                        {this.makeHeaderButton(
+                            "Type Check",
+                            this.state.typeCheck,
+                            () => {
+                                this.setState({
+                                    typeCheck: !this.state.typeCheck
+                                });
+                            })
+                        }
+                    </div>
                 </div>
                 <div className="code-container">
                     <SplitterLayout vertical={false}
