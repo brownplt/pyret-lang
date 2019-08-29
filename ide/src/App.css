@@ -103,6 +103,7 @@ button::-moz-focus-inner {
     font-family: sans-serif;
     font-size: 14px;
     padding-left: 1em;
+    cursor: pointer;
 }
 
 .run-option-enabled {
