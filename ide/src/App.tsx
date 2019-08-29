@@ -368,7 +368,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <div className="code-container">
                     <SplitterLayout vertical={false}
                                     percentage={true}>
-                        <div className="edit-area-container"></div>
+                        <div className="edit-area-container">
+                            <CodeMirror value={this.state.currentFileContents}
+                                        options={{
+                                            mode: 'pyret',
+                                            theme: 'default',
+                                            lineNumbers: true
+                                        }}
+                                        onChange={this.onEdit}
+                                        autoCursor={false}>
+                            </CodeMirror>
+                        </div>
                         <div className="interactions-area-container"></div>
                     </SplitterLayout>
                 </div>
