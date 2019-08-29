@@ -339,6 +339,37 @@ export function equalAlways(v1: any, v2: any): boolean {
   return equalityResultToBool(ans);
 }
 
+// *********Spy Stuff*********
+export interface SpyExpr {
+  key: string,
+  expr: () => any,
+  loc: string
+}
+
+export interface SpyObject {
+  message: () => string,
+  loc: string,
+  exprs: SpyExpr[],
+}
+
+function _spy(spyObject: SpyObject): void {
+  const message = spyObject.message();
+  const spyLoc = spyObject.loc;
+  if (message != null) {
+    console.log("Spying \"" + message + "\" (at " + spyLoc + ")");
+  } else {
+    console.log("Spying (at " + spyLoc + ")");
+  }
+
+  const exprs = spyObject.exprs;
+  for (let i = 0; i < exprs.length; i++) {
+    const key = exprs[i].key;
+    const loc = exprs[i].loc;
+    const value = exprs[i].expr();
+    console.log("  " + key + ": " + value);
+  }
+}
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
@@ -367,6 +398,7 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
+module.exports["_spy"] = _spy;
 module.exports["_makeRational"] = _NUMBER["makeRational"];
 module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
 module.exports["_errCallbacks"] = NumberErrbacks;

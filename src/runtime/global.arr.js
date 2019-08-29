@@ -25,24 +25,6 @@ function timeNow( otherTime ) {
   }
 }
 
-function _spy(spyObject) {
-  const message = spyObject.message();
-  const spyLoc = spyObject.loc;
-  if (message != null) {
-    console.log("Spying \"" + message + "\" (at " + spyLoc + ")");
-  } else {
-    console.log("Spying (at " + spyLoc + ")");
-  }
-
-  const exprs = spyObject.exprs;
-  for (let i = 0; i < exprs.length; i++) {
-    const key = exprs[i].key;
-    const loc = exprs[i].loc;
-    const value = exprs[i].expr();
-    console.log("  " + key + ": " + value);
-  }
-}
-
 module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,

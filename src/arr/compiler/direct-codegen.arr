@@ -1245,8 +1245,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
         # TODO(alex): builtin spy function call or inline formatting/reporting?
         # Builtin spy function call
-        spy-func = j-bracket(j-id(GLOBAL), j-str("$spy"))
-        spy-call = j-expr(j-app(spy-func, cl-sing(spy-block-obj)))
+        spy-call = rt-method("_spy", cl-sing(spy-block-obj))
 
         { j-undefined; cl-sing(spy-call) }
       else:
