@@ -52,6 +52,7 @@ type EditorState = {
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
     debug: boolean;
+    dropdownVisible: boolean;
 };
 
 type FSItemProps = {
@@ -129,6 +130,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             debug: false,
+            dropdownVisible: false,
         };
     };
 
@@ -286,6 +288,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
         );
     };
 
+    toggleDropdownVisibility = (e: any) => {
+        this.setState({
+            dropdownVisible: !this.state.dropdownVisible
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
@@ -303,43 +311,48 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         <button className="run-ready">
                             Run
                         </button>
-                        <button className="run-options">&#8628;</button>
+                        <button className="run-options"
+                                onClick={this.toggleDropdownVisibility}>&#8628;</button>
                     </div>
-                    <div className="run-dropdown">
-                        {this.makeHeaderButton(
-                            "Stopify",
-                            this.state.runKind === control.backend.RunKind.Async,
-                            () => {
-                                if (this.state.runKind === control.backend.RunKind.Async) {
-                                    this.setState({
-                                        runKind: control.backend.RunKind.Sync
-                                    });
-                                } else {
-                                    this.setState({
-                                        runKind: control.backend.RunKind.Async
-                                    })
+                    {this.state.dropdownVisible ? (
+                        <div className="run-dropdown">
+                            {this.makeHeaderButton(
+                                "Stopify",
+                                this.state.runKind === control.backend.RunKind.Async,
+                                () => {
+                                    if (this.state.runKind === control.backend.RunKind.Async) {
+                                        this.setState({
+                                            runKind: control.backend.RunKind.Sync
+                                        });
+                                    } else {
+                                        this.setState({
+                                            runKind: control.backend.RunKind.Async
+                                        })
+                                    }
                                 }
-                            }
-                        )}
-                        {this.makeHeaderButton(
-                            "Auto Run",
-                            this.state.autoRun,
-                            () => {
-                                this.setState({
-                                    autoRun: !this.state.autoRun
+                            )}
+                            {this.makeHeaderButton(
+                                "Auto Run",
+                                this.state.autoRun,
+                                () => {
+                                    this.setState({
+                                        autoRun: !this.state.autoRun
+                                    })
                                 })
-                            })
-                        }
-                        {this.makeHeaderButton(
-                            "Type Check",
-                            this.state.typeCheck,
-                            () => {
-                                this.setState({
-                                    typeCheck: !this.state.typeCheck
-                                });
-                            })
-                        }
-                    </div>
+                            }
+                            {this.makeHeaderButton(
+                                "Type Check",
+                                this.state.typeCheck,
+                                () => {
+                                    this.setState({
+                                        typeCheck: !this.state.typeCheck
+                                    });
+                                })
+                            }
+                        </div>
+                    ) : (
+                        null
+                    )}
                 </div>
                 <div className="code-container">
                     <SplitterLayout vertical={false}
