@@ -14,7 +14,6 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
-type Expr = A.Expr
 type DesugarResult = DH.DesugarResult
 
 flat-prim-app = A.prim-app-info-c(false)
