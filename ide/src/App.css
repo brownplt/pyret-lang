@@ -120,13 +120,18 @@ button::-moz-focus-inner {
     text-align: center;
 }
 
-.run-option-enabled:focus, .run-option-disabled:focus, .run-ready:focus, .run-queued:focus, .run-options:focus {
+.run-option-enabled:focus, .run-option-disabled:focus, .run-ready:focus, .run-queued:focus, .run-options:focus, .stop-available:focus, .stop-unavailable:focus {
     outline: none;
 }
 
 .run-option-enabled:hover, .run-ready:hover, .run-options:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: #0060ce;
+}
+
+.stop-available:hover {
+    box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
+    background: #b30c00;
 }
 
 .run-option-disabled:hover, .run-queued:hover {
