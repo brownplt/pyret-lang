@@ -46,6 +46,7 @@ compile-handler = lam(msg, send-message) block:
     d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
     send-message(J.j-obj(d).serialize())
   end
+  enable-spies = not(opts.has-key("no-spies"))
   with-logger = opts.set("log", log)
   with-error = with-logger.set("log-error", err)
 

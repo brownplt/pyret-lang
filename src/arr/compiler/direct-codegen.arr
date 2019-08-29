@@ -1179,6 +1179,80 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       { return-expr; return-stmts }
     | s-spy-block(l, message, contents) => nyi("s-spy-block")
+    | s-spy-block(loc, message, contents) =>
+
+      # TODO(alex): make code generation aware of spy block options
+      # Emit with a special do-print/do-eval flag
+      # Do not emit
+
+      # Model each spy block as a spy block object
+      # SpyBlockObject {
+      #   message: () -> String,
+      #   loc: String,
+      #   exprs: List<{ key: String, expr: () -> JSValue, loc: String }>
+      # }
+      #
+      # Translate spy blocks into:
+      #   builtinSpyFunction(SpyBlockObject)
+      if context.options.enable-spies:
+
+        # Generate spy code
+
+        # Generate message code
+        { js-message-value; js-message-stmts } = cases(Option) message:
+          | some(message-expr) => compile-expr(context, message-expr)
+          
+          # TODO(alex): null or empty string?
+          | none => { j-null; cl-empty }
+        end
+
+        # Create the message generation function
+        js-message-func-name = fresh-id(compiler-name("spy-message"))
+        js-message-return = j-return(js-message-value)
+        js-message-func-block = j-block(cl-append(js-message-stmts, cl-sing(js-message-return)))
+        js-message-func = j-fun("0", js-message-func-name.to-compiled(), cl-empty, js-message-func-block)
+
+        # Compile each spy expression into the expression list
+        js-spy-fields = for fold(js-spy-fields from cl-empty, pyret-spy-field from contents):
+          { js-spy-value; js-spy-stmts } = compile-expr(context, pyret-spy-field.value)
+
+          js-spy-expr-func-name = fresh-id(compiler-name("spy-expr"))
+
+          # TODO(alex): what are j-fun.id
+          js-spy-return = j-return(js-spy-value)
+          js-spy-expr-func-block = j-block(cl-append(js-spy-stmts, cl-sing(js-spy-return)))
+          js-spy-expr-fun = j-fun("0", js-spy-expr-func-name.to-compiled(), cl-empty, js-spy-expr-func-block)
+
+          # Create the spy expression object
+          js-spy-key = j-field("key", j-str(pyret-spy-field.name))
+          js-spy-expr = j-field("expr", js-spy-expr-fun)
+          js-spy-loc = j-field("loc", j-str(pyret-spy-field.l.format(true)))
+          js-spy-expr-obj = j-obj(cl-cons(js-spy-key, cl-cons(js-spy-expr, cl-sing(js-spy-loc))))
+
+          cl-append(js-spy-fields, cl-sing(js-spy-expr-obj))
+        end
+
+        js-spy-loc = j-str(loc.format(true))
+        
+        # Create the SpyBlockObject
+        js-spy-fields-list = j-list(false, js-spy-fields)
+        spy-block-obj = j-obj(cl-cons(j-field("message", js-message-func),
+                                cl-cons(j-field("loc", js-spy-loc),
+                                  cl-sing(j-field("exprs", js-spy-fields-list))
+                                  )
+                                )
+                              )
+
+        # TODO(alex): builtin spy function call or inline formatting/reporting?
+        # Builtin spy function call
+        spy-func = j-bracket(j-id(GLOBAL), j-str("$spy"))
+        spy-call = j-expr(j-app(spy-func, cl-sing(spy-block-obj)))
+
+        { j-undefined; cl-sing(spy-call) }
+      else:
+        # Do NOT generate spy code
+        { j-undefined; cl-empty }
+      end
     | else => raise("NYI (compile): " + torepr(expr))
   end
 
