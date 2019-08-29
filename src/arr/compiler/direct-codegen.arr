@@ -786,9 +786,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       # TODO(alex): insert test scaffolding here
-      tester-func = j-raw-code("$check")
-      tester-call = j-expr(j-app(tester-func, cl-sing(raw-js-test-val)))
-      { j-undefined; cl-append(raw-js-test-stmts, cl-sing(tester-call)) }
+      tester-call = rt-method("_check", [clist: raw-js-test-val])
+
+      { j-undefined; [clist: raw-js-test-stmts, tester-call] }
+
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(
         l :: Loc,
