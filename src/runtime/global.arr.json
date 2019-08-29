@@ -56,8 +56,7 @@
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
       "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
-      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
-      "$spy": ["arrow", ["tany", "tany"], "Nothing"]
+      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]]
     },
     "aliases": {
       "Any": "tany",

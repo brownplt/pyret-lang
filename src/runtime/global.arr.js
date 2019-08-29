@@ -65,7 +65,6 @@ module.exports = {
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
   'trace-value': runtime['traceValue'],
-  '$spy': _spy,
 
   // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,
