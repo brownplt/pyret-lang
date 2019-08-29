@@ -104,6 +104,7 @@ button::-moz-focus-inner {
     font-size: 14px;
     padding-left: 1em;
     cursor: pointer;
+    user-select: none;
 }
 
 .run-option-enabled {
