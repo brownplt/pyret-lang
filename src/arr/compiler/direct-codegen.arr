@@ -1178,7 +1178,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       return-stmts :: CList<JStmt> = cl-append(predicate-stmts, table-stmts)
 
       { return-expr; return-stmts }
-    | s-spy-block(l, message, contents) => nyi("s-spy-block")
+
     | s-spy-block(loc, message, contents) =>
 
       # TODO(alex): make code generation aware of spy block options
