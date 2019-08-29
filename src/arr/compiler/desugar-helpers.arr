@@ -111,7 +111,7 @@ fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann
 end
 
 data CheckDesugarResultInternal:
-  | binop-result(op, negate)
+  | binop-result(op)
   | refinement-result(refinement, negate)
   | predicate-result(predicate)
 end
@@ -123,20 +123,16 @@ fun desugar-s-check-test(l :: Loc,
                          right :: Option<Expr>, 
                          cause :: Option<Expr>) -> DesugarResult:
   result = cases(A.CheckOp) check-op:
-    | s-op-is(_) => binop-result("op==", false)
-    | s-op-is-not(_) => binop-result("op==", true)
+    | s-op-is(_) => binop-result("op==")
+    | s-op-is-not(_) => binop-result("op<>")
     | else => raise("NYI check op ID")
   end
 
   cases(CheckDesugarResultInternal) result:
-    | binop-result(op, negate) =>
-      if negate:
-        raise("NYI check op negation")
-      else:
-        cases(Option) right:
-          | some(right-expr) => pyret(A.s-op(l, l, op, left, right-expr))
-          | none => raise("Attempting to use a binary check op without the RHS")
-        end
+    | binop-result(op) =>
+      cases(Option) right:
+        | some(right-expr) => pyret(A.s-op(l, l, op, left, right-expr))
+        | none => raise("Attempting to use a binary check op without the RHS")
       end
     | refinement-result(the-refinement, negate) => raise("NYI check refinement")
     | predicate-result(predicate) => raise("NYI check predicate")
