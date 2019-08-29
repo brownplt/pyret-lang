@@ -92,6 +92,16 @@ button::-moz-focus-inner {
     width: 100%;
     background: #c8c8c8;
     color: rgba(0, 0, 0, 0.26);
+    display: flex;
+    justify-content: flex-start;
+}
+
+.run-option-label {
+    text-align: center;
+    line-height: 3em;
+    font-family: sans-serif;
+    font-size: 14px;
+    padding-left: 1em;
 }
 
 .run-option-enabled {
@@ -102,6 +112,9 @@ button::-moz-focus-inner {
     width: 100%;
     background: #317bcf;
     color: #fff;
+    display: flex;
+    justify-content: flex-start;
+    text-align: center;
 }
 
 .run-option-enabled:focus, .run-option-disabled:focus, .run-ready:focus, .run-queued:focus {
@@ -116,6 +129,13 @@ button::-moz-focus-inner {
 .run-option-disabled:hover, .run-queued:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: gray;
+}
+
+.run-option-checkbox {
+    margin: 0 0 0 1em;
+    padding: 0;
+    float: left;
+    cursor: pointer;
 }
 
 .code-container {

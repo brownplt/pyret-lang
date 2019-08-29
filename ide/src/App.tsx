@@ -281,16 +281,57 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => {
         return (
-            <button className= {(enabled ? "run-option-enabled" : "run-option-disabled")}
+            <button className={(enabled ? "run-option-enabled" : "run-option-disabled")}
                     onClick={onClick}>
                 {text}
             </button>
         );
     };
 
+    makeDropdownOption = (text: string, enabled: boolean, onClick: () => void) => {
+        return (
+            <div className={enabled ? "run-option-enabled" : "run-option-disabled"}
+                 onClick={onClick}>
+                <input type="checkBox"
+                       checked={enabled}
+                       name={text}
+                       className="run-option-checkbox">
+                </input>
+                <label htmlFor={text}
+                       className="run-option-label">
+                    {text}
+                </label>
+            </div>
+        );
+    };
+
     toggleDropdownVisibility = (e: any) => {
         this.setState({
             dropdownVisible: !this.state.dropdownVisible
+        });
+    };
+
+    toggleAutoRun = () => {
+        this.setState({
+            autoRun: !this.state.autoRun
+        });
+    };
+
+    toggleStopify = () => {
+        if (this.state.runKind === control.backend.RunKind.Async) {
+            this.setState({
+                runKind: control.backend.RunKind.Sync
+            });
+        } else {
+            this.setState({
+                runKind: control.backend.RunKind.Async
+            })
+        }
+    };
+
+    toggleTypeCheck = () => {
+        this.setState({
+            typeCheck: !this.state.typeCheck
         });
     };
 
@@ -316,54 +357,24 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     </div>
                     {this.state.dropdownVisible ? (
                         <div className="run-dropdown">
-                            {this.makeHeaderButton(
-                                "Stopify",
-                                this.state.runKind === control.backend.RunKind.Async,
-                                () => {
-                                    if (this.state.runKind === control.backend.RunKind.Async) {
-                                        this.setState({
-                                            runKind: control.backend.RunKind.Sync
-                                        });
-                                    } else {
-                                        this.setState({
-                                            runKind: control.backend.RunKind.Async
-                                        })
-                                    }
-                                }
-                            )}
-                            {this.makeHeaderButton(
-                                "Auto Run",
-                                this.state.autoRun,
-                                () => {
-                                    this.setState({
-                                        autoRun: !this.state.autoRun
-                                    })
-                                })
-                            }
-                            {this.makeHeaderButton(
-                                "Type Check",
-                                this.state.typeCheck,
-                                () => {
-                                    this.setState({
-                                        typeCheck: !this.state.typeCheck
-                                    });
-                                })
-                            }
+                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
+                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
+                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
                         </div>
                     ) : (
                         null
                     )}
+                    </div>
+                    <div className="code-container">
+                        <SplitterLayout vertical={false}
+                                        percentage={true}>
+                            <div className="edit-area-container"></div>
+                            <div className="interactions-area-container"></div>
+                        </SplitterLayout>
+                    </div>
+                    <div className="footer-container">
+                    </div>
                 </div>
-                <div className="code-container">
-                    <SplitterLayout vertical={false}
-                                    percentage={true}>
-                        <div className="edit-area-container"></div>
-                        <div className="interactions-area-container"></div>
-                    </SplitterLayout>
-                </div>
-                <div className="footer-container">
-                </div>
-            </div>
         );
     }
 }
