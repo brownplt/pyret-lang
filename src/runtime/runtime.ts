@@ -370,6 +370,40 @@ function _spy(spyObject: SpyObject): void {
   }
 }
 
+// *********Check Stuff*********
+interface CheckFailure {
+  path: string,
+  loc: string
+}
+
+var _globalCheckContext: string[] = [];
+var _globalCheckFails: CheckFailure[] = [];
+
+function naiveCheckTest(testResult: boolean, loc: string): void {
+  if (!testResult) {
+    console.log(`Test at [${loc}] failed`);
+    _globalCheckFails.push({
+      path: _globalCheckContext.join(),
+      loc: loc,
+    });
+  }
+}
+
+function naiveCheckBlockRunner(name: string, checkBlock: () => void): void {
+  globalCheckContext.push(name);
+
+  try {
+    checkBlock();
+
+  } catch(e) {
+    throw e;
+
+  } finally {
+
+    globalCheckContext.pop();
+  }
+}
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
@@ -398,6 +432,9 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
+module.export["_checkTest"] = naiveCheckTest;
+module.export["_checkBlock"] = naiveCheckBlockRunner;
+
 module.exports["_spy"] = _spy;
 module.exports["_makeRational"] = _NUMBER["makeRational"];
 module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
