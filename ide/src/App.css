@@ -136,9 +136,12 @@ button::-moz-focus-inner {
 
 .run-option-checkbox {
     margin: 0 0 0 1em;
+    margin-top: 1em;
     padding: 0;
     float: left;
     cursor: pointer;
+    width: 1em;
+    height: 1em;
 }
 
 .code-container {
