@@ -43,7 +43,7 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
     render() {
         return (
             <div className="interaction">
-                <pre>
+                <pre className="interaction-identifier">
                     {this.props.name} =&nbsp;
                 </pre>
                 {this.convert(this.props.value)}
