@@ -769,7 +769,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       # Pass function check-block and the name to the test runner
-      tester-call = rt-method("_checkBlock", [clist: test-block-name, js-check-block-func])
+      tester-call = j-expr(rt-method("_checkBlock", [clist: test-block-name, js-check-block-func]))
 
       { j-undefined; cl-sing(tester-call) }
 
