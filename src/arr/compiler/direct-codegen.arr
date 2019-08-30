@@ -274,6 +274,40 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
+fun compile-member(context, member :: A.Member) -> { JExpr; JStmt }:
+  cases(A.Member) member:
+  | s-data-field(l :: Loc, name :: String, value :: Expr) =>
+    { field-val; field-stmts } = compile-expr(context, value)
+    { field-val; field-stmts }
+
+  | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) => 
+    raise("Mutable member fields not supported")
+
+  | s-method-field(
+      l :: Loc,
+      name :: String,
+      params :: List<Name>,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check-loc :: Option<Loc>,
+      _check :: Option<Expr>,
+      blocky :: Boolean
+    ) => 
+      compile-method(l, name, args, body)
+  end
+end
+
+fun compile-method(context, 
+      l :: Loc,
+      name :: String,
+      args :: List<Bind>, # Value parameters
+      body :: Expr) -> { JExpr; JStmt }:
+
+  raise("FOO")
+
+end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
