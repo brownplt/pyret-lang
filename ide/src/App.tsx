@@ -381,6 +381,26 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <div className="code-container">
                     {this.state.menuVisible ? (
                         <div className="menu-content">
+                            <button>
+                                Connect to Google Drive
+                            </button>
+                            <button>
+                                Documentation
+                            </button>
+                            <button>
+                                Files
+                            </button>
+                            <pre>+ Font -</pre>
+                            <button>
+                                Report an Issue
+                            </button>
+                            <button>
+                                Discuss Pyret
+                            </button>
+                            <pre>[ ] Contribute detailed usage information. (?)</pre>
+                            <button>
+                                Log out
+                            </button>
                         </div>
                     ) : (
                         null
