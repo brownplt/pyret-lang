@@ -70,10 +70,10 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 
     render() {
         return (
-            <div onClick={this.props.onClick}
-            className="menu-content-button">
+            <button onClick={this.props.onClick}
+            className="fs-browser-item">
                 {this.props.contents}
-            </div>
+            </button>
         );
     }
 }
@@ -403,7 +403,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     Back
                                 </button>
                                 {!this.browsingRoot ? (
-                                    <button className="menu-content-button"
+                                    <button className="fs-browser-item"
                                             onClick={this.traverseUp}>
                                         ..
                                     </button>
