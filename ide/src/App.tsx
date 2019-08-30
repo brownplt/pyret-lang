@@ -53,6 +53,7 @@ type EditorState = {
     updateTimer: NodeJS.Timer;
     debug: boolean;
     dropdownVisible: boolean;
+    menuVisible: boolean;
 };
 
 type FSItemProps = {
@@ -131,6 +132,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             updateTimer: setTimeout(this.update, 2000),
             debug: false,
             dropdownVisible: false,
+            menuVisible: false,
         };
     };
 
@@ -336,11 +338,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    toggleMenuVisibility = () => {
+        this.setState({
+            menuVisible: !this.state.menuVisible
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
                 <div className="header-container">
-                    <button className="menu">
+                    <button className="menu"
+                            onClick={this.toggleMenuVisibility}>
                         Menu
                     </button>
                     {this.state.runKind === control.backend.RunKind.Async ? (
@@ -371,6 +380,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     )}
                 </div>
                 <div className="code-container">
+                    {this.state.menuVisible ? (
+                        <div className="menu-content">
+                        </div>
+                    ) : (
+                        null
+                    )}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
                         <div className="edit-area-container">
