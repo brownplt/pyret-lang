@@ -379,6 +379,12 @@ interface CheckResult {
   rhs: any,
 }
 
+interface CheckTestResult {
+  success: boolean,
+  lhs: any,
+  rhs: any,
+}
+
 var _globalCheckContext: string[] = [];
 var _globalCheckResults: CheckResult[] = [];
 
@@ -386,18 +392,25 @@ function checkResults(): CheckResult[] {
   return _globalCheckResults.slice();
 }
 
-function naiveCheckTest(success: boolean, loc: string, lhs: any, rhs: any): void {
-  _globalCheckResults.push({
-      success: success,
-      path: _globalCheckContext.join(),
-      loc: loc,
-      lhs: lhs,
-      rhs: rhs,
+function naiveCheckTest(test: () => CheckTestResult, loc: string): void {
+  try {
+    let result = test();
+    _globalCheckResults.push({
+        success: result.success,
+        path: _globalCheckContext.join(),
+        loc: loc,
+        lhs: result.lhs,
+        rhs: result.rhs,
     });
-
-  if (!success) {
-    console.log(`Test at [${loc}] failed`);
-  }
+  } catch(e) {
+    _globalCheckResults.push({
+        success: false,
+        path: _globalCheckContext.join(),
+        loc: loc,
+        lhs: undefined,
+        rhs: undefined,
+    });
+  } 
 }
 
 function naiveCheckBlockRunner(name: string, checkBlock: () => void): void {
