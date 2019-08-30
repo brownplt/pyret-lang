@@ -53,6 +53,7 @@ type EditorState = {
     debug: boolean;
     dropdownVisible: boolean;
     menuVisible: boolean;
+    fontSize: number;
 };
 
 type FSItemProps = {
@@ -132,6 +133,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             debug: false,
             dropdownVisible: false,
             menuVisible: false,
+            fontSize: 12,
         };
     };
 
@@ -343,6 +345,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    decreaseFontSize = () => {
+        if (this.state.fontSize > 1) {
+            this.setState({
+                fontSize: this.state.fontSize - 1
+            });
+        }
+    };
+
+    increaseFontSize = () => {
+        this.setState({
+            fontSize: this.state.fontSize + 1
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
@@ -381,24 +397,36 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <div className="code-container">
                     {this.state.menuVisible ? (
                         <div className="menu-content">
-                            <button>
+                            <button className="menu-content-button">
                                 Connect to Google Drive
                             </button>
-                            <button>
+                            <button className="menu-content-button">
                                 Documentation
                             </button>
-                            <button>
+                            <button className="menu-content-button">
                                 Files
                             </button>
-                            <pre>+ Font -</pre>
-                            <button>
+                            <div className="font-size-options">
+                                <button className="font-minus"
+                                        onClick={this.decreaseFontSize}>
+                                    -
+                                </button>
+                                <div className="font-label">
+                                    Font ({this.state.fontSize} px)
+                                </div>
+                                <button className="font-plus"
+                                        onClick={this.increaseFontSize}>
+                                    +
+                                </button>
+                            </div>
+                            <button className="menu-content-button">
                                 Report an Issue
                             </button>
-                            <button>
+                            <button className="menu-content-button">
                                 Discuss Pyret
                             </button>
                             <pre>[ ] Contribute detailed usage information. (?)</pre>
-                            <button>
+                            <button className="menu-content-button">
                                 Log out
                             </button>
                         </div>
@@ -407,7 +435,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     )}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
-                        <div className="edit-area-container">
+                        <div className="edit-area-container"
+                             style={{fontSize: this.state.fontSize}}>
                             <CodeMirror value={this.state.currentFileContents}
                                         options={{
                                             mode: 'pyret',
@@ -420,7 +449,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             </CodeMirror>
                         </div>
                         <div className="interactions-area-container">
-                            <pre className="interactions-area">
+                            <pre className="interactions-area"
+                                 style={{fontSize: this.state.fontSize}}>
                                 {
                                     this.state.interactions.map(
                                         (i) => {
