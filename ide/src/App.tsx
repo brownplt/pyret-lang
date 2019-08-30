@@ -412,7 +412,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         options={{
                                             mode: 'pyret',
                                             theme: 'default',
-                                            lineNumbers: true
+                                            lineNumbers: true,
+                                            lineWrapping: true,
                                         }}
                                         onChange={this.onEdit}
                                         autoCursor={false}>
