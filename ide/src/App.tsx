@@ -295,7 +295,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <input type="checkBox"
                        checked={enabled}
                        name={text}
-                       className="run-option-checkbox">
+                       className="run-option-checkbox"
+                       readOnly={true}>
                 </input>
                 <label htmlFor={text}
                        className="run-option-label">
