@@ -6,6 +6,7 @@ import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'pyret-codemirror-mode/css/pyret.css';
 import 'codemirror/mode/javascript/javascript.js';
+import 'codemirror/addon/selection/mark-selection.js';
 
 // pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
 // to be bound to the 'codemirror' import.
@@ -49,6 +50,7 @@ type EditorState = {
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
+    editor: CodeMirror.Editor | null;
 };
 
 type FSItemProps = {
@@ -80,7 +82,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.setupWorkerMessageHandler(
             console.log,
             (errors: string[]) => {
-                console.log("Error (App.ts): ", errors);
+                console.log("Error (App.ts, setUpWorkerMessageHandler, onCompileFailure): ", errors);
                 this.setState(
                     {
                         interactionErrors: errors,
@@ -133,6 +135,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
+            editor: null,
         };
     };
 
@@ -206,8 +209,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         this.setState({
             currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250)
+            updateTimer: setTimeout(this.update, 250),
+            editor: editor
         });
+
+        for ( var i = 0; i < editor.getDoc().getAllMarks().length; i++) {
+            editor.getDoc().getAllMarks()[i].clear();
+        }
     };
 
     traverseDown = (childDirectory: string) => {
@@ -279,6 +287,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
         control.removeRootDirectory();
+    }
+
+    componentDidUpdate = (): void => {
+        if (this.state.editor !== null) {
+            if (this.state.interactErrorExists) {
+                this.state.editor.getDoc().markText({line: 0, ch: 0}, {line: 0, ch: 6}, {className: "styled-background"});
+            } else {
+                for ( var i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
+                    this.state.editor.getDoc().getAllMarks()[i].clear();
+                }
+            }
+        }
     }
 
     render() {

@@ -183,6 +183,10 @@ html, body, #root {
     min-height: 100%;
 }
 
+.styled-background {
+    background-color: rgb(134, 134, 245);
+}
+
 .ReactTable {
     overflow: auto;
 }
