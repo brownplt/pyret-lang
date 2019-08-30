@@ -319,7 +319,7 @@ fun compile-s-op(context, l, op-l, op, left, right):
     | op == "op<>" then:
       # Logical negation of equal-always()
       argvs = cl-cons(lv, cl-sing(rv))
-      j-unop(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs), J.j-not)
+      j-unop(j-parens(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
     | op == "op<=>" then:
       argvs = cl-cons(lv, cl-sing(rv))
       j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
