@@ -114,6 +114,12 @@ fun make-fun-name(compiler, loc) -> String:
   "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
 end
 
+data CheckOpDesugar: 
+  | binop-result(op)
+  | refinement-result(refinement, negate)
+  | predicate-result(predicate)
+end
+
 type Loc = SL.Srcloc
 
 default-import-flags = {
@@ -776,19 +782,45 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
       # _checkTest (boolean, string[loc]) -> void
       
-      # Desugar the test to run to direct JS code or to other Pyret code
-      desugar-result = DH.desugar-s-check-test(l, op, refinement, left, right, cause)
+      # Desugar the test to run to direct JS code or to other Pyret code 
+
+      check-op = cases(A.CheckOp) op:
+        | s-op-is(_) => binop-result("op==")
+        | s-op-is-not(_) => binop-result("op<>")
+        | else => raise("NYI check op ID")
+      end
+
+      { js-test-fragment; lhs; rhs } = cases(CheckOpDesugar) check-op:
+        | binop-result(bin-op) =>
+          cases(Option) right:
+            | some(right-expr) => 
+              # Assuming this compile-expr returns j-binop
+              j-binop-fragment = compile-expr(context, A.s-op(l, l, bin-op, left, right-expr))
+              lhs = j-binop-fragment.left 
+              rhs = j-binop-fragment.right
+
+              { j-binop-fragment; lhs; some(rhs) } 
+
+            | none => raise("Attempting to use a binary check op without the RHS")
+          end
+        | refinement-result(the-refinement, negate) => raise("NYI check refinement")
+        | predicate-result(predicate) => raise("NYI check predicate")
+      end
 
       test-loc = j-str(l.format(true))
 
       # Get the raw test statements and expressions
-      { raw-js-test-val; raw-js-test-stmts } = cases(DesugarResult) desugar-result:
-        | pyret(desugared-ast :: Expr) => compile-expr(context, desugared-ast)
-        | js(ast :: J.JExpr) => { ast; cl-empty }
+      { raw-js-test-val; raw-js-test-stmts } = js-test-fragment
+
+      # If there was no RHS expression, explicitly insert an 'undefined'
+      simple-check-test-args = [clist: raw-js-test-val, test-loc]
+      check-test-args = cases(Option) rhs:
+        | some(right-expr) => cl-append(simple-check-test-args, cl-sing(right-expr))
+        | none => cl-append(simple-check-test-args, cl-sing(j-undefined))
       end
 
       # TODO(alex): insert test scaffolding here
-      tester-call = rt-method("_checkTest", [clist: raw-js-test-val, test-loc])
+      tester-call = rt-method("_checkTest", check-test-args)
 
       { j-undefined; [clist: raw-js-test-stmts, tester-call] }
 
