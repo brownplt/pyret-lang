@@ -350,7 +350,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </button>
                     )}
                     <div className="run-container">
-                        <button className="run-ready">
+                        <button className="run-ready"
+                                onClick={this.run}>
                             Run
                         </button>
                         <button className="run-options"
