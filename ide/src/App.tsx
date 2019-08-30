@@ -394,7 +394,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 (() => {
                                     console.log(this.state.interactErrorExists);
                                     return (this.state.interactErrorExists ? (
-                                        <div id="interaction-error">
+                                        <div className="interaction-error">
                                             <p>{this.state.interactionErrors}</p>
                                         </div>
                                     ) : (

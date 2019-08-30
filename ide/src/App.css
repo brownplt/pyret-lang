@@ -231,3 +231,8 @@ button::-moz-focus-inner {
     display: flex;
     align-items: center;
 }
+
+.interaction-error {
+    background: rgb(255, 202, 202);
+    flex-grow: 1;
+}
