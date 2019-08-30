@@ -70,10 +70,10 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 
     render() {
         return (
-            <li onClick={this.props.onClick}
-                className="fs-browser-item">
+            <div onClick={this.props.onClick}
+            className="menu-content-button">
                 {this.props.contents}
-            </li>
+            </div>
         );
     }
 }
@@ -396,24 +396,49 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 </div>
                 <div className="code-container">
                     {this.state.menuVisible ? (
-                        <div className="menu-content">
-                            <button className="menu-content-button">
-                                Files
-                            </button>
-                            <div className="font-size-options">
-                                <button className="font-minus"
-                                        onClick={this.decreaseFontSize}>
-                                    -
+                        this.state.fsBrowserVisible ? (
+                            <div className="menu-content">
+                                <button className="menu-content-button"
+                                        onClick={this.toggleFSBrowser}>
+                                    Back
                                 </button>
-                                <div className="font-label">
-                                    Font ({this.state.fontSize} px)
-                                </div>
-                                <button className="font-plus"
-                                        onClick={this.increaseFontSize}>
-                                    +
-                                </button>
+                                {!this.browsingRoot ? (
+                                    <button className="menu-content-button"
+                                            onClick={this.traverseUp}>
+                                        ..
+                                    </button>
+                                ) : (
+                                    null
+                                )}
+                                {
+                                    control.fs
+                                           .readdirSync(this.browsePath)
+                                           .map(this.createFSItemPair)
+                                           .sort(this.compareFSItemPair)
+                                           .map((x: [string, FSItem]) => x[1])
+                                }
                             </div>
-                        </div>
+                        ) : (
+                            <div className="menu-content">
+                                <button className="menu-content-button"
+                                        onClick={this.toggleFSBrowser}>
+                                    Files
+                                </button>
+                                <div className="font-size-options">
+                                    <button className="font-minus"
+                                            onClick={this.decreaseFontSize}>
+                                        -
+                                    </button>
+                                    <div className="font-label">
+                                        Font ({this.state.fontSize} px)
+                                    </div>
+                                    <button className="font-plus"
+                                            onClick={this.increaseFontSize}>
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+                        )
                     ) : (
                         null
                     )}
