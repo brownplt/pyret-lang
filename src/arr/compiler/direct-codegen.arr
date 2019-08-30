@@ -280,6 +280,56 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
+fun compile-s-op(context, l, op-l, op, left, right):
+  { lv; lstmts } = compile-expr(context, left)
+  { rv; rstmts } = compile-expr(context, right)
+  val = ask:
+    # Pyret number operations compatible with JS numbers
+    # Always assume Pyret numbers when compiling
+    | (op == "op+") then: 
+      rt-method("_add", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op-") then: 
+      rt-method("_subtract", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op*") then: 
+      rt-method("_multiply", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op/") then:
+      rt-method("_divide", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op<") then:
+      rt-method("_lessThan", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op>") then:
+      rt-method("_greaterThan", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op<=") then:
+      rt-method("_lessThanOrEqual", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op>=") then:
+      rt-method("_greaterThanOrEqual", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+
+    # TODO(alex): Use equal-always, equal-now, etc
+    # Call Global.py_equal
+    | op == "op==" then: 
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
+    | op == "op<>" then:
+      # Logical negation of equal-always()
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-unop(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs), J.j-not)
+    | op == "op<=>" then:
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
+    | op == "opor" then: j-binop(lv, J.j-or, rv)
+    | op == "opand" then: j-binop(lv, J.j-and, rv)
+    | otherwise: nyi(op)
+  end
+  { val; lstmts + rstmts; lv; rv }
+end
+
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
@@ -343,53 +393,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-srcloc(_, l) => { j-str("srcloc"); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
-      { lv; lstmts } = compile-expr(context, left)
-      { rv; rstmts } = compile-expr(context, right)
-      val = ask:
-        # Pyret number operations compatible with JS numbers
-        # Always assume Pyret numbers when compiling
-        | (op == "op+") then: 
-          rt-method("_add", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op-") then: 
-          rt-method("_subtract", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op*") then: 
-          rt-method("_multiply", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op/") then:
-          rt-method("_divide", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<") then:
-          rt-method("_lessThan", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>") then:
-          rt-method("_greaterThan", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<=") then:
-          rt-method("_lessThanOrEqual", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>=") then:
-          rt-method("_greaterThanOrEqual", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-
-        # TODO(alex): Use equal-always, equal-now, etc
-        # Call Global.py_equal
-        | op == "op==" then: 
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
-        | op == "op<>" then:
-          # Logical negation of equal-always()
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-unop(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs), J.j-not)
-        | op == "op<=>" then:
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
-        | op == "opor" then: j-binop(lv, J.j-or, rv)
-        | op == "opand" then: j-binop(lv, J.j-and, rv)
-        | otherwise: nyi(op)
-      end
-      { val; lstmts + rstmts }
+      { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
+      { val; stmts }
 
     | s-lam(l, name, _, args, _, _, body, _, _, _) =>
 
