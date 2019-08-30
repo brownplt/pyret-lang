@@ -392,7 +392,7 @@ function checkResults(): CheckResult[] {
   return _globalCheckResults.slice();
 }
 
-function naiveCheckTest(test: () => CheckTestResult, loc: string): void {
+function eagerCheckTest(test: () => CheckTestResult, loc: string): void {
   try {
     let result = test();
     _globalCheckResults.push({
@@ -413,7 +413,7 @@ function naiveCheckTest(test: () => CheckTestResult, loc: string): void {
   } 
 }
 
-function naiveCheckBlockRunner(name: string, checkBlock: () => void): void {
+function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
   _globalCheckContext.push(name);
 
   try {
@@ -456,8 +456,8 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
-module.exports["_checkTest"] = naiveCheckTest;
-module.exports["_checkBlock"] = naiveCheckBlockRunner;
+module.exports["_checkTest"] = eagerCheckTest;
+module.exports["_checkBlock"] = eagerCheckBlockRunner;
 module.exports["_checkResults"] = checkResults;
 
 module.exports["_spy"] = _spy;
