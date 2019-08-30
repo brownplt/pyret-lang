@@ -147,7 +147,7 @@ button::-moz-focus-inner {
     background: #b30c00;
 }
 
-.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover {
+.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .font-label:hover, .font-minus:hover, .font-plus:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: rgba(0, 0, 0, 0.6);
 }
@@ -282,16 +282,22 @@ button::-moz-focus-inner {
 .font-label {
     flex-grow: 2;
     border: none;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
 }
 
 .font-minus {
     border: none;
     width: 2.7em;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
 }
 
 .font-plus {
     border: none;
     width: 2.7em;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
 }
 
 .font-size-options {
