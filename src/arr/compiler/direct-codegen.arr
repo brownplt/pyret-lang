@@ -828,7 +828,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       simple-return-fields = [clist: 
         j-field("success", raw-js-test-val),
         j-field("lhs", lhs),
-        j-field("rhs", rhs),
       ]
       return-fields = cases(Option) rhs:
         | some(right-expr) => cl-append(simple-return-fields, 
@@ -846,7 +845,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # TODO(alex): insert test scaffolding here
       tester-call = rt-method("_checkTest", check-test-args)
 
-      { j-undefined; [clist: raw-js-test-stmts, tester-call] }
+      { j-undefined; [clist: tester-call] }
 
     | s-load-table(l, headers, spec) => nyi("s-load-table")
     | s-table-extend(
