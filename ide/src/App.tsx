@@ -5,7 +5,6 @@ import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'pyret-codemirror-mode/css/pyret.css';
-import 'codemirror/mode/javascript/javascript.js';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
 
