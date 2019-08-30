@@ -800,11 +800,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           cases(Option) right:
             | some(right-expr) => 
               # Assuming this compile-expr returns j-binop
-              j-binop-fragment = compile-expr(context, A.s-op(l, l, bin-op, left, right-expr))
-              lhs = j-binop-fragment.left 
-              rhs = j-binop-fragment.right
+              { j-test-val; j-test-stmts; lhs; rhs } =
+                compile-s-op(context, l, l, bin-op, left, right-expr)
 
-              { j-binop-fragment; lhs; some(rhs) } 
+              { { j-test-val; j-test-stmts }; lhs; some(rhs) } 
 
             | none => raise("Attempting to use a binary check op without the RHS")
           end
