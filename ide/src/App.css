@@ -163,7 +163,7 @@ button::-moz-focus-inner {
 }
 
 .code-container {
-    height: 100%;
+    height: calc(100% - 5.4em);
     width: 100%;
     display: flex;
     flex-direction: row;
@@ -228,6 +228,7 @@ button::-moz-focus-inner {
     font-family: monospace;
     margin: 0;
     padding: 0;
+    overflow-y: scroll;
 }
 
 .interaction {
