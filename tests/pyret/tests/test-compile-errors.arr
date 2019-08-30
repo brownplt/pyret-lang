@@ -99,6 +99,10 @@ check "tuple duplicate names":
   run-str("fun f(w, {k; w;}): k end") is%(output) compile-error(CS.is-duplicate-id)
 end
 
+check "unbound ids in provides":
+  run-str("provide: u end") is%(output) compile-error(CS.is-unbound-id)
+end
+
 check "unbound type ids":
   run-str("link<NotDefined>(1, empty)") is%(output) compile-error(CS.is-unbound-type-id)
   run-str(```

@@ -1221,11 +1221,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             remote-reference-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
             {maybe-uri; atom} = cases(Option) remote-reference-uri:
               | none =>
-                b = which-env.get-value(path.first.toname())
-                if b.origin.new-definition:
-                  { none; b.atom }
-                else:
-                  { some(b.origin.uri-of-definition); b.origin.original-name }
+                b = which-env.get(path.first.toname())
+                cases(Option) b block:
+                  | some(shadow b) =>
+                    if b.origin.new-definition:
+                      { none; b.atom }
+                    else:
+                      { some(b.origin.uri-of-definition); b.origin.original-name }
+                    end
+                  | none =>
+                    name-errors := link(C.unbound-id(A.s-id(l, A.s-name(l, path.last().toname()))), name-errors)
+                    { none; A.s-name(l, path.last().toname()) }
                 end
               | some(uri) =>
                 { some(uri); A.s-name(l, path.last().toname()) }
@@ -1681,6 +1687,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   }
   C.resolved-names(p.visit(names-visitor), name-errors, C.computed-env(module-bindings, bindings, type-bindings, datatypes, final-visitor.module-env, final-visitor.env, final-visitor.type-env))
 end
+
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
   var shadow errors = [list: ] # THE MUTABLE LIST OF ERRORS
