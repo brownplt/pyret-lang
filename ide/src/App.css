@@ -224,6 +224,7 @@ button::-moz-focus-inner {
     font-family: monospace;
     margin: 0;
     padding: 0;
+    margin-bottom: 1em;
     overflow-y: scroll;
 }
 
