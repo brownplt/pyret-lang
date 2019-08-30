@@ -201,4 +201,5 @@ button::-moz-focus-inner {
 
 .CodeMirror {
     min-height: 100% !important;
+    border: none !important;
 }
