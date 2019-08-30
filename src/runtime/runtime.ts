@@ -382,7 +382,7 @@ interface CheckResult {
 var _globalCheckContext: string[] = [];
 var _globalCheckResults: CheckResult[] = [];
 
-function checkResults(): CheckFailure[] {
+function checkResults(): CheckResult[] {
   return _globalCheckResults.slice();
 }
 
@@ -401,7 +401,7 @@ function naiveCheckTest(success: boolean, loc: string, lhs: any, rhs: any): void
 }
 
 function naiveCheckBlockRunner(name: string, checkBlock: () => void): void {
-  globalCheckContext.push(name);
+  _globalCheckContext.push(name);
 
   try {
     checkBlock();
@@ -411,7 +411,7 @@ function naiveCheckBlockRunner(name: string, checkBlock: () => void): void {
 
   } finally {
 
-    globalCheckContext.pop();
+    _globalCheckContext.pop();
   }
 }
 
@@ -443,9 +443,9 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
-module.export["_checkTest"] = naiveCheckTest;
-module.export["_checkBlock"] = naiveCheckBlockRunner;
-module.export["_checkResults"] = checkResults;
+module.exports["_checkTest"] = naiveCheckTest;
+module.exports["_checkBlock"] = naiveCheckBlockRunner;
+module.exports["_checkResults"] = checkResults;
 
 module.exports["_spy"] = _spy;
 module.exports["_makeRational"] = _NUMBER["makeRational"];
