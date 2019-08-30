@@ -1349,7 +1349,7 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
               fold-result(value-type, context)
             end)
       end
-    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check) =>
+    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       cases(List<A.Bind>) args:
         | empty =>
           fold-errors([list: C.method-missing-self(member)])
