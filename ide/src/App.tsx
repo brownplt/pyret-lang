@@ -380,7 +380,28 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         autoCursor={false}>
                             </CodeMirror>
                         </div>
-                        <div className="interactions-area-container"></div>
+                        <div className="interactions-area-container">
+                            <pre className="interactions-area">
+                                {
+                                    this.state.interactions.map(
+                                        (i) => {
+                                            return <Interaction key={i.name} name={i.name} value={i.value} />
+                                        })
+                                }
+                            </pre>
+                            {
+                                (() => {
+                                    console.log(this.state.interactErrorExists);
+                                    return (this.state.interactErrorExists ? (
+                                        <div id="interaction-error">
+                                            <p>{this.state.interactionErrors}</p>
+                                        </div>
+                                    ) : (
+                                        null
+                                    ));
+                                })()
+                            }
+                        </div>
                     </SplitterLayout>
                 </div>
                 <div className="footer-container">

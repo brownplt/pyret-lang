@@ -205,3 +205,27 @@ button::-moz-focus-inner {
     min-height: 100% !important;
     border: none !important;
 }
+
+.interactions-area-container {
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+}
+
+.interactions-area {
+    flex-grow: 1;
+    font-family: monospace;
+    margin: 0;
+    padding: 0;
+}
+
+.interaction {
+    display: flex;
+    flex-direction: row;
+    padding: 1em;
+    padding-bottom: 0;
+}
+
+.interaction-identifier {
+    margin: 0;
+}
