@@ -472,7 +472,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     console.log(this.state.interactErrorExists);
                                     return (this.state.interactErrorExists ? (
                                         <div className="interaction-error">
-                                            <p>{this.state.interactionErrors}</p>
+                                            <p style={{fontSize: this.state.fontSize}}>
+                                                {this.state.interactionErrors}
+                                            </p>
                                         </div>
                                     ) : (
                                         null
