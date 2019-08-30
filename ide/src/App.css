@@ -190,3 +190,15 @@ button::-moz-focus-inner {
     z-index: 1;
     opacity: 0.8;
 }
+
+.layout-pane {
+    overflow: hidden !important;
+}
+
+.react-codemirror2 {
+    height: 100%;
+}
+
+.CodeMirror {
+    min-height: 100% !important;
+}
