@@ -781,21 +781,30 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                    cause :: Option<Expr>) =>
 
       # Emits:
-      #   left-statements
-      #   right-statements
-      #   _checkTest(check-op(left-value, right-value), loc);
+      #   _checkTest(function() {
+      #     left-statements
+      #     right-statements 
+      #     return check-op(left-value, right-value);
+      #   }, loc, lhs, rhs);
       #
-      # _checkTest (boolean, string[loc]) -> void
+      # _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
+      #
+      # check-op-result = {
+      #   success: boolean
+      #   lhs: any
+      #   rhs: any
+      # }
+      #
+      # Individual tests are wrapped in functions to allow individual tests to fail
+      #  but still possible to run other tests
       
-      # Desugar the test to run to direct JS code or to other Pyret code 
-
       check-op = cases(A.CheckOp) op:
         | s-op-is(_) => binop-result("op==")
         | s-op-is-not(_) => binop-result("op<>")
         | else => raise("NYI check op ID")
       end
 
-      { js-test-fragment; lhs; rhs } = cases(CheckOpDesugar) check-op:
+      { raw-js-test-val; raw-js-test-stmts; lhs; rhs } = cases(CheckOpDesugar) check-op:
         | binop-result(bin-op) =>
           cases(Option) right:
             | some(right-expr) => 
@@ -803,7 +812,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               { j-test-val; j-test-stmts; lhs; rhs } =
                 compile-s-op(context, l, l, bin-op, left, right-expr)
 
-              { { j-test-val; j-test-stmts }; lhs; some(rhs) } 
+              { j-test-val; j-test-stmts ; lhs; some(rhs) } 
 
             | none => raise("Attempting to use a binary check op without the RHS")
           end
@@ -813,15 +822,26 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       test-loc = j-str(l.format(true))
 
-      # Get the raw test statements and expressions
-      { raw-js-test-val; raw-js-test-stmts } = js-test-fragment
+      # Thunk the JS test code; returns a check-op-result (described above)
 
       # If there was no RHS expression, explicitly insert an 'undefined'
-      simple-check-test-args = [clist: raw-js-test-val, test-loc]
-      check-test-args = cases(Option) rhs:
-        | some(right-expr) => cl-append(simple-check-test-args, cl-sing(right-expr))
-        | none => cl-append(simple-check-test-args, cl-sing(j-undefined))
+      simple-return-fields = [clist: 
+        j-field("success", raw-js-test-val),
+        j-field("lhs", lhs),
+        j-field("rhs", rhs),
+      ]
+      return-fields = cases(Option) rhs:
+        | some(right-expr) => cl-append(simple-return-fields, 
+                                        cl-sing(j-field("rhs", right-expr)))
+        | none => cl-append(simple-return-fields, 
+                            cl-sing(j-field("rhs", j-undefined)))
       end
+      return-expr = j-obj(return-fields)
+
+      thunk-body = cl-append(raw-js-test-stmts, cl-sing(j-expr(return-expr)))
+      thunk = j-fun("0", "_check", cl-empty, j-block(thunk-body))
+
+      check-test-args = [clist: thunk, test-loc]
 
       # TODO(alex): insert test scaffolding here
       tester-call = rt-method("_checkTest", check-test-args)
