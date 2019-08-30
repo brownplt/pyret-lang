@@ -398,12 +398,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {this.state.menuVisible ? (
                         <div className="menu-content">
                             <button className="menu-content-button">
-                                Connect to Google Drive
-                            </button>
-                            <button className="menu-content-button">
-                                Documentation
-                            </button>
-                            <button className="menu-content-button">
                                 Files
                             </button>
                             <div className="font-size-options">
@@ -419,16 +413,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     +
                                 </button>
                             </div>
-                            <button className="menu-content-button">
-                                Report an Issue
-                            </button>
-                            <button className="menu-content-button">
-                                Discuss Pyret
-                            </button>
-                            <pre>[ ] Contribute detailed usage information. (?)</pre>
-                            <button className="menu-content-button">
-                                Log out
-                            </button>
                         </div>
                     ) : (
                         null
