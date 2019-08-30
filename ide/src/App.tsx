@@ -359,6 +359,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    resetFontSize = () => {
+        this.setState({
+            fontSize: 12
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
@@ -429,9 +435,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                             onClick={this.decreaseFontSize}>
                                         -
                                     </button>
-                                    <div className="font-label">
+                                    <button className="font-label"
+                                            onClick={this.resetFontSize}>
                                         Font ({this.state.fontSize} px)
-                                    </div>
+                                    </button>
                                     <button className="font-plus"
                                             onClick={this.increaseFontSize}>
                                         +

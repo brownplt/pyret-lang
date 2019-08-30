@@ -281,5 +281,19 @@ button::-moz-focus-inner {
 
 .font-label {
     flex-grow: 2;
-    text-align: center;
+    border: none;
+}
+
+.font-minus {
+    border: none;
+    width: 2.7em;
+}
+
+.font-plus {
+    border: none;
+    width: 2.7em;
+}
+
+.font-size-options {
+    height: 2.7em;
 }
