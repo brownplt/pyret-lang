@@ -371,21 +371,32 @@ function _spy(spyObject: SpyObject): void {
 }
 
 // *********Check Stuff*********
-interface CheckFailure {
+interface CheckResult {
+  success: boolean,
   path: string,
-  loc: string
+  loc: string,
+  lhs: any,
+  rhs: any,
 }
 
 var _globalCheckContext: string[] = [];
-var _globalCheckFails: CheckFailure[] = [];
+var _globalCheckResults: CheckResult[] = [];
 
-function naiveCheckTest(testResult: boolean, loc: string): void {
-  if (!testResult) {
-    console.log(`Test at [${loc}] failed`);
-    _globalCheckFails.push({
+function checkResults(): CheckFailure[] {
+  return _globalCheckResults.slice();
+}
+
+function naiveCheckTest(success: boolean, loc: string, lhs: any, rhs: any): void {
+  _globalCheckResults.push({
+      success: success,
       path: _globalCheckContext.join(),
       loc: loc,
+      lhs: lhs,
+      rhs: rhs,
     });
+
+  if (!success) {
+    console.log(`Test at [${loc}] failed`);
   }
 }
 
@@ -434,6 +445,7 @@ module.exports["is-Unknown"] = isUnknown;
 // Expected runtime functions
 module.export["_checkTest"] = naiveCheckTest;
 module.export["_checkBlock"] = naiveCheckBlockRunner;
+module.export["_checkResults"] = checkResults;
 
 module.exports["_spy"] = _spy;
 module.exports["_makeRational"] = _NUMBER["makeRational"];
