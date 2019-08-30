@@ -340,6 +340,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <div className="header-container">
+                    <button className="menu">
+                        Menu
+                    </button>
                     {this.state.runKind === control.backend.RunKind.Async ? (
                         <button className="stop-available">
                             Stop

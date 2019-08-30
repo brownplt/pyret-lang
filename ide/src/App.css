@@ -63,6 +63,17 @@ button::-moz-focus-inner {
     color: rgba(0, 0, 0, 0.26);
 }
 
+.menu {
+    height: 100%;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    width: 6em;
+    float: left;
+    background: #317bcf;
+    color: #fff;
+    border: none;
+}
+
 .run-ready {
     height: 100%;
     cursor: pointer;
@@ -122,11 +133,11 @@ button::-moz-focus-inner {
     text-align: center;
 }
 
-.run-option-enabled:focus, .run-option-disabled:focus, .run-ready:focus, .run-queued:focus, .run-options:focus, .stop-available:focus, .stop-unavailable:focus {
+.run-option-enabled:focus, .run-option-disabled:focus, .run-ready:focus, .run-queued:focus, .run-options:focus, .stop-available:focus, .stop-unavailable:focus, .menu {
     outline: none;
 }
 
-.run-option-enabled:hover, .run-ready:hover, .run-options:hover {
+.run-option-enabled:hover, .run-ready:hover, .run-options:hover, .menu:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: #0060ce;
 }
