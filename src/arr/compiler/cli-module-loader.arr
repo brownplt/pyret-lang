@@ -546,6 +546,7 @@ fun build-program(path, options, stats) block:
       starter-modules.remove-now(sm)
     end
   end
+  length-before-wl = starter-modules.count-now()
   wl = CL.compile-worklist-known-modules(module-finder, base.locator, base.context, starter-modules)
   storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
   storage.load-modules(wl, starter-modules)
@@ -554,7 +555,7 @@ fun build-program(path, options, stats) block:
 
 
 
-  cached-modules = starter-modules.count-now()
+  cached-modules = starter-modules.count-now() - length-before-wl
   total-modules = wl.length() - cached-modules
   var num-compiled = 0
   when total-modules == 0:
