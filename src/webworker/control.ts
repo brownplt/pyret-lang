@@ -66,7 +66,8 @@ export const compile = (
       "baseDir": baseDirectory,
       "builtinJSDir": path.compileBuiltinJS,
       "checks": "none",
-      "typeCheck": typeCheck
+      "typeCheck": typeCheck,
+      "recompileBuiltins": false
     });
 };
 

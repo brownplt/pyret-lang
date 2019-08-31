@@ -36,6 +36,7 @@ fun compile(options):
       proper-tail-calls: options.get("improper-tail-calls").or-else(true),
       compiled-cache: options.get("compiled-dir").or-else("./compiled"),
       compiled-read-only: options.get("compiled-read-only").or-else(empty),
+      recompile-builtins: options.get("recompile-builtins").or-else(true),
       standalone-file: options.get("standalone-file").or-else(compile-opts.standalone-file),
       checks: options.get-value("checks"),
       display-progress: options.get("display-progress").or-else(true),
