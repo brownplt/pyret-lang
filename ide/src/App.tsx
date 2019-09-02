@@ -351,7 +351,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
-    toggleMenuVisibility = () => {
+    toggleOptionsVisibility = () => {
         if (this.state.menu === Menu.Options) {
             this.setState({
                 menuVisible: !this.state.menuVisible,
@@ -389,8 +389,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             <div className="page-container">
                 <div className="header-container">
                     <button className="menu"
-                            onClick={this.toggleMenuVisibility}>
-                        Menu
+                            onClick={this.toggleOptionsVisibility}>
+                        Options
                     </button>
                     <button className="menu"
                             onClick={this.toggleFSBrowser}>
