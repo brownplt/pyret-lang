@@ -36,6 +36,11 @@ type EditorProps = {
     currentFileName: string;
 };
 
+enum Menu {
+    FSBrowser,
+    Options,
+}
+
 type EditorState = {
     browseRoot: string;
     browsePath: string[];
@@ -46,14 +51,14 @@ type EditorState = {
     interactions: {name: string, value: any}[];
     interactionErrors: string[];
     interactErrorExists: boolean;
-    fsBrowserVisible: boolean;
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
     debug: boolean;
     dropdownVisible: boolean;
-    menuVisible: boolean;
     fontSize: number;
+    menu: Menu;
+    menuVisible: boolean;
 };
 
 type FSItemProps = {
@@ -126,12 +131,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }],
             interactionErrors: [],
             interactErrorExists: false,
-            fsBrowserVisible: false,
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             debug: false,
             dropdownVisible: false,
+            menu: Menu.Options,
             menuVisible: false,
             fontSize: 12,
         };
@@ -269,9 +274,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleFSBrowser = () => {
-        this.setState({
-            fsBrowserVisible: !this.state.fsBrowserVisible
-        });
+        if (this.state.menu === Menu.FSBrowser) {
+            this.setState({
+                menuVisible: !this.state.menuVisible,
+            });
+        } else if (this.state.menu === Menu.Options) {
+            this.setState({
+                menu: Menu.FSBrowser,
+                menuVisible: true,
+            });
+        }
     };
 
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
@@ -340,9 +352,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleMenuVisibility = () => {
-        this.setState({
-            menuVisible: !this.state.menuVisible
-        });
+        if (this.state.menu === Menu.Options) {
+            this.setState({
+                menuVisible: !this.state.menuVisible,
+            });
+        } else if (this.state.menu === Menu.FSBrowser) {
+            this.setState({
+                menu: Menu.Options,
+                menuVisible: true,
+            });
+        }
     };
 
     decreaseFontSize = () => {
@@ -373,6 +392,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             onClick={this.toggleMenuVisibility}>
                         Menu
                     </button>
+                    <button className="menu"
+                            onClick={this.toggleFSBrowser}>
+                        Files
+                    </button>
                     {this.state.runKind === control.backend.RunKind.Async ? (
                         <button className="stop-available">
                             Stop
@@ -402,50 +425,48 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 </div>
                 <div className="code-container">
                     {this.state.menuVisible ? (
-                        this.state.fsBrowserVisible ? (
-                            <div className="menu-content">
-                                <button className="menu-content-button"
-                                        onClick={this.toggleFSBrowser}>
-                                    Back
-                                </button>
-                                {!this.browsingRoot ? (
-                                    <button className="fs-browser-item"
-                                            onClick={this.traverseUp}>
-                                        ..
-                                    </button>
-                                ) : (
-                                    null
-                                )}
-                                {
-                                    control.fs
-                                           .readdirSync(this.browsePath)
-                                           .map(this.createFSItemPair)
-                                           .sort(this.compareFSItemPair)
-                                           .map((x: [string, FSItem]) => x[1])
-                                }
-                            </div>
-                        ) : (
-                            <div className="menu-content">
-                                <button className="menu-content-button"
-                                        onClick={this.toggleFSBrowser}>
-                                    Files
-                                </button>
-                                <div className="font-size-options">
-                                    <button className="font-minus"
-                                            onClick={this.decreaseFontSize}>
-                                        -
-                                    </button>
-                                    <button className="font-label"
-                                            onClick={this.resetFontSize}>
-                                        Font ({this.state.fontSize} px)
-                                    </button>
-                                    <button className="font-plus"
-                                            onClick={this.increaseFontSize}>
-                                        +
-                                    </button>
-                                </div>
-                            </div>
-                        )
+                        (() => {
+                            if (this.state.menu === Menu.FSBrowser) {
+                                return (
+                                    <div className="menu-content">
+                                        {!this.browsingRoot ? (
+                                            <button className="fs-browser-item"
+                                                    onClick={this.traverseUp}>
+                                                ..
+                                            </button>
+                                        ) : (
+                                            null
+                                        )}
+                                        {
+                                            control.fs
+                                                   .readdirSync(this.browsePath)
+                                                   .map(this.createFSItemPair)
+                                                   .sort(this.compareFSItemPair)
+                                                   .map((x: [string, FSItem]) => x[1])
+                                        }
+                                    </div>
+                                );
+                            } else if (this.state.menu === Menu.Options) {
+                                return (
+                                    <div className="menu-content">
+                                        <div className="font-size-options">
+                                            <button className="font-minus"
+                                                    onClick={this.decreaseFontSize}>
+                                                -
+                                            </button>
+                                            <button className="font-label"
+                                                    onClick={this.resetFontSize}>
+                                                Font ({this.state.fontSize} px)
+                                            </button>
+                                            <button className="font-plus"
+                                                    onClick={this.increaseFontSize}>
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        })()
                     ) : (
                         null
                     )}
