@@ -109,19 +109,20 @@ An integer is either a fixnum or a BigInteger.
 // TODO(alex): Attempting to use the Stopified version of this code throw an exception:
 // 'Type error: constr is undefined'
 
+
 /* @stopify flat */
-function ______NumberModule() {
+function NumberModule() {
   'use strict';
   // Abbreviation
   var Numbers = {};
 
   // makeNumericBinop: (fixnum fixnum -> any) (pyretnum pyretnum -> any) -> (pyretnum pyretnum) X
-  // Creates a binary function that works either on fixnums or boxnums.
-  // Applies the appropriate binary function, ensuring that both pyretnums are
+  // Creates a binary /* @stopify flat */ function that works either on fixnums or boxnums.
+  // Applies the appropriate binary /* @stopify flat */ function, ensuring that both pyretnums are
   // coerced to be the same kind.
-  var makeNumericBinop = function(onFixnums, onBoxednums, options) {
+  var makeNumericBinop = /* @stopify flat */ function(onFixnums, onBoxednums, options) {
     options = options || {};
-    return function(x, y, errbacks) {
+    return /* @stopify flat */ function(x, y, errbacks) {
 
       if (options.isXSpecialCase && options.isXSpecialCase(x, errbacks))
         return options.onXSpecialCase(x, y, errbacks);
@@ -165,7 +166,7 @@ function ______NumberModule() {
   };
 
   // fromFixnum: fixnum -> pyretnum
-  var fromFixnum = function(x, errbacks) {
+  var fromFixnum = /* @stopify flat */ function(x, errbacks) {
     if (!isFinite(x)) {
       return Roughnum.makeInstance(x, errbacks);
     }
@@ -193,7 +194,7 @@ function ______NumberModule() {
     }
   };
 
-  var expandExponent = function(s) {
+  var expandExponent = /* @stopify flat */ function(s) {
     var match = s.match(scientificPattern), mantissaChunks, exponent;
     if (match) {
       mantissaChunks = match[1].match(/^([^.]*)(.*)$/);
@@ -218,7 +219,7 @@ function ______NumberModule() {
 
   // zfill: integer -> string
   // builds a string of "0"'s of length n.
-  var zfill = function(n) {
+  var zfill = /* @stopify flat */ function(n) {
     var buffer = [];
     buffer.length = n;
     for (var i = 0; i < n; i++) {
@@ -230,7 +231,7 @@ function ______NumberModule() {
   // liftFixnumInteger: fixnum-integer boxed-pyretnum -> boxed-pyretnum
   // Lifts up fixnum integers to a boxed type.
 
-  var liftFixnumInteger = function(x, other, errbacks) {
+  var liftFixnumInteger = /* @stopify flat */ function(x, other, errbacks) {
     if (other instanceof Roughnum)
       return new Roughnum(x, errbacks);
     else if (other instanceof BigInteger)
@@ -242,7 +243,7 @@ function ______NumberModule() {
 
   // isPyretNumber: any -> boolean
   // Returns true if the thing is a pyretnum
-  var isPyretNumber = function(thing) {
+  var isPyretNumber = /* @stopify flat */ function(thing) {
     return (typeof(thing) === 'number'
             || (thing instanceof Rational ||
                 thing instanceof Roughnum ||
@@ -250,7 +251,7 @@ function ______NumberModule() {
   };
 
   // isRational: pyretnum -> boolean
-  var isRational = function(n) {
+  var isRational = /* @stopify flat */ function(n) {
     return (typeof(n) === 'number' ||
             (isPyretNumber(n) && n.isRational()));
   };
@@ -258,18 +259,18 @@ function ______NumberModule() {
   var isExact = isRational;
 
   // isReal: pyretnum -> boolean
-  var isReal = function(n) {
+  var isReal = /* @stopify flat */ function(n) {
     return (typeof(n) === 'number' ||
             (isPyretNumber(n) && n.isReal()));
   };
 
   // isInteger: pyretnum -> boolean
-  var isInteger = function(n) {
+  var isInteger = /* @stopify flat */ function(n) {
     return (typeof(n) === 'number' ||
             (isPyretNumber(n) && n.isInteger()));
   };
 
-  var isRoughnum = function(n) {
+  var isRoughnum = /* @stopify flat */ function(n) {
     if (typeof(n) === 'number') {
       return false;
     } else {
@@ -277,7 +278,7 @@ function ______NumberModule() {
     }
   };
 
-  var isPositive = function(n) {
+  var isPositive = /* @stopify flat */ function(n) {
     if (typeof(n) === 'number') {
       return n > 0;
     } else {
@@ -285,7 +286,7 @@ function ______NumberModule() {
     }
   };
 
-  var isNonPositive = function(n) {
+  var isNonPositive = /* @stopify flat */ function(n) {
     if (typeof(n) === 'number') {
       return n <= 0;
     } else {
@@ -293,7 +294,7 @@ function ______NumberModule() {
     }
   };
 
-  var isNegative = function(n) {
+  var isNegative = /* @stopify flat */ function(n) {
     if (typeof(n) === 'number') {
       return n < 0;
     } else {
@@ -301,7 +302,7 @@ function ______NumberModule() {
     }
   };
 
-  var isNonNegative = function(n) {
+  var isNonNegative = /* @stopify flat */ function(n) {
     if (typeof(n) === 'number') {
       return n >= 0;
     } else {
@@ -310,14 +311,14 @@ function ______NumberModule() {
   };
 
   // toFixnum: pyretnum -> javascript-number
-  var toFixnum = function(n) {
+  var toFixnum = /* @stopify flat */ function(n) {
     if (typeof(n) === 'number')
       return n;
     return n.toFixnum();
   };
 
   // toRational: pyretnum -> pyretnum
-  var toRational = function(n, errbacks) {
+  var toRational = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
     return n.toRational(errbacks);
@@ -327,7 +328,7 @@ function ______NumberModule() {
 
   // toRoughnum: pyretnum -> pyretnum
 
-  var toRoughnum = function(n, errbacks) {
+  var toRoughnum = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(n, errbacks);
     } else {
@@ -338,7 +339,7 @@ function ______NumberModule() {
   //////////////////////////////////////////////////////////////////////
 
   // add: pyretnum pyretnum -> pyretnum
-  var add = function(x, y, errbacks) {
+  var add = /* @stopify flat */ function(x, y, errbacks) {
     var sum;
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       sum = x + y;
@@ -353,7 +354,7 @@ function ______NumberModule() {
   };
 
   var addSlow = makeNumericBinop(
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       var sum = x + y;
       if (isOverflow(sum)) {
         return (makeBignum(x)).add(makeBignum(y));
@@ -361,18 +362,18 @@ function ______NumberModule() {
         return sum;
       }
     },
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       return x.add(y);
     },
-    {isXSpecialCase: function(x, errbacks) {
+    {isXSpecialCase: /* @stopify flat */ function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
-     onXSpecialCase: function(x, y, errbacks) { return y; },
-     isYSpecialCase: function(y, errbacks) {
+     onXSpecialCase: /* @stopify flat */ function(x, y, errbacks) { return y; },
+     isYSpecialCase: /* @stopify flat */ function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
-     onYSpecialCase: function(x, y, errbacks) { return x; }
+     onYSpecialCase: /* @stopify flat */ function(x, y, errbacks) { return x; }
     });
 
-  var subtract = function(x, y, errbacks) {
+  var subtract = /* @stopify flat */ function(x, y, errbacks) {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       var diff = x - y;
       if (isOverflow(diff)) {
@@ -386,7 +387,7 @@ function ______NumberModule() {
 
   // subtract: pyretnum pyretnum -> pyretnum
   var subtractSlow = makeNumericBinop(
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       var diff = x - y;
       if (isOverflow(diff)) {
         return (makeBignum(x)).subtract(makeBignum(y));
@@ -394,19 +395,19 @@ function ______NumberModule() {
         return diff;
       }
     },
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       return x.subtract(y);
     },
-    {isXSpecialCase: function(x, errbacks) {
+    {isXSpecialCase: /* @stopify flat */ function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
-     onXSpecialCase: function(x, y, errbacks) { return negate(y, errbacks); },
-     isYSpecialCase: function(y, errbacks) {
+     onXSpecialCase: /* @stopify flat */ function(x, y, errbacks) { return negate(y, errbacks); },
+     isYSpecialCase: /* @stopify flat */ function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
-     onYSpecialCase: function(x, y, errbacks) { return x; }
+     onYSpecialCase: /* @stopify flat */ function(x, y, errbacks) { return x; }
     });
 
   // mulitply: pyretnum pyretnum -> pyretnum
-  var multiply = function(x, y, errbacks) {
+  var multiply = /* @stopify flat */ function(x, y, errbacks) {
     var prod;
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       prod = x * y;
@@ -419,7 +420,7 @@ function ______NumberModule() {
     return multiplySlow(x, y, errbacks);
   };
   var multiplySlow = makeNumericBinop(
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       var prod = x * y;
       if (isOverflow(prod)) {
         return (makeBignum(x)).multiply(makeBignum(y), errbacks);
@@ -427,13 +428,13 @@ function ______NumberModule() {
         return prod;
       }
     },
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       return x.multiply(y, errbacks);
     },
-    {isXSpecialCase: function(x, errbacks) {
+    {isXSpecialCase: /* @stopify flat */ function(x, errbacks) {
       return (isInteger(x) &&
               (_integerIsZero(x) || _integerIsOne(x) || _integerIsNegativeOne(x))) },
-     onXSpecialCase: function(x, y, errbacks) {
+     onXSpecialCase: /* @stopify flat */ function(x, y, errbacks) {
        if (_integerIsZero(x))
          return 0;
        if (_integerIsOne(x))
@@ -441,10 +442,10 @@ function ______NumberModule() {
        if (_integerIsNegativeOne(x))
          return negate(y, errbacks);
      },
-     isYSpecialCase: function(y, errbacks) {
+     isYSpecialCase: /* @stopify flat */ function(y, errbacks) {
        return (isInteger(y) &&
                (_integerIsZero(y) || _integerIsOne(y) || _integerIsNegativeOne(y)))},
-     onYSpecialCase: function(x, y, errbacks) {
+     onYSpecialCase: /* @stopify flat */ function(x, y, errbacks) {
        if (_integerIsZero(y))
          return 0;
        if (_integerIsOne(y))
@@ -456,7 +457,7 @@ function ______NumberModule() {
 
   // divide: pyretnum pyretnum -> pyretnum
   var divide = makeNumericBinop(
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       if (_integerIsZero(y))
         errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
       var div = x / y;
@@ -468,31 +469,31 @@ function ______NumberModule() {
         return div;
       }
     },
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       if (equalsAnyZero(y, errbacks)) {
         errbacks.throwDivByZero('/: division by zero, ' + x + ' ' + y);
       }
       return x.divide(y, errbacks);
     },
     {
-      isXSpecialCase: function(x, errbacks) {
+      isXSpecialCase: /* @stopify flat */ function(x, errbacks) {
         return equalsAnyZero(x, errbacks);
       },
-      onXSpecialCase: function(x, y, errbacks) {
+      onXSpecialCase: /* @stopify flat */ function(x, y, errbacks) {
         if (equalsAnyZero(y, errbacks)) {
           errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
         }
         return 0;
       },
-      isYSpecialCase: function(y, errbacks) {
+      isYSpecialCase: /* @stopify flat */ function(y, errbacks) {
         return equalsAnyZero(y, errbacks);
       },
-      onYSpecialCase: function(x, y, errbacks) {
+      onYSpecialCase: /* @stopify flat */ function(x, y, errbacks) {
         errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
       }
     });
 
-  var equals = function(x, y, errbacks) {
+  var equals = /* @stopify flat */ function(x, y, errbacks) {
     if (x === y) { return true; }
     else {
       if (typeof x === "number" && typeof y === "number") { return false; }
@@ -503,21 +504,21 @@ function ______NumberModule() {
   };
   // equals: pyretnum pyretnum -> boolean
   var equalsSlow = makeNumericBinop(
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       return x === y;
     },
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       return x.equals(y, errbacks);
     });
 
-  var equalsAnyZero = function(x, errbacks) {
+  var equalsAnyZero = /* @stopify flat */ function(x, errbacks) {
     if (typeof(x) === 'number') return x === 0;
     if (isRoughnum(x)) return x.n === 0;
     return x.equals(0, errbacks);
   };
 
   // eqv: pyretnum pyretnum -> boolean
-  var eqv = function(x, y, errbacks) {
+  var eqv = /* @stopify flat */ function(x, y, errbacks) {
     if (x === y)
       return true;
     if (typeof(x) === 'number' && typeof(y) === 'number')
@@ -527,13 +528,13 @@ function ______NumberModule() {
   };
 
   // approxEqual: pyretnum pyretnum pyretnum -> boolean
-  var approxEquals = function(x, y, delta, errbacks) {
+  var approxEquals = /* @stopify flat */ function(x, y, delta, errbacks) {
     return lessThanOrEqual(abs(subtract(x, y, errbacks), errbacks),
                            delta, errbacks);
   };
 
   // used for within
-  var roughlyEquals = function(x, y, delta, errbacks) {
+  var roughlyEquals = /* @stopify flat */ function(x, y, delta, errbacks) {
     if (isNegative(delta)) {
       errbacks.throwToleranceError("negative tolerance " + delta);
     }
@@ -554,7 +555,7 @@ function ______NumberModule() {
     return approxEquals(ratx, raty, ratdelta, errbacks);
   };
 
-  var roughlyEqualsRel = function(computedValue, trueValue, delta, errbacks) {
+  var roughlyEqualsRel = /* @stopify flat */ function(computedValue, trueValue, delta, errbacks) {
     if (isNegative(delta)) {
       errbacks.throwRelToleranceError('negative relative tolerance ' + delta)
     }
@@ -598,48 +599,48 @@ function ______NumberModule() {
   }
 
   // greaterThanOrEqual: pyretnum pyretnum -> boolean
-  var greaterThanOrEqual = function(x, y, errbacks) {
+  var greaterThanOrEqual = /* @stopify flat */ function(x, y, errbacks) {
     if(typeof x === "number" && typeof y === "number") {
       return x >= y;
     }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
+    return makeNumericBinop(undefined, /* @stopify flat */ function(x, y, errbacks) {
       return x.greaterThanOrEqual(y);
     })(x, y, errbacks);
   }
 
   // lessThanOrEqual: pyretnum pyretnum -> boolean
-  var lessThanOrEqual = function(x, y, errbacks) {
+  var lessThanOrEqual = /* @stopify flat */ function(x, y, errbacks) {
     if(typeof x === "number" && typeof y === "number") {
       return x <= y;
     }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
+    return makeNumericBinop(undefined, /* @stopify flat */ function(x, y, errbacks) {
       return x.lessThanOrEqual(y);
     })(x, y, errbacks);
   };
 
   // greaterThan: pyretnum pyretnum -> boolean
-  var greaterThan = function(x, y, errbacks) {
+  var greaterThan = /* @stopify flat */ function(x, y, errbacks) {
     if(typeof x === "number" && typeof y === "number") {
       return x > y;
     }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
+    return makeNumericBinop(undefined, /* @stopify flat */ function(x, y, errbacks) {
       return x.greaterThan(y);
     })(x, y, errbacks);
   };
 
   // lessThan: pyretnum pyretnum -> boolean
-  var lessThan = function(x, y, errbacks) {
+  var lessThan = /* @stopify flat */ function(x, y, errbacks) {
     if(typeof x === "number" && typeof y === "number") {
       return x < y;
     }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
+    return makeNumericBinop(undefined, /* @stopify flat */ function(x, y, errbacks) {
       return x.lessThan(y);
     })(x, y, errbacks);
   };
 
   // expt: pyretnum pyretnum -> pyretnum
   var expt = makeNumericBinop(
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       var pow = Math.pow(x, y);
       if (isOverflow(pow)) {
         return (makeBignum(x)).expt(makeBignum(y));
@@ -647,14 +648,14 @@ function ______NumberModule() {
         return pow;
       }
     },
-    function(x, y, errbacks) {
+    /* @stopify flat */ function(x, y, errbacks) {
       return x.expt(y, errbacks);
     },
     {
-      isXSpecialCase: function(x, errbacks) {
+      isXSpecialCase: /* @stopify flat */ function(x, errbacks) {
         return eqv(x, 0, errbacks) || eqv(x, 1, errbacks);
       },
-      onXSpecialCase: function(x, y, errbacks) {
+      onXSpecialCase: /* @stopify flat */ function(x, y, errbacks) {
         if (eqv(x, 0, errbacks)) {
           if (eqv(y, 0, errbacks)) {
             return 1;
@@ -668,10 +669,10 @@ function ______NumberModule() {
         }
       },
 
-      isYSpecialCase: function(y, errbacks) {
+      isYSpecialCase: /* @stopify flat */ function(y, errbacks) {
         return eqv(y, 0, errbacks) || lessThan(y, 0, errbacks);
       },
-      onYSpecialCase: function(x, y, errbacks) {
+      onYSpecialCase: /* @stopify flat */ function(x, y, errbacks) {
         if (eqv(y, 0, errbacks)) {
           return 1;
         } else { // i.e., y is negative
@@ -681,7 +682,7 @@ function ______NumberModule() {
     });
 
   // exp: pyretnum -> pyretnum
-  var exp = function(n, errbacks) {
+  var exp = /* @stopify flat */ function(n, errbacks) {
     if ( eqv(n, 0, errbacks) ) {
       return 1;
     }
@@ -695,7 +696,7 @@ function ______NumberModule() {
   };
 
   // modulo: pyretnum pyretnum -> pyretnum
-  var modulo = function(m, n, errbacks) {
+  var modulo = /* @stopify flat */ function(m, n, errbacks) {
     if (! isInteger(m)) {
       errbacks.throwDomainError('modulo: the first argument '
                                 + m + " is not an integer.", m, n);
@@ -739,21 +740,21 @@ function ______NumberModule() {
   };
 
   // numerator: pyretnum -> pyretnum
-  var numerator = function(n, errbacks) {
+  var numerator = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
     return n.numerator();
   };
 
   // denominator: pyretnum -> pyretnum
-  var denominator = function(n, errbacks) {
+  var denominator = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number')
       return 1;
     return n.denominator();
   };
 
   // sqrt: pyretnum -> pyretnum
-  var sqrt = function(n, errbacks) {
+  var sqrt = /* @stopify flat */ function(n, errbacks) {
     if (lessThan(n, 0, errbacks)) {
       errbacks.throwSqrtNegative('sqrt: negative argument ' + n);
     }
@@ -769,7 +770,7 @@ function ______NumberModule() {
   };
 
   // abs: pyretnum -> pyretnum
-  var abs = function(n, errbacks) {
+  var abs = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number') {
       return Math.abs(n);
     }
@@ -777,37 +778,37 @@ function ______NumberModule() {
   };
 
   // floor: pyretnum -> pyretnum
-  var floor = function(n, errbacks) {
+  var floor = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number')
       return Math.floor(n);
     return n.floor(errbacks);
   };
 
   // ceiling: pyretnum -> pyretnum
-  var ceiling = function(n, errbacks) {
+  var ceiling = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number')
       return Math.ceil(n);
     return n.ceiling(errbacks);
   };
 
   // round: pyretnum -> pyretnum
-  var round = function(n, errbacks) {
+  var round = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number') {
       return n;
     }
     return n.round(errbacks);
   };
 
-  var roundEven = function(n, errbacks) {
+  var roundEven = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number') return n;
     return n.roundEven(errbacks);
   };
 
-  // NB: all of these trig-gy generic functions should now return roughnum rather than float
+  // NB: all of these trig-gy generic /* @stopify flat */ functions should now return roughnum rather than float
   // (except for an arg of 0, etc)
 
   // log: pyretnum -> pyretnum
-  var log = function(n, errbacks) {
+  var log = /* @stopify flat */ function(n, errbacks) {
     if ( eqv(n, 1, errbacks) ) {
       return 0;
     }
@@ -821,7 +822,7 @@ function ______NumberModule() {
   };
 
   // tan: pyretnum -> pyretnum
-  var tan = function(n, errbacks) {
+  var tan = /* @stopify flat */ function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 0; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.tan(n), errbacks);
@@ -830,7 +831,7 @@ function ______NumberModule() {
   };
 
   // atan: pyretnum -> pyretnum
-  var atan = function(n, errbacks) {
+  var atan = /* @stopify flat */ function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 0; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.atan(n), errbacks);
@@ -838,7 +839,7 @@ function ______NumberModule() {
     return n.atan(errbacks);
   };
 
-  var atan2 = function(y, x, errbacks) {
+  var atan2 = /* @stopify flat */ function(y, x, errbacks) {
     if (eqv(x, 0, errbacks)) { // x = 0
       if (eqv(y, 0, errbacks)) { // x = 0, y = 0
         //return Roughnum.makeInstance(Infinity, errbacks);
@@ -866,7 +867,7 @@ function ______NumberModule() {
   };
 
   // cos: pyretnum -> pyretnum
-  var cos = function(n, errbacks) {
+  var cos = /* @stopify flat */ function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 1; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.cos(n), errbacks);
@@ -875,7 +876,7 @@ function ______NumberModule() {
   };
 
   // sin: pyretnum -> pyretnum
-  var sin = function(n, errbacks) {
+  var sin = /* @stopify flat */ function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 0; }
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.sin(n), errbacks);
@@ -884,7 +885,7 @@ function ______NumberModule() {
   };
 
   // acos: pyretnum -> pyretnum
-  var acos = function(n, errbacks) {
+  var acos = /* @stopify flat */ function(n, errbacks) {
     if (eqv(n, 1, errbacks)) { return 0; }
     if (lessThan(n, -1, errbacks) || greaterThan(n, 1, errbacks)) {
       errbacks.throwDomainError('acos: out of domain argument ' + n);
@@ -896,7 +897,7 @@ function ______NumberModule() {
   };
 
   // asin: pyretnum -> pyretnum
-  var asin = function(n, errbacks) {
+  var asin = /* @stopify flat */ function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 0; }
     if (lessThan(n, -1, errbacks) || greaterThan(n, 1, errbacks)) {
       errbacks.throwDomainError('asin: out of domain argument ' + n);
@@ -908,12 +909,12 @@ function ______NumberModule() {
   };
 
   // sqr: pyretnum -> pyretnum
-  var sqr = function(x, errbacks) {
+  var sqr = /* @stopify flat */ function(x, errbacks) {
     return multiply(x, x, errbacks);
   };
 
   // integerSqrt: pyretnum -> pyretnum
-  var integerSqrt = function(x, errbacks) {
+  var integerSqrt = /* @stopify flat */ function(x, errbacks) {
     if (! isInteger(x)) {
       errbacks.throwDomainError('integer-sqrt: the argument ' + x.toString() +
                         " is not an integer.", x);
@@ -929,7 +930,7 @@ function ______NumberModule() {
   };
 
   // gcd: pyretnum [pyretnum ...] -> pyretnum
-  var gcd = function(first, rest, errbacks) {
+  var gcd = /* @stopify flat */ function(first, rest, errbacks) {
     if (! isInteger(first)) {
       errbacks.throwDomainError('gcd: the argument ' + first.toString() +
                                 " is not an integer.", first);
@@ -951,7 +952,7 @@ function ______NumberModule() {
   };
 
   // lcm: pyretnum [pyretnum ...] -> pyretnum
-  var lcm = function(first, rest, errbacks) {
+  var lcm = /* @stopify flat */ function(first, rest, errbacks) {
     if (! isInteger(first)) {
       errbacks.throwDomainError('lcm: the argument ' + first.toString() +
                                 " is not an integer.", first);
@@ -972,7 +973,7 @@ function ______NumberModule() {
     return result;
   };
 
-  var quotient = function(x, y, errbacks) {
+  var quotient = /* @stopify flat */ function(x, y, errbacks) {
     if (! isInteger(x)) {
       errbacks.throwDomainError('quotient: the first argument ' + x.toString() +
                                 " is not an integer.", x);
@@ -984,7 +985,7 @@ function ______NumberModule() {
     return _integerQuotient(x, y);
   };
 
-  var remainder = function(x, y, errbacks) {
+  var remainder = /* @stopify flat */ function(x, y, errbacks) {
     if (isInteger(x) && isInteger(y)) {
       return _integerRemainder(x, y);
     } else if (isRational(x) && isRational(y)) {
@@ -1008,13 +1009,13 @@ function ______NumberModule() {
   // Returns true if we consider the number an overflow.
   var MIN_FIXNUM = -(9e15);
   var MAX_FIXNUM = (9e15);
-  var isOverflow = function(n) {
+  var isOverflow = /* @stopify flat */ function(n) {
     return (n < MIN_FIXNUM ||  MAX_FIXNUM < n);
   };
 
   // negate: pyretnum -> pyretnum
   // multiplies a number times -1.
-  var negate = function(n, errbacks) {
+  var negate = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number') {
       return -n;
     }
@@ -1023,14 +1024,14 @@ function ______NumberModule() {
 
   // halve: pyretnum -> pyretnum
   // Divide a number by 2.
-  var halve = function(n, errbacks) {
+  var halve = /* @stopify flat */ function(n, errbacks) {
     return divide(n, 2, errbacks);
   };
 
   // fastExpt: computes n^k by squaring.
   // n^k = (n^2)^(k/2)
   // Assumes k is non-negative integer.
-  var fastExpt = function(n, k, errbacks) {
+  var fastExpt = /* @stopify flat */ function(n, k, errbacks) {
     var acc = 1;
     while (true) {
       if (_integerIsZero(k)) {
@@ -1058,9 +1059,9 @@ function ______NumberModule() {
   // makeIntegerBinop: (fixnum fixnum -> X) (BigInteger BigInteger -> X) -> X
   // Helper to collect the common logic for coercing integer fixnums or bignums to a
   // common type before doing an operation.
-  var makeIntegerBinop = function(onFixnums, onBignums, options) {
+  var makeIntegerBinop = /* @stopify flat */ function(onFixnums, onBignums, options) {
     options = options || {};
-    return (function(m, n) {
+    return (/* @stopify flat */ function(m, n) {
       if (m instanceof Rational) {
         m = numerator(m);
       }
@@ -1090,9 +1091,9 @@ function ______NumberModule() {
     });
   };
 
-  var makeIntegerUnOp = function(onFixnums, onBignums, options, errbacks) {
+  var makeIntegerUnOp = /* @stopify flat */ function(onFixnums, onBignums, options, errbacks) {
     options = options || {};
-    return (function(m) {
+    return (/* @stopify flat */ function(m) {
       if (m instanceof Rational) {
         m = numerator(m);
       }
@@ -1116,16 +1117,16 @@ function ______NumberModule() {
 
   // _integerModulo: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerModulo = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m % n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnMod.call(m, n);
     });
 
   // _integerGcd: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerGcd = makeIntegerBinop(
-    function(a, b) {
+    /* @stopify flat */ function(a, b) {
       var t;
       while (b !== 0) {
         t = a;
@@ -1134,80 +1135,80 @@ function ______NumberModule() {
       }
       return a;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnGCD.call(m, n);
     });
 
   // _integerIsZero: integer-pyretnum -> boolean
   // Returns true if the number is zero.
   var _integerIsZero = makeIntegerUnOp(
-    function(n){
+    /* @stopify flat */ function(n){
       return n === 0;
     },
-    function(n) {
+    /* @stopify flat */ function(n) {
       return bnEquals.call(n, BigInteger.ZERO);
     }
   );
 
   // _integerIsOne: integer-pyretnum -> boolean
   var _integerIsOne = makeIntegerUnOp(
-    function(n) {
+    /* @stopify flat */ function(n) {
       return n === 1;
     },
-    function(n) {
+    /* @stopify flat */ function(n) {
       return bnEquals.call(n, BigInteger.ONE);
     });
 
   // _integerIsNegativeOne: integer-pyretnum -> boolean
   var _integerIsNegativeOne = makeIntegerUnOp(
-    function(n) {
+    /* @stopify flat */ function(n) {
       return n === -1;
     },
-    function(n) {
+    /* @stopify flat */ function(n) {
       return bnEquals.call(n, BigInteger.NEGATIVE_ONE);
     });
 
   // _integerAdd: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerAdd = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m + n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnAdd.call(m, n);
     });
 
   // _integerSubtract: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerSubtract = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m - n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnSubtract.call(m, n);
     });
 
   // _integerMultiply: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerMultiply = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m * n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnMultiply.call(m, n);
     });
 
   //_integerQuotient: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerQuotient = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return ((m - (m % n))/ n);
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnDivide.call(m, n);
     });
 
   var _integerRemainder = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m % n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnRemainder.call(m, n);
     });
 
@@ -1226,7 +1227,7 @@ function ______NumberModule() {
   // splitIntIntoMantissaExpt(111222333444555666777888999) returns
   //   [1.1122233344455567, 26]
   //
-  var splitIntIntoMantissaExpt = function(s) {
+  var splitIntIntoMantissaExpt = /* @stopify flat */ function(s) {
     var str = s.toString();
     var c0 = str[0];
     var sign = '';
@@ -1260,10 +1261,10 @@ function ______NumberModule() {
   //   b = the exponents' difference
   //
   var _integerDivideToFixnum = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m / n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       var xm = splitIntIntoMantissaExpt(m);
       var xn = splitIntIntoMantissaExpt(n);
       var r = Number(String(xm[0] / xn[0]) + 'e' + 
@@ -1277,50 +1278,50 @@ function ______NumberModule() {
 
   // _integerEquals: integer-pyretnum integer-pyretnum -> boolean
   var _integerEquals = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m === n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnEquals.call(m, n);
     },
     {doNotCoerceToFloating: true});
 
   // _integerGreaterThan: integer-pyretnum integer-pyretnum -> boolean
   var _integerGreaterThan = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m > n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnCompareTo.call(m, n) > 0;
     },
     {doNotCoerceToFloating: true});
 
   // _integerLessThan: integer-pyretnum integer-pyretnum -> boolean
   var _integerLessThan = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m < n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnCompareTo.call(m, n) < 0;
     },
     {doNotCoerceToFloating: true});
 
   // _integerGreaterThanOrEqual: integer-pyretnum integer-pyretnum -> boolean
   var _integerGreaterThanOrEqual = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m >= n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnCompareTo.call(m, n) >= 0;
     },
     {doNotCoerceToFloating: true});
 
   // _integerLessThanOrEqual: integer-pyretnum integer-pyretnum -> boolean
   var _integerLessThanOrEqual = makeIntegerBinop(
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return m <= n;
     },
-    function(m, n) {
+    /* @stopify flat */ function(m, n) {
       return bnCompareTo.call(m, n) <= 0;
     },
     {doNotCoerceToFloating: true});
@@ -1434,12 +1435,12 @@ function ______NumberModule() {
 
   // Rationals
 
-  var Rational = function(n, d) {
+  var Rational = /* @stopify flat */ function(n, d) {
     this.n = n;
     this.d = d;
   };
 
-  Rational.makeInstance = function(n, d, errbacks) {
+  Rational.makeInstance = /* @stopify flat */ function(n, d, errbacks) {
     if (n === undefined)
       errbacks.throwUndefinedValue("n undefined", n, d);
 
@@ -1463,7 +1464,7 @@ function ______NumberModule() {
     return new Rational(n, d);
   };
 
-  Rational.prototype.toString = function() {
+  Rational.prototype.toString = /* @stopify flat */ function() {
     if (_integerIsOne(this.d)) {
       return this.n.toString() + "";
     } else {
@@ -1471,73 +1472,73 @@ function ______NumberModule() {
     }
   };
 
-  Rational.prototype.isFinite = function() {
+  Rational.prototype.isFinite = /* @stopify flat */ function() {
     return true;
   };
 
-  Rational.prototype.equals = function(other, errbacks) {
+  Rational.prototype.equals = /* @stopify flat */ function(other, errbacks) {
     return (other instanceof Rational &&
             _integerEquals(this.n, other.n) &&
             _integerEquals(this.d, other.d));
   };
 
-  Rational.prototype.isInteger = function() {
+  Rational.prototype.isInteger = /* @stopify flat */ function() {
     return _integerIsOne(this.d);
   };
 
-  Rational.prototype.isRational = function() {
+  Rational.prototype.isRational = /* @stopify flat */ function() {
     return true;
   };
 
   Rational.prototype.isExact = Rational.prototype.isRational;
 
-  Rational.prototype.isReal = function() {
+  Rational.prototype.isReal = /* @stopify flat */ function() {
     return true;
   };
 
-  Rational.prototype.isRoughnum = function() {
+  Rational.prototype.isRoughnum = /* @stopify flat */ function() {
     return false;
   };
 
-  Rational.prototype.isPositive = function() {
+  Rational.prototype.isPositive = /* @stopify flat */ function() {
     // don't care about this.d
     return this.n > 0;
   };
 
-  Rational.prototype.isNonNegative = function() {
+  Rational.prototype.isNonNegative = /* @stopify flat */ function() {
     return this.n >= 0;
   };
 
-  Rational.prototype.isNegative = function() {
+  Rational.prototype.isNegative = /* @stopify flat */ function() {
     return this.n < 0;
   };
 
-  Rational.prototype.isNonPositive = function() {
+  Rational.prototype.isNonPositive = /* @stopify flat */ function() {
     return this.n <= 0;
   };
 
-  Rational.prototype.add = function(other, errbacks) {
+  Rational.prototype.add = /* @stopify flat */ function(other, errbacks) {
     return Rational.makeInstance(_integerAdd(_integerMultiply(this.n, other.d),
                                              _integerMultiply(this.d, other.n)),
                                  _integerMultiply(this.d, other.d), errbacks);
   };
 
-  Rational.prototype.subtract = function(other, errbacks) {
+  Rational.prototype.subtract = /* @stopify flat */ function(other, errbacks) {
     return Rational.makeInstance(_integerSubtract(_integerMultiply(this.n, other.d),
                                                   _integerMultiply(this.d, other.n)),
                                  _integerMultiply(this.d, other.d), errbacks);
   };
 
-  Rational.prototype.negate = function(errbacks) {
+  Rational.prototype.negate = /* @stopify flat */ function(errbacks) {
     return Rational.makeInstance(negate(this.n, errbacks), this.d, errbacks)
   };
 
-  Rational.prototype.multiply = function(other, errbacks) {
+  Rational.prototype.multiply = /* @stopify flat */ function(other, errbacks) {
     return Rational.makeInstance(_integerMultiply(this.n, other.n),
                                  _integerMultiply(this.d, other.d), errbacks);
   };
 
-  Rational.prototype.divide = function(other, errbacks) {
+  Rational.prototype.divide = /* @stopify flat */ function(other, errbacks) {
     if (_integerIsZero(this.d) || _integerIsZero(other.n)) {  // dead code!
       errbacks.throwDivByZero("/: division by zero", this, other);
     }
@@ -1545,55 +1546,55 @@ function ______NumberModule() {
                                  _integerMultiply(this.d, other.n), errbacks);
   };
 
-  Rational.prototype.toRational = function() {
+  Rational.prototype.toRational = /* @stopify flat */ function() {
     return this;
   };
 
   Rational.prototype.toExact = Rational.prototype.toRational;
 
 
-  Rational.prototype.toFixnum = function() {
+  Rational.prototype.toFixnum = /* @stopify flat */ function() {
     return _integerDivideToFixnum(this.n, this.d);
   };
 
-  Rational.prototype.toRoughnum = function(errbacks) {
+  Rational.prototype.toRoughnum = /* @stopify flat */ function(errbacks) {
     return Roughnum.makeInstance(this.toFixnum(), errbacks);
   };
 
-  Rational.prototype.numerator = function() {
+  Rational.prototype.numerator = /* @stopify flat */ function() {
     return this.n;
   };
 
-  Rational.prototype.denominator = function() {
+  Rational.prototype.denominator = /* @stopify flat */ function() {
     return this.d;
   };
 
-  Rational.prototype.greaterThan = function(other, errbacks) {
+  Rational.prototype.greaterThan = /* @stopify flat */ function(other, errbacks) {
     return _integerGreaterThan(_integerMultiply(this.n, other.d),
                                _integerMultiply(this.d, other.n));
   };
 
-  Rational.prototype.greaterThanOrEqual = function(other, errbacks) {
+  Rational.prototype.greaterThanOrEqual = /* @stopify flat */ function(other, errbacks) {
     return _integerGreaterThanOrEqual(_integerMultiply(this.n, other.d),
                                       _integerMultiply(this.d, other.n));
   };
 
-  Rational.prototype.lessThan = function(other, errbacks) {
+  Rational.prototype.lessThan = /* @stopify flat */ function(other, errbacks) {
     return _integerLessThan(_integerMultiply(this.n, other.d),
                             _integerMultiply(this.d, other.n));
   };
 
-  Rational.prototype.lessThanOrEqual = function(other, errbacks) {
+  Rational.prototype.lessThanOrEqual = /* @stopify flat */ function(other, errbacks) {
     return _integerLessThanOrEqual(_integerMultiply(this.n, other.d),
                                    _integerMultiply(this.d, other.n));
   };
 
-  Rational.prototype.integerSqrt = function(errbacks) {
+  Rational.prototype.integerSqrt = /* @stopify flat */ function(errbacks) {
     var result = sqrt(this);
     return toRational(floor(result, errbacks), errbacks);
   };
 
-  Rational.prototype.sqrt = function(errbacks) {
+  Rational.prototype.sqrt = /* @stopify flat */ function(errbacks) {
     var newN = sqrt(this.n);
     var newD = sqrt(this.d);
     if (isRational(newN) && isRational(newD) &&
@@ -1605,12 +1606,12 @@ function ______NumberModule() {
     }
   };
 
-  Rational.prototype.abs = function(errbacks) {
+  Rational.prototype.abs = /* @stopify flat */ function(errbacks) {
     return Rational.makeInstance(abs(this.n, errbacks),
                                  this.d, errbacks);
   };
 
-  Rational.prototype.floor = function(errbacks) {
+  Rational.prototype.floor = /* @stopify flat */ function(errbacks) {
     var quotient = _integerQuotient(this.n, this.d);
     if (_integerLessThan(this.n, 0)) {
       return subtract(quotient, 1, errbacks);
@@ -1619,7 +1620,7 @@ function ______NumberModule() {
     }
   };
 
-  Rational.prototype.ceiling = function(errbacks) {
+  Rational.prototype.ceiling = /* @stopify flat */ function(errbacks) {
     var quotient = _integerQuotient(this.n, this.d);
     if (_integerLessThan(this.n, 0)) {
       return quotient;
@@ -1628,7 +1629,7 @@ function ______NumberModule() {
     }
   };
 
-  Rational.prototype.round = function(errbacks) {
+  Rational.prototype.round = /* @stopify flat */ function(errbacks) {
     var halfintp = equals(this.d, 2);
     var negativep = _integerLessThan(this.n, 0);
     var n = this.n;
@@ -1653,7 +1654,7 @@ function ______NumberModule() {
     return quo;
   };
 
-  Rational.prototype.roundEven = function(errbacks) {
+  Rational.prototype.roundEven = /* @stopify flat */ function(errbacks) {
     // rounds half-integers to even
     var halfintp = equals(this.d, 2, errbacks);
     var negativep = _integerLessThan(this.n, 0);
@@ -1672,27 +1673,27 @@ function ______NumberModule() {
     return quo;
   };
 
-  Rational.prototype.log = function(errbacks){
+  Rational.prototype.log = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.log(this.toFixnum()), errbacks);
   };
 
-  Rational.prototype.tan = function(errbacks){
+  Rational.prototype.tan = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.tan(this.toFixnum()), errbacks);
   };
 
-  Rational.prototype.atan = function(errbacks){
+  Rational.prototype.atan = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.atan(this.toFixnum()), errbacks);
   };
 
-  Rational.prototype.cos = function(errbacks){
+  Rational.prototype.cos = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.cos(this.toFixnum()), errbacks);
   };
 
-  Rational.prototype.sin = function(errbacks){
+  Rational.prototype.sin = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.sin(this.toFixnum()), errbacks);
   };
 
-  var integerNthRoot = function(n, m, errbacks) {
+  var integerNthRoot = /* @stopify flat */ function(n, m, errbacks) {
     var guessPrev, guessToTheN;
     var guess = m;
 
@@ -1715,7 +1716,7 @@ function ______NumberModule() {
     return guess;
   };
 
-  var nthRoot = function(n, m, errbacks) {
+  var nthRoot = /* @stopify flat */ function(n, m, errbacks) {
     var mNeg = (sign(m) < 0);
     var mAbs = (mNeg ? abs(m, errbacks) : m);
     var approx;
@@ -1732,7 +1733,7 @@ function ______NumberModule() {
     return (mNeg ? negate(approx, errbacks) : approx);
   };
 
-  Rational.prototype.expt = function(a, errbacks) {
+  Rational.prototype.expt = /* @stopify flat */ function(a, errbacks) {
     if (isInteger(a) && greaterThanOrEqual(a, 0, errbacks)) {
       return fastExpt(this, a, errbacks);
     } else if (_integerLessThanOrEqual(a.d, 8)) {
@@ -1754,23 +1755,23 @@ function ______NumberModule() {
     }
   };
 
-  Rational.prototype.exp = function(errbacks){
+  Rational.prototype.exp = /* @stopify flat */ function(errbacks){
     var res = Math.exp(this.toFixnum());
     if (!isFinite(res))
       errbacks.throwDomainError('exp: argument too large: ' + this);
     return Roughnum.makeInstance(res, errbacks);
   };
 
-  Rational.prototype.acos = function(errbacks){
+  Rational.prototype.acos = /* @stopify flat */ function(errbacks){
     return acos(this.toFixnum(), errbacks);
   };
 
-  Rational.prototype.asin = function(errbacks){
+  Rational.prototype.asin = /* @stopify flat */ function(errbacks){
     return asin(this.toFixnum(), errbacks);
   };
 
   // sign: Number -> {-1, 0, 1}
-  var sign = function(n, errbacks) {
+  var sign = /* @stopify flat */ function(n, errbacks) {
     if (lessThan(n, 0, errbacks)) {
       return -1;
     } else if (greaterThan(n, 0, errbacks)) {
@@ -1782,25 +1783,25 @@ function ______NumberModule() {
 
   // Roughnums
 
-  var Roughnum = function(n, errbacks) {
+  var Roughnum = /* @stopify flat */ function(n, errbacks) {
     if (!(typeof(n) === 'number'))
       errbacks.throwGeneralError('roughnum constructor got unsuitable arg ' + n);
     this.n = n;
   };
 
-  Roughnum.makeInstance = function(n, errbacks) {
+  Roughnum.makeInstance = /* @stopify flat */ function(n, errbacks) {
     if (typeof(n) === 'number' && !isFinite(n)) {
       errbacks.throwDomainError('roughnum overflow error');
     }
     return new Roughnum(n, errbacks);
   };
 
-  Roughnum.prototype.isFinite = function() {
+  Roughnum.prototype.isFinite = /* @stopify flat */ function() {
     //actually always true, as we don't store overflows
     return (isFinite(this.n));
   };
 
-  Roughnum.prototype.toRational = function(errbacks) {
+  Roughnum.prototype.toRational = /* @stopify flat */ function(errbacks) {
     if (!isFinite(this.n)) {
       // this _should_ be dead, as we don't store overflows
       errbacks.throwInternalError("toRational: no exact representation for " + this);
@@ -1811,77 +1812,77 @@ function ______NumberModule() {
 
   Roughnum.prototype.toExact = Roughnum.prototype.toRational;
 
-  Roughnum.prototype.toString = function() {
+  Roughnum.prototype.toString = /* @stopify flat */ function() {
     return '~' + this.n.toString();
   };
 
-  Roughnum.prototype.equals = function(other, errbacks) {
+  Roughnum.prototype.equals = /* @stopify flat */ function(other, errbacks) {
     errbacks.throwIncomparableValues("roughnums cannot be compared for equality");
   };
 
-  Roughnum.prototype.isRational = function() {
+  Roughnum.prototype.isRational = /* @stopify flat */ function() {
     return false;
   };
 
   Roughnum.prototype.isExact = Roughnum.prototype.isRational;
 
-  Roughnum.prototype.isInteger = function() {
+  Roughnum.prototype.isInteger = /* @stopify flat */ function() {
     return false;
   };
 
-  Roughnum.prototype.isReal = function() {
+  Roughnum.prototype.isReal = /* @stopify flat */ function() {
     return true;
   };
 
-  Roughnum.prototype.isRoughnum = function() {
+  Roughnum.prototype.isRoughnum = /* @stopify flat */ function() {
     return true;
   };
 
-  Roughnum.prototype.isPositive = function() {
+  Roughnum.prototype.isPositive = /* @stopify flat */ function() {
     return this.n > 0;
   };
 
-  Roughnum.prototype.isNonNegative = function() {
+  Roughnum.prototype.isNonNegative = /* @stopify flat */ function() {
     return this.n >= 0;
   };
 
-  Roughnum.prototype.isNegative = function() {
+  Roughnum.prototype.isNegative = /* @stopify flat */ function() {
     return this.n < 0;
   };
 
-  Roughnum.prototype.isNonPositive = function() {
+  Roughnum.prototype.isNonPositive = /* @stopify flat */ function() {
     return this.n <= 0;
   };
 
-  Roughnum.prototype.add = function(other, errbacks) {
+  Roughnum.prototype.add = /* @stopify flat */ function(other, errbacks) {
     return Roughnum.makeInstance(this.n + other.n, errbacks);
   };
 
-  Roughnum.prototype.subtract = function(other, errbacks) {
+  Roughnum.prototype.subtract = /* @stopify flat */ function(other, errbacks) {
     return Roughnum.makeInstance(this.n - other.n, errbacks);
   };
 
-  Roughnum.prototype.negate = function(errbacks) {
+  Roughnum.prototype.negate = /* @stopify flat */ function(errbacks) {
     return Roughnum.makeInstance(-this.n, errbacks);
   };
 
-  Roughnum.prototype.multiply = function(other, errbacks) {
+  Roughnum.prototype.multiply = /* @stopify flat */ function(other, errbacks) {
     return Roughnum.makeInstance(this.n * other.n, errbacks);
   };
 
-  Roughnum.prototype.divide = function(other, errbacks) {
+  Roughnum.prototype.divide = /* @stopify flat */ function(other, errbacks) {
     return Roughnum.makeInstance(this.n / other.n, errbacks);
   };
 
-  Roughnum.prototype.toFixnum = function() {
+  Roughnum.prototype.toFixnum = /* @stopify flat */ function() {
     return this.n;
   };
 
-  Roughnum.prototype.toRoughnum = function(errbacks) {
+  Roughnum.prototype.toRoughnum = /* @stopify flat */ function(errbacks) {
     return this;
   };
 
-  Roughnum.prototype.numerator = function() {
+  Roughnum.prototype.numerator = /* @stopify flat */ function() {
     var stringRep = this.n.toString();
     var match = stringRep.match(/^(.*)\.(.*)$/);
     if (match) {
@@ -1895,7 +1896,7 @@ function ______NumberModule() {
     }
   };
 
-  Roughnum.prototype.denominator = function() {
+  Roughnum.prototype.denominator = /* @stopify flat */ function() {
     var stringRep = this.n.toString();
     var match = stringRep.match(/^(.*)\.(.*)$/);
     if (match) {
@@ -1908,15 +1909,15 @@ function ______NumberModule() {
     }
   };
 
-  Roughnum.prototype.floor = function(errbacks) {
+  Roughnum.prototype.floor = /* @stopify flat */ function(errbacks) {
     return Math.floor(this.n);
   };
 
-  Roughnum.prototype.ceiling = function(errbacks) {
+  Roughnum.prototype.ceiling = /* @stopify flat */ function(errbacks) {
     return Math.ceil(this.n);
   };
 
-  Roughnum.prototype.round = function(errbacks){
+  Roughnum.prototype.round = /* @stopify flat */ function(errbacks){
     var negativep = (this.n < 0);
     var n = this.n;
     if (negativep) n = -n;
@@ -1925,7 +1926,7 @@ function ______NumberModule() {
     return res;
   };
 
-  Roughnum.prototype.roundEven = function(errbacks) {
+  Roughnum.prototype.roundEven = /* @stopify flat */ function(errbacks) {
     var negativep = (this.n < 0);
     var n = this.n;
     if (negativep) n = -n;
@@ -1935,23 +1936,23 @@ function ______NumberModule() {
     return res;
   };
 
-  Roughnum.prototype.greaterThan = function(other, errbacks) {
+  Roughnum.prototype.greaterThan = /* @stopify flat */ function(other, errbacks) {
     return this.n > other.n;
   };
 
-  Roughnum.prototype.greaterThanOrEqual = function(other, errbacks) {
+  Roughnum.prototype.greaterThanOrEqual = /* @stopify flat */ function(other, errbacks) {
     return this.n >= other.n;
   };
 
-  Roughnum.prototype.lessThan = function(other, errbacks) {
+  Roughnum.prototype.lessThan = /* @stopify flat */ function(other, errbacks) {
     return this.n < other.n;
   };
 
-  Roughnum.prototype.lessThanOrEqual = function(other, errbacks) {
+  Roughnum.prototype.lessThanOrEqual = /* @stopify flat */ function(other, errbacks) {
     return this.n <= other.n;
   };
 
-  Roughnum.prototype.integerSqrt = function(errbacks) {
+  Roughnum.prototype.integerSqrt = /* @stopify flat */ function(errbacks) {
     if (isInteger(this)) {
       if(this.n >= 0) {
         return Roughnum.makeInstance(Math.floor(Math.sqrt(this.n)), errbacks);
@@ -1963,38 +1964,38 @@ function ______NumberModule() {
     }
   };
 
-  Roughnum.prototype.sqrt = function(errbacks) {
+  Roughnum.prototype.sqrt = /* @stopify flat */ function(errbacks) {
     return Roughnum.makeInstance(Math.sqrt(this.n), errbacks);
   };
 
-  Roughnum.prototype.abs = function(errbacks) {
+  Roughnum.prototype.abs = /* @stopify flat */ function(errbacks) {
     return Roughnum.makeInstance(Math.abs(this.n), errbacks);
   };
 
-  Roughnum.prototype.log = function(errbacks){
+  Roughnum.prototype.log = /* @stopify flat */ function(errbacks){
     if (this.n < 0)
       errbacks.throwDomainError('log of negative roughnum', this.n);
     else
       return Roughnum.makeInstance(Math.log(this.n), errbacks);
   };
 
-  Roughnum.prototype.tan = function(errbacks){
+  Roughnum.prototype.tan = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.tan(this.n), errbacks);
   };
 
-  Roughnum.prototype.atan = function(errbacks){
+  Roughnum.prototype.atan = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.atan(this.n), errbacks);
   };
 
-  Roughnum.prototype.cos = function(errbacks){
+  Roughnum.prototype.cos = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.cos(this.n), errbacks);
   };
 
-  Roughnum.prototype.sin = function(errbacks){
+  Roughnum.prototype.sin = /* @stopify flat */ function(errbacks){
     return Roughnum.makeInstance(Math.sin(this.n), errbacks);
   };
 
-  Roughnum.prototype.expt = function(a, errbacks){
+  Roughnum.prototype.expt = /* @stopify flat */ function(a, errbacks){
     if (this.n === 1) {
       return this;
     } else {
@@ -2002,18 +2003,18 @@ function ______NumberModule() {
     }
   };
 
-  Roughnum.prototype.exp = function(errbacks){
+  Roughnum.prototype.exp = /* @stopify flat */ function(errbacks){
     var res = Math.exp(this.n);
     if (!isFinite(res))
       errbacks.throwDomainError('exp: argument too large: ' + this);
     return Roughnum.makeInstance(res);
   };
 
-  Roughnum.prototype.acos = function(errbacks){
+  Roughnum.prototype.acos = /* @stopify flat */ function(errbacks){
     return acos(this.n, errbacks);
   };
 
-  Roughnum.prototype.asin = function(errbacks){
+  Roughnum.prototype.asin = /* @stopify flat */ function(errbacks){
     return asin(this.n, errbacks);
   };
 
@@ -2030,7 +2031,7 @@ function ______NumberModule() {
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
-  var fromString = function(x, errbacks) {
+  var fromString = /* @stopify flat */ function(x, errbacks) {
     if (x.match(digitRegexp)) {
       var n = Number(x);
       if (isOverflow(n)) {
@@ -2117,9 +2118,9 @@ function ______NumberModule() {
 
     var hashModifiersRegexp = new RegExp("^(#[ei]#[bodx]|#[bodx]#[ei]|#[bodxei])(.*)$")
 
-    function schemeRationalRegexp(digits) { return new RegExp("^([+-]?["+digits+"]+)/(["+digits+"]+)$"); }
+    /* @stopify flat */ function schemeRationalRegexp(digits) { return new RegExp("^([+-]?["+digits+"]+)/(["+digits+"]+)$"); }
 
-    function matchComplexRegexp(radix, x, errbacks) {
+    /* @stopify flat */ function matchComplexRegexp(radix, x, errbacks) {
 	var sign = "[+-]";
 	var maybeSign = "[+-]?";
 	var digits = digitsForRadix(radix, errbacks)
@@ -2160,21 +2161,21 @@ function ______NumberModule() {
 	     /* else */ false
     }
 
-    function schemeDigitRegexp(digits) { return new RegExp("^[+-]?["+digits+"]+$"); }
+    /* @stopify flat */ function schemeDigitRegexp(digits) { return new RegExp("^[+-]?["+digits+"]+$"); }
     /**
     /* NB: !!!! flonum regexp only matches "X.", ".X", or "X.X", NOT "X", this
     /* must be separately checked with schemeDigitRegexp.
     /* I know this seems dumb, but the alternative would be that this regexp
     /* returns six matches, which also seems dumb.
     /***/
-    function schemeFlonumRegexp(digits) {
+    /* @stopify flat */ function schemeFlonumRegexp(digits) {
 	var decimalNumOnRight = "(["+digits+"]*)\\.(["+digits+"]+)"
 	var decimalNumOnLeft = "(["+digits+"]+)\\.(["+digits+"]*)"
 	return new RegExp("^(?:([+-]?)(" +
                           decimalNumOnRight+"|"+decimalNumOnLeft +
                           "))$");
     }
-    function schemeScientificPattern(digits, exp_mark) {
+    /* @stopify flat */ function schemeScientificPattern(digits, exp_mark) {
 	var noDecimal = "["+digits+"]+"
 	var decimalNumOnRight = "["+digits+"]*\\.["+digits+"]+"
 	var decimalNumOnLeft = "["+digits+"]+\\.["+digits+"]*"
@@ -2183,34 +2184,34 @@ function ______NumberModule() {
 			  ")["+exp_mark+"]([+-]?["+digits+"]+))$");
     }
 
-    function digitsForRadix(radix, errbacks) {
+    /* @stopify flat */ function digitsForRadix(radix, errbacks) {
 	return radix === 2  ? "01" :
 	       radix === 8  ? "0-7" :
 	       radix === 10 ? "0-9" :
 	       radix === 16 ? "0-9a-fA-F" :
 	       errbacks.throwInternalError("digitsForRadix: invalid radix", this, radix)
     }
-    function expMarkForRadix(radix, errbacks) {
+    /* @stopify flat */ function expMarkForRadix(radix, errbacks) {
 	return (radix === 2 || radix === 8 || radix === 10) ? "defsl" :
 	       (radix === 16)                               ? "sl" :
 	       errbacks.throwInternalError("expMarkForRadix: invalid radix", this, radix)
     }
 
-    function Exactness(i) {
-      this.defaultp = function () { return i == 0; }
-      this.exactp = function () { return i == 1; }
-      this.inexactp = function () { return i == 2; }
+    /* @stopify flat */ function Exactness(i) {
+      this.defaultp = /* @stopify flat */ function () { return i == 0; }
+      this.exactp = /* @stopify flat */ function () { return i == 1; }
+      this.inexactp = /* @stopify flat */ function () { return i == 2; }
     }
 
     Exactness.def = new Exactness(0);
     Exactness.on = new Exactness(1);
     Exactness.off = new Exactness(2);
 
-    Exactness.prototype.intAsExactp = function () { return this.defaultp() || this.exactp(); };
-    Exactness.prototype.floatAsInexactp = function () { return this.defaultp() || this.inexactp(); };
+    Exactness.prototype.intAsExactp = /* @stopify flat */ function () { return this.defaultp() || this.exactp(); };
+    Exactness.prototype.floatAsInexactp = /* @stopify flat */ function () { return this.defaultp() || this.inexactp(); };
 
     // fromSchemeString: string boolean -> (scheme-number | false)
-    var fromSchemeString = function(x, exactness, errbacks) {
+    var fromSchemeString = /* @stopify flat */ function(x, exactness, errbacks) {
 
 	var radix = 10
 	var exactness = typeof exactness === 'undefined' ? Exactness.def :
@@ -2254,7 +2255,7 @@ function ______NumberModule() {
 	return fromSchemeStringRaw(numberString, radix, exactness, mustBeANumberp, errbacks)
     };
 
-    function fromSchemeStringRaw(x, radix, exactness, mustBeANumberp, errbacks) {
+    /* @stopify flat */ function fromSchemeStringRaw(x, radix, exactness, mustBeANumberp, errbacks) {
 	var cMatch = matchComplexRegexp(radix, x, errbacks);
 	if (cMatch) {
           throw "Complex Numbers are not supported in Pyret";
@@ -2263,7 +2264,7 @@ function ______NumberModule() {
         return fromSchemeStringRawNoComplex(x, radix, exactness, mustBeANumberp, errbacks)
     }
 
-    function fromSchemeStringRawNoComplex(x, radix, exactness, mustBeANumberp, errbacks) {
+    /* @stopify flat */ function fromSchemeStringRawNoComplex(x, radix, exactness, mustBeANumberp, errbacks) {
 	var aMatch = x.match(schemeRationalRegexp(digitsForRadix(radix, errbacks)));
 	if (aMatch) {
 	  return Rational.makeInstance( fromSchemeStringRawNoComplex( aMatch[1]
@@ -2327,7 +2328,7 @@ function ______NumberModule() {
 	}
     };
 
-    function parseFloat(sign, integralPart, fractionalPart, radix, exactness, errbacks) {
+    /* @stopify flat */ function parseFloat(sign, integralPart, fractionalPart, radix, exactness, errbacks) {
 	var sign = (sign == "-" ? -1 : 1);
 	var integralPartValue = integralPart === ""  ? 0  :
 				exactness.intAsExactp() ? parseExactInt(integralPart, radix, errbacks) :
@@ -2345,7 +2346,7 @@ function ______NumberModule() {
 				  exactness.intAsExactp() ? divide(fractionalNumerator, fractionalDenominator, errbacks) :
 							    fractionalNumerator / fractionalDenominator
 
-	var forceInexact = function(o) {
+	var forceInexact = /* @stopify flat */ function(o) {
 	    return typeof o === "number" ? Roughnum.makeInstance(o, errbacks) :
 					   o.toRoughnum(errbacks);
 	}
@@ -2354,7 +2355,7 @@ function ______NumberModule() {
 					     multiply(sign, add(integralPartValue, fractionalPartValue));
     }
 
-    function parseExactInt(str, radix, errbacks) {
+    /* @stopify flat */ function parseExactInt(str, radix, errbacks) {
 	return fromSchemeStringRawNoComplex(str, radix, Exactness.on, true, errbacks);
     }
 
@@ -2380,7 +2381,7 @@ function ______NumberModule() {
   var j_lm = ((canary&0xffffff)==0xefcafe);
 
   // (public) Constructor
-  function BigInteger(a,b,c) {
+  /* @stopify flat */ function BigInteger(a,b,c) {
     if(a != null)
       if("number" == typeof a) this.fromNumber(a,b,c);
     else if(b == null && "string" != typeof a) this.fromString(a,256);
@@ -2388,7 +2389,7 @@ function ______NumberModule() {
   }
 
   // return new, unset BigInteger
-  function nbi() { return new BigInteger(null); }
+  /* @stopify flat */ function nbi() { return new BigInteger(null); }
 
   // am: Compute w_j += (x*this_i), propagate carries,
   // c is initial carry, returns final carry.
@@ -2398,7 +2399,7 @@ function ______NumberModule() {
   // am1: use a single mult and divide to get the high bits,
   // max digit bits should be 26 because
   // max internal value = 2*dvalue^2-2*dvalue (< 2^53)
-  function am1(i,x,w,j,c,n) {
+  /* @stopify flat */ function am1(i,x,w,j,c,n) {
     while(--n >= 0) {
       var v = x*this[i++]+w[j]+c;
       c = Math.floor(v/0x4000000);
@@ -2409,7 +2410,7 @@ function ______NumberModule() {
   // am2 avoids a big mult-and-extract completely.
   // Max digit bits should be <= 30 because we do bitwise ops
   // on values up to 2*hdvalue^2-hdvalue-1 (< 2^31)
-  function am2(i,x,w,j,c,n) {
+  /* @stopify flat */ function am2(i,x,w,j,c,n) {
     var xl = x&0x7fff, xh = x>>15;
     while(--n >= 0) {
       var l = this[i]&0x7fff;
@@ -2423,7 +2424,7 @@ function ______NumberModule() {
   }
   // Alternately, set max digit bits to 28 since some
   // browsers slow down when dealing with 32-bit numbers.
-  function am3(i,x,w,j,c,n) {
+  /* @stopify flat */ function am3(i,x,w,j,c,n) {
     var xl = x&0x3fff, xh = x>>14;
     while(--n >= 0) {
       var l = this[i]&0x3fff;
@@ -2468,21 +2469,21 @@ function ______NumberModule() {
   rr = "A".charCodeAt(0);
   for(vv = 10; vv < 36; ++vv) BI_RC[rr++] = vv;
 
-  function int2char(n) { return BI_RM.charAt(n); }
-  function intAt(s,i) {
+  /* @stopify flat */ function int2char(n) { return BI_RM.charAt(n); }
+  /* @stopify flat */ function intAt(s,i) {
     var c = BI_RC[s.charCodeAt(i)];
     return (c==null)?-1:c;
   }
 
   // (protected) copy this to r
-  function bnpCopyTo(r) {
+  /* @stopify flat */ function bnpCopyTo(r) {
     for(var i = this.t-1; i >= 0; --i) r[i] = this[i];
     r.t = this.t;
     r.s = this.s;
   }
 
   // (protected) set from integer value x, -DV <= x < DV
-  function bnpFromInt(x) {
+  /* @stopify flat */ function bnpFromInt(x) {
     this.t = 1;
     this.s = (x<0)?-1:0;
     if(x > 0) this[0] = x;
@@ -2491,10 +2492,10 @@ function ______NumberModule() {
   }
 
   // return bigint initialized to value
-  function nbv(i) { var r = nbi(); r.fromInt(i); return r; }
+  /* @stopify flat */ function nbv(i) { var r = nbi(); r.fromInt(i); return r; }
 
   // (protected) set from string and radix
-  function bnpFromString(s,b) {
+  /* @stopify flat */ function bnpFromString(s,b) {
     var k;
     if(b == 16) k = 4;
     else if(b == 8) k = 3;
@@ -2533,13 +2534,13 @@ function ______NumberModule() {
   }
 
   // (protected) clamp off excess high words
-  function bnpClamp() {
+  /* @stopify flat */ function bnpClamp() {
     var c = this.s&this.DM;
     while(this.t > 0 && this[this.t-1] == c) --this.t;
   }
 
   // (public) return string representation in given radix
-  function bnToString(b) {
+  /* @stopify flat */ function bnToString(b) {
     if(this.s < 0) return "-"+this.negate().toString(b);
     var k;
     if(b == 16) k = 4;
@@ -2569,13 +2570,13 @@ function ______NumberModule() {
   }
 
   // (public) -this
-  function bnNegate() { var r = nbi(); BigInteger.ZERO.subTo(this,r); return r; }
+  /* @stopify flat */ function bnNegate() { var r = nbi(); BigInteger.ZERO.subTo(this,r); return r; }
 
   // (public) |this|
-  function bnAbs() { return (this.s<0)?this.negate():this; }
+  /* @stopify flat */ function bnAbs() { return (this.s<0)?this.negate():this; }
 
   // (public) return + if this > a, - if this < a, 0 if equal
-  function bnCompareTo(a) {
+  /* @stopify flat */ function bnCompareTo(a) {
     var r = this.s-a.s;
     if(r != 0) return r;
     var i = this.t;
@@ -2591,7 +2592,7 @@ function ______NumberModule() {
   }
 
   // returns bit length of the integer x
-  function nbits(x) {
+  /* @stopify flat */ function nbits(x) {
     var r = 1, t;
     if((t=x>>>16) != 0) { x = t; r += 16; }
     if((t=x>>8) != 0) { x = t; r += 8; }
@@ -2602,13 +2603,13 @@ function ______NumberModule() {
   }
 
   // (public) return the number of bits in "this"
-  function bnBitLength() {
+  /* @stopify flat */ function bnBitLength() {
     if(this.t <= 0) return 0;
     return this.DB*(this.t-1)+nbits(this[this.t-1]^(this.s&this.DM));
   }
 
   // (protected) r = this << n*DB
-  function bnpDLShiftTo(n,r) {
+  /* @stopify flat */ function bnpDLShiftTo(n,r) {
     var i;
     for(i = this.t-1; i >= 0; --i) r[i+n] = this[i];
     for(i = n-1; i >= 0; --i) r[i] = 0;
@@ -2617,14 +2618,14 @@ function ______NumberModule() {
   }
 
   // (protected) r = this >> n*DB
-  function bnpDRShiftTo(n,r) {
+  /* @stopify flat */ function bnpDRShiftTo(n,r) {
     for(var i = n; i < this.t; ++i) r[i-n] = this[i];
     r.t = Math.max(this.t-n,0);
     r.s = this.s;
   }
 
   // (protected) r = this << n
-  function bnpLShiftTo(n,r) {
+  /* @stopify flat */ function bnpLShiftTo(n,r) {
     var bs = n%this.DB;
     var cbs = this.DB-bs;
     var bm = (1<<cbs)-1;
@@ -2641,7 +2642,7 @@ function ______NumberModule() {
   }
 
   // (protected) r = this >> n
-  function bnpRShiftTo(n,r) {
+  /* @stopify flat */ function bnpRShiftTo(n,r) {
     r.s = this.s;
     var ds = Math.floor(n/this.DB);
     if(ds >= this.t) { r.t = 0; return; }
@@ -2659,7 +2660,7 @@ function ______NumberModule() {
   }
 
   // (protected) r = this - a
-  function bnpSubTo(a,r) {
+  /* @stopify flat */ function bnpSubTo(a,r) {
     var i = 0, c = 0, m = Math.min(a.t,this.t);
     while(i < m) {
       c += this[i]-a[i];
@@ -2693,7 +2694,7 @@ function ______NumberModule() {
 
   // (protected) r = this * a, r != this,a (HAC 14.12)
   // "this" should be the larger one if appropriate.
-  function bnpMultiplyTo(a,r) {
+  /* @stopify flat */ function bnpMultiplyTo(a,r) {
     var x = this.abs(), y = a.abs();
     var i = x.t;
     r.t = i+y.t;
@@ -2705,7 +2706,7 @@ function ______NumberModule() {
   }
 
   // (protected) r = this^2, r != this (HAC 14.16)
-  function bnpSquareTo(r) {
+  /* @stopify flat */ function bnpSquareTo(r) {
     var x = this.abs();
     var i = r.t = 2*x.t;
     while(--i >= 0) r[i] = 0;
@@ -2723,7 +2724,7 @@ function ______NumberModule() {
 
   // (protected) divide this by m, quotient and remainder to q, r (HAC 14.20)
   // r != q, this != m.  q or r may be null.
-  function bnpDivRemTo(m,q,r) {
+  /* @stopify flat */ function bnpDivRemTo(m,q,r) {
     var pm = m.abs();
     if(pm.t <= 0) return;
     var pt = this.abs();
@@ -2771,7 +2772,7 @@ function ______NumberModule() {
   }
 
   // (public) this mod a
-  function bnMod(a) {
+  /* @stopify flat */ function bnMod(a) {
     var r = nbi();
     this.abs().divRemTo(a,null,r);
     if(this.s < 0 && r.compareTo(BigInteger.ZERO) > 0) a.subTo(r,r);
@@ -2779,15 +2780,15 @@ function ______NumberModule() {
   }
 
   // Modular reduction using "classic" algorithm
-  function Classic(m) { this.m = m; }
-  function cConvert(x) {
+  /* @stopify flat */ function Classic(m) { this.m = m; }
+  /* @stopify flat */ function cConvert(x) {
     if(x.s < 0 || x.compareTo(this.m) >= 0) return x.mod(this.m);
     else return x;
   }
-  function cRevert(x) { return x; }
-  function cReduce(x) { x.divRemTo(this.m,null,x); }
-  function cMulTo(x,y,r) { x.multiplyTo(y,r); this.reduce(r); }
-  function cSqrTo(x,r) { x.squareTo(r); this.reduce(r); }
+  /* @stopify flat */ function cRevert(x) { return x; }
+  /* @stopify flat */ function cReduce(x) { x.divRemTo(this.m,null,x); }
+  /* @stopify flat */ function cMulTo(x,y,r) { x.multiplyTo(y,r); this.reduce(r); }
+  /* @stopify flat */ function cSqrTo(x,r) { x.squareTo(r); this.reduce(r); }
 
   Classic.prototype.convert = cConvert;
   Classic.prototype.revert = cRevert;
@@ -2805,7 +2806,7 @@ function ______NumberModule() {
   // if y is 1/x mod m, then y(2-xy) is 1/x mod m^2
   // should reduce x and y(2-xy) by m^2 at each step to keep size bounded.
   // JS multiply "overflows" differently from C/C++, so care is needed here.
-  function bnpInvDigit() {
+  /* @stopify flat */ function bnpInvDigit() {
     if(this.t < 1) return 0;
     var x = this[0];
     if((x&1) == 0) return 0;
@@ -2821,7 +2822,7 @@ function ______NumberModule() {
   }
 
   // Montgomery reduction
-  function Montgomery(m) {
+  /* @stopify flat */ function Montgomery(m) {
     this.m = m;
     this.mp = m.invDigit();
     this.mpl = this.mp&0x7fff;
@@ -2831,7 +2832,7 @@ function ______NumberModule() {
   }
 
   // xR mod m
-  function montConvert(x) {
+  /* @stopify flat */ function montConvert(x) {
     var r = nbi();
     x.abs().dlShiftTo(this.m.t,r);
     r.divRemTo(this.m,null,r);
@@ -2840,7 +2841,7 @@ function ______NumberModule() {
   }
 
   // x/R mod m
-  function montRevert(x) {
+  /* @stopify flat */ function montRevert(x) {
     var r = nbi();
     x.copyTo(r);
     this.reduce(r);
@@ -2848,7 +2849,7 @@ function ______NumberModule() {
   }
 
   // x = x/R mod m (HAC 14.32)
-  function montReduce(x) {
+  /* @stopify flat */ function montReduce(x) {
     while(x.t <= this.mt2)  // pad x so am has enough room later
       x[x.t++] = 0;
     for(var i = 0; i < this.m.t; ++i) {
@@ -2867,10 +2868,10 @@ function ______NumberModule() {
   }
 
   // r = "x^2/R mod m"; x != r
-  function montSqrTo(x,r) { x.squareTo(r); this.reduce(r); }
+  /* @stopify flat */ function montSqrTo(x,r) { x.squareTo(r); this.reduce(r); }
 
   // r = "xy/R mod m"; x,y != r
-  function montMulTo(x,y,r) { x.multiplyTo(y,r); this.reduce(r); }
+  /* @stopify flat */ function montMulTo(x,y,r) { x.multiplyTo(y,r); this.reduce(r); }
 
   Montgomery.prototype.convert = montConvert;
   Montgomery.prototype.revert = montRevert;
@@ -2879,10 +2880,10 @@ function ______NumberModule() {
   Montgomery.prototype.sqrTo = montSqrTo;
 
   // (protected) true iff this is even
-  function bnpIsEven() { return ((this.t>0)?(this[0]&1):this.s) == 0; }
+  /* @stopify flat */ function bnpIsEven() { return ((this.t>0)?(this[0]&1):this.s) == 0; }
 
   // (protected) this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)
-  function bnpExp(e,z) {
+  /* @stopify flat */ function bnpExp(e,z) {
     if(e > 0xffffffff || e < 1) return BigInteger.ONE;
     var r = nbi(), r2 = nbi(), g = z.convert(this), i = nbits(e)-1;
     g.copyTo(r);
@@ -2895,7 +2896,7 @@ function ______NumberModule() {
   }
 
   // (public) this^e % m, 0 <= e < 2^32
-  function bnModPowInt(e,m) {
+  /* @stopify flat */ function bnModPowInt(e,m) {
     var z;
     if(e < 256 || m.isEven()) z = new Classic(m); else z = new Montgomery(m);
     return this.bnpExp(e,z);
@@ -2935,15 +2936,15 @@ function ______NumberModule() {
   // All Rights Reserved.
   // See "LICENSE" for details.
 
-  // Extended JavaScript BN functions, required for RSA private ops.
+  // Extended JavaScript BN /* @stopify flat */ functions, required for RSA private ops.
 
   // Version 1.1: new BigInteger("0", 10) returns "proper" zero
 
   // (public)
-  function bnClone() { var r = nbi(); this.copyTo(r); return r; }
+  /* @stopify flat */ function bnClone() { var r = nbi(); this.copyTo(r); return r; }
 
   // (public) return value as integer
-  function bnIntValue() {
+  /* @stopify flat */ function bnIntValue() {
     if(this.s < 0) {
       if(this.t == 1) return this[0]-this.DV;
       else if(this.t == 0) return -1;
@@ -2955,23 +2956,23 @@ function ______NumberModule() {
   }
 
   // (public) return value as byte
-  function bnByteValue() { return (this.t==0)?this.s:(this[0]<<24)>>24; }
+  /* @stopify flat */ function bnByteValue() { return (this.t==0)?this.s:(this[0]<<24)>>24; }
 
   // (public) return value as short (assumes DB>=16)
-  function bnShortValue() { return (this.t==0)?this.s:(this[0]<<16)>>16; }
+  /* @stopify flat */ function bnShortValue() { return (this.t==0)?this.s:(this[0]<<16)>>16; }
 
   // (protected) return x s.t. r^x < DV
-  function bnpChunkSize(r) { return Math.floor(Math.LN2*this.DB/Math.log(r)); }
+  /* @stopify flat */ function bnpChunkSize(r) { return Math.floor(Math.LN2*this.DB/Math.log(r)); }
 
   // (public) 0 if this == 0, 1 if this > 0
-  function bnSigNum() {
+  /* @stopify flat */ function bnSigNum() {
     if(this.s < 0) return -1;
     else if(this.t <= 0 || (this.t == 1 && this[0] <= 0)) return 0;
     else return 1;
   }
 
   // (protected) convert to radix string
-  function bnpToRadix(b) {
+  /* @stopify flat */ function bnpToRadix(b) {
     if(b == null) b = 10;
     if(this.signum() == 0 || b < 2 || b > 36) return "0";
     var cs = this.chunkSize(b);
@@ -2986,7 +2987,7 @@ function ______NumberModule() {
   }
 
   // (protected) convert from radix string
-  function bnpFromRadix(s,b) {
+  /* @stopify flat */ function bnpFromRadix(s,b) {
     this.fromInt(0);
     if(b == null) b = 10;
     var cs = this.chunkSize(b);
@@ -3013,7 +3014,7 @@ function ______NumberModule() {
   }
 
   // (protected) alternate constructor
-  function bnpFromNumber(a,b,c) {
+  /* @stopify flat */ function bnpFromNumber(a,b,c) {
     if("number" == typeof b) {
       // new BigInteger(int,int,RNG)
       if(a < 2) this.fromInt(1);
@@ -3039,7 +3040,7 @@ function ______NumberModule() {
   }
 
   // (public) convert to bigendian byte array
-  function bnToByteArray() {
+  /* @stopify flat */ function bnToByteArray() {
     var i = this.t, r = [];
     r[0] = this.s;
     var p = this.DB-(i*this.DB)%8, d, k = 0;
@@ -3063,12 +3064,12 @@ function ______NumberModule() {
     return r;
   }
 
-  function bnEquals(a) { return(this.compareTo(a)==0); }
-  function bnMin(a) { return(this.compareTo(a)<0)?this:a; }
-  function bnMax(a) { return(this.compareTo(a)>0)?this:a; }
+  /* @stopify flat */ function bnEquals(a) { return(this.compareTo(a)==0); }
+  /* @stopify flat */ function bnMin(a) { return(this.compareTo(a)<0)?this:a; }
+  /* @stopify flat */ function bnMax(a) { return(this.compareTo(a)>0)?this:a; }
 
   // (protected) r = this op a (bitwise)
-  function bnpBitwiseTo(a,op,r) {
+  /* @stopify flat */ function bnpBitwiseTo(a,op,r) {
     var i, f, m = Math.min(a.t,this.t);
     for(i = 0; i < m; ++i) r[i] = op(this[i],a[i]);
     if(a.t < this.t) {
@@ -3086,23 +3087,23 @@ function ______NumberModule() {
   }
 
   // (public) this & a
-  function op_and(x,y) { return x&y; }
-  function bnAnd(a) { var r = nbi(); this.bitwiseTo(a,op_and,r); return r; }
+  /* @stopify flat */ function op_and(x,y) { return x&y; }
+  /* @stopify flat */ function bnAnd(a) { var r = nbi(); this.bitwiseTo(a,op_and,r); return r; }
 
   // (public) this | a
-  function op_or(x,y) { return x|y; }
-  function bnOr(a) { var r = nbi(); this.bitwiseTo(a,op_or,r); return r; }
+  /* @stopify flat */ function op_or(x,y) { return x|y; }
+  /* @stopify flat */ function bnOr(a) { var r = nbi(); this.bitwiseTo(a,op_or,r); return r; }
 
   // (public) this ^ a
-  function op_xor(x,y) { return x^y; }
-  function bnXor(a) { var r = nbi(); this.bitwiseTo(a,op_xor,r); return r; }
+  /* @stopify flat */ function op_xor(x,y) { return x^y; }
+  /* @stopify flat */ function bnXor(a) { var r = nbi(); this.bitwiseTo(a,op_xor,r); return r; }
 
   // (public) this & ~a
-  function op_andnot(x,y) { return x&~y; }
-  function bnAndNot(a) { var r = nbi(); this.bitwiseTo(a,op_andnot,r); return r; }
+  /* @stopify flat */ function op_andnot(x,y) { return x&~y; }
+  /* @stopify flat */ function bnAndNot(a) { var r = nbi(); this.bitwiseTo(a,op_andnot,r); return r; }
 
   // (public) ~this
-  function bnNot() {
+  /* @stopify flat */ function bnNot() {
     var r = nbi();
     for(var i = 0; i < this.t; ++i) r[i] = this.DM&~this[i];
     r.t = this.t;
@@ -3111,21 +3112,21 @@ function ______NumberModule() {
   }
 
   // (public) this << n
-  function bnShiftLeft(n) {
+  /* @stopify flat */ function bnShiftLeft(n) {
     var r = nbi();
     if(n < 0) this.rShiftTo(-n,r); else this.lShiftTo(n,r);
     return r;
   }
 
   // (public) this >> n
-  function bnShiftRight(n) {
+  /* @stopify flat */ function bnShiftRight(n) {
     var r = nbi();
     if(n < 0) this.lShiftTo(-n,r); else this.rShiftTo(n,r);
     return r;
   }
 
   // return index of lowest 1-bit in x, x < 2^31
-  function lbit(x) {
+  /* @stopify flat */ function lbit(x) {
     if(x == 0) return -1;
     var r = 0;
     if((x&0xffff) == 0) { x >>= 16; r += 16; }
@@ -3137,7 +3138,7 @@ function ______NumberModule() {
   }
 
   // (public) returns index of lowest 1-bit (or -1 if none)
-  function bnGetLowestSetBit() {
+  /* @stopify flat */ function bnGetLowestSetBit() {
     for(var i = 0; i < this.t; ++i)
       if(this[i] != 0) return i*this.DB+lbit(this[i]);
     if(this.s < 0) return this.t*this.DB;
@@ -3145,44 +3146,44 @@ function ______NumberModule() {
   }
 
   // return number of 1 bits in x
-  function cbit(x) {
+  /* @stopify flat */ function cbit(x) {
     var r = 0;
     while(x != 0) { x &= x-1; ++r; }
     return r;
   }
 
   // (public) return number of set bits
-  function bnBitCount() {
+  /* @stopify flat */ function bnBitCount() {
     var r = 0, x = this.s&this.DM;
     for(var i = 0; i < this.t; ++i) r += cbit(this[i]^x);
     return r;
   }
 
   // (public) true iff nth bit is set
-  function bnTestBit(n) {
+  /* @stopify flat */ function bnTestBit(n) {
     var j = Math.floor(n/this.DB);
     if(j >= this.t) return(this.s!=0);
     return((this[j]&(1<<(n%this.DB)))!=0);
   }
 
   // (protected) this op (1<<n)
-  function bnpChangeBit(n,op) {
+  /* @stopify flat */ function bnpChangeBit(n,op) {
     var r = BigInteger.ONE.shiftLeft(n);
     this.bitwiseTo(r,op,r);
     return r;
   }
 
   // (public) this | (1<<n)
-  function bnSetBit(n) { return this.changeBit(n,op_or); }
+  /* @stopify flat */ function bnSetBit(n) { return this.changeBit(n,op_or); }
 
   // (public) this & ~(1<<n)
-  function bnClearBit(n) { return this.changeBit(n,op_andnot); }
+  /* @stopify flat */ function bnClearBit(n) { return this.changeBit(n,op_andnot); }
 
   // (public) this ^ (1<<n)
-  function bnFlipBit(n) { return this.changeBit(n,op_xor); }
+  /* @stopify flat */ function bnFlipBit(n) { return this.changeBit(n,op_xor); }
 
   // (protected) r = this + a
-  function bnpAddTo(a,r) {
+  /* @stopify flat */ function bnpAddTo(a,r) {
     var i = 0, c = 0, m = Math.min(a.t,this.t);
     while(i < m) {
       c += this[i]+a[i];
@@ -3215,36 +3216,36 @@ function ______NumberModule() {
   }
 
   // (public) this + a
-  function bnAdd(a) { var r = nbi(); this.addTo(a,r); return r; }
+  /* @stopify flat */ function bnAdd(a) { var r = nbi(); this.addTo(a,r); return r; }
 
   // (public) this - a
-  function bnSubtract(a) { var r = nbi(); this.subTo(a,r); return r; }
+  /* @stopify flat */ function bnSubtract(a) { var r = nbi(); this.subTo(a,r); return r; }
 
   // (public) this * a
-  function bnMultiply(a) { var r = nbi(); this.multiplyTo(a,r); return r; }
+  /* @stopify flat */ function bnMultiply(a) { var r = nbi(); this.multiplyTo(a,r); return r; }
 
   // (public) this / a
-  function bnDivide(a) { var r = nbi(); this.divRemTo(a,r,null); return r; }
+  /* @stopify flat */ function bnDivide(a) { var r = nbi(); this.divRemTo(a,r,null); return r; }
 
   // (public) this % a
-  function bnRemainder(a) { var r = nbi(); this.divRemTo(a,null,r); return r; }
+  /* @stopify flat */ function bnRemainder(a) { var r = nbi(); this.divRemTo(a,null,r); return r; }
 
   // (public) [this/a,this%a]
-  function bnDivideAndRemainder(a) {
+  /* @stopify flat */ function bnDivideAndRemainder(a) {
     var q = nbi(), r = nbi();
     this.divRemTo(a,q,r);
     return [q,r];
   }
 
   // (protected) this *= n, this >= 0, 1 < n < DV
-  function bnpDMultiply(n) {
+  /* @stopify flat */ function bnpDMultiply(n) {
     this[this.t] = this.am(0,n-1,this,0,0,this.t);
     ++this.t;
     this.clamp();
   }
 
   // (protected) this += n << w words, this >= 0
-  function bnpDAddOffset(n,w) {
+  /* @stopify flat */ function bnpDAddOffset(n,w) {
     if(n == 0) return;
     while(this.t <= w) this[this.t++] = 0;
     this[w] += n;
@@ -3256,10 +3257,10 @@ function ______NumberModule() {
   }
 
   // A "null" reducer
-  function NullExp() {}
-  function nNop(x) { return x; }
-  function nMulTo(x,y,r) { x.multiplyTo(y,r); }
-  function nSqrTo(x,r) { x.squareTo(r); }
+  /* @stopify flat */ function NullExp() {}
+  /* @stopify flat */ function nNop(x) { return x; }
+  /* @stopify flat */ function nMulTo(x,y,r) { x.multiplyTo(y,r); }
+  /* @stopify flat */ function nSqrTo(x,r) { x.squareTo(r); }
 
   NullExp.prototype.convert = nNop;
   NullExp.prototype.revert = nNop;
@@ -3267,11 +3268,11 @@ function ______NumberModule() {
   NullExp.prototype.sqrTo = nSqrTo;
 
   // (public) this^e
-  function bnPow(e) { return this.bnpExp(e,new NullExp()); }
+  /* @stopify flat */ function bnPow(e) { return this.bnpExp(e,new NullExp()); }
 
   // (protected) r = lower n words of "this * a", a.t <= n
   // "this" should be the larger one if appropriate.
-  function bnpMultiplyLowerTo(a,n,r) {
+  /* @stopify flat */ function bnpMultiplyLowerTo(a,n,r) {
     var i = Math.min(this.t+a.t,n);
     r.s = 0; // assumes a,this >= 0
     r.t = i;
@@ -3284,7 +3285,7 @@ function ______NumberModule() {
 
   // (protected) r = "this * a" without lower n words, n > 0
   // "this" should be the larger one if appropriate.
-  function bnpMultiplyUpperTo(a,n,r) {
+  /* @stopify flat */ function bnpMultiplyUpperTo(a,n,r) {
     --n;
     var i = r.t = this.t+a.t-n;
     r.s = 0; // assumes a,this >= 0
@@ -3296,7 +3297,7 @@ function ______NumberModule() {
   }
 
   // Barrett modular reduction
-  function Barrett(m) {
+  /* @stopify flat */ function Barrett(m) {
     // setup Barrett
     this.r2 = nbi();
     this.q3 = nbi();
@@ -3305,16 +3306,16 @@ function ______NumberModule() {
     this.m = m;
   }
 
-  function barrettConvert(x) {
+  /* @stopify flat */ function barrettConvert(x) {
     if(x.s < 0 || x.t > 2*this.m.t) return x.mod(this.m);
     else if(x.compareTo(this.m) < 0) return x;
     else { var r = nbi(); x.copyTo(r); this.reduce(r); return r; }
   }
 
-  function barrettRevert(x) { return x; }
+  /* @stopify flat */ function barrettRevert(x) { return x; }
 
   // x = x mod m (HAC 14.42)
-  function barrettReduce(x) {
+  /* @stopify flat */ function barrettReduce(x) {
     x.drShiftTo(this.m.t-1,this.r2);
     if(x.t > this.m.t+1) { x.t = this.m.t+1; x.clamp(); }
     this.mu.multiplyUpperTo(this.r2,this.m.t+1,this.q3);
@@ -3325,10 +3326,10 @@ function ______NumberModule() {
   }
 
   // r = x^2 mod m; x != r
-  function barrettSqrTo(x,r) { x.squareTo(r); this.reduce(r); }
+  /* @stopify flat */ function barrettSqrTo(x,r) { x.squareTo(r); this.reduce(r); }
 
   // r = x*y mod m; x,y != r
-  function barrettMulTo(x,y,r) { x.multiplyTo(y,r); this.reduce(r); }
+  /* @stopify flat */ function barrettMulTo(x,y,r) { x.multiplyTo(y,r); this.reduce(r); }
 
   Barrett.prototype.convert = barrettConvert;
   Barrett.prototype.revert = barrettRevert;
@@ -3337,7 +3338,7 @@ function ______NumberModule() {
   Barrett.prototype.sqrTo = barrettSqrTo;
 
   // (public) this^e % m (HAC 14.85)
-  function bnModPow(e,m) {
+  /* @stopify flat */ function bnModPow(e,m) {
     var i = e.bitLength(), k, r = nbv(1), z;
     if(i <= 0) return r;
     else if(i < 18) k = 1;
@@ -3396,7 +3397,7 @@ function ______NumberModule() {
   }
 
   // (public) gcd(this,a) (HAC 14.54)
-  function bnGCD(a) {
+  /* @stopify flat */ function bnGCD(a) {
     var x = (this.s<0)?this.negate():this.clone();
     var y = (a.s<0)?a.negate():a.clone();
     if(x.compareTo(y) < 0) { var t = x; x = y; y = t; }
@@ -3424,7 +3425,7 @@ function ______NumberModule() {
   }
 
   // (protected) this % n, n < 2^26
-  function bnpModInt(n) {
+  /* @stopify flat */ function bnpModInt(n) {
     if(n <= 0) return 0;
     var d = this.DV%n, r = (this.s<0)?n-1:0;
     if(this.t > 0)
@@ -3434,7 +3435,7 @@ function ______NumberModule() {
   }
 
   // (public) 1/this % m (HAC 14.61)
-  function bnModInverse(m) {
+  /* @stopify flat */ function bnModInverse(m) {
     var ac = m.isEven();
     if((this.isEven() && ac) || m.signum() == 0) return BigInteger.ZERO;
     var u = m.clone(), v = this.clone();
@@ -3479,7 +3480,7 @@ function ______NumberModule() {
   var lplim = (1<<26)/lowprimes[lowprimes.length-1];
 
   // (public) test primality with certainty >= 1-.5^t
-  function bnIsProbablePrime(t) {
+  /* @stopify flat */ function bnIsProbablePrime(t) {
     var i, x = this.abs();
     if(x.t == 1 && x[0] <= lowprimes[lowprimes.length-1]) {
       for(i = 0; i < lowprimes.length; ++i)
@@ -3498,7 +3499,7 @@ function ______NumberModule() {
   }
 
   // (protected) true if probably prime (HAC 4.24, Miller-Rabin)
-  function bnpMillerRabin(t) {
+  /* @stopify flat */ function bnpMillerRabin(t) {
     var n1 = this.subtract(BigInteger.ONE);
     var k = n1.getLowestSetBit();
     if(k <= 0) return false;
@@ -3599,13 +3600,13 @@ function ______NumberModule() {
   // negate is defined above.
 
   // makeBignum: string -> BigInteger
-  var makeBignum = function(s) {
+  var makeBignum = /* @stopify flat */ function(s) {
     if (typeof(s) === 'number') { s = s + ''; }
     s = expandExponent(s);
     return new BigInteger(s, 10);
   };
 
-  var zerostring = function(n) {
+  var zerostring = /* @stopify flat */ function(n) {
     var buf = [];
     for (var i = 0; i < n; i++) {
       buf.push('0');
@@ -3613,51 +3614,51 @@ function ______NumberModule() {
     return buf.join('');
   };
 
-  BigInteger.prototype.isFinite = function() {
+  BigInteger.prototype.isFinite = /* @stopify flat */ function() {
     return true;
   };
 
-  BigInteger.prototype.isInteger = function() {
+  BigInteger.prototype.isInteger = /* @stopify flat */ function() {
     return true;
   };
 
-  BigInteger.prototype.isRational = function() {
+  BigInteger.prototype.isRational = /* @stopify flat */ function() {
     return true;
   };
 
   BigInteger.prototype.isExact = BigInteger.prototype.isRational;
 
-  BigInteger.prototype.isReal = function() {
+  BigInteger.prototype.isReal = /* @stopify flat */ function() {
     return true;
   };
 
-  BigInteger.prototype.isRoughnum = function() {
+  BigInteger.prototype.isRoughnum = /* @stopify flat */ function() {
     return false;
   };
 
-  BigInteger.prototype.isPositive = function() {
+  BigInteger.prototype.isPositive = /* @stopify flat */ function() {
     return this.compareTo(BigInteger.ZERO) > 0;
   };
 
-  BigInteger.prototype.isNonNegative = function() {
+  BigInteger.prototype.isNonNegative = /* @stopify flat */ function() {
     return this.compareTo(BigInteger.ZERO) >= 0;
   };
 
-  BigInteger.prototype.isNegative = function() {
+  BigInteger.prototype.isNegative = /* @stopify flat */ function() {
     return this.compareTo(BigInteger.ZERO) < 0;
   };
 
-  BigInteger.prototype.isNonPositive = function() {
+  BigInteger.prototype.isNonPositive = /* @stopify flat */ function() {
     return this.compareTo(BigInteger.ZERO) <= 0;
   };
 
-  BigInteger.prototype.toRational = function() {
+  BigInteger.prototype.toRational = /* @stopify flat */ function() {
     return this;
   };
 
   BigInteger.prototype.toExact = BigInteger.prototype.toRational;
 
-  BigInteger.prototype.toFixnum = function() {
+  BigInteger.prototype.toFixnum = /* @stopify flat */ function() {
     var a = splitIntIntoMantissaExpt(this);
     //console.log('bigint.tofixnum of', this);
     //console.log('split = ', a);
@@ -3666,29 +3667,29 @@ function ______NumberModule() {
     return r;
   }
 
-  BigInteger.prototype.toRoughnum = function(errbacks) {
+  BigInteger.prototype.toRoughnum = /* @stopify flat */ function(errbacks) {
     return Roughnum.makeInstance(this.toFixnum(), errbacks);
   };
 
-  BigInteger.prototype.greaterThan = function(other, errbacks) {
+  BigInteger.prototype.greaterThan = /* @stopify flat */ function(other, errbacks) {
     return this.compareTo(other, errbacks) > 0;
   };
 
-  BigInteger.prototype.greaterThanOrEqual = function(other, errbacks) {
+  BigInteger.prototype.greaterThanOrEqual = /* @stopify flat */ function(other, errbacks) {
     return this.compareTo(other, errbacks) >= 0;
   };
 
-  BigInteger.prototype.lessThan = function(other, errbacks) {
+  BigInteger.prototype.lessThan = /* @stopify flat */ function(other, errbacks) {
     return this.compareTo(other, errbacks) < 0;
   };
 
-  BigInteger.prototype.lessThanOrEqual = function(other, errbacks) {
+  BigInteger.prototype.lessThanOrEqual = /* @stopify flat */ function(other, errbacks) {
     return this.compareTo(other, errbacks) <= 0;
   };
 
   // divide: pyretnum -> pyretnum
   // WARNING NOTE: we override the old version of divide.
-  BigInteger.prototype.divide = function(other, errbacks) {
+  BigInteger.prototype.divide = /* @stopify flat */ function(other, errbacks) {
     var quotientAndRemainder = bnDivideAndRemainder.call(this, other);
     if (quotientAndRemainder[1].compareTo(BigInteger.ZERO) === 0) {
       return quotientAndRemainder[0];
@@ -3699,19 +3700,19 @@ function ______NumberModule() {
     }
   };
 
-  BigInteger.prototype.numerator = function() {
+  BigInteger.prototype.numerator = /* @stopify flat */ function() {
     return this;
   };
 
-  BigInteger.prototype.denominator = function() {
+  BigInteger.prototype.denominator = /* @stopify flat */ function() {
     return 1;
   };
 
-  (function() {
+  (/* @stopify flat */ function() {
     // Classic implementation of Newton-Raphson square-root search,
     // adapted for integer-sqrt.
     // http://en.wikipedia.org/wiki/Newton's_method#Square_root_of_a_number
-    var searchIter = function(n, guess, errbacks) {
+    var searchIter = /* @stopify flat */ function(n, guess, errbacks) {
       while(!(lessThanOrEqual(sqr(guess),n, errbacks) &&
               lessThan(n,sqr(add(guess, 1, errbacks), errbacks), errbacks))) {
         guess = floor(divide(add(guess,
@@ -3722,7 +3723,7 @@ function ______NumberModule() {
     };
 
     // integerSqrt: -> pyretnum
-    BigInteger.prototype.integerSqrt = function(errbacks) {
+    BigInteger.prototype.integerSqrt = /* @stopify flat */ function(errbacks) {
       var n;
       if(sign(this) >= 0) {
         return searchIter(this, this, errbacks);
@@ -3732,10 +3733,10 @@ function ______NumberModule() {
     };
   })();
 
-  (function() {
+  (/* @stopify flat */ function() {
     // Get an approximation using integerSqrt, and then start another
     // Newton-Raphson search if necessary.
-    BigInteger.prototype.sqrt = function(errbacks) {
+    BigInteger.prototype.sqrt = /* @stopify flat */ function(errbacks) {
       var approx = this.integerSqrt(errbacks), fix;
       if (eqv(sqr(approx, errbacks), this, errbacks)) {
         return approx;
@@ -3755,65 +3756,65 @@ function ______NumberModule() {
 
   // floor: -> pyretnum
   // Produce the floor.
-  BigInteger.prototype.floor = function(errbacks) {
+  BigInteger.prototype.floor = /* @stopify flat */ function(errbacks) {
     return this;
   }
 
   // ceiling: -> pyretnum
   // Produce the ceiling.
-  BigInteger.prototype.ceiling = function(errbacks) {
+  BigInteger.prototype.ceiling = /* @stopify flat */ function(errbacks) {
     return this;
   }
 
   // round: -> pyretnum
   // Round to the nearest integer.
-  BigInteger.prototype.round = function(n, errbacks) {
+  BigInteger.prototype.round = /* @stopify flat */ function(n, errbacks) {
     return this;
   };
 
-  BigInteger.prototype.roundEven = function(n, errbacks) {
+  BigInteger.prototype.roundEven = /* @stopify flat */ function(n, errbacks) {
     return this;
   };
 
   // log: -> pyretnum
   // Produce the log.
-  BigInteger.prototype.log = function(n, errbacks) {
+  BigInteger.prototype.log = /* @stopify flat */ function(n, errbacks) {
     return log(this.toFixnum(), errbacks);
   };
 
   // tan: -> pyretnum
   // Produce the tan.
-  BigInteger.prototype.tan = function(n, errbacks) {
+  BigInteger.prototype.tan = /* @stopify flat */ function(n, errbacks) {
     return tan(this.toFixnum(), errbacks);
   };
 
   // atan: -> pyretnum
   // Produce the arc tangent.
-  BigInteger.prototype.atan = function(n, errbacks) {
+  BigInteger.prototype.atan = /* @stopify flat */ function(n, errbacks) {
     return atan(this.toFixnum(), errbacks);
   };
 
   // cos: -> pyretnum
   // Produce the cosine.
-  BigInteger.prototype.cos = function(n, errbacks) {
+  BigInteger.prototype.cos = /* @stopify flat */ function(n, errbacks) {
     return cos(this.toFixnum(), errbacks);
   };
 
   // sin: -> pyretnum
   // Produce the sine.
-  BigInteger.prototype.sin = function(n, errbacks) {
+  BigInteger.prototype.sin = /* @stopify flat */ function(n, errbacks) {
     return sin(this.toFixnum(), errbacks);
   };
 
   // expt: pyretnum -> pyretnum
   // Produce the power to the input.
-  BigInteger.prototype.expt = function(n, errbacks) {
+  BigInteger.prototype.expt = /* @stopify flat */ function(n, errbacks) {
     return bnPow.call(this, n);
   };
 
   // exp: -> pyretnum
   // Produce e raised to the given power.
-  BigInteger.prototype.exp = function(errbacks) {
+  BigInteger.prototype.exp = /* @stopify flat */ function(errbacks) {
     var res = Math.exp(this.toFixnum());
     if (!isFinite(res))
       errbacks.throwDomainError('exp: argument too large: ' + this);
@@ -3822,13 +3823,13 @@ function ______NumberModule() {
 
   // acos: -> pyretnum
   // Produce the arc cosine.
-  BigInteger.prototype.acos = function(n, errbacks) {
+  BigInteger.prototype.acos = /* @stopify flat */ function(n, errbacks) {
     return acos(this.toFixnum(), errbacks);
   };
 
   // asin: -> pyretnum
   // Produce the arc sine.
-  BigInteger.prototype.asin = function(n, errbacks) {
+  BigInteger.prototype.asin = /* @stopify flat */ function(n, errbacks) {
     return asin(this.toFixnum(), errbacks);
   };
 
@@ -3845,8 +3846,8 @@ function ______NumberModule() {
   // case the search cuts off if we go past the limit.
   // If this happens, the third argument returned becomes '...' to indicate
   // that the search was prematurely cut off.
-  var toRepeatingDecimal = (function() {
-    var getResidue = function(r, d, limit, errbacks) {
+  var toRepeatingDecimal = (/* @stopify flat */ function() {
+    var getResidue = /* @stopify flat */ function(r, d, limit, errbacks) {
       var digits = [];
       var seenRemainders = {};
       seenRemainders[r] = true;
@@ -3900,7 +3901,7 @@ function ______NumberModule() {
 
     };
 
-    return function(n, d, options, errbacks) {
+    return /* @stopify flat */ function(n, d, options, errbacks) {
       // default limit on decimal expansion; can be overridden
       var limit = 512;
       if (options && typeof(options.limit) !== 'undefined') {
@@ -3939,7 +3940,7 @@ function ______NumberModule() {
   // output's apparent precision may be unrelated to the actual precision of the
   // input number, which may have been an approximation, or unrepresentable in
   // decimal.
-  function toStringDigits(n, digits, errbacks) {
+  /* @stopify flat */ function toStringDigits(n, digits, errbacks) {
     if (!isInteger(digits)) {
       errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
     }
@@ -4048,4 +4049,4 @@ function ______NumberModule() {
   return Numbers;
 }
 
-module.exports = ______NumberModule();
+module.exports = NumberModule();
