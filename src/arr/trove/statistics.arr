@@ -53,7 +53,7 @@ end
 fun group-and-count(l :: List<Number>) -> List<{Number; Number}> block:
   doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
   
-  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), true)
+  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), false)
   size = raw-array-length(sorted)
 
   if size == 0: empty

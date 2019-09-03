@@ -4141,7 +4141,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var raw_array_sort_nums = function(arr, asc) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 1, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-sort-nums", arr, thisRuntime.RawArray, asc, thisRuntime.Boolean);
-      arr.sort(asc? jsnums.lessThan : jsnums.greaterThan);
+      const wrappedLT = (x, y) => jsnums.lessThan(x,y)?    1 : jsnums.roughlyEquals(x, y, 0)? 0 : -1;
+      const wrappedGT = (x, y) => jsnums.greaterThan(x,y)? 1 : jsnums.roughlyEquals(x, y, 0)? 0 : -1;
+      arr.sort(asc? wrappedLT : wrappedGT);
       return arr;
     };
 

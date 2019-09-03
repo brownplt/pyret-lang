@@ -1,5 +1,6 @@
 import equality as E
 include statistics
+import lists as L
 
 check "numeric helpers":
   
@@ -17,11 +18,11 @@ check "numeric helpers":
   median([list: 1, ~1, ~1]) is-roughly ~1
 
   # Even numbered lists
-  median([list: ]) raises "empty"
+  median([list: ]) raises "Non-Empty list"
   median([list: -1, 1]) is 0
-  median([list: 1, 2, 3, 4]) is 2.5
-  median([list: -1, 0, ~2, 3]) is-roughly ~1
-  median([list: ~0, ~1, ~2, ~2, ~6, ~8]) is-roughly ~2
+  median(L.shuffle([list: 1, 2, 3, 4])) is 2.5
+  median(L.shuffle([list: -1, 0, ~2, 3])) is-roughly ~1
+  median(L.shuffle([list: ~0, ~1, ~2, ~2, ~6, ~8])) is-roughly ~2
 
   # Mode
   has-mode([list: ]) is false
