@@ -50,6 +50,7 @@ export const makeRequireAsync = (
         Math,
         Array,
         Object,
+        RegExp,
         stopify,
         require: requireAsync,
         "module": stopifyModuleExports,
