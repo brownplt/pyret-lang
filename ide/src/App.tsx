@@ -523,31 +523,40 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             </CodeMirror>
                         </div>
                         <div className="interactions-area-container">
-                            <pre className="interactions-area"
-                                 style={{fontSize: this.state.fontSize}}>
-                                {
-                                    this.state.interactions.map(
-                                        (i) => {
-                                            return <Interaction key={i.name}
-                                                                name={i.name}
-                                                                value={i.value}
-                                                                setMessage={this.setMessage}/>
-                                        })
-                                }
-                            </pre>
-                            {
-                                (() => {
-                                    return (this.state.interactErrorExists ? (
-                                        <div className="interaction-error">
-                                            <p style={{fontSize: this.state.fontSize}}>
-                                                {this.state.interactionErrors}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        null
-                                    ));
-                                })()
-                            }
+                            {this.state.interactErrorExists ? (
+                            <SplitterLayout vertical={true}>
+                                <pre className="interactions-area"
+                                     style={{fontSize: this.state.fontSize}}>
+                                    {
+                                        this.state.interactions.map(
+                                            (i) => {
+                                                return <Interaction key={i.name}
+                                                                    name={i.name}
+                                                                    value={i.value}
+                                                                    setMessage={this.setMessage}/>
+                                            })
+                                    }
+                                </pre>
+                                <div className="interaction-error">
+                                    <p style={{fontSize: this.state.fontSize}}>
+                                        {this.state.interactionErrors}
+                                    </p>
+                                </div>
+                            </SplitterLayout>
+                            ) : (
+                                <pre className="interactions-area"
+                                     style={{fontSize: this.state.fontSize}}>
+                                    {
+                                        this.state.interactions.map(
+                                            (i) => {
+                                                return <Interaction key={i.name}
+                                                                    name={i.name}
+                                                                    value={i.value}
+                                                                    setMessage={this.setMessage}/>
+                                            })
+                                    }
+                                </pre>
+                            )}
                         </div>
                     </SplitterLayout>
                 </div>

@@ -177,10 +177,16 @@ button::-moz-focus-inner {
     position: relative !important;
 }
 
-.layout-splitter {
+.splitter-layout > .layout-splitter {
     width: 0.5em !important;
     border: 1px solid #a6a6a6;
     background: linear-gradient(to right, #bfbfbf 0%, #d9d9d9 40%, #d9d9d9 60%, #bfbfbf 100%);
+}
+
+.splitter-layout.splitter-layout-vertical > .layout-splitter {
+    width: auto !important;
+    height: 0.5em !important;
+    background: linear-gradient(to top, #bfbfbf 0%, #d9d9d9 40%, #d9d9d9 60%, #bfbfbf 100%);
 }
 
 .footer-container {
@@ -203,9 +209,6 @@ button::-moz-focus-inner {
     opacity: 0.8;
 }
 
-.layout-pane {
-    overflow: hidden !important;
-}
 
 .react-codemirror2 {
     height: 100%;
