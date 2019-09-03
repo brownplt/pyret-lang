@@ -21,10 +21,7 @@ t3 = "string" == "string"
 t4 = { 1; false; "foo" } == { 1; false; "foo" }
 t5 = { foo: 5, bar: false } == { bar: false, foo: 5 }
 t6 = foo == foo
-t7 = foo == bar
-t8 = foobar(true) == foobar(true)
-t9 = foobar(true) == barfoo(true)
-t10 = foobar(true) == barfoo(false).{x: true}
+t7 = foobar(true) == foobar(true)
 
 true-result = t1 
   and t2 
@@ -33,9 +30,6 @@ true-result = t1
   and t5
   and t6
   and t7
-  and t8
-  and t9
-  and t10
 
 if true-result == false:
   G.console-log([L.list: 
@@ -46,9 +40,6 @@ if true-result == false:
     t5, 
     t6, 
     t7, 
-    t8, 
-    t9,
-    t10,
   ])
 else:
   nothing
@@ -68,6 +59,9 @@ f8 = foobar(true) == barfoo(false)
 f9 = foobar(true) == barbar(true)
 f10 = foobar(true) == { x: true }
 f11 = foobar(true) == foobar(true).{ x: false }
+f12 = foo == bar
+f13 = foobar(true) == barfoo(true)
+f14 = foobar(true) == barfoo(false).{x: true}
 
 false-result = not(f1) 
   and not(f2) 
@@ -83,6 +77,9 @@ false-result = not(f1)
   and not(f9)
   and not(f10)
   and not(f11)
+  and not(f12)
+  and not(f13)
+  and not(f14)
 
 if false-result == false:
   G.console-log([L.list: 
@@ -100,6 +97,9 @@ if false-result == false:
     f9,
     f10,
     f11,
+    f12,
+    f13,
+    f14,
   ])
 else:
   nothing

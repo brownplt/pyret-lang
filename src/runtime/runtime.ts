@@ -305,6 +305,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
           worklist.push([v1[fields1[i]], v2[fields2[i]]]);
         }
         continue;
+      } else {
+        return NotEqual("Variant Brands", v1, v2);
       }
     } else if (isRawObject(v1) && isRawObject(v2)) {
       let keys1 = Object.keys(v1);
