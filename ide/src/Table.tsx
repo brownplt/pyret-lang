@@ -28,7 +28,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
         const defaultPageSize = showOptions ? maxRowsPerPage : this.props.rows.length;
         return (
             <div className="table-container">
-                <CopyToClipboard text={JSON.stringify(data)}
+                <CopyToClipboard text={data.map((d) => d.join("\t")).join("\n")}
                                  onCopy={() => console.log('copied')}>
                     <div className="table-copy">
                         &#128203;
