@@ -1,4 +1,4 @@
-### [ 'a', 'b', 'c', 'd', 'e' ]
+### abcde
 import list as L
 import string-dict as D
 import global as G
@@ -11,4 +11,8 @@ G.assert( L.at( D.values( dict ), 3 ), 'da', "Non-matching value" )
 
 fresh-dict = D.insert( dict, "e", 'ea' )
 
-G.console-log( D.keys( fresh-dict ) )
+msg = for L.reduce( s from "", k from D.keys(fresh-dict)):
+ s + k
+end
+
+G.console-log(msg)
