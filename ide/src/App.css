@@ -303,3 +303,18 @@ button::-moz-focus-inner {
 .font-size-options {
     height: 2.7em;
 }
+
+.table-copy {
+    cursor: pointer;
+    position: absolute;
+    padding: 0.5em;
+    z-index: 1;
+}
+
+.table-container .table-copy {
+    opacity: 0;
+}
+
+.table-container:hover .table-copy {
+    opacity: 1;
+}
