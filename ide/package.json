@@ -10,6 +10,7 @@
     "@types/jest": "^24.0.17",
     "@types/node": "^12.7.1",
     "@types/react": "^16.9.1",
+    "@types/react-copy-to-clipboard": "^4.2.6",
     "@types/react-dom": "^16.8.5",
     "@types/react-splitter-layout": "^3.0.0",
     "@types/react-table": "^6.8.5",
