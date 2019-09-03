@@ -108,8 +108,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     control.path.runProgram,
                     (runResult: any) => {
                         console.log(runResult);
-                        this.setMessage("Run completed successfully");
                         if (runResult.result !== undefined) {
+                            if (runResult.result.error === undefined) {
+                                this.setMessage("Run completed successfully");
+                            } else {
+                                this.setMessage("Run failed with error(s)");
+                            }
+
                             this.setState(
                                 {
                                     interactions: makeResult(runResult.result)
