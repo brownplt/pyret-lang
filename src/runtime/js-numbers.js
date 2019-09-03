@@ -106,6 +106,10 @@ An integer is either a fixnum or a BigInteger.
 
 */
 
+// TODO(alex): Attempting to use the Stopified version of this code throw an exception:
+// 'Type error: constr is undefined'
+
+/* @stopify flat */
 function ______NumberModule() {
   'use strict';
   // Abbreviation
