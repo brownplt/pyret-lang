@@ -92,6 +92,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.setupWorkerMessageHandler(
             console.log,
             (errors: string[]) => {
+                this.setMessage("Compilation failed with error(s)")
                 console.log("Error (App.ts): ", errors);
                 this.setState(
                     {
@@ -101,11 +102,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 );
             },
             () => {
+                this.setMessage("Run started");
                 control.run(
                     control.path.runBase,
                     control.path.runProgram,
                     (runResult: any) => {
                         console.log(runResult);
+                        this.setMessage("Run completed successfully");
                         if (runResult.result !== undefined) {
                             this.setState(
                                 {
@@ -180,11 +183,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }
         );
         if (this.isPyretFile) {
+            this.setMessage("Compilation started");
             control.compile(
                 this.currentFileDirectory,
                 this.currentFileName,
                 this.state.typeCheck);
         } else {
+            this.setMessage("Visited a non-pyret file");
             this.setState({
                 interactions: [
                     {
