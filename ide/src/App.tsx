@@ -112,15 +112,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             if (runResult.result !== undefined) {
                                 if (runResult.result.error === undefined) {
                                     this.setMessage("Run completed successfully");
+
+                                    this.setState({
+                                        interactions: makeResult(runResult.result)
+                                    });
                                 } else {
                                     this.setMessage("Run failed with error(s)");
-                                }
 
-                                this.setState(
-                                    {
-                                        interactions: makeResult(runResult.result)
-                                    }
-                                );
+                                    this.setState({
+                                        interactionErrors: [runResult.result.error],
+                                        interactErrorExists: true
+                                    });
+                                }
                             }
                         },
                         this.state.runKind);
