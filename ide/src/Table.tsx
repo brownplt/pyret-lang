@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactTable from 'react-table';
+import 'react-table/react-table.css';
 
 type TableWidgetProps = {
     htmlify: (x: any) => any;
@@ -9,53 +11,27 @@ type TableWidgetState = {};
 
 export class TableWidget extends React.Component<TableWidgetProps, TableWidgetState> {
     render() {
+        const data = this.props.rows;
+        const columns = this.props.headers.map(
+            (header: string, index: number) => {
+                return {
+                    id: header,
+                    Header: header,
+                    accessor: (row: any) => {
+                        return this.props.htmlify(row[index]);
+                    }
+                };
+            });
+        const maxRowsPerPage = 5;
+        const showOptions = this.props.rows.length > maxRowsPerPage;
+        const defaultPageSize = showOptions ? maxRowsPerPage : this.props.rows.length;
         return (
-            <div className="table-container">
-                <table className="table-widget">
-                    <thead className="table-widget-header">
-                        <tr>
-                            {
-                                this.props.headers.map((header) => {
-                                    return (
-                                        <th key={header}
-                                            className="table-header-item">
-                                            {header}
-                                        </th>
-                                    );
-                                })
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {
-                            this.props.rows.map((row, i) => {
-                                return (
-                                    <tr key={i}>
-                                        {
-                                            (() => {
-                                                let colorClass: string;
-                                                if (i % 2 === 0) {
-                                                    colorClass = "table-body-item";
-                                                } else {
-                                                    colorClass = "table-light-body-item";
-                                                }
-                                                return row.map((x, j) => {
-                                                    return (
-                                                        <td key={`${i}:${j}`}
-                                                            className={`${colorClass} table-body-item`}>
-                                                            {this.props.htmlify(x)}
-                                                        </td>
-                                                    );
-                                                });
-                                            })()
-                                        }
-                                    </tr>
-                                );
-                            })
-                        }
-                    </tbody>
-                </table>
-            </div>
-        )
+            <ReactTable data={data}
+                        columns={columns}
+                        showPagination={showOptions}
+                        pageSize={defaultPageSize}
+                        showPageSizeOptions={false}
+                        filterable={showOptions}/>
+        );
     }
 }

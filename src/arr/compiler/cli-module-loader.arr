@@ -1,4 +1,5 @@
 provide *
+import render-error-display as RED
 import runtime-lib as R
 import builtin-modules as B
 import make-standalone as MS
@@ -9,7 +10,6 @@ import file("ast.arr") as A
 import pathlib as P
 import sha as crypto
 import string-dict as SD
-import render-error-display as RED
 import error as ERR
 import system as SYS
 import file("js-ast.arr") as J
@@ -429,6 +429,7 @@ fun handle-compilation-errors(problems, options) block:
     options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
     options.log-error("\n")
   end
+  # TODO (Tiffany): remove handle-compilation-errors and run
   raise("There were compilation errors")
 end
 
@@ -599,13 +600,7 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
-  maybe-program = build-program(path, options, stats)
-  cases(Either) maybe-program block:
-    | left(problems) =>
-      handle-compilation-errors(problems, options)
-    | right(program) =>
-      nothing
-  end
+  build-program(path, options, stats)
 end
 
 fun build-require-standalone(path, options):

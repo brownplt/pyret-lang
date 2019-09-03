@@ -4,8 +4,9 @@ import {Interaction} from './Interaction';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
-import 'codemirror/theme/material.css';
-import 'codemirror/mode/javascript/javascript.js';
+import 'pyret-codemirror-mode/css/pyret.css';
+import SplitterLayout from 'react-splitter-layout';
+import 'react-splitter-layout/lib/index.css';
 
 // pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
 // to be bound to the 'codemirror' import.
@@ -35,6 +36,11 @@ type EditorProps = {
     currentFileName: string;
 };
 
+enum Menu {
+    FSBrowser,
+    Options,
+}
+
 type EditorState = {
     browseRoot: string;
     browsePath: string[];
@@ -43,10 +49,16 @@ type EditorState = {
     currentFileContents: string;
     typeCheck: boolean;
     interactions: {name: string, value: any}[];
-    fsBrowserVisible: boolean;
+    interactionErrors: string[];
+    interactErrorExists: boolean;
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
+    debug: boolean;
+    dropdownVisible: boolean;
+    fontSize: number;
+    menu: Menu;
+    menuVisible: boolean;
 };
 
 type FSItemProps = {
@@ -63,10 +75,10 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 
     render() {
         return (
-            <li onClick={this.props.onClick}
-                className="fs-browser-item">
+            <button onClick={this.props.onClick}
+            className="fs-browser-item">
                 {this.props.contents}
-            </li>
+            </button>
         );
     }
 }
@@ -77,8 +89,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         control.setupWorkerMessageHandler(
             console.log,
-            console.log,
-            () => { return; },
+            (errors: string[]) => {
+                console.log("Error (App.ts): ", errors);
+                this.setState(
+                    {
+                        interactionErrors: errors,
+                        interactErrorExists: true
+                    }
+                );
+            },
             () => {
                 control.run(
                     control.path.runBase,
@@ -110,10 +129,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
-            fsBrowserVisible: false,
+            interactionErrors: [],
+            interactErrorExists: false,
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
+            debug: false,
+            dropdownVisible: false,
+            menu: Menu.Options,
+            menuVisible: false,
+            fontSize: 12,
         };
     };
 
@@ -145,6 +170,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     run = () => {
+        this.setState(
+            {
+                interactionErrors: [],
+                interactErrorExists: false
+            }
+        );
         if (this.isPyretFile) {
             control.compile(
                 this.currentFileDirectory,
@@ -160,7 +191,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {
                         name: "File",
                         value: this.currentFile
-                    }]
+                    }],
+                interactionErrors: ["Error: Run is not supported on this file type"],
+                interactErrorExists: true
             });
         }
     };
@@ -241,9 +274,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleFSBrowser = () => {
-        this.setState({
-            fsBrowserVisible: !this.state.fsBrowserVisible
-        });
+        if (this.state.menu === Menu.FSBrowser) {
+            this.setState({
+                menuVisible: !this.state.menuVisible,
+            });
+        } else if (this.state.menu === Menu.Options) {
+            this.setState({
+                menu: Menu.FSBrowser,
+                menuVisible: true,
+            });
+        }
     };
 
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
@@ -252,139 +292,228 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
         control.removeRootDirectory();
-    }
+    };
+
+    makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => {
+        return (
+            <button className={(enabled ? "run-option-enabled" : "run-option-disabled")}
+                    onClick={onClick}>
+                {text}
+            </button>
+        );
+    };
+
+    makeDropdownOption = (text: string, enabled: boolean, onClick: () => void) => {
+        return (
+            <div className={enabled ? "run-option-enabled" : "run-option-disabled"}
+                 onClick={onClick}>
+                <input type="checkBox"
+                       checked={enabled}
+                       name={text}
+                       className="run-option-checkbox"
+                       readOnly={true}>
+                </input>
+                <label htmlFor={text}
+                       className="run-option-label">
+                    {text}
+                </label>
+            </div>
+        );
+    };
+
+    toggleDropdownVisibility = (e: any) => {
+        this.setState({
+            dropdownVisible: !this.state.dropdownVisible
+        });
+    };
+
+    toggleAutoRun = () => {
+        this.setState({
+            autoRun: !this.state.autoRun
+        });
+    };
+
+    toggleStopify = () => {
+        if (this.state.runKind === control.backend.RunKind.Async) {
+            this.setState({
+                runKind: control.backend.RunKind.Sync
+            });
+        } else {
+            this.setState({
+                runKind: control.backend.RunKind.Async
+            })
+        }
+    };
+
+    toggleTypeCheck = () => {
+        this.setState({
+            typeCheck: !this.state.typeCheck
+        });
+    };
+
+    toggleOptionsVisibility = () => {
+        if (this.state.menu === Menu.Options) {
+            this.setState({
+                menuVisible: !this.state.menuVisible,
+            });
+        } else if (this.state.menu === Menu.FSBrowser) {
+            this.setState({
+                menu: Menu.Options,
+                menuVisible: true,
+            });
+        }
+    };
+
+    decreaseFontSize = () => {
+        if (this.state.fontSize > 1) {
+            this.setState({
+                fontSize: this.state.fontSize - 1
+            });
+        }
+    };
+
+    increaseFontSize = () => {
+        this.setState({
+            fontSize: this.state.fontSize + 1
+        });
+    };
+
+    resetFontSize = () => {
+        this.setState({
+            fontSize: 12
+        });
+    };
 
     render() {
         return (
-            <div id="outer-box">
-                <div id="header">
-                    <button className="right-header-button"
-                            onClick={this.run}>
-                        Run
+            <div className="page-container">
+                <div className="header-container">
+                    <button className="menu"
+                            onClick={this.toggleOptionsVisibility}>
+                        Options
                     </button>
-                    <button className="left-header-button"
+                    <button className="menu"
                             onClick={this.toggleFSBrowser}>
-                        File System
+                        Files
                     </button>
-                    <button className="left-header-button"
-                            onClick={this.loadBuiltins}>
-                        Load Builtins
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.removeRootDirectory}>
-                        Remove Root
-                    </button>
-                    <div className="header-run-option">
-                        <input type="checkbox"
-                               checked={this.state.typeCheck}
-                               name="typeCheck"
-                               onChange={(e) => {
-                                   this.setState({
-                                       typeCheck: !this.state.typeCheck
-                                   });
-                               }}>
-                        </input>
-                        <label htmlFor="typeCheck">
-                            Type Check
-                        </label>
+                    {this.state.runKind === control.backend.RunKind.Async ? (
+                        <button className="stop-available">
+                            Stop
+                        </button>
+                    ) : (
+                        <button className="stop-unavailable">
+                            Stop
+                        </button>
+                    )}
+                    <div className="run-container">
+                        <button className="run-ready"
+                                onClick={this.run}>
+                            Run
+                        </button>
+                        <button className="run-options"
+                                onClick={this.toggleDropdownVisibility}>&#8628;</button>
                     </div>
-                    <div className="header-run-option">
-                        <input type="checkBox"
-                               checked={this.state.runKind === control.backend.RunKind.Async}
-                               name="stopify"
-                               onChange={(e) => {
-                                   if (this.state.runKind === control.backend.RunKind.Async) {
-                                       this.setState({
-                                           runKind: control.backend.RunKind.Sync
-                                       });
-                                   } else {
-                                       this.setState({
-                                           runKind: control.backend.RunKind.Async
-                                       })
-                                   }
-                               }}>
-                        </input>
-                        <label htmlFor="stopify">
-                            Stopify
-                        </label>
-                    </div>
-                    <div className="header-run-option">
-                        <input type="checkBox"
-                               checked={this.state.autoRun}
-                               name="autoRun"
-                               onChange={(e) => {
-                                   this.setState({
-                                       autoRun: !this.state.autoRun
-                                   });
-                               }}>
-                        </input>
-                        <label htmlFor="autoRun">
-                            Auto Run
-                        </label>
-                    </div>
+                    {this.state.dropdownVisible ? (
+                        <div className="run-dropdown">
+                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
+                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
+                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
+                        </div>
+                    ) : (
+                        null
+                    )}
                 </div>
-                <div id="main">
-                    <div id="edit-box">
-                        {
-                            (this.state.fsBrowserVisible ? (
-                                <ul id="fs-browser">
-                                    {(!this.browsingRoot) ? (
-                                        <li onClick={() => {
-                                            this.traverseUp();
-                                        }}
-                                            className="fs-browser-item">
-                                            ..
-                                        </li>
-                                    ) : (
-                                        null
-                                    )}
-                                    {
-                                        control.fs
-                                            .readdirSync(this.browsePath)
-                                            .map(this.createFSItemPair)
-                                            .sort(this.compareFSItemPair)
-                                            .map((x: [string, FSItem]) => x[1])
-                                    }
-                                </ul>
-                            ) : (
-                                null
-                            ))
-                        }
-                        <div id="file-container">
-                            <div id="file-name-label">
-                                {this.currentFile}
-                            </div>
-                            <div id="main-container">
-                                <div id="definitions-container">
-                                    <CodeMirror
-                                        value={this.state.currentFileContents}
+                <div className="code-container">
+                    {this.state.menuVisible ? (
+                        (() => {
+                            if (this.state.menu === Menu.FSBrowser) {
+                                return (
+                                    <div className="menu-content">
+                                        {!this.browsingRoot ? (
+                                            <button className="fs-browser-item"
+                                                    onClick={this.traverseUp}>
+                                                ..
+                                            </button>
+                                        ) : (
+                                            null
+                                        )}
+                                        {
+                                            control.fs
+                                                   .readdirSync(this.browsePath)
+                                                   .map(this.createFSItemPair)
+                                                   .sort(this.compareFSItemPair)
+                                                   .map((x: [string, FSItem]) => x[1])
+                                        }
+                                    </div>
+                                );
+                            } else if (this.state.menu === Menu.Options) {
+                                return (
+                                    <div className="menu-content">
+                                        <div className="font-size-options">
+                                            <button className="font-minus"
+                                                    onClick={this.decreaseFontSize}>
+                                                -
+                                            </button>
+                                            <button className="font-label"
+                                                    onClick={this.resetFontSize}>
+                                                Font ({this.state.fontSize} px)
+                                            </button>
+                                            <button className="font-plus"
+                                                    onClick={this.increaseFontSize}>
+                                                +
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                        })()
+                    ) : (
+                        null
+                    )}
+                    <SplitterLayout vertical={false}
+                                    percentage={true}>
+                        <div className="edit-area-container"
+                             style={{fontSize: this.state.fontSize}}>
+                            <CodeMirror value={this.state.currentFileContents}
                                         options={{
                                             mode: 'pyret',
-                                            theme: 'material',
-                                            lineNumbers: true
+                                            theme: 'default',
+                                            lineNumbers: true,
+                                            lineWrapping: true,
                                         }}
                                         onChange={this.onEdit}
                                         autoCursor={false}>
-                                    </CodeMirror>
-                                </div>
-                                <div id="separator">
-                                </div>
-                                <div id="interactions-container">
-                                    <pre id="interactions-area"
-                                         className="code">
-                                        {
-                                            this.state.interactions.map(
-                                                (i) => {
-                                                    return <Interaction key={i.name} name={i.name} value={i.value} />
-                                                })
-                                        }
-                                    </pre>
-                                </div>
-                            </div>
+                            </CodeMirror>
                         </div>
-                    </div>
+                        <div className="interactions-area-container">
+                            <pre className="interactions-area"
+                                 style={{fontSize: this.state.fontSize}}>
+                                {
+                                    this.state.interactions.map(
+                                        (i) => {
+                                            return <Interaction key={i.name} name={i.name} value={i.value} />
+                                        })
+                                }
+                            </pre>
+                            {
+                                (() => {
+                                    console.log(this.state.interactErrorExists);
+                                    return (this.state.interactErrorExists ? (
+                                        <div className="interaction-error">
+                                            <p style={{fontSize: this.state.fontSize}}>
+                                                {this.state.interactionErrors}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        null
+                                    ));
+                                })()
+                            }
+                        </div>
+                    </SplitterLayout>
                 </div>
-                <div id="footer"></div>
+                <div className="footer-container">
+                </div>
             </div>
         );
     }

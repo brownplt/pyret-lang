@@ -22,8 +22,7 @@ export interface RunResult {
  */
 export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
-  echoErr: (e: string) => void,
-  compileFailure: () => void,
+  compileFailure: (e: string[]) => void,
   compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
@@ -31,17 +30,18 @@ export const makeBackendMessageHandler = (
     }
 
     try {
-      var msgObject = JSON.parse(e.data);
+      var msgObject: any = JSON.parse(e.data);
+
+      console.log(msgObject)
 
       var msgType = msgObject["type"];
       if (msgType === undefined) {
         return null;
       } else if (msgType === "echo-log") {
         echoLog(msgObject.contents);
-      } else if (msgType === "echo-err") {
-        echoErr(msgObject.contents);
       } else if (msgType === "compile-failure") {
-        compileFailure();
+        console.log("\nCOMPILE FAILURE\n");
+        compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
         compileSuccess();
       } else {

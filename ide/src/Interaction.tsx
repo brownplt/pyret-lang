@@ -41,9 +41,13 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
     };
 
     render() {
+        if (this.props.name === "$checks" || this.props.name === "$answer") {
+            return null;
+        }
+
         return (
             <div className="interaction">
-                <pre>
+                <pre className="interaction-identifier">
                     {this.props.name} =&nbsp;
                 </pre>
                 {this.convert(this.props.value)}

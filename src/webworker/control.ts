@@ -86,12 +86,10 @@ export const run = (
 
 export const setupWorkerMessageHandler = (
   onLog: (l: string) => void,
-  onError: (e: string) => void,
-  onCompileFailure: () => void,
+  onCompileFailure: (e: string[]) => void,
   onCompileSuccess: () => void): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
-    onError,
     onCompileFailure,
     onCompileSuccess);
 };
