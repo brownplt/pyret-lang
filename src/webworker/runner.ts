@@ -117,9 +117,10 @@ export const makeRequireAsync = (
         }
         const toReturn = currentRunner.g.module.exports;
         currentRunner.path = lastPath;
-        currentRunner.module = lastModule;
+        // g.exports and g.module may be overwritten by JS code. Need to restore
+        currentRunner.g.module = lastModule;
         // Need to set 'exports' global to work with TS export desugaring
-        currentRunner.module.exports = lastModule.exports;
+        currentRunner.g.exports = lastModule.exports;
         kontinue({ type: 'normal', value: toReturn });
       });
     });
