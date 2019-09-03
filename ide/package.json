@@ -51,6 +51,7 @@
     "react": "^16.9.0",
     "react-app-polyfill": "^1.0.2",
     "react-codemirror2": "^6.0.0",
+    "react-copy-to-clipboard": "^5.0.1",
     "react-dev-utils": "^9.0.2",
     "react-dom": "^16.9.0",
     "react-splitter-layout": "^4.0.0",
