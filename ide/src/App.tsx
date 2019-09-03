@@ -76,7 +76,7 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
     render() {
         return (
             <button onClick={this.props.onClick}
-            className="fs-browser-item">
+                    className="fs-browser-item">
                 {this.props.contents}
             </button>
         );
