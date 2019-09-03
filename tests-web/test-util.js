@@ -171,6 +171,19 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
   }
 };
 
+async function searchForRuntimeErrors(driver) {
+  let cl = await driver.findElement({ id: "consoleList" });
+  let innerHTML = await cl.getAttribute("innerHTML");
+  let runningIndex = innerHTML.search(/Running/);
+  
+  if (runningIndex !== -1) {
+    let toSearchIndex = innerHTML.substring(runningIndex).includes("ERR");
+    return toSearchIndex !== -1;
+  } else {
+    return true;
+  }
+}
+
 async function searchOutput(driver, pattern) {
   let cl = await driver.findElement({ id: "consoleList" });
   let innerHTML = await cl.getAttribute("innerHTML");
@@ -200,5 +213,6 @@ module.exports = {
   compileRun: compileRun,
   searchOutput: searchOutput,
   searchForRunningOutput: searchForRunningOutput,
+  searchForRuntimeErrors: searchForRuntimeErrors,
   clearLogs: clearLogs,
 };

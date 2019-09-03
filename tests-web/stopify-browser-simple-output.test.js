@@ -104,7 +104,11 @@ describe("Testing browser simple-output programs", () => {
         let foundOutput = 
           await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
 
+        let runtimeErrors = 
+          await tester.searchForRuntimeErrors(driver);
+
         expect(foundOutput).toBeTruthy();
+        expect(runtimeErrors).toBeFalsy();
 
         await done();
       });
