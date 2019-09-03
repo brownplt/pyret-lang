@@ -158,8 +158,8 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
       let runningIndex = innerHTML.search(/Running/);
       
       if (runningIndex !== -1) {
-        let toSearchIndex = innerHTML.substring(runningIndex).includes(toSearch);
-        return toSearchIndex !== -1;
+        let includes = innerHTML.substring(runningIndex).includes(toSearch);
+        return includes;
       } else {
         return false;
       }
@@ -171,14 +171,14 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
   }
 };
 
-async function searchForRuntimeErrors(driver) {
+async function areRuntimeErrors(driver) {
   let cl = await driver.findElement({ id: "consoleList" });
   let innerHTML = await cl.getAttribute("innerHTML");
   let runningIndex = innerHTML.search(/Running/);
   
   if (runningIndex !== -1) {
-    let toSearchIndex = innerHTML.substring(runningIndex).includes("ERR");
-    return toSearchIndex !== -1;
+    let includes = innerHTML.substring(runningIndex).includes("ERR");
+    return includes;
   } else {
     return true;
   }
@@ -213,6 +213,6 @@ module.exports = {
   compileRun: compileRun,
   searchOutput: searchOutput,
   searchForRunningOutput: searchForRunningOutput,
-  searchForRuntimeErrors: searchForRuntimeErrors,
+  areRuntimeErrors: areRuntimeErrors,
   clearLogs: clearLogs,
 };
