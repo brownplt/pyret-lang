@@ -209,7 +209,6 @@ button::-moz-focus-inner {
     opacity: 0.8;
 }
 
-
 .react-codemirror2 {
     height: 100%;
 }
@@ -226,7 +225,6 @@ button::-moz-focus-inner {
 }
 
 .interactions-area {
-    flex-grow: 1;
     font-family: monospace;
     margin: 0;
     padding: 0;
@@ -249,7 +247,6 @@ button::-moz-focus-inner {
 
 .interaction-error {
     background: rgb(255, 202, 202);
-    flex-grow: 1;
 }
 
 .menu-content {
