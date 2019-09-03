@@ -103,26 +103,35 @@ class Editor extends React.Component<EditorProps, EditorState> {
             },
             () => {
                 this.setMessage("Run started");
-                control.run(
-                    control.path.runBase,
-                    control.path.runProgram,
-                    (runResult: any) => {
-                        console.log(runResult);
-                        if (runResult.result !== undefined) {
-                            if (runResult.result.error === undefined) {
-                                this.setMessage("Run completed successfully");
-                            } else {
-                                this.setMessage("Run failed with error(s)");
-                            }
-
-                            this.setState(
-                                {
-                                    interactions: makeResult(runResult.result)
+                try {
+                    control.run(
+                        control.path.runBase,
+                        control.path.runProgram,
+                        (runResult: any) => {
+                            console.log(runResult);
+                            if (runResult.result !== undefined) {
+                                if (runResult.result.error === undefined) {
+                                    this.setMessage("Run completed successfully");
+                                } else {
+                                    this.setMessage("Run failed with error(s)");
                                 }
-                            );
-                        }
-                    },
-                    this.state.runKind);
+
+                                this.setState(
+                                    {
+                                        interactions: makeResult(runResult.result)
+                                    }
+                                );
+                            }
+                        },
+                        this.state.runKind);
+                } catch (e) {
+                    this.setMessage("Run failed with error(s)");
+                    this.setState({
+                        interactionErrors: [`${e.name}: ${e.message}`],
+                        interactErrorExists: true
+                    });
+                    console.log(e);
+                }
             });
 
         this.state = {
