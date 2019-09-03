@@ -384,6 +384,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    removeDropdown = () => {
+        this.setState({
+            dropdownVisible: false
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
@@ -412,7 +418,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </button>
                         <button className="run-options"
                                 onClick={this.toggleDropdownVisibility}
-                                onBlur={this.toggleDropdownVisibility}>&#8628;{
+                                onBlur={this.removeDropdown}>&#8628;{
                                     this.state.dropdownVisible ? (
                                         <div className="run-dropdown"
                                              onClick={(e) => e.stopPropagation()}>
