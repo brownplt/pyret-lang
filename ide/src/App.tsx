@@ -411,10 +411,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             Run
                         </button>
                         <button className="run-options"
-                                onFocus={this.toggleDropdownVisibility}
+                                onClick={this.toggleDropdownVisibility}
                                 onBlur={this.toggleDropdownVisibility}>&#8628;{
                                     this.state.dropdownVisible ? (
-                                        <div className="run-dropdown">
+                                        <div className="run-dropdown"
+                                             onClick={(e) => e.stopPropagation()}>
                                             {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
                                             {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
                                             {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
