@@ -187,6 +187,9 @@ button::-moz-focus-inner {
     height: 2.7em;
     background: #111;
     flex: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
 }
 
 .run-dropdown {

@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
+import {Footer} from './Footer';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
@@ -59,6 +60,7 @@ type EditorState = {
     fontSize: number;
     menu: Menu;
     menuVisible: boolean;
+    message: string;
 };
 
 type FSItemProps = {
@@ -139,6 +141,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             menu: Menu.Options,
             menuVisible: false,
             fontSize: 12,
+            message: "Ready to rock",
         };
     };
 
@@ -390,6 +393,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    setMessage = (newMessage: string) => {
+        this.setState({
+            message: newMessage
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
@@ -500,7 +509,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 {
                                     this.state.interactions.map(
                                         (i) => {
-                                            return <Interaction key={i.name} name={i.name} value={i.value} />
+                                            return <Interaction key={i.name}
+                                                                name={i.name}
+                                                                value={i.value}
+                                                                setMessage={this.setMessage}/>
                                         })
                                 }
                             </pre>
@@ -520,8 +532,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </div>
                     </SplitterLayout>
                 </div>
-                <div className="footer-container">
-                </div>
+                <Footer message={this.state.message}></Footer>
             </div>
         );
     }
