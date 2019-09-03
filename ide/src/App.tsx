@@ -46,6 +46,7 @@ type EditorState = {
     interactions: {name: string, value: any}[];
     interactionErrors: string[];
     interactErrorExists: boolean;
+    definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
     runKind: control.backend.RunKind;
     autoRun: boolean;
@@ -83,10 +84,21 @@ class Editor extends React.Component<EditorProps, EditorState> {
             console.log,
             (errors: string[]) => {
                 console.log("Error (App.ts, setUpWorkerMessageHandler, onCompileFailure): ", errors);
+                var places: any = [];
+                for ( var i = 0; i < errors.length; i++ ) {
+                    var matches = errors[i].match(/:\d:\d\-\d:\d+/g);
+                    if ( matches !== null ) {
+                        matches.forEach(function(m) {
+                            places.push(m.match(/\d+/g)!.map(Number));
+                        });
+                    }
+                }
+                console.log("Places: ", places);
                 this.setState(
                     {
                         interactionErrors: errors,
-                        interactErrorExists: true
+                        interactErrorExists: true,
+                        definitionsHighlights: places
                     }
                 );
             },
@@ -131,6 +143,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }],
             interactionErrors: [],
             interactErrorExists: false,
+            definitionsHighlights: [],
             fsBrowserVisible: false,
             runKind: control.backend.RunKind.Async,
             autoRun: true,
@@ -292,7 +305,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
     componentDidUpdate = (): void => {
         if (this.state.editor !== null) {
             if (this.state.interactErrorExists) {
-                this.state.editor.getDoc().markText({line: 0, ch: 0}, {line: 0, ch: 6}, {className: "styled-background"});
+                for ( var i = 0; i < this.state.definitionsHighlights.length; i++ ) {
+                    this.state.editor.getDoc().markText(
+                        { line: this.state.definitionsHighlights[i][0] - 1, 
+                            ch: this.state.definitionsHighlights[i][1] }, 
+                        { line: this.state.definitionsHighlights[i][2] - 1, 
+                            ch: this.state.definitionsHighlights[i][3] }, 
+                        { className: "styled-background" });
+                }
             } else {
                 for ( var i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
                     this.state.editor.getDoc().getAllMarks()[i].clear();
