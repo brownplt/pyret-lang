@@ -206,7 +206,7 @@ button::-moz-focus-inner {
     display: flex;
     flex-direction: column;
     z-index: 1;
-    opacity: 0.8;
+    border-top: 1px solid rgba(0, 0, 0, 1);
 }
 
 .react-codemirror2 {
