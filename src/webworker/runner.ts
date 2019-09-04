@@ -47,6 +47,7 @@ export const makeRequireAsync = (
       };
       runner.g = Object.assign(runner.g, {
         document,
+        Number,
         Math,
         Array,
         Object,
