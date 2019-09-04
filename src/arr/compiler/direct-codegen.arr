@@ -299,14 +299,117 @@ fun compile-member(context, member :: A.Member) -> { JExpr; JStmt }:
   end
 end
 
+#
+# Does NOT support method expressions
+# TODO(alex): Deprecate method expressions?
+#
+# Generates a function and a nested function of the form:
+#
+#   function binderNAME(self) {
+#     var inner = function innerNAME(method-args-no-self) { ... };
+#     inner["$brand"] = METHOD-BRAND;
+#     inner["$binder'] = binderNAME;
+#     return inner;
+#   } 
+#
+# Instantiating a method on a data variant:
+#
+#   var $singletonTMP = {
+#     ...
+#     "methodName": bindermethodName($singletonTMP)
+#     ...
+#   };
+#
+#   ...
+#
+#   "variant": function(...) {
+#     var tmpObj = {
+#       ...
+#       "methodName": bindermethodName(tmpObj),
+#       ...
+#     };
+#     return tmpObj;
+#   },
+#   "singleton": $singletonTMP,
+#
+# Rebinding methods should be handled by a RUNTIME function.
+# Rebinding should simply be calling something like:
+#   'oldObject.method["$binder"](newObject)'
+#
+# TODO(alex): Generate rebinding call
+#
 fun compile-method(context, 
       l :: Loc,
       name :: String,
       args :: List<Bind>, # Value parameters
       body :: Expr) -> { JExpr; JStmt }:
 
-  raise("FOO")
+  fun remove-self<a>(my-list :: CList<a>) -> { a; CList<a> }: 
+    cases(CList) my-list:
+      | concat-empty => raise("Always have at least 1 method parameter (self). Found none")
 
+      | concat-singleton(self-arg) => { self-arg; cl-empty }
+
+      | concat-append(left :: CList<a>, right :: CList<a>) =>
+        { self-arg; rest-left } = remove-self(list)
+        { self-arg; cl-append(rest-left, right) }
+
+      | concat-cons(self-arg :: a, rest :: CList<a>) =>
+        { self-arg; rest }
+
+      | concat-snoc(head :: CList<a>, last :: a) =>
+        { self-arg; rest } = remove-self(list)
+        { self-arg; cl-snoc(rest, last) }
+    end
+  end
+  { js-body-val; js-body-stmts } = compile-expr(context, body) 
+
+  # 'self' is included by s-method.args
+  js-args-with-self = for CL.map_list(a from args): js-id-of(a.id) end
+
+  # NOTE(alex): assuming 'self' is always first
+  { self; js-args-without-self } = remove-self(js-args-with-self)
+
+  # Generate a function that closes over the 'self' arg given by the binder function
+  inner-fun = j-fun("0", 
+    js-id-of(const-id("inner" + name)).toname(), 
+    js-args-without-self,
+    j-block(cl-snoc(js-body-stmts, j-return(js-body-val)))
+  )
+
+  binder-fun-name = js-id-of(const-id("binder" + name))
+
+  inner-fun-bind = fresh-id(compiler-name("inner"))
+
+  # Assign inner function to a variable
+  inner-fun-var = j-var(inner-fun-bind, inner-fun)
+
+  # Give the inner function a method brand
+  inner-fun-brand = j-bracket-assign(
+    j-id(inner-fun-bind), 
+    j-str("$brand"),
+    j-str("METHOD")
+  )
+
+  # Give the inner function a reference to the binder function (for rebinding)
+  inner-fun-binder = j-bracket-assign(
+    j-id(inner-fun-bind), 
+    j-str("$binder"),
+    j-id(binder-fun-name)
+  )
+
+  # Generate the binder function
+  binder-fun = j-fun("0",
+    binder-fun-name.toname(),
+    cl-sing(self),
+    j-block([clist: j-expr(inner-fun-var), 
+                    j-expr(inner-fun-brand), 
+                    j-expr(inner-fun-binder),
+                    j-return(j-id(inner-fun-bind))
+            ])
+  )
+
+  { js-id(binder-fun-name); cl-sing(binder-fun) }
 end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
@@ -451,6 +554,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       compile-expr(context, body)
 
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
+
+      compiled-shared = for map(member from shared):
+        { member.name; compile-member(context, member) }
+      end
 
       variant-uniqs = for fold(uniqs from [D.string-dict:], v from variants):
         uniqs.set(v.name, fresh-id(compiler-name(v.name)))
