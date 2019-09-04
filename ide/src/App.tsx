@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
 import {SingleCodeMirrorDefinitions} from './SingleCodeMirrorDefinitions';
+import {Menu, EMenu, FSItem} from './Menu';
 import {Footer} from './Footer';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
@@ -38,11 +39,6 @@ type EditorProps = {
     currentFileName: string;
 };
 
-enum Menu {
-    FSBrowser,
-    Options,
-}
-
 type EditorState = {
     browseRoot: string;
     browsePath: string[];
@@ -58,34 +54,12 @@ type EditorState = {
     updateTimer: NodeJS.Timer;
     dropdownVisible: boolean;
     fontSize: number;
-    menu: Menu;
+    menu: EMenu;
     menuVisible: boolean;
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
 };
-
-type FSItemProps = {
-    onClick: () => void;
-    contents: string;
-};
-
-type FSItemState = {};
-
-class FSItem extends React.Component<FSItemProps, FSItemState> {
-    get contents() {
-        return this.props.contents;
-    }
-
-    render() {
-        return (
-            <button onClick={this.props.onClick}
-                    className="fs-browser-item">
-                {this.props.contents}
-            </button>
-        );
-    }
-}
 
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
@@ -175,7 +149,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             dropdownVisible: false,
-            menu: Menu.Options,
+            menu: EMenu.Options,
             menuVisible: false,
             fontSize: 12,
             message: "Ready to rock",
@@ -297,7 +271,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
-    createFSItemPair = (filePath: string) => {
+    createFSItemPair = (filePath: string) : [string, any] => {
         return [
             filePath,
             <FSItem key={filePath}
@@ -317,13 +291,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleFSBrowser = () => {
-        if (this.state.menu === Menu.FSBrowser) {
+        if (this.state.menu === EMenu.FSBrowser) {
             this.setState({
                 menuVisible: !this.state.menuVisible,
             });
-        } else if (this.state.menu === Menu.Options) {
+        } else if (this.state.menu === EMenu.Options) {
             this.setState({
-                menu: Menu.FSBrowser,
+                menu: EMenu.FSBrowser,
                 menuVisible: true,
             });
         }
@@ -395,13 +369,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleOptionsVisibility = () => {
-        if (this.state.menu === Menu.Options) {
+        if (this.state.menu === EMenu.Options) {
             this.setState({
                 menuVisible: !this.state.menuVisible,
             });
-        } else if (this.state.menu === Menu.FSBrowser) {
+        } else if (this.state.menu === EMenu.FSBrowser) {
             this.setState({
-                menu: Menu.Options,
+                menu: EMenu.Options,
                 menuVisible: true,
             });
         }
@@ -488,52 +462,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     </div>
                 </div>
                 <div className="code-container">
-                    {this.state.menuVisible ? (
-                        (() => {
-                            if (this.state.menu === Menu.FSBrowser) {
-                                return (
-                                    <div className="menu-content">
-                                        {!this.browsingRoot ? (
-                                            <button className="fs-browser-item"
-                                                    onClick={this.traverseUp}>
-                                                ..
-                                            </button>
-                                        ) : (
-                                            null
-                                        )}
-                                        {
-                                            control.fs
-                                                   .readdirSync(this.browsePath)
-                                                   .map(this.createFSItemPair)
-                                                   .sort(this.compareFSItemPair)
-                                                   .map((x: [string, FSItem]) => x[1])
-                                        }
-                                    </div>
-                                );
-                            } else if (this.state.menu === Menu.Options) {
-                                return (
-                                    <div className="menu-content">
-                                        <div className="font-size-options">
-                                            <button className="font-minus"
-                                                    onClick={this.decreaseFontSize}>
-                                                -
-                                            </button>
-                                            <button className="font-label"
-                                                    onClick={this.resetFontSize}>
-                                                Font ({this.state.fontSize} px)
-                                            </button>
-                                            <button className="font-plus"
-                                                    onClick={this.increaseFontSize}>
-                                                +
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        })()
-                    ) : (
-                        null
-                    )}
+                    {this.state.menuVisible && <Menu
+                     menu={this.state.menu}
+                     browsingRoot={this.browsingRoot}
+                     traverseUp={this.traverseUp}
+                     browsePath={this.browsePath}
+                     createFSItemPair={this.createFSItemPair}
+                     compareFSItemPair={this.compareFSItemPair}
+                     decreaseFontSize={this.decreaseFontSize}
+                     increaseFontSize={this.increaseFontSize}
+                     resetFontSize={this.resetFontSize}
+                     fontSize={this.state.fontSize}
+                    ></Menu>}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
                         <div className="edit-area-container"
