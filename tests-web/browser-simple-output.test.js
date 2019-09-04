@@ -96,7 +96,8 @@ describe("Testing browser simple-output programs", () => {
 
         await tester.beginSetInputText(driver, contents)
           .then(tester.compileRun(driver, { 
-            'type-check': typeCheck
+            'type-check': typeCheck,
+            'stopify': false,
           }));
 
         // Does not work when in .then()

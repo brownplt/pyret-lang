@@ -130,9 +130,9 @@ async function compileRun(driver, options) {
 
   let runButton;
   if (options["stopify"]) {
-    runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
-  } else {
     runButton = await driver.findElement({ id: COMPILE_RUN_STOPIFY_BUTTON });
+  } else {
+    runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
   }
   await runButton.click();
 }
