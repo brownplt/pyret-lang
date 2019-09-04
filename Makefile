@@ -66,7 +66,7 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
  
 parser: src/arr/compiler/pyret-parser.js
 
-build/worker/main.js: src/webworker/*.ts
+build/worker/main.js: src/webworker/*.ts runtime
 	browserify $(WEBWORKER_SRC_DIR)/main.ts -p [ tsify ] -o $(WEBWORKER_BUILD_DIR)/main.js
 
 build/worker/page.html: src/webworker/page.html
