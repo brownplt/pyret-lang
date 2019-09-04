@@ -23,6 +23,8 @@ type ColumnBinds = A.ColumnBinds
 type ColumnSort = A.ColumnSort
 type ColumnSortOrder = A.ColumnSortOrder
 type Expr = A.Expr
+type FieldName = A.FieldName
+type LoadTableSpec = A.LoadTableSpec
 type TableExtendField = A.TableExtendField
 
 type CList = CL.ConcatList
@@ -727,7 +729,66 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-var(l, name, value) => raise("desugared into s-let-expr")
     | s-check(l, name, body, keyword-check) => nyi("s-check")
     | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
-    | s-load-table(l, headers, spec) => nyi("s-load-table")
+    | s-load-table(
+        l :: Loc,
+        headers :: List<FieldName>,
+        spec :: List<LoadTableSpec>) =>
+
+      # This case handles `load-table` syntax. The lines in the following Pyret
+      # code,
+      #
+      # | my-table = load-table: a, b, c
+      # |   source: csv-open('my-table.csv')
+      # | end
+      #
+      # compile into JavaScript code that resembles the following:
+      #
+      # | var myTable = _makeTableFromTableSkeleton(
+      # |                 _tableSkeletonChangeHeaders(
+      # |                   csvOpen('csv.txt'),
+      # |                   ["a", "b", "
+
+      # NOTE(michael):
+      #  s-load-table is currently implemented for a single LoadTableSpec of type
+      #  s-table-src, meaning that using one or more `sanitize` forms will result in
+      #  a not-yet-implemented error.
+
+      if spec.length() <> 1:
+        nyi("s-load-table")
+      else:
+        cases (LoadTableSpec) spec.get(0) block:
+          | s-sanitize(spec-l :: Loc, name :: Name, sanitizer :: Expr) =>
+            nyi("s-load-table")
+          | s-table-src(spec-l :: Loc, src :: Expr) =>
+            # Set the table-import flag
+            import-flags := import-flags.{ table-import: true }
+
+            table-id :: JExpr = j-id(TABLE)
+            make-table-func :: JExpr =
+              j-bracket(table-id, j-str("_makeTableFromTableSkeleton"))
+            change-headers-func :: JExpr =
+              j-bracket(table-id, j-str("_tableSkeletonChangeHeaders"))
+
+            { headers-expr-args :: JExpr; headers-expr-stmts :: CList<JStmt> } =
+              compile-expr(context, src)
+
+            header-strings-list :: CList<JExpr> =
+              for fold(acc from cl-empty, field-name from headers):
+                cl-append(acc, cl-sing(j-str(field-name.name)))
+              end
+
+            header-strings :: JExpr = j-list(false, header-strings-list)
+
+            change-headers-expr :: JExpr =
+              j-app(change-headers-func,
+                cl-append(cl-sing(headers-expr-args), cl-sing(header-strings)))
+
+            expr-args :: CList<JExpr> = cl-sing(change-headers-expr)
+            make-table-expr :: JExpr = j-app(make-table-func, expr-args)
+
+            { make-table-expr; headers-expr-stmts }
+        end
+      end
     | s-table-extend(
         l :: Loc,
         column-binds :: ColumnBinds,

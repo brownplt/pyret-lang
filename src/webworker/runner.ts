@@ -1,3 +1,4 @@
+const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
 const immutable = require('immutable');
 export const stopify = require('@stopify/stopify');
@@ -10,7 +11,9 @@ const path = browserFS.path;
 
 const nodeModules = {
   'assert': assert,
-  'immutable': immutable,
+  'csv-parse/lib/sync': csv,
+  'fs': browserFS,
+  'immutable': immutable
 };
 
 function wrapContent(content: string): string {
