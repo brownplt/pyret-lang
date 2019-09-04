@@ -1,11 +1,13 @@
 import React from 'react';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
+import CopyToClipboard from 'react-copy-to-clipboard';
 
 type TableWidgetProps = {
     htmlify: (x: any) => any;
     headers: string[];
     rows: any[][];
+    setMessage: (newMessage: string) => void;
 };
 type TableWidgetState = {};
 
@@ -26,12 +28,20 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
         const showOptions = this.props.rows.length > maxRowsPerPage;
         const defaultPageSize = showOptions ? maxRowsPerPage : this.props.rows.length;
         return (
-            <ReactTable data={data}
-                        columns={columns}
-                        showPagination={showOptions}
-                        pageSize={defaultPageSize}
-                        showPageSizeOptions={false}
-                        filterable={showOptions}/>
+            <div className="table-container">
+                <CopyToClipboard text={data.map((d) => d.join("\t")).join("\n")}
+                                 onCopy={() => this.props.setMessage("Copied table data")}>
+                    <div className="table-copy">
+                        &#128203;
+                    </div>
+                </CopyToClipboard>
+                <ReactTable data={data}
+                            columns={columns}
+                            showPagination={showOptions}
+                            pageSize={defaultPageSize}
+                            showPageSizeOptions={false}
+                            filterable={showOptions}/>
+            </div>
         );
     }
 }

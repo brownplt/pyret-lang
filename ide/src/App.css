@@ -177,16 +177,25 @@ button::-moz-focus-inner {
     position: relative !important;
 }
 
-.layout-splitter {
+.splitter-layout > .layout-splitter {
     width: 0.5em !important;
     border: 1px solid #a6a6a6;
     background: linear-gradient(to right, #bfbfbf 0%, #d9d9d9 40%, #d9d9d9 60%, #bfbfbf 100%);
+}
+
+.splitter-layout.splitter-layout-vertical > .layout-splitter {
+    width: auto !important;
+    height: 0.5em !important;
+    background: linear-gradient(to top, #bfbfbf 0%, #d9d9d9 40%, #d9d9d9 60%, #bfbfbf 100%);
 }
 
 .footer-container {
     height: 2.7em;
     background: #111;
     flex: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
 }
 
 .run-dropdown {
@@ -197,11 +206,7 @@ button::-moz-focus-inner {
     display: flex;
     flex-direction: column;
     z-index: 1;
-    opacity: 0.8;
-}
-
-.layout-pane {
-    overflow: hidden !important;
+    border-top: 1px solid rgba(0, 0, 0, 1);
 }
 
 .react-codemirror2 {
@@ -220,7 +225,6 @@ button::-moz-focus-inner {
 }
 
 .interactions-area {
-    flex-grow: 1;
     font-family: monospace;
     margin: 0;
     padding: 0;
@@ -243,7 +247,6 @@ button::-moz-focus-inner {
 
 .interaction-error {
     background: rgb(255, 202, 202);
-    flex-grow: 1;
 }
 
 .menu-content {
@@ -302,4 +305,19 @@ button::-moz-focus-inner {
 
 .font-size-options {
     height: 2.7em;
+}
+
+.table-copy {
+    cursor: pointer;
+    position: absolute;
+    padding: 0.5em;
+    z-index: 1;
+}
+
+.table-container .table-copy {
+    opacity: 0;
+}
+
+.table-container:hover .table-copy {
+    opacity: 1;
 }

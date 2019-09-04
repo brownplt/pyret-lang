@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
+import {Footer} from './Footer';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
@@ -59,6 +60,7 @@ type EditorState = {
     fontSize: number;
     menu: Menu;
     menuVisible: boolean;
+    message: string;
 };
 
 type FSItemProps = {
@@ -76,7 +78,7 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
     render() {
         return (
             <button onClick={this.props.onClick}
-            className="fs-browser-item">
+                    className="fs-browser-item">
                 {this.props.contents}
             </button>
         );
@@ -90,6 +92,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.setupWorkerMessageHandler(
             console.log,
             (errors: string[]) => {
+                this.setMessage("Compilation failed with error(s)")
                 console.log("Error (App.ts): ", errors);
                 this.setState(
                     {
@@ -99,20 +102,39 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 );
             },
             () => {
-                control.run(
-                    control.path.runBase,
-                    control.path.runProgram,
-                    (runResult: any) => {
-                        console.log(runResult);
-                        if (runResult.result !== undefined) {
-                            this.setState(
-                                {
-                                    interactions: makeResult(runResult.result)
+                this.setMessage("Run started");
+                try {
+                    control.run(
+                        control.path.runBase,
+                        control.path.runProgram,
+                        (runResult: any) => {
+                            console.log(runResult);
+                            if (runResult.result !== undefined) {
+                                if (runResult.result.error === undefined) {
+                                    this.setMessage("Run completed successfully");
+
+                                    this.setState({
+                                        interactions: makeResult(runResult.result)
+                                    });
+                                } else {
+                                    this.setMessage("Run failed with error(s)");
+
+                                    this.setState({
+                                        interactionErrors: [runResult.result.error],
+                                        interactErrorExists: true
+                                    });
                                 }
-                            );
-                        }
-                    },
-                    this.state.runKind);
+                            }
+                        },
+                        this.state.runKind);
+                } catch (e) {
+                    this.setMessage("Run failed with error(s)");
+                    this.setState({
+                        interactionErrors: [`${e.name}: ${e.message}`],
+                        interactErrorExists: true
+                    });
+                    console.log(e);
+                }
             });
 
         this.state = {
@@ -139,6 +161,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             menu: Menu.Options,
             menuVisible: false,
             fontSize: 12,
+            message: "Ready to rock",
         };
     };
 
@@ -177,11 +200,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }
         );
         if (this.isPyretFile) {
+            this.setMessage("Compilation started");
             control.compile(
                 this.currentFileDirectory,
                 this.currentFileName,
                 this.state.typeCheck);
         } else {
+            this.setMessage("Visited a non-pyret file");
             this.setState({
                 interactions: [
                     {
@@ -384,6 +409,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    removeDropdown = () => {
+        this.setState({
+            dropdownVisible: false
+        });
+    };
+
+    setMessage = (newMessage: string) => {
+        this.setState({
+            message: newMessage
+        });
+    };
+
     render() {
         return (
             <div className="page-container">
@@ -411,17 +448,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             Run
                         </button>
                         <button className="run-options"
-                                onClick={this.toggleDropdownVisibility}>&#8628;</button>
+                                onClick={this.toggleDropdownVisibility}
+                                onBlur={this.removeDropdown}>&#8628;{
+                                    this.state.dropdownVisible ? (
+                                        <div className="run-dropdown"
+                                             onClick={(e) => e.stopPropagation()}>
+                                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
+                                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
+                                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
+                                        </div>
+                                    ) : (
+                                        null
+                                    )}
+                        </button>
                     </div>
-                    {this.state.dropdownVisible ? (
-                        <div className="run-dropdown">
-                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
-                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
-                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
-                        </div>
-                    ) : (
-                        null
-                    )}
                 </div>
                 <div className="code-container">
                     {this.state.menuVisible ? (
@@ -486,34 +526,44 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             </CodeMirror>
                         </div>
                         <div className="interactions-area-container">
-                            <pre className="interactions-area"
-                                 style={{fontSize: this.state.fontSize}}>
-                                {
-                                    this.state.interactions.map(
-                                        (i) => {
-                                            return <Interaction key={i.name} name={i.name} value={i.value} />
-                                        })
-                                }
-                            </pre>
-                            {
-                                (() => {
-                                    console.log(this.state.interactErrorExists);
-                                    return (this.state.interactErrorExists ? (
-                                        <div className="interaction-error">
-                                            <p style={{fontSize: this.state.fontSize}}>
-                                                {this.state.interactionErrors}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        null
-                                    ));
-                                })()
-                            }
+                            {this.state.interactErrorExists ? (
+                            <SplitterLayout vertical={true}>
+                                <pre className="interactions-area"
+                                     style={{fontSize: this.state.fontSize}}>
+                                    {
+                                        this.state.interactions.map(
+                                            (i) => {
+                                                return <Interaction key={i.name}
+                                                                    name={i.name}
+                                                                    value={i.value}
+                                                                    setMessage={this.setMessage}/>
+                                            })
+                                    }
+                                </pre>
+                                <div className="interaction-error">
+                                    <p style={{fontSize: this.state.fontSize}}>
+                                        {this.state.interactionErrors}
+                                    </p>
+                                </div>
+                            </SplitterLayout>
+                            ) : (
+                                <pre className="interactions-area"
+                                     style={{fontSize: this.state.fontSize}}>
+                                    {
+                                        this.state.interactions.map(
+                                            (i) => {
+                                                return <Interaction key={i.name}
+                                                                    name={i.name}
+                                                                    value={i.value}
+                                                                    setMessage={this.setMessage}/>
+                                            })
+                                    }
+                                </pre>
+                            )}
                         </div>
                     </SplitterLayout>
                 </div>
-                <div className="footer-container">
-                </div>
+                <Footer message={this.state.message}></Footer>
             </div>
         );
     }
