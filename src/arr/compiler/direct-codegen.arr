@@ -295,7 +295,7 @@ fun compile-member(context, member :: A.Member) -> { JExpr; JStmt }:
       _check :: Option<Expr>,
       blocky :: Boolean
     ) => 
-      compile-method(l, name, args, body)
+      compile-method(context, l, name, args, body)
   end
 end
 
