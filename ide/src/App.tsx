@@ -95,11 +95,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
             console.log,
             (errors: string[]) => {
                 this.setMessage("Compilation failed with error(s)")
-                var places: any = [];
-                for ( var i = 0; i < errors.length; i++ ) {
-                    var matches = errors[i].match(/:\d:\d-\d:\d+/g);
-                    if ( matches !== null ) {
-                        matches.forEach(function(m) {
+                const places: any = [];
+                for (let i = 0; i < errors.length; i++) {
+                    const matches = errors[i].match(/:\d:\d-\d:\d+/g);
+                    if (matches !== null) {
+                        matches.forEach((m) => {
                             places.push(m.match(/\d+/g)!.map(Number));
                         });
                     }
@@ -449,16 +449,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
     componentDidUpdate = (): void => {
         if (this.state.editor !== null) {
             if (this.state.interactErrorExists) {
-                for ( var i = 0; i < this.state.definitionsHighlights.length; i++ ) {
+                for (let i = 0; i < this.state.definitionsHighlights.length; i++) {
                     this.state.editor.getDoc().markText(
-                        { line: this.state.definitionsHighlights[i][0] - 1, 
-                            ch: this.state.definitionsHighlights[i][1] }, 
-                        { line: this.state.definitionsHighlights[i][2] - 1, 
-                            ch: this.state.definitionsHighlights[i][3] }, 
+                        { line: this.state.definitionsHighlights[i][0] - 1,
+                            ch: this.state.definitionsHighlights[i][1] },
+                        { line: this.state.definitionsHighlights[i][2] - 1,
+                            ch: this.state.definitionsHighlights[i][3] },
                         { className: "styled-background" });
                 }
             } else {
-                for ( var i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
+                for (let i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
                     this.state.editor.getDoc().getAllMarks()[i].clear();
                 }
             }
