@@ -66,7 +66,8 @@ export const compile = (
       "baseDir": baseDirectory,
       "builtinJSDir": path.compileBuiltinJS,
       "checks": "none",
-      "typeCheck": typeCheck
+      "typeCheck": typeCheck,
+      "recompileBuiltins": false
     });
 };
 
@@ -87,10 +88,12 @@ export const run = (
 export const setupWorkerMessageHandler = (
   onLog: (l: string) => void,
   onCompileFailure: (e: string[]) => void,
+  onRuntimeFailure: (e: string[]) => void,
   onCompileSuccess: () => void): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
     onCompileFailure,
+    onRuntimeFailure,
     onCompileSuccess);
 };
 

@@ -55,12 +55,14 @@ type EditorState = {
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
-    debug: boolean;
     dropdownVisible: boolean;
     fontSize: number;
     menu: Menu;
     menuVisible: boolean;
     message: string;
+    definitionsHighlights: number[][];
+    fsBrowserVisible: boolean;
+    editor: CodeMirror.Editor | null;
 };
 
 type FSItemProps = {
@@ -93,48 +95,64 @@ class Editor extends React.Component<EditorProps, EditorState> {
             console.log,
             (errors: string[]) => {
                 this.setMessage("Compilation failed with error(s)")
-                console.log("Error (App.ts): ", errors);
+                var places: any = [];
+                for ( var i = 0; i < errors.length; i++ ) {
+                    var matches = errors[i].match(/:\d:\d\-\d:\d+/g);
+                    if ( matches !== null ) {
+                        matches.forEach(function(m) {
+                            places.push(m.match(/\d+/g)!.map(Number));
+                        });
+                    }
+                }
                 this.setState(
                     {
                         interactionErrors: errors,
-                        interactErrorExists: true
+                        interactErrorExists: true,
+                        definitionsHighlights: places
+                    }
+                );
+            },
+            (errors: string[]) => {
+                this.setState(
+                    {
+                        interactionErrors: [ errors.toString() ],
+                        interactErrorExists: true,
                     }
                 );
             },
             () => {
                 this.setMessage("Run started");
-                try {
-                    control.run(
-                        control.path.runBase,
-                        control.path.runProgram,
-                        (runResult: any) => {
-                            console.log(runResult);
-                            if (runResult.result !== undefined) {
-                                if (runResult.result.error === undefined) {
-                                    this.setMessage("Run completed successfully");
+                control.run(
+                    control.path.runBase,
+                    control.path.runProgram,
+                    (runResult: any) => {
+                        console.log(runResult);
+                        if (runResult.result !== undefined) {
+                            if (runResult.result.error === undefined) {
+                                this.setMessage("Run completed successfully");
 
-                                    this.setState({
-                                        interactions: makeResult(runResult.result)
-                                    });
-                                } else {
-                                    this.setMessage("Run failed with error(s)");
-
-                                    this.setState({
-                                        interactionErrors: [runResult.result.error],
-                                        interactErrorExists: true
-                                    });
+                                this.setState({
+                                    interactions: makeResult(runResult.result)
+                                });
+                                if (makeResult(runResult.result)[0].name === "error") {
+                                    this.setState(
+                                        {
+                                            interactionErrors: runResult.result.error,
+                                            interactErrorExists: true
+                                        }
+                                    );
                                 }
+                            } else {
+                                this.setMessage("Run failed with error(s)");
+
+                                this.setState({
+                                    interactionErrors: [runResult.result.error],
+                                    interactErrorExists: true
+                                });
                             }
-                        },
-                        this.state.runKind);
-                } catch (e) {
-                    this.setMessage("Run failed with error(s)");
-                    this.setState({
-                        interactionErrors: [`${e.name}: ${e.message}`],
-                        interactErrorExists: true
-                    });
-                    console.log(e);
-                }
+                        }
+                    },
+                this.state.runKind);
             });
 
         this.state = {
@@ -156,12 +174,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
-            debug: false,
             dropdownVisible: false,
             menu: Menu.Options,
             menuVisible: false,
             fontSize: 12,
             message: "Ready to rock",
+            definitionsHighlights: [],
+            fsBrowserVisible: false,
+            editor: null,
         };
     };
 
@@ -237,8 +257,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         this.setState({
             currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250)
+            updateTimer: setTimeout(this.update, 250),
+            editor: editor
         });
+
+        for ( var i = 0; i < editor.getDoc().getAllMarks().length; i++) {
+            editor.getDoc().getAllMarks()[i].clear();
+        }
     };
 
     traverseDown = (childDirectory: string) => {
@@ -420,6 +445,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
             message: newMessage
         });
     };
+
+    componentDidUpdate = (): void => {
+        if (this.state.editor !== null) {
+            if (this.state.interactErrorExists) {
+                for ( var i = 0; i < this.state.definitionsHighlights.length; i++ ) {
+                    this.state.editor.getDoc().markText(
+                        { line: this.state.definitionsHighlights[i][0] - 1, 
+                            ch: this.state.definitionsHighlights[i][1] }, 
+                        { line: this.state.definitionsHighlights[i][2] - 1, 
+                            ch: this.state.definitionsHighlights[i][3] }, 
+                        { className: "styled-background" });
+                }
+            } else {
+                for ( var i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
+                    this.state.editor.getDoc().getAllMarks()[i].clear();
+                }
+            }
+        }
+    }
 
     render() {
         return (

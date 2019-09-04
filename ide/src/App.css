@@ -137,6 +137,12 @@ button::-moz-focus-inner {
     outline: none;
 }
 
+.interaction-error {
+    background: rgb(255, 202, 202);
+    min-height: 30%;
+    max-height: 50%;
+}
+
 .run-option-enabled:hover, .run-ready:hover, .run-options:hover {
     box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: #0060ce;
@@ -320,4 +326,16 @@ button::-moz-focus-inner {
 
 .table-container:hover .table-copy {
     opacity: 1;
+}
+
+.styled-background {
+    background-color: rgb(134, 134, 245);
+}
+
+.styled-background-error {
+    background-color: rgb(255, 202, 202);
+}
+
+.ReactTable {
+    overflow: auto;
 }

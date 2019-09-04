@@ -67,8 +67,9 @@ function echoErr(contents) {
   consoleSetup.workerError(contents);
 }
 
-function compileFailure() {
+function compileFailure(errors) {
   consoleSetup.workerError("Compilation failure");
+  consoleSetup.workerError(errors);
 }
 
 function compileSuccess() {

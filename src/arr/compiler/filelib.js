@@ -54,6 +54,16 @@
             });
           });
         }, "open-output-file"),
+      "read-file-path": RUNTIME.makeFunction(function(file) {
+          RUNTIME.ffi.checkArity(1, arguments, "read-file", false);
+          RUNTIME.checkString(file);
+          return RUNTIME.pauseStack(function(restarter) {
+            fs.readFile(file, {encoding: 'utf8'}, function(err, data) {
+              // NOTE(alex): ignore errors for now
+              restarter.resume(RUNTIME.makeString(data));
+            });
+          });
+        }, "read-file-path"),
       "read-file": RUNTIME.makeFunction(function(file) {
           RUNTIME.ffi.checkArity(1, arguments, "read-file", false);
           RUNTIME.checkOpaque(file);

@@ -4,6 +4,7 @@ export interface CompileOptions {
   builtinJSDir: string,
   typeCheck: boolean,
   checks: string,
+  recompileBuiltins: boolean,
 }
 
 export enum RunKind {
@@ -16,6 +17,8 @@ export interface RunResult {
   result: any,
 }
 
+let compileStart = window.performance.now();
+
 /*
  * Handles Pyret compiler messages ONLY.
  * Ignores all other messages (including BrowserFS messages)
@@ -23,6 +26,7 @@ export interface RunResult {
 export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
   compileFailure: (e: string[]) => void,
+  runtimeFailure: (e: string[]) => void,
   compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
@@ -32,17 +36,15 @@ export const makeBackendMessageHandler = (
     try {
       var msgObject: any = JSON.parse(e.data);
 
-      console.log(msgObject)
-
       var msgType = msgObject["type"];
       if (msgType === undefined) {
         return null;
       } else if (msgType === "echo-log") {
         echoLog(msgObject.contents);
       } else if (msgType === "compile-failure") {
-        console.log("\nCOMPILE FAILURE\n");
         compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
+        console.log("compile-time: ", window.performance.now() - compileStart);
         compileSuccess();
       } else {
         return null;
@@ -50,6 +52,7 @@ export const makeBackendMessageHandler = (
 
     } catch(e) {
       console.log(e);
+      runtimeFailure(e);
       return null;
     }
   };
@@ -60,6 +63,7 @@ export const makeBackendMessageHandler = (
 export const compileProgram = (
   compilerWorker: Worker,
   options: CompileOptions): void => {
+  compileStart = window.performance.now();
   const message = {
     _parley: true,
     options: {
@@ -68,6 +72,7 @@ export const compileProgram = (
       "builtin-js-dir": options.builtinJSDir,
       checks: options.checks,
       'type-check': options.typeCheck,
+      'recompile-builtins': options.recompileBuiltins,
     }
   };
 
