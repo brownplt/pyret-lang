@@ -97,7 +97,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.setMessage("Compilation failed with error(s)")
                 var places: any = [];
                 for ( var i = 0; i < errors.length; i++ ) {
-                    var matches = errors[i].match(/:\d:\d\-\d:\d+/g);
+                    var matches = errors[i].match(/:\d:\d-\d:\d+/g);
                     if ( matches !== null ) {
                         matches.forEach(function(m) {
                             places.push(m.match(/\d+/g)!.map(Number));
