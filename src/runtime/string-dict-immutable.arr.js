@@ -1,4 +1,7 @@
-const { Map, List } = require( 'immutable' );
+// NOTE(alex): Cannot use object binding pattern b/c Babel limitations (through Stopify)
+const immutable = require( 'immutable' );
+const Map = immutable.Map;
+const List = immutable.List;
 
 module.exports = {
   'string-dict': {
