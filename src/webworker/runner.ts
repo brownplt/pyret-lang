@@ -21,6 +21,7 @@ export const makeRequireAsync = (
   basePath: string): ((importPath: string) => Promise<any>) => {
   let cwd = basePath;
   let currentRunner: any = null;
+  const cache : {[key:string]: any} = {};
 
   const requireAsyncMain = (importPath: string) => {
     return new Promise(function (resolve, reject) {
@@ -34,6 +35,7 @@ export const makeRequireAsync = (
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
       const stoppedPath = nextPath + ".stopped";
+      if(stoppedPath in cache) { resolve(cache[stoppedPath]); return; }
       let runner: any = null;
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = wrapContent(contents);
@@ -74,6 +76,7 @@ export const makeRequireAsync = (
           return;
         }
         const toReturn = runner.g.module.exports;
+        cache[stoppedPath] = toReturn;
         resolve(toReturn);
       });
     });
@@ -90,6 +93,7 @@ export const makeRequireAsync = (
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const stoppedPath = nextPath + ".stopped";
+    if(stoppedPath in cache) { return cache[stoppedPath]; }
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
       const module = {
@@ -122,6 +126,7 @@ export const makeRequireAsync = (
         currentRunner.g.module = lastModule;
         // Need to set 'exports' global to work with TS export desugaring
         currentRunner.g.exports = lastModule.exports;
+        cache[stoppedPath] = toReturn;
         kontinue({ type: 'normal', value: toReturn });
       });
     });
@@ -131,6 +136,7 @@ export const makeRequireAsync = (
 };
 
 export const makeRequire = (basePath: string): ((importPath: string) => any) => {
+  const cache : {[key:string]: any} = {};
   var cwd = basePath;
   /*
     Recursively eval (with this definition of require in scope) all of the
@@ -149,6 +155,7 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
+    if(nextPath in cache) { return cache[nextPath]; }
     cwd = path.parse(nextPath).dir;
     if(!fs.existsSync(nextPath)) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
@@ -165,6 +172,7 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     const result = f(requireSync, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
     cwd = oldWd;
+    cache[nextPath] = toReturn;
     return toReturn;
   };
 
