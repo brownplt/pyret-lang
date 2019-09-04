@@ -23,6 +23,7 @@ export interface RunResult {
 export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
   compileFailure: (e: string[]) => void,
+  runtimeFailure: (e: string[]) => void,
   compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
@@ -47,6 +48,7 @@ export const makeBackendMessageHandler = (
 
     } catch(e) {
       console.log(e);
+      runtimeFailure(e);
       return null;
     }
   };

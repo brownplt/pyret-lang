@@ -83,7 +83,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.setupWorkerMessageHandler(
             console.log,
             (errors: string[]) => {
-                console.log("Error (App.ts, setUpWorkerMessageHandler, onCompileFailure): ", errors);
                 var places: any = [];
                 for ( var i = 0; i < errors.length; i++ ) {
                     var matches = errors[i].match(/:\d:\d\-\d:\d+/g);
@@ -93,12 +92,19 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         });
                     }
                 }
-                console.log("Places: ", places);
                 this.setState(
                     {
                         interactionErrors: errors,
                         interactErrorExists: true,
                         definitionsHighlights: places
+                    }
+                );
+            },
+            (errors: string[]) => {
+                this.setState(
+                    {
+                        interactionErrors: [ errors.toString() ],
+                        interactErrorExists: true,
                     }
                 );
             },
@@ -448,7 +454,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     </pre>
                                     {
                                         (() => {
-                                            console.log(this.state.interactErrorExists);
                                             return (this.state.interactErrorExists ? (
                                                 <div id="interaction-error">
                                                     <p>{this.state.interactionErrors}</p>
