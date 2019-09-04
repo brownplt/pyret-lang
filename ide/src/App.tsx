@@ -455,7 +455,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             ch: this.state.definitionsHighlights[i][1] },
                         { line: this.state.definitionsHighlights[i][2] - 1,
                             ch: this.state.definitionsHighlights[i][3] },
-                        { className: "styled-background" });
+                        { className: "styled-background-error" });
                 }
             } else {
                 for (let i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
