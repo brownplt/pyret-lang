@@ -12,7 +12,7 @@ web-tests: web
 	jest --verbose "browser"
 
 stopify-web-tests: web
-	jest --verbose "stopify-browser"
+	jest --verbose "stopify"
 
 offline-tests: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
