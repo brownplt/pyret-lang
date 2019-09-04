@@ -2742,6 +2742,7 @@ default-compile-options = {
   runtime-path: "../builtin/src/runtime",
   compiled-cache: "compiled",
   compiled-read-only: empty,
+  recompile-builtins: true,
   display-progress: true,
   should-profile: method(_, locator): false end,
   log: lam(s, to-clear):

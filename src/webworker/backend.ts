@@ -4,6 +4,7 @@ export interface CompileOptions {
   builtinJSDir: string,
   typeCheck: boolean,
   checks: string,
+  recompileBuiltins: boolean,
 }
 
 export enum RunKind {
@@ -15,6 +16,8 @@ export interface RunResult {
   time: number,
   result: any,
 }
+
+let compileStart = window.performance.now();
 
 /*
  * Handles Pyret compiler messages ONLY.
@@ -41,6 +44,7 @@ export const makeBackendMessageHandler = (
       } else if (msgType === "compile-failure") {
         compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
+        console.log("compile-time: ", window.performance.now() - compileStart);
         compileSuccess();
       } else {
         return null;
@@ -59,6 +63,7 @@ export const makeBackendMessageHandler = (
 export const compileProgram = (
   compilerWorker: Worker,
   options: CompileOptions): void => {
+  compileStart = window.performance.now();
   const message = {
     _parley: true,
     options: {
@@ -67,6 +72,7 @@ export const compileProgram = (
       "builtin-js-dir": options.builtinJSDir,
       checks: options.checks,
       'type-check': options.typeCheck,
+      'recompile-builtins': options.recompileBuiltins,
     }
   };
 

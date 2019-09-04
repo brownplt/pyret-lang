@@ -244,10 +244,23 @@ fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>),
         temp-marked.set-now(locator.uri(), true)
         pmap = SD.make-mutable-string-dict()
         deps = locator.get-dependencies()
-        found-mods = for map(d from deps) block:
-          found = dfind(context, d)
-          pmap.set-now(d.key(), found.locator)
-          found
+        found-mods = for lists.filter-map(d from deps) block:
+          cases(CS.Dependency) d block:
+            | dependency(_, _) => 
+              found = dfind(context, d)
+              pmap.set-now(d.key(), found.locator.uri())
+              some(found)
+            | builtin(name) =>
+              cases (Option) current-modules.get-now("builtin://" + name) block:
+                | none =>
+                  found = dfind(context, d)
+                  pmap.set-now(d.key(), found.locator.uri())
+                  some(found)
+                | some(builtin-mod) =>
+                  pmap.set-now(d.key(), builtin-mod.provides.from-uri)
+                  none
+              end
+          end
         end
         # visit all dependents
         for each(f from found-mods):
@@ -275,10 +288,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
   loadables = for map(w from worklist):
     uri = w.locator.uri()
     if not(cache.has-key-now(uri)) block:
-      provide-map = dict-map(
-          w.dependency-map,
-          lam(_, v): v.uri() end
-      )
+      provide-map = w.dependency-map.freeze()
       options.before-compile(w.locator)
       {loadable :: Loadable; trace :: List} = compile-module(w.locator, provide-map, cache, options)
       # I feel like here we want to generate two copies of the loadable:
@@ -521,7 +531,8 @@ end
 
 fun compile-standalone(wl, starter-modules, options):
   compiled = compile-program-with(wl, starter-modules, options)
-  make-standalone(wl, compiled, options)
+  ans = make-standalone(wl, compiled, options)
+  ans
 end
 
 # NOTE(joe): I strongly suspect options will be used in the future
@@ -563,7 +574,7 @@ fun make-standalone(wl, compiled, options):
         deps = w.dependency-map
         j-field(w.locator.uri(),
           j-obj(for C.map_list(k from deps.keys-now().to-list()):
-            j-field(k, j-str(deps.get-value-now(k).uri()))
+            j-field(k, j-str(deps.get-value-now(k)))
           end))
       end)
 
