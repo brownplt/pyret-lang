@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
+import {DefChunks} from './DefChunks';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
@@ -202,7 +203,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
-    onEdit = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
+    onEdit = (value: string): void => {
         clearTimeout(this.state.updateTimer);
 
         this.setState({
@@ -366,6 +367,22 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     render() {
+        const nonEmptyChunks = this.state.currentFileContents.split("\n").filter(c => c.trim() !== "");
+        const chunks = (<DefChunks
+                            chunks={nonEmptyChunks}
+                            onEdit={this.onEdit}></DefChunks>);
+                            /*
+        const cm = <CodeMirror value={this.state.currentFileContents}
+                options={{
+                    mode: 'pyret',
+                    theme: 'default',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                }}
+                onChange={(_, __, value) => this.onEdit(value)}
+                autoCursor={false}>
+        </CodeMirror>;*/
+        const editor = chunks;
         return (
             <div className="page-container">
                 <div className="header-container">
@@ -453,16 +470,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     percentage={true}>
                         <div className="edit-area-container"
                              style={{fontSize: this.state.fontSize}}>
-                            <CodeMirror value={this.state.currentFileContents}
-                                        options={{
-                                            mode: 'pyret',
-                                            theme: 'default',
-                                            lineNumbers: true,
-                                            lineWrapping: true,
-                                        }}
-                                        onChange={this.onEdit}
-                                        autoCursor={false}>
-                            </CodeMirror>
+                                 {editor}
                         </div>
                         <div className="interactions-area-container">
                             <pre className="interactions-area"
