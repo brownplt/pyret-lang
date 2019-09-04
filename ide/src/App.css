@@ -188,6 +188,10 @@ html, body, #root {
     background-color: rgb(134, 134, 245);
 }
 
+.styled-background-error {
+    background-color: rgb(255, 202, 202);
+}
+
 .ReactTable {
     overflow: auto;
 }
