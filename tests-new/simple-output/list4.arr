@@ -1,7 +1,4 @@
-### [ 1, 2, 3, 4, 5, 2, 3, 4 ]
-
-# Console log implementation may split long arrays across multiple lines causing a fail
-# This test passes
+### 12345234
 
 import list as L
 import global as G
@@ -20,4 +17,10 @@ empty-list = L.empty-list()
 
 G.assert( L.length( empty-list ), 0, "Not empty lists" )
 
-G.console-log(L.concat( L.concat( list, left-list ), filtered-list ))
+concated = L.concat( L.concat( list, left-list ), filtered-list )
+
+msg = for L.reduce(string from "", e from concated):
+  string + G.js-to-string(e)
+end
+
+G.console-log(msg)
