@@ -60,7 +60,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
   type-check = dictionary.get("type-check").or-else(false)
   user-annotations = not(dictionary.has-key("no-user-annotations"))
   compiled-read-only = dictionary.get("compiled-read-only-dir").or-else(empty)
-  recompile-builtins = dictionary.get("recompile-builtins").or-else(true),
+  recompile-builtins = dictionary.get("recompile-builtins").or-else(true)
 
 
   # TODO(alex): builtin arr files no longer supported; precompile them
