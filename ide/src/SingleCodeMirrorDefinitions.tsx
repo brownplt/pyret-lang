@@ -1,5 +1,14 @@
 import React from 'react';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
+import 'codemirror/lib/codemirror.css';
+import 'pyret-codemirror-mode/css/pyret.css';
+
+// pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
+// to be bound to the 'codemirror' import.
+import * as RawCodeMirror from 'codemirror';
+(window as any).CodeMirror = RawCodeMirror;
+require('pyret-codemirror-mode/mode/pyret');
+
 
 type SingleCodeMirrorDefinitionsProps = {
   onEdit: (s: string) => void,
