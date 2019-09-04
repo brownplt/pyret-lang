@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import {Interaction} from './Interaction';
+import {SingleCodeMirrorDefinitions} from './SingleCodeMirrorDefinitions';
 import {Footer} from './Footer';
 import * as control from './control';
 import {UnControlled as CodeMirror} from 'react-codemirror2';
@@ -62,7 +63,6 @@ type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
-    editor: CodeMirror.Editor | null;
 };
 
 type FSItemProps = {
@@ -181,7 +181,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
-            editor: null,
         };
     };
 
@@ -252,19 +251,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
-    onEdit = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
+    onEdit = (value: string): void => {
         clearTimeout(this.state.updateTimer);
-
         this.setState({
             currentFileContents: value,
             updateTimer: setTimeout(this.update, 250),
-            editor: editor
         });
-
-        for ( var i = 0; i < editor.getDoc().getAllMarks().length; i++) {
-            editor.getDoc().getAllMarks()[i].clear();
-        }
-    };
+    }
 
     traverseDown = (childDirectory: string) => {
         const newPath = this.state.browsePath.slice();
@@ -446,26 +439,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
-    componentDidUpdate = (): void => {
-        if (this.state.editor !== null) {
-            if (this.state.interactErrorExists) {
-                for (let i = 0; i < this.state.definitionsHighlights.length; i++) {
-                    this.state.editor.getDoc().markText(
-                        { line: this.state.definitionsHighlights[i][0] - 1,
-                            ch: this.state.definitionsHighlights[i][1] },
-                        { line: this.state.definitionsHighlights[i][2] - 1,
-                            ch: this.state.definitionsHighlights[i][3] },
-                        { className: "styled-background-error" });
-                }
-            } else {
-                for (let i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
-                    this.state.editor.getDoc().getAllMarks()[i].clear();
-                }
-            }
-        }
-    }
-
     render() {
+        const definitions = <SingleCodeMirrorDefinitions
+            text={this.state.currentFileContents}
+            onEdit={this.onEdit}
+            highlights={this.state.definitionsHighlights}
+            interactErrorExists={this.state.interactErrorExists}>
+            </SingleCodeMirrorDefinitions>;
         return (
             <div className="page-container">
                 <div className="header-container">
@@ -558,16 +538,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     percentage={true}>
                         <div className="edit-area-container"
                              style={{fontSize: this.state.fontSize}}>
-                            <CodeMirror value={this.state.currentFileContents}
-                                        options={{
-                                            mode: 'pyret',
-                                            theme: 'default',
-                                            lineNumbers: true,
-                                            lineWrapping: true,
-                                        }}
-                                        onChange={this.onEdit}
-                                        autoCursor={false}>
-                            </CodeMirror>
+                                 {definitions}
                         </div>
                         <div className="interactions-area-container">
                             {this.state.interactErrorExists ? (
