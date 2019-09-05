@@ -52,7 +52,7 @@ const compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]): any => {
 };
 
 export class Menu extends React.Component<MenuProps, MenuState> {
-    get browsePath() {
+    get browsePathString() {
         return control.bfsSetup.path.join(...this.props.browsePath);
     }
 
@@ -75,7 +75,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                     )}
                     {
                         control.fs
-                               .readdirSync(this.browsePath)
+                               .readdirSync(this.browsePathString)
                                .map(this.props.createFSItemPair)
                                .sort(compareFSItemPair)
                                .map((x: [string, FSItem]) => x[1])
