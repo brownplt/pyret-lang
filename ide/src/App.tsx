@@ -2,7 +2,7 @@ import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
-import { Menu, EMenu } from './Menu';
+import { Menu } from './Menu';
 import { Footer } from './Footer';
 import { FontSize } from './FontSize';
 import { FSBrowser } from './FSBrowser';
@@ -12,6 +12,11 @@ import 'react-splitter-layout/lib/index.css';
 
 control.installFileSystem();
 control.loadBuiltins();
+
+enum EMenu {
+    FSBrowser,
+    Options,
+}
 
 type AppProps = {};
 type AppState = {};

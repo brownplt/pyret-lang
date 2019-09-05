@@ -1,10 +1,5 @@
 import React from 'react';
 
-export enum EMenu {
-    FSBrowser,
-    Options,
-}
-
 type MenuProps = {
     tabs: any[][],
     currentTab: number,
