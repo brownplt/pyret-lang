@@ -8,6 +8,7 @@ import { FontSize } from './FontSize';
 import { FSBrowser } from './FSBrowser';
 import { Dropdown, DropdownOption } from './Dropdown';
 import { Header } from './Header';
+import { InteractionError } from './InteractionError';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
@@ -454,11 +455,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             {this.state.interactErrorExists ? (
                                 <SplitterLayout vertical={true}>
                                     {interactionValues}
-                                    <div className="interaction-error">
-                                        <p style={{ fontSize: this.state.fontSize }}>
-                                            {this.state.interactionErrors}
-                                        </p>
-                                    </div>
+                                    <InteractionError fontSize={this.state.fontSize}>
+                                        {this.state.interactionErrors}
+                                    </InteractionError>
                                 </SplitterLayout>
                             ) : interactionValues}
                         </div>
