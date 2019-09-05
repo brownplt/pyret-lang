@@ -6,6 +6,7 @@ import { Menu } from './Menu';
 import { Footer } from './Footer';
 import { FontSize } from './FontSize';
 import { FSBrowser } from './FSBrowser';
+import { Dropdown, DropdownOption } from './Dropdown';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
@@ -287,24 +288,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         );
     };
 
-    makeDropdownOption = (text: string, enabled: boolean, onClick: () => void) => {
-        return (
-            <div className={enabled ? "run-option-enabled" : "run-option-disabled"}
-                 onClick={onClick}>
-                <input type="checkBox"
-                       checked={enabled}
-                       name={text}
-                       className="run-option-checkbox"
-                       readOnly={true}>
-                </input>
-                <label htmlFor={text}
-                       className="run-option-label">
-                    {text}
-                </label>
-            </div>
-        );
-    };
-
     toggleDropdownVisibility = (e: any) => {
         this.setState({
             dropdownVisible: !this.state.dropdownVisible
@@ -429,12 +412,21 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 onClick={this.toggleDropdownVisibility}
                                 onBlur={this.removeDropdown}>&#8628;{
                                     this.state.dropdownVisible && (
-                                        <div className="run-dropdown"
-                                             onClick={(e) => e.stopPropagation()}>
-                                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
-                                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
-                                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
-                                        </div>
+                                        <Dropdown>
+                                            <DropdownOption enabled={this.state.autoRun}
+                                                            onClick={this.toggleAutoRun}
+                                                            text={"Auto Run"}>
+                                            </DropdownOption>
+                                            <DropdownOption enabled={this.state.runKind === control.backend.RunKind.Async}
+                                                            onClick={this.toggleStopify}
+                                                            text={"Stopify"}>
+
+                                            </DropdownOption>
+                                            <DropdownOption enabled={this.state.typeCheck}
+                                                            onClick={this.toggleTypeCheck}
+                                                            text={"Type Check"}>
+                                            </DropdownOption>
+                                        </Dropdown>
                                     )}
                         </button>
                     </div>
