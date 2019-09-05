@@ -42,20 +42,22 @@ type MenuProps = {
 };
 type MenuState = {};
 
-const compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]): any => {
-    if (a[0] < b[0]) {
-        return -1;
-    } else if (a[0] > b[0]) {
-        return 1;
-    } else {
-        return 0;
-    }
-};
-
 export class Menu extends React.Component<MenuProps, MenuState> {
     get browsePathString() {
         return control.bfsSetup.path.join(...this.props.browsePath);
     }
+
+    static compareFSItemPair =
+        (a: [string, FSItem],
+         b: [string, FSItem]): any => {
+        if (a[0] < b[0]) {
+            return -1;
+        } else if (a[0] > b[0]) {
+            return 1;
+        } else {
+            return 0;
+        }
+    };
 
     traverseUp = (): void => {
         const newPath = this.props.browsePath.slice();
@@ -106,7 +108,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                         control.fs
                                .readdirSync(this.browsePathString)
                                .map(this.createFSItemPair)
-                               .sort(compareFSItemPair)
+                               .sort(Menu.compareFSItemPair)
                                .map((x: [string, FSItem]) => x[1])
                     }
                 </div>
