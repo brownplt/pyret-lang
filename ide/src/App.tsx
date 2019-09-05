@@ -2,9 +2,10 @@ import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
-import { Menu, EMenu, FSItem } from './Menu';
+import { Menu, EMenu } from './Menu';
 import { Footer } from './Footer';
 import { FontSize } from './FontSize';
+import { FSBrowser } from './FSBrowser';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
@@ -436,11 +437,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <div className="code-container">
                     {this.state.menuVisible && (
                         <Menu menu={this.state.menu}
-                              browsingRoot={this.browsingRoot}
-                              onTraverseUp={this.onTraverseUp}
-                              onTraverseDown={this.onTraverseDown}
-                              onExpandChild={this.onExpandChild}
-                              browsePath={this.state.browsePath}
+                              fsContent={
+                                  <FSBrowser
+                                      browsingRoot={this.browsingRoot}
+                                      onTraverseUp={this.onTraverseUp}
+                                      onTraverseDown={this.onTraverseDown}
+                                      onExpandChild={this.onExpandChild}
+                                      browsePath={this.state.browsePath}>
+                                  </FSBrowser>
+                              }
                               menuContent={[
                                   <FontSize onIncrease={this.onIncreaseFontSize}
                                             onDecrease={this.onDecreaseFontSize}
