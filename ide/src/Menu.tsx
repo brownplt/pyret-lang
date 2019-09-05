@@ -31,8 +31,9 @@ export class FSItem extends React.Component<FSItemProps, FSItemState> {
 type MenuProps = {
     menu: EMenu,
     browsingRoot: boolean,
-    traverseUp: () => void,
-    browsePath: string[],
+    onTraverseUp: (path: string[]) => void,
+    browsePath: string,
+    splitBrowsePath: string[],
     createFSItemPair: (path: string) => [string, any],
     decreaseFontSize: () => void,
     increaseFontSize: () => void,
@@ -52,13 +53,20 @@ const compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]): any => {
 };
 
 export class Menu extends React.Component<MenuProps, MenuState> {
+    traverseUp = () => {
+        const newPath = this.props.splitBrowsePath.slice();
+        newPath.pop();
+
+        this.props.onTraverseUp(newPath);
+    };
+
     render() {
         if (this.props.menu === EMenu.FSBrowser) {
             return (
                 <div className="menu-content">
                     {!this.props.browsingRoot && (
                         <button className="fs-browser-item"
-                                onClick={this.props.traverseUp}>
+                                onClick={this.traverseUp}>
                             ..
                         </button>
                     )}

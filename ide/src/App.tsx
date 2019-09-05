@@ -233,12 +233,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
-    traverseUp = () => {
-        const newPath = this.state.browsePath.slice();
-        newPath.pop();
-
+    onTraverseUp = (path: string[]) => {
         this.setState({
-            browsePath: newPath,
+            browsePath: path,
         });
     };
 
@@ -457,8 +454,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {this.state.menuVisible && (
                         <Menu menu={this.state.menu}
                               browsingRoot={this.browsingRoot}
-                              traverseUp={this.traverseUp}
+                              onTraverseUp={this.onTraverseUp}
                               browsePath={this.browsePath}
+                              splitBrowsePath={this.state.browsePath}
                               createFSItemPair={this.createFSItemPair}
                               decreaseFontSize={this.decreaseFontSize}
                               increaseFontSize={this.increaseFontSize}
