@@ -153,7 +153,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return /\.arr$/.test(this.currentFile);
     }
 
-    get browsePath() {
+    get browsePathString
+    () {
         return control.bfsSetup.path.join(...this.state.browsePath);
     }
 
@@ -254,7 +255,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     expandChild = (child: string) => {
         const fullChildPath =
-            control.bfsSetup.path.join(this.browsePath, child);
+            control.bfsSetup.path.join(this.browsePathString, child);
         const stats = control.fs.statSync(fullChildPath);
 
         if (stats.isDirectory()) {
