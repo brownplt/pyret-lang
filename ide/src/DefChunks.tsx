@@ -7,14 +7,16 @@ type DefChunkProps = {
   index: number,
   startLine: number,
   chunk: string,
-  onEdit: (key: number, chunk: string) => void
+  onEdit: (key: number, chunk: string) => void,
+  isLast: boolean
 };
 type DefChunkState = {
-  editor: CodeMirror.Editor | null
+  editor: CodeMirror.Editor | null,
+  focused: boolean
 };
 
 export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
-  constructor(props : DefChunkProps) { super(props); this.state = { editor: null }; }
+  constructor(props : DefChunkProps) { super(props); this.state = { editor: null, focused: false }; }
 
   componentWillReceiveProps() {
     if(this.state.editor !== null) {
@@ -40,8 +42,16 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
     }
   }
   render() {
-    return (<div style={{ border: "1px solid #111", "paddingTop": "0.5em", "paddingBottom": "0.5em" }}>
+    const border = this.state.focused ? "2px solid black" : "1px solid #eee";
+    return (<div style={{ border: border, "paddingTop": "0.5em", "paddingBottom": "0.5em" }}>
       <CodeMirror
+        onFocus={(_, __) => {
+          if(this.props.isLast) {
+            this.props.onEdit(this.props.index, "");
+          }
+          this.setState({ focused: true })}
+        }
+        onBlur={(_, __) => this.setState({ focused: false })}
         editorDidMount={(editor, value) => {
           this.setState({editor: editor});
           const marks = editor.getDoc().getAllMarks();
@@ -168,11 +178,12 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
             else {
               highlights = [];
             }
-            return <Draggable key={index} draggableId={String(index)} index={index}>
+            const isLast = index === this.state.chunks.length;
+            return <Draggable key={chunk.id} draggableId={chunk.id} index={index}>
               {(provided, snapshot) => {
                 return (<div ref={provided.innerRef}
                   {...provided.draggableProps}
-                  {...provided.dragHandleProps}><DefChunk highlights={highlights} startLine={chunk.startLine} key={chunk.id} index={index} chunk={chunk.text} onEdit={onEdit}></DefChunk></div>)
+                  {...provided.dragHandleProps}><DefChunk isLast={isLast} highlights={highlights} startLine={chunk.startLine} key={chunk.id} index={index} chunk={chunk.text} onEdit={onEdit}></DefChunk></div>)
               }
               }</Draggable>;
           })}</div>;
