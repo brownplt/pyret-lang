@@ -414,17 +414,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     this.state.dropdownVisible && (
                                         <Dropdown>
                                             <DropdownOption enabled={this.state.autoRun}
-                                                            onClick={this.toggleAutoRun}
-                                                            text={"Auto Run"}>
+                                                            onClick={this.toggleAutoRun}>
+                                                Auto Run
                                             </DropdownOption>
                                             <DropdownOption enabled={this.state.runKind === control.backend.RunKind.Async}
-                                                            onClick={this.toggleStopify}
-                                                            text={"Stopify"}>
-
+                                                            onClick={this.toggleStopify}>
+                                                Stopify
                                             </DropdownOption>
                                             <DropdownOption enabled={this.state.typeCheck}
-                                                            onClick={this.toggleTypeCheck}
-                                                            text={"Type Check"}>
+                                                            onClick={this.toggleTypeCheck}>
+                                                Type Check
                                             </DropdownOption>
                                         </Dropdown>
                                     )}

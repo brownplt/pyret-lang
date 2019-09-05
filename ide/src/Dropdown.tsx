@@ -3,25 +3,26 @@ import React from 'react';
 export type DropdownOptionProps = {
     enabled: boolean,
     onClick: () => void,
-    text: string,
 };
 
 export type DropdownOptionState = {};
 
 export class DropdownOption extends React.Component<DropdownOptionProps, DropdownOptionState> {
     render() {
+        const internalName = `DropdownOption${new Date().getTime()}`;
+
         return (
             <div className={this.props.enabled ? "run-option-enabled" : "run-option-disabled"}
                  onClick={this.props.onClick}>
                 <input type="checkBox"
                        checked={this.props.enabled}
-                       name={this.props.text}
+                       name={internalName}
                        className="run-option-checkbox"
                        readOnly={true}>
                 </input>
-                <label htmlFor={this.props.text}
+                <label htmlFor={internalName}
                        className="run-option-label">
-                    {this.props.text}
+                    {this.props.children}
                 </label>
             </div>
         );
