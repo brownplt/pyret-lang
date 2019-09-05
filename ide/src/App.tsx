@@ -453,7 +453,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </div>
                         <div className="interactions-area-container">
                             {this.state.interactErrorExists ? (
-                                <SplitterLayout vertical={true}>
+                                <SplitterLayout vertical={true}
+                                                percentage={true}>
                                     {interactionValues}
                                     <InteractionError fontSize={this.state.fontSize}>
                                         {this.state.interactionErrors}
