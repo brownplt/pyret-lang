@@ -42,8 +42,13 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
     }
   }
   render() {
-    const border = this.state.focused ? "2px solid black" : "1px solid #eee";
-    return (<div style={{ border: border, "paddingTop": "0.5em", "paddingBottom": "0.5em" }}>
+    let borderWidth = "1px";
+    let borderColor = "#eee";
+    let shadow = "";
+    if(this.state.focused) { shadow = "3px 3px 2px #aaa"; borderWidth = "2px"; borderColor = "black"; }
+    if(this.props.highlights.length > 0) { borderColor = "red"; }
+    const border = borderWidth + " solid " + borderColor;
+    return (<div style={{ boxShadow: shadow, border: border, "paddingTop": "0.5em", "paddingBottom": "0.5em" }}>
       <CodeMirror
         onFocus={(_, __) => {
           if(this.props.isLast) {
@@ -173,7 +178,7 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
             const linesInChunk = chunk.text.split("\n").length;
             let highlights : number[][];
             if(this.props.interactErrorExists) {
-              highlights = this.props.highlights.filter((h) => h[0] >= chunk.startLine && h[0] <= chunk.startLine + linesInChunk);
+              highlights = this.props.highlights.filter((h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk);
             }
             else {
               highlights = [];
