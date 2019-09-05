@@ -437,24 +437,26 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <div className="code-container">
                     {this.state.menuVisible && (
                         <Menu menu={this.state.menu}
-                              fsContent={
-                                  <FSBrowser
-                                      browsingRoot={this.browsingRoot}
-                                      onTraverseUp={this.onTraverseUp}
-                                      onTraverseDown={this.onTraverseDown}
-                                      onExpandChild={this.onExpandChild}
-                                      browsePath={this.state.browsePath}>
-                                  </FSBrowser>
-                              }
-                              menuContent={[
-                                  <FontSize onIncrease={this.onIncreaseFontSize}
-                                            onDecrease={this.onDecreaseFontSize}
-                                            onReset={this.onResetFontSize}
-                                            size={this.state.fontSize}
-                                            key="FontSize">
-                                  </FontSize>
+                              tabs={[
+                                  [
+                                      <FSBrowser
+                                          browsingRoot={this.browsingRoot}
+                                          onTraverseUp={this.onTraverseUp}
+                                          onTraverseDown={this.onTraverseDown}
+                                          onExpandChild={this.onExpandChild}
+                                          browsePath={this.state.browsePath}>
+                                      </FSBrowser>
+                                  ],
+                                  [
+                                      <FontSize onIncrease={this.onIncreaseFontSize}
+                                                onDecrease={this.onDecreaseFontSize}
+                                                onReset={this.onResetFontSize}
+                                                size={this.state.fontSize}
+                                                key="FontSize">
+                                      </FontSize>
+                                  ]
                               ]}
-                        >
+                              currentTab={this.state.menu}>
                         </Menu>)}
                     <SplitterLayout vertical={false}
                                     percentage={true}>

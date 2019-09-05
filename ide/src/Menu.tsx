@@ -7,21 +7,17 @@ export enum EMenu {
 
 type MenuProps = {
     menu: EMenu,
-    fsContent: any,
-    menuContent: any[],
+    tabs: any[][],
+    currentTab: number,
 };
 type MenuState = {};
 
 export class Menu extends React.Component<MenuProps, MenuState> {
     render() {
-        if (this.props.menu === EMenu.FSBrowser) {
-            return this.props.fsContent;
-        } else if (this.props.menu === EMenu.Options) {
-            return (
-                <div className="menu-content">
-                    {this.props.menuContent}
-                </div>
-            );
-        }
+        return (
+            <div className="menu-content">
+                {this.props.tabs[this.props.currentTab]}
+            </div>
+        );
     }
 }
