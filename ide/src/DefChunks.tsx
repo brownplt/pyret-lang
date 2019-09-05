@@ -24,7 +24,6 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
   }
 
   componentDidUpdate() {
-    console.log("Updated a textarea: ", this.props.startLine, this.props, this.state);
     if(this.state.editor !== null) {
       const marks = this.state.editor.getDoc().getAllMarks();
       marks.forEach(m => m.clear());
@@ -147,9 +146,7 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
         let newChunks = reorder(this.state.chunks, result.source.index, result.destination.index);
         for(let i = 0; i < newChunks.length; i += 1) {
           const p = newChunks[i];
-          console.log("Before updating sl", p, this.getStartLineForIndex(newChunks, i));
           newChunks[i] = {text: p.text, id: p.id, startLine: this.getStartLineForIndex(newChunks, i)};
-          console.log("After updating sl", newChunks[i]);
         }
         this.setState({ chunks: newChunks });
         this.props.onEdit(this.chunksToString(newChunks));
