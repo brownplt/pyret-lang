@@ -34,13 +34,22 @@ type MenuProps = {
     traverseUp: () => void,
     browsePath: string[],
     createFSItemPair: (path: string) => [string, any],
-    compareFSItemPair: (a: [string, FSItem], b: [string, FSItem]) => number,
     decreaseFontSize: () => void,
     increaseFontSize: () => void,
     resetFontSize: () => void,
     fontSize: number,
 };
 type MenuState = {};
+
+const compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]): any => {
+    if (a[0] < b[0]) {
+        return -1;
+    } else if (a[0] > b[0]) {
+        return 1;
+    } else {
+        return 0;
+    }
+};
 
 export class Menu extends React.Component<MenuProps, MenuState> {
     render() {
@@ -57,7 +66,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                         control.fs
                                .readdirSync(this.props.browsePath)
                                .map(this.props.createFSItemPair)
-                               .sort(this.props.compareFSItemPair)
+                               .sort(compareFSItemPair)
                                .map((x: [string, FSItem]) => x[1])
                     }
                 </div>

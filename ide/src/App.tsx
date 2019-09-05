@@ -271,16 +271,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         ];
     };
 
-    compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]) => {
-        if (a[0] < b[0]) {
-            return -1;
-        } else if (a[0] > b[0]) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
-
     toggleFSBrowser = () => {
         if (this.state.menu === EMenu.FSBrowser) {
             this.setState({
@@ -470,7 +460,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                               traverseUp={this.traverseUp}
                               browsePath={this.browsePath}
                               createFSItemPair={this.createFSItemPair}
-                              compareFSItemPair={this.compareFSItemPair}
                               decreaseFontSize={this.decreaseFontSize}
                               increaseFontSize={this.increaseFontSize}
                               resetFontSize={this.resetFontSize}
