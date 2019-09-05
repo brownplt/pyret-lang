@@ -162,11 +162,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return /\.arr$/.test(this.currentFile);
     }
 
-    get browsePathString
-    () {
-        return control.bfsSetup.path.join(...this.state.browsePath);
-    }
-
     get currentFile() {
         return control.bfsSetup.path.join(
             ...this.state.currentFileDirectory,
