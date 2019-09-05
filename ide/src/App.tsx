@@ -225,12 +225,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     }
 
-    traverseDown = (childDirectory: string) => {
-        const newPath = this.state.browsePath.slice();
-        newPath.push(childDirectory);
-
+    onTraverseDown = (path: string[]) => {
         this.setState({
-            browsePath: newPath,
+            browsePath: path,
         });
     };
 
@@ -251,27 +248,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
             currentFileContents: control.fs
                                         .readFileSync(fullChildPath, "utf-8"),
         });
-    };
-
-    expandChild = (child: string) => {
-        const fullChildPath =
-            control.bfsSetup.path.join(this.browsePathString, child);
-        const stats = control.fs.statSync(fullChildPath);
-
-        if (stats.isDirectory()) {
-            this.traverseDown(child);
-        } else if (stats.isFile()) {
-            this.onExpandChild(child, fullChildPath);
-        }
-    };
-
-    createFSItemPair = (filePath: string): [string, any] => {
-        return [
-            filePath,
-            <FSItem key={filePath}
-                    onClick={() => this.expandChild(filePath)}
-                    contents={filePath} />
-        ];
     };
 
     toggleFSBrowser = () => {
@@ -461,8 +437,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         <Menu menu={this.state.menu}
                               browsingRoot={this.browsingRoot}
                               onTraverseUp={this.onTraverseUp}
+                              onTraverseDown={this.onTraverseDown}
+                              onExpandChild={this.onExpandChild}
                               browsePath={this.state.browsePath}
-                              createFSItemPair={this.createFSItemPair}
                               decreaseFontSize={this.decreaseFontSize}
                               increaseFontSize={this.increaseFontSize}
                               resetFontSize={this.resetFontSize}

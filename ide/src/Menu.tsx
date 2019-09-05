@@ -32,8 +32,9 @@ type MenuProps = {
     menu: EMenu,
     browsingRoot: boolean,
     onTraverseUp: (path: string[]) => void,
+    onTraverseDown: (path: string[]) => void,
+    onExpandChild: (child: string, fullChildPath: string) => void,
     browsePath: string[],
-    createFSItemPair: (path: string) => [string, any],
     decreaseFontSize: () => void,
     increaseFontSize: () => void,
     resetFontSize: () => void,
@@ -56,11 +57,39 @@ export class Menu extends React.Component<MenuProps, MenuState> {
         return control.bfsSetup.path.join(...this.props.browsePath);
     }
 
-    traverseUp = () => {
+    traverseUp = (): void => {
         const newPath = this.props.browsePath.slice();
         newPath.pop();
 
         this.props.onTraverseUp(newPath);
+    };
+
+    traverseDown = (childDirectory: string): void => {
+        const newPath = this.props.browsePath.slice();
+        newPath.push(childDirectory);
+
+        this.props.onTraverseDown(newPath);
+    };
+
+    expandChild = (child: string): void => {
+        const fullChildPath =
+            control.bfsSetup.path.join(this.browsePathString, child);
+        const stats = control.fs.statSync(fullChildPath);
+
+        if (stats.isDirectory()) {
+            this.traverseDown(child);
+        } else if (stats.isFile()) {
+            this.props.onExpandChild(child, fullChildPath);
+        }
+    }
+
+    createFSItemPair = (filePath: string): [string, any] => {
+        return [
+            filePath,
+            <FSItem key={filePath}
+                    onClick={() => this.expandChild(filePath)}
+                    contents={filePath}/>
+        ];
     };
 
     render() {
@@ -76,7 +105,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                     {
                         control.fs
                                .readdirSync(this.browsePathString)
-                               .map(this.props.createFSItemPair)
+                               .map(this.createFSItemPair)
                                .sort(compareFSItemPair)
                                .map((x: [string, FSItem]) => x[1])
                     }
