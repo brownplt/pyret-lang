@@ -53,6 +53,10 @@ const compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]): any => {
 };
 
 export class Menu extends React.Component<MenuProps, MenuState> {
+    get browsePath() {
+        return control.bfsSetup.path.join(...this.props.splitBrowsePath);
+    }
+
     traverseUp = () => {
         const newPath = this.props.splitBrowsePath.slice();
         newPath.pop();
@@ -72,7 +76,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                     )}
                     {
                         control.fs
-                               .readdirSync(this.props.browsePath)
+                               .readdirSync(this.browsePath)
                                .map(this.props.createFSItemPair)
                                .sort(compareFSItemPair)
                                .map((x: [string, FSItem]) => x[1])
