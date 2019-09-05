@@ -266,8 +266,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return [
             filePath,
             <FSItem key={filePath}
-                onClick={() => this.expandChild(filePath)}
-                contents={filePath} />
+                    onClick={() => this.expandChild(filePath)}
+                    contents={filePath} />
         ];
     };
 
@@ -305,7 +305,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => {
         return (
             <button className={(enabled ? "run-option-enabled" : "run-option-disabled")}
-                onClick={onClick}>
+                    onClick={onClick}>
                 {text}
             </button>
         );
@@ -314,15 +314,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
     makeDropdownOption = (text: string, enabled: boolean, onClick: () => void) => {
         return (
             <div className={enabled ? "run-option-enabled" : "run-option-disabled"}
-                onClick={onClick}>
+                 onClick={onClick}>
                 <input type="checkBox"
-                    checked={enabled}
-                    name={text}
-                    className="run-option-checkbox"
-                    readOnly={true}>
+                       checked={enabled}
+                       name={text}
+                       className="run-option-checkbox"
+                       readOnly={true}>
                 </input>
                 <label htmlFor={text}
-                    className="run-option-label">
+                       className="run-option-label">
                     {text}
                 </label>
             </div>
@@ -407,32 +407,32 @@ class Editor extends React.Component<EditorProps, EditorState> {
     render() {
         const interactionValues =
             <pre className="interactions-area"
-                style={{ fontSize: this.state.fontSize }}>
+                 style={{ fontSize: this.state.fontSize }}>
                 {
                     this.state.interactions.map(
                         (i) => {
                             return <Interaction key={i.name}
-                                name={i.name}
-                                value={i.value}
-                                setMessage={this.setMessage} />
+                                                name={i.name}
+                                                value={i.value}
+                                                setMessage={this.setMessage} />
                         })
                 }
             </pre>;
         const definitions = <SingleCodeMirrorDefinitions
-            text={this.state.currentFileContents}
-            onEdit={this.onEdit}
-            highlights={this.state.definitionsHighlights}
-            interactErrorExists={this.state.interactErrorExists}>
+                                text={this.state.currentFileContents}
+                                onEdit={this.onEdit}
+                                highlights={this.state.definitionsHighlights}
+                                interactErrorExists={this.state.interactErrorExists}>
         </SingleCodeMirrorDefinitions>;
         return (
             <div className="page-container">
                 <div className="header-container">
                     <button className="menu"
-                        onClick={this.toggleOptionsVisibility}>
+                            onClick={this.toggleOptionsVisibility}>
                         Options
                     </button>
                     <button className="menu"
-                        onClick={this.toggleFSBrowser}>
+                            onClick={this.toggleFSBrowser}>
                         Files
                     </button>
                     {this.state.runKind === control.backend.RunKind.Async ? (
@@ -440,48 +440,46 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             Stop
                         </button>
                     ) : (
-                            <button className="stop-unavailable">
-                                Stop
+                        <button className="stop-unavailable">
+                            Stop
                         </button>
-                        )}
+                    )}
                     <div className="run-container">
                         <button className="run-ready"
-                            onClick={this.run}>
+                                onClick={this.run}>
                             Run
                         </button>
                         <button className="run-options"
-                            onClick={this.toggleDropdownVisibility}
-                            onBlur={this.removeDropdown}>&#8628;{
-                                this.state.dropdownVisible ? (
-                                    <div className="run-dropdown"
-                                        onClick={(e) => e.stopPropagation()}>
-                                        {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
-                                        {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
-                                        {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
-                                    </div>
-                                ) : (
-                                        null
+                                onClick={this.toggleDropdownVisibility}
+                                onBlur={this.removeDropdown}>&#8628;{
+                                    this.state.dropdownVisible && (
+                                        <div className="run-dropdown"
+                                             onClick={(e) => e.stopPropagation()}>
+                                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
+                                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
+                                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
+                                        </div>
                                     )}
                         </button>
                     </div>
                 </div>
                 <div className="code-container">
-                    {this.state.menuVisible && <Menu
-                        menu={this.state.menu}
-                        browsingRoot={this.browsingRoot}
-                        traverseUp={this.traverseUp}
-                        browsePath={this.browsePath}
-                        createFSItemPair={this.createFSItemPair}
-                        compareFSItemPair={this.compareFSItemPair}
-                        decreaseFontSize={this.decreaseFontSize}
-                        increaseFontSize={this.increaseFontSize}
-                        resetFontSize={this.resetFontSize}
-                        fontSize={this.state.fontSize}
-                    ></Menu>}
+                    {this.state.menuVisible && (
+                        <Menu menu={this.state.menu}
+                              browsingRoot={this.browsingRoot}
+                              traverseUp={this.traverseUp}
+                              browsePath={this.browsePath}
+                              createFSItemPair={this.createFSItemPair}
+                              compareFSItemPair={this.compareFSItemPair}
+                              decreaseFontSize={this.decreaseFontSize}
+                              increaseFontSize={this.increaseFontSize}
+                              resetFontSize={this.resetFontSize}
+                              fontSize={this.state.fontSize}>
+                        </Menu>)}
                     <SplitterLayout vertical={false}
-                        percentage={true}>
+                                    percentage={true}>
                         <div className="edit-area-container"
-                            style={{ fontSize: this.state.fontSize }}>
+                             style={{ fontSize: this.state.fontSize }}>
                             {definitions}
                         </div>
                         <div className="interactions-area-container">
@@ -494,7 +492,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         </p>
                                     </div>
                                 </SplitterLayout>
-                            ) : ( interactionValues )}
+                            ) : interactionValues}
                         </div>
                     </SplitterLayout>
                 </div>
@@ -508,9 +506,9 @@ class App extends React.Component<AppProps, AppState> {
     render() {
         return (
             <Editor browseRoot="/"
-                browsePath={["/", "projects"]}
-                currentFileDirectory={["/", "projects"]}
-                currentFileName="program.arr">
+                    browsePath={["/", "projects"]}
+                    currentFileDirectory={["/", "projects"]}
+                    currentFileName="program.arr">
             </Editor>
         );
     };
