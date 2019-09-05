@@ -494,7 +494,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         </p>
                                     </div>
                                 </SplitterLayout>
-                            ) : ({ interactionValues })}
+                            ) : ( interactionValues )}
                         </div>
                     </SplitterLayout>
                 </div>
