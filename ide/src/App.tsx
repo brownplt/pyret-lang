@@ -421,9 +421,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
             </SingleCodeMirrorDefinitions>;
         }
         else if (this.state.editorMode === EEditor.Chunks) {
-            const nonEmptyChunks = this.state.currentFileContents.split("\n").filter(c => c.trim() !== "");
             return (<DefChunks
-                chunks={nonEmptyChunks}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}
+                program={this.state.currentFileContents}
+                name={this.state.currentFileName}
                 onEdit={this.onEdit}></DefChunks>);
         }
     }
