@@ -239,6 +239,19 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    onExpandChild = (child: string, fullChildPath: string): void => {
+        this.setState({
+            interactions: [{
+                name: "Note",
+                value: "Press Run to compile and run"
+            }],
+            currentFileDirectory: this.state.browsePath,
+            currentFileName: child,
+            currentFileContents: control.fs
+                                        .readFileSync(fullChildPath, "utf-8"),
+        });
+    };
+
     expandChild = (child: string) => {
         const fullChildPath =
             control.bfsSetup.path.join(this.browsePath, child);
@@ -247,15 +260,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         if (stats.isDirectory()) {
             this.traverseDown(child);
         } else if (stats.isFile()) {
-            this.setState({
-                interactions: [{
-                    name: "Note",
-                    value: "Press Run to compile and run"
-                }],
-                currentFileDirectory: this.state.browsePath,
-                currentFileName: child,
-                currentFileContents: control.fs.readFileSync(fullChildPath, "utf-8"),
-            });
+            this.onExpandChild(child, fullChildPath);
         }
     };
 
