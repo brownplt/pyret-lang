@@ -4,6 +4,7 @@ import { Interaction } from './Interaction';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, EMenu, FSItem } from './Menu';
 import { Footer } from './Footer';
+import { FontSize } from './FontSize';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
@@ -341,7 +342,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
-    decreaseFontSize = () => {
+    onDecreaseFontSize = () => {
         if (this.state.fontSize > 1) {
             this.setState({
                 fontSize: this.state.fontSize - 1
@@ -349,13 +350,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
-    increaseFontSize = () => {
+    onIncreaseFontSize = () => {
         this.setState({
             fontSize: this.state.fontSize + 1
         });
     };
 
-    resetFontSize = () => {
+    onResetFontSize = () => {
         this.setState({
             fontSize: 12
         });
@@ -440,10 +441,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
                               onTraverseDown={this.onTraverseDown}
                               onExpandChild={this.onExpandChild}
                               browsePath={this.state.browsePath}
-                              decreaseFontSize={this.decreaseFontSize}
-                              increaseFontSize={this.increaseFontSize}
-                              resetFontSize={this.resetFontSize}
-                              fontSize={this.state.fontSize}>
+                              menuContent={[
+                                  <FontSize onIncrease={this.onIncreaseFontSize}
+                                            onDecrease={this.onDecreaseFontSize}
+                                            onReset={this.onResetFontSize}
+                                            size={this.state.fontSize}
+                                            key="FontSize">
+                                  </FontSize>
+                              ]}
+                        >
                         </Menu>)}
                     <SplitterLayout vertical={false}
                                     percentage={true}>

@@ -35,10 +35,7 @@ type MenuProps = {
     onTraverseDown: (path: string[]) => void,
     onExpandChild: (child: string, fullChildPath: string) => void,
     browsePath: string[],
-    decreaseFontSize: () => void,
-    increaseFontSize: () => void,
-    resetFontSize: () => void,
-    fontSize: number,
+    menuContent: any[],
 };
 type MenuState = {};
 
@@ -116,20 +113,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
         } else if (this.props.menu === EMenu.Options) {
             return (
                 <div className="menu-content">
-                    <div className="font-size-options">
-                        <button className="font-minus"
-                                onClick={this.props.decreaseFontSize}>
-                            -
-                        </button>
-                        <button className="font-label"
-                                onClick={this.props.resetFontSize}>
-                            Font ({this.props.fontSize} px)
-                        </button>
-                        <button className="font-plus"
-                                onClick={this.props.increaseFontSize}>
-                            +
-                        </button>
-                    </div>
+                    {this.props.menuContent}
                 </div>
             );
         }
