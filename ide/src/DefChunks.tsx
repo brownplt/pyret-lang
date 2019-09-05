@@ -1,8 +1,11 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { UnControlled as CodeMirror, Controlled } from 'react-codemirror2';
+import * as control from './control';
 
 type DefChunkProps = {
+  name: string,
+  failures: string[],
   highlights: number[][],
   index: number,
   startLine: number,
@@ -12,11 +15,12 @@ type DefChunkProps = {
 };
 type DefChunkState = {
   editor: CodeMirror.Editor | null,
-  focused: boolean
+  focused: boolean,
+  updateTimer: NodeJS.Timeout
 };
 
 export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
-  constructor(props : DefChunkProps) { super(props); this.state = { editor: null, focused: false }; }
+  constructor(props : DefChunkProps) { super(props); this.state = { editor: null, updateTimer: setTimeout(this.lint.bind(this), 0), focused: false,  }; }
 
   componentWillReceiveProps() {
     if(this.state.editor !== null) {
@@ -40,6 +44,15 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
           }
       }
     }
+  }
+  scheduleUpdate() {
+    clearTimeout(this.state.updateTimer);
+    this.setState({
+        updateTimer: setTimeout(this.lint.bind(this), 250),
+    });
+  }
+  lint() {
+    control.lint(this.props.chunk, this.props.name);
   }
   render() {
     let borderWidth = "1px";
@@ -72,11 +85,16 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
           lineNumberFormatter: (l) => String(l + this.props.startLine)
         }}
         onChange={(editor, __, value) => {
+          this.scheduleUpdate();
           return this.props.onEdit(this.props.index, value)
         }
         }
         autoCursor={false}>
-      </CodeMirror></div>);
+      </CodeMirror>
+      <ul>
+        {this.props.failures.map((f, ix) => <li key={String(ix)}>{f}</li>)}
+      </ul>
+      </div>);
   }
 }
 
@@ -86,7 +104,13 @@ type Chunk = {
   text: string
 }
 
+type LintFailure = {
+    name: string,
+    errors: string[]
+}
+
 type DefChunksProps = {
+  lintFailures: {[name : string]: LintFailure},
   highlights: number[][],
   interactErrorExists: boolean,
   program: string,
@@ -177,6 +201,11 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
           >{this.state.chunks.concat([endBlankChunk]).map((chunk, index) => {
             const linesInChunk = chunk.text.split("\n").length;
             let highlights : number[][];
+            const name = this.props.name + "_chunk_" + chunk.id;
+            let failures : string[] = [];
+            if(name in this.props.lintFailures) {
+              failures = this.props.lintFailures[name].errors;
+            }
             if(this.props.interactErrorExists) {
               highlights = this.props.highlights.filter((h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk);
             }
@@ -188,7 +217,7 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
               {(provided, snapshot) => {
                 return (<div ref={provided.innerRef}
                   {...provided.draggableProps}
-                  {...provided.dragHandleProps}><DefChunk isLast={isLast} highlights={highlights} startLine={chunk.startLine} key={chunk.id} index={index} chunk={chunk.text} onEdit={onEdit}></DefChunk></div>)
+                  {...provided.dragHandleProps}><DefChunk name={name} isLast={isLast} failures={failures} highlights={highlights} startLine={chunk.startLine} key={chunk.id} index={index} chunk={chunk.text} onEdit={onEdit}></DefChunk></div>)
               }
               }</Draggable>;
           })}</div>;
