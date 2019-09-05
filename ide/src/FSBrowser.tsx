@@ -24,7 +24,7 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 }
 
 type FSBrowserProps = {
-    browsingRoot: boolean,
+    root: string,
     onTraverseUp: (path: string[]) => void,
     onTraverseDown: (path: string[]) => void,
     onExpandChild: (child: string, fullChildPath: string) => void,
@@ -35,6 +35,11 @@ type FSBrowserState = {};
 export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     get browsePathString() {
         return control.bfsSetup.path.join(...this.props.browsePath);
+    }
+
+    get browsingRoot() {
+        return control.bfsSetup.path.join(...this.props.browsePath) ===
+            this.props.root;
     }
 
     static compareFSItemPair =
@@ -87,7 +92,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     render() {
         return (
             <div className="menu-content">
-                {!this.props.browsingRoot && (
+                {!this.browsingRoot && (
                     <button className="fs-browser-item"
                             onClick={this.traverseUp}>
                         ..

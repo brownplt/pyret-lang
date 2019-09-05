@@ -176,11 +176,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return control.bfsSetup.path.join(...this.state.currentFileDirectory);
     }
 
-    get browsingRoot() {
-        return control.bfsSetup.path.join(...this.state.browsePath) ===
-            this.state.browseRoot;
-    }
-
     run = () => {
         this.setState(
             {
@@ -431,7 +426,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         <Menu tabs={[
                                   [
                                       <FSBrowser
-                                          browsingRoot={this.browsingRoot}
+                                          root={this.state.browseRoot}
                                           onTraverseUp={this.onTraverseUp}
                                           onTraverseDown={this.onTraverseDown}
                                           onExpandChild={this.onExpandChild}
