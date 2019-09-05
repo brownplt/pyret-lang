@@ -6,6 +6,11 @@ export enum EMenu {
   Options,
 }
 
+export enum EEditor {
+  Chunks,
+  Text,
+}
+
 export type FSItemProps = {
   onClick: () => void;
   contents: string;
@@ -39,6 +44,7 @@ type MenuProps = {
   increaseFontSize: () => void,
   resetFontSize: () => void,
   fontSize: number,
+  setEditorMode: (editorMode: EEditor) => void
 };
 type MenuState = {
 }
@@ -69,6 +75,12 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     } else if (this.props.menu === EMenu.Options) {
       return (
         <div className="menu-content">
+          <div className="editor-style">
+            <button className="text-editor"
+                    onClick={() => this.props.setEditorMode(EEditor.Text)}>Text</button>
+            <button className="chunk-editor"
+                    onClick={() => this.props.setEditorMode(EEditor.Chunks)}>Chunks</button>
+          </div>
           <div className="font-size-options">
             <button className="font-minus"
               onClick={this.props.decreaseFontSize}>

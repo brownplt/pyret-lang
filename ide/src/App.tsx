@@ -1,8 +1,9 @@
 import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
+import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
-import { Menu, EMenu, FSItem } from './Menu';
+import { Menu, EMenu, FSItem, EEditor } from './Menu';
 import { Footer } from './Footer';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
@@ -46,6 +47,7 @@ type EditorState = {
     dropdownVisible: boolean;
     fontSize: number;
     menu: EMenu;
+    editorMode: EEditor,
     menuVisible: boolean;
     message: string;
     definitionsHighlights: number[][];
@@ -142,6 +144,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             dropdownVisible: false,
             menu: EMenu.Options,
             menuVisible: false,
+            editorMode: EEditor.Text,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
@@ -281,6 +284,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
+    setEditorMode = (editorMode: EEditor) => {
+        this.setState({ editorMode });
+    }
+
     toggleFSBrowser = () => {
         if (this.state.menu === EMenu.FSBrowser) {
             this.setState({
@@ -404,6 +411,23 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    makeDefinitions() {
+        if (this.state.editorMode === EEditor.Text) {
+            return <SingleCodeMirrorDefinitions
+                text={this.state.currentFileContents}
+                onEdit={this.onEdit}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}>
+            </SingleCodeMirrorDefinitions>;
+        }
+        else if (this.state.editorMode === EEditor.Chunks) {
+            const nonEmptyChunks = this.state.currentFileContents.split("\n").filter(c => c.trim() !== "");
+            return (<DefChunks
+                chunks={nonEmptyChunks}
+                onEdit={this.onEdit}></DefChunks>);
+        }
+    }
+
     render() {
         const interactionValues =
             <pre className="interactions-area"
@@ -418,12 +442,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         })
                 }
             </pre>;
-        const definitions = <SingleCodeMirrorDefinitions
-            text={this.state.currentFileContents}
-            onEdit={this.onEdit}
-            highlights={this.state.definitionsHighlights}
-            interactErrorExists={this.state.interactErrorExists}>
-        </SingleCodeMirrorDefinitions>;
+
+        const definitions = this.makeDefinitions();
         return (
             <div className="page-container">
                 <div className="header-container">
@@ -477,6 +497,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         increaseFontSize={this.increaseFontSize}
                         resetFontSize={this.resetFontSize}
                         fontSize={this.state.fontSize}
+                        setEditorMode={this.setEditorMode}
                     ></Menu>}
                     <SplitterLayout vertical={false}
                         percentage={true}>
