@@ -32,8 +32,7 @@ type MenuProps = {
     menu: EMenu,
     browsingRoot: boolean,
     onTraverseUp: (path: string[]) => void,
-    browsePath: string,
-    splitBrowsePath: string[],
+    browsePath: string[],
     createFSItemPair: (path: string) => [string, any],
     decreaseFontSize: () => void,
     increaseFontSize: () => void,
@@ -54,11 +53,11 @@ const compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]): any => {
 
 export class Menu extends React.Component<MenuProps, MenuState> {
     get browsePath() {
-        return control.bfsSetup.path.join(...this.props.splitBrowsePath);
+        return control.bfsSetup.path.join(...this.props.browsePath);
     }
 
     traverseUp = () => {
-        const newPath = this.props.splitBrowsePath.slice();
+        const newPath = this.props.browsePath.slice();
         newPath.pop();
 
         this.props.onTraverseUp(newPath);

@@ -455,8 +455,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         <Menu menu={this.state.menu}
                               browsingRoot={this.browsingRoot}
                               onTraverseUp={this.onTraverseUp}
-                              browsePath={this.browsePath}
-                              splitBrowsePath={this.state.browsePath}
+                              browsePath={this.state.browsePath}
                               createFSItemPair={this.createFSItemPair}
                               decreaseFontSize={this.decreaseFontSize}
                               increaseFontSize={this.increaseFontSize}
