@@ -7,6 +7,7 @@ import { Footer } from './Footer';
 import { FontSize } from './FontSize';
 import { FSBrowser } from './FSBrowser';
 import { Dropdown, DropdownOption } from './Dropdown';
+import { Header } from './Header';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
@@ -385,7 +386,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         </SingleCodeMirrorDefinitions>;
         return (
             <div className="page-container">
-                <div className="header-container">
+                <Header>
                     <button className="menu"
                             onClick={this.toggleOptionsVisibility}>
                         Options
@@ -429,7 +430,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     )}
                         </button>
                     </div>
-                </div>
+                </Header>
                 <div className="code-container">
                     {this.state.menuVisible && (
                         <Menu tabs={[
