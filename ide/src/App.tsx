@@ -436,8 +436,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 </div>
                 <div className="code-container">
                     {this.state.menuVisible && (
-                        <Menu menu={this.state.menu}
-                              tabs={[
+                        <Menu tabs={[
                                   [
                                       <FSBrowser
                                           browsingRoot={this.browsingRoot}

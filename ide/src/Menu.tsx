@@ -6,7 +6,6 @@ export enum EMenu {
 }
 
 type MenuProps = {
-    menu: EMenu,
     tabs: any[][],
     currentTab: number,
 };
