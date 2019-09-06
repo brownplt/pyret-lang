@@ -12,6 +12,9 @@ import sha as crypto
 import string-dict as SD
 import error as ERR
 import system as SYS
+import js-file("./parse-pyret") as PP
+import file("ast-util.arr") as AU
+import file("well-formed.arr") as W
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -623,4 +626,16 @@ fun build-require-standalone(path, options):
     ])
 
   print(prog.to-ugly-source())
+end
+
+fun lint(program :: String, uri :: String):
+  cases(E.Either) PP.maybe-surface-parse(uri, program):
+    | left(exn) => E.left([list: exn.exn])
+    | right(ast) =>
+      ast-ended = AU.wrap-toplevels(AU.append-nothing-if-necessary(ast))
+      cases(CS.CompileResult) W.check-well-formed(ast-ended):
+        | ok(_) => E.right(ast)
+        | err(errs) => E.left(errs)
+      end
+  end
 end

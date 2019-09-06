@@ -39,6 +39,11 @@ function makeResult(result: any): { name: string, value: any }[] {
     });
 }
 
+type LintFailure = {
+    name: string,
+    errors: string[]
+}
+
 type EditorProps = {
     browseRoot: string;
     browsePath: string[];
@@ -56,6 +61,7 @@ type EditorState = {
     interactions: { name: string, value: any }[];
     interactionErrors: string[];
     interactErrorExists: boolean;
+    lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
@@ -72,6 +78,19 @@ type EditorState = {
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
+
+        const onLintFailure = (lintFailure : { name: string, errors: string[]}) => {
+            let newFailures = this.state.lintFailures;
+            const name = lintFailure.name;
+            newFailures[name] = lintFailure;
+            this.setState({ lintFailures: newFailures });
+        }
+        const onLintSuccess = (lintSuccess : { name: string}) => {
+            let newFailures = this.state.lintFailures;
+            const name = lintSuccess.name;
+            if(name in newFailures) { delete newFailures[name]; }
+            this.setState({ lintFailures: newFailures });
+        }
 
         control.setupWorkerMessageHandler(
             console.log,
@@ -102,6 +121,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     }
                 );
             },
+            onLintFailure,
+            onLintSuccess,
             () => {
                 this.setMessage("Run started");
                 control.run(
@@ -153,6 +174,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }],
             interactionErrors: [],
             interactErrorExists: false,
+            lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
@@ -382,10 +404,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
         else if (this.state.editorMode === EEditor.Chunks) {
             return (<DefChunks
+                lintFailures={this.state.lintFailures}
+                name={this.state.currentFileName}
                 highlights={this.state.definitionsHighlights}
                 interactErrorExists={this.state.interactErrorExists}
                 program={this.state.currentFileContents}
-                name={this.state.currentFileName}
                 onEdit={this.onEdit}></DefChunks>);
         }
     }
