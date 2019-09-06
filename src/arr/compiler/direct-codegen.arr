@@ -843,7 +843,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         # Just emit the body as an expression
         compile-expr(context, body)
     | s-template(l) => nyi("s-template")
-    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
+    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, _blocky) =>
+      # TODO(alex): Make s-method in non(s-obj) or with/shared member context a well-formedness error
+      
+      # NOTE(alex): Currently cannot do recursive object initialization
+      #   Manually assign the shared/with member with j-bracket vs returning a j-field
+      # Assume the recursive caller will bind the object correctly
+      { binder-func; method-stmts } = compile-method(l, name, args, body)
+      { binder-func; method-stmts }
     | s-type(l, name, params, ann) => raise("s-type already removed")
     | s-newtype(l, name, namet) => raise("s-newtype already removed")
     | s-when(l, test, body, blocky) => 
