@@ -277,11 +277,21 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
-fun compile-member(context, member :: A.Member) -> { JExpr; CList<JStmt> }:
+data BindableKind:
+  | unbindable(value :: JExpr)
+  | to-bind(binder :: JExpr)    # JS function expecting 1 arg: the object to bind
+end
+
+fun compile-member(context, member :: A.Member) -> { BindableKind; CList<JStmt> }:
   cases(A.Member) member:
   | s-data-field(l :: Loc, name :: String, value :: Expr) =>
     { field-val; field-stmts } = compile-expr(context, value)
-    { field-val; field-stmts }
+    # Assume s-method can only be at the top level (i.e. no nesting)
+    # Any nesting is a well-formedness error
+    cases(Expr) value:
+      | s-method(_, _, _, _, _, _, _, _, _, _) => to-bind(value)
+      | else => unbindable(value)
+    end
 
   | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) => 
     raise("Mutable member fields not supported")
@@ -298,7 +308,8 @@ fun compile-member(context, member :: A.Member) -> { JExpr; CList<JStmt> }:
       _check :: Option<Expr>,
       blocky :: Boolean
     ) => 
-      compile-method(context, l, name, args, body)
+      { binder-func; binder-stmts } = compile-method(context, l, name, args, body)
+      { to-bind(binder-func); binder-stmts }
   end
 end
 
@@ -572,18 +583,20 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         # NOTE(alex): Currently cannot do recursive object initialization
         #   Manually assign the shared/with member with j-bracket vs returning a j-field
         fun compile-nonlocal-member(shadow constructed-obj :: JExpr,
-                                    member :: A.Member, member-val :: JExpr) -> CList<JStmt>: 
-          cases(A.Member) member:
-            | s-data-field(_, _, _) => 
-              cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), member-val)))
-              
-            | s-mutable-field(_, _, _, _) => raise("Mutable member fields not supported")
+                                    member :: A.Member, member-val :: BindableKind) -> CList<JStmt>: 
+          fun bind(binder-func):
+            init-expr-rhs = j-app(binder-func, [clist: constructed-obj])
+            cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs)))
+          end
 
-            | s-method-field(_, _, _, _, _, _, _, _, _, _) =>
+          cases(BindableKind) member-val:
+            | unbindable(value) =>
+              cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), value)))
+
+            | to-bind(binder) =>
               # Found a method; bind the method function to the constructed object
               #   by calling the method's binder function and passing in 'self'
-              init-expr-rhs = j-app(member-val, [clist: constructed-obj])
-              cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs)))
+              bind(binder)
           end
         end
         
