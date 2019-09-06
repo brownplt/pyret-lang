@@ -701,9 +701,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
       end
 
+      compiled-shared-stmts = for CL.foldl(all-stmts from cl-empty, 
+                                           { _shared-member; { shared-member-val; shared-member-stmts }} from compiled-shared):
+        cl-append(all-stmts, shared-member-stmts)
+      end
+
       { 
         j-obj(variant-constructors + variant-recognizers); 
-        variant-uniq-defs + variant-cons-stmts 
+        variant-uniq-defs + variant-cons-stmts + compiled-shared-stmts
       }
       
     | s-dot(l, obj, field) =>
