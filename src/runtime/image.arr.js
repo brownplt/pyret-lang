@@ -694,6 +694,123 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   return true;
 };
 
+//////////////////////////////////////////////////////////////////////
+// OverlayImage: image image placeX placeY -> image
+// Creates an image that overlays img1 on top of the
+// other image img2.
+var OverlayImage = function (img1, img2, placeX, placeY) {
+  BaseImage.call(this);
+
+  // An overlay image consists of width, height, x1, y1, x2, and
+  // y2.  We need to compute these based on the inputs img1,
+  // img2, placex, and placey.
+
+  // placeX and placeY may be non-numbers, in which case their values
+  // depend on the img1 and img2 geometry.
+
+  var x1, y1, x2, y2;
+
+  if (placeX === "left") {
+    x1 = 0;
+    x2 = 0;
+  } else if (placeX === "right") {
+    x1 = Math.max(img1.width, img2.width) - img1.width;
+    x2 = Math.max(img1.width, img2.width) - img2.width;
+  } else if (placeX === "beside") {
+    x1 = 0;
+    x2 = img1.width;
+  } else if (placeX === "middle" || placeX === "center") {
+    x1 = Math.max(img1.width, img2.width) / 2 - img1.width / 2;
+    x2 = Math.max(img1.width, img2.width) / 2 - img2.width / 2;
+  } else {
+    x1 = Math.max(placeX, 0) - placeX;
+    x2 = Math.max(placeX, 0);
+  }
+
+  if (placeY === "top") {
+    y1 = 0;
+    y2 = 0;
+  } else if (placeY === "bottom") {
+    y1 = Math.max(img1.height, img2.height) - img1.height;
+    y2 = Math.max(img1.height, img2.height) - img2.height;
+  } else if (placeY === "above") {
+    y1 = 0;
+    y2 = img1.height;
+  } else if (placeY === "baseline") {
+    y1 = Math.max(img1.getBaseline(), img2.getBaseline()) - img1.getBaseline();
+    y2 = Math.max(img1.getBaseline(), img2.getBaseline()) - img2.getBaseline();
+  } else if (placeY === "middle" || placeY === "center") {
+    y1 = Math.max(img1.height, img2.height) / 2 - img1.height / 2;
+    y2 = Math.max(img1.height, img2.height) / 2 - img2.height / 2;
+  } else {
+    y1 = Math.max(placeY, 0) - placeY;
+    y2 = Math.max(placeY, 0);
+  }
+
+  // calculate the vertices of this image by translating the vertices of the sub-images
+  var i, v1 = img1.getVertices(), v2 = img2.getVertices(), xs = [], ys = [];
+  v1 = v1.map(function (v) { return { x: v.x + x1, y: v.y + y1 }; });
+  v2 = v2.map(function (v) { return { x: v.x + x2, y: v.y + y2 }; });
+
+  // store the vertices as something private, so this.getVertices() will still return undefined
+  this._vertices = v1.concat(v2);
+
+  // store the offsets for rendering
+  this.x1 = x1;
+  this.y1 = y1;
+  this.x2 = x2;
+  this.y2 = y2;
+  this.img1 = img1;
+  this.img2 = img2;
+  var positionText;
+  if ((["middle", "center"].indexOf(placeX) > -1) && (["middle", "center"].indexOf(placeY) > -1)) {
+    positionText = " centered above ";
+  } else if (placeX === "left") {
+    positionText = " left-aligned ";
+  } else if (placeX === "right") {
+    positionText = " right-aligned ";
+  } else if (placeX === "beside") {
+    positionText = " beside ";
+  } else if (!isNaN(placeX)) {
+    positionText = " shifted left by " + placeX;
+  }
+  if (placeY === "top") {
+    positionText += " top-aligned ";
+  } else if (placeY === "bottom") {
+    positionText += " bottom-aligned ";
+  } else if (placeY === "above") {
+    positionText += " above ";
+  } else if (!isNaN(placeY)) {
+    positionText += " , shifted up by " + placeY;
+  }
+  this.width = findWidth(this._vertices);
+  this.height = findHeight(this._vertices);
+  this.ariaText = " an overlay: first image is" + img1.ariaText + positionText + img2.ariaText;
+};
+
+OverlayImage.prototype = heir(BaseImage.prototype);
+
+OverlayImage.prototype.getVertices = function () { return this._vertices; };
+
+OverlayImage.prototype.render = function (ctx, x, y) {
+  ctx.save();
+  this.img2.render(ctx, x + this.x2, y + this.y2);
+  this.img1.render(ctx, x + this.x1, y + this.y1);
+  ctx.restore();
+};
+
+OverlayImage.prototype.equals = function (other) {
+  return (other instanceof OverlayImage &&
+    this.width === other.width &&
+    this.height === other.height &&
+    this.x1 === other.x1 &&
+    this.y1 === other.y1 &&
+    this.x2 === other.x2 &&
+    this.y2 === other.y2 &&
+    imageEquals(this.img1, other.img1) &&
+    imageEquals(this.img2, other.img2))
+    || BaseImage.prototype.equals.call(this, other);
+};
 
 /////////////////////////////////////////////////////////////////////
 //TriangleImage: Number Number Number Mode Color -> Image
@@ -934,5 +1051,11 @@ return module.exports = {
   /*},
   polygon:  @stopify flat  function (length, count, step, style, color) {
     return new PolygonImage(length, count, step, style, color);*/
+  },
+  overlay: /* @stopify flat */ function (img1, img2) {
+    return new OverlayImage(img1, img2, "center", "center");
+  },
+  "overlay-align": /* @stopify flat */ function (img1, img2, X, Y) {
+    return new OverlayImage(img1, img2, X, Y);
   }
 };

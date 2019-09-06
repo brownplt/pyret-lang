@@ -13,7 +13,10 @@
       "rhombus": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "line": ["arrow", ["Number", "Number", "String"], "Image"],
       "star": ["arrow", ["Number", "String", "String"], "Image"],
-      "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"]
+      "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+
+      "overlay": ["arrow", ["Image", "Image"], "Image"],
+      "overlay-align": ["arrow", ["Image", "Image", "String", "String"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
