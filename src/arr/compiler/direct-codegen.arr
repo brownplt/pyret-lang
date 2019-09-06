@@ -565,13 +565,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #   2) With Members
       #   3) Shared Members
       fun resolve-init-names(constructed-obj :: JExpr, compiled-shared, 
-                             compiled-with, variant-members) -> CList<JField>:
+                             compiled-with, variant-members) 
+        -> { CList<JField>; CList<JStmt> }:
 
         # Given a shared/with member, emit the code to set the field
+        # NOTE(alex): Currently cannot do recursive object initialization
+        #   Manually assign the shared/with member with j-bracket vs returning a j-field
         fun compile-nonlocal-member(shadow constructed-obj :: JExpr,
-                                    member :: A.Member, member-val :: JExpr) -> JField: 
+                                    member :: A.Member, member-val :: JExpr) -> CList<JStmt>: 
           cases(A.Member) member:
-            | s-data-field(_, _, _) => j-field(member.name, member-val)
+            | s-data-field(_, _, _) => 
+              cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), member-val)))
               
             | s-mutable-field(_, _, _, _) => raise("Mutable member fields not supported")
 
@@ -579,7 +583,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               # Found a method; bind the method function to the constructed object
               #   by calling the method's binder function and passing in 'self'
               init-expr-rhs = j-app(member-val, [clist: constructed-obj])
-              j-field(member.name, init-expr-rhs) 
+              cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs)))
           end
         end
         
@@ -587,7 +591,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         variant-member-map = for fold(dict from [string-dict: ], m from variant-members):
           field-name = m.bind.id.toname()
           init-expr = j-field(field-name, j-id(js-id-of(m.bind.id)))
-          dict.set(field-name, init-expr)
+          dict.set(field-name, { some(init-expr); cl-empty})
         end
 
         # Construct dictionary of with-member inits and NON-conflicting variant member inits
@@ -600,7 +604,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           else:
             # No conflicting variant member
             dict.set(member.name, 
-                     compile-nonlocal-member(constructed-obj, member, member-value))
+                     { none; compile-nonlocal-member(constructed-obj, member, member-value) })
           end
         end
 
@@ -615,12 +619,20 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           else:
             # No conflicting variant member OR with-member
             dict.set(member.name, 
-                     compile-nonlocal-member(constructed-obj, member, member-value))
+                     { none; compile-nonlocal-member(constructed-obj, member, member-value) })
           end
         end
 
-        field-init = for CL.map_list(k from shared-member-map.keys().to-list()):
+        field-stmt-list = for CL.map_list(k from shared-member-map.keys().to-list()):
           shared-member-map.get-value(k)
+        end
+
+        field-init = for CL.foldl({ fields; stmts } from { cl-empty; cl-empty },
+                                  { optional-field; shared-stmts } from field-stmt-list):
+          cases(Option) optional-field:
+            | some(f) => { cl-append(fields, cl-sing(f)); cl-append(stmts, shared-stmts) }
+            | none => { fields; cl-append(stmts, shared-stmts) }
+          end
         end
 
         field-init
@@ -655,20 +667,21 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
             # Give object a temporary name to bind methods against
             constructor-tmp = fresh-id(compiler-name("constructorTMP"))
+            { constructed-fields; constructed-stmts } = 
+              resolve-init-names(j-id(constructor-tmp),
+                                 compiled-shared, compiled-with, members)
             tmp-obj = j-obj(
                     [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
-                            j-field("$tag", j-num(local-tag))] +
-                    resolve-init-names(j-id(constructor-tmp),
-                                       compiled-shared, compiled-with, members)
+                            j-field("$tag", j-num(local-tag))] + 
+                    constructed-fields
             )
             tmp-obj-var = j-var(constructor-tmp, tmp-obj)
 
             { j-field(name,
               j-fun("0", js-id-of(const-id(name)).toname(), args,
-                j-block([clist:
-                  tmp-obj-var,
-                  j-return(j-id(constructor-tmp))
-                ])
+                j-block(cl-cons(tmp-obj-var, constructed-stmts) + 
+                  cl-sing(j-return(j-id(constructor-tmp)))
+                )
               )
             ); cl-empty }
           | s-singleton-variant(_, shadow name, with-members) =>
@@ -677,15 +690,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             end
 
             constructor-tmp = fresh-id(compiler-name("constructorTMP"))
+            { constructed-fields; constructed-stmts } = 
+              resolve-init-names(j-id(constructor-tmp),
+                                 compiled-shared, compiled-with, [list:])
             tmp-obj = j-obj(
                     [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
                             j-field("$tag", j-num(local-tag))] +
-                    resolve-init-names(j-id(constructor-tmp),
-                                       compiled-shared, compiled-with, [list: ])
+                    constructed-fields
             )
             tmp-obj-var = j-var(constructor-tmp, tmp-obj)
 
-            { j-field(name, j-id(constructor-tmp)); cl-sing(tmp-obj-var) }
+            { j-field(name, j-id(constructor-tmp)); cl-cons(tmp-obj-var, constructed-stmts) }
         end
       end
 
