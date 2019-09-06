@@ -8,7 +8,7 @@ type TabState = {};
 
 export class Tab extends React.Component<TabProps, TabState> {
     render() {
-        return <div>{this.props.children}</div>
+        return <div className="menu-content">{this.props.children}</div>
     }
 }
 
@@ -65,10 +65,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                 <div className="menu-tabbar">
                     {childNodes}
                 </div>
-                {this.state.visible &&
-                 <div className="menu-content">
-                     {content}
-                 </div>}
+                {this.state.visible && content}
             </div>
         );
     }
