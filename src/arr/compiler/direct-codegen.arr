@@ -844,13 +844,23 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         compile-expr(context, body)
     | s-template(l) => nyi("s-template")
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, _blocky) =>
+      # name is always empty according to parse-pyret.js:1280
       # TODO(alex): Make s-method in non(s-obj) or with/shared member context a well-formedness error
       
       # NOTE(alex): Currently cannot do recursive object initialization
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
-      # Assume the recursive caller will bind the object correctly
       { binder-func; method-stmts } = compile-method(l, name, args, body)
-      { binder-func; method-stmts }
+
+      # context.current-obj should be set within s-variant/s-singleton branches of s-data-expr
+      #   as well as s-obj and s-extend
+      # Otherwise, should be a well-formedness error
+      current-obj = cases(Option) context.current-obj:
+        | some(o) => o
+        | none => raise("Well-formedness error: found s-method expr in non s-obj/s-data-expr/s-extend context")
+      end
+
+      # Assume callers will generate binding code correctly
+      { J.j-unbound-method(current-obj, binder-func); method-stmts }
     | s-type(l, name, params, ann) => raise("s-type already removed")
     | s-newtype(l, name, namet) => raise("s-newtype already removed")
     | s-when(l, test, body, blocky) => 
@@ -1800,6 +1810,7 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
     datatypes: translated-datatype-map,
     env: env,
     post-env: post-env,
+    current-obj: none
   }, prog.block)
 
   prelude = create-prelude(prog, provides, env, options, import-flags)
