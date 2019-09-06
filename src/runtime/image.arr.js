@@ -870,6 +870,39 @@ var StarImage = /* @stopify flat */ function (points, outer, inner, style, color
 };
 StarImage.prototype = heir(BaseImage.prototype);
 
+//////////////////////////////////////////////////////////////////////
+// PolygonImage: Number Count Step Mode Color -> Image
+//
+// See http://www.algebra.com/algebra/homework/Polygons/Inscribed-and-circumscribed-polygons.lesson
+// the polygon is inscribed in a circle, whose radius is length/2sin(pi/count)
+// another circle is inscribed in the polygon, whose radius is length/2tan(pi/count)
+// rotate a 3/4 quarter turn plus half the angle length to keep bottom base level
+var PolygonImage = /* @stopify flat */ function (length, count, step, style, color) {
+  BaseImage.call(this);
+  this.outerRadius = Math.round(length / (2 * Math.sin(Math.PI / count)));
+  this.innerRadius = Math.round(length / (2 * Math.tan(Math.PI / count)));
+  var adjust = (3 * Math.PI / 2) + Math.PI / count;
+
+  // rotate around outer circle, storing x and y coordinates
+  var radians = 0, vertices = [];
+  for (var i = 0; i < count; i++) {
+    radians = radians + (step * 2 * Math.PI / count);
+    vertices.push({
+      x: Math.round(this.outerRadius * Math.cos(radians - adjust)),
+      y: Math.round(this.outerRadius * Math.sin(radians - adjust))
+    });
+  }
+
+  this.width = findWidth(vertices);
+  this.height = findHeight(vertices);
+  this.style = style;
+  this.color = color;
+  this.vertices = translateVertices(vertices);
+  this.ariaText = " a" + colorToSpokenString(color, style) + ", " + count
+    + " sided polygon with each side of length " + length;
+};
+PolygonImage.prototype = heir(BaseImage.prototype);
+
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -894,9 +927,12 @@ return module.exports = {
     return new LineImage(x, y, convertColor(color));
   },
   star: /* @stopify flat */ function(side, style, color) {
-    return new StarImage(5, side / 2, side, style, convertColor(color));
+    return new StarImage(5, side / 3, side, style, convertColor(color));
   },
   "radial-star": /* @stopify flat */ function(points, outer, inner, style, color) {
     return new StarImage(points, outer, inner, style, convertColor(color));
+  /*},
+  polygon:  @stopify flat  function (length, count, step, style, color) {
+    return new PolygonImage(length, count, step, style, color);*/
   }
 };
