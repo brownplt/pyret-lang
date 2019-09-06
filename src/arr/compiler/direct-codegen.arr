@@ -851,14 +851,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
       { binder-func; method-stmts } = compile-method(l, name, args, body)
 
-      # context.current-obj should be set within s-variant/s-singleton branches of s-data-expr
-      #   as well as s-obj and s-extend
-      # Otherwise, should be a well-formedness error
-      current-obj = cases(Option) context.current-obj:
-        | some(o) => o
-        | none => raise("Well-formedness error: found s-method expr in non s-obj/s-data-expr/s-extend context")
-      end
-
       # Assume callers will generate binding code correctly
       { J.j-unbound-method(current-obj, binder-func); method-stmts }
     | s-type(l, name, params, ann) => raise("s-type already removed")
@@ -1810,7 +1802,6 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
     datatypes: translated-datatype-map,
     env: env,
     post-env: post-env,
-    current-obj: none
   }, prog.block)
 
   prelude = create-prelude(prog, provides, env, options, import-flags)
