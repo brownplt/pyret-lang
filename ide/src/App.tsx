@@ -177,6 +177,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return control.bfsSetup.path.join(...this.state.currentFileDirectory);
     }
 
+    get stopify() {
+        return this.state.runKind === control.backend.RunKind.Async;
+    }
+
     run = () => {
         this.setState(
             {
@@ -293,7 +297,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleStopify = () => {
-        if (this.state.runKind === control.backend.RunKind.Async) {
+        if (this.stopify) {
             this.setState({
                 runKind: control.backend.RunKind.Sync
             });
@@ -384,7 +388,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 onClick={this.toggleAutoRun}>
                     Auto Run
                 </DropdownOption>
-                <DropdownOption enabled={this.state.runKind === control.backend.RunKind.Async}
+                <DropdownOption enabled={this.stopify}
                                 onClick={this.toggleStopify}>
                     Stopify
                 </DropdownOption>
@@ -440,7 +444,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             onClick={this.toggleFSBrowser}>
                         Files
                     </button>
-                    {this.state.runKind === control.backend.RunKind.Async ? (
+                    {this.stopify ? (
                         <button className="stop-available">
                             Stop
                         </button>
