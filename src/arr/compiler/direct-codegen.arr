@@ -380,7 +380,7 @@ fun compile-method(context,
     j-block(cl-snoc(js-body-stmts, j-return(js-body-val)))
   )
 
-  binder-fun-name = js-id-of(const-id("binder" + name))
+  binder-fun-name = fresh-id(compiler-name("binder" + name))
 
   inner-fun-bind = fresh-id(compiler-name("inner"))
 
@@ -403,7 +403,7 @@ fun compile-method(context,
 
   # Generate the binder function
   binder-fun = j-fun("0",
-    binder-fun-name.toname(),
+    binder-fun-name.to-compiled(),
     cl-sing(self),
     j-block([clist: inner-fun-var, 
                     j-expr(inner-fun-brand), 
