@@ -409,7 +409,7 @@ fun compile-method(context,
             ])
   )
 
-  { js-id(binder-fun-name); cl-sing(binder-fun) }
+  { j-id(binder-fun-name); cl-sing(binder-fun) }
 end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
