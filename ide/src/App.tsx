@@ -478,8 +478,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    <button onClick={this.toggleMenuVisibility}>
-                        ///
+                    <button className="menu"
+                            onClick={this.toggleMenuVisibility}>
+                        Menu
                     </button>
                     {this.stopify ? (
                         <button className="stop-available">
