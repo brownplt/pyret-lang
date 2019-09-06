@@ -730,7 +730,7 @@ TriangleImage.prototype = heir(BaseImage.prototype);
 
 //////////////////////////////////////////////////////////////////////
 //Ellipse : Number Number Mode Color -> Image
-var EllipseImage = function (width, height, style, color) {
+var EllipseImage = /* @stopify flat */ function (width, height, style, color) {
   BaseImage.call(this);
   this.width = width;
   this.height = height;
@@ -742,7 +742,7 @@ var EllipseImage = function (width, height, style, color) {
 
 EllipseImage.prototype = heir(BaseImage.prototype);
 
-EllipseImage.prototype.render = function (ctx, aX, aY) {
+EllipseImage.prototype.render = /* @stopify flat */ function (ctx, aX, aY) {
   ctx.save();
   ctx.beginPath();
 
@@ -778,7 +778,7 @@ EllipseImage.prototype.render = function (ctx, aX, aY) {
   ctx.restore();
 };
 
-EllipseImage.prototype.equals = function (other) {
+EllipseImage.prototype.equals = /* @stopify flat */ function (other) {
   return ((other instanceof EllipseImage) &&
     this.width === other.width &&
     this.height === other.height &&
@@ -789,7 +789,7 @@ EllipseImage.prototype.equals = function (other) {
 
 //////////////////////////////////////////////////////////////////////
 // RectangleImage: Number Number Mode Color -> Image
-var RectangleImage = function (width, height, style, color) {
+var RectangleImage = /* @stopify flat */ function (width, height, style, color) {
   BaseImage.call(this);
   this.width = Math.max(1, width);   // an outline rectangle with no delta X or delta Y
   this.height = Math.max(1, height);  // should still take up one visible pixel
@@ -803,7 +803,7 @@ RectangleImage.prototype = heir(BaseImage.prototype);
 
 //////////////////////////////////////////////////////////////////////
 // RhombusImage: Number Number Mode Color -> Image
-var RhombusImage = function (side, angle, style, color) {
+var RhombusImage = /* @stopify flat */ function (side, angle, style, color) {
   BaseImage.call(this);
   // sin(angle/2-in-radians) * side = half of base
   // cos(angle/2-in-radians) * side = half of height
@@ -819,6 +819,27 @@ var RhombusImage = function (side, angle, style, color) {
 };
 RhombusImage.prototype = heir(BaseImage.prototype);
 
+//////////////////////////////////////////////////////////////////////
+// Line: Number Number Color Boolean -> Image
+var LineImage = /* @stopify flat */ function (x, y, color) {
+  BaseImage.call(this);
+  var vertices;
+  if (x >= 0) {
+    if (y >= 0) { vertices = [{ x: 0, y: 0 }, { x: x, y: y }]; }
+    else { vertices = [{ x: 0, y: -y }, { x: x, y: 0 }]; }
+  } else {
+    if (y >= 0) { vertices = [{ x: -x, y: 0 }, { x: 0, y: y }]; }
+    else { vertices = [{ x: -x, y: -y }, { x: 0, y: 0 }]; }
+  }
+
+  this.width = Math.max(1, Math.abs(x)); // a line with no delta X should still take up one visible pixel
+  this.height = Math.max(1, Math.abs(y)); // a line with no delta Y should still take up one visible pixel
+  this.style = "outline"; // all vertex-based images must have a style
+  this.color = color;
+  this.vertices = vertices;
+  this.ariaText = " a" + colorToSpokenString(color, 'solid') + " line of width " + x + " and height " + y;
+};
+LineImage.prototype = heir(BaseImage.prototype);
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -838,5 +859,8 @@ return module.exports = {
   },
   rhombus: /* @stopify flat */ function(side, angle, style, color) {
     return new RhombusImage(side, angle, style, convertColor(color));
+  },
+  line: /* @stopify flat */ function(x, y, color) {
+    return new LineImage(x, y, color);
   }
 };

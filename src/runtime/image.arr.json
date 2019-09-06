@@ -10,7 +10,8 @@
       "circle": ["arrow", ["Number", "String", "String"], "Image"],
       "rectangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "square": ["arrow", ["Number", "String", "String"], "Image"],
-      "rhombus": ["arrow", ["Number", "Number", "String", "String"], "Image"]
+      "rhombus": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "line": ["arrow", ["Number", "Number", "String"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
