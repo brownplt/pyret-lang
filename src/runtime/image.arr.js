@@ -13,9 +13,9 @@ function Color(r, g, b, a) {
 function isNum(n) { return typeof n === "number"; }
 
 //////////////////////////////////////////////////////////////////////
-var makeColor = /* @stopify flat */ function(r,g,b,a) {
+var makeColor = /* @stopify flat */ function (r, g, b, a) {
   if (a === undefined) { a = 1; }
-  if ([r,g,b,a].filter(isNum).length !== 4) {
+  if ([r, g, b, a].filter(isNum).length !== 4) {
     throw new Error("Internal error: non-number in makeColor argList ", [r, g, b, a]);
   }
   return new Color(r, g, b, a);
@@ -28,36 +28,36 @@ function clamp(num, min, max) {
   else if (num > max) { return max; }
   else { return num; }
 }
-var isColor = /* @stopify flat */ function(c) { return typeof c === "object" && c instanceof Color; };
-var colorRed = /* @stopify flat */ function(c) { return clamp(c.red); }
-var colorGreen = /* @stopify flat */ function(c) { return clamp(c.green); }
-var colorBlue = /* @stopify flat */ function(c) { return clamp(c.blue); }
-var colorAlpha = /* @stopify flat */ function(c) { return clamp(c.alpha); }
+var isColor = /* @stopify flat */ function (c) { return typeof c === "object" && c instanceof Color; };
+var colorRed = /* @stopify flat */ function (c) { return clamp(c.red); }
+var colorGreen = /* @stopify flat */ function (c) { return clamp(c.green); }
+var colorBlue = /* @stopify flat */ function (c) { return clamp(c.blue); }
+var colorAlpha = /* @stopify flat */ function (c) { return clamp(c.alpha); }
 
-var convertColor = /* @stopify flat */ function(c) {
-  if(typeof c === "string") { return colorDb.get(c); }
+var convertColor = /* @stopify flat */ function (c) {
+  if (typeof c === "string") { return colorDb.get(c); }
   else { return c; }
 }
 
 // Color database
-var ColorDb = /* @stopify flat */ function() {
+var ColorDb = /* @stopify flat */ function () {
   this.colors = {};
   this.colorNames = {};
 };
 
-ColorDb.prototype.put = /* @stopify flat */ function(name, color) {
+ColorDb.prototype.put = /* @stopify flat */ function (name, color) {
   this.colors[name] = color;
   var str = // NOTE(ben): Not flooring the numbers here, because they will all be integers anyway
-      colorRed(color) + ", " +
-      colorGreen(color) + ", " +
-      colorBlue(color) + ", " +
-      colorAlpha(color);
+    colorRed(color) + ", " +
+    colorGreen(color) + ", " +
+    colorBlue(color) + ", " +
+    colorAlpha(color);
   if (this.colorNames[str] === undefined) {
     this.colorNames[str] = name;
   }
 };
 
-ColorDb.prototype.get = /* @stopify flat */ function(name) {
+ColorDb.prototype.get = /* @stopify flat */ function (name) {
   return this.colors[name.toString().toUpperCase()];
 };
 
@@ -355,7 +355,7 @@ colorDb.put("TRANSPARENT", makeColor(0, 0, 0, 0));
 // potentially fragile prototype semantics
 var clone = function (obj) {
   var property;
-  var C = function () {};
+  var C = function () { };
   C.prototype = obj;
   var c = new C();
   for (property in obj) {
@@ -366,13 +366,13 @@ var clone = function (obj) {
   return c;
 };
 // TODO(joe): not sufficient
-var equals = /* @stopify flat */ function(v1, v2) { return v1 === v2; };
+var equals = /* @stopify flat */ function (v1, v2) { return v1 === v2; };
 
-var imageEquals = /* @stopify flat */ function(left, right) {
+var imageEquals = /* @stopify flat */ function (left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
   return left.equals(right);
 }
-var imageDifference = /* @stopify flat */ function(left, right) {
+var imageDifference = /* @stopify flat */ function (left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
   return left.difference(right);
 }
@@ -380,7 +380,7 @@ var imageDifference = /* @stopify flat */ function(left, right) {
 
 var heir = Object.create;
 
-var isAngle = /* @stopify flat */ function(x) {
+var isAngle = /* @stopify flat */ function (x) {
   return jsnums.isReal(x) &&
     jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
     jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
@@ -388,33 +388,33 @@ var isAngle = /* @stopify flat */ function(x) {
 
 // Produces true if the value is a color or a color string.
 // On the Racket side of things, this is exposed as image-color?.
-var isColorOrColorString = /* @stopify flat */ function(thing) {
+var isColorOrColorString = /* @stopify flat */ function (thing) {
   return (isColor(thing) ||
-          ((RUNTIME.isString(thing) &&
-            typeof(colorDb.get(thing)) != 'undefined')));
+    ((RUNTIME.isString(thing) &&
+      typeof (colorDb.get(thing)) != 'undefined')));
 };
 
 //////////////////////////////////////////////////////////////////////
 // colorString : hexColor Style -> rgba
 // Style can be a number (0-1), "solid", "outline" or null
 // The above value which is non-number is equivalent to a number 255
-var colorString = /* @stopify flat */ function(aColor, aStyle) {
-  var styleAlpha = isNaN(aStyle)? 1.0 : aStyle,
-      cAlpha = colorAlpha(aColor);
+var colorString = /* @stopify flat */ function (aColor, aStyle) {
+  var styleAlpha = isNaN(aStyle) ? 1.0 : aStyle,
+    cAlpha = colorAlpha(aColor);
   // NOTE(ben): Flooring the numbers here so that it's a valid RGBA style string
-  return "rgba(" +  Math.floor(colorRed(aColor))   + ", " +
-                    Math.floor(colorGreen(aColor)) + ", " +
-                    Math.floor(colorBlue(aColor))  + ", " +
-                    styleAlpha * cAlpha + ")";
+  return "rgba(" + Math.floor(colorRed(aColor)) + ", " +
+    Math.floor(colorGreen(aColor)) + ", " +
+    Math.floor(colorBlue(aColor)) + ", " +
+    styleAlpha * cAlpha + ")";
 };
 
 /* @stopify flat */
-function RGBtoLAB(r, g, b){
-  /* @stopify flat */ function RGBtoXYZ(r, g, b){
-      /* @stopify flat */ function process(v){
-        v = parseFloat(v/255);
-        return (v>0.04045? Math.pow( (v+0.055)/1.055, 2.4) : v/12.92) * 100;
-      }
+function RGBtoLAB(r, g, b) {
+  /* @stopify flat */ function RGBtoXYZ(r, g, b) {
+      /* @stopify flat */ function process(v) {
+      v = parseFloat(v / 255);
+      return (v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92) * 100;
+    }
     var var_R = process(r), var_G = process(g), var_B = process(b);
     //Observer. = 2°, Illuminant = D65
     var X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
@@ -423,28 +423,28 @@ function RGBtoLAB(r, g, b){
     return [X, Y, Z];
   }
 
-  /* @stopify flat */ function XYZtoLAB(x, y, z){
+  /* @stopify flat */ function XYZtoLAB(x, y, z) {
     var var_X = x / 95.047;           //ref_X =  95.047   Observer= 2°, Illuminant= D65
     var var_Y = y / 100.000;          //ref_Y = 100.000
     var var_Z = z / 108.883;          //ref_Z = 108.883
-    function process(v){ return v>0.008856? Math.pow(v, 1/3) : (7.787*v) + (16/116); }
+    function process(v) { return v > 0.008856 ? Math.pow(v, 1 / 3) : (7.787 * v) + (16 / 116); }
     var_X = process(var_X); var_Y = process(var_Y); var_Z = process(var_Z);
-    var CIE_L = ( 116 * var_Y ) - 16;
-    var CIE_a = 500 * ( var_X - var_Y );
-    var CIE_b = 200 * ( var_Y - var_Z );
+    var CIE_L = (116 * var_Y) - 16;
+    var CIE_a = 500 * (var_X - var_Y);
+    var CIE_b = 200 * (var_Y - var_Z);
     return [CIE_L, CIE_a, CIE_b];
   }
-  var xyz = RGBtoXYZ(r,g,b), lab = XYZtoLAB(xyz[0],xyz[1],xyz[2]);
-  return {l: lab[0], a: lab[1], b:lab[2]};
+  var xyz = RGBtoXYZ(r, g, b), lab = XYZtoLAB(xyz[0], xyz[1], xyz[2]);
+  return { l: lab[0], a: lab[1], b: lab[2] };
 }
 var colorLabs = [], colorRgbs = colorDb.colors;
 for (var p in colorRgbs) {
   if (colorRgbs.hasOwnProperty(p)) {
     // NOTE(ben): Not flooring numbers here, since RGBtoLAB supports float values
     var lab = RGBtoLAB(colorRed(colorRgbs[p]),
-                        colorGreen(colorRgbs[p]),
-                        colorBlue(colorRgbs[p]));
-    colorLabs.push({name:p, l:lab.l, a:lab.a, b:lab.b});
+      colorGreen(colorRgbs[p]),
+      colorBlue(colorRgbs[p]));
+    colorLabs.push({ name: p, l: lab.l, a: lab.a, b: lab.b });
   }
 }
 
@@ -452,119 +452,126 @@ for (var p in colorRgbs) {
 // colorToSpokenString : hexColor Style -> String
 // Describes the color using the nearest HTML color name
 // Style can be "solid" (1.0), "outline" (1.0), a number (0-1.0) or null (1.0)
-/* @stopify flat */ function colorToSpokenString(aColor, aStyle){
-  if(aStyle===0) return " transparent ";
+/* @stopify flat */ function colorToSpokenString(aColor, aStyle) {
+  if (aStyle === 0) return " transparent ";
   // NOTE(ben): Not flooring numbers here, since RGBtoLAB supports float values
   var lab1 = RGBtoLAB(colorRed(aColor),
-                      colorGreen(aColor),
-                      colorBlue(aColor));
-  var distances = colorLabs.map(/* @stopify flat */ function(lab2){
-          return {l: lab2.l, a: lab2.a, b:lab2.b, name: lab2.name,
-                  d: Math.sqrt(Math.pow(lab1.l-lab2.l,2)
-                                +Math.pow(lab1.a-lab2.a,2)
-                                +Math.pow(lab1.b-lab2.b,2))}});
-  distances = distances.sort(/* @stopify flat */ function(a,b){return a.d<b.d? -1 : a.d>b.d? 1 : 0 ;});
+    colorGreen(aColor),
+    colorBlue(aColor));
+  var distances = colorLabs.map(/* @stopify flat */ function (lab2) {
+    return {
+      l: lab2.l, a: lab2.a, b: lab2.b, name: lab2.name,
+      d: Math.sqrt(Math.pow(lab1.l - lab2.l, 2)
+        + Math.pow(lab1.a - lab2.a, 2)
+        + Math.pow(lab1.b - lab2.b, 2))
+    }
+  });
+  distances = distances.sort(/* @stopify flat */ function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; });
   var match = distances[0].name;
-  var style = isNaN(aStyle)? (aStyle === "solid"? " solid" : "n outline") : " translucent ";
+  var style = isNaN(aStyle) ? (aStyle === "solid" ? " solid" : "n outline") : " translucent ";
   return style + " " + match.toLowerCase();
 }
 
 
-var isSideCount = /* @stopify flat */ function(x) {
+var isSideCount = /* @stopify flat */ function (x) {
   return typeof x === "number" && x >= 3;
   // return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3, RUNTIME.NumberErrbacks);
 };
 
-var isStepCount = /* @stopify flat */ function(x) {
+var isStepCount = /* @stopify flat */ function (x) {
   return typeof x === "number" && x >= 1;
   // return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1, RUNTIME.NumberErrbacks);
 };
 
-var isPointsCount = /* @stopify flat */ function(x) {
+var isPointsCount = /* @stopify flat */ function (x) {
   return typeof x === "number" && x >= 2;
   // return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2, RUNTIME.NumberErrbacks);
 };
 
 // Produces true if thing is an image-like object.
-var isImage = /* @stopify flat */ function(thing) {
-  if (typeof(thing.getHeight) !== 'function')
+var isImage = /* @stopify flat */ function (thing) {
+  if (typeof (thing.getHeight) !== 'function')
     return false;
-  if (typeof(thing.getWidth) !== 'function')
+  if (typeof (thing.getWidth) !== 'function')
     return false;
-  if (typeof(thing.getBaseline) !== 'function')
+  if (typeof (thing.getBaseline) !== 'function')
     return false;
-  if (typeof(thing.updatePinhole) !== 'function')
+  if (typeof (thing.updatePinhole) !== 'function')
     return false;
-  if (typeof(thing.render) !== 'function')
+  if (typeof (thing.render) !== 'function')
     return false;
   return true;
 };
 
 
 // given two arrays of {x,y} structs, determine their equivalence
-var verticesEqual = /* @stopify flat */ function(v1, v2){
-    if(v1.length !== v2.length){ return false; }
-    var v1_str = v1.map(/* @stopify flat */ function(o){return "x:"+o.x+",y:"+o.y}).join(","),
-        v2_str = v2.map(/* @stopify flat */ function(o){return "x:"+o.x+",y:"+o.y}).join(",");
-    // v1 == rot(v2) if append(v1,v1) includes v2
-    return (v1_str+","+v1_str).includes(v2_str);
+var verticesEqual = /* @stopify flat */ function (v1, v2) {
+  if (v1.length !== v2.length) { return false; }
+  var v1_str = v1.map(/* @stopify flat */ function (o) { return "x:" + o.x + ",y:" + o.y }).join(","),
+    v2_str = v2.map(/* @stopify flat */ function (o) { return "x:" + o.x + ",y:" + o.y }).join(",");
+  // v1 == rot(v2) if append(v1,v1) includes v2
+  return (v1_str + "," + v1_str).includes(v2_str);
 };
 
 // given an array of (x, y) pairs, unzip them into separate arrays
-var unzipVertices = /* @stopify flat */ function(vertices){
-    return {xs: vertices.map(/* @stopify flat */ function(v) { return v.x }),
-            ys: vertices.map(/* @stopify flat */ function(v) { return v.y })};
+var unzipVertices = /* @stopify flat */ function (vertices) {
+  return {
+    xs: vertices.map(/* @stopify flat */ function (v) { return v.x }),
+    ys: vertices.map(/* @stopify flat */ function (v) { return v.y })
+  };
 };
 // given an array of vertices, find the width of the shape
-var findWidth = /* @stopify flat */ function(vertices){
-    var xs = unzipVertices(vertices).xs;
-    return Math.max.apply(Math, xs) - Math.min.apply(Math, xs);
+var findWidth = /* @stopify flat */ function (vertices) {
+  var xs = unzipVertices(vertices).xs;
+  return Math.max.apply(Math, xs) - Math.min.apply(Math, xs);
 }
 // given an array of vertices, find the height of the shape
-var findHeight = /* @stopify flat */ function(vertices){
-    var ys = unzipVertices(vertices).ys;
-    return Math.max.apply(Math, ys) - Math.min.apply(Math, ys);
+var findHeight = /* @stopify flat */ function (vertices) {
+  var ys = unzipVertices(vertices).ys;
+  return Math.max.apply(Math, ys) - Math.min.apply(Math, ys);
 }
 // given a list of vertices and a translationX/Y, shift them
-var translateVertices = /* @stopify flat */ function(vertices) {
-    var vs = unzipVertices(vertices);
-    var translateX = -Math.min.apply( Math, vs.xs );
-    var translateY = -Math.min.apply( Math, vs.ys );
-    return vertices.map(/* @stopify flat */ function(v) {
-        return {x: v.x + translateX, y: v.y + translateY };
-    })
+var translateVertices = /* @stopify flat */ function (vertices) {
+  var vs = unzipVertices(vertices);
+  var translateX = -Math.min.apply(Math, vs.xs);
+  var translateY = -Math.min.apply(Math, vs.ys);
+  return vertices.map(/* @stopify flat */ function (v) {
+    return { x: v.x + translateX, y: v.y + translateY };
+  })
 }
 
 
 // Base class for all images.
-var BaseImage = /* @stopify flat */ function() { this.$brand = "image"; };
+var BaseImage = /* @stopify flat */ function () { this.$brand = "image"; };
 
-BaseImage.prototype.updatePinhole = /* @stopify flat */ function(x, y) {
+BaseImage.prototype.updatePinhole = /* @stopify flat */ function (x, y) {
   var aCopy = clone(this);
   aCopy.pinholeX = x;
   aCopy.pinholeY = y;
   return aCopy;
 };
 
-BaseImage.prototype.getHeight = /* @stopify flat */ function(){
+BaseImage.prototype.getHeight = /* @stopify flat */ function () {
   return Math.round(this.height);
 };
 
-BaseImage.prototype.getWidth = /* @stopify flat */ function(){
+BaseImage.prototype.getWidth = /* @stopify flat */ function () {
   return Math.round(this.width);
 };
 
-BaseImage.prototype.getBaseline = /* @stopify flat */ function(){
+BaseImage.prototype.getBaseline = /* @stopify flat */ function () {
   return Math.round(this.height);
 };
 
 // return the vertex array if it exists, otherwise make one using height and width
-BaseImage.prototype.getVertices = /* @stopify flat */ function(){
-  if(this.vertices){ return this.vertices; }
-  else{ return [{x:0 , y: 0},
-                {x: this.width, y: 0},
-                {x: 0, y: this.height},
-                {x: this.width, y: this.height}]; }
+BaseImage.prototype.getVertices = /* @stopify flat */ function () {
+  if (this.vertices) { return this.vertices; }
+  else {
+    return [{ x: 0, y: 0 },
+    { x: this.width, y: 0 },
+    { x: 0, y: this.height },
+    { x: this.width, y: this.height }];
+  }
 };
 
 // render: context fixnum fixnum: -> void
@@ -572,8 +579,8 @@ BaseImage.prototype.getVertices = /* @stopify flat */ function(){
 // (x, y).
 // If the image isn't vertex-based, throw an error
 // Otherwise, stroke and fill the vertices.
-BaseImage.prototype.render = /* @stopify flat */ function(ctx, x, y) {
-  if(!this.vertices){
+BaseImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  if (!this.vertices) {
     throw new Error('BaseImage.render is not implemented for this type!');
   }
   ctx.save();
@@ -588,23 +595,25 @@ BaseImage.prototype.render = /* @stopify flat */ function(ctx, x, y) {
   var vertices;
   // pixel-perfect vertices fail on Chrome, and certain versions of FF,
   // so we disable the offset for equality tests and solid images
-  if(ctx.isEqualityTest || isSolid){
-      vertices = this.vertices;
+  if (ctx.isEqualityTest || isSolid) {
+    vertices = this.vertices;
   } else {
-      // find the midpoint of the xs and ys from vertices
-      var midX = findWidth(this.vertices)  / 2;
-      var midY = findHeight(this.vertices) / 2;
+    // find the midpoint of the xs and ys from vertices
+    var midX = findWidth(this.vertices) / 2;
+    var midY = findHeight(this.vertices) / 2;
 
-      // compute 0.5px offsets to ensure that we draw on the pixel
-      // and not the pixel boundary
-      vertices = this.vertices.map(/* @stopify flat */ function(v){
-          return {x: v.x + (v.x < midX ? 0.5 : -0.5),
-                  y: v.y + (v.y < midY ? 0.5 : -0.5)};
-      });
+    // compute 0.5px offsets to ensure that we draw on the pixel
+    // and not the pixel boundary
+    vertices = this.vertices.map(/* @stopify flat */ function (v) {
+      return {
+        x: v.x + (v.x < midX ? 0.5 : -0.5),
+        y: v.y + (v.y < midY ? 0.5 : -0.5)
+      };
+    });
   }
 
-  ctx.moveTo( x + vertices[0].x, y + vertices[0].y );
-  vertices.forEach(/* @stopify flat */ function(v) { ctx.lineTo( x + v.x, y + v.y); });
+  ctx.moveTo(x + vertices[0].x, y + vertices[0].y);
+  vertices.forEach(/* @stopify flat */ function (v) { ctx.lineTo(x + v.x, y + v.y); });
   ctx.closePath();
 
   if (isSolid) {
@@ -619,65 +628,65 @@ BaseImage.prototype.render = /* @stopify flat */ function(ctx, x, y) {
 
 // makeCanvas: number number -> canvas
 // Constructs a canvas object of a particular width and height.
-var makeCanvas = /* @stopify flat */ function(width, height) {
+var makeCanvas = /* @stopify flat */ function (width, height) {
   var canvas = document.createElement("canvas");
-  canvas.width  = width;
+  canvas.width = width;
   canvas.height = height;
-  canvas.style.width  = canvas.width  + "px";
+  canvas.style.width = canvas.width + "px";
   canvas.style.height = canvas.height + "px";
   return canvas;
 };
-BaseImage.prototype.toWrittenString = /* @stopify flat */ function(cache) { return "<image>"; }
-BaseImage.prototype.toDisplayedString = /* @stopify flat */ function(cache) { return "<image>"; }
+BaseImage.prototype.toWrittenString = /* @stopify flat */ function (cache) { return "<image>"; }
+BaseImage.prototype.toDisplayedString = /* @stopify flat */ function (cache) { return "<image>"; }
 
 
 // Best-Guess equivalence for images. If they're vertex-based we're in luck,
 // otherwise we go pixel-by-pixel. It's up to exotic image types to provide
 // more efficient ways of comparing one another
-BaseImage.prototype.equals = /* @stopify flat */ function(other) {
-  if(this.getWidth()    !== other.getWidth()    ||
-      this.getHeight()   !== other.getHeight()){ return false; }
+BaseImage.prototype.equals = /* @stopify flat */ function (other) {
+  if (this.getWidth() !== other.getWidth() ||
+    this.getHeight() !== other.getHeight()) { return false; }
   // if they're both vertex-based images, all we need to compare are
   // their styles, vertices and color
-  if(this.vertices && other.vertices){
-    return (this.style    === other.style &&
-            verticesEqual(this.vertices, other.vertices) &&
-            equals(this.color, other.color));
+  if (this.vertices && other.vertices) {
+    return (this.style === other.style &&
+      verticesEqual(this.vertices, other.vertices) &&
+      equals(this.color, other.color));
   }
   // if it's something more sophisticated, render both images to canvases
   // First check canvas dimensions, then go pixel-by-pixel
   var c1 = this.toDomNode(), c2 = other.toDomNode();
   c1.style.visibility = c2.style.visibility = "hidden";
-  if(c1.width !== c2.width || c1.height !== c2.height){ return false;}
-  try{
+  if (c1.width !== c2.width || c1.height !== c2.height) { return false; }
+  try {
     var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
     ctx1.isEqualityTest = true;
     ctx2.isEqualityTest = true;
     this.render(ctx1, 0, 0); other.render(ctx2, 0, 0);
     // create temporary canvases
     var slice1 = document.createElement('canvas').getContext('2d'),
-        slice2 = document.createElement('canvas').getContext('2d');
+      slice2 = document.createElement('canvas').getContext('2d');
     var tileW = Math.min(10000, c1.width); // use only the largest tiles we need for these images
     var tileH = Math.min(10000, c1.height);
-    for (var y=0; y < c1.height; y += tileH){
-        for (var x=0; x < c1.width; x += tileW){
-            tileW = Math.min(tileW, c1.width - x); // can we use smaller tiles for what's left?
-            tileH = Math.min(tileH, c1.height- y);
-            slice1.canvas.width  = slice2.canvas.width  = tileW;
-            slice1.canvas.height = slice2.canvas.height = tileH;
-            console.log('processing chunk from ('+x+','+y+') to ('+(x+tileW)+','+(y+tileH)+')');
-            slice1.clearRect(0, 0, tileW, tileH);
-            slice1.drawImage(c1, x, y, tileW, tileH, 0, 0, tileW, tileH);
-            slice2.clearRect(0, 0, tileW, tileH);
-            slice2.drawImage(c2, x, y, tileW, tileH, 0, 0, tileW, tileH);
-            var d1 = slice1.canvas.toDataURL(),
-                d2 = slice2.canvas.toDataURL(),
-                h1 = md5(d1),  h2 = md5(d2);
-            if(h1 !== h2) return false;
-        }
+    for (var y = 0; y < c1.height; y += tileH) {
+      for (var x = 0; x < c1.width; x += tileW) {
+        tileW = Math.min(tileW, c1.width - x); // can we use smaller tiles for what's left?
+        tileH = Math.min(tileH, c1.height - y);
+        slice1.canvas.width = slice2.canvas.width = tileW;
+        slice1.canvas.height = slice2.canvas.height = tileH;
+        console.log('processing chunk from (' + x + ',' + y + ') to (' + (x + tileW) + ',' + (y + tileH) + ')');
+        slice1.clearRect(0, 0, tileW, tileH);
+        slice1.drawImage(c1, x, y, tileW, tileH, 0, 0, tileW, tileH);
+        slice2.clearRect(0, 0, tileW, tileH);
+        slice2.drawImage(c2, x, y, tileW, tileH, 0, 0, tileW, tileH);
+        var d1 = slice1.canvas.toDataURL(),
+          d2 = slice2.canvas.toDataURL(),
+          h1 = md5(d1), h2 = md5(d2);
+        if (h1 !== h2) return false;
+      }
     }
-  // Slow-path can fail with CORS or image-loading problems
-  } catch(e){
+    // Slow-path can fail with CORS or image-loading problems
+  } catch (e) {
     console.log('Couldn\'t compare images:', e);
     return false;
   }
@@ -691,23 +700,22 @@ BaseImage.prototype.equals = /* @stopify flat */ function(other) {
 // Draws a triangle with the base = sideC, and the angle between sideC
 // and sideB being angleA
 // See http://docs.racket-lang.org/teachpack/2htdpimage.html#(def._((lib._2htdp/image..rkt)._triangle))
-var TriangleImage = /* @stopify flat */ function(sideC, angleA, sideB, style, color) {
-  debugger;
+var TriangleImage = /* @stopify flat */ function (sideC, angleA, sideB, style, color) {
   BaseImage.call(this);
-  var thirdX = sideB * Math.cos(angleA * Math.PI/180);
-  var thirdY = sideB * Math.sin(angleA * Math.PI/180);
+  var thirdX = sideB * Math.cos(angleA * Math.PI / 180);
+  var thirdY = sideB * Math.sin(angleA * Math.PI / 180);
   var offsetX = 0 - Math.min(0, thirdX); // angleA could be obtuse
 
   var vertices = [];
   // if angle < 180 start at the top of the canvas, otherwise start at the bottom
-  if(thirdY > 0){
-    vertices.push({x: offsetX + 0, y: 0});
-    vertices.push({x: offsetX + sideC, y: 0});
-    vertices.push({x: offsetX + thirdX, y: thirdY});
+  if (thirdY > 0) {
+    vertices.push({ x: offsetX + 0, y: 0 });
+    vertices.push({ x: offsetX + sideC, y: 0 });
+    vertices.push({ x: offsetX + thirdX, y: thirdY });
   } else {
-    vertices.push({x: offsetX + 0, y: -thirdY});
-    vertices.push({x: offsetX + sideC, y: -thirdY});
-    vertices.push({x: offsetX + thirdX, y: 0});
+    vertices.push({ x: offsetX + 0, y: -thirdY });
+    vertices.push({ x: offsetX + sideC, y: -thirdY });
+    vertices.push({ x: offsetX + thirdX, y: 0 });
   }
 
   this.width = Math.max(sideC, thirdX) + offsetX;
@@ -715,14 +723,120 @@ var TriangleImage = /* @stopify flat */ function(sideC, angleA, sideB, style, co
   this.style = style;
   this.color = color;
   this.vertices = vertices;
-  this.ariaText = " a"+colorToSpokenString(color,style) + " triangle whose base is of length "+sideC
-      +", with an angle of " + (angleA%180) + " degrees between it and a side of length "+sideB;
+  this.ariaText = " a" + colorToSpokenString(color, style) + " triangle whose base is of length " + sideC
+    + ", with an angle of " + (angleA % 180) + " degrees between it and a side of length " + sideB;
 };
 TriangleImage.prototype = heir(BaseImage.prototype);
 
+//////////////////////////////////////////////////////////////////////
+//Ellipse : Number Number Mode Color -> Image
+var EllipseImage = function (width, height, style, color) {
+  BaseImage.call(this);
+  this.width = width;
+  this.height = height;
+  this.style = style;
+  this.color = color;
+  this.ariaText = " a" + colorToSpokenString(color, style) + ((width === height) ? " circle of radius " + (width / 2)
+    : " ellipse of width " + width + " and height " + height);
+};
+
+EllipseImage.prototype = heir(BaseImage.prototype);
+
+EllipseImage.prototype.render = function (ctx, aX, aY) {
+  ctx.save();
+  ctx.beginPath();
+
+  // if it's a solid ellipse...
+  var isSolid = this.style.toString().toLowerCase() !== "outline";
+  var adjust = isSolid ? 0 : 0.5;
+  // ...account for the 1px border width
+  var width = this.width - 2 * adjust, height = this.height - 2 * adjust;
+  aX += adjust; aY += adjust;
+
+  // Most of this code is taken from:
+  // http://webreflection.blogspot.com/2009/01/ellipse-and-circle-for-canvas-2d.html
+  var hB = (width / 2) * 0.5522848,
+    vB = (height / 2) * 0.5522848,
+    eX = aX + width,
+    eY = aY + height,
+    mX = aX + width / 2,
+    mY = aY + height / 2;
+  ctx.moveTo(aX, mY);
+  ctx.bezierCurveTo(aX, mY - vB, mX - hB, aY, mX, aY);
+  ctx.bezierCurveTo(mX + hB, aY, eX, mY - vB, eX, mY);
+  ctx.bezierCurveTo(eX, mY + vB, mX + hB, eY, mX, eY);
+  ctx.bezierCurveTo(mX - hB, eY, aX, mY + vB, aX, mY);
+  ctx.closePath();
+  if (this.style.toString().toLowerCase() === "outline") {
+    ctx.strokeStyle = colorString(this.color);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = colorString(this.color, this.style);
+    ctx.fill();
+  }
+
+  ctx.restore();
+};
+
+EllipseImage.prototype.equals = function (other) {
+  return ((other instanceof EllipseImage) &&
+    this.width === other.width &&
+    this.height === other.height &&
+    this.style === other.style &&
+    equals(this.color, other.color))
+    || BaseImage.prototype.equals.call(this, other);
+};
+
+//////////////////////////////////////////////////////////////////////
+// RectangleImage: Number Number Mode Color -> Image
+var RectangleImage = function (width, height, style, color) {
+  BaseImage.call(this);
+  this.width = Math.max(1, width);   // an outline rectangle with no delta X or delta Y
+  this.height = Math.max(1, height);  // should still take up one visible pixel
+  this.style = style;
+  this.color = color;
+  this.vertices = [{ x: 0, y: height }, { x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: height }];
+  this.ariaText = " a" + colorToSpokenString(color, style) + ((width === height) ? " square of size " + width
+    : " rectangle of width " + width + " and height " + height);
+};
+RectangleImage.prototype = heir(BaseImage.prototype);
+
+//////////////////////////////////////////////////////////////////////
+// RhombusImage: Number Number Mode Color -> Image
+var RhombusImage = function (side, angle, style, color) {
+  BaseImage.call(this);
+  // sin(angle/2-in-radians) * side = half of base
+  // cos(angle/2-in-radians) * side = half of height
+  this.width = Math.sin(angle / 2 * Math.PI / 180) * side * 2;
+  this.height = Math.abs(Math.cos(angle / 2 * Math.PI / 180)) * side * 2;
+  this.style = style;
+  this.color = color;
+  this.vertices = [{ x: this.width / 2, y: 0 },
+  { x: this.width, y: this.height / 2 },
+  { x: this.width / 2, y: this.height },
+  { x: 0, y: this.height / 2 }];
+  this.ariaText = " a" + colorToSpokenString(color, style) + " rhombus of size " + side + " and angle " + angle;
+};
+RhombusImage.prototype = heir(BaseImage.prototype);
+
 
 return module.exports = {
-  triangle: /* @stopify flat */ function(size, style, color) {
-    return new TriangleImage(size, 360-60, size, style, convertColor(color));
+  triangle: /* @stopify flat */ function (size, style, color) {
+    return new TriangleImage(size, 360 - 60, size, style, convertColor(color));
+  },
+  ellipse: /* @stopify flat */ function (width, height, style, color) {
+    return new EllipseImage(width, height, style, convertColor(color));
+  },
+  circle: /* @stopify flat */ function (radius, style, color) {
+    return new EllipseImage(2 * radius, 2 * radius, style, convertColor(color));
+  },
+  rectangle: /* @stopify flat */ function (width, height, style, color) {
+    return new RectangleImage(width, height, style, convertColor(color));
+  },
+  square: /* @stopify flat */ function(length, style, color) {
+    return new RectangleImage(length, length, style, convertColor(color));
+  },
+  rhombus: /* @stopify flat */ function(side, angle, style, color) {
+    return new RhombusImage(side, angle, style, convertColor(color));
   }
-}
+};

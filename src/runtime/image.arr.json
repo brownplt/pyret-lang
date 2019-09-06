@@ -5,7 +5,12 @@
       "Image": ["local", "Image"]
     },
     "values": {
-      "triangle": ["arrow", ["Number", "String", "String"], "Image"]
+      "triangle": ["arrow", ["Number", "String", "String"], "Image"],
+      "ellipse": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "circle": ["arrow", ["Number", "String", "String"], "Image"],
+      "rectangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "square": ["arrow", ["Number", "String", "String"], "Image"],
+      "rhombus": ["arrow", ["Number", "Number", "String", "String"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
@@ -17,4 +22,3 @@
     }
   }
 }
-
