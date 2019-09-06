@@ -277,7 +277,7 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
-fun compile-member(context, member :: A.Member) -> { JExpr; JStmt }:
+fun compile-member(context, member :: A.Member) -> { JExpr; CList<JStmt> }:
   cases(A.Member) member:
   | s-data-field(l :: Loc, name :: String, value :: Expr) =>
     { field-val; field-stmts } = compile-expr(context, value)
@@ -345,7 +345,7 @@ fun compile-method(context,
       l :: Loc,
       name :: String,
       args :: List<Bind>, # Value parameters
-      body :: Expr) -> { JExpr; JStmt }:
+      body :: Expr) -> { JExpr; CList<JStmt> }:
 
   fun remove-self<a>(my-list :: CList<a>) -> { a; CList<a> }: 
     cases(CList) my-list:
@@ -405,14 +405,14 @@ fun compile-method(context,
   binder-fun = j-fun("0",
     binder-fun-name.toname(),
     cl-sing(self),
-    j-block([clist: j-expr(inner-fun-var), 
+    j-block([clist: inner-fun-var, 
                     j-expr(inner-fun-brand), 
                     j-expr(inner-fun-binder),
                     j-return(j-id(inner-fun-bind))
             ])
   )
 
-  { j-id(binder-fun-name); cl-sing(binder-fun) }
+  { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
@@ -647,22 +647,51 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       variant-constructors = for CL.map_list_n(local-tag from 0, v from variants):
         cases(A.Variant) v:
-          | s-variant(_, cl, shadow name, members, _) =>
+          | s-variant(_, cl, shadow name, members, with-members) =>
+            compiled-with = for CL.map_list(member from with-members):
+              { member; compile-member(context, member) }
+            end
             args = for CL.map_list(m from members): js-id-of(m.bind.id) end
-            j-field(name,
-              j-fun("0", js-id-of(const-id(name)).toname(), args,
-                j-block1(
-                  j-return(j-obj(
+
+            # Give object a temporary name to bind methods against
+            constructor-tmp = fresh-id(compiler-name("constructorTMP"))
+            tmp-obj = j-obj(
                     [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
                             j-field("$tag", j-num(local-tag))] +
-                    for CL.map_list(m from members):
-                      j-field(m.bind.id.toname(), j-id(js-id-of(m.bind.id)))
-                    end)))))
+                    resolve-init-names(j-id(constructor-tmp),
+                                       compiled-shared, compiled-with, members)
+            )
+            tmp-obj-var = j-var(constructor-tmp, tmp-obj)
+
+            { j-field(name,
+              j-fun("0", js-id-of(const-id(name)).toname(), args,
+                j-block([clist:
+                  tmp-obj-var,
+                  j-return(constructor-tmp)
+                ])
+              )
+            ); cl-empty }
           | s-singleton-variant(_, shadow name, with-members) =>
-            j-field(name, j-obj([clist:
-              j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
-              j-field("$tag", j-num(local-tag))]))
+            compiled-with = for CL.map_list(member from with-members):
+              { member; compile-member(context, member) }
+            end
+
+            constructor-tmp = fresh-id(compiler-name("constructorTMP"))
+            tmp-obj = j-obj(
+                    [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
+                            j-field("$tag", j-num(local-tag))] +
+                    resolve-init-names(j-id(constructor-tmp),
+                                       compiled-shared, compiled-with, [list: ])
+            )
+            tmp-obj-var = j-var(constructor-tmp, tmp-obj)
+
+            { j-field(name, constructor-tmp); cl-sing(tmp-obj-var) }
         end
+      end
+
+      { shadow variant-constructors; variant-cons-stmts } = 
+       for CL.fold({constructors; statements} from {cl-empty; cl-empty}, {vcons; vstmts} from variant-constructors):
+        { cl-append(constructors, vcons); cl-append(statements, vstmts) }
       end
 
       variant-recognizers = for CL.map_list(v from variants):
@@ -672,7 +701,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
       end
 
-      { j-obj(variant-constructors + variant-recognizers); variant-uniq-defs }
+      { 
+        j-obj(variant-constructors + variant-recognizers); 
+        variant-uniq-defs + variant-cons-stmts 
+      }
       
     | s-dot(l, obj, field) =>
       
