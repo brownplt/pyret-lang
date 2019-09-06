@@ -584,7 +584,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         end
         
         # Construct dictionary of variant member inits
-        variant-member-map = for CL.foldl(dict from [string-dict: ], m from variant-members):
+        variant-member-map = for fold(dict from [string-dict: ], m from variant-members):
           field-name = m.bind.id.toname()
           init-expr = j-field(field-name, j-id(js-id-of(m.bind.id)))
           dict.set(field-name, init-expr)
@@ -619,7 +619,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           end
         end
 
-        field-init = for CL.map_list(k from shared-member-map.keys().to-list):
+        field-init = for CL.map_list(k from shared-member-map.keys().to-list()):
           shared-member-map.get-value(k)
         end
 
@@ -667,7 +667,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-fun("0", js-id-of(const-id(name)).toname(), args,
                 j-block([clist:
                   tmp-obj-var,
-                  j-return(constructor-tmp)
+                  j-return(j-id(constructor-tmp))
                 ])
               )
             ); cl-empty }
@@ -685,13 +685,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             )
             tmp-obj-var = j-var(constructor-tmp, tmp-obj)
 
-            { j-field(name, constructor-tmp); cl-sing(tmp-obj-var) }
+            { j-field(name, j-id(constructor-tmp)); cl-sing(tmp-obj-var) }
         end
       end
 
       { shadow variant-constructors; variant-cons-stmts } = 
-       for CL.fold({constructors; statements} from {cl-empty; cl-empty}, {vcons; vstmts} from variant-constructors):
-        { cl-append(constructors, vcons); cl-append(statements, vstmts) }
+       for CL.foldl({constructors; statements} from {cl-empty; cl-empty}, {vcons; vstmts} from variant-constructors):
+        { cl-append(constructors, cl-sing(vcons)); cl-append(statements, vstmts) }
       end
 
       variant-recognizers = for CL.map_list(v from variants):
