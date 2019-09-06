@@ -16,6 +16,9 @@ import string-dict as D
 
 flat-prim-app = A.prim-app-info-c(false)
 
+string-dict = D.string-dict
+mtd = [string-dict:]
+
 type Ann = A.Ann
 type Bind = A.Bind
 type Name = A.Name
@@ -555,8 +558,76 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
 
-      compiled-shared = for map(member from shared):
-        { member.name; compile-member(context, member) }
+      # Combine compiled-shared, compiled-with, and members to initialize 
+      #   any overlapping fields once
+      # Priority order (i.e. what name gets initialized to what):
+      #   1) Members
+      #   2) With Members
+      #   3) Shared Members
+      fun resolve-init-names(constructed-obj :: JExpr, compiled-shared, 
+                             compiled-with, variant-members) -> CList<JField>:
+
+        # Given a shared/with member, emit the code to set the field
+        fun compile-nonlocal-member(shadow constructed-obj :: JExpr,
+                                    member :: A.Member, member-val :: JExpr) -> JField: 
+          cases(A.Member) member:
+            | s-data-field(_, _, _) => j-field(member.name, member-val)
+              
+            | s-mutable-field(_, _, _, _) => raise("Mutable member fields not supported")
+
+            | s-method-field(_, _, _, _, _, _, _, _, _, _) =>
+              # Found a method; bind the method function to the constructed object
+              #   by calling the method's binder function and passing in 'self'
+              init-expr-rhs = j-app(member-val, [clist: constructed-obj])
+              j-field(member.name, init-expr-rhs) 
+          end
+        end
+        
+        # Construct dictionary of variant member inits
+        variant-member-map = for CL.foldl(dict from [string-dict: ], m from variant-members):
+          field-name = m.bind.id.toname()
+          init-expr = j-field(field-name, j-id(js-id-of(m.bind.id)))
+          dict.set(field-name, init-expr)
+        end
+
+        # Construct dictionary of with-member inits and NON-conflicting variant member inits
+        # Variant members have priority
+        with-member-map = for CL.foldl(dict from variant-member-map, m from compiled-with):
+          { member; { member-value; member-stmts}} = m
+          if dict.has-key(member.name):
+            # with-member overrided by variant member
+            dict
+          else:
+            # No conflicting variant member
+            dict.set(member.name, 
+                     compile-nonlocal-member(constructed-obj, member, member-value))
+          end
+        end
+
+        # Construct dictionary of shared-member inits 
+        #   and NON-conflicting variant member inits and with-member inits
+        # Variant members and with-members have priority
+        shared-member-map = for CL.foldl(dict from with-member-map, m from compiled-shared):
+          { member; { member-value; member-stmts}} = m
+          if dict.has-key(member.name):
+            # shared-member overrided by variant member OR with-member
+            dict
+          else:
+            # No conflicting variant member OR with-member
+            dict.set(member.name, 
+                     compile-nonlocal-member(constructed-obj, member, member-value))
+          end
+        end
+
+        field-init = for CL.map_list(k from shared-member-map.keys().to-list):
+          shared-member-map.get-value(k)
+        end
+
+        field-init
+      end
+
+      compiled-shared = for CL.map_list(member from shared):
+        { member; compile-member(context, member) }
       end
 
       variant-uniqs = for fold(uniqs from [D.string-dict:], v from variants):
