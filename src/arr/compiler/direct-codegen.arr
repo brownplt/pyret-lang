@@ -830,17 +830,39 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-obj(l, fields) =>
 
-      {fieldvs; stmts} = for fold({fieldvs; stmts} from {cl-empty; cl-empty}, f from fields) block:
+      tmp-bind = fresh-id(compiler-name("temporary"))
+
+      {fieldvs; stmts; binds} = for fold({fieldvs; stmts; binds} from {cl-empty; cl-empty; cl-empty}, f from fields) block:
         when not(A.is-s-data-field(f)):
           raise("Can only provide data fields")
         end
 
-        {val; field-stmts} = compile-expr(context, f.value)
+        {val; compiled-stmts} = compile-expr(context, f.value)
 
-        { cl-cons(j-field(f.name, val), fieldvs); field-stmts + stmts }
+        # Can only have s-method as the top-level expression of a field (i.e. no nesting)
+        cases(Expr) f.value:
+          | s-method(_, _, _, _, _, _, _, _, _, _) =>
+            binder-func = val
+            binder-stmts = compiled-stmts
+
+            init-expr-rhs = j-app(binder-func, [clist: constructed-obj])
+            bind = j-expr(j-bracket-assign(j-id(tmp-bind), j-str(member.name), init-expr-rhs))
+
+            { fieldvs; binder-stmts + smts; cl-cons(bind, binds) }
+
+          | else => 
+            { cl-cons(j-field(f.name, val), fieldvs); compiled-stmts + stmts; binds }
+        end
       end
 
-      { j-obj(fieldvs); stmts }
+      # Emit a temporary object to bind against
+      var-obj = j-var(tmp-bind, j-obj(fieldvs))
+
+      # Init statements and object bind come before method binding
+      init-stmts = cl-snoc(stmts, var-obj)
+      ordered-stmts = cl-append(stmts, binds)
+
+      { j-id(tmp-bind); ordered-stmts }
 
     | s-array(l, elts) =>
       { elts-vals; elts-stmts } = compile-list(context, elts)
