@@ -698,7 +698,7 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
 // OverlayImage: image image placeX placeY -> image
 // Creates an image that overlays img1 on top of the
 // other image img2.
-var OverlayImage = function (img1, img2, placeX, placeY) {
+var OverlayImage = /* @stopify flat */ function (img1, img2, placeX, placeY) {
   BaseImage.call(this);
 
   // An overlay image consists of width, height, x1, y1, x2, and
@@ -809,6 +809,62 @@ OverlayImage.prototype.equals = function (other) {
     this.y2 === other.y2 &&
     imageEquals(this.img1, other.img1) &&
     imageEquals(this.img2, other.img2))
+    || BaseImage.prototype.equals.call(this, other);
+};
+
+//////////////////////////////////////////////////////////////////////
+// rotate: angle image -> image
+// Rotates image by angle degrees in a counter-clockwise direction.
+// TODO: special case for ellipse?
+var RotateImage = /* @stopify flat */ function (angle, img) {
+  BaseImage.call(this);
+  // optimization for trying to rotate a circle
+  if ((img instanceof EllipseImage) && (img.width == img.height)) {
+    angle = 0;
+  }
+  var sin = Math.sin(angle * Math.PI / 180);
+  var cos = Math.cos(angle * Math.PI / 180);
+
+  // rotate each point as if it were rotated about (0,0)
+  var vertices = img.getVertices().map(function (v) {
+    return { x: v.x * cos - v.y * sin, y: v.x * sin + v.y * cos };
+  });
+
+  // extract the xs and ys separately
+  var vs = unzipVertices(vertices);
+
+  // store the vertices as something private, so this.getVertices() will still return undefined
+  this._vertices = translateVertices(vertices);
+  this.img = img;
+  this.width = findWidth(vertices);
+  this.height = findHeight(vertices);
+  this.angle = Math.round(angle);
+  this.translateX = -Math.min.apply(Math, vs.xs);
+  this.translateY = -Math.min.apply(Math, vs.ys);
+  this.ariaText = "Rotated image, " + angle + " degrees: " + img.ariaText;
+};
+
+RotateImage.prototype = heir(BaseImage.prototype);
+
+RotateImage.prototype.getVertices = function () { return this._vertices; };
+
+// translate the canvas using the calculated values, then draw at the rotated (x,y) offset.
+RotateImage.prototype.render = function (ctx, x, y) {
+  ctx.save();
+  ctx.translate(x + this.translateX, y + this.translateY);
+  ctx.rotate(this.angle * Math.PI / 180);
+  this.img.render(ctx, 0, 0);
+  ctx.restore();
+};
+
+RotateImage.prototype.equals = function (other) {
+  return (other instanceof RotateImage &&
+    this.width === other.width &&
+    this.height === other.height &&
+    this.angle === other.angle &&
+    this.translateX === other.translateX &&
+    this.translateY === other.translateY &&
+    imageEquals(this.img, other.img))
     || BaseImage.prototype.equals.call(this, other);
 };
 
@@ -1057,5 +1113,8 @@ return module.exports = {
   },
   "overlay-align": /* @stopify flat */ function (img1, img2, X, Y) {
     return new OverlayImage(img1, img2, X, Y);
+  },
+  rotate: /* @stopify flat */ function (angle, img) {
+    return new RotateImage(angle, img);
   }
 };

@@ -16,7 +16,8 @@
       "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
 
       "overlay": ["arrow", ["Image", "Image"], "Image"],
-      "overlay-align": ["arrow", ["Image", "Image", "String", "String"], "Image"]
+      "overlay-align": ["arrow", ["Image", "Image", "String", "String"], "Image"],
+      "rotate": ["arrow", ["Number", "Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
