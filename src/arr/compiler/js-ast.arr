@@ -426,14 +426,6 @@ data JExpr:
       header = PP.group(PP.str("function") + arglist)
       PP.surround(INDENT, 1, header + PP.str(" {"), self.body.tosource(), PP.str("}"))
     end
-  | j-unbound-method(binder-fun :: JExpr) with:
-    method label(self): "j-unbound-method" end,
-    method print-ugly-source(self, printer):
-      raise("j-unbound-method is a meta JExpr. print-ugly-source() should never be called")
-    end,
-    method tosource(self):
-      raise("j-unbound-method is a meta JExpr. tosource() should never be called")
-    end
   | j-new(func :: JExpr, args :: CList<JExpr>) with:
     method label(self): "j-new" end,
     method print-ugly-source(self, printer) block:
