@@ -841,6 +841,36 @@ var LineImage = /* @stopify flat */ function (x, y, color) {
 };
 LineImage.prototype = heir(BaseImage.prototype);
 
+//////////////////////////////////////////////////////////////////////
+// StarImage: fixnum fixnum fixnum color -> image
+// Most of this code here adapted from the Canvas tutorial at:
+// http://developer.apple.com/safari/articles/makinggraphicswithcanvas.html
+var StarImage = /* @stopify flat */ function (points, outer, inner, style, color) {
+  BaseImage.call(this);
+  var maxRadius = Math.max(inner, outer);
+  var vertices = [];
+
+  var oneDegreeAsRadian = Math.PI / 180;
+  for (var pt = 0; pt < (points * 2) + 1; pt++) {
+    var rads = ((360 / (2 * points)) * pt) * oneDegreeAsRadian - 0.5;
+    var whichRadius = (pt % 2 === 1) ? outer : inner;
+    vertices.push({
+      x: maxRadius + (Math.sin(rads) * whichRadius),
+      y: maxRadius + (Math.cos(rads) * whichRadius)
+    });
+  }
+  // calculate width and height of the bounding box
+  this.width = findWidth(vertices);
+  this.height = findHeight(vertices);
+  this.style = style;
+  this.color = color;
+  this.vertices = translateVertices(vertices);
+  this.ariaText = " a" + colorToSpokenString(color, style) + ", " + points +
+    "pointed star with inner radius " + inner + " and outer radius " + outer;
+};
+StarImage.prototype = heir(BaseImage.prototype);
+
+
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
     return new TriangleImage(size, 360 - 60, size, style, convertColor(color));
@@ -861,6 +891,12 @@ return module.exports = {
     return new RhombusImage(side, angle, style, convertColor(color));
   },
   line: /* @stopify flat */ function(x, y, color) {
-    return new LineImage(x, y, color);
+    return new LineImage(x, y, convertColor(color));
+  },
+  star: /* @stopify flat */ function(side, style, color) {
+    return new StarImage(5, side / 2, side, style, convertColor(color));
+  },
+  "radial-star": /* @stopify flat */ function(points, outer, inner, style, color) {
+    return new StarImage(points, outer, inner, style, convertColor(color));
   }
 };
