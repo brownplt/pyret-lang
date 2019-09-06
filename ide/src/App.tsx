@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
+import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu } from './Menu';
 import { Footer } from './Footer';
@@ -19,6 +20,11 @@ control.loadBuiltins();
 enum EMenu {
     FSBrowser,
     Options,
+}
+
+enum EEditor {
+    Chunks,
+    Text,
 }
 
 type AppProps = {};
@@ -56,6 +62,7 @@ type EditorState = {
     dropdownVisible: boolean;
     fontSize: number;
     menu: EMenu;
+    editorMode: EEditor,
     menuVisible: boolean;
     message: string;
     definitionsHighlights: number[][];
@@ -152,6 +159,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             dropdownVisible: false,
             menu: EMenu.Options,
             menuVisible: false,
+            editorMode: EEditor.Text,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
@@ -253,6 +261,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         .readFileSync(fullChildPath, "utf-8"),
         });
     };
+
+    setEditorMode = (editorMode: EEditor) => {
+        this.setState({ editorMode });
+    }
 
     toggleFSBrowser = () => {
         if (this.state.menu === EMenu.FSBrowser) {
@@ -359,6 +371,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    makeDefinitions() {
+        if (this.state.editorMode === EEditor.Text) {
+            return <SingleCodeMirrorDefinitions
+                text={this.state.currentFileContents}
+                onEdit={this.onEdit}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}>
+            </SingleCodeMirrorDefinitions>;
+        }
+        else if (this.state.editorMode === EEditor.Chunks) {
+            return (<DefChunks
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}
+                program={this.state.currentFileContents}
+                name={this.state.currentFileName}
+                onEdit={this.onEdit}></DefChunks>);
+        }
+    }
+
     render() {
         const interactionValues =
             <pre className="interactions-area"
@@ -373,14 +404,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         })
                 }
             </pre>;
-
-        const definitions =
-            <SingleCodeMirrorDefinitions
-                text={this.state.currentFileContents}
-                onEdit={this.onEdit}
-                highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}>
-            </SingleCodeMirrorDefinitions>;
 
         const dropdown = this.state.dropdownVisible && (
             <Dropdown>
@@ -413,10 +436,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
                       onReset={this.onResetFontSize}
                       size={this.state.fontSize}
                       key="FontSize">
-            </FontSize>
+            </FontSize>;
+
+        const textEditor =
+            <button className="text-editor"
+                    onClick={() => this.setEditorMode(EEditor.Text)}
+                    key="TextEditor">
+                Text
+            </button>;
+
+        const chunkEditor =
+            <button className="chunk-editor"
+                    onClick={() => this.setEditorMode(EEditor.Chunks)}
+                    key="ChunkEditor">
+                Chunks
+            </button>;
 
         const menu = this.state.menuVisible && (
-            <Menu tabs={[[fsBrowser], [fontSize]]}
+            <Menu tabs={[[fsBrowser],
+                         [textEditor, chunkEditor, fontSize]]}
                   currentTab={this.state.menu}>
             </Menu>);
 
@@ -432,6 +470,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     </SplitterLayout>
                 ) : interactionValues}
             </div>;
+
+        const definitions = this.makeDefinitions();
 
         return (
             <div className="page-container">
