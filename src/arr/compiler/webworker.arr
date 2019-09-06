@@ -61,7 +61,8 @@ compile-handler = lam(msg, send-message) block:
   cases(E.Either) result block:
     | right(exn) =>
       err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
-      d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-str(err-str)]
+      err-list = [list: J.j-str(err-str)]
+      d = [SD.string-dict: "type", J.j-str("compile-failure"), "data", J.j-arr(err-list)]
       send-message(J.j-obj(d).serialize())
     | left(val) =>
       cases(E.Either) val block:
