@@ -1,13 +1,18 @@
 import React from 'react';
 
-type Tab = {
-    name: string,
-    content: any[],
+type TabProps = {
+    name: any,
+};
+
+type TabState = {};
+
+export class Tab extends React.Component<TabProps, TabState> {
+    render() {
+        return <div>{this.props.children}</div>
+    }
 }
 
-type MenuProps = {
-    tabs: Tab[]
-};
+type MenuProps = {};
 
 type MenuState = {
     visible: boolean,
@@ -38,27 +43,31 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     };
 
     render() {
+        const childNodes = Array.isArray(this.props.children) &&
+                           this.props.children.map((tab: any, index: number) => {
+                               return (
+                                   <div className={(
+                                       this.state.visible && this.state.tab === index) ? (
+                                           "menu-tab-active"
+                                       ) : (
+                                           "menu-tab-inactive"
+                                       )}
+                                        key={index}
+                                        onClick={() => this.toggleTab(index)}>
+                                       {tab.props.name}
+                                   </div>
+                               );
+                           });
+        const content = Array.isArray(this.props.children) &&
+                        this.props.children[this.state.tab];
         return (
             <div className="menu-container">
                 <div className="menu-tabbar">
-                    {this.props.tabs.map((tab: Tab, index: number) => {
-                        return (
-                            <div className={(
-                                this.state.visible && this.state.tab === index) ? (
-                                    "menu-tab-active"
-                                ) : (
-                                    "menu-tab-inactive"
-                                )}
-                                 key={index}
-                                 onClick={() => this.toggleTab(index)}>
-                                {tab.name}
-                            </div>
-                        );
-                    })}
+                    {childNodes}
                 </div>
                 {this.state.visible &&
                  <div className="menu-content">
-                     {this.props.tabs[this.state.tab].content}
+                     {content}
                  </div>}
             </div>
         );

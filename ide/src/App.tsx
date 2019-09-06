@@ -3,7 +3,7 @@ import './App.css';
 import { Interaction } from './Interaction';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
-import { Menu } from './Menu';
+import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
 import { FontSize } from './FontSize';
 import { FSBrowser } from './FSBrowser';
@@ -449,15 +449,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
             </button>;
 
         const menu =
-            <Menu tabs={[
-                {
-                    name: "📁", // https://unicode-table.com/en/1F4C1/
-                    content: [fsBrowser]
-                },
-                {
-                    name: "⚙", // https://unicode-table.com/en/2699/
-                    content: [textEditor, chunkEditor, fontSize]
-                }]}>
+            <Menu>
+                <Tab name="📁">
+                    {fsBrowser}
+                </Tab>
+                <Tab name="⚙">
+                    {textEditor}
+                    {chunkEditor}
+                    {fontSize}
+                </Tab>
             </Menu>;
 
         const rightHandSide =
