@@ -394,26 +394,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 </DropdownOption>
             </Dropdown>);
 
+        const fsBrowser =
+            <FSBrowser root={this.state.browseRoot}
+                       onTraverseUp={this.onTraverseUp}
+                       onTraverseDown={this.onTraverseDown}
+                       onExpandChild={this.onExpandChild}
+                       browsePath={this.state.browsePath}
+                       key="FSBrowser">
+            </FSBrowser>;
+
+        const fontSize =
+            <FontSize onIncrease={this.onIncreaseFontSize}
+                      onDecrease={this.onDecreaseFontSize}
+                      onReset={this.onResetFontSize}
+                      size={this.state.fontSize}
+                      key="FontSize">
+            </FontSize>
+
         const menu = this.state.menuVisible && (
-            <Menu tabs={[
-                [
-                    <FSBrowser
-                        root={this.state.browseRoot}
-                             onTraverseUp={this.onTraverseUp}
-                             onTraverseDown={this.onTraverseDown}
-                             onExpandChild={this.onExpandChild}
-                             browsePath={this.state.browsePath}>
-                    </FSBrowser>
-                ],
-                [
-                    <FontSize onIncrease={this.onIncreaseFontSize}
-                                         onDecrease={this.onDecreaseFontSize}
-                                         onReset={this.onResetFontSize}
-                                         size={this.state.fontSize}
-                                         key="FontSize">
-                    </FontSize>
-                ]
-            ]}
+            <Menu tabs={[[fsBrowser], [fontSize]]}
                   currentTab={this.state.menu}>
             </Menu>);
 
