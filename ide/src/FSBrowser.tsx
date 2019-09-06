@@ -91,7 +91,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     render() {
         return (
-            <div className="menu-content">
+            <div style={{display: "flex", flexDirection: "column"}}>
                 {!this.browsingRoot && (
                     <button className="fs-browser-item"
                             onClick={this.traverseUp}>

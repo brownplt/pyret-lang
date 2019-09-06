@@ -255,18 +255,6 @@ button::-moz-focus-inner {
     background: rgb(255, 202, 202);
 }
 
-.menu-content {
-    background: #c8c8c8;
-    height: 100%;
-    width: 16em;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 1px 0px 2px rgba(0, 0, 0, 0.6);
-    position: relative;
-    z-index: 5;
-    overflow-y: scroll;
-}
-
 .menu-content-button {
     border: none;
     height: 2.7em;
@@ -338,4 +326,33 @@ button::-moz-focus-inner {
 
 .ReactTable {
     overflow: auto;
+}
+
+.menu-container {
+    display: flex;
+    flex-direction: row;
+    background: #c8c8c8;
+}
+
+.menu-tab-inactive {
+    font-size: 2em;
+    padding: 0.25em;
+}
+
+.menu-tab-active {
+    font-size: 2em;
+    padding: 0.25em;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.menu-content {
+    background: rgba(0, 0, 0, 0.6);
+    height: 100%;
+    width: 16em;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 1px 0px 2px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 5;
+    overflow-y: scroll;
 }
