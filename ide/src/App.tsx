@@ -365,16 +365,71 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             return <Interaction key={i.name}
                                                 name={i.name}
                                                 value={i.value}
-                                                setMessage={this.setMessage} />
+                                                setMessage={this.setMessage}/>
                         })
                 }
             </pre>;
-        const definitions = <SingleCodeMirrorDefinitions
-                                text={this.state.currentFileContents}
-                                onEdit={this.onEdit}
-                                highlights={this.state.definitionsHighlights}
-                                interactErrorExists={this.state.interactErrorExists}>
-        </SingleCodeMirrorDefinitions>;
+
+        const definitions =
+            <SingleCodeMirrorDefinitions
+                text={this.state.currentFileContents}
+                onEdit={this.onEdit}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}>
+            </SingleCodeMirrorDefinitions>;
+
+        const dropdown = this.state.dropdownVisible && (
+            <Dropdown>
+                <DropdownOption enabled={this.state.autoRun}
+                                onClick={this.toggleAutoRun}>
+                    Auto Run
+                </DropdownOption>
+                <DropdownOption enabled={this.state.runKind === control.backend.RunKind.Async}
+                                onClick={this.toggleStopify}>
+                    Stopify
+                </DropdownOption>
+                <DropdownOption enabled={this.state.typeCheck}
+                                onClick={this.toggleTypeCheck}>
+                    Type Check
+                </DropdownOption>
+            </Dropdown>);
+
+        const menu = this.state.menuVisible && (
+            <Menu tabs={[
+                [
+                    <FSBrowser
+                        root={this.state.browseRoot}
+                             onTraverseUp={this.onTraverseUp}
+                             onTraverseDown={this.onTraverseDown}
+                             onExpandChild={this.onExpandChild}
+                             browsePath={this.state.browsePath}>
+                    </FSBrowser>
+                ],
+                [
+                    <FontSize onIncrease={this.onIncreaseFontSize}
+                                         onDecrease={this.onDecreaseFontSize}
+                                         onReset={this.onResetFontSize}
+                                         size={this.state.fontSize}
+                                         key="FontSize">
+                    </FontSize>
+                ]
+            ]}
+                  currentTab={this.state.menu}>
+            </Menu>);
+
+        const rightHandSide =
+            <div className="interactions-area-container">
+                {this.state.interactErrorExists ? (
+                    <SplitterLayout vertical={true}
+                                    percentage={true}>
+                        {interactionValues}
+                        <InteractionError fontSize={this.state.fontSize}>
+                            {this.state.interactionErrors}
+                        </InteractionError>
+                    </SplitterLayout>
+                ) : interactionValues}
+            </div>;
+
         return (
             <div className="page-container">
                 <Header>
@@ -402,66 +457,19 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </button>
                         <button className="run-options"
                                 onClick={this.toggleDropdownVisibility}
-                                onBlur={this.removeDropdown}>&#8628;{
-                                    this.state.dropdownVisible && (
-                                        <Dropdown>
-                                            <DropdownOption enabled={this.state.autoRun}
-                                                            onClick={this.toggleAutoRun}>
-                                                Auto Run
-                                            </DropdownOption>
-                                            <DropdownOption enabled={this.state.runKind === control.backend.RunKind.Async}
-                                                            onClick={this.toggleStopify}>
-                                                Stopify
-                                            </DropdownOption>
-                                            <DropdownOption enabled={this.state.typeCheck}
-                                                            onClick={this.toggleTypeCheck}>
-                                                Type Check
-                                            </DropdownOption>
-                                        </Dropdown>
-                                    )}
+                                onBlur={this.removeDropdown}>&#8628;{dropdown}
                         </button>
                     </div>
                 </Header>
                 <div className="code-container">
-                    {this.state.menuVisible && (
-                        <Menu tabs={[
-                                  [
-                                      <FSBrowser
-                                          root={this.state.browseRoot}
-                                          onTraverseUp={this.onTraverseUp}
-                                          onTraverseDown={this.onTraverseDown}
-                                          onExpandChild={this.onExpandChild}
-                                          browsePath={this.state.browsePath}>
-                                      </FSBrowser>
-                                  ],
-                                  [
-                                      <FontSize onIncrease={this.onIncreaseFontSize}
-                                                onDecrease={this.onDecreaseFontSize}
-                                                onReset={this.onResetFontSize}
-                                                size={this.state.fontSize}
-                                                key="FontSize">
-                                      </FontSize>
-                                  ]
-                              ]}
-                              currentTab={this.state.menu}>
-                        </Menu>)}
+                    {menu}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
                         <div className="edit-area-container"
                              style={{ fontSize: this.state.fontSize }}>
                             {definitions}
                         </div>
-                        <div className="interactions-area-container">
-                            {this.state.interactErrorExists ? (
-                                <SplitterLayout vertical={true}
-                                                percentage={true}>
-                                    {interactionValues}
-                                    <InteractionError fontSize={this.state.fontSize}>
-                                        {this.state.interactionErrors}
-                                    </InteractionError>
-                                </SplitterLayout>
-                            ) : interactionValues}
-                        </div>
+                        {rightHandSide}
                     </SplitterLayout>
                 </div>
                 <Footer message={this.state.message}></Footer>
