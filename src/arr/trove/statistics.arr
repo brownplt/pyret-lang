@@ -9,6 +9,7 @@ provide {
     mode-largest: mode-largest,
     mode-any: mode-any,
     stdev: stdev,
+    stdev-sample: stdev-sample,
     linear-regression: linear-regression,
     r-squared: r-squared
 } end
@@ -147,6 +148,16 @@ fun stdev(l :: List) -> Number:
   reg-mean = mean(l)
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = mean(sq-diff)
+  num-sqrt(sq-mean)
+end
+
+fun stdev-sample(l :: List) -> Number:
+  doc: ```returns the standard deviation of the list 
+       of numbers, or raises an error if the list is empty```
+  len = l.length()
+  reg-mean = mean(l)
+  sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
+  sq-mean = math.sum(sq-diff) / (len - 1)
   num-sqrt(sq-mean)
 end
 

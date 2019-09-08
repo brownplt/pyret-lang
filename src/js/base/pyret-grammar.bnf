@@ -61,8 +61,8 @@ where-clause: [WHERE block]
 
 check-expr: (CHECK|EXAMPLES) STRING COLON block END
 check-expr: (CHECKCOLON|EXAMPLESCOLON) block END
-check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr
-          | binop-expr check-op-postfix
+check-test: binop-expr check-op [PERCENT (PARENSPACE|PARENNOSPACE) binop-expr RPAREN] binop-expr [BECAUSE binop-expr]
+          | binop-expr check-op-postfix [BECAUSE binop-expr]
           | binop-expr
 
 
@@ -151,7 +151,7 @@ trailing-opt-comma-binops: (comma-binops [COMMA] | )
 # app-arg-elt: binop-expr COMMA
 
 # at least one annotation must be provided
-inst-expr: expr LANGLE ann (COMMA ann)* RANGLE
+inst-expr: expr LANGLE ann (COMMA ann)* (RANGLE|GT)
 
 tuple-expr: LBRACE tuple-fields RBRACE
 tuple-fields: binop-expr (SEMI binop-expr)* [SEMI]
@@ -247,7 +247,7 @@ noparen-arrow-ann: [arrow-ann-args] THINARROW ann
 arrow-ann-args: comma-anns | (PARENSPACE|PARENNOSPACE|PARENAFTERBRACE) comma-ann-field RPAREN
 arrow-ann: (PARENSPACE|PARENNOSPACE|PARENAFTERBRACE) [arrow-ann-args] THINARROW ann RPAREN
 
-app-ann: (name-ann|dot-ann) LANGLE comma-anns RANGLE
+app-ann: (name-ann|dot-ann) LANGLE comma-anns (RANGLE|GT)
 
 comma-anns: ann (COMMA ann)*
 

@@ -301,13 +301,21 @@ type CLIContext = {
   cache-base-dir :: String
 }
 
+fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
+  this-path = dep.arguments.get(0)
+  if P.is-absolute(this-path):
+    P.relative(current-load-path, this-path)
+  else:
+    P.join(current-load-path, this-path)
+  end
+end
+
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
     | dependency(protocol, args) =>
       if protocol == "file":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
@@ -324,8 +332,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
@@ -334,8 +341,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)

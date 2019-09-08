@@ -210,6 +210,32 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
+fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
+  parsed = get-ast(p, uri)
+  vals-part =
+    cases (A.Provide) parsed._provide:
+      | s-provide-none(l) => mtd
+      | s-provide-all(l) =>
+        const-dict(A.toplevel-ids(parsed).map(_.toname()), CS.v-just-there)
+      | s-provide(l, e) =>
+        cases (A.Expr) e:
+          | s-obj(_, mlist) => const-dict(mlist.map(_.name), CS.v-just-there)
+          | else => raise("Non-object expression in provide: " + l.format(true))
+        end
+    end
+  types-part =
+    cases(A.ProvideTypes) parsed.provided-types:
+      | s-provide-types-none(l) => mtd
+      | s-provide-types-all(l) =>
+        type-ids = A.block-type-ids(parsed.block)
+        type-strs = type-ids.map(lam(i): i.name.toname() end)
+        const-dict(type-strs, CS.t-just-there)
+      | s-provide-types(l, anns) =>
+        const-dict(anns.map(_.name), CS.t-just-there)
+    end
+  CS.provides(vals-part, types-part)
+end
+
 type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
@@ -218,7 +244,7 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
-dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
+dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
 fun compile-worklist<a>(dfind, locator, context):
   compile-worklist-known-modules(dfind, locator, context, SD.make-mutable-string-dict())
@@ -379,7 +405,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
               end }
           else:
             add-phase("Resolved names", named-result)
-            var provides = AU.get-named-provides(named-result, locator.uri(), env)
+            var provides = dummy-provides(locator.uri())
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             var desugared = D.desugar(named-result.ast)
             named-result.bindings.merge-now(desugared.new-binds)
@@ -387,7 +413,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared.ast)
             var type-checked =
-              if options.type-check:
+              if is-link(any-errors):
+                CS.err(unique(any-errors))
+              else if options.type-check:
                 type-checked = T.type-check(desugared.ast, env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
@@ -403,7 +431,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                type-checked := nothing
                 var dp-ast = DP.desugar-post-tc(tc-ast, env)
                 tc-ast := nothing
                 var cleaned = dp-ast
@@ -416,21 +443,16 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                   cleaned := cleaned.visit(AU.strip-annotations-visitor)
                 end
                 add-phase("Cleaned AST", cleaned)
-                {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
-                else:
-                  if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)
-                  else:
-                    {provides; add-phase("Result", CS.err(unique(any-errors)))}
-                  end
+                when not(options.type-check) block:
+                  provides := AU.get-named-provides(named-result, locator.uri(), env)
                 end
+                {final-provides; cr} = JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
                 mod-result = module-as-string(canonical-provides, env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>
-                { module-as-string(dummy-provides(locator.uri()), env, type-checked);
+                { module-as-string(provides, env, type-checked);
                   if options.collect-all or options.collect-times:
                     phase("Result", type-checked, time-now(), ret).tolist()
                   else: empty

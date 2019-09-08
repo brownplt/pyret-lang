@@ -2,7 +2,7 @@ provide *
 provide-types *
 
 import global as _
-import lists as lists
+include lists
 
 type Reducer<Acc, InVal, OutVal> = {
   one :: (InVal -> {Acc; OutVal}),
@@ -75,9 +75,9 @@ raw-row = {
 fun table-from-raw-array(arr):
   cols = raw-array-get(arr, 0).get-column-names()
   with-cols =
-    for lists.fold(t from table: ignore end.drop("ignore"), 
+    for fold(t from table: ignore end.drop("ignore"),
             c from cols):
-      t.add-column(c, lists.empty)
+      t.add-column(c, empty)
     end
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
     t.add-row(r)
@@ -93,3 +93,43 @@ table-from-rows = {
   make4: lam(t1, t2, t3, t4): table-from-raw-array([raw-array: t1, t2, t3, t4]) end,
   make5: lam(t1, t2, t3, t4, t5): table-from-raw-array([raw-array: t1, t2, t3, t4, t5]) end,
 }
+
+fun table-from-column<A>(col-name :: String, values :: List<A>) -> Table:
+  rows = for map(v from values):
+    raw-row.make([raw-array: {col-name; v}])
+  end
+  table-from-rows.make(raw-array-from-list(rows))
+end
+
+
+
+table-from-cols :: RawArray<{String; List<Any>}> -> Table
+fun table-from-cols(colspecs):
+  if raw-array-length(colspecs) == 0:
+    raise("table-from-columns requires at least one column")
+  else:
+    {name; vals} = raw-array-get(colspecs, 0)
+    for raw-array-fold(t from table-from-column(name, vals), c from colspecs, i from 1):
+      if i == 0: t
+      else:
+        {cname; cvals} = c
+        t.add-column(cname, cvals)
+      end
+    end
+  end
+end
+
+
+table-from-columns = {
+  make: table-from-cols,
+  make0: lam(): table-from-cols([raw-array:]) end,
+  make1: lam(t): table-from-cols([raw-array: t]) end,
+  make2: lam(t1, t2): table-from-cols([raw-array: t1, t2]) end,
+  make3: lam(t1, t2, t3): table-from-cols([raw-array: t1, t2, t3]) end,
+  make4: lam(t1, t2, t3, t4): table-from-cols([raw-array: t1, t2, t3, t4]) end,
+  make5: lam(t1, t2, t3, t4, t5): table-from-cols([raw-array: t1, t2, t3, t4, t5]) end,
+}
+
+
+
+

@@ -997,7 +997,7 @@ fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
   found
 end
 
-fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; List<J.JExpr>}:
+fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JStmt>; List<J.JStmt>}:
   doc: ```
        Find an order of assignment statements in `lst` that avoid new variables
        where `limit` is the number of round-robin attempts allowed.
@@ -1024,7 +1024,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
           if limit == 0:
             tmp-arg = fresh-id(compiler-name('tmp_asgn'))
             {pre; post} = get-assignments(rest, rest.length())
-            {link(j-var(tmp-arg, actual), pre); link(j-assign(formal, j-id(tmp-arg)), post)}
+            {link(j-var(tmp-arg, actual), pre); link(j-expr(j-assign(formal, j-id(tmp-arg))), post)}
           else:
             occurs-any = for any(next-asgn :: J.JExpr%(is-j-assign) from rest):
               is-id-occurs(formal, next-asgn.rhs)
@@ -1033,7 +1033,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
               get-assignments(rest + [list: asgn], limit - 1)
             else:
               {pre; post} = get-assignments(rest, rest.length())
-              {link(asgn, pre); post}
+              {link(j-expr(asgn), pre); post}
             end
           end
       end
@@ -1065,7 +1065,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
             j-block([clist:
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list(j-expr, pre + post) +
+        CL.from_list(pre + post) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
         #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
@@ -2027,8 +2027,7 @@ end
 
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-      # MARK(joe/ben): modules below
-    | provides(thismod-uri, _, values, aliases, data-defs) =>
+    | provides(thismod-uri, values, aliases, data-defs) =>
       value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
           | v-just-type(t) => j-field(v, compile-provided-type(t))

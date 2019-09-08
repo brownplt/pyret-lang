@@ -59,9 +59,12 @@
         var sext = RUNTIME.unwrap(ext);
         return RUNTIME.makeString(path.basename(s, sext));
       }),
-      "path-sep": RUNTIME.makeString(path.sep)
+      "is-absolute": RUNTIME.makeFunction(function(p) {
+        return path.isAbsolute(p);
+      }),
+      "path-sep": RUNTIME.makeString(path.sep),
     };
     return RUNTIME.makeModuleReturn(values, {});
-  }    
+  }
 })
 

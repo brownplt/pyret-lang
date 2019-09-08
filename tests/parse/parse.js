@@ -1,7 +1,18 @@
+var Jasmine = require('jasmine');
+var jazz = new Jasmine();
 const R = require("requirejs");
 var build = process.env["PHASE"] || "build/phaseA";
+R.config({
+  waitSeconds: 15000,
+  paths: {
+    "trove": "../../" + build + "/trove",
+    "js": "../../" + build + "/js",
+    "compiler": "../../" + build + "/arr/compiler",
+    "jglr": "../../lib/jglr",
+    "pyret-base": "../../" + build
+  }
+});
 R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], function(T, G, fs) {
-  _ = require("jasmine-node");
   function parse(str) {
     const toks = T.Tokenizer;
     toks.tokenizeFrom(str);
@@ -401,6 +412,12 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("a :: List<A, B> = a")).not.toBe(false);
     });
 
+    it("should parse angle brackets with trailing whitespace in annotations", function() {
+      expect(parse("a :: List#|comment|#<A> = a")).not.toBe(false);
+      expect(parse("a :: List<A > = a")).not.toBe(false);
+      expect(parse("a :: List<A, B#|comment|#> = a")).not.toBe(false);
+    });
+
     it("should parse angle brackets with whitespace as gt/lt", function() {
       expect(parse("1\n<\n2 or false\n B > (id)")).not.toBe(false);
       expect(parse("1<\n2 or false, B > (id)")).toBe(false);
@@ -747,5 +764,6 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     });
   });
 
+  jazz.execute();
 
 });
