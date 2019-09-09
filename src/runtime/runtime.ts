@@ -123,8 +123,9 @@ function equalityResultToBool(ans: EqualityResult): boolean {
 
 function isFunction(obj: any): boolean { return typeof obj === "function"; }
 
-// TODO(alex): Identify methods
-function isMethod(obj: any): boolean { return typeof obj === "function"; }
+function isMethod(obj: any): boolean { 
+  return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
+}
 
 // TODO(alex): Will nothing always be value 'undefined'?
 function isNothing(obj: any): boolean { return obj === undefined };
@@ -388,6 +389,24 @@ function customAdd(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
   }
 }
 
+// MUTATES an object to rebind any methods to it
+function _rebind(toRebind: any): any {
+  if (typeof toRebind === "object") {
+    Object.keys(toRebind).forEach((key) => {
+      if (key === "$brand" || key === "$tag") {
+        return;
+      }
+
+      let value = toRebind[key];
+      if (isMethod(value)) {
+        toRebind[key] = value["$binder"](toRebind);
+      }
+    });
+  }
+
+  return toRebind;
+}
+
 
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value
@@ -401,6 +420,8 @@ module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
 module.exports["_spy"] = _spy;
+module.exports["_rebind"] = _rebind;
+
 module.exports["_makeRational"] = _NUMBER["makeRational"];
 module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
 module.exports["_errCallbacks"] = NumberErrbacks;
