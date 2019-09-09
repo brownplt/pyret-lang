@@ -1,13 +1,14 @@
 ### pass
 import string-dict-immutable as D
+import list-immutable as L
 import global as G
 
 dict = [D.string-dict: {x: 1, y: 2, z: 3}]
 
 keys = D.keys(dict)
-key-result = keys.contains("x") and keys.contains("y") and keys.contains("z")
+key-result = L.contains(keys, "x") and L.contains(keys, "y") and L.contains(keys, "z")
 values = D.values(dict)
-value-result = values.contains(1) and values.contains(2) and values.contains(3)
+value-result = L.contains(values, 1) and L.contains(values, 2) and L.contains(values, 3)
 
 if key-result and value-result:
   G.console-log("pass")
