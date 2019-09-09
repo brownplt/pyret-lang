@@ -973,6 +973,46 @@ CropImage.prototype.equals = /* @stopify flat */ function (other) {
     || BaseImage.prototype.equals.call(this, other);
 };
 
+//////////////////////////////////////////////////////////////////////
+// ScaleImage: factor factor image -> image
+// Scale an image
+var ScaleImage = /* @stopify flat */ function (xFactor, yFactor, img) {
+  BaseImage.call(this);
+  // grab the img vertices, scale them, and save the result to this_vertices
+  this._vertices = img.getVertices().map(function (v) {
+    return { x: v.x * xFactor, y: v.y * yFactor };
+  });
+
+  this.img = img;
+  this.width = img.width * xFactor;
+  this.height = img.height * yFactor;
+  this.xFactor = xFactor;
+  this.yFactor = yFactor;
+  this.ariaText = "Scaled Image, " + (xFactor === yFactor ? "by " + xFactor
+    : "horizontally by " + xFactor + " and vertically by " + yFactor) + ". " + img.ariaText;
+};
+
+ScaleImage.prototype = heir(BaseImage.prototype);
+
+ScaleImage.prototype.getVertices = function () { return this._vertices; };
+
+// scale the context, and pass it to the image's render function
+ScaleImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  ctx.save();
+  ctx.scale(this.xFactor, this.yFactor);
+  this.img.render(ctx, x / this.xFactor, y / this.yFactor);
+  ctx.restore();
+};
+
+ScaleImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof ScaleImage &&
+    this.width === other.width &&
+    this.height === other.height &&
+    this.xFactor === other.xFactor &&
+    this.yFactor === other.yFactor &&
+    imageEquals(this.img, other.img))
+    || BaseImage.prototype.equals.call(this, other);
+};
 
 
 var textContainer, textParent;
@@ -1335,5 +1375,11 @@ return module.exports = {
   },
   crop: /* @stopify flat */ function (x, y, width, height, img) {
     return new CropImage(x, y, width, height, img);
+  },
+  scale: /* @stopify flat */ function (factor, img) {
+    return new ScaleImage(factor, factor, img);
+  },
+  "scale-xy": /* @stopify flat */ function (xFactor, yFactor, img) {
+    return new ScaleImage(xFactor, yFactor, img);
   }
 };

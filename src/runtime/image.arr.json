@@ -26,7 +26,9 @@
       "flip-horizontal": ["arrow", ["Image"], "Image"],
       "flip-vertical": ["arrow", ["Image"], "Image"],
       "frame": ["arrow", ["Image"], "Image"],
-      "crop": ["arrow", ["Number", "Number", "Number", "Number", "Image"], "Image"]
+      "crop": ["arrow", ["Number", "Number", "Number", "Number", "Image"], "Image"],
+      "scale": ["arrow", ["Number", "Image"], "Image"],
+      "scale-xy": ["arrow", ["Number", "Number", "Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
