@@ -868,6 +868,46 @@ RotateImage.prototype.equals = /* @stopify flat */ function (other) {
     || BaseImage.prototype.equals.call(this, other);
 };
 
+//////////////////////////////////////////////////////////////////////
+// FlipImage: image string -> image
+// Flip an image either horizontally or vertically
+var FlipImage = /* @stopify flat */ function (img, direction) {
+  BaseImage.call(this);
+  this.img = img;
+  this.width = img.getWidth();
+  this.height = img.getHeight();
+  this.direction = direction;
+  this.ariaText = direction + "ly flipped image: " + img.ariaText;
+};
+
+FlipImage.prototype = heir(BaseImage.prototype);
+
+FlipImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  // when flipping an image of dimension M and offset by N across an axis,
+  // we need to translate the canvas by M+2N in the opposite direction
+  ctx.save();
+  if (this.direction === "horizontal") {
+    ctx.scale(-1, 1);
+    ctx.translate(-(this.width + 2 * x), 0);
+    this.img.render(ctx, x, y);
+  }
+  if (this.direction === "vertical") {
+    ctx.scale(1, -1);
+    ctx.translate(0, -(this.height + 2 * y));
+    this.img.render(ctx, x, y);
+  }
+  ctx.restore();
+};
+
+FlipImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof FlipImage &&
+    this.width === other.width &&
+    this.height === other.height &&
+    this.direction === other.direction &&
+    imageEquals(this.img, other.img))
+    || BaseImage.prototype.equals.call(this, other);
+};
+
 var textContainer, textParent;
 //////////////////////////////////////////////////////////////////////
 // TextImage: String Number Color String String String String any/c -> Image
@@ -1210,5 +1250,11 @@ return module.exports = {
   },
   "text-font": /* @stopify flat */ function (str, size, color, face, family, style, weight, underline) {
     return new TextImage(str, size, convertColor(color), face, family, style, weight, underline);
+  },
+  "flip-horizontal": /* @stopify flat */  function(img) {
+    return new FlipImage(img, "horizontal");
+  },
+  "flip-vertical": /* @stopify flat */  function(img) {
+    return new FlipImage(img, "vertical");
   }
 };

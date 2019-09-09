@@ -20,7 +20,9 @@
       "rotate": ["arrow", ["Number", "Image"], "Image"],
       "text": ["arrow", ["String", "Number", "String"], "Image"],
       "text-font": ["arrow", ["String", "Number", "String", "String", "String", "String", 
-        "String", "Boolean"], "Image"]
+        "String", "Boolean"], "Image"],
+      "flip-horizontal": ["arrow", ["Image"], "Image"],
+      "flip-vertical": ["arrow", ["Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
