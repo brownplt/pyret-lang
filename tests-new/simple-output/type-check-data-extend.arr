@@ -16,12 +16,13 @@ fun update(f :: Foo) -> Foo:
   f.{x: false}
 end
 
-f3 :: Foo = update(bar(true, "bar"))
+b1 = bar(true, "bar")
+b2 :: Foo = update(b2)
 
-result = not(f2.x) and not(f3.x)
+result = f1.x and not(f2.x) and and b1.x and not(b2.x)
 
 if result:
   G.console-log(result)
 else:
-  G.console-log([L.list: f1, f2, f3 ])
+  G.console-log([L.list: f1, f2, b1, b2 ])
 end
