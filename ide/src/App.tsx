@@ -66,7 +66,6 @@ type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
-    menuVisible: boolean;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -178,7 +177,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
-            menuVisible: false,
         };
     };
 
@@ -360,12 +358,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
-    toggleMenuVisibility = (): void => {
-        this.setState({
-            menuVisible: !this.state.menuVisible,
-        });
-    };
-
     makeDefinitions() {
         if (this.state.editorMode === EEditor.Text) {
             return <SingleCodeMirrorDefinitions
@@ -478,10 +470,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    <button className="menu"
-                            onClick={this.toggleMenuVisibility}>
-                        Menu
-                    </button>
                     {this.stopify ? (
                         <button className="stop-available">
                             Stop
@@ -503,7 +491,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     </div>
                 </Header>
                 <div className="code-container">
-                    {this.state.menuVisible && menu}
+                    {menu}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
                         <div className="edit-area-container"
