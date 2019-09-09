@@ -228,20 +228,20 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     });
 
     it('should lex octal escape sequences', function() {
-      const escapeSequences = ['\\0', '\\77', '\\101'];
-      const expectedSequences = ['0', '77', '101'];
+      const escapeSequences = ["'\\0'", "'\\77'", "'\\101'"];
+      const expectedValues = ["'\0'", "'?'", "'A'"];
       for (let i = 0; i < escapeSequences.length; ++i) {
-        const expectedValues = ['\\', expectedSequences[i], undefined];
+        const tokens = lex(escapeSequences[i]);
+        expect(tokens.length).toBe(2);
+        expect(tokens[0].value).toBe(expectedValues[i]);
+        expect(tokens[1].name).toBe("EOF");
 
-        const lexedValues = lex(escapeSequences[i]).map(token => token.value);
-        expect(lexedValues).toEqual(expectedValues);
-
-        const parseStr = `str = "${escapeSequences[i]}"`;
+        const parseStr = `str = ${escapeSequences[i]}`;
         expect(parse(parseStr)).not.toBe(false);
       }
 
       // invalid escape sequence
-      expect(parse('str = \'\\8\'')).toBe(false);
+      expect(parse("str = '\\8'")).toBe(false);
     });
   });
   describe("parsing", function() {
