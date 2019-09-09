@@ -1319,6 +1319,10 @@ return module.exports = {
   "right-triangle": /* @stopify flat */ function (side1, side2, style, color) {
     return new TriangleImage(side1, 360 - 90, side2, style, convertColor(color));
   },
+  "isosceles-triangle": /* @stopify flat */ function (side, angle, style, color) {
+    return new TriangleImage((2 * side * Math.sin((angle * Math.PI / 180) / 2)),
+      360 - ((180 - angle) / 2), side, style, convertColor(color));
+  },
   ellipse: /* @stopify flat */ function (width, height, style, color) {
     return new EllipseImage(width, height, style, convertColor(color));
   },
