@@ -17,9 +17,9 @@ fun update(f :: Foo) -> Foo:
 end
 
 b1 = bar(true, "bar")
-b2 :: Foo = update(b2)
+b2 :: Foo = update(b1)
 
-result = f1.x and not(f2.x) and and b1.x and not(b2.x)
+result = f1.x and not(f2.x) and b1.x and not(b2.x)
 
 if result:
   G.console-log(result)
