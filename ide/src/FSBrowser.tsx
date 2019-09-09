@@ -261,6 +261,8 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                         display: "flex",
                         alignItems: "center",
                         paddingLeft: "1em",
+                        paddingRight: "1em",
+                        background: this.state.selected ? "none" : "darkgray",
                     }}>
                         {this.props.browsePath[this.props.browsePath.length - 1]}
                     </div>
