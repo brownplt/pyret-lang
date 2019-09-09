@@ -199,6 +199,36 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     };
 
     render() {
+        const editor = this.state.editType !== undefined &&
+                    <div style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                    }}>
+                        <pre style={{
+                            paddingLeft: "1em",
+                            paddingRight: "1em",
+                        }}>
+                           {this.state.editType === EditType.CreateFile ? "F" : "D"}
+                        </pre>
+                        <form onSubmit={this.handleSubmit}
+                              style={{
+                                  height: "100%",
+                                  flexGrow: 1,
+                              }}>
+                            <input type="text"
+                                   value={this.state.editValue}
+                                   onChange={this.onChange}
+                                   style={{
+                                       border: 0,
+                                       padding: 0,
+                                       width: "100%",
+                                       height: "100%",
+                                   }}>
+                            </input>
+                        </form>
+                    </div>;
+
         return (
             <div style={{display: "flex", flexDirection: "column"}}>
                 <div className="fs-browser-item"
@@ -235,20 +265,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                         </button>
                     </div>
                 </div>
-                {this.state.editType === EditType.CreateFile &&
-                 <form onSubmit={this.handleSubmit}>
-                     <input type="text"
-                            value={this.state.editValue}
-                            onChange={this.onChange}>
-                     </input>
-                 </form>}
-                {this.state.editType === EditType.CreateDirectory &&
-                 <form onSubmit={this.handleSubmit}>
-                     <input type="text"
-                            value={this.state.editValue}
-                            onChange={this.onChange}>
-                     </input>
-                 </form>}
+                {editor}
                 {!this.browsingRoot && (
                     <FSItem onClick={this.traverseUp}
                             path={[".."]}>
