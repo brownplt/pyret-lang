@@ -694,6 +694,81 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   return true;
 };
 
+// isScene: any -> boolean
+// Produces true when x is a scene.
+var isScene = /* @stopify flat */ function (x) {
+  return ((x != undefined) && (x != null) && (x instanceof SceneImage));
+};
+
+//////////////////////////////////////////////////////////////////////
+// SceneImage: primitive-number primitive-number (listof image) -> Scene
+var SceneImage = /* @stopify flat */ function (width, height, children, withBorder) {
+  BaseImage.call(this);
+  this.width = width;
+  this.height = height;
+  this.children = children; // arrayof [image, number, number]
+  this.withBorder = withBorder;
+  this.ariaText = " scene that is " + width + " by " + height + ". children are: ";
+  this.ariaText += children.map(function (c, i) {
+    return "child " + (i + 1) + ": " + c[0].ariaText + ", positioned at " + c[1] + "," + c[2] + " ";
+  }).join(". ");
+};
+SceneImage.prototype = heir(BaseImage.prototype);
+
+// add: image primitive-number primitive-number -> Scene
+SceneImage.prototype.add = /* @stopify flat */ function (anImage, x, y) {
+  return new SceneImage(this.width,
+    this.height,
+    this.children.concat([[anImage,
+      x - anImage.getWidth() / 2,
+      y - anImage.getHeight() / 2]]),
+    this.withBorder);
+};
+
+// render: 2d-context primitive-number primitive-number -> void
+SceneImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  var childImage, childX, childY;
+  // create a clipping region around the boundaries of the Scene
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0)";
+  ctx.fillRect(x, y, this.width, this.height);
+  ctx.restore();
+  // save the context, reset the path, and clip to the path around the scene edge
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, this.width, this.height);
+  ctx.clip();
+  // Ask every object to render itself inside the region
+  this.children.forEach(function (child) {
+    // then, render the child images
+    childImage = child[0];
+    childX = child[1];
+    childY = child[2];
+    childImage.render(ctx, childX + x, childY + y);
+  });
+  // unclip
+  ctx.restore();
+
+  if (this.withBorder) {
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(x, y, this.width, this.height);
+  }
+};
+
+SceneImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof SceneImage &&
+    this.width == other.width &&
+    this.height == other.height &&
+    this.children.length == other.children.length &&
+    this.children.every(function (child1, i) {
+      var child2 = other.children[i];
+      return (child1[1] == child2[1] &&
+        child1[2] == child2[2] &&
+        child1[0].equals(child2[0]));
+    }))
+    || BaseImage.prototype.equals.call(this, other);
+};
+
 //////////////////////////////////////////////////////////////////////
 // OverlayImage: image image placeX placeY -> image
 // Creates an image that overlays img1 on top of the
@@ -1415,6 +1490,9 @@ return module.exports = {
   },
   "scale-xy": /* @stopify flat */ function (xFactor, yFactor, img) {
     return new ScaleImage(xFactor, yFactor, img);
+  },
+  "empty-scene": /* @stopify flat */ function (width, height) {
+    return new SceneImage(width, height, [], true);
   },
   "is-image": /* @stopify flat */ function (img) {
     return isImage(img);
