@@ -39,7 +39,8 @@
       "frame": ["arrow", ["Image"], "Image"],
       "crop": ["arrow", ["Number", "Number", "Number", "Number", "Image"], "Image"],
       "scale": ["arrow", ["Number", "Image"], "Image"],
-      "scale-xy": ["arrow", ["Number", "Number", "Image"], "Image"]
+      "scale-xy": ["arrow", ["Number", "Number", "Image"], "Image"],
+      "is-image": ["arrow", ["Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 

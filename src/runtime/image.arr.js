@@ -1415,5 +1415,8 @@ return module.exports = {
   },
   "scale-xy": /* @stopify flat */ function (xFactor, yFactor, img) {
     return new ScaleImage(xFactor, yFactor, img);
+  },
+  "is-image": /* @stopify flat */ function (img) {
+    return isImage(img);
   }
 };
