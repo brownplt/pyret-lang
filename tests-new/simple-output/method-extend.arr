@@ -14,6 +14,10 @@ sharing:
   end
 end
 
+data Nested:
+  | nested(n :: Foo)
+end
+
 foo1 = foo("foo")
 x1 = foo1.get-x()
 
@@ -26,15 +30,22 @@ bar2 = bar1.{ y: "MY" }
 x4 = bar1.get-x()
 x5 = bar2.get-x()
 
+nested1 = nested(foo("NESTED"))
+nested-foo = nested.n.{ x: "UPDATED" }
+x6 = nested1.n.get-x()
+x7 = nested-foo.get-x()
+
 result = 
   (x1 == "foo") and
   (x2 == "foo") and
   (x3 == "bar") and
   (x4 == "Y") and
-  (x5 == "MY") 
+  (x5 == "MY") and
+  (x6 == "NESTED") and
+  (x7 == "UPDATED")
 
 if result:
   G.console-log("pass")
 else:
-  G.console-log([L.list: foo1, foo2])
+  G.console-log([L.list: foo1, foo2, nested1, nested-foo])
 end
