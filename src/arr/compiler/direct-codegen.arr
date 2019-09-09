@@ -845,13 +845,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             binder-func = val
             binder-stmts = compiled-stmts
 
-            init-expr-rhs = j-app(binder-func, [clist: constructed-obj])
-            bind = j-expr(j-bracket-assign(j-id(tmp-bind), j-str(member.name), init-expr-rhs))
+            init-expr-rhs = j-app(binder-func, [clist: tmp-bind])
+            bind = j-expr(j-bracket-assign(j-id(tmp-bind), j-str(f.name), init-expr-rhs))
 
-            { fieldvs; binder-stmts + smts; cl-cons(bind, binds) }
+            # Binder function must be generated first
+            { fieldvs; cl-append(binder-stmts, stmts); cl-cons(bind, binds) }
 
           | else => 
-            { cl-cons(j-field(f.name, val), fieldvs); compiled-stmts + stmts; binds }
+            # Fields are evaluated top to bottom
+            { cl-cons(j-field(f.name, val), fieldvs); cl-append(stmts, compiled-stmts); binds }
         end
       end
 
