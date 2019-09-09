@@ -346,7 +346,7 @@ button::-moz-focus-inner {
 }
 
 .menu-content {
-    background: rgba(0, 0, 0, 0.6);
+    background: #c8c8c8;
     height: 100%;
     width: 16em;
     display: flex;
