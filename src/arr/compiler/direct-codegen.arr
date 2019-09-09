@@ -853,7 +853,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
           | else => 
             # Fields are evaluated top to bottom
-            { cl-cons(j-field(f.name, val), fieldvs); cl-append(stmts, compiled-stmts); binds }
+            { cl-snoc(fieldvs, j-field(f.name, val)); cl-append(stmts, compiled-stmts); binds }
         end
       end
 
