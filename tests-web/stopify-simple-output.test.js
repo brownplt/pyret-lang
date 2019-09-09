@@ -7,7 +7,7 @@ const stream = require('stream');
 const tester = require("./test-util.js");
 
 const TEST_TIMEOUT = 20000;
-const COMPILER_TIMEOUT = 10000; // ms, for each compiler run
+const COMPILER_TIMEOUT = 20000; // ms, for each compiler run
 const STARTUP_TIMEOUT = 6000;
 
 describe("Testing browser simple-output programs", () => {
@@ -107,7 +107,7 @@ describe("Testing browser simple-output programs", () => {
         let runtimeErrors = 
           await tester.areRuntimeErrors(driver);
 
-        expect(foundOutput).toBeTruthy();
+        expect(foundOutput).toEqual(tester.OK);
         expect(runtimeErrors).toBeFalsy();
 
         await done();
