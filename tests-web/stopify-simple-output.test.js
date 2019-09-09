@@ -107,7 +107,7 @@ describe("Testing browser simple-output programs", () => {
         let runtimeErrors = 
           await tester.areRuntimeErrors(driver);
 
-        expect(foundOutput).toBeTruthy();
+        expect(foundOutput).toEqual(tester.OK);
         expect(runtimeErrors).toBeFalsy();
 
         await done();

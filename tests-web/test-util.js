@@ -14,6 +14,10 @@ const chromedriver = require('chromedriver');
 let kindFF = "firefox";
 let kindChrome = "chrome";
 
+const STATUS_TIMEOUT = -1;
+const STATUS_ERR = -2;
+const STATUS_OK = 1;
+
 // Used by Travis
 let BROWSER;
 if (process.env.BROWSER) {
@@ -165,9 +169,9 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
       }
     }, timeout);
 
-    return result === null ? false : result;
+    return result === null ? STATUS_ERR : STATUS_OK;
   } catch (error) {
-    return false;
+    return STATUS_TIMEOUT;
   }
 };
 
@@ -215,4 +219,7 @@ module.exports = {
   searchForRunningOutput: searchForRunningOutput,
   areRuntimeErrors: areRuntimeErrors,
   clearLogs: clearLogs,
+  TIMEOUT: STATUS_TIMEOUT,
+  ERR: STATUS_ERR,
+  OK: STATUS_OK,
 };
