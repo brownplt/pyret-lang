@@ -24,7 +24,8 @@
       "text-font": ["arrow", ["String", "Number", "String", "String", "String", "String", 
         "String", "Boolean"], "Image"],
       "flip-horizontal": ["arrow", ["Image"], "Image"],
-      "flip-vertical": ["arrow", ["Image"], "Image"]
+      "flip-vertical": ["arrow", ["Image"], "Image"],
+      "frame": ["arrow", ["Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 

@@ -908,6 +908,36 @@ FlipImage.prototype.equals = /* @stopify flat */ function (other) {
     || BaseImage.prototype.equals.call(this, other);
 };
 
+//////////////////////////////////////////////////////////////////////
+// FrameImage: factor factor image -> image
+// Stick a frame around the image
+var FrameImage = /* @stopify flat */ function (img) {
+  BaseImage.call(this);
+  this.img = img;
+  this.width = img.width;
+  this.height = img.height;
+  this.ariaText = " Framed image: " + img.ariaText;
+};
+
+FrameImage.prototype = heir(BaseImage.prototype);
+
+// scale the context, and pass it to the image's render function
+FrameImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  ctx.save();
+  this.img.render(ctx, x, y);
+  ctx.beginPath();
+  ctx.strokeStyle = "black";
+  ctx.strokeRect(x, y, this.width, this.height);
+  ctx.closePath();
+  ctx.restore();
+};
+
+FrameImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof FrameImage &&
+    BaseImage.prototype.equals.call(this, other))
+    || imageEquals(this.img, other.img);
+};
+
 var textContainer, textParent;
 //////////////////////////////////////////////////////////////////////
 // TextImage: String Number Color String String String String any/c -> Image
@@ -1262,5 +1292,8 @@ return module.exports = {
   },
   "flip-vertical": /* @stopify flat */  function(img) {
     return new FlipImage(img, "vertical");
+  },
+  frame: /* @stopify flat */  function(img) {
+    return new FrameImage(img);
   }
 };
