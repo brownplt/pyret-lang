@@ -4,6 +4,7 @@ import * as control from './control';
 type FSItemProps = {
     onClick: () => void;
     path: string[];
+    selected: boolean;
 };
 
 type FSItemState = {};
@@ -23,9 +24,18 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
                 return "?";
             }})();
 
+        const background = this.props.selected ? "darkgray": "rgba(0, 0, 0, 0.3)";
+
         return (
             <button onClick={this.props.onClick}
-                    className="fs-browser-item">
+                    style={{
+                        background: background,
+                        border: 0,
+                        height: "2.7em",
+                        color: "#fff",
+                        textAlign: "left",
+                        flex: "none",
+                    }}>
                 <div style={{
                     display: "flex",
                     flexDirection: "row",
@@ -100,12 +110,20 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         const newPath = this.props.browsePath.slice();
         newPath.pop();
 
+        this.setState({
+            selected: undefined,
+        });
+
         this.props.onTraverseUp(newPath);
     };
 
     traverseDown = (childDirectory: string): void => {
         const newPath = this.props.browsePath.slice();
         newPath.push(childDirectory);
+
+        this.setState({
+            selected: undefined,
+        });
 
         this.props.onTraverseDown(newPath);
     };
@@ -131,7 +149,8 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             filePath,
             <FSItem key={filePath}
                     onClick={() => this.expandChild(filePath)}
-                    path={[...this.props.browsePath, filePath]}/>
+                    path={[...this.props.browsePath, filePath]}
+                    selected={filePath === this.state.selected}/>
         ];
     };
 
@@ -268,7 +287,8 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 {editor}
                 {!this.browsingRoot && (
                     <FSItem onClick={this.traverseUp}
-                            path={[".."]}>
+                            path={[".."]}
+                            selected={false}>
                     </FSItem>
                 )}
                 {
