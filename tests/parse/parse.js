@@ -226,6 +226,23 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd``\\````")).not.toBe(false);
       expect(parse("```asd```asd```")).toBe(false);
     });
+
+    it('should lex octal escape sequences', function() {
+      const escapeSequences = ['\\0', '\\77', '\\101'];
+      const expectedSequences = ['0', '77', '101'];
+      for (let i = 0; i < escapeSequences.length; ++i) {
+        const expectedValues = ['\\', expectedSequences[i], undefined];
+
+        const lexedValues = lex(escapeSequences[i]).map(token => token.value);
+        expect(lexedValues).toEqual(expectedValues);
+
+        const parseStr = `str = "${escapeSequences[i]}"`;
+        expect(parse(parseStr)).not.toBe(false);
+      }
+
+      // invalid escape sequence
+      expect(parse('str = \'\\8\'')).toBe(false);
+    });
   });
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
@@ -761,19 +778,6 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("spy: 5 end")).toBe(false);
       expect(parse("spy \"five\": x end")).not.toBe(false);
       expect(parse("spy \"five\": x: 5 end")).not.toBe(false);
-    });
-
-    it("should parse octal escape squences", function() {
-      expect(parse("a = '\\0'").toString()).toContain(stringAst('\\u0000'));
-      expect(parse("a = '\\101'").toString()).toContain(stringAst('A'));
-      expect(parse("a = '\\101bc'").toString()).toContain(stringAst('Abc'));
-      expect(parse("a = '\\77'").toString()).toContain(stringAst('?'));
-
-      expect(parse("a = '\\88'")).toBe(false);
-
-      function stringAst(str) {
-        return `'STRING "'${str}'"`;
-      }
     });
   });
 
