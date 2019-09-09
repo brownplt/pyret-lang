@@ -215,10 +215,9 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                      </label>
                  </form>}
                 {!this.browsingRoot && (
-                    <button className="fs-browser-item"
-                            onClick={this.traverseUp}>
-                        ..
-                    </button>
+                    <FSItem onClick={this.traverseUp}
+                            path={[".."]}>
+                    </FSItem>
                 )}
                 {
                     control.fs
