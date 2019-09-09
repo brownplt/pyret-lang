@@ -30,9 +30,27 @@ type FSBrowserProps = {
     onExpandChild: (child: string, fullChildPath: string) => void,
     browsePath: string[],
 };
-type FSBrowserState = {};
+
+enum EditType {
+    CreateFile,
+    CreateDirectory
+}
+
+type FSBrowserState = {
+    editType: EditType | undefined,
+    editValue: string,
+};
 
 export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
+    constructor(props: FSBrowserProps) {
+        super(props);
+
+        this.state = {
+            editType: undefined,
+            editValue: "",
+        };
+    }
+
     get browsePathString() {
         return control.bfsSetup.path.join(...this.props.browsePath);
     }
@@ -89,9 +107,96 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         ];
     };
 
+    toggleEditFile = (): void => {
+        if (this.state.editType === EditType.CreateFile) {
+            this.setState({
+                editType: undefined,
+            });
+        } else {
+            this.setState({
+                editType: EditType.CreateFile,
+            });
+        }
+    };
+
+    toggleEditDirectory = (): void => {
+        if (this.state.editType === EditType.CreateDirectory) {
+            this.setState({
+                editType: undefined,
+            });
+        } else {
+            this.setState({
+                editType: EditType.CreateDirectory,
+            });
+        }
+    };
+
+    handleSubmit = (value: React.SyntheticEvent): void => {
+        value.preventDefault();
+
+        const name = this.state.editValue;
+        const path = control.bfsSetup.path.join(...this.props.browsePath, name);
+
+        if (this.state.editType === EditType.CreateFile) {
+            control.createFile(path);
+        } else {
+            control.createDirectory(path);
+        }
+
+        this.setState({
+            editValue: "",
+        });
+    };
+
+    onChange = (event: React.SyntheticEvent): void => {
+        this.setState({
+            editValue: (event.target as HTMLInputElement).value,
+        });
+    };
+
     render() {
         return (
             <div style={{display: "flex", flexDirection: "column"}}>
+                <div className="fs-browser-item"
+                     style={{
+                         display: "flex",
+                         flexDirection: "row",
+                     }}>
+                    <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                    }}
+                         onClick={this.toggleEditFile}>
+                        +f
+                    </div>
+                    <div style={{
+                        display: "fleX",
+                        alignItems: "center",
+                    }}
+                         onClick={this.toggleEditDirectory}>
+                        +d
+                    </div>
+                </div>
+                {this.state.editType === EditType.CreateFile &&
+                 <form onSubmit={this.handleSubmit}>
+                     <label>
+                         File:
+                         <input type="text"
+                                value={this.state.editValue}
+                                onChange={this.onChange}>
+                         </input>
+                     </label>
+                 </form>}
+                {this.state.editType === EditType.CreateDirectory &&
+                 <form onSubmit={this.handleSubmit}>
+                     <label>
+                         Directory:
+                         <input type="text"
+                                value={this.state.editValue}
+                                onChange={this.onChange}>
+                         </input>
+                     </label>
+                 </form>}
                 {!this.browsingRoot && (
                     <button className="fs-browser-item"
                             onClick={this.traverseUp}>

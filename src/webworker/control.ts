@@ -23,6 +23,14 @@ export const runProgram = backend.runProgram;
 export const compileProgram = backend.compileProgram;
 export const fs = bfsSetup.fs;
 
+export const createFile = (file: string): void => {
+  bfsSetup.fs.writeFileSync(file, "");
+};
+
+export const createDirectory = (dir: string): void => {
+  bfsSetup.fs.mkdirSync(dir);
+};
+
 export const deleteDir = (dir: string): void => {
   bfsSetup.fs.readdir(dir, function(err: any, files: any) {
     if (err) {
