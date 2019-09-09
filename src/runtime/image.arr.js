@@ -1242,6 +1242,12 @@ return module.exports = {
   "overlay-align": /* @stopify flat */ function (X, Y, img1, img2) {
     return new OverlayImage(img1, img2, X, Y);
   },
+  underlay: /* @stopify flat */ function (img1, img2) {
+    return new OverlayImage(img2, img1, "center", "center");
+  },
+  "underlay-align": /* @stopify flat */ function (X, Y, img1, img2) {
+    return new OverlayImage(img2, img1, X, Y);
+  },
   rotate: /* @stopify flat */ function (angle, img) {
     return new RotateImage(angle, img);
   },

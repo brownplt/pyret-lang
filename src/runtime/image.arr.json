@@ -16,7 +16,9 @@
       "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
 
       "overlay": ["arrow", ["Image", "Image"], "Image"],
-      "overlay-align": ["arrow", ["Image", "Image", "String", "String"], "Image"],
+      "overlay-align": ["arrow", ["String", "String", "Image", "Image"], "Image"],
+      "underlay": ["arrow", ["Image", "Image"], "Image"],
+      "underlay-align": ["arrow", ["String", "String", "Image", "Image"], "Image"],
       "rotate": ["arrow", ["Number", "Image"], "Image"],
       "text": ["arrow", ["String", "Number", "String"], "Image"],
       "text-font": ["arrow", ["String", "Number", "String", "String", "String", "String", 
