@@ -1,6 +1,6 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
-import { UnControlled as CodeMirror, Controlled } from 'react-codemirror2';
+import { UnControlled as CodeMirror } from 'react-codemirror2';
 import * as control from './control';
 
 type DefChunkProps = {
