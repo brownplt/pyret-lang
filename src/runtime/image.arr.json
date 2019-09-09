@@ -25,7 +25,8 @@
         "String", "Boolean"], "Image"],
       "flip-horizontal": ["arrow", ["Image"], "Image"],
       "flip-vertical": ["arrow", ["Image"], "Image"],
-      "frame": ["arrow", ["Image"], "Image"]
+      "frame": ["arrow", ["Image"], "Image"],
+      "crop": ["arrow", ["Number", "Number", "Number", "Number", "Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 

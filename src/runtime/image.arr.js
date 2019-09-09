@@ -938,6 +938,43 @@ FrameImage.prototype.equals = /* @stopify flat */ function (other) {
     || imageEquals(this.img, other.img);
 };
 
+//////////////////////////////////////////////////////////////////////
+// CropImage: startX startY width height image -> image
+// Crop an image
+var CropImage = /* @stopify flat */ function (x, y, width, height, img) {
+  BaseImage.call(this);
+  this.x = x;
+  this.y = y;
+  this.width = width;
+  this.height = height;
+  this.img = img;
+  this.ariaText = "Cropped image, from " + x + ", " + y + " to " + (x + width) + ", " + (y + height) + ": " + img.ariaText;
+};
+
+CropImage.prototype = heir(BaseImage.prototype);
+
+CropImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, this.width, this.height);
+  ctx.clip();
+  ctx.translate(-this.x, -this.y);
+  this.img.render(ctx, x, y);
+  ctx.restore();
+};
+
+CropImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof CropImage &&
+    this.width === other.width &&
+    this.height === other.height &&
+    this.x === other.x &&
+    this.y === other.y &&
+    imageEquals(this.img, other.img))
+    || BaseImage.prototype.equals.call(this, other);
+};
+
+
+
 var textContainer, textParent;
 //////////////////////////////////////////////////////////////////////
 // TextImage: String Number Color String String String String any/c -> Image
@@ -1295,5 +1332,8 @@ return module.exports = {
   },
   frame: /* @stopify flat */  function(img) {
     return new FrameImage(img);
+  },
+  crop: /* @stopify flat */ function (x, y, width, height, img) {
+    return new CropImage(x, y, width, height, img);
   }
 };
