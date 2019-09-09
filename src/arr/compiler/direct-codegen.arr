@@ -862,7 +862,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       # Init statements and object bind come before method binding
       init-stmts = cl-snoc(stmts, var-obj)
-      ordered-stmts = cl-append(stmts, binds)
+      ordered-stmts = cl-append(init-stmts, binds)
 
       { j-id(tmp-bind); ordered-stmts }
 
