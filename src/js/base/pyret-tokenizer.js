@@ -62,7 +62,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
       else if (esc === "\\") { ret += "\\"; }
       else if (esc[0] === 'u') { ret += String.fromCharCode(parseInt(esc.slice(1), 16)); }
       else if (esc[0] === 'x') { ret += String.fromCharCode(parseInt(esc.slice(1), 16)); }
-      else { ret += String.fromCharCode(parseInt(esc.slice(2), 8)); }
+      else { ret += String.fromCharCode(parseInt(esc, 8)); }
       match = escapes.exec(s);
     }
     ret += s;

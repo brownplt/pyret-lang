@@ -762,6 +762,14 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("spy \"five\": x end")).not.toBe(false);
       expect(parse("spy \"five\": x: 5 end")).not.toBe(false);
     });
+
+    it("should parse octal escape squences", function() {
+      expect(parse("\\0")).toBe("");
+      expect(parse("\\101")).toBe("A");
+      expect(parse("\\101bc")).toBe("Abc");
+      expect(parse("\\77")).toBe("?");
+      expect(parse("\\88")).toBe("88");
+    });
   });
 
   jazz.execute();
