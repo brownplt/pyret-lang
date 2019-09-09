@@ -1365,11 +1365,17 @@ return module.exports = {
   "overlay-align": /* @stopify flat */ function (X, Y, img1, img2) {
     return new OverlayImage(img1, img2, X, Y);
   },
+  "overlay-xy": /* @stopify flat */ function (img1, dx, dy, img2) {
+    return new OverlayImage(img1, img2, dx, dy);
+  },
   underlay: /* @stopify flat */ function (img1, img2) {
     return new OverlayImage(img2, img1, "center", "center");
   },
   "underlay-align": /* @stopify flat */ function (X, Y, img1, img2) {
     return new OverlayImage(img2, img1, X, Y);
+  },
+  "underlay-xy": /* @stopify flat */ function (img1, dx, dy, img2) {
+    return new OverlayImage(img2, img1, -dx, -dy);
   },
   rotate: /* @stopify flat */ function (angle, img) {
     return new RotateImage(angle, img);
