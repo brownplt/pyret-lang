@@ -71,7 +71,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         this.state = {
             editType: undefined,
             editValue: "",
-            selected: "",
+            selected: undefined,
         };
     }
 
