@@ -963,7 +963,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Perform a shallow copy of obj with JS(Object.assign)
       shallow-copy-fn = j-bracket(j-id(OBJECT), j-str("assign"))
       shallow-copy-name = fresh-id(compiler-name("shallow-copy"))
-      shallow-copy-call = j-app(shallow-copy-fn, cl-sing(to-extend))
+      shallow-copy-call = j-app(shallow-copy-fn, [clist: j-obj(cl-empty), to-extend])
       shallow-copy = j-var(shallow-copy-name, shallow-copy-call)
 
       prelude-stmts = cl-append(obj-stmts, cl-sing(shallow-copy))
