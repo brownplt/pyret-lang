@@ -764,11 +764,16 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     });
 
     it("should parse octal escape squences", function() {
-      expect(parse("\\0")).toBe("");
-      expect(parse("\\101")).toBe("A");
-      expect(parse("\\101bc")).toBe("Abc");
-      expect(parse("\\77")).toBe("?");
-      expect(parse("\\88")).toBe("88");
+      expect(parse("a = '\\0'").toString()).toContain(stringAst('\\u0000'));
+      expect(parse("a = '\\101'").toString()).toContain(stringAst('A'));
+      expect(parse("a = '\\101bc'").toString()).toContain(stringAst('Abc'));
+      expect(parse("a = '\\77'").toString()).toContain(stringAst('?'));
+
+      expect(parse("a = '\\88'")).toBe(false);
+
+      function stringAst(str) {
+        return `'STRING "'${str}'"`;
+      }
     });
   });
 
