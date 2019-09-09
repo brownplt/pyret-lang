@@ -217,6 +217,12 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         }
     };
 
+    selectCurrentDirectory = (): void => {
+        this.setState({
+            selected: undefined,
+        });
+    };
+
     render() {
         const editor = this.state.editType !== undefined &&
                     <div style={{
@@ -256,7 +262,8 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                          flexDirection: "row",
                          height: "auto",
                      }}>
-                    <div style={{
+                    <div onClick={this.selectCurrentDirectory}
+                         style={{
                         fontFamily: "monospace",
                         display: "flex",
                         alignItems: "center",
