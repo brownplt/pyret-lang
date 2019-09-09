@@ -790,16 +790,16 @@ var OverlayImage = /* @stopify flat */ function (img1, img2, placeX, placeY) {
 
 OverlayImage.prototype = heir(BaseImage.prototype);
 
-OverlayImage.prototype.getVertices = function () { return this._vertices; };
+OverlayImage.prototype.getVertices = /* @stopify flat */ function () { return this._vertices; };
 
-OverlayImage.prototype.render = function (ctx, x, y) {
+OverlayImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
   ctx.save();
   this.img2.render(ctx, x + this.x2, y + this.y2);
   this.img1.render(ctx, x + this.x1, y + this.y1);
   ctx.restore();
 };
 
-OverlayImage.prototype.equals = function (other) {
+OverlayImage.prototype.equals = /* @stopify flat */ function (other) {
   return (other instanceof OverlayImage &&
     this.width === other.width &&
     this.height === other.height &&
@@ -846,10 +846,10 @@ var RotateImage = /* @stopify flat */ function (angle, img) {
 
 RotateImage.prototype = heir(BaseImage.prototype);
 
-RotateImage.prototype.getVertices = function () { return this._vertices; };
+RotateImage.prototype.getVertices = /* @stopify flat */ function () { return this._vertices; };
 
 // translate the canvas using the calculated values, then draw at the rotated (x,y) offset.
-RotateImage.prototype.render = function (ctx, x, y) {
+RotateImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
   ctx.save();
   ctx.translate(x + this.translateX, y + this.translateY);
   ctx.rotate(this.angle * Math.PI / 180);
@@ -857,7 +857,7 @@ RotateImage.prototype.render = function (ctx, x, y) {
   ctx.restore();
 };
 
-RotateImage.prototype.equals = function (other) {
+RotateImage.prototype.equals = /* @stopify flat */ function (other) {
   return (other instanceof RotateImage &&
     this.width === other.width &&
     this.height === other.height &&
@@ -865,6 +865,94 @@ RotateImage.prototype.equals = function (other) {
     this.translateX === other.translateX &&
     this.translateY === other.translateY &&
     imageEquals(this.img, other.img))
+    || BaseImage.prototype.equals.call(this, other);
+};
+
+var textContainer, textParent;
+//////////////////////////////////////////////////////////////////////
+// TextImage: String Number Color String String String String any/c -> Image
+var TextImage = /* @stopify flat */ function (str, size, color, face, family, style, weight, underline) {
+  BaseImage.call(this);
+  this.str = str;
+  this.size = size;   // 18
+  this.color = color;  // red
+  this.face = face;   // Gill Sans
+  this.family = family; // 'swiss
+  this.style = (style === "slant") ? "oblique" : style;  // Racket's "slant" -> CSS's "oblique"
+  this.weight = (weight === "light") ? "lighter" : weight; // Racket's "light" -> CSS's "lighter"
+  this.underline = underline;
+  // NOTE: we *ignore* font-family, as it causes a number of font bugs due the browser inconsistencies
+  // example: "bold italic 20px 'Times', sans-serif".
+  // Default weight is "normal", face is "Arial"
+  this.font = (this.style + " " + this.weight + " " + this.size + "px " + '"' + this.face + '", ' + this.family);
+
+  // We don't trust ctx.measureText, since (a) it's buggy and (b) it doesn't measure height
+  // based off of the amazing work at http://mudcu.be/journal/2011/01/html5-typographic-metrics/#baselineCanvas
+  // PENDING CANVAS V5 API: http://www.whatwg.org/specs/web-apps/current-work/#textmetrics
+
+  // build a DOM node with the same styling as the canvas, then measure it
+  if (textContainer === undefined) {
+    textContainer = document.createElement("div");
+    textContainer.style.cssText = "position: absolute; top: 0px; left: 0px; visibility: hidden; white-space: pre;";
+    textParent = document.createElement("span");
+    textParent.style.display = "inline";
+    textContainer.appendChild(textParent);
+    document.body.appendChild(textContainer);
+  }
+  textParent.style.font = this.font;                // use the same font settings as the context
+  textParent.textContent = str; // this will blow away any old content
+
+  // getting (more accurate) css equivalent of ctx.measureText()
+  var bounds = textParent.getBoundingClientRect(); // make a single blocking call
+  this.width = bounds.width;
+  this.height = bounds.height;
+  this.alphaBaseline = 0;
+
+  this.ariaText = " the string " + str + ", colored " + colorToSpokenString(color, 'solid') + " of size " + size;
+};
+
+TextImage.prototype = heir(BaseImage.prototype);
+
+TextImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.font = this.font;
+
+  // if 'outline' is enabled, use strokeText. Otherwise use fillText
+  ctx.fillStyle = this.outline ? 'white' : colorString(this.color);
+  ctx.fillText(this.str, x, y);
+  if (this.outline) {
+    ctx.strokeStyle = colorString(this.color);
+    ctx.strokeText(this.str, x, y);
+  }
+  if (this.underline) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + this.size);
+    // we use this.size, as it is more accurate for underlining than this.height
+    ctx.lineTo(x + this.width, y + this.size);
+    ctx.closePath();
+    ctx.strokeStyle = colorString(this.color);
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+TextImage.prototype.getBaseline = /* @stopify flat */ function () {
+  return this.alphaBaseline;
+};
+
+TextImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof TextImage &&
+    this.str === other.str &&
+    this.size === other.size &&
+    this.face === other.face &&
+    this.family === other.family &&
+    this.style === other.style &&
+    this.weight === other.weight &&
+    this.font === other.font &&
+    this.underline === other.underline &&
+    equals(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
@@ -1111,10 +1199,16 @@ return module.exports = {
   overlay: /* @stopify flat */ function (img1, img2) {
     return new OverlayImage(img1, img2, "center", "center");
   },
-  "overlay-align": /* @stopify flat */ function (img1, img2, X, Y) {
+  "overlay-align": /* @stopify flat */ function (X, Y, img1, img2) {
     return new OverlayImage(img1, img2, X, Y);
   },
   rotate: /* @stopify flat */ function (angle, img) {
     return new RotateImage(angle, img);
+  },
+  text: /* @stopify flat */ function (str, size, color) {
+    return new TextImage(str, size, convertColor(color), "normal", "Optimizer", "normal", "normal", false);
+  },
+  "text-font": /* @stopify flat */ function (str, size, color, face, family, style, weight, underline) {
+    return new TextImage(str, size, convertColor(color), face, family, style, weight, underline);
   }
 };
