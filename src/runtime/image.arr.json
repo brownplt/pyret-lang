@@ -18,7 +18,8 @@
       "star": ["arrow", ["Number", "String", "String"], "Image"],
       "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
       "star-sized": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
-
+      "star-polygon": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "regular-polygon": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "overlay": ["arrow", ["Image", "Image"], "Image"],
       "overlay-align": ["arrow", ["String", "String", "Image", "Image"], "Image"],
       "underlay": ["arrow", ["Image", "Image"], "Image"],

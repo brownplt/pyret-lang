@@ -1352,9 +1352,12 @@ return module.exports = {
   },
   "star-sized": /* @stopify flat */ function(points, outer, inner, style, color) {
     return new StarImage(points, outer, inner, style, convertColor(color));
-  /*},
-  polygon:  @stopify flat  function (length, count, step, style, color) {
-    return new PolygonImage(length, count, step, style, color);*/
+  },
+  "star-polygon": /* @stopify flat */ function (length, count, step, style, color) {
+    return new PolygonImage(length, count, step, style, convertColor(color));
+  },
+  "regular-polygon": /* @stopify flat */ function (length, count, style, color) {
+    return new PolygonImage(length, count, 1, style, convertColor(color));
   },
   overlay: /* @stopify flat */ function (img1, img2) {
     return new OverlayImage(img1, img2, "center", "center");
