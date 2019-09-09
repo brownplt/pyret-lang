@@ -289,8 +289,8 @@ fun compile-member(context, member :: A.Member) -> { BindableKind; CList<JStmt> 
     # Assume s-method can only be at the top level (i.e. no nesting)
     # Any nesting is a well-formedness error
     cases(Expr) value:
-      | s-method(_, _, _, _, _, _, _, _, _, _) => to-bind(value)
-      | else => unbindable(value)
+      | s-method(_, _, _, _, _, _, _, _, _, _) => { to-bind(value); field-stmts }
+      | else => { unbindable(field-val); field-stmts }
     end
 
   | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) => 
