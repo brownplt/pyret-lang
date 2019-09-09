@@ -3,21 +3,43 @@ import * as control from './control';
 
 type FSItemProps = {
     onClick: () => void;
-    contents: string;
+    path: string[];
 };
 
 type FSItemState = {};
 
 class FSItem extends React.Component<FSItemProps, FSItemState> {
-    get contents() {
-        return this.props.contents;
-    }
-
     render() {
+        const path = control.bfsSetup.path.join(...this.props.path);
+
+        const stats = control.fs.statSync(path);
+
+        const label = (() => {
+            if (stats.isDirectory()) {
+                return "D";
+            } else if (stats.isFile()) {
+                return "F";
+            } else {
+                return "?";
+            }})();
+
         return (
             <button onClick={this.props.onClick}
                     className="fs-browser-item">
-                {this.props.contents}
+                <div style={{
+                    display: "flex",
+                    flexDirection: "row",
+                }}>
+                    <div style={{
+                        width: "1em",
+                        paddingRight: "1em",
+                    }}>
+                        {label}
+                    </div>
+                    <div>
+                        {this.props.path[this.props.path.length - 1]}
+                    </div>
+                </div>
             </button>
         );
     }
@@ -103,7 +125,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             filePath,
             <FSItem key={filePath}
                     onClick={() => this.expandChild(filePath)}
-                    contents={filePath}/>
+                    path={[...this.props.browsePath, filePath]}/>
         ];
     };
 
@@ -161,11 +183,14 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                      style={{
                          display: "flex",
                          flexDirection: "row",
+                         height: "auto",
                      }}>
-                    <button onClick={this.toggleEditFile}>
+                    <button className="fs-browser-item"
+                            onClick={this.toggleEditFile}>
                         +F
                     </button>
-                    <button onClick={this.toggleEditDirectory}>
+                    <button className="fs-browser-item"
+                            onClick={this.toggleEditDirectory}>
                         +D
                     </button>
                 </div>
