@@ -26,10 +26,12 @@ fun populate-options(dictionary, this-pyret-dir) block:
     empty
   end
 
+  source = dictionary.get("program-source").or-else("")
   add-profiling = dictionary.has-key("profile")
   allow-shadowed = dictionary.has-key("allow-shadow")
   base-dir = dictionary.get("base-dir").or-else(compile-opts.base-dir)
   build-runnable = dictionary.get("build-runnable").or-else("none")
+  lint = dictionary.get("lint").or-else(false)
   # TODO(alex): module dir somehwere
   # module-dir = dictionary.get-value("module-load-dir")
   check-mode = not(dictionary.get("no-check-mode").or-else(false))
@@ -78,6 +80,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     allow-shadowed : allow-shadowed,
     base-dir: base-dir,
     build-runnable: build-runnable,
+    lint: lint,
     builtin-js-dirs: compile-opts.builtin-js-dirs.append(builtin-js-dirs),
     checks : checks,
     check-mode : check-mode,

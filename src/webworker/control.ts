@@ -55,6 +55,18 @@ export const removeRootDirectory = (): void => {
   deleteDir(path.root);
 };
 
+export const lint = (
+  programFileName: string,
+  programText: string): void => {
+  backend.lintProgram(
+    worker,
+    {
+      "program": programFileName,
+      "programSource": programText
+    });
+};
+
+
 export const compile = (
   baseDirectory: string,
   programFileName: string,
@@ -89,11 +101,15 @@ export const setupWorkerMessageHandler = (
   onLog: (l: string) => void,
   onCompileFailure: (e: string[]) => void,
   onRuntimeFailure: (e: string[]) => void,
+  lintFailure: (data: { name: string, errors: string[]}) => void,
+  lintSuccess: (data: { name: string }) => void,
   onCompileSuccess: () => void): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
     onCompileFailure,
     onRuntimeFailure,
+    lintFailure,
+    lintSuccess,
     onCompileSuccess);
 };
 

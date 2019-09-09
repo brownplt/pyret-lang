@@ -1,35 +1,47 @@
 import React from 'react';
 import './App.css';
-import {Interaction} from './Interaction';
-import {SingleCodeMirrorDefinitions} from './SingleCodeMirrorDefinitions';
-import {Menu, EMenu, FSItem} from './Menu';
-import {Footer} from './Footer';
+import { Interaction } from './Interaction';
+import { DefChunks } from './DefChunks';
+import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
+import { Menu } from './Menu';
+import { Footer } from './Footer';
+import { FontSize } from './FontSize';
+import { FSBrowser } from './FSBrowser';
+import { Dropdown, DropdownOption } from './Dropdown';
+import { Header } from './Header';
+import { InteractionError } from './InteractionError';
 import * as control from './control';
-import {UnControlled as CodeMirror} from 'react-codemirror2';
-import 'codemirror/lib/codemirror.css';
-import 'pyret-codemirror-mode/css/pyret.css';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
-
-// pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
-// to be bound to the 'codemirror' import.
-import * as RawCodeMirror from 'codemirror';
-(window as any).CodeMirror = RawCodeMirror;
-require('pyret-codemirror-mode/mode/pyret');
 
 control.installFileSystem();
 control.loadBuiltins();
 
+enum EMenu {
+    FSBrowser,
+    Options,
+}
+
+enum EEditor {
+    Chunks,
+    Text,
+}
+
 type AppProps = {};
 type AppState = {};
 
-function makeResult(result: any): {name: string, value: any}[] {
+function makeResult(result: any): { name: string, value: any }[] {
     return Object.keys(result).sort().map((key) => {
         return {
             name: key,
             value: result[key]
         }
     });
+}
+
+type LintFailure = {
+    name: string,
+    errors: string[]
 }
 
 type EditorProps = {
@@ -46,15 +58,17 @@ type EditorState = {
     currentFileName: string;
     currentFileContents: string;
     typeCheck: boolean;
-    interactions: {name: string, value: any}[];
+    interactions: { name: string, value: any }[];
     interactionErrors: string[];
     interactErrorExists: boolean;
+    lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
     dropdownVisible: boolean;
     fontSize: number;
     menu: EMenu;
+    editorMode: EEditor,
     menuVisible: boolean;
     message: string;
     definitionsHighlights: number[][];
@@ -64,6 +78,19 @@ type EditorState = {
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
+
+        const onLintFailure = (lintFailure : { name: string, errors: string[]}) => {
+            let newFailures = this.state.lintFailures;
+            const name = lintFailure.name;
+            newFailures[name] = lintFailure;
+            this.setState({ lintFailures: newFailures });
+        }
+        const onLintSuccess = (lintSuccess : { name: string}) => {
+            let newFailures = this.state.lintFailures;
+            const name = lintSuccess.name;
+            if(name in newFailures) { delete newFailures[name]; }
+            this.setState({ lintFailures: newFailures });
+        }
 
         control.setupWorkerMessageHandler(
             console.log,
@@ -89,11 +116,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
             (errors: string[]) => {
                 this.setState(
                     {
-                        interactionErrors: [ errors.toString() ],
+                        interactionErrors: [errors.toString()],
                         interactErrorExists: true,
                     }
                 );
             },
+            onLintFailure,
+            onLintSuccess,
             () => {
                 this.setMessage("Run started");
                 control.run(
@@ -126,7 +155,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             }
                         }
                     },
-                this.state.runKind);
+                    this.state.runKind);
             });
 
         this.state = {
@@ -145,12 +174,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }],
             interactionErrors: [],
             interactErrorExists: false,
+            lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             dropdownVisible: false,
             menu: EMenu.Options,
             menuVisible: false,
+            editorMode: EEditor.Text,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
@@ -160,10 +191,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     get isPyretFile() {
         return /\.arr$/.test(this.currentFile);
-    }
-
-    get browsePath() {
-        return control.bfsSetup.path.join(...this.state.browsePath);
     }
 
     get currentFile() {
@@ -180,9 +207,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return control.bfsSetup.path.join(...this.state.currentFileDirectory);
     }
 
-    get browsingRoot() {
-        return control.bfsSetup.path.join(...this.state.browsePath) ===
-            this.state.browseRoot;
+    get stopify() {
+        return this.state.runKind === control.backend.RunKind.Async;
     }
 
     run = () => {
@@ -233,62 +259,34 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     }
 
-    traverseDown = (childDirectory: string) => {
-        const newPath = this.state.browsePath.slice();
-        newPath.push(childDirectory);
-
+    onTraverseDown = (path: string[]) => {
         this.setState({
-            browsePath: newPath,
+            browsePath: path,
         });
     };
 
-    traverseUp = () => {
-        const newPath = this.state.browsePath.slice();
-        newPath.pop();
-
+    onTraverseUp = (path: string[]) => {
         this.setState({
-            browsePath: newPath,
+            browsePath: path,
         });
     };
 
-    expandChild = (child: string) => {
-        const fullChildPath =
-            control.bfsSetup.path.join(this.browsePath, child);
-        const stats = control.fs.statSync(fullChildPath);
-
-        if (stats.isDirectory()) {
-            this.traverseDown(child);
-        } else if (stats.isFile()) {
-            this.setState({
-                interactions: [{
-                    name: "Note",
-                    value: "Press Run to compile and run"
-                }],
-                currentFileDirectory: this.state.browsePath,
-                currentFileName: child,
-                currentFileContents: control.fs.readFileSync(fullChildPath, "utf-8"),
-            });
-        }
+    onExpandChild = (child: string, fullChildPath: string): void => {
+        this.setState({
+            interactions: [{
+                name: "Note",
+                value: "Press Run to compile and run"
+            }],
+            currentFileDirectory: this.state.browsePath,
+            currentFileName: child,
+            currentFileContents: control.fs
+                                        .readFileSync(fullChildPath, "utf-8"),
+        });
     };
 
-    createFSItemPair = (filePath: string) : [string, any] => {
-        return [
-            filePath,
-            <FSItem key={filePath}
-                    onClick={() => this.expandChild(filePath)}
-                    contents={filePath}/>
-        ];
-    };
-
-    compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]) => {
-        if (a[0] < b[0]) {
-            return -1;
-        } else if (a[0] > b[0]) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
+    setEditorMode = (editorMode: EEditor) => {
+        this.setState({ editorMode });
+    }
 
     toggleFSBrowser = () => {
         if (this.state.menu === EMenu.FSBrowser) {
@@ -320,24 +318,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         );
     };
 
-    makeDropdownOption = (text: string, enabled: boolean, onClick: () => void) => {
-        return (
-            <div className={enabled ? "run-option-enabled" : "run-option-disabled"}
-                 onClick={onClick}>
-                <input type="checkBox"
-                       checked={enabled}
-                       name={text}
-                       className="run-option-checkbox"
-                       readOnly={true}>
-                </input>
-                <label htmlFor={text}
-                       className="run-option-label">
-                    {text}
-                </label>
-            </div>
-        );
-    };
-
     toggleDropdownVisibility = (e: any) => {
         this.setState({
             dropdownVisible: !this.state.dropdownVisible
@@ -351,7 +331,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     toggleStopify = () => {
-        if (this.state.runKind === control.backend.RunKind.Async) {
+        if (this.stopify) {
             this.setState({
                 runKind: control.backend.RunKind.Sync
             });
@@ -381,7 +361,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
-    decreaseFontSize = () => {
+    onDecreaseFontSize = () => {
         if (this.state.fontSize > 1) {
             this.setState({
                 fontSize: this.state.fontSize - 1
@@ -389,13 +369,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     };
 
-    increaseFontSize = () => {
+    onIncreaseFontSize = () => {
         this.setState({
             fontSize: this.state.fontSize + 1
         });
     };
 
-    resetFontSize = () => {
+    onResetFontSize = () => {
         this.setState({
             fontSize: 12
         });
@@ -413,16 +393,112 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
-    render() {
-        const definitions = <SingleCodeMirrorDefinitions
-            text={this.state.currentFileContents}
-            onEdit={this.onEdit}
-            highlights={this.state.definitionsHighlights}
-            interactErrorExists={this.state.interactErrorExists}>
+    makeDefinitions() {
+        if (this.state.editorMode === EEditor.Text) {
+            return <SingleCodeMirrorDefinitions
+                text={this.state.currentFileContents}
+                onEdit={this.onEdit}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}>
             </SingleCodeMirrorDefinitions>;
+        }
+        else if (this.state.editorMode === EEditor.Chunks) {
+            return (<DefChunks
+                lintFailures={this.state.lintFailures}
+                name={this.state.currentFileName}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}
+                program={this.state.currentFileContents}
+                onEdit={this.onEdit}></DefChunks>);
+        }
+    }
+
+    render() {
+        const interactionValues =
+            <pre className="interactions-area"
+                 style={{ fontSize: this.state.fontSize }}>
+                {
+                    this.state.interactions.map(
+                        (i) => {
+                            return <Interaction key={i.name}
+                                                name={i.name}
+                                                value={i.value}
+                                                setMessage={this.setMessage}/>
+                        })
+                }
+            </pre>;
+
+        const dropdown = this.state.dropdownVisible && (
+            <Dropdown>
+                <DropdownOption enabled={this.state.autoRun}
+                                onClick={this.toggleAutoRun}>
+                    Auto Run
+                </DropdownOption>
+                <DropdownOption enabled={this.stopify}
+                                onClick={this.toggleStopify}>
+                    Stopify
+                </DropdownOption>
+                <DropdownOption enabled={this.state.typeCheck}
+                                onClick={this.toggleTypeCheck}>
+                    Type Check
+                </DropdownOption>
+            </Dropdown>);
+
+        const fsBrowser =
+            <FSBrowser root={this.state.browseRoot}
+                       onTraverseUp={this.onTraverseUp}
+                       onTraverseDown={this.onTraverseDown}
+                       onExpandChild={this.onExpandChild}
+                       browsePath={this.state.browsePath}
+                       key="FSBrowser">
+            </FSBrowser>;
+
+        const fontSize =
+            <FontSize onIncrease={this.onIncreaseFontSize}
+                      onDecrease={this.onDecreaseFontSize}
+                      onReset={this.onResetFontSize}
+                      size={this.state.fontSize}
+                      key="FontSize">
+            </FontSize>;
+
+        const textEditor =
+            <button className="text-editor"
+                    onClick={() => this.setEditorMode(EEditor.Text)}
+                    key="TextEditor">
+                Text
+            </button>;
+
+        const chunkEditor =
+            <button className="chunk-editor"
+                    onClick={() => this.setEditorMode(EEditor.Chunks)}
+                    key="ChunkEditor">
+                Chunks
+            </button>;
+
+        const menu = this.state.menuVisible && (
+            <Menu tabs={[[fsBrowser],
+                         [textEditor, chunkEditor, fontSize]]}
+                  currentTab={this.state.menu}>
+            </Menu>);
+
+        const rightHandSide =
+            <div className="interactions-area-container">
+                {this.state.interactErrorExists ? (
+                    <SplitterLayout vertical={true}
+                                    percentage={true}>
+                        {interactionValues}
+                        <InteractionError fontSize={this.state.fontSize}>
+                            {this.state.interactionErrors}
+                        </InteractionError>
+                    </SplitterLayout>
+                ) : interactionValues}
+            </div>;
+
+        const definitions = this.makeDefinitions();
+
         return (
             <div className="page-container">
-                <div className="header-container">
+                <Header>
                     <button className="menu"
                             onClick={this.toggleOptionsVisibility}>
                         Options
@@ -431,7 +507,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             onClick={this.toggleFSBrowser}>
                         Files
                     </button>
-                    {this.state.runKind === control.backend.RunKind.Async ? (
+                    {this.stopify ? (
                         <button className="stop-available">
                             Stop
                         </button>
@@ -447,75 +523,19 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         </button>
                         <button className="run-options"
                                 onClick={this.toggleDropdownVisibility}
-                                onBlur={this.removeDropdown}>&#8628;{
-                                    this.state.dropdownVisible ? (
-                                        <div className="run-dropdown"
-                                             onClick={(e) => e.stopPropagation()}>
-                                            {this.makeDropdownOption("Auto Run", this.state.autoRun, this.toggleAutoRun)}
-                                            {this.makeDropdownOption("Stopify", this.state.runKind === control.backend.RunKind.Async, this.toggleStopify)}
-                                            {this.makeDropdownOption("Type Check", this.state.typeCheck, this.toggleTypeCheck)}
-                                        </div>
-                                    ) : (
-                                        null
-                                    )}
+                                onBlur={this.removeDropdown}>&#8628;{dropdown}
                         </button>
                     </div>
-                </div>
+                </Header>
                 <div className="code-container">
-                    {this.state.menuVisible && <Menu
-                     menu={this.state.menu}
-                     browsingRoot={this.browsingRoot}
-                     traverseUp={this.traverseUp}
-                     browsePath={this.browsePath}
-                     createFSItemPair={this.createFSItemPair}
-                     compareFSItemPair={this.compareFSItemPair}
-                     decreaseFontSize={this.decreaseFontSize}
-                     increaseFontSize={this.increaseFontSize}
-                     resetFontSize={this.resetFontSize}
-                     fontSize={this.state.fontSize}
-                    ></Menu>}
+                    {menu}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
                         <div className="edit-area-container"
-                             style={{fontSize: this.state.fontSize}}>
-                                 {definitions}
+                             style={{ fontSize: this.state.fontSize }}>
+                            {definitions}
                         </div>
-                        <div className="interactions-area-container">
-                            {this.state.interactErrorExists ? (
-                            <SplitterLayout vertical={true}>
-                                <pre className="interactions-area"
-                                     style={{fontSize: this.state.fontSize}}>
-                                    {
-                                        this.state.interactions.map(
-                                            (i) => {
-                                                return <Interaction key={i.name}
-                                                                    name={i.name}
-                                                                    value={i.value}
-                                                                    setMessage={this.setMessage}/>
-                                            })
-                                    }
-                                </pre>
-                                <div className="interaction-error">
-                                    <p style={{fontSize: this.state.fontSize}}>
-                                        {this.state.interactionErrors}
-                                    </p>
-                                </div>
-                            </SplitterLayout>
-                            ) : (
-                                <pre className="interactions-area"
-                                     style={{fontSize: this.state.fontSize}}>
-                                    {
-                                        this.state.interactions.map(
-                                            (i) => {
-                                                return <Interaction key={i.name}
-                                                                    name={i.name}
-                                                                    value={i.value}
-                                                                    setMessage={this.setMessage}/>
-                                            })
-                                    }
-                                </pre>
-                            )}
-                        </div>
+                        {rightHandSide}
                     </SplitterLayout>
                 </div>
                 <Footer message={this.state.message}></Footer>

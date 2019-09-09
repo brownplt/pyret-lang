@@ -1,3 +1,8 @@
+
+export interface LintOptions {
+  program: string,
+  programSource: string,
+}
 export interface CompileOptions {
   program: string,
   baseDir: string,
@@ -27,6 +32,8 @@ export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
   compileFailure: (e: string[]) => void,
   runtimeFailure: (e: string[]) => void,
+  lintFailure: (data: { name: string, errors: string[]}) => void,
+  lintSuccess: (data: { name: string }) => void,
   compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
@@ -41,6 +48,10 @@ export const makeBackendMessageHandler = (
         return null;
       } else if (msgType === "echo-log") {
         echoLog(msgObject.contents);
+      } else if (msgType === "lint-failure") {
+        lintFailure(msgObject.data);
+      } else if (msgType === "lint-success") {
+        lintSuccess(msgObject.data);
       } else if (msgType === "compile-failure") {
         compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
@@ -58,6 +69,21 @@ export const makeBackendMessageHandler = (
   };
 
   return backendMessageHandler;
+};
+
+export const lintProgram = (
+  compilerWorker: Worker,
+  options: LintOptions): void => {
+  const message = {
+    _parley: true,
+    options: {
+      program: options.program,
+      "program-source": options.programSource,
+      "lint": true
+    }
+  };
+
+  compilerWorker.postMessage(message);
 };
 
 export const compileProgram = (
