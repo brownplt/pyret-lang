@@ -162,20 +162,12 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                          display: "flex",
                          flexDirection: "row",
                      }}>
-                    <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                    }}
-                         onClick={this.toggleEditFile}>
-                        +f
-                    </div>
-                    <div style={{
-                        display: "fleX",
-                        alignItems: "center",
-                    }}
-                         onClick={this.toggleEditDirectory}>
-                        +d
-                    </div>
+                    <button onClick={this.toggleEditFile}>
+                        +F
+                    </button>
+                    <button onClick={this.toggleEditDirectory}>
+                        +D
+                    </button>
                 </div>
                 {this.state.editType === EditType.CreateFile &&
                  <form onSubmit={this.handleSubmit}>
