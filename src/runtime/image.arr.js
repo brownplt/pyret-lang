@@ -1345,9 +1345,12 @@ return module.exports = {
     return new OverlayImage(this.line((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
   },
   star: /* @stopify flat */ function(side, style, color) {
-    return new StarImage(5, side / 3, side, style, convertColor(color));
+    return new PolygonImage(side, 5, 2, style, convertColor(color));
   },
   "radial-star": /* @stopify flat */ function(points, outer, inner, style, color) {
+    return new StarImage(points, outer, inner, style, convertColor(color));
+  },
+  "star-sized": /* @stopify flat */ function(points, outer, inner, style, color) {
     return new StarImage(points, outer, inner, style, convertColor(color));
   /*},
   polygon:  @stopify flat  function (length, count, step, style, color) {
