@@ -977,7 +977,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         cl-append(stmts, cl-sing(j-expr(field-extend)))
       end
 
-      { j-id(shallow-copy-name); extend-stmts }
+      rebind-stmt = j-expr(rt-method("_rebind", [clist: j-id(shallow-copy-name)]))
+
+      { j-id(shallow-copy-name); cl-snoc(extend-stmts, rebind-stmt) }
 
     | s-for(l, iter, bindings, ann, body, blocky) => 
       compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
