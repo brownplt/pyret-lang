@@ -18,16 +18,12 @@ fun compile(options):
   end
   
   compile-opts = CO.populate-options(options, options.get-value("this-pyret-dir"))
-  if compile-opts.lint <> none:
-    CLI.lint(options.get-value("program"))
-  else:
-    CLI.build-runnable-standalone(
-      options.get-value("program"),
-      compile-opts.require-config,
-      outfile,
-      compile-opts
-      )
-  end
+  CLI.build-runnable-standalone(
+    options.get-value("program"),
+    compile-opts.require-config,
+    outfile,
+    compile-opts
+    )
 end
 
 fun serve(port, pyret-dir):
