@@ -1348,10 +1348,10 @@ return module.exports = {
     return new PolygonImage(side, 5, 2, style, convertColor(color));
   },
   "radial-star": /* @stopify flat */ function(points, outer, inner, style, color) {
-    return new StarImage(points, outer, inner, style, convertColor(color));
+    return new StarImage(points, inner, outer, style, convertColor(color));
   },
   "star-sized": /* @stopify flat */ function(points, outer, inner, style, color) {
-    return new StarImage(points, outer, inner, style, convertColor(color));
+    return new StarImage(points, inner, outer, style, convertColor(color));
   },
   "star-polygon": /* @stopify flat */ function (length, count, step, style, color) {
     return new PolygonImage(length, count, step, style, convertColor(color));
