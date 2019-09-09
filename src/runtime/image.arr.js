@@ -1377,6 +1377,18 @@ return module.exports = {
   "underlay-xy": /* @stopify flat */ function (img1, dx, dy, img2) {
     return new OverlayImage(img2, img1, -dx, -dy);
   },
+  beside: /* @stopify flat */ function (img1, img2) {
+    return new OverlayImage(img1, img2, "beside", "middle");
+  },
+  "beside-align": /* @stopify flat */ function (Y, img1, img2) {
+    return new OverlayImage(img1, img2, "beside", Y);
+  },
+  above: /* @stopify flat */ function (img1, img2) {
+    return new OverlayImage(img1, img2, "middle", "above");
+  },
+  "above-align": /* @stopify flat */ function (X, img1, img2) {
+    return new OverlayImage(img1, img2, X, "above");
+  },
   rotate: /* @stopify flat */ function (angle, img) {
     return new RotateImage(angle, img);
   },
