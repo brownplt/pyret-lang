@@ -61,6 +61,7 @@ enum EditType {
 type FSBrowserState = {
     editType: EditType | undefined,
     editValue: string,
+    selected: string | undefined,
 };
 
 export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
@@ -70,6 +71,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         this.state = {
             editType: undefined,
             editValue: "",
+            selected: "",
         };
     }
 
@@ -116,6 +118,10 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         if (stats.isDirectory()) {
             this.traverseDown(child);
         } else if (stats.isFile()) {
+            this.setState({
+                selected: child,
+            });
+
             this.props.onExpandChild(child, fullChildPath);
         }
     }
@@ -177,6 +183,21 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         });
     };
 
+    deleteSelected = (): void => {
+        if (this.state.selected === undefined) {
+            control.removeDirectory(this.browsePathString);
+
+            this.traverseUp();
+        } else {
+            control.removeFile(
+                control.bfsSetup.path.join(...this.props.browsePath, this.state.selected))
+
+            this.setState({
+                selected: undefined,
+            });
+        }
+    };
+
     render() {
         return (
             <div style={{display: "flex", flexDirection: "column"}}>
@@ -201,14 +222,16 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                         justifyContent: "flex-end",
                     }}>
                         <button className="fs-browser-item"
-                                onClick={this.toggleEditFile}
-                                style={{float: "right"}}>
+                                onClick={this.toggleEditFile}>
                             +F
                         </button>
                         <button className="fs-browser-item"
-                                onClick={this.toggleEditDirectory}
-                                style={{float: "right"}}>
+                                onClick={this.toggleEditDirectory}>
                             +D
+                        </button>
+                        <button className="fs-browser-item"
+                                onClick={this.deleteSelected}>
+                            X
                         </button>
                     </div>
                 </div>

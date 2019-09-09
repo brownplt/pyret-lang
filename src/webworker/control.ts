@@ -31,6 +31,29 @@ export const createDirectory = (dir: string): void => {
   bfsSetup.fs.mkdirSync(dir);
 };
 
+export const removeFile = (path: string): void => {
+  bfsSetup.fs.unlinkSync(path);
+};
+
+// Synchronous deleteDir
+export const removeDirectory = (dir: string): void => {
+  const files = bfsSetup.fs.readdirSync(dir);
+
+  files.forEach((file: string) => {
+    const filePath = bfsSetup.path.join(dir, file);
+
+    const stats = bfsSetup.fs.statSync(filePath);
+
+    if (stats.isDirectory()) {
+      removeDirectory(filePath);
+    } else {
+      bfsSetup.fs.unlinkSync(filePath);
+    }
+  });
+
+  bfsSetup.fs.rmdirSync(dir);
+};
+
 export const deleteDir = (dir: string): void => {
   bfsSetup.fs.readdir(dir, function(err: any, files: any) {
     if (err) {
