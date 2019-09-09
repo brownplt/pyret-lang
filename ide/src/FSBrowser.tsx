@@ -166,6 +166,7 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         }
 
         this.setState({
+            editType: undefined,
             editValue: "",
         });
     };
@@ -196,23 +197,17 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 </div>
                 {this.state.editType === EditType.CreateFile &&
                  <form onSubmit={this.handleSubmit}>
-                     <label>
-                         File:
-                         <input type="text"
-                                value={this.state.editValue}
-                                onChange={this.onChange}>
-                         </input>
-                     </label>
+                     <input type="text"
+                            value={this.state.editValue}
+                            onChange={this.onChange}>
+                     </input>
                  </form>}
                 {this.state.editType === EditType.CreateDirectory &&
                  <form onSubmit={this.handleSubmit}>
-                     <label>
-                         Directory:
-                         <input type="text"
-                                value={this.state.editValue}
-                                onChange={this.onChange}>
-                         </input>
-                     </label>
+                     <input type="text"
+                            value={this.state.editValue}
+                            onChange={this.onChange}>
+                     </input>
                  </form>}
                 {!this.browsingRoot && (
                     <FSItem onClick={this.traverseUp}
