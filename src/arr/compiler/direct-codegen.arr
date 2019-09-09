@@ -583,10 +583,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         # NOTE(alex): Currently cannot do recursive object initialization
         #   Manually assign the shared/with member with j-bracket vs returning a j-field
         fun compile-nonlocal-member(shadow constructed-obj :: JExpr,
-                                    member :: A.Member, member-val :: BindableKind) -> CList<JStmt>: 
+                                    member :: A.Member, 
+                                    member-val :: BindableKind, 
+                                    member-stmts :: CList<JStmt>) -> CList<JStmt>: 
           fun bind(binder-func):
             init-expr-rhs = j-app(binder-func, [clist: constructed-obj])
-            cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs)))
+            j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs))
           end
 
           cases(BindableKind) member-val:
@@ -596,7 +598,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             | to-bind(binder) =>
               # Found a method; bind the method function to the constructed object
               #   by calling the method's binder function and passing in 'self'
-              bind(binder)
+              cl-snoc(member-stmts, bind(binder))
           end
         end
         
@@ -616,8 +618,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             dict
           else:
             # No conflicting variant member
+            compiled-stmts = compile-nonlocal-member(
+              constructed-obj, 
+              member, 
+              member-value, 
+              member-stmts
+            )
             dict.set(member.name, 
-                     { none; compile-nonlocal-member(constructed-obj, member, member-value) })
+                     { none; compiled-stmts})
           end
         end
 
@@ -631,8 +639,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             dict
           else:
             # No conflicting variant member OR with-member
+            compiled-stmts = compile-nonlocal-member(
+              constructed-obj, 
+              member, 
+              member-value, 
+              member-stmts
+            )
             dict.set(member.name, 
-                     { none; compile-nonlocal-member(constructed-obj, member, member-value) })
+                     { none; compiled-stmts})
           end
         end
 
