@@ -186,14 +186,31 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                          flexDirection: "row",
                          height: "auto",
                      }}>
-                    <button className="fs-browser-item"
-                            onClick={this.toggleEditFile}>
-                        +F
-                    </button>
-                    <button className="fs-browser-item"
-                            onClick={this.toggleEditDirectory}>
-                        +D
-                    </button>
+                    <div style={{
+                        fontFamily: "monospace",
+                        display: "flex",
+                        alignItems: "center",
+                        paddingLeft: "1em",
+                    }}>
+                        {this.props.browsePath[this.props.browsePath.length - 1]}
+                    </div>
+                    <div style={{
+                        flexGrow: 1,
+                        display: "flex",
+                        flexDirection: "row",
+                        justifyContent: "flex-end",
+                    }}>
+                        <button className="fs-browser-item"
+                                onClick={this.toggleEditFile}
+                                style={{float: "right"}}>
+                            +F
+                        </button>
+                        <button className="fs-browser-item"
+                                onClick={this.toggleEditDirectory}
+                                style={{float: "right"}}>
+                            +D
+                        </button>
+                    </div>
                 </div>
                 {this.state.editType === EditType.CreateFile &&
                  <form onSubmit={this.handleSubmit}>
