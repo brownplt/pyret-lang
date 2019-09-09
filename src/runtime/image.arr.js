@@ -1316,6 +1316,9 @@ return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
     return new TriangleImage(size, 360 - 60, size, style, convertColor(color));
   },
+  "right-triangle": /* @stopify flat */ function (side1, side2, style, color) {
+    return new TriangleImage(side1, 360 - 90, side2, style, convertColor(color));
+  },
   ellipse: /* @stopify flat */ function (width, height, style, color) {
     return new EllipseImage(width, height, style, convertColor(color));
   },

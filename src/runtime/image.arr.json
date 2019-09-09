@@ -6,6 +6,7 @@
     },
     "values": {
       "triangle": ["arrow", ["Number", "String", "String"], "Image"],
+      "right-triangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "ellipse": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "circle": ["arrow", ["Number", "String", "String"], "Image"],
       "rectangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
