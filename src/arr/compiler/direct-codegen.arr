@@ -845,7 +845,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             binder-func = val
             binder-stmts = compiled-stmts
 
-            init-expr-rhs = j-app(binder-func, [clist: tmp-bind])
+            init-expr-rhs = j-app(binder-func, [clist: j-id(tmp-bind)])
             bind = j-expr(j-bracket-assign(j-id(tmp-bind), j-str(f.name), init-expr-rhs))
 
             # Binder function must be generated first
@@ -887,7 +887,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       
       # NOTE(alex): Currently cannot do recursive object initialization
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
-      { binder-func; method-stmts } = compile-method(l, name, args, body)
+      { binder-func; method-stmts } = compile-method(context, l, name, args, body)
 
       # Assume callers will generate binding code correctly
       { binder-func; method-stmts }
