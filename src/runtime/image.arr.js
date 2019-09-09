@@ -1496,5 +1496,14 @@ return module.exports = {
   },
   "is-image": /* @stopify flat */ function (img) {
     return isImage(img);
+  },
+  "image-width": /* @stopify flat */ function (img) {
+    return img.getWidth();
+  },
+  "image-height": /* @stopify flat */ function (img) {
+    return img.getHeight();
+  },
+  "image-baseline": /* @stopify flat */ function (img) {
+    return img.getBaseline();
   }
 };

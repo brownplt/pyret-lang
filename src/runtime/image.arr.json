@@ -41,7 +41,10 @@
       "scale": ["arrow", ["Number", "Image"], "Image"],
       "scale-xy": ["arrow", ["Number", "Number", "Image"], "Image"],
       "empty-scene": ["arrow", ["Number", "Number"], "Image"],
-      "is-image": ["arrow", ["Image"], "Image"]
+      "is-image": ["arrow", ["Image"], "Image"],
+      "image-width": ["arrow", ["Image"], "Image"],
+      "image-height": ["arrow", ["Image"], "Image"],
+      "image-baseline": ["arrow", ["Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
