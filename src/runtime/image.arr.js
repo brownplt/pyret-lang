@@ -1334,6 +1334,9 @@ return module.exports = {
   line: /* @stopify flat */ function(x, y, color) {
     return new LineImage(x, y, convertColor(color));
   },
+  "add-line": /* @stopify flat */ function(img, x1, y1, x2, y2, color) {
+    return new OverlayImage(this.line((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
+  },
   star: /* @stopify flat */ function(side, style, color) {
     return new StarImage(5, side / 3, side, style, convertColor(color));
   },

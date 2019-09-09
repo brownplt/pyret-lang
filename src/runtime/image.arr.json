@@ -12,6 +12,7 @@
       "square": ["arrow", ["Number", "String", "String"], "Image"],
       "rhombus": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "line": ["arrow", ["Number", "Number", "String"], "Image"],
+      "add-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
       "star": ["arrow", ["Number", "String", "String"], "Image"],
       "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
 
