@@ -35,6 +35,7 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
                         color: "#fff",
                         textAlign: "left",
                         flex: "none",
+                        cursor: "pointer",
                     }}>
                 <div style={{
                     display: "flex",
@@ -264,12 +265,13 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                      }}>
                     <div onClick={this.selectCurrentDirectory}
                          style={{
-                        fontFamily: "monospace",
-                        display: "flex",
-                        alignItems: "center",
-                        paddingLeft: "1em",
-                        paddingRight: "1em",
-                        background: this.state.selected ? "none" : "darkgray",
+                             cursor: "pointer",
+                             fontFamily: "monospace",
+                             display: "flex",
+                             alignItems: "center",
+                             paddingLeft: "1em",
+                             paddingRight: "1em",
+                             background: this.state.selected ? "none" : "darkgray",
                     }}>
                         {this.props.browsePath[this.props.browsePath.length - 1]}
                     </div>
