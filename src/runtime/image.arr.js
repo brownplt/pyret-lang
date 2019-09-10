@@ -636,6 +636,35 @@ var makeCanvas = /* @stopify flat */ function (width, height) {
   canvas.style.height = canvas.height + "px";
   return canvas;
 };
+
+// Images are expected to define a render() method, which is used
+// here to draw to the canvas.
+BaseImage.prototype.toDomNode = function (params) {
+  var that = this;
+  var width = that.getWidth();
+  var height = that.getHeight();
+  var canvas = makeCanvas(width, height);
+  var ctx;
+
+  // KLUDGE: on IE, the canvas rendering functions depend on a
+  // context where the canvas is attached to the DOM tree.
+  // We initialize an afterAttach hook; the client's responsible
+  // for calling this after the dom node is attached to the
+  // document.
+  var onAfterAttach = function (event) {
+    // jQuery(canvas).unbind('afterAttach', onAfterAttach);
+    ctx = this.getContext("2d");
+    that.render(ctx, 0, 0);
+  };
+  jQuery(canvas).bind('afterAttach', onAfterAttach);
+
+  // Canvases lose their drawn content on cloning.  data may help us to preserve it.
+  jQuery(canvas).data('toRender', onAfterAttach);
+  // ARIA: use "image" as default text.
+  canvas.ariaText = this.ariaText || "image";
+  return canvas;
+};
+
 BaseImage.prototype.toWrittenString = /* @stopify flat */ function (cache) { return "<image>"; }
 BaseImage.prototype.toDisplayedString = /* @stopify flat */ function (cache) { return "<image>"; }
 
@@ -1511,5 +1540,14 @@ return module.exports = {
   },
   "is-image-color": /* @stopify flat */ function (c) {
     return isColorOrColorString(c);
+  },
+  "images-equal": /* @stopify flat */ function (img1, img2) {
+    return img1.equals(img2);
+  },
+  "is-side-count": /* @stopify flat */ function (sth) {
+    return isSideCount(sth);
+  },
+  "is-step-count": /* @stopify flat */ function (num) {
+    return isStepCount(num);
   }
 };

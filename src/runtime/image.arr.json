@@ -46,7 +46,10 @@
       "image-height": ["arrow", ["Image"], "Number"],
       "image-baseline": ["arrow", ["Image"], "Number"],
       "name-to-color": ["arrow", ["String"], ["local", "Color"]],
-      "is-image-color": ["arrow", ["Any"], "Boolean"]
+      "is-image-color": ["arrow", ["Any"], "Boolean"],
+      "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
+      "is-side-count": ["arrow", ["Any"], "Boolean"],
+      "is-step-count": ["arrow", ["Number"], "Boolean"]
     },
     "aliases": {
       "Image": { "tag": "name", 
