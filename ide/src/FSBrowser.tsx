@@ -224,6 +224,28 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         });
     };
 
+    uploadFile = (event: any): void => {
+        const currentDirectory = this.props.browsePath;
+        const file = event.target.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = (e: any) => {
+                const data = e.target.result;
+                const name = file.name;
+
+                control.bfsSetup.fs.writeFileSync(
+                    control.bfsSetup.path.join(...currentDirectory, name),
+                    data);
+
+                this.setState(this.state);
+            };
+
+            reader.readAsText(file);
+        }
+    };
+
     render() {
         const editor = this.state.editType !== undefined &&
                     <div style={{
@@ -257,58 +279,77 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
         return (
             <div style={{display: "flex", flexDirection: "column"}}>
-                <div className="fs-browser-item"
-                     style={{
-                         display: "flex",
-                         flexDirection: "row",
-                         height: "auto",
-                     }}>
-                    <div onClick={this.selectCurrentDirectory}
+                <div style={{display: "flex", flexDirection: "column"}}>
+                    <div className="fs-browser-item"
                          style={{
-                             cursor: "pointer",
-                             fontFamily: "monospace",
                              display: "flex",
-                             alignItems: "center",
-                             paddingLeft: "1em",
-                             paddingRight: "1em",
-                             background: this.state.selected ? "none" : "darkgray",
-                    }}>
-                        {this.props.browsePath[this.props.browsePath.length - 1]}
+                             flexDirection: "row",
+                             height: "auto",
+                         }}>
+                        <div onClick={this.selectCurrentDirectory}
+                             style={{
+                                 cursor: "pointer",
+                                 fontFamily: "monospace",
+                                 display: "flex",
+                                 alignItems: "center",
+                                 paddingLeft: "1em",
+                                 paddingRight: "1em",
+                                 background: this.state.selected ? "none" : "darkgray",
+                             }}>
+                            {this.props.browsePath[this.props.browsePath.length - 1]}
+                        </div>
+                        <div style={{
+                            flexGrow: 1,
+                            display: "flex",
+                            flexDirection: "row",
+                            justifyContent: "flex-end",
+                        }}>
+                            <label className="fs-browser-item"
+                                   style={{
+                                       width: "2.3em",
+                                       height: "100%",
+                                       display: "flex",
+                                       justifyContent: "center",
+                                       alignContent: "center",
+                                       alignItems: "center",
+                                   }}>
+                                <input type="file"
+                                       onChange={this.uploadFile}
+                                       style={{
+                                           display: "none",
+                                       }}>
+                                </input>
+                                U
+                            </label>
+                            <button className="fs-browser-item"
+                                    onClick={this.toggleEditFile}>
+                                +F
+                            </button>
+                            <button className="fs-browser-item"
+                                    onClick={this.toggleEditDirectory}>
+                                +D
+                            </button>
+                            <button className="fs-browser-item"
+                                    onClick={this.deleteSelected}>
+                                X
+                            </button>
+                        </div>
                     </div>
-                    <div style={{
-                        flexGrow: 1,
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "flex-end",
-                    }}>
-                        <button className="fs-browser-item"
-                                onClick={this.toggleEditFile}>
-                            +F
-                        </button>
-                        <button className="fs-browser-item"
-                                onClick={this.toggleEditDirectory}>
-                            +D
-                        </button>
-                        <button className="fs-browser-item"
-                                onClick={this.deleteSelected}>
-                            X
-                        </button>
-                    </div>
+                    {editor}
+                    {!this.browsingRoot && (
+                        <FSItem onClick={this.traverseUp}
+                                path={[".."]}
+                                selected={false}>
+                        </FSItem>
+                    )}
+                    {
+                        control.fs
+                               .readdirSync(this.browsePathString)
+                               .map(this.createFSItemPair)
+                               .sort(FSBrowser.compareFSItemPair)
+                               .map((x: [string, FSItem]) => x[1])
+                    }
                 </div>
-                {editor}
-                {!this.browsingRoot && (
-                    <FSItem onClick={this.traverseUp}
-                            path={[".."]}
-                            selected={false}>
-                    </FSItem>
-                )}
-                {
-                    control.fs
-                           .readdirSync(this.browsePathString)
-                           .map(this.createFSItemPair)
-                           .sort(FSBrowser.compareFSItemPair)
-                           .map((x: [string, FSItem]) => x[1])
-                }
             </div>
         );
     }
