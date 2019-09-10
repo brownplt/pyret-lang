@@ -440,6 +440,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 Chunks
             </button>;
 
+        const builtinsLoader =
+            <button onClick={control.loadBuiltins}>
+                Load Builtins
+            </button>
+
         const menu =
             <Menu>
                 <Tab name="📁">
@@ -448,6 +453,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 <Tab name="⚙">
                     {textEditor}
                     {chunkEditor}
+                    {builtinsLoader}
                     {fontSize}
                 </Tab>
             </Menu>;
