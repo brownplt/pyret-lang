@@ -205,11 +205,9 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     deleteSelected = (): void => {
         if (this.state.selected === undefined) {
-            if (this.browsePathString !== this.props.root) {
-                control.removeDirectory(this.browsePathString);
+            control.removeDirectory(this.browsePathString);
 
-                this.traverseUp();
-            }
+            this.traverseUp();
         } else {
             control.removeFile(
                 control.bfsSetup.path.join(...this.props.browsePath, this.state.selected))
@@ -334,10 +332,11 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                                     onClick={this.toggleEditDirectory}>
                                 +&#x1f4c2;
                             </button>
-                            <button className="fs-browser-item"
-                                    onClick={this.deleteSelected}>
-                                &#10060;
-                            </button>
+                            {this.browsePathString !== this.props.root &&
+                             <button className="fs-browser-item"
+                                     onClick={this.deleteSelected}>
+                            &#10060;
+                             </button>}
                         </div>
                     </div>
                     {editor}
