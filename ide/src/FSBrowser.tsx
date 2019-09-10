@@ -17,9 +17,9 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 
         const label = (() => {
             if (stats.isDirectory()) {
-                return "D";
+                return <div>&#x1f4c2;</div>;
             } else if (stats.isFile()) {
-                return "F";
+                return <div>&#128441;</div>;
             } else {
                 return "?";
             }})();
@@ -257,7 +257,11 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                             paddingLeft: "1em",
                             paddingRight: "1em",
                         }}>
-                           {this.state.editType === EditType.CreateFile ? "F" : "D"}
+                            {this.state.editType === EditType.CreateFile ? (
+                                <div>&#128441; Name</div>
+                            ) : (
+                                <div>&#x1f4c2; Name</div>
+                            )}
                         </pre>
                         <form onSubmit={this.handleSubmit}
                               style={{
@@ -318,20 +322,19 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                                        style={{
                                            display: "none",
                                        }}>
-                                </input>
-                                U
+                                </input>&#11193;
                             </label>
                             <button className="fs-browser-item"
                                     onClick={this.toggleEditFile}>
-                                +F
+                                +&#128441;
                             </button>
                             <button className="fs-browser-item"
                                     onClick={this.toggleEditDirectory}>
-                                +D
+                                +&#x1f4c2;
                             </button>
                             <button className="fs-browser-item"
                                     onClick={this.deleteSelected}>
-                                X
+                                &#10060;
                             </button>
                         </div>
                     </div>
