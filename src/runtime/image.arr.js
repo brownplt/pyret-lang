@@ -1505,5 +1505,11 @@ return module.exports = {
   },
   "image-baseline": /* @stopify flat */ function (img) {
     return img.getBaseline();
+  },
+  "name-to-color": /* @stopify flat */ function (name) {
+    return colorDb.get(String(name)) || false;
+  },
+  "is-image-color": /* @stopify flat */ function (c) {
+    return isColorOrColorString(c);
   }
 };
