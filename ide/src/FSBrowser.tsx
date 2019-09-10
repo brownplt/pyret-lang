@@ -205,9 +205,11 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     deleteSelected = (): void => {
         if (this.state.selected === undefined) {
-            control.removeDirectory(this.browsePathString);
+            if (this.browsePathString !== this.props.root) {
+                control.removeDirectory(this.browsePathString);
 
-            this.traverseUp();
+                this.traverseUp();
+            }
         } else {
             control.removeFile(
                 control.bfsSetup.path.join(...this.props.browsePath, this.state.selected))
