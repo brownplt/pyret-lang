@@ -20,6 +20,8 @@ type ConstraintSolution = TCS.ConstraintSolution
 type Loc = A.Loc
 type Expr = A.Expr
 type Name = A.Name
+type Bind = A.Bind
+type Ann = A.Ann
 
 flat-prim-app = A.prim-app-info-c(false)
 
@@ -1349,7 +1351,18 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
               fold-result(value-type, context)
             end)
       end
-    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
+    | s-method-field(
+        l :: Loc,
+        name :: String,
+        params :: List<Name>,
+        args :: List<Bind>, # Value parameters
+        ann :: Ann, # return type
+        doc :: String,
+        body :: Expr,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>,
+        blocky :: Boolean
+      ) =>
       cases(List<A.Bind>) args:
         | empty =>
           fold-errors([list: C.method-missing-self(member)])
