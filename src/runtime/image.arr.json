@@ -49,7 +49,10 @@
       "is-image-color": ["arrow", ["Any"], "Boolean"],
       "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
       "is-side-count": ["arrow", ["Any"], "Boolean"],
-      "is-step-count": ["arrow", ["Number"], "Boolean"]
+      "is-step-count": ["arrow", ["Number"], "Boolean"],
+      "is-mode": ["arrow", ["Any"], "Boolean"],
+      "is-x-place": ["arrow", ["String"], "Boolean"],
+      "is-y-place": ["arrow", ["Any"], "Boolean"]
     },
     "aliases": {
       "Image": { "tag": "name", 

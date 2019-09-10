@@ -723,6 +723,32 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   return true;
 };
 
+var isMode = /* @stopify flat */ function (x) {
+  return ((typeof(x) === 'string' || x instanceof String) &&
+    (x.toString().toLowerCase() == "solid" ||
+      x.toString().toLowerCase() == "outline")) ||
+    ((jsnums.isReal(x)) &&
+      (jsnums.greaterThanOrEqual(x, 0, runtime.NumberErrbacks) &&
+        jsnums.lessThanOrEqual(x, 1, runtime.NumberErrbacks)));
+};
+
+var isPlaceX = /* @stopify flat */ function (x) {
+  return ((typeof(x) === 'string' || x instanceof String) &&
+    (x.toString().toLowerCase() === "left" ||
+      x.toString().toLowerCase() === "right" ||
+      x.toString().toLowerCase() === "center" ||
+      x.toString().toLowerCase() === "middle"));
+};
+
+var isPlaceY = /* @stopify flat */ function (x) {
+  return ((typeof(x) === 'string' || x instanceof String) &&
+    (x.toString().toLowerCase() === "top" ||
+      x.toString().toLowerCase() === "bottom" ||
+      x.toString().toLowerCase() === "baseline" ||
+      x.toString().toLowerCase() === "center" ||
+      x.toString().toLowerCase() === "middle"));
+};
+
 // isScene: any -> boolean
 // Produces true when x is a scene.
 var isScene = /* @stopify flat */ function (x) {
@@ -1549,5 +1575,14 @@ return module.exports = {
   },
   "is-step-count": /* @stopify flat */ function (num) {
     return isStepCount(num);
+  },
+  "is-mode": /* @stopify flat */ function (x) {
+    return isMode(x);
+  },
+  "is-x-place": /* @stopify flat */ function (x) {
+    return isPlaceX(x);
+  },
+  "is-y-place": /* @stopify flat */ function (x) {
+    return isPlaceY(x);
   }
 };
