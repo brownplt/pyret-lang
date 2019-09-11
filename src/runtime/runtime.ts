@@ -289,8 +289,18 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       continue;
 
     } else if (isDataVariant(v1) && isDataVariant(v2)) {
-      // TODO(alex): Check for _equal method
       if(v1.$brand && v1.$brand === v2.$brand) {
+        if ("_equals" in v1) {
+          // TODO(alex): Recursive callback
+          var ans = v1["_equals"](v2, undefined);
+
+          if (!isEqual(ans)) {
+            return ans;
+          } else {
+            continue;
+          }
+        }
+
         var fields1 = v1.$brand.names;
         var fields2 = v2.$brand.names;
 
@@ -319,12 +329,13 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
 
       // Check for matching keys and push field to worklist
       for (var i = 0; i < keys1.length; i++) {
-        if (!keys2.includes(keys1[i])) {
+        let key2Index = keys2.indexOf(keys1[i]);
+        if (key2Index === -1) {
           // Key in v1 not found in v2
           return NotEqual(`Raw Object Missing Field '${keys1[i]}'`, v1, v2);
         } else {
           // Push common field to worklist
-          worklist.push([v1[keys1[i]], v2[keys2[i]]]);
+          worklist.push([v1[keys1[i]], v2[keys2[key2Index]]]);
         }
       }
 
