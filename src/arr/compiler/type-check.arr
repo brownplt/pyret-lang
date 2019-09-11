@@ -1205,6 +1205,8 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
           fold-result(typ, context)
       end
     | s-method-field(m-l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
+      # TODO(alex): TC limitations means cannot implement _equality() as a with-member
+      #   See tests-new/simple-output/custom-equal-always.arr for details
       new-type = add-self-type(typ)
       check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, name, params, _, _, doc, _, _check-loc, _check, b), context)
         .fold-bind(lam(_, out-type, shadow context):
