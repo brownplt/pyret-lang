@@ -87,8 +87,20 @@ end
 fun wrap-visit-check(self, target) block:
   cur-in-check = in-check-block
   in-check-block := true
+  cur-allow = allow-s-method
+  in-check-block := false 
+
   ret = self.option(target)
   in-check-block := cur-in-check
+  allow-s-method := cur-allow
+  ret
+end
+
+fun wrap-visit-allow-s-method(self, target, allow) block:
+  cur-allow = allow-s-method
+  allow-s-method := allow 
+  ret = target.visit(self)
+  allow-s-method := cur-allow
   ret
 end
 
@@ -310,7 +322,7 @@ fun reachable-ops(self, l, op-l, op, ast):
         add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
       end
       true
-    | else => ast.visit(self)
+    | else => wrap-visit-allow-s-method(self, ast, false)
   end
 end
 
@@ -386,7 +398,7 @@ fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
   when not(in-check-block):
     reject-standalone-exprs(stmts, true)
   end
-  lists.all(_.visit(visitor), stmts)
+  lists.all(wrap-visit-allow-s-method(visitor, _, false), stmts)
 end
 
 fun wf-examples-body(visitor, body):
@@ -491,7 +503,8 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    ans = lists.all(_.visit(self), binds) and body.visit(self)
+    ans = lists.all(wrap-visit-allow-s-method(self, _, false), binds) and 
+      wrap-visit-allow-s-method(self, body, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -508,7 +521,8 @@ well-formed-visitor = A.default-iter-visitor.{
         wf-error([list: ED.text("Recursive bindings must be names and cannot be tuple bindings ")], l2)
         nothing
     end
-    ans = bind.visit(self) and expr.visit(self)
+    ans = bind.visit(self) and 
+      wrap-visit-allow-s-method(self, expr, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -518,7 +532,8 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    ans = lists.all(_.visit(self), binds) and body.visit(self)
+    ans = lists.all(wrap-visit-allow-s-method(self, _, false), binds) and 
+      wrap-visit-allow-s-method(self, body, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -536,7 +551,8 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.underscore-as-pattern(pat-loc))
     end
     ensure-unique-ids(args.map(_.bind))
-    ans = lists.all(_.visit(self), args) and body.visit(self)
+    ans = lists.all(_.visit(self), args) and 
+      wrap-visit-allow-s-method(self, body, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -546,7 +562,7 @@ well-formed-visitor = A.default-iter-visitor.{
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
     end
-    ans = body.visit(self)
+    ans = wrap-visit-allow-s-method(self, body, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -556,7 +572,8 @@ well-formed-visitor = A.default-iter-visitor.{
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
-        bind.visit(self) and val.visit(self)
+        wrap-visit-allow-s-method(self, bind, false) 
+          and wrap-visit-allow-s-method(self, val, false)
       | s-tuple-bind(l2, _, _) =>
         wf-error([list: ED.text("Variable bindings must be names and cannot be tuple bindings ")], l2)
         true
@@ -568,7 +585,8 @@ well-formed-visitor = A.default-iter-visitor.{
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-rec(l.at-start() + bind.l))
         end
-        bind.visit(self) and val.visit(self)
+        wrap-visit-allow-s-method(self, bind, false) 
+          and wrap-visit-allow-s-method(self, val, false)
       | s-tuple-bind(l2, _, _) =>
         wf-error([list: ED.text("Recursive bindings must be names and cannot be tuple bindings ")], l2)
         true
@@ -580,7 +598,8 @@ well-formed-visitor = A.default-iter-visitor.{
         when A.is-s-underscore(bind.id):
           add-error(C.pointless-var(l.at-start() + bind.l))
         end
-        bind.visit(self) and val.visit(self)
+        wrap-visit-allow-s-method(self, bind, false) and 
+          wrap-visit-allow-s-method(self, val, false)
       | s-tuple-bind(l2, _, _) =>
         wf-error([list: ED.text("Variable bindings must be names and cannot be tuple bindings ")], l2)
         true
@@ -598,7 +617,7 @@ well-formed-visitor = A.default-iter-visitor.{
   end,
   method s-user-block(self, l :: Loc, body :: A.Expr) block:
     parent-block-loc := l
-    body.visit(self)
+    wrap-visit-allow-s-method(self, body, false)
   end,
   method s-tuple-bind(self, l, fields, as-name) block:
     true
@@ -610,7 +629,8 @@ well-formed-visitor = A.default-iter-visitor.{
     when shadows and A.is-s-underscore(name):
       add-error(C.pointless-shadow(l))
     end
-    name.visit(self) and ann.visit(self)
+    wrap-visit-allow-s-method(self, name, false) 
+      and ann.visit(self)
   end,
   method s-check-test(self, l, op, refinement, left, right, cause) block:
     when not(in-check-block):
@@ -624,7 +644,8 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.unwelcome-test-refinement(refinement.value, op))
       end
     end
-    left.visit(self) and self.option(right) and self.option(cause)
+    wrap-visit-allow-s-method(self, left, false) and 
+      self.option(right) and self.option(cause)
   end,
   method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
     old-pbl = parent-block-loc
@@ -646,7 +667,9 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    ans = lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    ans = lists.all(_.visit(self), args) and 
+      ann.visit(self) and 
+      wrap-visit-allow-s-method(self, body, false)
     cases(Option) _check-loc:
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
@@ -660,12 +683,14 @@ well-formed-visitor = A.default-iter-visitor.{
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
+    # Leave allow-s-method unmodified
     value.visit(self)
   end,
   method s-mutable-field(self, l, name, ann, value) block:
     when reserved-names.has-key(name):
       reserved-name(l, name)
     end
+    # Leave allow-s-method unmodified
     ann.visit(self) and value.visit(self)
   end,
   method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
@@ -688,7 +713,9 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    ans = lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    ans = lists.all(_.visit(self), args) and 
+      ann.visit(self) and 
+      wrap-visit-allow-s-method(self, body, false)
     cases(Option) _check-loc:
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
@@ -713,7 +740,8 @@ well-formed-visitor = A.default-iter-visitor.{
       wf-blocky-blocks(l, [list: body])
     end
     ans = lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+    and lists.all(_.visit(self), args) and ann.visit(self) and 
+     wrap-visit-allow-s-method(self, body, false)
     cases(Option) _check-loc:
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
@@ -737,7 +765,8 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     ensure-unique-ids(args)
     ans = lists.all(_.visit(self), params)
-      and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self)
+      and lists.all(_.visit(self), args) and ann.visit(self) and 
+      wrap-visit-allow-s-method(self, body, false)
     cases(Option) _check-loc:
       | none => nothing
       | some(cl) => parent-block-loc := cl.upto-end(l)
@@ -750,18 +779,18 @@ well-formed-visitor = A.default-iter-visitor.{
   method s-obj(self, l, fields) block:
     ensure-unique-fields(fields.reverse())
     check-underscore-name(fields, "a field name")
-    lists.all(_.visit(self), fields)
+    lists.all(wrap-visit-allow-s-method(self, _, true), fields)
   end,
   method s-extend(self, l :: Loc, supe :: A.Expr, fields :: List<A.Member>) block:
     ensure-unique-fields(fields.reverse())
     check-underscore-name(fields, "a field name")
-    lists.all(_.visit(self), fields)
+    lists.all(wrap-visit-allow-s-method(self, _, true), fields)
   end,
   method s-dot(self, l :: Loc, obj :: A.Expr, field :: String) block:
     when field == "_":
       add-error(C.underscore-as(l, "a field name"))
     end
-    obj.visit(self)
+    wrap-visit-allow-s-method(self, obj, false)
   end,
   method s-tuple-get(self, l, tup, index, index-loc):
     if not(num-is-integer(index)) or (index < 0) or (index > 1000) block:
@@ -790,7 +819,8 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: block])
     end
-    ans = test.visit(self) and block.visit(self)
+    ans = wrap-visit-allow-s-method(self, test, false) and 
+      wrap-visit-allow-s-method(self, block, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -801,7 +831,7 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    lists.all(_.visit(self), branches)
+    lists.all(wrap-visit-allow-s-method(self, _, false), branches)
   end,
   method s-if-else(self, l, branches, _else, blocky) block:
     old-pbl = parent-block-loc
@@ -809,7 +839,8 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
-    ans = lists.all(_.visit(self), branches) and _else.visit(self)
+    ans = lists.all(wrap-visit-allow-s-method(self, _, false), branches) and 
+      wrap-visit-allow-s-method(self, _else, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -819,7 +850,7 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    ans = lists.all(_.visit(self), branches)
+    ans = lists.all(wrap-visit-allow-s-method(self, _, false), branches)
     parent-block-loc := old-pbl
     ans
   end,
@@ -829,7 +860,8 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
-    ans = lists.all(_.visit(self), branches) and _else.visit(self)
+    ans = lists.all(wrap-visit-allow-s-method(self, _, false), branches) and 
+      wrap-visit-allow-s-method(self, _else, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -840,7 +872,9 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    ans = typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
+    ans = typ.visit(self) and 
+      wrap-visit-allow-s-method(self, val, false) and 
+      lists.all(wrap-visit-allow-s-method(self, _, false), branches)
     parent-block-loc := old-pbl
     ans
   end,
@@ -851,7 +885,10 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, link(_else, branches.map(_.body)))
     end
-    ans = typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
+    ans = typ.visit(self) and 
+      wrap-visit-allow-s-method(self, val, false) and 
+      lists.all(wrap-visit-allow-s-method(self, _, false), branches) and 
+      wrap-visit-allow-s-method(self, _else, false)
     parent-block-loc := old-pbl
     ans
   end,
@@ -859,7 +896,10 @@ well-formed-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    wrap-visit-allow-s-method(self, iterator, false) and 
+      lists.all(wrap-visit-allow-s-method(self, _, false), bindings) and 
+      ann.visit(self) and 
+      wrap-visit-allow-s-method(self, body, false)
   end,
   method s-frac(self, l, num, den) block:
     when den == 0:
@@ -909,12 +949,14 @@ well-formed-visitor = A.default-iter-visitor.{
           | none => fields-dict.set-now(f.name, f.l)
           | some(l2) => wf-error2("Duplicate option in reactor: " + f.name, f.l, l2)
         end
-        f.visit(self)
+        # TODO(alex): reactor member interaction
+        wrap-visit-allow-s-method(self, f, false)
       end
       true
     end
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
+    # TODO(alex): Allow methods in tables?
     wf-table-headers(l, header)
     if is-empty(header) block:
       true
@@ -931,21 +973,23 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.table-row-wrong-size(header-loc, header, _row))
         end
         for lists.all(elem from _row.elems):
-          elem.visit(self)
+          wrap-visit-allow-s-method(self, elem, false)
         end
       end
     end
   end,
   method s-table-extend(self, l, column-binds, extensions) block:
+    # TODO(alex): Allow methods in tables?
     bound-names = S.list-to-tree-set(map(lam(b :: A.Bind): b.id.toname() end, column-binds.binds))
     for L.all(extension from extensions):
       cases(A.TableExtendField) extension block:
-        | s-table-extend-field(_, _, val, ann) => val.visit(self) and ann.visit(self)
+        | s-table-extend-field(_, _, val, ann) => 
+          wrap-visit-allow-s-method(self, val, false) and ann.visit(self)
         | s-table-extend-reducer(_, _, reducer, col, ann) =>
           when (not(bound-names.member(col.toname()))):
             add-error(C.table-reducer-bad-column(extension, column-binds.l))
           end
-          reducer.visit(self) and ann.visit(self)
+          wrap-visit-allow-s-method(self, reducer, false) and ann.visit(self)
       end
     end
   end,
@@ -985,7 +1029,8 @@ well-formed-visitor = A.default-iter-visitor.{
       when num-srcs <> 1:
         add-error(C.load-table-bad-number-srcs(this-expr, num-srcs))
       end
-      (num-srcs == 1) and not(dup-found) and L.all(_.visit(self), spec)
+      (num-srcs == 1) and not(dup-found) and 
+        L.all(wrap-visit-allow-s-method(self, _, false), spec)
     end
   end,
   method a-name(self, l, id) block:
@@ -1000,9 +1045,10 @@ top-level-visitor = A.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, provides, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
-      | else => body.visit(self)
+      | else => wrap-visit-allow-s-method(self, body, false)
     end
-    ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
+    ok-body and (wrap-visit-allow-s-method(self, _provide, false)) and 
+      _provide-types.visit(self) and (lists.all(_.visit(self), imports))
   end,
   method s-type(self, l, name, params, ann):
     ann.visit(well-formed-visitor)
@@ -1014,7 +1060,8 @@ top-level-visitor = A.default-iter-visitor.{
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    lists.all(_.visit(self), binds) and body.visit(well-formed-visitor)
+    lists.all(_.visit(self), binds) and 
+      wrap-visit-allow-s-method(well-formed-visitor, body, false)
   end,
   method s-type-bind(self, l, name, params, ann):
     ann.visit(well-formed-visitor)
@@ -1037,12 +1084,12 @@ top-level-visitor = A.default-iter-visitor.{
     end
     check-underscore-name(with-members, "a field name")
     lists.each(_.visit(well-formed-visitor), binds)
-    lists.each(_.visit(well-formed-visitor), with-members)
+    lists.each(wrap-visit-allow-s-method(well-formed-visitor, _, true), with-members)
     true
   end,
   method s-singleton-variant(self, l, name, with-members) block:
     ensure-unique-ids(fields-to-binds(with-members))
-    lists.each(_.visit(well-formed-visitor), with-members)
+    lists.each(wrap-visit-allow-s-method(well-formed-visitor, _, true), with-members)
     true
   end,
   method s-data(self, l, name, params, mixins, variants, shares, _check-loc, _check) block:
@@ -1058,9 +1105,9 @@ top-level-visitor = A.default-iter-visitor.{
     the-cur-shared = cur-shared
     cur-shared := fields-to-binds(shares)
     lists.each(_.visit(well-formed-visitor), params)
-    lists.each(_.visit(well-formed-visitor), mixins)
+    lists.each(wrap-visit-allow-s-method(well-formed-visitor, _, false), mixins)
     lists.each(_.visit(self), variants)
-    lists.each(_.visit(well-formed-visitor), shares)
+    lists.each(wrap-visit-allow-s-method(well-formed-visitor, _, true), shares)
     cur-shared := the-cur-shared
     cases(Option) _check-loc:
       | none => nothing
@@ -1086,7 +1133,7 @@ top-level-visitor = A.default-iter-visitor.{
     lists.each(_.visit(well-formed-visitor), params)
     lists.each(_.visit(well-formed-visitor), mixins)
     lists.each(_.visit(well-formed-visitor), variants)
-    lists.each(_.visit(well-formed-visitor), shared)
+    lists.each(wrap-visit-allow-s-method(well-formed-visitor, _, true), shared)
     cur-shared := the-cur-shared
     cases(Option) _check-loc:
       | none => nothing
@@ -1243,7 +1290,8 @@ top-level-visitor = A.default-iter-visitor.{
         and (_fun.obj.id.toname() == "builtins") and (_fun.field == "trace-value")):
       # this is effectively still a top-level expression, so don't penalize it
       # for being inside a desugaring-introduced function call
-      _fun.visit(self) and lists.all(_.visit(self), args)
+      wrap-visit-allow-s-method(self, _fun, false) and 
+        lists.all(wrap-visit-allow-s-method(self, _, false), args)
     else:
       well-formed-visitor.s-app(l, _fun, args)
     end
