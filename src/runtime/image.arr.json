@@ -59,7 +59,8 @@
       "is-step-count": ["arrow", ["Number"], "Boolean"],
       "is-mode": ["arrow", ["Any"], "Boolean"],
       "is-x-place": ["arrow", ["String"], "Boolean"],
-      "is-y-place": ["arrow", ["Any"], "Boolean"]
+      "is-y-place": ["arrow", ["Any"], "Boolean"],
+      "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]]
     },
     "aliases": {
       "Image": { "tag": "name", 
