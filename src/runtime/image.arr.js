@@ -1291,6 +1291,114 @@ var TriangleSSS = /* @stopify flat */ function (sideA, sideB, sideC, style, colo
   return new TriangleImage(sideC, angleA, sideB, style, color);
 };
 
+var TriangleASS = /* @stopify flat */ function (angleA, sideB, sideC, style, color) {
+  if (less(180, angleA)) {
+    throw new Error("The given angle, side and side will not form a triangle: "
+      + angleA + ", " + sideB + ", " + sideC);
+  }
+  
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
+// return c^2 = a^2 + b^2 - 2ab cos(C)
+function cosRel(sideA, sideB, angleC) {
+  return (sideA * sideA) + (sideB * sideB) - (2 * sideA * sideB * Math.cos(angleC * Math.PI / 180));
+}
+
+var TriangleSAS = /* @stopify flat */ function (sideA, angleB, sideC, style, color) {
+  var sideB2 = cosRel(sideA, sideC, angleB);
+  var sideB = Math.sqrt(sideB2);
+
+  if (sideB2 <= 0) {
+    throw new Error("The given side, angle and side will not form a triangle: "
+      + sideA + ", " + angleB + ", " + sideC);
+  } else {
+    if (less(sideA + sideC, sideB) ||
+      less(sideB + sideC, sideA) ||
+      less(sideA + sideB, sideC)) {
+      throw new Error("The given side, angle and side will not form a triangle: "
+        + sideA + ", " + angleB + ", " + sideC);
+    } else {
+      if (less(sideA + sideC, sideB) ||
+        less(sideB + sideC, sideA) ||
+        less(sideA + sideB, sideC)) {
+        throw new Error("The given side, angle and side will not form a triangle: "
+          + sideA + ", " + angleB + ", " + sideC);
+      }
+    }
+  }
+
+  var angleA = Math.acos(excess(sideB, sideC, sideA) / (2 * sideB * sideC))
+    * (180 / Math.PI);
+
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
+var TriangleSSA = /* @stopify flat */ function (sideA, sideB, angleC, style, color) {
+  if (less(180, angleC)) {
+    throw new Error("The given side, side and angle will not form a triangle: "
+      + sideA + ", " + sideB + ", " + angleC);
+  }
+  var sideC2 = cosRel(sideA, sideB, angleC);
+  var sideC = Math.sqrt(sideC2);
+
+  if (sideC2 <= 0) {
+    throw new Error("The given side, side and angle will not form a triangle: "
+      + sideA + ", " + sideB + ", " + angleC);
+  } else {
+    if (less(sideA + sideB, sideC) ||
+      less(sideC + sideB, sideA) ||
+      less(sideA + sideC, sideB)) {
+      throw new Error("The given side, side and angle will not form a triangle: "
+        + sideA + ", " + sideB + ", " + angleC);
+    }
+  }
+
+  var angleA = Math.acos(excess(sideB, sideC, sideA) / (2 * sideB * sideC))
+    * (180 / Math.PI);
+
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
+var TriangleAAS = /* @stopify flat */ function (angleA, angleB, sideC, style, color) {
+  var angleC = (180 - angleA - angleB);
+  if (less(angleC, 0)) {
+    throw new Error("The given angle, angle and side will not form a triangle: "
+      + angleA + ", " + angleB + ", " + sideC);
+  }
+  var hypotenuse = sideC / (Math.sin(angleC * Math.PI / 180))
+  var sideB = hypotenuse * Math.sin(angleB * Math.PI / 180);
+
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
+var TriangleASA = /* @stopify flat */ function (angleA, sideB, angleC, style, color) {
+  var angleB = 180 - angleA - angleC;
+  if (less(angleB, 0)) {
+    throw new Error("The given angle, side and angle will not form a triangle: "
+      + angleA + ", " + sideB + ", " + angleC);
+  }
+  var base = (sideB * Math.sin(angleA * Math.PI / 180))
+    / (Math.sin(angleB * Math.PI / 180));
+  var sideC = (sideB * Math.sin(angleC * Math.PI / 180))
+    / (Math.sin(angleB * Math.PI / 180));
+
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
+var TriangleSAA = /* @stopify flat */ function (sideA, angleB, angleC, style, color) {
+  var angleA = (180 - angleC - angleB);
+  if (less(angleA, 0)) {
+    throw new Error("The given side, angle and angle will not form a triangle: "
+      + sideA + ", " + angleB + ", " + angleC);
+  }
+  var hypotenuse = sideA / (Math.sin(angleA * Math.PI / 180));
+  var sideC = hypotenuse * Math.sin(angleC * Math.PI / 180);
+  var sideB = hypotenuse * Math.sin(angleB * Math.PI / 180);
+
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
 //////////////////////////////////////////////////////////////////////
 //Ellipse : Number Number Mode Color -> Image
 var EllipseImage = /* @stopify flat */ function (width, height, style, color) {
@@ -1480,6 +1588,24 @@ return module.exports = {
   },
   "triangle-sss": /* @stopify flat */ function (sideA, sideB, sideC, style, color) {
     return TriangleSSS(sideA, sideB, sideC, style, convertColor(color));
+  },
+  "triangle-ass": /* @stopify flat */ function (angleA, sideB, sideC, style, color) {
+    return TriangleASS(angleA, sideB, sideC, style, convertColor(color));
+  },
+  "triangle-sas": /* @stopify flat */ function (sideA, angleB, sideC, style, color) {
+    return TriangleSAS(sideA, angleB, sideC, style, convertColor(color));
+  },
+  "triangle-ssa": /* @stopify flat */ function (sideA, sideB, angleC, style, color) {
+    return TriangleSSA(sideA, sideB, angleC, style, convertColor(color));
+  },
+  "triangle-aas": /* @stopify flat */ function (angleA, angleB, sideC, style, color) {
+    return TriangleAAS(angleA, angleB, sideC, style, convertColor(color));
+  },
+  "triangle-asa": /* @stopify flat */ function (angleA, sideB, angleC, style, color) {
+    return TriangleASA(angleA, sideB, angleC, style, convertColor(color));
+  },
+  "triangle-saa": /* @stopify flat */ function (sideA, angleB, angleC, style, color) {
+    return TriangleSAA(sideA, angleB, angleC, style, convertColor(color));
   },
   ellipse: /* @stopify flat */ function (width, height, style, color) {
     return new EllipseImage(width, height, style, convertColor(color));
