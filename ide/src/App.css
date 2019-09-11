@@ -139,8 +139,7 @@ button::-moz-focus-inner {
 
 .interaction-error {
     background: rgb(255, 202, 202);
-    min-height: 30%;
-    max-height: 50%;
+    height: 100%;
 }
 
 .run-option-enabled:hover, .run-ready:hover, .run-options:hover {
