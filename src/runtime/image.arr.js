@@ -1266,6 +1266,31 @@ var TriangleImage = /* @stopify flat */ function (sideC, angleA, sideB, style, c
 };
 TriangleImage.prototype = heir(BaseImage.prototype);
 
+var less = function (lhs, rhs) {
+  return (rhs - lhs) > 0.00001;
+};
+
+// excess : compute the Euclidean excess
+//  Note: If the excess is 0, then C is 90 deg.
+//        If the excess is negative, then C is obtuse.
+//        If the excess is positive, then C is acuse.
+function excess(sideA, sideB, sideC) {
+  return sideA * sideA + sideB * sideB - sideC * sideC;
+};
+
+var TriangleSSS = /* @stopify flat */ function (sideA, sideB, sideC, style, color) {
+  if (less(sideA + sideB, sideC) ||
+    less(sideB + sideC, sideA) ||
+    less(sideA + sideC, sideB)) {
+    throw new Error("The given sides will not form a triangle: "
+      + sideA + ", " + sideB + ", " + sideC);
+  }
+  var angleA = Math.acos(excess(sideB, sideC, sideA)
+    / (2 * sideB * sideC)) * (180 / Math.PI);
+
+  return new TriangleImage(sideC, angleA, sideB, style, color);
+};
+
 //////////////////////////////////////////////////////////////////////
 //Ellipse : Number Number Mode Color -> Image
 var EllipseImage = /* @stopify flat */ function (width, height, style, color) {
@@ -1453,6 +1478,9 @@ return module.exports = {
     return new TriangleImage((2 * side * Math.sin((angle * Math.PI / 180) / 2)),
       360 - ((180 - angle) / 2), side, style, convertColor(color));
   },
+  "triangle-sss": /* @stopify flat */ function (sideA, sideB, sideC, style, color) {
+    return TriangleSSS(sideA, sideB, sideC, style, convertColor(color));
+  },
   ellipse: /* @stopify flat */ function (width, height, style, color) {
     return new EllipseImage(width, height, style, convertColor(color));
   },
@@ -1472,7 +1500,7 @@ return module.exports = {
     return new LineImage(x, y, convertColor(color));
   },
   "add-line": /* @stopify flat */ function(img, x1, y1, x2, y2, color) {
-    return new OverlayImage(this.line((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
+    return new OverlayImage(new LineImage((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
   },
   star: /* @stopify flat */ function(side, style, color) {
     return new PolygonImage(side, 5, 2, style, convertColor(color));

@@ -8,6 +8,7 @@
       "triangle": ["arrow", ["Number", "String", "String"], "Image"],
       "right-triangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "isosceles-triangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "triangle-sss": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
       "ellipse": ["arrow", ["Number", "Number", "String", "String"], "Image"],
       "circle": ["arrow", ["Number", "String", "String"], "Image"],
       "rectangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
