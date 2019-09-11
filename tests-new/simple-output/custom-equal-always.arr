@@ -5,20 +5,19 @@ import list as L
 # TODO(alex): Due to type checker limitations, _equality cannot be directly 
 #   implemented by variants as with-members b/c the type checker does not have
 #   access to common fields nor does type-refinement on 'other' work
+#
+#   with:
+#     # Foo annotation is necessary (cannot infer)
+#     method _equals(self, other :: Foo%(is-bar), recursive):
+#       # 'my-field' not detected on 'other'
+#       if self.my-field > other.my-field:
+#       G.Equal
+#       else:
+#         G.NotEqual("self.my-field <= other.my-field", self, other)
+#       end
+#     end
 data Foo:
   | bar(my-field :: Number) 
-  #|
-    with:
-    # Foo annotation is necessary (cannot infer)
-    method _equals(self, other :: Foo%(is-bar), recursive):
-      # 'my-field' not detected on 'other'
-      if self.my-field > other.my-field:
-      G.Equal
-      else:
-        G.NotEqual("self.my-field <= other.my-field", self, other)
-      end
-    end
-  #|
 sharing: 
   method _equals(self, other :: Foo, recursive):
     # NOTE(alex): This is a BAD equality function
