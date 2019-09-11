@@ -443,7 +443,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         const builtinsLoader =
             <button onClick={control.loadBuiltins}>
                 Load Builtins
-            </button>
+            </button>;
 
         const menu =
             <Menu>
