@@ -12,7 +12,7 @@ const path = browserFS.path;
 const nodeModules = {
   'assert': assert,
   'csv-parse/lib/sync': csv,
-  'fs': browserFS,
+  'fs': browserFS.fs,
   'immutable': immutable
 };
 

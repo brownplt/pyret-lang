@@ -3,7 +3,7 @@ import './App.css';
 import { Interaction } from './Interaction';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
-import { Menu } from './Menu';
+import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
 import { FontSize } from './FontSize';
 import { FSBrowser } from './FSBrowser';
@@ -16,11 +16,6 @@ import 'react-splitter-layout/lib/index.css';
 
 control.installFileSystem();
 control.loadBuiltins();
-
-enum EMenu {
-    FSBrowser,
-    Options,
-}
 
 enum EEditor {
     Chunks,
@@ -67,9 +62,7 @@ type EditorState = {
     updateTimer: NodeJS.Timer;
     dropdownVisible: boolean;
     fontSize: number;
-    menu: EMenu;
     editorMode: EEditor,
-    menuVisible: boolean;
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
@@ -179,8 +172,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
             dropdownVisible: false,
-            menu: EMenu.Options,
-            menuVisible: false,
             editorMode: EEditor.Text,
             fontSize: 12,
             message: "Ready to rock",
@@ -288,19 +279,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState({ editorMode });
     }
 
-    toggleFSBrowser = () => {
-        if (this.state.menu === EMenu.FSBrowser) {
-            this.setState({
-                menuVisible: !this.state.menuVisible,
-            });
-        } else if (this.state.menu === EMenu.Options) {
-            this.setState({
-                menu: EMenu.FSBrowser,
-                menuVisible: true,
-            });
-        }
-    };
-
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
         control.loadBuiltins();
     };
@@ -346,19 +324,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState({
             typeCheck: !this.state.typeCheck
         });
-    };
-
-    toggleOptionsVisibility = () => {
-        if (this.state.menu === EMenu.Options) {
-            this.setState({
-                menuVisible: !this.state.menuVisible,
-            });
-        } else if (this.state.menu === EMenu.FSBrowser) {
-            this.setState({
-                menu: EMenu.Options,
-                menuVisible: true,
-            });
-        }
     };
 
     onDecreaseFontSize = () => {
@@ -475,11 +440,23 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 Chunks
             </button>;
 
-        const menu = this.state.menuVisible && (
-            <Menu tabs={[[fsBrowser],
-                         [textEditor, chunkEditor, fontSize]]}
-                  currentTab={this.state.menu}>
-            </Menu>);
+        const builtinsLoader =
+            <button onClick={control.loadBuiltins}>
+                Load Builtins
+            </button>
+
+        const menu =
+            <Menu>
+                <Tab name="📁">
+                    {fsBrowser}
+                </Tab>
+                <Tab name="⚙">
+                    {textEditor}
+                    {chunkEditor}
+                    {builtinsLoader}
+                    {fontSize}
+                </Tab>
+            </Menu>;
 
         const rightHandSide =
             <div className="interactions-area-container">
@@ -499,14 +476,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    <button className="menu"
-                            onClick={this.toggleOptionsVisibility}>
-                        Options
-                    </button>
-                    <button className="menu"
-                            onClick={this.toggleFSBrowser}>
-                        Files
-                    </button>
                     {this.stopify ? (
                         <button className="stop-available">
                             Stop
