@@ -1574,7 +1574,7 @@ var PolygonImage = /* @stopify flat */ function (length, count, step, style, col
 };
 PolygonImage.prototype = heir(BaseImage.prototype);
 
-var colorAtPosition = function (img, x, y) {
+var colorAtPosition = /* @stopify flat */ function (img, x, y) {
   var width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
@@ -1603,7 +1603,7 @@ var colorAtPosition = function (img, x, y) {
   return makeColor(r, g, b, a);
 };
 
-var imageToColorList = function(img) {
+var imageToColorList = /* @stopify flat */ function(img) {
   var width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
@@ -1624,7 +1624,7 @@ var imageToColorList = function(img) {
     colors.push(makeColor(r, g, b, a));
   }
   return colors;
-}
+};
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
