@@ -17,6 +17,7 @@ type Loc = SL.Srcloc
 # TODO: Make this a mutable field when we have them...
 var errors = empty
 var in-check-block = false
+var allow-s-method = false
 var cur-shared = empty
 var PARAM-current-where-everywhere = false # TODO: What does this mean? (used by ensure-empty-block)
 
@@ -668,6 +669,9 @@ well-formed-visitor = A.default-iter-visitor.{
     ann.visit(self) and value.visit(self)
   end,
   method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
+    when not(allow-s-method):
+      add-error(C.wf-bad-method-expression(l))
+    end
     old-pbl = parent-block-loc
     parent-block-loc := cases(Option) _check-loc:
       | none => l
