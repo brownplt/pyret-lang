@@ -1603,6 +1603,29 @@ var colorAtPosition = function (img, x, y) {
   return makeColor(r, g, b, a);
 };
 
+var imageToColorList = function(img) {
+  var width = img.getWidth(),
+    height = img.getHeight(),
+    canvas = makeCanvas(width, height),
+    ctx = canvas.getContext("2d"),
+    imageData,
+    data,
+    i,
+    r, g, b, a;
+  img.render(ctx, 0, 0);
+  imageData = ctx.getImageData(0, 0, width, height);
+  data = imageData.data;
+  var colors = [];
+  for (i = 0; i < data.length; i += 4) {
+    r = data[i];
+    g = data[i + 1];
+    b = data[i + 2];
+    a = data[i + 3] / 255;
+    colors.push(makeColor(r, g, b, a));
+  }
+  return colors;
+}
+
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
     return new TriangleImage(size, 360 - 60, size, style, convertColor(color));
@@ -1769,5 +1792,8 @@ return module.exports = {
   },
   "color-at-position": /* @stopify flat */ function (img, x, y) {
     return colorAtPosition(img, x, y);
+  },
+  "image-to-color-list": /* @stopify flat */ function (img) {
+    return imageToColorList(img);
   }
 };

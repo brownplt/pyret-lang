@@ -2,7 +2,10 @@
   "requires": [ ],
   "provides": {
     "shorthands": {
-      "Image": ["local", "Image"]
+      "Image": ["local", "Image"],
+      "lOfC": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "name": "List" }, [["local", "Color"]]]
     },
     "values": {
       "triangle": ["arrow", ["Number", "String", "String"], "Image"],
@@ -60,7 +63,8 @@
       "is-mode": ["arrow", ["Any"], "Boolean"],
       "is-x-place": ["arrow", ["String"], "Boolean"],
       "is-y-place": ["arrow", ["Any"], "Boolean"],
-      "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]]
+      "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]],
+      "image-to-color-list": ["arrow", ["Image"], "lOfC"]
     },
     "aliases": {
       "Image": { "tag": "name", 
