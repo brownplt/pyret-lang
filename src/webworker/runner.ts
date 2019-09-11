@@ -68,7 +68,8 @@ export const makeRequireAsync = (
         setTimeout: setTimeout,
         console: console,
         parseFloat,
-        isNaN
+        isNaN,
+        isFinite
       });
       runner.path = nextPath;
       currentRunner = runner;
