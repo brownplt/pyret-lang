@@ -1580,6 +1580,16 @@ var colorAtPosition = function (img, x, y) {
     canvas = makeCanvas(width, height),
     ctx = canvas.getContext("2d"),
     r, g, b, a;
+
+  if (x >= width) {
+    throw new Error("color-at-position: The given x coordinate, " + x
+      + ", must be between 0 (inclusive) and the image width (exclusive), which is " + img.getWidth());
+  }
+  if (y >= height) {
+    throw new Error("color-at-position: The given y coordinate, " + y
+      + ", must be between 0 (inclusive) and the image height (exclusive), which is " + img.getHeight());
+  }
+
   img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data,
