@@ -58,6 +58,7 @@ export const makeRequireAsync = (
         Object,
         RegExp,
         stopify,
+        Error,
         require: requireAsync,
         "module": stopifyModuleExports,
         // TS 'export' syntax desugars to 'exports.name = value;'
