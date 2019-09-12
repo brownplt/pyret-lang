@@ -391,7 +391,7 @@ var isAngle = /* @stopify flat */ function (x) {
 // On the Racket side of things, this is exposed as image-color?.
 var isColorOrColorString = /* @stopify flat */ function (thing) {
   return (isColor(thing) ||
-    ((RUNTIME.isString(thing) &&
+    ((typeof (thing) === "string" &&
       typeof (colorDb.get(thing)) != 'undefined')));
 };
 
@@ -1634,8 +1634,14 @@ var colorListToImage = /* @stopify flat */ function(listOfColors,
   pinholeY) {
   // make list of color names to list of colors
   var lOfC = [];
-  for (let i = 0; i < listOfColors.length; i++) {
-    lOfC.push(colorDb.get(String(listOfColors[i])));
+  if (typeof listOfColors[0] === "string") {
+    for (let i = 0; i < listOfColors.length; i++) {
+      lOfC.push(colorDb.get(String(listOfColors[i])));
+    }
+  } else if (isColor(listOfColors[0])) {
+    lOfC = listOfColors;
+  } else {
+    throw new Error("List is not made of Colors or name of colors");
   }
   var canvas = makeCanvas(jsnums.toFixnum(width),
     jsnums.toFixnum(height)),
