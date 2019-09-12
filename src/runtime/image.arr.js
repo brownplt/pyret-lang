@@ -1732,6 +1732,17 @@ ImageDataImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
   ctx.putImageData(this.imageData, x, y);
 };
 
+var PutImage = /* @stopify flat */ function (img, x, y, bg) {
+  if (isScene(bg)) {
+    return bg.add(img, x, bg.getHeight() - y);
+  } else {
+    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    newScene = newScene.add(bg, bg.getWidth()/2, bg.getHeight()/2);
+    newScene = newScene.add(img, x, bg.getHeight() - y);
+    return newScene;
+  }
+};
+
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -1908,5 +1919,8 @@ return module.exports = {
   },
   "color-list-to-bitmap": /* @stopify flat */ function (lOfC, width, height) {
     return colorListToImage(lOfC, width, height, 0, 0);
+  },
+  "put-image": /* @stopify flat */ function (image, x, y, background) {
+    return PutImage(image, x, y, background);
   }
 };

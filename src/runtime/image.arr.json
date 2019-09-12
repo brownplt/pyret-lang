@@ -66,7 +66,8 @@
       "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]],
       "image-to-color-list": ["arrow", ["Image"], "lOfC"],
       "color-list-to-image": ["arrow", ["Any", "Number", "Number", "Number", "Number"], "Image"],
-      "color-list-to-bitmap": ["arrow", ["Any", "Number", "Number"], "Image"]
+      "color-list-to-bitmap": ["arrow", ["Any", "Number", "Number"], "Image"],
+      "put-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
