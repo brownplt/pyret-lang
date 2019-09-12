@@ -1905,5 +1905,8 @@ return module.exports = {
   },
   "color-list-to-image": /* @stopify flat */ function (lOfC, width, height, pinX, pinY) {
     return colorListToImage(lOfC, width, height, pinX, pinY);
+  },
+  "color-list-to-bitmap": /* @stopify flat */ function (lOfC, width, height) {
+    return colorListToImage(lOfC, width, height, 0, 0);
   }
 };
