@@ -1,3 +1,4 @@
+const jsnums = require("./js-numbers.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -1626,6 +1627,53 @@ var imageToColorList = /* @stopify flat */ function(img) {
   return colors;
 };
 
+var colorListToImage = /* @stopify flat */ function(listOfColors,
+  width,
+  height,
+  pinholeX,
+  pinholeY) {
+  // make list of color names to list of colors
+  var lOfC = [];
+  for (let i = 0; i < listOfColors.length; i++) {
+    lOfC.push(colorDb.get(String(listOfColors[i])));
+  }
+  var canvas = makeCanvas(jsnums.toFixnum(width),
+    jsnums.toFixnum(height)),
+    ctx = canvas.getContext("2d"),
+    imageData = ctx.createImageData(jsnums.toFixnum(width),
+      jsnums.toFixnum(height)),
+    aColor,
+    data = imageData.data,
+    jsLOC = lOfC;
+  for (var i = 0; i < jsLOC.length * 4; i += 4) {
+    aColor = jsLOC[i / 4];
+    // NOTE(ben): Flooring colors here to make this a proper RGBA image
+    data[i] = Math.floor(colorRed(aColor));
+    data[i + 1] = Math.floor(colorGreen(aColor));
+    data[i + 2] = Math.floor(colorBlue(aColor));
+    data[i + 3] = colorAlpha(aColor) * 255;
+  }
+
+  return new ImageDataImage(imageData);
+};
+
+//////////////////////////////////////////////////////////////////////
+// ImageDataImage: imageData -> image
+// Given an array of pixel data, create an image
+var ImageDataImage = /* @stopify flat */ function (imageData) {
+  BaseImage.call(this);
+  this.imageData = imageData;
+  this.width = imageData.width;
+  this.height = imageData.height;
+};
+
+ImageDataImage.prototype = heir(BaseImage.prototype);
+
+ImageDataImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  ctx.putImageData(this.imageData, x, y);
+};
+
+
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
     return new TriangleImage(size, 360 - 60, size, style, convertColor(color));
@@ -1795,5 +1843,8 @@ return module.exports = {
   },
   "image-to-color-list": /* @stopify flat */ function (img) {
     return imageToColorList(img);
+  },
+  "color-list-to-image": /* @stopify flat */ function (lOfC, width, height, pinX, pinY) {
+    return colorListToImage(lOfC, width, height, pinX, pinY);
   }
 };

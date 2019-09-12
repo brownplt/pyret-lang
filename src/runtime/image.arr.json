@@ -64,7 +64,8 @@
       "is-x-place": ["arrow", ["String"], "Boolean"],
       "is-y-place": ["arrow", ["Any"], "Boolean"],
       "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]],
-      "image-to-color-list": ["arrow", ["Image"], "lOfC"]
+      "image-to-color-list": ["arrow", ["Image"], "lOfC"],
+      "color-list-to-image": ["arrow", ["lOfC", "Number", "Number", "Number", "Number"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
