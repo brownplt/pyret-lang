@@ -69,6 +69,7 @@ module.exports = {
   // Number Functions
 
   'num-equal': numbers['equals'],
+  'num-is-integer': numbers['isInteger'],
   'num-is-rational': numbers['isRational'],
   'num-is-roughnum': numbers['isRoughnum'],
 };
