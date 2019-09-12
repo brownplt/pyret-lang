@@ -1752,6 +1752,22 @@ var PlaceImage = /* @stopify flat */ function (img, x, y, bg) {
   }
 };
 
+var PlaceImageAlign = /* @stopify flat */ function (img, x, y, placeX, placeY, bg) {
+  if (placeX == "left") { x = x + img.getWidth() / 2; }
+  else if (placeX == "right") { x = x - img.getWidth() / 2; }
+  if (placeY == "top") { y = y + img.getHeight() / 2; }
+  else if (placeY == "bottom") { y = y - img.getHeight() / 2; }
+
+  if (isScene(bg)) {
+    return bg.add(img, x, y);
+  } else {
+    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
+    newScene = newScene.add(img, x, y);
+    return newScene;
+  }
+};
+
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -1934,5 +1950,8 @@ return module.exports = {
   },
   "place-image": /* @stopify flat */ function (image, x, y, background) {
     return PlaceImage(image, x, y, background);
+  },
+  "place-image-align": /* @stopify flat */ function (image, x, y, placeX, placeY, background) {
+    return PlaceImageAlign(image, x, y, placeX, placeY, background);
   }
 };
