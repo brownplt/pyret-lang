@@ -1,5 +1,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
+var numbers = require('./js-numbers.js');
 var assert = require('assert');
 
 function _plus(l, r) { return l + r; }
@@ -64,4 +65,8 @@ module.exports = {
 
   // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,
+
+  // Number Functions
+
+  'num-equal': numbers['equals']
 };
