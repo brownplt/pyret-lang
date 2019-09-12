@@ -368,7 +368,8 @@ var clone = function (obj) {
 };
 // TODO(joe): not sufficient
 var equals = /* @stopify flat */ function (v1, v2) { 
-  console.log("In equals");
+  console.log("In equals: v1 = ", v1, " and v2 = ", v2);
+  console.trace();
   return v1 === v2; };
 
 var imageEquals = /* @stopify flat */ function (left, right) {
@@ -1902,7 +1903,7 @@ return module.exports = {
     return isColorOrColorString(c);
   },
   "images-equal": /* @stopify flat */ function (img1, img2) {
-    return img1.equals(img2);
+    return imageEquals(img1, img2);
   },
   "is-side-count": /* @stopify flat */ function (sth) {
     return isSideCount(sth);
