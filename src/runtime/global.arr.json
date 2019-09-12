@@ -48,6 +48,8 @@
                   "name": "_plus",
                   "typ": ["arrow", ["Any", "Any"], "Boolean"]},
       "num-equal": ["arrow", ["Number", "Number"], "Boolean"],
+      "num-is-rational": ["arrow", ["Number"], "Boolean"],
+      "num-is-roughnum": ["arrow", ["Number"], "Boolean"],
       "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
