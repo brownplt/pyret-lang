@@ -367,10 +367,11 @@ var clone = function (obj) {
   return c;
 };
 // TODO(joe): not sufficient
-var equals = /* @stopify flat */ function (v1, v2) { 
+var equals = /* @stopify flat */ function (v1, v2) {
   console.log("In equals: v1 = ", v1, " and v2 = ", v2);
   console.trace();
-  return v1 === v2; };
+  return v1 === v2;
+};
 
 var imageEquals = /* @stopify flat */ function (left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
@@ -734,52 +735,52 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
        values in the low double digits indicate pretty similar images, in the
        low hundreds something is clearly off.
     */
-    BaseImage.prototype.difference = function(other) {
-      if(Math.floor(this.width)    !== Math.floor(other.getWidth())    ||
-         Math.floor(this.height)   !== Math.floor(other.getHeight())){
-        return RUNTIME.ffi.makeLeft("different-size([" + this.width + ", " + this.height + "], [" +
-                  other.getWidth() + ", " + other.getHeight() + "])");
-      }
+BaseImage.prototype.difference = function (other) {
+  if (Math.floor(this.width) !== Math.floor(other.getWidth()) ||
+    Math.floor(this.height) !== Math.floor(other.getHeight())) {
+    return RUNTIME.ffi.makeLeft("different-size([" + this.width + ", " + this.height + "], [" +
+      other.getWidth() + ", " + other.getHeight() + "])");
+  }
 
-      // http://stackoverflow.com/questions/9136524/are-there-any-javascript-libs-to-pixel-compare-images-using-html5-canvas-or-any
-      function rmsDiff(data1,data2){
-        var squares = 0;
-        for(var i = 0; i<data1.length; i++){
-            squares += (data1[i]-data2[i])*(data1[i]-data2[i]);
-        }
-        var rms = Math.sqrt(squares / data1.length);
-        return rms;
-      }
+  // http://stackoverflow.com/questions/9136524/are-there-any-javascript-libs-to-pixel-compare-images-using-html5-canvas-or-any
+  function rmsDiff(data1, data2) {
+    var squares = 0;
+    for (var i = 0; i < data1.length; i++) {
+      squares += (data1[i] - data2[i]) * (data1[i] - data2[i]);
+    }
+    var rms = Math.sqrt(squares / data1.length);
+    return rms;
+  }
 
-      // if it's something more sophisticated, render both images to canvases
-      // First check canvas dimensions, then go pixel-by-pixel
-      var c1 = this.toDomNode(), c2 = other.toDomNode();
-      c1.style.visibility = c2.style.visibility = "hidden";
-      var w1 = Math.floor(c1.width),
-          h1 = Math.floor(c1.height),
-          w2 = Math.floor(c2.width),
-          h2 = Math.floor(c2.height);
-      if(w1 !== w2 || h1 !== h2){
-        return RUNTIME.makeLeft("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
-                  c2.width + ", " + c2.height + "])");
-      }
-      var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
-      this.render(ctx1, 0, 0);
-      other.render(ctx2, 0, 0);
-      try{
-        var data1 = ctx1.getImageData(0, 0, w1, h1),
-        data2 = ctx2.getImageData(0, 0, w2, h2);
-        var pixels1 = data1.data,
-            pixels2 = data2.data;
-        return RUNTIME.ffi.makeRight(rmsDiff(pixels1, pixels2));
-      } catch(e){
-        // if we violate CORS, just bail
-        return RUNTIME.ffi.makeLeft("exception: " + String(e));
-      }
-    };
+  // if it's something more sophisticated, render both images to canvases
+  // First check canvas dimensions, then go pixel-by-pixel
+  var c1 = this.toDomNode(), c2 = other.toDomNode();
+  c1.style.visibility = c2.style.visibility = "hidden";
+  var w1 = Math.floor(c1.width),
+    h1 = Math.floor(c1.height),
+    w2 = Math.floor(c2.width),
+    h2 = Math.floor(c2.height);
+  if (w1 !== w2 || h1 !== h2) {
+    return RUNTIME.makeLeft("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
+      c2.width + ", " + c2.height + "])");
+  }
+  var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
+  this.render(ctx1, 0, 0);
+  other.render(ctx2, 0, 0);
+  try {
+    var data1 = ctx1.getImageData(0, 0, w1, h1),
+      data2 = ctx2.getImageData(0, 0, w2, h2);
+    var pixels1 = data1.data,
+      pixels2 = data2.data;
+    return RUNTIME.ffi.makeRight(rmsDiff(pixels1, pixels2));
+  } catch (e) {
+    // if we violate CORS, just bail
+    return RUNTIME.ffi.makeLeft("exception: " + String(e));
+  }
+};
 
 var isMode = /* @stopify flat */ function (x) {
-  return ((typeof(x) === 'string' || x instanceof String) &&
+  return ((typeof (x) === 'string' || x instanceof String) &&
     (x.toString().toLowerCase() == "solid" ||
       x.toString().toLowerCase() == "outline")) ||
     ((jsnums.isReal(x)) &&
@@ -788,7 +789,7 @@ var isMode = /* @stopify flat */ function (x) {
 };
 
 var isPlaceX = /* @stopify flat */ function (x) {
-  return ((typeof(x) === 'string' || x instanceof String) &&
+  return ((typeof (x) === 'string' || x instanceof String) &&
     (x.toString().toLowerCase() === "left" ||
       x.toString().toLowerCase() === "right" ||
       x.toString().toLowerCase() === "center" ||
@@ -796,7 +797,7 @@ var isPlaceX = /* @stopify flat */ function (x) {
 };
 
 var isPlaceY = /* @stopify flat */ function (x) {
-  return ((typeof(x) === 'string' || x instanceof String) &&
+  return ((typeof (x) === 'string' || x instanceof String) &&
     (x.toString().toLowerCase() === "top" ||
       x.toString().toLowerCase() === "bottom" ||
       x.toString().toLowerCase() === "baseline" ||
@@ -1351,7 +1352,7 @@ var TriangleASS = /* @stopify flat */ function (angleA, sideB, sideC, style, col
     throw new Error("The given angle, side and side will not form a triangle: "
       + angleA + ", " + sideB + ", " + sideC);
   }
-  
+
   return new TriangleImage(sideC, angleA, sideB, style, color);
 };
 
@@ -1658,7 +1659,7 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
   return makeColor(r, g, b, a);
 };
 
-var imageToColorList = /* @stopify flat */ function(img) {
+var imageToColorList = /* @stopify flat */ function (img) {
   var width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
@@ -1681,7 +1682,7 @@ var imageToColorList = /* @stopify flat */ function(img) {
   return colors;
 };
 
-var colorListToImage = /* @stopify flat */ function(listOfColors,
+var colorListToImage = /* @stopify flat */ function (listOfColors,
   width,
   height,
   pinholeX,
@@ -1738,7 +1739,7 @@ var PutImage = /* @stopify flat */ function (img, x, y, bg) {
     return bg.add(img, x, bg.getHeight() - y);
   } else {
     var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
-    newScene = newScene.add(bg, bg.getWidth()/2, bg.getHeight()/2);
+    newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
     newScene = newScene.add(img, x, bg.getHeight() - y);
     return newScene;
   }
@@ -1749,7 +1750,7 @@ var PlaceImage = /* @stopify flat */ function (img, x, y, bg) {
     return bg.add(img, x, y);
   } else {
     var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
-    newScene = newScene.add(bg, bg.getWidth()/2, bg.getHeight()/2);
+    newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
     newScene = newScene.add(img, x, y);
     return newScene;
   }
@@ -1797,25 +1798,25 @@ return module.exports = {
   rectangle: /* @stopify flat */ function (width, height, style, color) {
     return new RectangleImage(width, height, style, convertColor(color));
   },
-  square: /* @stopify flat */ function(length, style, color) {
+  square: /* @stopify flat */ function (length, style, color) {
     return new RectangleImage(length, length, style, convertColor(color));
   },
-  rhombus: /* @stopify flat */ function(side, angle, style, color) {
+  rhombus: /* @stopify flat */ function (side, angle, style, color) {
     return new RhombusImage(side, angle, style, convertColor(color));
   },
-  line: /* @stopify flat */ function(x, y, color) {
+  line: /* @stopify flat */ function (x, y, color) {
     return new LineImage(x, y, convertColor(color));
   },
-  "add-line": /* @stopify flat */ function(img, x1, y1, x2, y2, color) {
+  "add-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
     return new OverlayImage(new LineImage((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
   },
-  star: /* @stopify flat */ function(side, style, color) {
+  star: /* @stopify flat */ function (side, style, color) {
     return new PolygonImage(side, 5, 2, style, convertColor(color));
   },
-  "radial-star": /* @stopify flat */ function(points, outer, inner, style, color) {
+  "radial-star": /* @stopify flat */ function (points, outer, inner, style, color) {
     return new StarImage(points, inner, outer, style, convertColor(color));
   },
-  "star-sized": /* @stopify flat */ function(points, outer, inner, style, color) {
+  "star-sized": /* @stopify flat */ function (points, outer, inner, style, color) {
     return new StarImage(points, inner, outer, style, convertColor(color));
   },
   "star-polygon": /* @stopify flat */ function (length, count, step, style, color) {
@@ -1863,13 +1864,13 @@ return module.exports = {
   "text-font": /* @stopify flat */ function (str, size, color, face, family, style, weight, underline) {
     return new TextImage(str, size, convertColor(color), face, family, style, weight, underline);
   },
-  "flip-horizontal": /* @stopify flat */  function(img) {
+  "flip-horizontal": /* @stopify flat */  function (img) {
     return new FlipImage(img, "horizontal");
   },
-  "flip-vertical": /* @stopify flat */  function(img) {
+  "flip-vertical": /* @stopify flat */  function (img) {
     return new FlipImage(img, "vertical");
   },
-  frame: /* @stopify flat */  function(img) {
+  frame: /* @stopify flat */  function (img) {
     return new FrameImage(img);
   },
   crop: /* @stopify flat */ function (x, y, width, height, img) {
