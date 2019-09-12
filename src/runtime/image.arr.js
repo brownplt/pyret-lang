@@ -367,11 +367,7 @@ var clone = function (obj) {
   return c;
 };
 // TODO(joe): not sufficient
-var equals = /* @stopify flat */ function (v1, v2) {
-  console.log("In equals: v1 = ", v1, " and v2 = ", v2);
-  console.trace();
-  return v1 === v2;
-};
+var equals = /* @stopify flat */ function (v1, v2) { return v1 === v2; };
 
 var imageEquals = /* @stopify flat */ function (left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
