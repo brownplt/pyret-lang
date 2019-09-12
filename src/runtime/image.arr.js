@@ -1743,6 +1743,17 @@ var PutImage = /* @stopify flat */ function (img, x, y, bg) {
   }
 };
 
+var PlaceImage = /* @stopify flat */ function (img, x, y, bg) {
+  if (isScene(bg)) {
+    return bg.add(img, x, y);
+  } else {
+    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    newScene = newScene.add(bg, bg.getWidth()/2, bg.getHeight()/2);
+    newScene = newScene.add(img, x, y);
+    return newScene;
+  }
+};
+
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -1922,5 +1933,8 @@ return module.exports = {
   },
   "put-image": /* @stopify flat */ function (image, x, y, background) {
     return PutImage(image, x, y, background);
+  },
+  "place-image": /* @stopify flat */ function (image, x, y, background) {
+    return PlaceImage(image, x, y, background);
   }
 };
