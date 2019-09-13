@@ -123,4 +123,14 @@ module.exports = {
     return String(n);
   },
   'num-to-string-digits': numbers['toStringDigits'],
+  'num-within-abs': function(tol) {
+    return function(l, r) {
+      return numbers['roughlyEquals'](l, r, tol);
+    };
+  },
+  'num-within-rel': function(relTol) {
+    return function(l, r) {
+      return numbers['roughlyEqualsRel'](l, r, relTol);
+    };
+  },
 };

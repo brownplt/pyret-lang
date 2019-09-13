@@ -82,6 +82,8 @@
       "num-is-roughnum": ["arrow", ["Number"], "Boolean"],
       "num-to-string": ["arrow", ["Number"], "String"],
       "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
+      "num-within-abs": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
+      "num-within-rel": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
       "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
