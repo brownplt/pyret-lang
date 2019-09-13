@@ -370,9 +370,9 @@ function _spy(spyObject: SpyObject): void {
   const message = spyObject.message();
   const spyLoc = spyObject.loc;
   if (message != null) {
-    console.log("Spying \"" + message + "\" (at " + spyLoc + ")");
+    console.log(`Spying "${message}" (at ${spyLoc})`);
   } else {
-    console.log("Spying (at " + spyLoc + ")");
+    console.log(`Spying (at ${spyLoc})`);
   }
 
   const exprs = spyObject.exprs;
@@ -380,7 +380,7 @@ function _spy(spyObject: SpyObject): void {
     const key = exprs[i].key;
     const loc = exprs[i].loc;
     const value = exprs[i].expr();
-    console.log("  " + key + ": " + value);
+    console.log(`    ${key}: ${value} (at ${loc})`);
   }
 }
 
@@ -430,12 +430,12 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
-module.exports["_spy"] = _spy;
-module.exports["_rebind"] = _rebind;
+module.exports["$spy"] = _spy;
+module.exports["$rebind"] = _rebind;
 
-module.exports["_makeRational"] = _NUMBER["makeRational"];
-module.exports["_makeRoughnum"] = _NUMBER["makeRoughnum"];
-module.exports["_errCallbacks"] = NumberErrbacks;
+module.exports["$makeRational"] = _NUMBER["makeRational"];
+module.exports["$makeRoughnum"] = _NUMBER["makeRoughnum"];
+module.exports["$errCallbacks"] = NumberErrbacks;
 
 module.exports["_add"] = customAdd;
 module.exports["_subtract"] = _NUMBER["subtract"];

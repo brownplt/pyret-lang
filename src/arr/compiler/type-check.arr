@@ -967,6 +967,18 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       result-type = new-existential(l, false)
       shadow context = context.add-variable(result-type)
       typing-result(e, result-type, context)
+    | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<A.SpyField>) =>
+      # Spy block type will always be t-nothing
+      # Based off of s-block type check synthesis code
+      # Type check all spy field expressions
+      fold-typing(lam(spy-field, shadow context):
+        synthesis(spy-field.value, top-level, context).bind(
+          lam(spy-expr, spy-typ, shadow context) block:
+            typing-result(spy-expr, spy-typ, context)
+          end)
+      end, contents, context).typing-bind(lam(new-spy-fields, shadow context):
+        typing-result(A.s-spy-block(l, message, new-spy-fields), t-nothing(l), context)
+      end)
   end.solve-bind()
 end
 
