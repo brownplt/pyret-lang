@@ -967,6 +967,8 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       result-type = new-existential(l, false)
       shadow context = context.add-variable(result-type)
       typing-result(e, result-type, context)
+    | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<A.SpyField>) =>
+      typing-result(e, t-nothing(l), context)
   end.solve-bind()
 end
 
