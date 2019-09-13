@@ -115,4 +115,8 @@ module.exports = {
   'num-log': numbers['log'],
   'num-exp': numbers['exp'],
   'num-expt': numbers['expt'],
+  'num-to-roughnum': numbers['toRoughnum'],
+  'num-is-integer': numbers['isInteger'],
+  'num-is-rational': numbers['isRational'],
+  'num-is-roughnum': numbers['isRoughnum'],
 };

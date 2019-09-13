@@ -76,6 +76,10 @@
       "num-log": ["arrow", ["Number"], "Number"],
       "num-exp": ["arrow", ["Number"], "Number"],
       "num-expt": ["arrow", ["Number", "Number"], "Number"],
+      "num-to-roughnum": ["arrow", ["Number"], "Number"],
+      "num-is-integer": ["arrow", ["Number"], "Boolean"],
+      "num-is-rational": ["arrow", ["Number"], "Boolean"],
+      "num-is-roughnum": ["arrow", ["Number"], "Boolean"],
       "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
