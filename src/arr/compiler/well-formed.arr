@@ -88,7 +88,7 @@ fun wrap-visit-check(self, target) block:
   cur-in-check = in-check-block
   in-check-block := true
   cur-allow = allow-s-method
-  in-check-block := false 
+  allow-s-method := false 
 
   ret = self.option(target)
   in-check-block := cur-in-check

@@ -14,6 +14,8 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
+type DesugarResult = DH.DesugarResult
+
 flat-prim-app = A.prim-app-info-c(false)
 
 string-dict = D.string-dict
@@ -115,6 +117,12 @@ end
 
 fun make-fun-name(compiler, loc) -> String:
   "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
+end
+
+data CheckOpDesugar: 
+  | binop-result(op)
+  | refinement-result(refinement, negate)
+  | predicate-result(predicate)
 end
 
 type Loc = SL.Srcloc
@@ -274,6 +282,56 @@ end
 
 fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
+end
+
+fun compile-s-op(context, l, op-l, op, left, right):
+  { lv; lstmts } = compile-expr(context, left)
+  { rv; rstmts } = compile-expr(context, right)
+  val = ask:
+    # Pyret number operations compatible with JS numbers
+    # Always assume Pyret numbers when compiling
+    | (op == "op+") then: 
+      rt-method("_add", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op-") then: 
+      rt-method("_subtract", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op*") then: 
+      rt-method("_multiply", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op/") then:
+      rt-method("_divide", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op<") then:
+      rt-method("_lessThan", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op>") then:
+      rt-method("_greaterThan", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op<=") then:
+      rt-method("_lessThanOrEqual", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op>=") then:
+      rt-method("_greaterThanOrEqual", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+
+    # TODO(alex): Use equal-always, equal-now, etc
+    # Call Global.py_equal
+    | op == "op==" then: 
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
+    | op == "op<>" then:
+      # Logical negation of equal-always()
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-unop(j-parens(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
+    | op == "op<=>" then:
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
+    | op == "opor" then: j-binop(lv, J.j-or, rv)
+    | op == "opand" then: j-binop(lv, J.j-and, rv)
+    | otherwise: nyi(op)
+  end
+  { val; lstmts + rstmts; lv; rv }
 end
 
 data BindableKind:
@@ -449,9 +507,11 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         end
       end
 
+      check-results = rt-method("$checkResults", [clist: ])
+
       ans = j-obj(fields + [clist:
                 j-field("$answer", a-exp),
-                j-field("$checks", J.j-undefined)])
+                j-field("$checks", check-results)])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
       {assign-ans; a-stmts + stmts}
@@ -487,53 +547,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-srcloc(_, l) => { j-str("srcloc"); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
-      { lv; lstmts } = compile-expr(context, left)
-      { rv; rstmts } = compile-expr(context, right)
-      val = ask:
-        # Pyret number operations compatible with JS numbers
-        # Always assume Pyret numbers when compiling
-        | (op == "op+") then: 
-          rt-method("_add", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op-") then: 
-          rt-method("_subtract", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op*") then: 
-          rt-method("_multiply", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op/") then:
-          rt-method("_divide", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<") then:
-          rt-method("_lessThan", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>") then:
-          rt-method("_greaterThan", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<=") then:
-          rt-method("_lessThanOrEqual", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>=") then:
-          rt-method("_greaterThanOrEqual", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-
-        # TODO(alex): Use equal-always, equal-now, etc
-        # Call Global.py_equal
-        | op == "op==" then: 
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
-        | op == "op<>" then:
-          # Logical negation of equal-always()
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-unop(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs), J.j-not)
-        | op == "op<=>" then:
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
-        | op == "opor" then: j-binop(lv, J.j-or, rv)
-        | op == "opand" then: j-binop(lv, J.j-and, rv)
-        | otherwise: nyi(op)
-      end
-      { val; lstmts + rstmts }
+      { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
+      { val; stmts }
 
     | s-lam(l, name, _, args, _, _, body, _, _, _) =>
 
@@ -1053,8 +1068,115 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
-    | s-check(l, name, body, keyword-check) => nyi("s-check")
-    | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
+    | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) => 
+
+      # Currently makes no assumpetions and takes no actions about where the check block is
+      #   i.e. the check blocks are NOT moved to the end of a block direct-codegen.arr
+      #
+      # Emits:
+      #   checkBlockTestRunner("TEST NAME", function() { compiled-body });
+      #
+
+      { check-block-val; check-block-stmts } = compile-expr(context, body)
+      # TODO(alex): insert test scaffolding here
+      # TODO(alex): insert check blocks inline or in a separate area?
+      # TODO(alex): check block returns?
+
+      # Wrap the check block into a function (check-block)
+      js-check-block-func-name = cases(Option) name:
+        | some(string) => fresh-id(compiler-name("check-block-" + string))
+        | none => fresh-id(compiler-name("check-block"))
+      end
+
+      js-check-block-func-block = j-block(cl-append(check-block-stmts, 
+                                                    cl-sing(j-expr(check-block-val))))
+      js-check-block-func = j-fun("0", js-check-block-func-name.to-compiled(), 
+                                  cl-empty, js-check-block-func-block)
+
+      test-block-name = cases(Option) name:
+        | some(string) => j-str(string)
+        | none => j-str(js-check-block-func-name.to-compiled())
+      end
+
+      # Pass function check-block and the name to the test runner
+      tester-call = j-expr(rt-method("$checkBlock", [clist: test-block-name, js-check-block-func]))
+
+      { j-undefined; cl-sing(tester-call) }
+
+    | s-check-test(l :: Loc, 
+                   op :: A.CheckOp, 
+                   refinement :: Option<Expr>, 
+                   left :: Expr, 
+                   right :: Option<Expr>, 
+                   cause :: Option<Expr>) =>
+
+      # Emits:
+      #   _checkTest(function() {
+      #     left-statements
+      #     right-statements 
+      #     return check-op(left-value, right-value);
+      #   }, loc, lhs, rhs);
+      #
+      # _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
+      #
+      # check-op-result = {
+      #   success: boolean
+      #   lhs: any
+      #   rhs: any
+      # }
+      #
+      # Individual tests are wrapped in functions to allow individual tests to fail
+      #  but still possible to run other tests
+      
+      check-op = cases(A.CheckOp) op:
+        | s-op-is(_) => binop-result("op==")
+        | s-op-is-not(_) => binop-result("op<>")
+        | else => raise("NYI check op ID")
+      end
+
+      { raw-js-test-val; raw-js-test-stmts; lhs; rhs } = cases(CheckOpDesugar) check-op:
+        | binop-result(bin-op) =>
+          cases(Option) right:
+            | some(right-expr) => 
+              # Assuming this compile-expr returns j-binop
+              { j-test-val; j-test-stmts; lhs; rhs } =
+                compile-s-op(context, l, l, bin-op, left, right-expr)
+
+              { j-test-val; j-test-stmts ; lhs; some(rhs) } 
+
+            | none => raise("Attempting to use a binary check op without the RHS")
+          end
+        | refinement-result(the-refinement, negate) => raise("NYI check refinement")
+        | predicate-result(predicate) => raise("NYI check predicate")
+      end
+
+      test-loc = j-str(l.format(true))
+
+      # Thunk the JS test code; returns a check-op-result (described above)
+
+      # If there was no RHS expression, explicitly insert an 'undefined'
+      simple-return-fields = [clist: 
+        j-field("success", raw-js-test-val),
+        j-field("lhs", lhs),
+      ]
+      return-fields = cases(Option) rhs:
+        | some(right-expr) => cl-append(simple-return-fields, 
+                                        cl-sing(j-field("rhs", right-expr)))
+        | none => cl-append(simple-return-fields, 
+                            cl-sing(j-field("rhs", j-undefined)))
+      end
+      return-expr = j-obj(return-fields)
+
+      thunk-body = cl-snoc(raw-js-test-stmts, j-return(return-expr))
+      thunk = j-fun("0", "$check", cl-empty, j-block(thunk-body))
+
+      check-test-args = [clist: thunk, test-loc]
+
+      # TODO(alex): insert test scaffolding here
+      tester-call = j-expr(rt-method("$checkTest", check-test-args))
+
+      { j-undefined; [clist: tester-call] }
+
     | s-load-table(
         l :: Loc,
         headers :: List<FieldName>,
