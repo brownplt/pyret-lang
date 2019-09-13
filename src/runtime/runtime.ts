@@ -402,8 +402,31 @@ interface CheckTestResult {
 var _globalCheckContext: string[] = [];
 var _globalCheckResults: CheckResult[] = [];
 
-function checkResults(): CheckResult[] {
+function getCheckResults(): CheckResult[] {
   return _globalCheckResults.slice();
+}
+
+function checkResults(): CheckResult[] {
+  let errorCount = 0;
+  _globalCheckResults.forEach((result) => {
+    if (!result.success) {
+      errorCount += 1;
+    }
+  });
+
+  if (errorResults === 0) {
+    console.log("All tests pass");
+  } else {
+    _globalCheckResults.forEach((result) => {
+      if (result.success) {
+        console.log(`[PASS] Found <${lhs}>. Expected <${rhs}> [${path}] (at ${loc})`);
+      } else {
+        console.log(`[PASS] Found <${lhs}>. Expected <${rhs}> [${path}] (at ${loc})`);
+      }
+    });
+  }
+
+  return getCheckResults();
 }
 
 function eagerCheckTest(test: () => CheckTestResult, loc: string): void {
@@ -494,6 +517,7 @@ module.exports["$rebind"] = _rebind;
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = eagerCheckBlockRunner;
 module.exports["$checkResults"] = checkResults;
+module.exports["$getCheckResults"] = getCheckResults;
 
 module.exports["$makeRational"] = _NUMBER["makeRational"];
 module.exports["$makeRoughnum"] = _NUMBER["makeRoughnum"];
