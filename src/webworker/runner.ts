@@ -59,6 +59,8 @@ export const makeRequireAsync = (
         RegExp,
         stopify,
         Error,
+        Image: () => { return new Image(); },
+        decodeURIComponent,
         require: requireAsync,
         "module": stopifyModuleExports,
         // TS 'export' syntax desugars to 'exports.name = value;'

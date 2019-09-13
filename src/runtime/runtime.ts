@@ -1,3 +1,5 @@
+import { callbackify } from "util";
+
 /*
  * 'export named-js-value' desugars into 'exports.name = js-value'
  *
@@ -416,6 +418,16 @@ function _rebind(toRebind: any): any {
   }
 
   return toRebind;
+}
+
+export function pauseStack(callback) {
+  // @ts-ignore
+  return $STOPIFY.pauseK(kontinue => {
+    return callback({
+      resume: (val) => kontinue({ type: "normal", value: val }),
+      error: (err) => kontinue({ type: "error", error: err })
+    })
+  });
 }
 
 

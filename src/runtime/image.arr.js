@@ -1775,6 +1775,117 @@ var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
   newScene = newScene.add(img, img.getWidth()/2, img.getHeight()/2);
   return newScene.add(line, line.getWidth()/2+Math.min(x1, x2),
     line.getHeight()/2+Math.min(y1, y2));
+};
+
+var ImageUrlImage = function (url) {
+  return RUNTIME.pauseStack(function (restarter) {
+    console.log("Before rawImage = Image");
+    var rawImage = Image();
+    console.log("After rawImage = Image: ", rawImage);
+    debugger;
+    /*if (RUNTIME.hasParam("imgUrlProxy")) {
+      url = RUNTIME.getParam("imgUrlProxy")(url);
+    }*/
+    rawImage.onload = function () {
+      restarter.resume(new FileImage(String(url), rawImage));
+    };
+    rawImage.onerror = function (e) {
+      restarter.error(new Error("unable to load " + url + ": " + e.message));
+    };
+    rawImage.src = String(url);
+  });
+};
+
+//////////////////////////////////////////////////////////////////////
+// FileImage: string node -> Image
+var FileImage = /* @stopify flat */ function (src, rawImage) {
+  BaseImage.call(this);
+  var self = this;
+  this.src = src;
+  this.isLoaded = false;
+  this.ariaText = " image file from " + decodeURIComponent(src).slice(16);
+
+  // animationHack: see installHackToSupportAnimatedGifs() for details.
+  this.animationHackImg = undefined;
+
+  if (rawImage && rawImage.complete) {
+    this.img = rawImage;
+    this.isLoaded = true;
+    self.width = self.img.width;
+    self.height = self.img.height;
+  } else {
+    // fixme: we may want to do something blocking here for
+    // onload, since we don't know at this time what the file size
+    // should be, nor will drawImage do the right thing until the
+    // file is loaded.
+    this.img = Image();
+    this.img.onload = function () {
+      self.isLoaded = true;
+      self.width = self.img.width;
+      self.height = self.img.height;
+    };
+    this.img.onerror = function (e) {
+      self.img.onerror = "";
+      self.img.src = "http://www.wescheme.org/images/broken.png";
+    }
+    this.img.src = src;
+  }
+}
+FileImage.prototype = heir(BaseImage.prototype);
+
+var imageCache = {};
+FileImage.makeInstance = /* @stopify flat */ function (path, rawImage) {
+  if (!(path in imageCache)) {
+    imageCache[path] = new FileImage(path, rawImage);
+  }
+  return imageCache[path];
+};
+
+FileImage.installInstance = /* @stopify flat */ function (path, rawImage) {
+  imageCache[path] = new FileImage(path, rawImage);
+};
+
+FileImage.installBrokenImage = /* @stopify flat */ function (path) {
+  imageCache[path] = new TextImage("Unable to load " + path, 10, colorDb.get("red"),
+    "normal", "Optimer", "", "", false);
+};
+
+FileImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  this.installHackToSupportAnimatedGifs();
+  ctx.drawImage(this.animationHackImg, x, y);
+};
+
+// The following is a hack that we use to allow animated gifs to show
+// as animating on the canvas.
+FileImage.prototype.installHackToSupportAnimatedGifs = /* @stopify flat */ function () {
+  if (this.animationHackImg) { return; }
+  this.animationHackImg = this.img.cloneNode(true);
+  document.body.appendChild(this.animationHackImg);
+  this.animationHackImg.style.position = 'absolute';
+  this.animationHackImg.style.top = '-50000px';
+};
+
+FileImage.prototype.getWidth = /* @stopify flat */ function () {
+  return Math.round(this.img.width);
+};
+
+FileImage.prototype.getHeight = /* @stopify flat */ function () {
+  return Math.round(this.img.height);
+};
+
+FileImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof FileImage) && this.src === other.src
+    || BaseImage.prototype.equals.call(this, other);
+};
+
+var DoesPauseAndKontinue = function (mode) {
+  return RUNTIME.pauseStack(function (restarter) {
+    if (mode === "error") {
+      restarter.error(new Error("Error case of DoesPauseAndKontinue"));
+    } else {
+      restarter.resume(new EllipseImage(30, 30, "solid", convertColor("green")));
+    }
+  });
 }
 
 
@@ -1972,5 +2083,11 @@ return module.exports = {
   },
   "scene-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
     return SceneLineImage(img, x1, y1, x2, y2, convertColor(color));
+  },
+  "image-url": /* @stopify flat */ function (url) {
+    return ImageUrlImage(url);
+  },
+  "bitmap-url": /* @stopify flat */ function (url) {
+    return ImageUrlImage(url);
   }
 };

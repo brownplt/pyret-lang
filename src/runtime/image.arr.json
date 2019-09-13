@@ -73,7 +73,9 @@
       "put-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
       "place-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
       "place-image-align": ["arrow", ["Image", "Number", "Number", "String", "String", "Image"], "Image"],
-      "scene-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"]
+      "scene-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
+      "image-url": ["arrow", ["String"], "Image"],
+      "bitmap-url": ["arrow", ["String"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
