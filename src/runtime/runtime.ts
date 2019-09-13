@@ -414,14 +414,14 @@ function checkResults(): CheckResult[] {
     }
   });
 
-  if (errorResults === 0) {
+  if (errorCount === 0) {
     console.log("All tests pass");
   } else {
     _globalCheckResults.forEach((result) => {
       if (result.success) {
-        console.log(`[PASS] Found <${lhs}>. Expected <${rhs}> [${path}] (at ${loc})`);
+        console.log(`[PASS] Found <${result.lhs}>. Expected <${result.rhs}> [${result.path}] (at ${result.loc})`);
       } else {
-        console.log(`[PASS] Found <${lhs}>. Expected <${rhs}> [${path}] (at ${loc})`);
+        console.log(`[FAIL] Found <${result.lhs}>. Expected <${result.rhs}> [${result.path}] (at ${result.loc})`);
       }
     });
   }
