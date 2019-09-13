@@ -384,6 +384,64 @@ function _spy(spyObject: SpyObject): void {
   }
 }
 
+// *********Check Stuff*********
+interface CheckResult {
+  success: boolean,
+  path: string,
+  loc: string,
+  lhs: any,
+  rhs: any,
+}
+
+interface CheckTestResult {
+  success: boolean,
+  lhs: any,
+  rhs: any,
+}
+
+var _globalCheckContext: string[] = [];
+var _globalCheckResults: CheckResult[] = [];
+
+function checkResults(): CheckResult[] {
+  return _globalCheckResults.slice();
+}
+
+function eagerCheckTest(test: () => CheckTestResult, loc: string): void {
+  try {
+    let result = test();
+    _globalCheckResults.push({
+        success: result.success,
+        path: _globalCheckContext.join(),
+        loc: loc,
+        lhs: result.lhs,
+        rhs: result.rhs,
+    });
+  } catch(e) {
+    _globalCheckResults.push({
+        success: false,
+        path: _globalCheckContext.join(),
+        loc: loc,
+        lhs: undefined,
+        rhs: undefined,
+    });
+  } 
+}
+
+function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
+  _globalCheckContext.push(name);
+
+  try {
+    checkBlock();
+
+  } catch(e) {
+    throw e;
+
+  } finally {
+
+    _globalCheckContext.pop();
+  }
+}
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
@@ -432,6 +490,10 @@ module.exports["is-Unknown"] = isUnknown;
 // Expected runtime functions
 module.exports["$spy"] = _spy;
 module.exports["$rebind"] = _rebind;
+
+module.exports["$checkTest"] = eagerCheckTest;
+module.exports["$checkBlock"] = eagerCheckBlockRunner;
+module.exports["$checkResults"] = checkResults;
 
 module.exports["$makeRational"] = _NUMBER["makeRational"];
 module.exports["$makeRoughnum"] = _NUMBER["makeRoughnum"];
