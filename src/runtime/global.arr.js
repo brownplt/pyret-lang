@@ -106,4 +106,13 @@ module.exports = {
       return numbers['ceiling'](n);
     }
   },
+  'num-sqrt': numbers['sqrt'],
+  'num-sqr': numbers['sqr'],
+  'num-ceiling': numbers['ceiling'],
+  'num-floor': numbers['floor'],
+  'num-round': numbers['round'],
+  'num-round-even': numbers['round-even'],
+  'num-log': numbers['log'],
+  'num-exp': numbers['exp'],
+  'num-expt': numbers['expt'],
 };
