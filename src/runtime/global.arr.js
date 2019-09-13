@@ -119,4 +119,8 @@ module.exports = {
   'num-is-integer': numbers['isInteger'],
   'num-is-rational': numbers['isRational'],
   'num-is-roughnum': numbers['isRoughnum'],
+  'num-to-string': function(n) {
+    return String(n);
+  },
+  'num-to-string-digits': numbers['toStringDigits'],
 };

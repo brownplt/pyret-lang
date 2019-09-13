@@ -80,6 +80,8 @@
       "num-is-integer": ["arrow", ["Number"], "Boolean"],
       "num-is-rational": ["arrow", ["Number"], "Boolean"],
       "num-is-roughnum": ["arrow", ["Number"], "Boolean"],
+      "num-to-string": ["arrow", ["Number"], "String"],
+      "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
       "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
