@@ -170,7 +170,6 @@ GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
 REACTOR = const-id("_reactor")
-SPY = const-id("_spy")
 NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
@@ -977,7 +976,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         cl-append(stmts, cl-sing(j-expr(field-extend)))
       end
 
-      rebind-stmt = j-expr(rt-method("_rebind", [clist: j-id(shallow-copy-name)]))
+      rebind-stmt = j-expr(rt-method("$rebind", [clist: j-id(shallow-copy-name)]))
 
       { j-id(shallow-copy-name); cl-snoc(extend-stmts, rebind-stmt) }
 
@@ -1633,7 +1632,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
         # TODO(alex): builtin spy function call or inline formatting/reporting?
         # Builtin spy function call
-        spy-call = rt-method("_spy", cl-sing(spy-block-obj))
+        spy-call = rt-method("$spy", cl-sing(spy-block-obj))
 
         { j-undefined; cl-sing(spy-call) }
       else:
