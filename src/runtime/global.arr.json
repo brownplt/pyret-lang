@@ -66,6 +66,7 @@
       "num-atan": ["arrow", ["Number"], "Number"],
       "num-atan2": ["arrow", ["Number", "Number"], "Number"],
       "num-modulo": ["arrow", ["Number", "Number"], "Number"],
+      "num-truncate": ["arrow", ["Number"], "Number"],
       "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],

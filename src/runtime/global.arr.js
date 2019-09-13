@@ -99,4 +99,11 @@ module.exports = {
   'num-atan': numbers['atan'],
   'num-atan2': numbers['atan2'],
   'num-modulo': numbers['modulo'],
+  'num-truncate': function(n) {
+    if (numbers['greaterThan'](n, 0)) {
+      return numbers['floor'](n);
+    } else {
+      return numbers['ceiling'](n);
+    }
+  },
 };
