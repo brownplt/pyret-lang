@@ -50,6 +50,9 @@ data CompiledCodePrinter:
       self.dict.get-value("theModule").print-ugly-source(printer)
     end
   | ccp(compiled :: J.JExpr) with:
+    method pyret-to-js-static(self) -> String:
+      self.compiled.to-ugly-source()
+    end,
     method pyret-to-js-pretty(self) -> PP.PPrintDoc:
       self.compiled.tosource()
     end,
@@ -70,6 +73,9 @@ data CompiledCodePrinter:
       printer(self.compiled)
     end
   | ccp-two-files(static-path :: String, code-path :: String) with:
+    method pyret-to-js-static(self) -> String:
+      F.file-to-string(self.static-path)
+    end,
     method pyret-to-js-pretty(self, width) -> String:
       raise("Cannot generate pretty JS from code string")
     end,

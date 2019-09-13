@@ -1,5 +1,6 @@
-### { z: 3, y: 2, x: 1 }
+### pass
 
+import list as L
 import string-dict as D
 import global as G
 
@@ -9,8 +10,8 @@ end
 
 dict :: StringDict<Number> = [D.string-dict: {x: 1, y: 2, z: 3}]
 
-fun printList(str-dict :: StringDict<Number>):
-  G.console-log( str-dict )
+fun type-check(str-dict :: StringDict<Number>):
+  G.console-log("pass")
 end
 
-printList( dict )
+type-check( dict )

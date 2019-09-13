@@ -67,8 +67,9 @@ function echoErr(contents) {
   consoleSetup.workerError(contents);
 }
 
-function compileFailure() {
+function compileFailure(errors) {
   consoleSetup.workerError("Compilation failure");
+  consoleSetup.workerError(errors);
 }
 
 function compileSuccess() {
@@ -88,7 +89,7 @@ function compileSuccess() {
   }
 }
 
-const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, echoErr, compileFailure, compileSuccess);
+const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, compileFailure, echoLog, () => {}, () => {}, compileSuccess);
 
 control.worker.onmessage = function(e) {
 

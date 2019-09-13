@@ -1,6 +1,8 @@
 // @ts-ignore
 const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
+const parse = require("csv-parse/lib/sync")
+const fs = require("fs");
 
 interface Table {
   'add-column': (columnName: string, newVals: any[]) => Table,
@@ -352,6 +354,63 @@ function _makeTable(headers: string[], rows: any[][]): Table {
   };
 
   return table;
+}
+
+type TableSkeleton = { headers: string[], rows: any[][] };
+
+function _tableSkeletonChangeHeaders(
+  skeleton: TableSkeleton,
+  newHeaders: string[]): TableSkeleton {
+  if (newHeaders.length !== skeleton.headers.length) {
+    throw new Error("Expected " + skeleton.headers.length + " headers, but got "
+                    + newHeaders.length + " in " + newHeaders);
+  }
+
+  return { headers: newHeaders, rows: skeleton.rows };
+}
+
+function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
+  const headers = [];
+
+  const csv = parse(s, {
+    columns: (header: string[]) => {
+      return header.map((column: string) => {
+        headers.push(column);
+        return column;
+      });
+    }
+  })
+
+  const rows: any[][] = csv.map((row: object) => {
+    const result = [];
+
+    for (let i = 0; i < headers.length; i++) {
+      result.push(row[headers[i]]);
+    }
+
+    return result;
+  });
+
+  return { headers: headers, rows: rows };
+}
+
+function _makeTableSkeletonFromCSVFile(path: string): TableSkeleton {
+  const contents = fs.readFileSync(path, { encoding: "utf-8" });
+  return _makeTableSkeletonFromCSVString(contents);
+}
+
+function _makeTableFromTableSkeleton(s: TableSkeleton): Table {
+  return _makeTable(s.headers, s.rows);
+}
+
+function _makeTableFromCSVString(s: string): Table {
+  const skeleton = _makeTableSkeletonFromCSVString(s);
+  return _makeTableFromTableSkeleton(skeleton);
+}
+
+function _makeTableFromCSVFile(path: string): Table {
+  const contents = fs.readFileSync(path, { encoding: "utf-8" });
+  return _makeTableFromCSVString(contents);
 }
 
 // Changes the elements of a table in the specified column using the given function
@@ -913,6 +972,12 @@ function tableFromColumn(columnName: string, values: any[]): Table {
 }
 
 module.exports = {
+  '_makeTableSkeletonFromCSVString': _makeTableSkeletonFromCSVString,
+  '_makeTableFromTableSkeleton': _makeTableFromTableSkeleton,
+  '_tableSkeletonChangeHeaders': _tableSkeletonChangeHeaders,
+  'csv-open': _makeTableSkeletonFromCSVFile,
+  '_makeTableFromCSVFile': _makeTableFromCSVFile,
+  '_makeTableFromCSVString': _makeTableFromCSVString,
   '_primitiveEqual': _primitiveEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {

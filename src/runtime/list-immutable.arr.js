@@ -1,4 +1,6 @@
-const { List } = require( 'immutable' );
+// NOTE(alex): Cannot use object binding pattern b/c Babel limitations (through Stopify)
+const immutable = require( 'immutable' );
+const List = immutable.List;
 
 module.exports = {
   'list': {
@@ -27,7 +29,10 @@ module.exports = {
   'flatten': function( list ) {
     return list.flatten();
   },
-  'slice': function( list, start, end = list.length ) {
+  'slice': function( list, start, end ) {
+    if (end === undefined) {
+      end = list.length;
+    }
     return list.slice( start, end );
   },
   'push': function( list, elm ) {
@@ -49,7 +54,7 @@ module.exports = {
     return list.max();
   },
   'range': function( start, end ) {
-    list = List( [] );
+    let list = List( [] );
 
     for ( var i = start; i < end; i++ ) {
       list = list.push( i );

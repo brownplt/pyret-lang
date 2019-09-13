@@ -2,18 +2,7 @@
   requires: [],
   provides: {
     values: {
-      "open-input-file": "tany",
-      "open-output-file": "tany",
-      "read-file": "tany",
-      "display": "tany",
-      "flush-output-file": "tany",
-      "file-times": "tany",
-      "real-path": "tany",
-      "exists": "tany",
-      "close-output-file": "tany",
-      "close-input-file": "tany",
-      "create-dir": "tany",
-      "list-files": "tany"
+      "setupHandlers": "tany"
     }
   },
   nativeRequires: [],

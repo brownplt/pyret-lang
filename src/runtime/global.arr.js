@@ -17,12 +17,8 @@ function numToString(n) {
   return String(n);
 }
 
-function timeNow( otherTime ) {
-  if ( otherTime === undefined ) {
-    return process.hrtime();
-  } else {
-    return process.hrtime( otherTime );
-  }
+function timeNow() {
+  return new Date().getTime();
 }
 
 module.exports = {

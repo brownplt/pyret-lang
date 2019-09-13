@@ -23,6 +23,37 @@ export const runProgram = backend.runProgram;
 export const compileProgram = backend.compileProgram;
 export const fs = bfsSetup.fs;
 
+export const createFile = (file: string): void => {
+  bfsSetup.fs.writeFileSync(file, "");
+};
+
+export const createDirectory = (dir: string): void => {
+  bfsSetup.fs.mkdirSync(dir);
+};
+
+export const removeFile = (path: string): void => {
+  bfsSetup.fs.unlinkSync(path);
+};
+
+// Synchronous deleteDir
+export const removeDirectory = (dir: string): void => {
+  const files = bfsSetup.fs.readdirSync(dir);
+
+  files.forEach((file: string) => {
+    const filePath = bfsSetup.path.join(dir, file);
+
+    const stats = bfsSetup.fs.statSync(filePath);
+
+    if (stats.isDirectory()) {
+      removeDirectory(filePath);
+    } else {
+      bfsSetup.fs.unlinkSync(filePath);
+    }
+  });
+
+  bfsSetup.fs.rmdirSync(dir);
+};
+
 export const deleteDir = (dir: string): void => {
   bfsSetup.fs.readdir(dir, function(err: any, files: any) {
     if (err) {
@@ -55,6 +86,18 @@ export const removeRootDirectory = (): void => {
   deleteDir(path.root);
 };
 
+export const lint = (
+  programFileName: string,
+  programText: string): void => {
+  backend.lintProgram(
+    worker,
+    {
+      "program": programFileName,
+      "programSource": programText
+    });
+};
+
+
 export const compile = (
   baseDirectory: string,
   programFileName: string,
@@ -66,7 +109,8 @@ export const compile = (
       "baseDir": baseDirectory,
       "builtinJSDir": path.compileBuiltinJS,
       "checks": "none",
-      "typeCheck": typeCheck
+      "typeCheck": typeCheck,
+      "recompileBuiltins": false
     });
 };
 
@@ -86,13 +130,17 @@ export const run = (
 
 export const setupWorkerMessageHandler = (
   onLog: (l: string) => void,
-  onError: (e: string) => void,
-  onCompileFailure: () => void,
+  onCompileFailure: (e: string[]) => void,
+  onRuntimeFailure: (e: string[]) => void,
+  lintFailure: (data: { name: string, errors: string[]}) => void,
+  lintSuccess: (data: { name: string }) => void,
   onCompileSuccess: () => void): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
-    onError,
     onCompileFailure,
+    onRuntimeFailure,
+    lintFailure,
+    lintSuccess,
     onCompileSuccess);
 };
 

@@ -3,8 +3,9 @@ import {TableWidget} from './Table';
 import {ImageWidget} from './Image';
 
 type InteractionProps = {
-    name: string,
-    value: any
+    name: string;
+    value: any;
+    setMessage: (newMessage: string) => void;
 };
 
 type InteractionState = {};
@@ -26,7 +27,8 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
             return (
                 <TableWidget headers={value._headers}
                              rows={value._rows}
-                             htmlify={this.convert}>
+                             htmlify={this.convert}
+                             setMessage={this.props.setMessage}>
                 </TableWidget>
             );
         } else if (value.$brand === 'image') {
@@ -41,9 +43,13 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
     };
 
     render() {
+        if (this.props.name === "$checks" || this.props.name === "$answer") {
+            return null;
+        }
+
         return (
             <div className="interaction">
-                <pre>
+                <pre className="interaction-identifier">
                     {this.props.name} =&nbsp;
                 </pre>
                 {this.convert(this.props.value)}

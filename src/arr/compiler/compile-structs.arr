@@ -596,6 +596,16 @@ data CompileError:
           ED.text(" at")],
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
+  | wf-bad-method-expression(method-expr-loc :: A.Loc) with:
+    method render-fancy-reason(self):
+      self.render-reason()
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Method expressions are only allowed as object fields, data share-members, or data with-members. Found one at")],
+        [ED.para: draw-and-highlight(self.method-expr-loc)]]
+    end
   | reserved-name(loc :: Loc, id :: String) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -2742,6 +2752,7 @@ default-compile-options = {
   runtime-path: "../builtin/src/runtime",
   compiled-cache: "compiled",
   compiled-read-only: empty,
+  recompile-builtins: true,
   display-progress: true,
   should-profile: method(_, locator): false end,
   log: lam(s, to-clear):

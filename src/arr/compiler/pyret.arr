@@ -1,9 +1,11 @@
 #lang pyret
 
+import either as E
 import pathlib as P
 import render-error-display as RED
 import string-dict as D
 import system as SYS
+import json as J
 import file("cmdline.arr") as C
 import file("cli-module-loader.arr") as CLI
 import file("compile-lib.arr") as CL
@@ -143,13 +145,42 @@ fun main(args :: List<String>) -> Number block:
               else:
                 r.get-value("build-runnable") + ".jarr"
               end
-              CLI.build-runnable-standalone(
+              result = run-task(lam():
+                CLI.build-runnable-standalone(
                   r.get-value("build-runnable"),
                   r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
                   outfile,
                   CO.populate-options(r, this-pyret-dir)
-              )
-              success-code
+                )
+              end)
+
+              # result = compile(with-builtin-js-dirs) 
+              # run-task(lam():
+              #  compile(with-require-config)
+              # end)
+              cases(E.Either) result block:
+                | right(exn) =>
+                  block:
+                    err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
+                    print-error(err-str)
+                    print-error("\n")
+                    failure-code
+                  end
+                | left(val) =>
+                  cases(E.Either) val block:
+                  | left(errors) =>
+                    block:
+                      err-list = for map(e from errors) block:
+                        err-str = RED.display-to-string(e.render-reason(), tostring, empty)
+                        print-error(err-str)
+                        print-error("\n")
+                      end
+                      failure-code
+                    end
+                  | right(value) =>
+                    success-code
+                  end
+              end
             else if r.has-key("serve"):
               port = r.get-value("port")
               S.serve(port, this-pyret-dir)

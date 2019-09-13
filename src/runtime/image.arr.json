@@ -2,10 +2,74 @@
   "requires": [ ],
   "provides": {
     "shorthands": {
-      "Image": ["local", "Image"]
+      "Image": ["local", "Image"],
+      "lOfC": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "name": "List" }, [["local", "Color"]]]
     },
     "values": {
-      "triangle": ["arrow", ["Number", "String", "String"], "Image"]
+      "triangle": ["arrow", ["Number", "String", "String"], "Image"],
+      "right-triangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "isosceles-triangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "triangle-sss": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "triangle-ass": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "triangle-sas": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "triangle-ssa": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "triangle-aas": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "triangle-asa": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "triangle-saa": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "ellipse": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "circle": ["arrow", ["Number", "String", "String"], "Image"],
+      "rectangle": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "square": ["arrow", ["Number", "String", "String"], "Image"],
+      "rhombus": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "line": ["arrow", ["Number", "Number", "String"], "Image"],
+      "add-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
+      "star": ["arrow", ["Number", "String", "String"], "Image"],
+      "radial-star": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "star-sized": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "star-polygon": ["arrow", ["Number", "Number", "Number", "String", "String"], "Image"],
+      "regular-polygon": ["arrow", ["Number", "Number", "String", "String"], "Image"],
+      "overlay": ["arrow", ["Image", "Image"], "Image"],
+      "overlay-align": ["arrow", ["String", "String", "Image", "Image"], "Image"],
+      "overlay-xy": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
+      "underlay": ["arrow", ["Image", "Image"], "Image"],
+      "underlay-align": ["arrow", ["String", "String", "Image", "Image"], "Image"],
+      "underlay-xy": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
+      "beside": ["arrow", ["Image", "Image"], "Image"],
+      "beside-align": ["arrow", ["String", "Image", "Image"], "Image"],
+      "above": ["arrow", ["Image", "Image"], "Image"],
+      "above-align": ["arrow", ["String", "Image", "Image"], "Image"],
+      "rotate": ["arrow", ["Number", "Image"], "Image"],
+      "text": ["arrow", ["String", "Number", "String"], "Image"],
+      "text-font": ["arrow", ["String", "Number", "String", "String", "String", "String", 
+        "String", "Boolean"], "Image"],
+      "flip-horizontal": ["arrow", ["Image"], "Image"],
+      "flip-vertical": ["arrow", ["Image"], "Image"],
+      "frame": ["arrow", ["Image"], "Image"],
+      "crop": ["arrow", ["Number", "Number", "Number", "Number", "Image"], "Image"],
+      "scale": ["arrow", ["Number", "Image"], "Image"],
+      "scale-xy": ["arrow", ["Number", "Number", "Image"], "Image"],
+      "empty-scene": ["arrow", ["Number", "Number"], "Image"],
+      "is-image": ["arrow", ["Any"], "Boolean"],
+      "image-width": ["arrow", ["Image"], "Number"],
+      "image-height": ["arrow", ["Image"], "Number"],
+      "image-baseline": ["arrow", ["Image"], "Number"],
+      "name-to-color": ["arrow", ["String"], ["local", "Color"]],
+      "is-image-color": ["arrow", ["Any"], "Boolean"],
+      "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
+      "is-side-count": ["arrow", ["Any"], "Boolean"],
+      "is-step-count": ["arrow", ["Number"], "Boolean"],
+      "is-mode": ["arrow", ["Any"], "Boolean"],
+      "is-x-place": ["arrow", ["String"], "Boolean"],
+      "is-y-place": ["arrow", ["Any"], "Boolean"],
+      "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]],
+      "image-to-color-list": ["arrow", ["Image"], "lOfC"],
+      "color-list-to-image": ["arrow", ["Any", "Number", "Number", "Number", "Number"], "Image"],
+      "color-list-to-bitmap": ["arrow", ["Any", "Number", "Number"], "Image"],
+      "put-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
+      "place-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
+      "place-image-align": ["arrow", ["Image", "Number", "Number", "String", "String", "Image"], "Image"]
     },
     "aliases": {
       "Image": { "tag": "name", 
@@ -13,8 +77,8 @@
                  "name": "Image" }
     },
     "datatypes": {
-      "Image": ["data", "Image", [], [], {}]
+      "Image": ["data", "Image", [], [], {}],
+      "Color": ["data", "Color", [], [], {}]
     }
   }
 }
-

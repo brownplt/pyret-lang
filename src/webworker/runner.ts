@@ -1,3 +1,4 @@
+const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
 const immutable = require('immutable');
 export const stopify = require('@stopify/stopify');
@@ -10,7 +11,9 @@ const path = browserFS.path;
 
 const nodeModules = {
   'assert': assert,
-  'immutable': immutable,
+  'csv-parse/lib/sync': csv,
+  'fs': browserFS.fs,
+  'immutable': immutable
 };
 
 function wrapContent(content: string): string {
@@ -21,6 +24,7 @@ export const makeRequireAsync = (
   basePath: string): ((importPath: string) => Promise<any>) => {
   let cwd = basePath;
   let currentRunner: any = null;
+  const cache : {[key:string]: any} = {};
 
   const requireAsyncMain = (importPath: string) => {
     return new Promise(function (resolve, reject) {
@@ -34,6 +38,7 @@ export const makeRequireAsync = (
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
       const stoppedPath = nextPath + ".stopped";
+      if(stoppedPath in cache) { resolve(cache[stoppedPath]); return; }
       let runner: any = null;
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = wrapContent(contents);
@@ -47,10 +52,13 @@ export const makeRequireAsync = (
       };
       runner.g = Object.assign(runner.g, {
         document,
+        Number,
         Math,
         Array,
         Object,
+        RegExp,
         stopify,
+        Error,
         require: requireAsync,
         "module": stopifyModuleExports,
         // TS 'export' syntax desugars to 'exports.name = value;'
@@ -60,7 +68,8 @@ export const makeRequireAsync = (
         setTimeout: setTimeout,
         console: console,
         parseFloat,
-        isNaN
+        isNaN,
+        isFinite
       });
       runner.path = nextPath;
       currentRunner = runner;
@@ -72,6 +81,7 @@ export const makeRequireAsync = (
           return;
         }
         const toReturn = runner.g.module.exports;
+        cache[stoppedPath] = toReturn;
         resolve(toReturn);
       });
     });
@@ -88,6 +98,7 @@ export const makeRequireAsync = (
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const stoppedPath = nextPath + ".stopped";
+    if(stoppedPath in cache) { return cache[stoppedPath]; }
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
       const module = {
@@ -116,9 +127,11 @@ export const makeRequireAsync = (
         }
         const toReturn = currentRunner.g.module.exports;
         currentRunner.path = lastPath;
-        currentRunner.module = lastModule;
+        // g.exports and g.module may be overwritten by JS code. Need to restore
+        currentRunner.g.module = lastModule;
         // Need to set 'exports' global to work with TS export desugaring
-        currentRunner.module.exports = lastModule.exports;
+        currentRunner.g.exports = lastModule.exports;
+        cache[stoppedPath] = toReturn;
         kontinue({ type: 'normal', value: toReturn });
       });
     });
@@ -128,6 +141,7 @@ export const makeRequireAsync = (
 };
 
 export const makeRequire = (basePath: string): ((importPath: string) => any) => {
+  const cache : {[key:string]: any} = {};
   var cwd = basePath;
   /*
     Recursively eval (with this definition of require in scope) all of the
@@ -146,6 +160,7 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
+    if(nextPath in cache) { return cache[nextPath]; }
     cwd = path.parse(nextPath).dir;
     if(!fs.existsSync(nextPath)) {
       throw new Error("Path did not exist in requireSync: " + nextPath);
@@ -162,6 +177,7 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     const result = f(requireSync, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
     cwd = oldWd;
+    cache[nextPath] = toReturn;
     return toReturn;
   };
 

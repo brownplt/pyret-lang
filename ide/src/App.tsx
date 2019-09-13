@@ -1,31 +1,80 @@
 import React from 'react';
 import './App.css';
-import {Interaction} from './Interaction';
+import { Interaction } from './Interaction';
+import { DefChunks } from './DefChunks';
+import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
+import { Menu, Tab } from './Menu';
+import { Footer } from './Footer';
+import { FontSize } from './FontSize';
+import { FSBrowser } from './FSBrowser';
+import { Dropdown, DropdownOption } from './Dropdown';
+import { Header } from './Header';
+import { InteractionError } from './InteractionError';
 import * as control from './control';
-import {UnControlled as CodeMirror} from 'react-codemirror2';
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/theme/material.css';
-import 'codemirror/mode/javascript/javascript.js';
-
-// pyret-codemirror-mode/mode/pyret.js expects window.CodeMirror to exist and
-// to be bound to the 'codemirror' import.
-import * as RawCodeMirror from 'codemirror';
-(window as any).CodeMirror = RawCodeMirror;
-require('pyret-codemirror-mode/mode/pyret');
+import SplitterLayout from 'react-splitter-layout';
+import 'react-splitter-layout/lib/index.css';
 
 control.installFileSystem();
 control.loadBuiltins();
 
+enum EEditor {
+    Chunks,
+    Text,
+}
+
 type AppProps = {};
 type AppState = {};
 
-function makeResult(result: any): {name: string, value: any}[] {
-    return Object.keys(result).sort().map((key) => {
-        return {
-            name: key,
-            value: result[key]
+function makeResult(result: any, compiledJSONPath: string): { name: string, value: any }[] {
+    const programJSON = JSON.parse(
+        control.bfsSetup.fs.readFileSync(compiledJSONPath));
+
+    const providedValues = programJSON.provides.values;
+    const providedValuesKeys = Object.keys(programJSON.provides.values);
+
+    const insertLineNumber = (key: string) => {
+        const column =
+            providedValues[key].origin["local-bind-site"][1];
+        return { line: column, name: key, value: result[key] };
+    };
+
+    type Result = {
+        line: number,
+        name: string,
+        value: any,
+    };
+
+    const compareResults = (a: Result, b: Result): number => {
+        if (a.line < b.line) {
+            return -1;
+        } else if (a.line > b.line) {
+            return 1;
+        } else {
+            return 0;
         }
-    });
+    };
+
+    if (providedValuesKeys.length !== 0) {
+        // we have source location information for bindings, so we sort them
+        // based on which column they are bound on
+        return providedValuesKeys
+            .map(insertLineNumber)
+            .sort(compareResults);
+    } else {
+        // we do not have source location information for bindings, so we sort
+        // them alphabetically by identifier name
+        return Object.keys(result).sort().map((key) => {
+            return {
+                name: key,
+                value: result[key]
+            }
+        });
+    }
+}
+
+type LintFailure = {
+    name: string,
+    errors: string[]
 }
 
 type EditorProps = {
@@ -42,55 +91,107 @@ type EditorState = {
     currentFileName: string;
     currentFileContents: string;
     typeCheck: boolean;
-    interactions: {name: string, value: any}[];
-    fsBrowserVisible: boolean;
+    interactions: { name: string, value: any }[];
+    interactionErrors: string[];
+    interactErrorExists: boolean;
+    lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
     autoRun: boolean;
     updateTimer: NodeJS.Timer;
+    dropdownVisible: boolean;
+    fontSize: number;
+    editorMode: EEditor,
+    message: string;
+    definitionsHighlights: number[][];
+    fsBrowserVisible: boolean;
 };
-
-type FSItemProps = {
-    onClick: () => void;
-    contents: string;
-};
-
-type FSItemState = {};
-
-class FSItem extends React.Component<FSItemProps, FSItemState> {
-    get contents() {
-        return this.props.contents;
-    }
-
-    render() {
-        return (
-            <li onClick={this.props.onClick}
-                className="fs-browser-item">
-                {this.props.contents}
-            </li>
-        );
-    }
-}
 
 class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
 
+        const onLintFailure = (lintFailure : { name: string, errors: string[]}) => {
+            let newFailures = this.state.lintFailures;
+            const name = lintFailure.name;
+            newFailures[name] = lintFailure;
+            this.setState({ lintFailures: newFailures });
+        }
+        const onLintSuccess = (lintSuccess : { name: string}) => {
+            let newFailures = this.state.lintFailures;
+            const name = lintSuccess.name;
+            if(name in newFailures) { delete newFailures[name]; }
+            this.setState({ lintFailures: newFailures });
+        }
+
         control.setupWorkerMessageHandler(
             console.log,
-            console.log,
-            () => { return; },
+            (errors: string[]) => {
+                this.setMessage("Compilation failed with error(s)")
+                const places: any = [];
+                for (let i = 0; i < errors.length; i++) {
+                    const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
+                    if (matches !== null) {
+                        matches.forEach((m) => {
+                            places.push(m.match(/\d+/g)!.map(Number));
+                        });
+                    }
+                }
+                this.setState(
+                    {
+                        interactionErrors: errors,
+                        interactErrorExists: true,
+                        definitionsHighlights: places
+                    }
+                );
+            },
+            (errors: string[]) => {
+                this.setState(
+                    {
+                        interactionErrors: [errors.toString()],
+                        interactErrorExists: true,
+                    }
+                );
+            },
+            onLintFailure,
+            onLintSuccess,
             () => {
+                this.setMessage("Run started");
                 control.run(
                     control.path.runBase,
                     control.path.runProgram,
                     (runResult: any) => {
                         console.log(runResult);
                         if (runResult.result !== undefined) {
-                            this.setState(
-                                {
-                                    interactions: makeResult(runResult.result)
+                            if (runResult.result.error === undefined) {
+                                this.setMessage("Run completed successfully");
+
+                                const results =
+                                    makeResult(
+                                        runResult.result,
+                                        control.bfsSetup.path.join(
+                                            control.path.runBase,
+                                            `${this.state.currentFileName}.json`));
+
+                                this.setState({
+                                    interactions: results
+                                });
+
+                                if (results[0].name === "error") {
+                                    this.setState(
+                                        {
+                                            interactionErrors: runResult.result.error,
+                                            interactErrorExists: true
+                                        }
+                                    );
                                 }
-                            );
+                            } else {
+                                this.setMessage("Run failed with error(s)");
+
+                                this.setState({
+                                    interactionErrors: [runResult.result.error],
+                                    interactErrorExists: true
+                                });
+                            }
                         }
                     },
                     this.state.runKind);
@@ -110,19 +211,23 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
-            fsBrowserVisible: false,
+            interactionErrors: [],
+            interactErrorExists: false,
+            lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
             updateTimer: setTimeout(this.update, 2000),
+            dropdownVisible: false,
+            editorMode: EEditor.Text,
+            fontSize: 12,
+            message: "Ready to rock",
+            definitionsHighlights: [],
+            fsBrowserVisible: false,
         };
     };
 
     get isPyretFile() {
         return /\.arr$/.test(this.currentFile);
-    }
-
-    get browsePath() {
-        return control.bfsSetup.path.join(...this.state.browsePath);
     }
 
     get currentFile() {
@@ -139,18 +244,25 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return control.bfsSetup.path.join(...this.state.currentFileDirectory);
     }
 
-    get browsingRoot() {
-        return control.bfsSetup.path.join(...this.state.browsePath) ===
-            this.state.browseRoot;
+    get stopify() {
+        return this.state.runKind === control.backend.RunKind.Async;
     }
 
     run = () => {
+        this.setState(
+            {
+                interactionErrors: [],
+                interactErrorExists: false
+            }
+        );
         if (this.isPyretFile) {
+            this.setMessage("Compilation started");
             control.compile(
                 this.currentFileDirectory,
                 this.currentFileName,
                 this.state.typeCheck);
         } else {
+            this.setMessage("Visited a non-pyret file");
             this.setState({
                 interactions: [
                     {
@@ -160,7 +272,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {
                         name: "File",
                         value: this.currentFile
-                    }]
+                    }],
+                interactionErrors: ["Error: Run is not supported on this file type"],
+                interactErrorExists: true
             });
         }
     };
@@ -174,77 +288,42 @@ class Editor extends React.Component<EditorProps, EditorState> {
         }
     }
 
-    onEdit = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
+    onEdit = (value: string): void => {
         clearTimeout(this.state.updateTimer);
-
         this.setState({
             currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250)
+            updateTimer: setTimeout(this.update, 250),
         });
-    };
+    }
 
-    traverseDown = (childDirectory: string) => {
-        const newPath = this.state.browsePath.slice();
-        newPath.push(childDirectory);
-
+    onTraverseDown = (path: string[]) => {
         this.setState({
-            browsePath: newPath,
+            browsePath: path,
         });
     };
 
-    traverseUp = () => {
-        const newPath = this.state.browsePath.slice();
-        newPath.pop();
-
+    onTraverseUp = (path: string[]) => {
         this.setState({
-            browsePath: newPath,
+            browsePath: path,
         });
     };
 
-    expandChild = (child: string) => {
-        const fullChildPath =
-            control.bfsSetup.path.join(this.browsePath, child);
-        const stats = control.fs.statSync(fullChildPath);
-
-        if (stats.isDirectory()) {
-            this.traverseDown(child);
-        } else if (stats.isFile()) {
-            this.setState({
-                interactions: [{
-                    name: "Note",
-                    value: "Press Run to compile and run"
-                }],
-                currentFileDirectory: this.state.browsePath,
-                currentFileName: child,
-                currentFileContents: control.fs.readFileSync(fullChildPath, "utf-8"),
-            });
-        }
-    };
-
-    createFSItemPair = (filePath: string) => {
-        return [
-            filePath,
-            <FSItem key={filePath}
-                    onClick={() => this.expandChild(filePath)}
-                    contents={filePath}/>
-        ];
-    };
-
-    compareFSItemPair = (a: [string, FSItem], b: [string, FSItem]) => {
-        if (a[0] < b[0]) {
-            return -1;
-        } else if (a[0] > b[0]) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
-
-    toggleFSBrowser = () => {
+    onExpandChild = (child: string, fullChildPath: string): void => {
         this.setState({
-            fsBrowserVisible: !this.state.fsBrowserVisible
+            interactions: [{
+                name: "Note",
+                value: "Press Run to compile and run"
+            }],
+            currentFileDirectory: this.state.browsePath,
+            currentFileName: child,
+            currentFileContents: control.fs
+                                        .readFileSync(fullChildPath, "utf-8"),
         });
     };
+
+    setEditorMode = (editorMode: EEditor) => {
+        this.setState({ editorMode });
+    }
 
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
         control.loadBuiltins();
@@ -252,139 +331,229 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
         control.removeRootDirectory();
+    };
+
+    makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => {
+        return (
+            <button className={(enabled ? "run-option-enabled" : "run-option-disabled")}
+                    onClick={onClick}>
+                {text}
+            </button>
+        );
+    };
+
+    toggleDropdownVisibility = (e: any) => {
+        this.setState({
+            dropdownVisible: !this.state.dropdownVisible
+        });
+    };
+
+    toggleAutoRun = () => {
+        this.setState({
+            autoRun: !this.state.autoRun
+        });
+    };
+
+    toggleStopify = () => {
+        if (this.stopify) {
+            this.setState({
+                runKind: control.backend.RunKind.Sync
+            });
+        } else {
+            this.setState({
+                runKind: control.backend.RunKind.Async
+            })
+        }
+    };
+
+    toggleTypeCheck = () => {
+        this.setState({
+            typeCheck: !this.state.typeCheck
+        });
+    };
+
+    onDecreaseFontSize = () => {
+        if (this.state.fontSize > 1) {
+            this.setState({
+                fontSize: this.state.fontSize - 1
+            });
+        }
+    };
+
+    onIncreaseFontSize = () => {
+        this.setState({
+            fontSize: this.state.fontSize + 1
+        });
+    };
+
+    onResetFontSize = () => {
+        this.setState({
+            fontSize: 12
+        });
+    };
+
+    removeDropdown = () => {
+        this.setState({
+            dropdownVisible: false
+        });
+    };
+
+    setMessage = (newMessage: string) => {
+        this.setState({
+            message: newMessage
+        });
+    };
+
+    makeDefinitions() {
+        if (this.state.editorMode === EEditor.Text) {
+            return <SingleCodeMirrorDefinitions
+                text={this.state.currentFileContents}
+                onEdit={this.onEdit}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}>
+            </SingleCodeMirrorDefinitions>;
+        }
+        else if (this.state.editorMode === EEditor.Chunks) {
+            return (<DefChunks
+                lintFailures={this.state.lintFailures}
+                name={this.state.currentFileName}
+                highlights={this.state.definitionsHighlights}
+                interactErrorExists={this.state.interactErrorExists}
+                program={this.state.currentFileContents}
+                onEdit={this.onEdit}></DefChunks>);
+        }
     }
 
     render() {
+        const interactionValues =
+            <pre className="interactions-area"
+                 style={{ fontSize: this.state.fontSize }}>
+                {
+                    this.state.interactions.map(
+                        (i) => {
+                            return <Interaction key={i.name}
+                                                name={i.name}
+                                                value={i.value}
+                                                setMessage={this.setMessage}/>
+                        })
+                }
+            </pre>;
+
+        const dropdown = this.state.dropdownVisible && (
+            <Dropdown>
+                <DropdownOption enabled={this.state.autoRun}
+                                onClick={this.toggleAutoRun}>
+                    Auto Run
+                </DropdownOption>
+                <DropdownOption enabled={this.stopify}
+                                onClick={this.toggleStopify}>
+                    Stopify
+                </DropdownOption>
+                <DropdownOption enabled={this.state.typeCheck}
+                                onClick={this.toggleTypeCheck}>
+                    Type Check
+                </DropdownOption>
+            </Dropdown>);
+
+        const fsBrowser =
+            <FSBrowser root={this.state.browseRoot}
+                       onTraverseUp={this.onTraverseUp}
+                       onTraverseDown={this.onTraverseDown}
+                       onExpandChild={this.onExpandChild}
+                       browsePath={this.state.browsePath}
+                       key="FSBrowser">
+            </FSBrowser>;
+
+        const fontSize =
+            <FontSize onIncrease={this.onIncreaseFontSize}
+                      onDecrease={this.onDecreaseFontSize}
+                      onReset={this.onResetFontSize}
+                      size={this.state.fontSize}
+                      key="FontSize">
+            </FontSize>;
+
+        const textEditor =
+            <button className="text-editor"
+                    onClick={() => this.setEditorMode(EEditor.Text)}
+                    key="TextEditor">
+                Text
+            </button>;
+
+        const chunkEditor =
+            <button className="chunk-editor"
+                    onClick={() => this.setEditorMode(EEditor.Chunks)}
+                    key="ChunkEditor">
+                Chunks
+            </button>;
+
+        const builtinsLoader =
+            <button onClick={control.loadBuiltins}>
+                Load Builtins
+            </button>;
+
+        const menu =
+            <Menu>
+                <Tab name="📁">
+                    {fsBrowser}
+                </Tab>
+                <Tab name="⚙">
+                    {textEditor}
+                    {chunkEditor}
+                    {builtinsLoader}
+                    {fontSize}
+                </Tab>
+            </Menu>;
+
+        const rightHandSide =
+            <div className="interactions-area-container">
+                {this.state.interactErrorExists ? (
+                    <SplitterLayout vertical={true}
+                                    percentage={true}>
+                        {interactionValues}
+                        <InteractionError fontSize={this.state.fontSize}>
+                            {this.state.interactionErrors}
+                        </InteractionError>
+                    </SplitterLayout>
+                ) : interactionValues}
+            </div>;
+
+        const definitions = this.makeDefinitions();
+
         return (
-            <div id="outer-box">
-                <div id="header">
-                    <button className="right-header-button"
-                            onClick={this.run}>
-                        Run
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.toggleFSBrowser}>
-                        File System
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.loadBuiltins}>
-                        Load Builtins
-                    </button>
-                    <button className="left-header-button"
-                            onClick={this.removeRootDirectory}>
-                        Remove Root
-                    </button>
-                    <div className="header-run-option">
-                        <input type="checkbox"
-                               checked={this.state.typeCheck}
-                               name="typeCheck"
-                               onChange={(e) => {
-                                   this.setState({
-                                       typeCheck: !this.state.typeCheck
-                                   });
-                               }}>
-                        </input>
-                        <label htmlFor="typeCheck">
-                            Type Check
-                        </label>
+            <div className="page-container">
+                <Header>
+                    {this.stopify ? (
+                        <button className="stop-available">
+                            Stop
+                        </button>
+                    ) : (
+                        <button className="stop-unavailable">
+                            Stop
+                        </button>
+                    )}
+                    <div className="run-container">
+                        <button className="run-ready"
+                                onClick={this.run}>
+                            Run
+                        </button>
+                        <button className="run-options"
+                                onClick={this.toggleDropdownVisibility}
+                                onBlur={this.removeDropdown}>&#8628;{dropdown}
+                        </button>
                     </div>
-                    <div className="header-run-option">
-                        <input type="checkBox"
-                               checked={this.state.runKind === control.backend.RunKind.Async}
-                               name="stopify"
-                               onChange={(e) => {
-                                   if (this.state.runKind === control.backend.RunKind.Async) {
-                                       this.setState({
-                                           runKind: control.backend.RunKind.Sync
-                                       });
-                                   } else {
-                                       this.setState({
-                                           runKind: control.backend.RunKind.Async
-                                       })
-                                   }
-                               }}>
-                        </input>
-                        <label htmlFor="stopify">
-                            Stopify
-                        </label>
-                    </div>
-                    <div className="header-run-option">
-                        <input type="checkBox"
-                               checked={this.state.autoRun}
-                               name="autoRun"
-                               onChange={(e) => {
-                                   this.setState({
-                                       autoRun: !this.state.autoRun
-                                   });
-                               }}>
-                        </input>
-                        <label htmlFor="autoRun">
-                            Auto Run
-                        </label>
-                    </div>
-                </div>
-                <div id="main">
-                    <div id="edit-box">
-                        {
-                            (this.state.fsBrowserVisible ? (
-                                <ul id="fs-browser">
-                                    {(!this.browsingRoot) ? (
-                                        <li onClick={() => {
-                                            this.traverseUp();
-                                        }}
-                                            className="fs-browser-item">
-                                            ..
-                                        </li>
-                                    ) : (
-                                        null
-                                    )}
-                                    {
-                                        control.fs
-                                            .readdirSync(this.browsePath)
-                                            .map(this.createFSItemPair)
-                                            .sort(this.compareFSItemPair)
-                                            .map((x: [string, FSItem]) => x[1])
-                                    }
-                                </ul>
-                            ) : (
-                                null
-                            ))
-                        }
-                        <div id="file-container">
-                            <div id="file-name-label">
-                                {this.currentFile}
-                            </div>
-                            <div id="main-container">
-                                <div id="definitions-container">
-                                    <CodeMirror
-                                        value={this.state.currentFileContents}
-                                        options={{
-                                            mode: 'pyret',
-                                            theme: 'material',
-                                            lineNumbers: true
-                                        }}
-                                        onChange={this.onEdit}
-                                        autoCursor={false}>
-                                    </CodeMirror>
-                                </div>
-                                <div id="separator">
-                                </div>
-                                <div id="interactions-container">
-                                    <pre id="interactions-area"
-                                         className="code">
-                                        {
-                                            this.state.interactions.map(
-                                                (i) => {
-                                                    return <Interaction key={i.name} name={i.name} value={i.value} />
-                                                })
-                                        }
-                                    </pre>
-                                </div>
-                            </div>
+                </Header>
+                <div className="code-container">
+                    {menu}
+                    <SplitterLayout vertical={false}
+                                    percentage={true}>
+                        <div className="edit-area-container"
+                             style={{ fontSize: this.state.fontSize }}>
+                            {definitions}
                         </div>
-                    </div>
+                        {rightHandSide}
+                    </SplitterLayout>
                 </div>
-                <div id="footer"></div>
+                <Footer message={this.state.message}></Footer>
             </div>
         );
     }

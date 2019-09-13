@@ -1,9 +1,15 @@
+
+export interface LintOptions {
+  program: string,
+  programSource: string,
+}
 export interface CompileOptions {
   program: string,
   baseDir: string,
   builtinJSDir: string,
   typeCheck: boolean,
   checks: string,
+  recompileBuiltins: boolean,
 }
 
 export enum RunKind {
@@ -16,14 +22,18 @@ export interface RunResult {
   result: any,
 }
 
+let compileStart = window.performance.now();
+
 /*
  * Handles Pyret compiler messages ONLY.
  * Ignores all other messages (including BrowserFS messages)
  */
 export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
-  echoErr: (e: string) => void,
-  compileFailure: () => void,
+  compileFailure: (e: string[]) => void,
+  runtimeFailure: (e: string[]) => void,
+  lintFailure: (data: { name: string, errors: string[]}) => void,
+  lintSuccess: (data: { name: string }) => void,
   compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
@@ -31,18 +41,21 @@ export const makeBackendMessageHandler = (
     }
 
     try {
-      var msgObject = JSON.parse(e.data);
+      var msgObject: any = JSON.parse(e.data);
 
       var msgType = msgObject["type"];
       if (msgType === undefined) {
         return null;
       } else if (msgType === "echo-log") {
         echoLog(msgObject.contents);
-      } else if (msgType === "echo-err") {
-        echoErr(msgObject.contents);
+      } else if (msgType === "lint-failure") {
+        lintFailure(msgObject.data);
+      } else if (msgType === "lint-success") {
+        lintSuccess(msgObject.data);
       } else if (msgType === "compile-failure") {
-        compileFailure();
+        compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
+        console.log("compile-time: ", window.performance.now() - compileStart);
         compileSuccess();
       } else {
         return null;
@@ -50,6 +63,7 @@ export const makeBackendMessageHandler = (
 
     } catch(e) {
       console.log(e);
+      runtimeFailure(e);
       return null;
     }
   };
@@ -57,9 +71,25 @@ export const makeBackendMessageHandler = (
   return backendMessageHandler;
 };
 
+export const lintProgram = (
+  compilerWorker: Worker,
+  options: LintOptions): void => {
+  const message = {
+    _parley: true,
+    options: {
+      program: options.program,
+      "program-source": options.programSource,
+      "lint": true
+    }
+  };
+
+  compilerWorker.postMessage(message);
+};
+
 export const compileProgram = (
   compilerWorker: Worker,
   options: CompileOptions): void => {
+  compileStart = window.performance.now();
   const message = {
     _parley: true,
     options: {
@@ -68,6 +98,7 @@ export const compileProgram = (
       "builtin-js-dir": options.builtinJSDir,
       checks: options.checks,
       'type-check': options.typeCheck,
+      'recompile-builtins': options.recompileBuiltins,
     }
   };
 

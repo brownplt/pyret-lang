@@ -22,7 +22,7 @@
       "size": ["forall", ["a"], ["arrow", ["dOfA"], "Number"]],
       "get": ["forall", ["a"], ["arrow", ["dOfA", "String"], "tva"]],
       "has-key": ["forall", ["a"], ["arrow", ["dOfA", "String"], "Boolean"]],
-      "keys": ["forall", ["a"], ["arrow", ["dOfA"], "String"]],
+      "keys": ["forall", ["a"], ["arrow", ["dOfA"], "lOfS"]],
       "values": ["forall", ["a"], ["arrow", ["dOfA"], "lOfA"]],
       "is-dict": ["arrow", ["tany"], "Boolean"]
     },

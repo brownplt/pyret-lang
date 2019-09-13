@@ -1,4 +1,5 @@
 provide *
+import render-error-display as RED
 import runtime-lib as R
 import builtin-modules as B
 import make-standalone as MS
@@ -9,9 +10,11 @@ import file("ast.arr") as A
 import pathlib as P
 import sha as crypto
 import string-dict as SD
-import render-error-display as RED
 import error as ERR
 import system as SYS
+import js-file("./parse-pyret") as PP
+import file("ast-util.arr") as AU
+import file("well-formed.arr") as W
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -23,6 +26,8 @@ import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
 import js-file("dependency-tree") as DT
 import js-file("filelib") as FS
+
+var module-cache = [SD.mutable-string-dict:]
 
 j-fun = J.j-fun
 j-var = J.j-var
@@ -289,9 +294,9 @@ fun set-loadable(options, locator, loadable) block:
 
       uri = locator.uri()
 
-      {save-path; static-ext; code-ext} = ask block:
+      {save-path; static-ext; code-ext; dep-path} = ask block:
         | string-index-of(uri, "builtin://") == 0 then:
-            {P.join(builtin-dir, locator.name()); ".arr.json"; ".arr.js"}
+          {P.join(builtin-dir, locator.name()); ".arr.json"; ".arr.js"; builtin-dir}
         | (string-index-of(uri, "jsfile://") == 0) or (string-index-of(uri, "file://") == 0) then:
           cutoff = if (string-index-of(uri, "jsfile://") == 0): 9 else: 7 end
 
@@ -304,27 +309,23 @@ fun set-loadable(options, locator, loadable) block:
           relative-to-project = string-substring(full-path, string-length(project-base), string-length(full-path))
 
           dep-path = P.dirname(P.join(project-dir, relative-to-project))
-          when not( FS.exists( dep-path ) ):
-            mkdirp( dep-path )
-          end
 
-          {P.join(project-dir, relative-to-project); ".json"; ".js"}
+          {P.join(project-dir, relative-to-project); ".json"; ".js"; dep-path}
       end
 
       save-static-path = save-path + static-ext
       save-code-path = save-path + code-ext
 
       when (time-or-0(save-static-path) <= locator.get-modified-time())  or (time-or-0(save-code-path) <= locator.get-modified-time()) block:
+        when not( FS.exists( dep-path ) ):
+          mkdirp( dep-path )
+        end
+
         fs = F.output-file(save-static-path, false)
         fr = F.output-file(save-code-path, false)
 
-        ccp.print-js-static(fs.display)
-        ccp.print-js-runnable(fr.display)
-
-        fs.flush()
-        fs.close-file()
-        fr.flush()
-        fr.close-file()
+        fs.display(ccp.pyret-to-js-static())
+        fr.display(ccp.pyret-to-js-runnable())
       end
 
       {save-static-path; save-code-path}
@@ -336,11 +337,10 @@ end
 
 fun get-cli-module-storage(storage-dir :: String, extra-dirs :: List<String>):
   {
-    method load-modules(self, to-compile) block:
+    method load-modules(self, to-compile, modules) block:
       maybe-modules = for map(t from to-compile):
         get-loadable(storage-dir, extra-dirs, t)
       end
-      modules = [SD.mutable-string-dict:]
       for each2(m from maybe-modules, t from to-compile):
         cases(Option<Loadable>) m:
           | none => nothing
@@ -429,6 +429,7 @@ fun handle-compilation-errors(problems, options) block:
     options.log-error(RED.display-to-string(e.render-reason(), torepr, empty))
     options.log-error("\n")
   end
+  # TODO (Tiffany): remove handle-compilation-errors and run
   raise("There were compilation errors")
 end
 
@@ -478,8 +479,7 @@ fun copy-js-dependency( dep-path, uri, dirs, options ) block:
   save-code-path = P.join( save-path, cutoff )
   mkdirp( P.resolve( P.dirname( save-code-path ) ) )
 
-  if not(F.file-exists(save-code-path)) or (F.mtimes(save-code-path).mtime < F.mtimes(dep-path).mtime) block:
-    spy "Copying js dependency": save-code-path, dep-path end
+  when not(F.file-exists(save-code-path)) or (F.mtimes(save-code-path).mtime < F.mtimes(dep-path).mtime) block:
     fc = F.output-file( save-code-path, false )
 
     file-content = F.file-to-string( dep-path )
@@ -487,8 +487,6 @@ fun copy-js-dependency( dep-path, uri, dirs, options ) block:
     
     fc.flush()
     fc.close-file()
-  else:
-    spy "Skipping js dependency": save-code-path, dep-path end
   end
 
   save-code-path
@@ -501,6 +499,7 @@ fun copy-js-dependencies( wl, options ) block:
   end
 
   paths = SD.make-mutable-string-dict()
+
 
   for each( tc from arr-js-modules ):
     code-path = tc.locator.get-compiled( options ).code-file
@@ -544,14 +543,22 @@ fun build-program(path, options, stats) block:
     options: options
   }, base-module)
   clear-and-print("Compiling worklist...")
-  wl = CL.compile-worklist(module-finder, base.locator, base.context)
+  starter-modules = if options.recompile-builtins: [SD.mutable-string-dict:] else: module-cache end
+  for each(sm from starter-modules.keys-list-now()):
+    when string-index-of(sm, "builtin://") <> 0:
+      starter-modules.remove-now(sm)
+    end
+  end
+  length-before-wl = starter-modules.count-now()
+  wl = CL.compile-worklist-known-modules(module-finder, base.locator, base.context, starter-modules)
+  storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
+  storage.load-modules(wl, starter-modules)
   copy-js-dependencies( wl, options )
   clear-and-print("Loading existing compiled modules...")
-  storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
 
-  starter-modules = storage.load-modules(wl)
 
-  cached-modules = starter-modules.count-now()
+
+  cached-modules = starter-modules.count-now() - length-before-wl
   total-modules = wl.length() - cached-modules
   var num-compiled = 0
   when total-modules == 0:
@@ -599,13 +606,7 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
-  maybe-program = build-program(path, options, stats)
-  cases(Either) maybe-program block:
-    | left(problems) =>
-      handle-compilation-errors(problems, options)
-    | right(program) =>
-      nothing
-  end
+  build-program(path, options, stats)
 end
 
 fun build-require-standalone(path, options):
@@ -625,4 +626,16 @@ fun build-require-standalone(path, options):
     ])
 
   print(prog.to-ugly-source())
+end
+
+fun lint(program :: String, uri :: String):
+  cases(E.Either) PP.maybe-surface-parse(uri, program):
+    | left(exn) => E.left([list: exn.exn])
+    | right(ast) =>
+      ast-ended = AU.wrap-toplevels(AU.append-nothing-if-necessary(ast))
+      cases(CS.CompileResult) W.check-well-formed(ast-ended):
+        | ok(_) => E.right(ast)
+        | err(errs) => E.left(errs)
+      end
+  end
 end

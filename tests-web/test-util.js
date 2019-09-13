@@ -14,6 +14,10 @@ const chromedriver = require('chromedriver');
 let kindFF = "firefox";
 let kindChrome = "chrome";
 
+const STATUS_TIMEOUT = -1;
+const STATUS_ERR = -2;
+const STATUS_OK = 1;
+
 // Used by Travis
 let BROWSER;
 if (process.env.BROWSER) {
@@ -130,9 +134,9 @@ async function compileRun(driver, options) {
 
   let runButton;
   if (options["stopify"]) {
-    runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
-  } else {
     runButton = await driver.findElement({ id: COMPILE_RUN_STOPIFY_BUTTON });
+  } else {
+    runButton = await driver.findElement({ id: COMPILE_RUN_BUTTON });
   }
   await runButton.click();
 }
@@ -158,18 +162,31 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
       let runningIndex = innerHTML.search(/Running/);
       
       if (runningIndex !== -1) {
-        let toSearchIndex = innerHTML.substring(runningIndex).includes(toSearch);
-        return toSearchIndex !== -1;
+        let includes = innerHTML.substring(runningIndex).includes(toSearch);
+        return includes;
       } else {
         return false;
       }
     }, timeout);
 
-    return result === null ? false : result;
+    return result === null ? STATUS_ERR : STATUS_OK;
   } catch (error) {
-    return false;
+    return STATUS_TIMEOUT;
   }
 };
+
+async function areRuntimeErrors(driver) {
+  let cl = await driver.findElement({ id: "consoleList" });
+  let innerHTML = await cl.getAttribute("innerHTML");
+  let runningIndex = innerHTML.search(/Running/);
+  
+  if (runningIndex !== -1) {
+    let includes = innerHTML.substring(runningIndex).includes("ERR");
+    return includes;
+  } else {
+    return true;
+  }
+}
 
 async function searchOutput(driver, pattern) {
   let cl = await driver.findElement({ id: "consoleList" });
@@ -200,5 +217,9 @@ module.exports = {
   compileRun: compileRun,
   searchOutput: searchOutput,
   searchForRunningOutput: searchForRunningOutput,
+  areRuntimeErrors: areRuntimeErrors,
   clearLogs: clearLogs,
+  TIMEOUT: STATUS_TIMEOUT,
+  ERR: STATUS_ERR,
+  OK: STATUS_OK,
 };

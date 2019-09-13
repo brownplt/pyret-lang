@@ -26,10 +26,12 @@ fun populate-options(dictionary, this-pyret-dir) block:
     empty
   end
 
+  source = dictionary.get("program-source").or-else("")
   add-profiling = dictionary.has-key("profile")
   allow-shadowed = dictionary.has-key("allow-shadow")
   base-dir = dictionary.get("base-dir").or-else(compile-opts.base-dir)
   build-runnable = dictionary.get("build-runnable").or-else("none")
+  lint = dictionary.get("lint").or-else(false)
   # TODO(alex): module dir somehwere
   # module-dir = dictionary.get-value("module-load-dir")
   check-mode = not(dictionary.get("no-check-mode").or-else(false))
@@ -60,6 +62,8 @@ fun populate-options(dictionary, this-pyret-dir) block:
   type-check = dictionary.get("type-check").or-else(false)
   user-annotations = not(dictionary.has-key("no-user-annotations"))
   compiled-read-only = dictionary.get("compiled-read-only-dir").or-else(empty)
+  recompile-builtins = dictionary.get("recompile-builtins").or-else(true)
+
 
   # TODO(alex): builtin arr files no longer supported; precompile them
   when dictionary.has-key("builtin-arr-dir"):
@@ -76,6 +80,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     allow-shadowed : allow-shadowed,
     base-dir: base-dir,
     build-runnable: build-runnable,
+    lint: lint,
     builtin-js-dirs: compile-opts.builtin-js-dirs.append(builtin-js-dirs),
     checks : checks,
     check-mode : check-mode,
@@ -84,6 +89,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     compiled-dir: compiled-dir,
     compiled-cache: compiled-dir,
     compiled-read-only: compiled-read-only,
+    recompile-builtins: recompile-builtins,
     deps-file: deps-file,
     display-progress: display-progress,
     enable-spies: enable-spies,

@@ -1,6 +1,10 @@
-### [ 1, 2, 3 ]
+### 123
 import list as L
 import global as G
 
 list = [L.list: 1, 2, 3]
-G.console-log( list )
+
+msg = for L.reduce(string from "", e from list):
+  string + G.js-to-string(e)
+end
+G.console-log( msg )
