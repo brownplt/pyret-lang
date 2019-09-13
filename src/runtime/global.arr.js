@@ -89,5 +89,14 @@ module.exports = {
     } else {
       return a;
     }
-  }
+  },
+  'num-abs': numbers['abs'],
+  'num-sin': numbers['sin'],
+  'num-cos': numbers['cos'],
+  'num-tan': numbers['tan'],
+  'num-asin': numbers['asin'],
+  'num-acos': numbers['acos'],
+  'num-atan': numbers['atan'],
+  'num-atan2': numbers['atan2'],
+  'num-modulo': numbers['modulo'],
 };
