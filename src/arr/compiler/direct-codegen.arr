@@ -507,9 +507,11 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         end
       end
 
+      check-results = rt-method("$checkResults", [clist: ])
+
       ans = j-obj(fields + [clist:
                 j-field("$answer", a-exp),
-                j-field("$checks", J.j-undefined)])
+                j-field("$checks", check-results)])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
       {assign-ans; a-stmts + stmts}
