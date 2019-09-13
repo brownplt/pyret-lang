@@ -1768,6 +1768,14 @@ var PlaceImageAlign = /* @stopify flat */ function (img, x, y, placeX, placeY, b
   }
 };
 
+var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
+  var line = new LineImage(x2 - x1, y2 - y1, color);
+  var newScene = new SceneImage(img.getWidth(), img.getHeight(), [], true);
+  newScene = newScene.add(img, img.getWidth()/2, img.getHeight()/2);
+  return newScene.add(line, line.getWidth()/2+Math.min(x1, x2),
+    line.getHeight()/2+Math.min(y1, y2));
+}
+
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -1953,5 +1961,8 @@ return module.exports = {
   },
   "place-image-align": /* @stopify flat */ function (image, x, y, placeX, placeY, background) {
     return PlaceImageAlign(image, x, y, placeX, placeY, background);
+  },
+  "scene-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
+    return SceneLineImage(img, x1, y1, x2, y2, convertColor(color));
   }
 };
