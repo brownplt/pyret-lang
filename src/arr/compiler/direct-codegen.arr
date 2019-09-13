@@ -1167,7 +1167,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
       return-expr = j-obj(return-fields)
 
-      thunk-body = cl-append(raw-js-test-stmts, cl-sing(j-expr(return-expr)))
+      thunk-body = cl-snoc(raw-js-test-stmts, j-return(return-expr))
       thunk = j-fun("0", "$check", cl-empty, j-block(thunk-body))
 
       check-test-args = [clist: thunk, test-loc]
