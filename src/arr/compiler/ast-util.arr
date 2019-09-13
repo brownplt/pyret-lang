@@ -1033,8 +1033,15 @@ fun member-to-t-member(uri :: URI, compile-env :: CS.CompileEnvironment, m):
     | s-mutable-field(l, name, ann, val) =>
       T.t-ref(ann-to-typ(uri, compile-env, ann), false)
     | s-method-field(l, name, params, args, ann, _, _, _, _, _) =>
+      shadow args = map(
+        lam(arg-ann):
+          ann-to-typ(uri, compile-env, arg-ann)
+        end, 
+        map(_.ann, args)
+      )
+      shadow ret = ann-to-typ(uri, compile-env, ann)
       arrow-part =
-        T.t-arrow(map(ann-to-typ, map(_.ann, args)), ann-to-typ(uri, compile-env, ann), l, false)
+        T.t-arrow(args, ret, l, false)
       if is-empty(params): arrow-part
       else:
         tvars = for map(p from params): T.t-var(p, l, false) end
