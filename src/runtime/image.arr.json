@@ -3,6 +3,7 @@
   "provides": {
     "shorthands": {
       "Image": ["local", "Image"],
+      "Color": ["local", "Color"],
       "lOfC": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://list" },
                 "name": "List" }, [["local", "Color"]]]
@@ -56,7 +57,7 @@
       "image-width": ["arrow", ["Image"], "Number"],
       "image-height": ["arrow", ["Image"], "Number"],
       "image-baseline": ["arrow", ["Image"], "Number"],
-      "name-to-color": ["arrow", ["String"], ["local", "Color"]],
+      "name-to-color": ["arrow", ["String"], "Color"],
       "is-image-color": ["arrow", ["Any"], "Boolean"],
       "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
       "images-difference": ["arrow", ["Image", "Image"], "Boolean"],
@@ -66,7 +67,7 @@
       "is-angle": ["arrow", ["Number"], "Boolean"],
       "is-x-place": ["arrow", ["String"], "Boolean"],
       "is-y-place": ["arrow", ["Any"], "Boolean"],
-      "color-at-position": ["arrow", ["Image", "Number", "Number"], ["local", "Color"]],
+      "color-at-position": ["arrow", ["Image", "Number", "Number"], "Color"],
       "image-to-color-list": ["arrow", ["Image"], "lOfC"],
       "color-list-to-image": ["arrow", ["Any", "Number", "Number", "Number", "Number"], "Image"],
       "color-list-to-bitmap": ["arrow", ["Any", "Number", "Number"], "Image"],
@@ -75,12 +76,14 @@
       "place-image-align": ["arrow", ["Image", "Number", "Number", "String", "String", "Image"], "Image"],
       "scene-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
       "image-url": ["arrow", ["String"], "Image"],
-      "bitmap-url": ["arrow", ["String"], "Image"]
+      "bitmap-url": ["arrow", ["String"], "Image"],
+      "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"]
     },
     "aliases": {
       "Image": { "tag": "name", 
                  "origin": { "import-type": "uri", "uri": "builtin://image" },
-                 "name": "Image" }
+                 "name": "Image" },
+      "Color": ["local", "Color"]
     },
     "datatypes": {
       "Image": ["data", "Image", [], [], {}],

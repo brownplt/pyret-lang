@@ -2089,5 +2089,8 @@ return module.exports = {
   },
   "bitmap-url": /* @stopify flat */ function (url) {
     return ImageUrlImage(url);
+  },
+  "make-color": /* @stopify flat */ function (r, g, b, a) {
+    return makeColor(r, g, b, a);
   }
 };
