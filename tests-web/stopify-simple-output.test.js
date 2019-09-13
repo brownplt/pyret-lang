@@ -78,12 +78,12 @@ describe("Testing browser simple-output programs", () => {
     files.forEach(f => {
       test(`${f}`, async function(done) {
 
-        let typeCheck;
-        if (f.match(/no-type-check/) !== null) {
-          typeCheck = false;
-        } else {
-          typeCheck = true;
-        }
+        let typeCheck = f.match(/no-type-check/) === null;
+
+        // Non-exact output check (scan):
+        // Checks for any line beginning with prefix '###' and uses the trimmed content
+        //   of the line after the prefix as expected search criteria in stdout
+        let exact = f.match(/scan/) === null;
 
         if (refreshPagePerTest === true) {
           let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
@@ -91,26 +91,61 @@ describe("Testing browser simple-output programs", () => {
         }
 
         const contents = String(fs.readFileSync(f));
-        const firstLine = contents.split("\n")[0];
-        const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
+        if (exact) {
+          const firstLine = contents.split("\n")[0];
+          const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
 
-        await tester.beginSetInputText(driver, contents)
-          .then(tester.compileRun(driver, { 
-            'type-check': typeCheck,
-            'stopify': true,
-          }));
+          await tester.beginSetInputText(driver, contents)
+            .then(tester.compileRun(driver, { 
+              'type-check': typeCheck,
+              'stopify': true,
+            }));
 
-        // Does not work when in .then()
-        let foundOutput = 
-          await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
+          // Does not work when in .then()
+          let foundOutput = 
+            await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
 
-        let runtimeErrors = 
-          await tester.areRuntimeErrors(driver);
+          let runtimeErrors = 
+            await tester.areRuntimeErrors(driver);
 
-        expect(foundOutput).toEqual(tester.OK);
-        expect(runtimeErrors).toBeFalsy();
+          expect(foundOutput).toEqual(tester.OK);
+          expect(runtimeErrors).toBeFalsy();
 
-        await done();
+          await done();
+        } else {
+
+          const lines = contents.split("\n");
+          let expected = [];
+          lines.forEach((line) => {
+            if (line.startsWith("###")) {
+              const formatted = line.slice(line.indexOf(" ")).trim();
+              expected.push(formatted);
+            }
+          });
+
+          await tester.beginSetInputText(driver, contents)
+            .then(tester.compileRun(driver, { 
+              'type-check': typeCheck,
+              'stopify': true,
+            }));
+
+          for (let i = 0; i < expected.length; i++) {
+            const expectedOutput = expected[i];
+            let foundOutput = 
+              await tester.searchForRunningOutput(driver, 
+                expectedOutput, COMPILER_TIMEOUT);
+
+              expect({ expectedOutput, result: foundOutput })
+                .toEqual({ expectedOutput, result: tester.OK });
+          }
+ 
+          let runtimeErrors = 
+              await tester.areRuntimeErrors(driver);
+
+          expect(runtimeErrors).toBeFalsy();
+
+          await done();
+        }
       });
     });
   });
