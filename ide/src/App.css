@@ -237,7 +237,7 @@ button::-moz-focus-inner {
     overflow-y: scroll;
 }
 
-.interaction {
+.interaction, .test-result {
     display: flex;
     flex-direction: row;
     padding: 1em;

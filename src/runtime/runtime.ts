@@ -123,7 +123,9 @@ function equalityResultToBool(ans: EqualityResult): boolean {
   }
 }
 
-function isFunction(obj: any): boolean { return typeof obj === "function"; }
+function isFunction(obj: any): boolean { 
+  return (typeof obj === "function") && !(isMethod(obj)); 
+}
 
 function isMethod(obj: any): boolean { 
   return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
@@ -131,9 +133,6 @@ function isMethod(obj: any): boolean {
 
 // TODO(alex): Will nothing always be value 'undefined'?
 function isNothing(obj: any): boolean { return obj === undefined };
-
-// TODO(alex): Identify opaque types
-function isOpaque(val: any): boolean { return false; }
 
 const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
 const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
@@ -195,10 +194,8 @@ var NumberErrbacks: NumericErrorCallbacks = {
 export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
     return Unknown("Function", v1, v2);
-  // TODO(alex): Handle/detect methods
-  // } else if (isMethod(v1) && isMethod(v2)) {
-  //  return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
-  //  TODO(alex): Handle/detect rough numbers
+  } else if (isMethod(v1) && isMethod(v2)) {
+    return Unknown("Method", v1, v2);
   } else if (isRoughNumber(v1) && isRoughNumber(v2)) {
     return Unknown('Roughnums', v1,  v2);
   } else if (v1 === v2) {
@@ -257,8 +254,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
-      
-      // TODO(alex): Handle methods
+    } else if (isMethod(v1) && isMethod(v2)) {
+      return Unknown("Methods", v1, v2);
     } else if (isPTuple(v1) && isPTuple(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("PTuple Length", v1, v2);

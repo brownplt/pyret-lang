@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
+import { Check, TestResult } from './Check';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
@@ -91,9 +92,9 @@ type EditorState = {
     currentFileName: string;
     currentFileContents: string;
     typeCheck: boolean;
+    checks: Check[],
     interactions: { name: string, value: any }[];
     interactionErrors: string[];
-    interactErrorExists: boolean;
     lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
     autoRun: boolean;
@@ -139,7 +140,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.setState(
                     {
                         interactionErrors: errors,
-                        interactErrorExists: true,
                         definitionsHighlights: places
                     }
                 );
@@ -148,7 +148,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.setState(
                     {
                         interactionErrors: [errors.toString()],
-                        interactErrorExists: true,
                     }
                 );
             },
@@ -171,16 +170,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         control.bfsSetup.path.join(
                                             control.path.runBase,
                                             `${this.state.currentFileName}.json`));
-
+                                const checks = runResult.result.$checks;
                                 this.setState({
-                                    interactions: results
+                                    interactions: results,
+                                    checks: checks
                                 });
 
                                 if (results[0].name === "error") {
                                     this.setState(
                                         {
                                             interactionErrors: runResult.result.error,
-                                            interactErrorExists: true
                                         }
                                     );
                                 }
@@ -189,7 +188,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
                                 this.setState({
                                     interactionErrors: [runResult.result.error],
-                                    interactErrorExists: true
                                 });
                             }
                         }
@@ -207,12 +205,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     ...this.props.currentFileDirectory,
                     this.props.currentFileName)),
             typeCheck: true,
+            checks: [],
             interactions: [{
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
             interactionErrors: [],
-            interactErrorExists: false,
             lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
@@ -252,7 +250,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState(
             {
                 interactionErrors: [],
-                interactErrorExists: false
+                definitionsHighlights: []
             }
         );
         if (this.isPyretFile) {
@@ -274,7 +272,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         value: this.currentFile
                     }],
                 interactionErrors: ["Error: Run is not supported on this file type"],
-                interactErrorExists: true
             });
         }
     };
@@ -409,8 +406,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             return <SingleCodeMirrorDefinitions
                 text={this.state.currentFileContents}
                 onEdit={this.onEdit}
-                highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}>
+                highlights={this.state.definitionsHighlights}>
             </SingleCodeMirrorDefinitions>;
         }
         else if (this.state.editorMode === EEditor.Chunks) {
@@ -418,7 +414,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 lintFailures={this.state.lintFailures}
                 name={this.state.currentFileName}
                 highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}
                 program={this.state.currentFileContents}
                 onEdit={this.onEdit}></DefChunks>);
         }
@@ -426,18 +421,22 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     render() {
         const interactionValues =
-            <pre className="interactions-area"
-                 style={{ fontSize: this.state.fontSize }}>
-                {
-                    this.state.interactions.map(
-                        (i) => {
-                            return <Interaction key={i.name}
-                                                name={i.name}
-                                                value={i.value}
-                                                setMessage={this.setMessage}/>
-                        })
-                }
-            </pre>;
+            <div style={{ fontSize: this.state.fontSize }}>
+                <pre className="checks-area">
+                    { this.state.checks.map(c => <TestResult check={c}></TestResult>)}
+                </pre>
+                <pre className="interactions-area">
+                    {
+                        this.state.interactions.map(
+                            (i) => {
+                                return <Interaction key={i.name}
+                                                    name={i.name}
+                                                    value={i.value}
+                                                    setMessage={this.setMessage}/>
+                            })
+                    }
+                </pre>
+            </div>;
 
         const dropdown = this.state.dropdownVisible && (
             <Dropdown>
@@ -506,7 +505,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         const rightHandSide =
             <div className="interactions-area-container">
-                {this.state.interactErrorExists ? (
+                {this.state.interactionErrors.length > 0 ? (
                     <SplitterLayout vertical={true}
                                     percentage={true}>
                         {interactionValues}

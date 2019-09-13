@@ -112,7 +112,6 @@ type LintFailure = {
 type DefChunksProps = {
   lintFailures: {[name : string]: LintFailure},
   highlights: number[][],
-  interactErrorExists: boolean,
   program: string,
   name: string,
   onEdit: (s: string) => void
@@ -206,7 +205,7 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
             if(name in this.props.lintFailures) {
               failures = this.props.lintFailures[name].errors;
             }
-            if(this.props.interactErrorExists) {
+            if(this.props.highlights.length > 0) {
               highlights = this.props.highlights.filter((h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk);
             }
             else {

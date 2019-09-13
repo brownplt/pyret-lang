@@ -1780,7 +1780,7 @@ var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
 var ImageUrlImage = function (url) {
   return RUNTIME.pauseStack(function (restarter) {
     console.log("Before rawImage = Image");
-    var rawImage = Image();
+    var rawImage = new Image();
     console.log("After rawImage = Image: ", rawImage);
     debugger;
     /*if (RUNTIME.hasParam("imgUrlProxy")) {
@@ -1818,7 +1818,7 @@ var FileImage = /* @stopify flat */ function (src, rawImage) {
     // onload, since we don't know at this time what the file size
     // should be, nor will drawImage do the right thing until the
     // file is loaded.
-    this.img = Image();
+    this.img = new Image();
     this.img.onload = function () {
       self.isLoaded = true;
       self.width = self.img.width;
@@ -2009,9 +2009,12 @@ return module.exports = {
     return new CropImage(x, y, width, height, img);
   },
   scale: /* @stopify flat */ function (factor, img) {
+    factor = jsnums.toFixnum(factor);
     return new ScaleImage(factor, factor, img);
   },
   "scale-xy": /* @stopify flat */ function (xFactor, yFactor, img) {
+    xFactor = jsnums.toFixnum(xFactor);
+    yFactor = jsnums.toFixnum(yFactor);
     return new ScaleImage(xFactor, yFactor, img);
   },
   "empty-scene": /* @stopify flat */ function (width, height) {
