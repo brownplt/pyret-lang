@@ -1905,6 +1905,7 @@ return module.exports = {
   "empty-scene": /* @stopify flat */ function (width, height) {
     return new SceneImage(width, height, [], true);
   },
+  "empty-image": new SceneImage(0, 0, [], true),
   "is-image": /* @stopify flat */ function (img) {
     return isImage(img);
   },
