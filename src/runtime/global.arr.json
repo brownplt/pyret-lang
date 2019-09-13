@@ -55,6 +55,8 @@
       "num-is-negative": ["arrow", ["Number"], "Boolean"],
       "num-is-non-positive": ["arrow", ["Number"], "Boolean"],
       "num-is-non-negative": ["arrow", ["Number"], "Boolean"],
+      "num-max": ["arrow", ["Number", "Number"], "Number"],
+      "num-min": ["arrow", ["Number", "Number"], "Number"],
       "not": ["arrow", ["Boolean"], "Boolean"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],

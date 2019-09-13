@@ -76,4 +76,18 @@ module.exports = {
   'num-is-negative': numbers['isNegative'],
   'num-is-non-positive': numbers['isNonPositive'],
   'num-is-non-negative': numbers['isNonNegative'],
+  'num-max': function(a, b) {
+    if (numbers['greaterThan'](a, b)) {
+      return a;
+    } else {
+      return b;
+    }
+  },
+  'num-min': function(a, b) {
+    if (numbers['greaterThan'](a, b)) {
+      return b;
+    } else {
+      return a;
+    }
+  }
 };
