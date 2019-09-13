@@ -370,9 +370,9 @@ function _spy(spyObject: SpyObject): void {
   const message = spyObject.message();
   const spyLoc = spyObject.loc;
   if (message != null) {
-    console.log("Spying \"" + message + "\" (at " + spyLoc + ")");
+    console.log(`Spying "${message}" (at ${spyLoc})`);
   } else {
-    console.log("Spying (at " + spyLoc + ")");
+    console.log(`Spying (at ${spyLoc})`);
   }
 
   const exprs = spyObject.exprs;
@@ -380,7 +380,7 @@ function _spy(spyObject: SpyObject): void {
     const key = exprs[i].key;
     const loc = exprs[i].loc;
     const value = exprs[i].expr();
-    console.log("  " + key + ": " + value);
+    console.log(`    ${key}: ${value} (at ${loc})`);
   }
 }
 
