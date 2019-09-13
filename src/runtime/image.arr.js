@@ -657,10 +657,10 @@ BaseImage.prototype.toDomNode = function (params) {
     ctx = this.getContext("2d");
     that.render(ctx, 0, 0);
   };
-  jQuery(canvas).bind('afterAttach', onAfterAttach);
+  //jQuery(canvas).bind('afterAttach', onAfterAttach);
 
   // Canvases lose their drawn content on cloning.  data may help us to preserve it.
-  jQuery(canvas).data('toRender', onAfterAttach);
+  //jQuery(canvas).data('toRender', onAfterAttach);
   // ARIA: use "image" as default text.
   canvas.ariaText = this.ariaText || "image";
   return canvas;
