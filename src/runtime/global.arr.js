@@ -72,4 +72,8 @@ module.exports = {
   'num-is-integer': numbers['isInteger'],
   'num-is-rational': numbers['isRational'],
   'num-is-roughnum': numbers['isRoughnum'],
+  'num-is-positive': numbers['isPositive'],
+  'num-is-negative': numbers['isNegative'],
+  'num-is-non-positive': numbers['isNonPositive'],
+  'num-is-non-negative': numbers['isNonNegative'],
 };
