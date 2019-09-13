@@ -488,9 +488,9 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
-module.exports["_checkTest"] = eagerCheckTest;
-module.exports["_checkBlock"] = eagerCheckBlockRunner;
-module.exports["_checkResults"] = checkResults;
+module.exports["$checkTest"] = eagerCheckTest;
+module.exports["$checkBlock"] = eagerCheckBlockRunner;
+module.exports["$checkResults"] = checkResults;
 
 module.exports["_spy"] = _spy;
 module.exports["_rebind"] = _rebind;

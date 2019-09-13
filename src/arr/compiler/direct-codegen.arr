@@ -1098,7 +1098,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       # Pass function check-block and the name to the test runner
-      tester-call = j-expr(rt-method("_checkBlock", [clist: test-block-name, js-check-block-func]))
+      tester-call = j-expr(rt-method("$checkBlock", [clist: test-block-name, js-check-block-func]))
 
       { j-undefined; cl-sing(tester-call) }
 
@@ -1167,12 +1167,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       return-expr = j-obj(return-fields)
 
       thunk-body = cl-append(raw-js-test-stmts, cl-sing(j-expr(return-expr)))
-      thunk = j-fun("0", "_check", cl-empty, j-block(thunk-body))
+      thunk = j-fun("0", "$check", cl-empty, j-block(thunk-body))
 
       check-test-args = [clist: thunk, test-loc]
 
       # TODO(alex): insert test scaffolding here
-      tester-call = j-expr(rt-method("_checkTest", check-test-args))
+      tester-call = j-expr(rt-method("$checkTest", check-test-args))
 
       { j-undefined; [clist: tester-call] }
 
