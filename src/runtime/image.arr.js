@@ -1,4 +1,5 @@
 const jsnums = require("./js-numbers.js");
+var RUNTIME = require('./runtime.js');
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -780,8 +781,8 @@ var isMode = /* @stopify flat */ function (x) {
     (x.toString().toLowerCase() == "solid" ||
       x.toString().toLowerCase() == "outline")) ||
     ((jsnums.isReal(x)) &&
-      (jsnums.greaterThanOrEqual(x, 0, runtime.NumberErrbacks) &&
-        jsnums.lessThanOrEqual(x, 1, runtime.NumberErrbacks)));
+      (jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
+        jsnums.lessThanOrEqual(x, 1, RUNTIME.NumberErrbacks)));
 };
 
 var isPlaceX = /* @stopify flat */ function (x) {
@@ -1927,6 +1928,9 @@ return module.exports = {
   "images-equal": /* @stopify flat */ function (img1, img2) {
     return imageEquals(img1, img2);
   },
+  "images-difference": /* @stopify flat */ function (img1, img2) {
+    return imageDifference(img1, img2);
+  },
   "is-side-count": /* @stopify flat */ function (sth) {
     return isSideCount(sth);
   },
@@ -1935,6 +1939,9 @@ return module.exports = {
   },
   "is-mode": /* @stopify flat */ function (x) {
     return isMode(x);
+  },
+  "is-angle": /* @stopify flat */ function (x) {
+    return isAngle(x);
   },
   "is-x-place": /* @stopify flat */ function (x) {
     return isPlaceX(x);
