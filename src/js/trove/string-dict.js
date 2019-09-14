@@ -1414,7 +1414,9 @@
     };
     var internal = {
       checkISD: jsCheckISD,
-      checkMSD: jsCheckMSD
+      checkMSD: jsCheckMSD,
+      isISD:    isImmutableStringDict,
+      isMSD:    isMutableStringDict
     };
     return runtime.makeModuleReturn(vals, types, internal);
   }
