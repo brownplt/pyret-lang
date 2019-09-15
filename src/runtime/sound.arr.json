@@ -1,0 +1,15 @@
+{
+    "provides": {
+        "values": {
+            "juliet": "String",
+            "demo": ["arrow", ["String"], "Boolean"],
+            "makesound": ["arrow", ["String"],
+                ["local", "Sound"]
+            ]
+        },
+        "datatypes": { "Sound": ["data", "Sound", [],
+                [], {}
+            ] },
+        "aliases": {}
+    }
+}

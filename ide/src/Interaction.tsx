@@ -1,6 +1,7 @@
 import React from 'react';
 import {TableWidget} from './Table';
 import {ImageWidget} from './Image';
+import {SoundWidget} from './Sound';
 
 type InteractionProps = {
     name: string;
@@ -36,7 +37,13 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
                 <ImageWidget image={value}>
                 </ImageWidget>
             );
-        } else if (typeof value === 'object') {
+        } else if (value.$brand === "sound") {
+            return (
+                <SoundWidget sound={value}>
+                </SoundWidget>
+            );
+        }
+        else if (typeof value === 'object') {
             // TODO(michael) palceholder for better object display
             return JSON.stringify(value);
         }

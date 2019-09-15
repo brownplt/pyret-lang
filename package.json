@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@stopify/stopify": "^0.7.2",
-    "csv": "^5.1.1",
+    "@types/howler": "^2.1.1",
     "@types/node": "^12.0.2",
     "ascii-table": "~0.0.9",
     "benchmark": "^2.1.4",
@@ -20,7 +20,9 @@
     "browserify": "^14.4.0",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^4.0.1",
+    "csv": "^5.1.1",
     "error-stack-parser": "^2.0.1",
+    "howler": "^2.1.2",
     "http": "0.0.0",
     "immutable": "^3.8.2",
     "js-sha256": "^0.5.0",
