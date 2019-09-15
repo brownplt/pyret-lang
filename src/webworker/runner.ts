@@ -73,7 +73,9 @@ export const makeRequireAsync = (
         console: console,
         parseFloat,
         isNaN,
-        isFinite
+        isFinite,
+        AudioContext: () => { return new AudioContext(); },
+        XMLHttpRequest: () => { return new XMLHttpRequest(); }
       });
       runner.path = nextPath;
       currentRunner = runner;

@@ -2,7 +2,7 @@
     "provides": {
         "values": {
             "juliet": "String",
-            "demo": ["arrow", ["String"], "Boolean"],
+            "getArray": ["arrow", ["String"], "tany"],
             "makesound": ["arrow", ["String"],
                 ["local", "Sound"]
             ]
