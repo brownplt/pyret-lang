@@ -123,7 +123,9 @@ function equalityResultToBool(ans: EqualityResult): boolean {
   }
 }
 
-function isFunction(obj: any): boolean { return typeof obj === "function"; }
+function isFunction(obj: any): boolean { 
+  return (typeof obj === "function") && !(isMethod(obj)); 
+}
 
 function isMethod(obj: any): boolean { 
   return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
