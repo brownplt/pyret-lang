@@ -132,9 +132,6 @@ function isMethod(obj: any): boolean {
 // TODO(alex): Will nothing always be value 'undefined'?
 function isNothing(obj: any): boolean { return obj === undefined };
 
-// TODO(alex): Identify opaque types
-function isOpaque(val: any): boolean { return false; }
-
 const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
 const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
 const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boolean = _NUMBER["equals"];
