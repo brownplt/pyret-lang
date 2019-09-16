@@ -1,3 +1,5 @@
+const jsnums = require("./js-numbers.js");
+var RUNTIME = require('./runtime.js');
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -390,7 +392,7 @@ var isAngle = /* @stopify flat */ function (x) {
 // On the Racket side of things, this is exposed as image-color?.
 var isColorOrColorString = /* @stopify flat */ function (thing) {
   return (isColor(thing) ||
-    ((RUNTIME.isString(thing) &&
+    ((typeof (thing) === "string" &&
       typeof (colorDb.get(thing)) != 'undefined')));
 };
 
@@ -645,7 +647,7 @@ BaseImage.prototype.toDomNode = function (params) {
   var height = that.getHeight();
   var canvas = makeCanvas(width, height);
   var ctx;
-
+  console.log("In toDomNode");
   // KLUDGE: on IE, the canvas rendering functions depend on a
   // context where the canvas is attached to the DOM tree.
   // We initialize an afterAttach hook; the client's responsible
@@ -656,10 +658,10 @@ BaseImage.prototype.toDomNode = function (params) {
     ctx = this.getContext("2d");
     that.render(ctx, 0, 0);
   };
-  jQuery(canvas).bind('afterAttach', onAfterAttach);
+  //jQuery(canvas).bind('afterAttach', onAfterAttach);
 
   // Canvases lose their drawn content on cloning.  data may help us to preserve it.
-  jQuery(canvas).data('toRender', onAfterAttach);
+  //jQuery(canvas).data('toRender', onAfterAttach);
   // ARIA: use "image" as default text.
   canvas.ariaText = this.ariaText || "image";
   return canvas;
@@ -723,17 +725,68 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   return true;
 };
 
+/* Calculates the difference between two images, and returns it
+       as a Pyret Either<String, Number>
+       The difference is calculated from the formula at
+       http://stackoverflow.com/questions/9136524/are-there-any-javascript-libs-to-pixel-compare-images-using-html5-canvas-or-any
+       values in the low double digits indicate pretty similar images, in the
+       low hundreds something is clearly off.
+    */
+BaseImage.prototype.difference = function (other) {
+  if (Math.floor(this.width) !== Math.floor(other.getWidth()) ||
+    Math.floor(this.height) !== Math.floor(other.getHeight())) {
+    return RUNTIME.ffi.makeLeft("different-size([" + this.width + ", " + this.height + "], [" +
+      other.getWidth() + ", " + other.getHeight() + "])");
+  }
+
+  // http://stackoverflow.com/questions/9136524/are-there-any-javascript-libs-to-pixel-compare-images-using-html5-canvas-or-any
+  function rmsDiff(data1, data2) {
+    var squares = 0;
+    for (var i = 0; i < data1.length; i++) {
+      squares += (data1[i] - data2[i]) * (data1[i] - data2[i]);
+    }
+    var rms = Math.sqrt(squares / data1.length);
+    return rms;
+  }
+
+  // if it's something more sophisticated, render both images to canvases
+  // First check canvas dimensions, then go pixel-by-pixel
+  var c1 = this.toDomNode(), c2 = other.toDomNode();
+  c1.style.visibility = c2.style.visibility = "hidden";
+  var w1 = Math.floor(c1.width),
+    h1 = Math.floor(c1.height),
+    w2 = Math.floor(c2.width),
+    h2 = Math.floor(c2.height);
+  if (w1 !== w2 || h1 !== h2) {
+    return RUNTIME.makeLeft("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
+      c2.width + ", " + c2.height + "])");
+  }
+  var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
+  this.render(ctx1, 0, 0);
+  other.render(ctx2, 0, 0);
+  try {
+    var data1 = ctx1.getImageData(0, 0, w1, h1),
+      data2 = ctx2.getImageData(0, 0, w2, h2);
+    var pixels1 = data1.data,
+      pixels2 = data2.data;
+    return RUNTIME.ffi.makeRight(rmsDiff(pixels1, pixels2));
+  } catch (e) {
+    // if we violate CORS, just bail
+    return RUNTIME.ffi.makeLeft("exception: " + String(e));
+  }
+};
+
 var isMode = /* @stopify flat */ function (x) {
-  return ((typeof(x) === 'string' || x instanceof String) &&
+  return ((typeof (x) === 'string' || x instanceof String) &&
     (x.toString().toLowerCase() == "solid" ||
       x.toString().toLowerCase() == "outline")) ||
     ((jsnums.isReal(x)) &&
-      (jsnums.greaterThanOrEqual(x, 0, runtime.NumberErrbacks) &&
-        jsnums.lessThanOrEqual(x, 1, runtime.NumberErrbacks)));
+      (jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
+        jsnums.lessThanOrEqual(x, 1, RUNTIME.NumberErrbacks)));
 };
 
 var isPlaceX = /* @stopify flat */ function (x) {
-  return ((typeof(x) === 'string' || x instanceof String) &&
+  return ((typeof (x) === 'string' || x instanceof String) &&
     (x.toString().toLowerCase() === "left" ||
       x.toString().toLowerCase() === "right" ||
       x.toString().toLowerCase() === "center" ||
@@ -741,7 +794,7 @@ var isPlaceX = /* @stopify flat */ function (x) {
 };
 
 var isPlaceY = /* @stopify flat */ function (x) {
-  return ((typeof(x) === 'string' || x instanceof String) &&
+  return ((typeof (x) === 'string' || x instanceof String) &&
     (x.toString().toLowerCase() === "top" ||
       x.toString().toLowerCase() === "bottom" ||
       x.toString().toLowerCase() === "baseline" ||
@@ -1296,7 +1349,7 @@ var TriangleASS = /* @stopify flat */ function (angleA, sideB, sideC, style, col
     throw new Error("The given angle, side and side will not form a triangle: "
       + angleA + ", " + sideB + ", " + sideC);
   }
-  
+
   return new TriangleImage(sideC, angleA, sideB, style, color);
 };
 
@@ -1603,7 +1656,7 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
   return makeColor(r, g, b, a);
 };
 
-var imageToColorList = /* @stopify flat */ function(img) {
+var imageToColorList = /* @stopify flat */ function (img) {
   var width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
@@ -1625,6 +1678,216 @@ var imageToColorList = /* @stopify flat */ function(img) {
   }
   return colors;
 };
+
+var colorListToImage = /* @stopify flat */ function (listOfColors,
+  width,
+  height,
+  pinholeX,
+  pinholeY) {
+  // make list of color names to list of colors
+  var lOfC = [];
+  if (typeof listOfColors[0] === "string") {
+    for (let i = 0; i < listOfColors.length; i++) {
+      lOfC.push(colorDb.get(String(listOfColors[i])));
+    }
+  } else if (isColor(listOfColors[0])) {
+    lOfC = listOfColors;
+  } else {
+    throw new Error("List is not made of Colors or name of colors");
+  }
+  var canvas = makeCanvas(jsnums.toFixnum(width),
+    jsnums.toFixnum(height)),
+    ctx = canvas.getContext("2d"),
+    imageData = ctx.createImageData(jsnums.toFixnum(width),
+      jsnums.toFixnum(height)),
+    aColor,
+    data = imageData.data,
+    jsLOC = lOfC;
+  for (var i = 0; i < jsLOC.length * 4; i += 4) {
+    aColor = jsLOC[i / 4];
+    // NOTE(ben): Flooring colors here to make this a proper RGBA image
+    data[i] = Math.floor(colorRed(aColor));
+    data[i + 1] = Math.floor(colorGreen(aColor));
+    data[i + 2] = Math.floor(colorBlue(aColor));
+    data[i + 3] = colorAlpha(aColor) * 255;
+  }
+
+  return new ImageDataImage(imageData);
+};
+
+//////////////////////////////////////////////////////////////////////
+// ImageDataImage: imageData -> image
+// Given an array of pixel data, create an image
+var ImageDataImage = /* @stopify flat */ function (imageData) {
+  BaseImage.call(this);
+  this.imageData = imageData;
+  this.width = imageData.width;
+  this.height = imageData.height;
+};
+
+ImageDataImage.prototype = heir(BaseImage.prototype);
+
+ImageDataImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  ctx.putImageData(this.imageData, x, y);
+};
+
+var PutImage = /* @stopify flat */ function (img, x, y, bg) {
+  if (isScene(bg)) {
+    return bg.add(img, x, bg.getHeight() - y);
+  } else {
+    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
+    newScene = newScene.add(img, x, bg.getHeight() - y);
+    return newScene;
+  }
+};
+
+var PlaceImage = /* @stopify flat */ function (img, x, y, bg) {
+  if (isScene(bg)) {
+    return bg.add(img, x, y);
+  } else {
+    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
+    newScene = newScene.add(img, x, y);
+    return newScene;
+  }
+};
+
+var PlaceImageAlign = /* @stopify flat */ function (img, x, y, placeX, placeY, bg) {
+  if (placeX == "left") { x = x + img.getWidth() / 2; }
+  else if (placeX == "right") { x = x - img.getWidth() / 2; }
+  if (placeY == "top") { y = y + img.getHeight() / 2; }
+  else if (placeY == "bottom") { y = y - img.getHeight() / 2; }
+
+  if (isScene(bg)) {
+    return bg.add(img, x, y);
+  } else {
+    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
+    newScene = newScene.add(img, x, y);
+    return newScene;
+  }
+};
+
+var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
+  var line = new LineImage(x2 - x1, y2 - y1, color);
+  var newScene = new SceneImage(img.getWidth(), img.getHeight(), [], true);
+  newScene = newScene.add(img, img.getWidth()/2, img.getHeight()/2);
+  return newScene.add(line, line.getWidth()/2+Math.min(x1, x2),
+    line.getHeight()/2+Math.min(y1, y2));
+};
+
+var ImageUrlImage = function (url) {
+  return RUNTIME.pauseStack(function (restarter) {
+    console.log("Before rawImage = Image");
+    var rawImage = new Image();
+    console.log("After rawImage = Image: ", rawImage);
+    debugger;
+    /*if (RUNTIME.hasParam("imgUrlProxy")) {
+      url = RUNTIME.getParam("imgUrlProxy")(url);
+    }*/
+    rawImage.onload = function () {
+      restarter.resume(new FileImage(String(url), rawImage));
+    };
+    rawImage.onerror = function (e) {
+      restarter.error(new Error("unable to load " + url + ": " + e.message));
+    };
+    rawImage.src = String(url);
+  });
+};
+
+//////////////////////////////////////////////////////////////////////
+// FileImage: string node -> Image
+var FileImage = /* @stopify flat */ function (src, rawImage) {
+  BaseImage.call(this);
+  var self = this;
+  this.src = src;
+  this.isLoaded = false;
+  this.ariaText = " image file from " + decodeURIComponent(src).slice(16);
+
+  // animationHack: see installHackToSupportAnimatedGifs() for details.
+  this.animationHackImg = undefined;
+
+  if (rawImage && rawImage.complete) {
+    this.img = rawImage;
+    this.isLoaded = true;
+    self.width = self.img.width;
+    self.height = self.img.height;
+  } else {
+    // fixme: we may want to do something blocking here for
+    // onload, since we don't know at this time what the file size
+    // should be, nor will drawImage do the right thing until the
+    // file is loaded.
+    this.img = new Image();
+    this.img.onload = function () {
+      self.isLoaded = true;
+      self.width = self.img.width;
+      self.height = self.img.height;
+    };
+    this.img.onerror = function (e) {
+      self.img.onerror = "";
+      self.img.src = "http://www.wescheme.org/images/broken.png";
+    }
+    this.img.src = src;
+  }
+}
+FileImage.prototype = heir(BaseImage.prototype);
+
+var imageCache = {};
+FileImage.makeInstance = /* @stopify flat */ function (path, rawImage) {
+  if (!(path in imageCache)) {
+    imageCache[path] = new FileImage(path, rawImage);
+  }
+  return imageCache[path];
+};
+
+FileImage.installInstance = /* @stopify flat */ function (path, rawImage) {
+  imageCache[path] = new FileImage(path, rawImage);
+};
+
+FileImage.installBrokenImage = /* @stopify flat */ function (path) {
+  imageCache[path] = new TextImage("Unable to load " + path, 10, colorDb.get("red"),
+    "normal", "Optimer", "", "", false);
+};
+
+FileImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  this.installHackToSupportAnimatedGifs();
+  ctx.drawImage(this.animationHackImg, x, y);
+};
+
+// The following is a hack that we use to allow animated gifs to show
+// as animating on the canvas.
+FileImage.prototype.installHackToSupportAnimatedGifs = /* @stopify flat */ function () {
+  if (this.animationHackImg) { return; }
+  this.animationHackImg = this.img.cloneNode(true);
+  document.body.appendChild(this.animationHackImg);
+  this.animationHackImg.style.position = 'absolute';
+  this.animationHackImg.style.top = '-50000px';
+};
+
+FileImage.prototype.getWidth = /* @stopify flat */ function () {
+  return Math.round(this.img.width);
+};
+
+FileImage.prototype.getHeight = /* @stopify flat */ function () {
+  return Math.round(this.img.height);
+};
+
+FileImage.prototype.equals = /* @stopify flat */ function (other) {
+  return (other instanceof FileImage) && this.src === other.src
+    || BaseImage.prototype.equals.call(this, other);
+};
+
+var DoesPauseAndKontinue = function (mode) {
+  return RUNTIME.pauseStack(function (restarter) {
+    if (mode === "error") {
+      restarter.error(new Error("Error case of DoesPauseAndKontinue"));
+    } else {
+      restarter.resume(new EllipseImage(30, 30, "solid", convertColor("green")));
+    }
+  });
+}
+
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
@@ -1667,25 +1930,25 @@ return module.exports = {
   rectangle: /* @stopify flat */ function (width, height, style, color) {
     return new RectangleImage(width, height, style, convertColor(color));
   },
-  square: /* @stopify flat */ function(length, style, color) {
+  square: /* @stopify flat */ function (length, style, color) {
     return new RectangleImage(length, length, style, convertColor(color));
   },
-  rhombus: /* @stopify flat */ function(side, angle, style, color) {
+  rhombus: /* @stopify flat */ function (side, angle, style, color) {
     return new RhombusImage(side, angle, style, convertColor(color));
   },
-  line: /* @stopify flat */ function(x, y, color) {
+  line: /* @stopify flat */ function (x, y, color) {
     return new LineImage(x, y, convertColor(color));
   },
-  "add-line": /* @stopify flat */ function(img, x1, y1, x2, y2, color) {
+  "add-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
     return new OverlayImage(new LineImage((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
   },
-  star: /* @stopify flat */ function(side, style, color) {
+  star: /* @stopify flat */ function (side, style, color) {
     return new PolygonImage(side, 5, 2, style, convertColor(color));
   },
-  "radial-star": /* @stopify flat */ function(points, outer, inner, style, color) {
+  "radial-star": /* @stopify flat */ function (points, outer, inner, style, color) {
     return new StarImage(points, inner, outer, style, convertColor(color));
   },
-  "star-sized": /* @stopify flat */ function(points, outer, inner, style, color) {
+  "star-sized": /* @stopify flat */ function (points, outer, inner, style, color) {
     return new StarImage(points, inner, outer, style, convertColor(color));
   },
   "star-polygon": /* @stopify flat */ function (length, count, step, style, color) {
@@ -1733,13 +1996,13 @@ return module.exports = {
   "text-font": /* @stopify flat */ function (str, size, color, face, family, style, weight, underline) {
     return new TextImage(str, size, convertColor(color), face, family, style, weight, underline);
   },
-  "flip-horizontal": /* @stopify flat */  function(img) {
+  "flip-horizontal": /* @stopify flat */  function (img) {
     return new FlipImage(img, "horizontal");
   },
-  "flip-vertical": /* @stopify flat */  function(img) {
+  "flip-vertical": /* @stopify flat */  function (img) {
     return new FlipImage(img, "vertical");
   },
-  frame: /* @stopify flat */  function(img) {
+  frame: /* @stopify flat */  function (img) {
     return new FrameImage(img);
   },
   crop: /* @stopify flat */ function (x, y, width, height, img) {
@@ -1754,6 +2017,7 @@ return module.exports = {
   "empty-scene": /* @stopify flat */ function (width, height) {
     return new SceneImage(width, height, [], true);
   },
+  "empty-image": new SceneImage(0, 0, [], true),
   "is-image": /* @stopify flat */ function (img) {
     return isImage(img);
   },
@@ -1773,7 +2037,10 @@ return module.exports = {
     return isColorOrColorString(c);
   },
   "images-equal": /* @stopify flat */ function (img1, img2) {
-    return img1.equals(img2);
+    return imageEquals(img1, img2);
+  },
+  "images-difference": /* @stopify flat */ function (img1, img2) {
+    return imageDifference(img1, img2);
   },
   "is-side-count": /* @stopify flat */ function (sth) {
     return isSideCount(sth);
@@ -1783,6 +2050,9 @@ return module.exports = {
   },
   "is-mode": /* @stopify flat */ function (x) {
     return isMode(x);
+  },
+  "is-angle": /* @stopify flat */ function (x) {
+    return isAngle(x);
   },
   "is-x-place": /* @stopify flat */ function (x) {
     return isPlaceX(x);
@@ -1795,5 +2065,29 @@ return module.exports = {
   },
   "image-to-color-list": /* @stopify flat */ function (img) {
     return imageToColorList(img);
+  },
+  "color-list-to-image": /* @stopify flat */ function (lOfC, width, height, pinX, pinY) {
+    return colorListToImage(lOfC, width, height, pinX, pinY);
+  },
+  "color-list-to-bitmap": /* @stopify flat */ function (lOfC, width, height) {
+    return colorListToImage(lOfC, width, height, 0, 0);
+  },
+  "put-image": /* @stopify flat */ function (image, x, y, background) {
+    return PutImage(image, x, y, background);
+  },
+  "place-image": /* @stopify flat */ function (image, x, y, background) {
+    return PlaceImage(image, x, y, background);
+  },
+  "place-image-align": /* @stopify flat */ function (image, x, y, placeX, placeY, background) {
+    return PlaceImageAlign(image, x, y, placeX, placeY, background);
+  },
+  "scene-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
+    return SceneLineImage(img, x1, y1, x2, y2, convertColor(color));
+  },
+  "image-url": /* @stopify flat */ function (url) {
+    return ImageUrlImage(url);
+  },
+  "bitmap-url": /* @stopify flat */ function (url) {
+    return ImageUrlImage(url);
   }
 };

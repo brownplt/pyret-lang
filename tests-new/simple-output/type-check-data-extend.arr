@@ -9,6 +9,10 @@ data Foo:
   | bar(x :: Boolean, y :: String)
 end
 
+data Nested:
+  | nested(n :: Foo)
+end
+
 f1 :: Foo = foo(true)
 f2 :: Foo = f1.{x: false}
 
@@ -16,12 +20,17 @@ fun update(f :: Foo) -> Foo:
   f.{x: false}
 end
 
-f3 :: Foo = update(bar(true, "bar"))
+b1 = bar(true, "bar")
+b2 :: Foo = update(b1)
 
-result = not(f2.x) and not(f3.x)
+n1 = nested(foo(true))
+nested-foo = n1.n.{x: false}
+
+result = f1.x and not(f2.x) and b1.x and not(b2.x)
+  and n1.n.x and not(nested-foo.x)
 
 if result:
   G.console-log(result)
 else:
-  G.console-log([L.list: f1, f2, f3 ])
+  G.console-log([L.list: f1, f2, b1, b2 ])
 end

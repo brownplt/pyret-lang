@@ -38,9 +38,13 @@ desugar-visitor = A.default-map-visitor.{
       A.s-cases-else(l, typ-compiled, val-id, branches.map(_.visit(self)),
         A.s-block(l, [list: no-cases-exn(l, val-id)]), true), false)
   end,
+  
+  # NOTE(alex): Remove these comments to drop check blocks
+  #|
   method s-check(self, l, name, body, keyword-check):
     A.s-id(l, A.s-global("nothing"))
   end
+  |#
 }
 
 fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment):
@@ -61,6 +65,11 @@ fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment):
           - in addition to preconditions,
             contains no s-cases, s-cases-else, s-instantiate
         ```
+      # TODO(alex): desugar-post-tc is run unconditionally before direct-codegen.arr
+      #             and removes s-check and s-check-test (check blocks)
+      #
+      #             direct-codegen.arr wants s-check and s-check-test to emit it
+      #             Temporarily disabling s-check removal (see note above to revert)
   cases(A.Program) program:
     | s-program(l, _provide, provided-types, provides, imports, body) =>
       A.s-program(l, _provide, provided-types, provides, imports, body.visit(desugar-visitor))

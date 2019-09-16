@@ -20,6 +20,8 @@ type ConstraintSolution = TCS.ConstraintSolution
 type Loc = A.Loc
 type Expr = A.Expr
 type Name = A.Name
+type Bind = A.Bind
+type Ann = A.Ann
 
 flat-prim-app = A.prim-app-info-c(false)
 
@@ -965,6 +967,18 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       result-type = new-existential(l, false)
       shadow context = context.add-variable(result-type)
       typing-result(e, result-type, context)
+    | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<A.SpyField>) =>
+      # Spy block type will always be t-nothing
+      # Based off of s-block type check synthesis code
+      # Type check all spy field expressions
+      fold-typing(lam(spy-field, shadow context):
+        synthesis(spy-field.value, top-level, context).bind(
+          lam(spy-expr, spy-typ, shadow context) block:
+            typing-result(spy-expr, spy-typ, context)
+          end)
+      end, contents, context).typing-bind(lam(new-spy-fields, shadow context):
+        typing-result(A.s-spy-block(l, message, new-spy-fields), t-nothing(l), context)
+      end)
   end.solve-bind()
 end
 
@@ -1203,6 +1217,8 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
           fold-result(typ, context)
       end
     | s-method-field(m-l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
+      # TODO(alex): TC limitations means cannot implement _equality() as a with-member
+      #   See tests-new/simple-output/custom-equal-always.arr for details
       new-type = add-self-type(typ)
       check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, name, params, _, _, doc, _, _check-loc, _check, b), context)
         .fold-bind(lam(_, out-type, shadow context):
@@ -1349,7 +1365,18 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
               fold-result(value-type, context)
             end)
       end
-    | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check) =>
+    | s-method-field(
+        l :: Loc,
+        name :: String,
+        params :: List<Name>,
+        args :: List<Bind>, # Value parameters
+        ann :: Ann, # return type
+        doc :: String,
+        body :: Expr,
+        _check-loc :: Option<Loc>,
+        _check :: Option<Expr>,
+        blocky :: Boolean
+      ) =>
       cases(List<A.Bind>) args:
         | empty =>
           fold-errors([list: C.method-missing-self(member)])

@@ -1,4 +1,4 @@
-### true
+### pass
 import global as G
 import list as L
 
@@ -30,20 +30,6 @@ true-result = t1
   and t5
   and t6
   and t7
-
-if true-result == false:
-  G.console-log([L.list: 
-    t1, 
-    t2, 
-    t3, 
-    t4, 
-    t5, 
-    t6, 
-    t7, 
-  ])
-else:
-  nothing
-end
 
 f1 = 5 == 4
 f2 = true == false
@@ -81,7 +67,17 @@ false-result = not(f1)
   and not(f13)
   and not(f14)
 
-if false-result == false:
+if true-result == false:
+  G.console-log([L.list: 
+    t1, 
+    t2, 
+    t3, 
+    t4, 
+    t5, 
+    t6, 
+    t7, 
+  ])
+else if false-result == false:
   G.console-log([L.list: 
     f1, 
     f2, 
@@ -102,7 +98,5 @@ if false-result == false:
     f14,
   ])
 else:
-  nothing
+  G.console-log("pass")
 end
-
-G.console-log(true-result and false-result)

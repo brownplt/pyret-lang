@@ -14,7 +14,12 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
+type DesugarResult = DH.DesugarResult
+
 flat-prim-app = A.prim-app-info-c(false)
+
+string-dict = D.string-dict
+mtd = [string-dict:]
 
 type Ann = A.Ann
 type Bind = A.Bind
@@ -114,6 +119,12 @@ fun make-fun-name(compiler, loc) -> String:
   "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
 end
 
+data CheckOpDesugar: 
+  | binop-result(op)
+  | refinement-result(refinement, negate)
+  | predicate-result(predicate)
+end
+
 type Loc = SL.Srcloc
 
 default-import-flags = {
@@ -167,7 +178,6 @@ GLOBAL = const-id("_global")
 ARRAY = const-id("_array")
 TABLE = const-id("_table")
 REACTOR = const-id("_reactor")
-SPY = const-id("_spy")
 NUMBER = const-id("_number")
 NOTHING = const-id("_nothing")
 
@@ -274,6 +284,204 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
+fun compile-s-op(context, l, op-l, op, left, right):
+  { lv; lstmts } = compile-expr(context, left)
+  { rv; rstmts } = compile-expr(context, right)
+  val = ask:
+    # Pyret number operations compatible with JS numbers
+    # Always assume Pyret numbers when compiling
+    | (op == "op+") then: 
+      rt-method("_add", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op-") then: 
+      rt-method("_subtract", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op*") then: 
+      rt-method("_multiply", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op/") then:
+      rt-method("_divide", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op<") then:
+      rt-method("_lessThan", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op>") then:
+      rt-method("_greaterThan", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op<=") then:
+      rt-method("_lessThanOrEqual", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+    | (op == "op>=") then:
+      rt-method("_greaterThanOrEqual", 
+                [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
+
+    # TODO(alex): Use equal-always, equal-now, etc
+    # Call Global.py_equal
+    | op == "op==" then: 
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
+    | op == "op<>" then:
+      # Logical negation of equal-always()
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-unop(j-parens(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
+    | op == "op<=>" then:
+      argvs = cl-cons(lv, cl-sing(rv))
+      j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
+    | op == "opor" then: j-binop(lv, J.j-or, rv)
+    | op == "opand" then: j-binop(lv, J.j-and, rv)
+    | otherwise: nyi(op)
+  end
+  { val; lstmts + rstmts; lv; rv }
+end
+
+data BindableKind:
+  | unbindable(value :: JExpr)
+  | to-bind(binder :: JExpr)    # JS function expecting 1 arg: the object to bind
+end
+
+fun compile-member(context, member :: A.Member) -> { BindableKind; CList<JStmt> }:
+  cases(A.Member) member:
+  | s-data-field(l :: Loc, name :: String, value :: Expr) =>
+    { field-val; field-stmts } = compile-expr(context, value)
+    # Assume s-method can only be at the top level (i.e. no nesting)
+    # Any nesting is a well-formedness error
+    cases(Expr) value:
+      | s-method(_, _, _, _, _, _, _, _, _, _) => { to-bind(field-val); field-stmts }
+      | else => { unbindable(field-val); field-stmts }
+    end
+
+  | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) => 
+    raise("Mutable member fields not supported")
+
+  | s-method-field(
+      l :: Loc,
+      name :: String,
+      params :: List<Name>,
+      args :: List<Bind>, # Value parameters
+      ann :: Ann, # return type
+      doc :: String,
+      body :: Expr,
+      _check-loc :: Option<Loc>,
+      _check :: Option<Expr>,
+      blocky :: Boolean
+    ) => 
+      { binder-func; binder-stmts } = compile-method(context, l, name, args, body)
+      { to-bind(binder-func); binder-stmts }
+  end
+end
+
+#
+# Does NOT support method expressions
+# TODO(alex): Deprecate method expressions?
+#
+# Generates a function and a nested function of the form:
+#
+#   function binderNAME(self) {
+#     var inner = function innerNAME(method-args-no-self) { ... };
+#     inner["$brand"] = METHOD-BRAND;
+#     inner["$binder'] = binderNAME;
+#     return inner;
+#   } 
+#
+# Instantiating a method on a data variant:
+#
+#   var $singletonTMP = {
+#     ...
+#     "methodName": bindermethodName($singletonTMP)
+#     ...
+#   };
+#
+#   ...
+#
+#   "variant": function(...) {
+#     var tmpObj = {
+#       ...
+#       "methodName": bindermethodName(tmpObj),
+#       ...
+#     };
+#     return tmpObj;
+#   },
+#   "singleton": $singletonTMP,
+#
+# Rebinding methods should be handled by a RUNTIME function.
+# Rebinding should simply be calling something like:
+#   'oldObject.method["$binder"](newObject)'
+#
+# TODO(alex): Generate rebinding call
+#
+fun compile-method(context, 
+      l :: Loc,
+      name :: String,
+      args :: List<Bind>, # Value parameters
+      body :: Expr) -> { JExpr; CList<JStmt> }:
+
+  fun remove-self<a>(my-list :: CList<a>) -> { a; CList<a> }: 
+    cases(CList) my-list:
+      | concat-empty => raise("Always have at least 1 method parameter (self). Found none")
+
+      | concat-singleton(self-arg) => { self-arg; cl-empty }
+
+      | concat-append(left :: CList<a>, right :: CList<a>) =>
+        { self-arg; rest-left } = remove-self(list)
+        { self-arg; cl-append(rest-left, right) }
+
+      | concat-cons(self-arg :: a, rest :: CList<a>) =>
+        { self-arg; rest }
+
+      | concat-snoc(head :: CList<a>, last :: a) =>
+        { self-arg; rest } = remove-self(list)
+        { self-arg; cl-snoc(rest, last) }
+    end
+  end
+  { js-body-val; js-body-stmts } = compile-expr(context, body) 
+
+  # 'self' is included by s-method.args
+  js-args-with-self = for CL.map_list(a from args): js-id-of(a.id) end
+
+  # NOTE(alex): assuming 'self' is always first
+  { self; js-args-without-self } = remove-self(js-args-with-self)
+
+  # Generate a function that closes over the 'self' arg given by the binder function
+  inner-fun = j-fun("0", 
+    js-id-of(const-id("inner" + name)).toname(), 
+    js-args-without-self,
+    j-block(cl-snoc(js-body-stmts, j-return(js-body-val)))
+  )
+
+  binder-fun-name = fresh-id(compiler-name("binder" + name))
+
+  inner-fun-bind = fresh-id(compiler-name("inner"))
+
+  # Assign inner function to a variable
+  inner-fun-var = j-var(inner-fun-bind, inner-fun)
+
+  # Give the inner function a method brand
+  inner-fun-brand = j-bracket-assign(
+    j-id(inner-fun-bind), 
+    j-str("$brand"),
+    j-str("METHOD")
+  )
+
+  # Give the inner function a reference to the binder function (for rebinding)
+  inner-fun-binder = j-bracket-assign(
+    j-id(inner-fun-bind), 
+    j-str("$binder"),
+    j-id(binder-fun-name)
+  )
+
+  # Generate the binder function
+  binder-fun = j-fun("0",
+    binder-fun-name.to-compiled(),
+    cl-sing(self),
+    j-block([clist: inner-fun-var, 
+                    j-expr(inner-fun-brand), 
+                    j-expr(inner-fun-binder),
+                    j-return(j-id(inner-fun-bind))
+            ])
+  )
+
+  { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
+end
 
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
@@ -299,9 +507,11 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         end
       end
 
+      check-results = rt-method("$checkResults", [clist: ])
+
       ans = j-obj(fields + [clist:
                 j-field("$answer", a-exp),
-                j-field("$checks", J.j-undefined)])
+                j-field("$checks", check-results)])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
       {assign-ans; a-stmts + stmts}
@@ -337,53 +547,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-srcloc(_, l) => { j-str("srcloc"); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
-      { lv; lstmts } = compile-expr(context, left)
-      { rv; rstmts } = compile-expr(context, right)
-      val = ask:
-        # Pyret number operations compatible with JS numbers
-        # Always assume Pyret numbers when compiling
-        | (op == "op+") then: 
-          rt-method("_add", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op-") then: 
-          rt-method("_subtract", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op*") then: 
-          rt-method("_multiply", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op/") then:
-          rt-method("_divide", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<") then:
-          rt-method("_lessThan", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>") then:
-          rt-method("_greaterThan", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op<=") then:
-          rt-method("_lessThanOrEqual", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-        | (op == "op>=") then:
-          rt-method("_greaterThanOrEqual", 
-                    [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-
-        # TODO(alex): Use equal-always, equal-now, etc
-        # Call Global.py_equal
-        | op == "op==" then: 
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
-        | op == "op<>" then:
-          # Logical negation of equal-always()
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-unop(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs), J.j-not)
-        | op == "op<=>" then:
-          argvs = cl-cons(lv, cl-sing(rv))
-          j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
-        | op == "opor" then: j-binop(lv, J.j-or, rv)
-        | op == "opand" then: j-binop(lv, J.j-and, rv)
-        | otherwise: nyi(op)
-      end
-      { val; lstmts + rstmts }
+      { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
+      { val; stmts }
 
     | s-lam(l, name, _, args, _, _, body, _, _, _) =>
 
@@ -418,6 +583,106 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
 
+      # Combine compiled-shared, compiled-with, and members to initialize 
+      #   any overlapping fields once
+      # Priority order (i.e. what name gets initialized to what):
+      #   1) Members
+      #   2) With Members
+      #   3) Shared Members
+      fun resolve-init-names(constructed-obj :: JExpr, compiled-shared, 
+                             compiled-with, variant-members) 
+        -> { CList<JField>; CList<JStmt> }:
+
+        # Given a shared/with member, emit the code to set the field
+        # NOTE(alex): Currently cannot do recursive object initialization
+        #   Manually assign the shared/with member with j-bracket vs returning a j-field
+        fun compile-nonlocal-member(shadow constructed-obj :: JExpr,
+                                    member :: A.Member, 
+                                    member-val :: BindableKind, 
+                                    member-stmts :: CList<JStmt>) -> CList<JStmt>: 
+          fun bind(binder-func):
+            init-expr-rhs = j-app(binder-func, [clist: constructed-obj])
+            j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs))
+          end
+
+          cases(BindableKind) member-val:
+            | unbindable(value) =>
+              cl-sing(j-expr(j-bracket-assign(constructed-obj, j-str(member.name), value)))
+
+            | to-bind(binder) =>
+              # Found a method; bind the method function to the constructed object
+              #   by calling the method's binder function and passing in 'self'
+              cl-snoc(member-stmts, bind(binder))
+          end
+        end
+        
+        # Construct dictionary of variant member inits
+        variant-member-map = for fold(dict from [string-dict: ], m from variant-members):
+          field-name = m.bind.id.toname()
+          init-expr = j-field(field-name, j-id(js-id-of(m.bind.id)))
+          dict.set(field-name, { some(init-expr); cl-empty})
+        end
+
+        # Construct dictionary of with-member inits and NON-conflicting variant member inits
+        # Variant members have priority
+        with-member-map = for CL.foldl(dict from variant-member-map, m from compiled-with):
+          { member; { member-value; member-stmts}} = m
+          if dict.has-key(member.name):
+            # with-member overrided by variant member
+            dict
+          else:
+            # No conflicting variant member
+            compiled-stmts = compile-nonlocal-member(
+              constructed-obj, 
+              member, 
+              member-value, 
+              member-stmts
+            )
+            dict.set(member.name, 
+                     { none; compiled-stmts})
+          end
+        end
+
+        # Construct dictionary of shared-member inits 
+        #   and NON-conflicting variant member inits and with-member inits
+        # Variant members and with-members have priority
+        shared-member-map = for CL.foldl(dict from with-member-map, m from compiled-shared):
+          { member; { member-value; member-stmts}} = m
+          if dict.has-key(member.name):
+            # shared-member overrided by variant member OR with-member
+            dict
+          else:
+            # No conflicting variant member OR with-member
+            compiled-stmts = compile-nonlocal-member(
+              constructed-obj, 
+              member, 
+              member-value, 
+              member-stmts
+            )
+            dict.set(member.name, 
+                     { none; compiled-stmts})
+          end
+        end
+
+        field-stmt-list = for CL.map_list(k from shared-member-map.keys().to-list()):
+          shared-member-map.get-value(k)
+        end
+
+        field-init = for CL.foldl({ fields; stmts } from { cl-empty; cl-empty },
+                                  { optional-field; shared-stmts } from field-stmt-list):
+          cases(Option) optional-field:
+            | some(f) => { cl-append(fields, cl-sing(f)); cl-append(stmts, shared-stmts) }
+            | none => { fields; cl-append(stmts, shared-stmts) }
+          end
+        end
+
+        field-init
+      end
+
+      compiled-shared = for CL.map_list(member from shared):
+        { member; compile-member(context, member) }
+      end
+
       variant-uniqs = for fold(uniqs from [D.string-dict:], v from variants):
         uniqs.set(v.name, fresh-id(compiler-name(v.name)))
       end
@@ -435,22 +700,54 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       variant-constructors = for CL.map_list_n(local-tag from 0, v from variants):
         cases(A.Variant) v:
-          | s-variant(_, cl, shadow name, members, _) =>
+          | s-variant(_, cl, shadow name, members, with-members) =>
+            compiled-with = for CL.map_list(member from with-members):
+              { member; compile-member(context, member) }
+            end
             args = for CL.map_list(m from members): js-id-of(m.bind.id) end
-            j-field(name,
+
+            # Give object a temporary name to bind methods against
+            constructor-tmp = fresh-id(compiler-name("constructorTMP"))
+            { constructed-fields; constructed-stmts } = 
+              resolve-init-names(j-id(constructor-tmp),
+                                 compiled-shared, compiled-with, members)
+            tmp-obj = j-obj(
+                    [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
+                            j-field("$tag", j-num(local-tag))] + 
+                    constructed-fields
+            )
+            tmp-obj-var = j-var(constructor-tmp, tmp-obj)
+
+            { j-field(name,
               j-fun("0", js-id-of(const-id(name)).toname(), args,
-                j-block1(
-                  j-return(j-obj(
+                j-block(cl-cons(tmp-obj-var, constructed-stmts) + 
+                  cl-sing(j-return(j-id(constructor-tmp)))
+                )
+              )
+            ); cl-empty }
+          | s-singleton-variant(_, shadow name, with-members) =>
+            compiled-with = for CL.map_list(member from with-members):
+              { member; compile-member(context, member) }
+            end
+
+            constructor-tmp = fresh-id(compiler-name("constructorTMP"))
+            { constructed-fields; constructed-stmts } = 
+              resolve-init-names(j-id(constructor-tmp),
+                                 compiled-shared, compiled-with, [list:])
+            tmp-obj = j-obj(
                     [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
                             j-field("$tag", j-num(local-tag))] +
-                    for CL.map_list(m from members):
-                      j-field(m.bind.id.toname(), j-id(js-id-of(m.bind.id)))
-                    end)))))
-          | s-singleton-variant(_, shadow name, with-members) =>
-            j-field(name, j-obj([clist:
-              j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
-              j-field("$tag", j-num(local-tag))]))
+                    constructed-fields
+            )
+            tmp-obj-var = j-var(constructor-tmp, tmp-obj)
+
+            { j-field(name, j-id(constructor-tmp)); cl-cons(tmp-obj-var, constructed-stmts) }
         end
+      end
+
+      { shadow variant-constructors; variant-cons-stmts } = 
+       for CL.foldl({constructors; statements} from {cl-empty; cl-empty}, {vcons; vstmts} from variant-constructors):
+        { cl-append(constructors, cl-sing(vcons)); cl-append(statements, vstmts) }
       end
 
       variant-recognizers = for CL.map_list(v from variants):
@@ -460,7 +757,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
       end
 
-      { j-obj(variant-constructors + variant-recognizers); variant-uniq-defs }
+      compiled-shared-stmts = for CL.foldl(all-stmts from cl-empty, 
+                                           { _shared-member; { shared-member-val; shared-member-stmts }} from compiled-shared):
+        cl-append(all-stmts, shared-member-stmts)
+      end
+
+      { 
+        j-obj(variant-constructors + variant-recognizers); 
+        variant-uniq-defs + variant-cons-stmts + compiled-shared-stmts
+      }
       
     | s-dot(l, obj, field) =>
       
@@ -553,17 +858,41 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-obj(l, fields) =>
 
-      {fieldvs; stmts} = for fold({fieldvs; stmts} from {cl-empty; cl-empty}, f from fields) block:
+      tmp-bind = fresh-id(compiler-name("temporary"))
+
+      {fieldvs; stmts; binds} = for fold({fieldvs; stmts; binds} from {cl-empty; cl-empty; cl-empty}, f from fields) block:
         when not(A.is-s-data-field(f)):
           raise("Can only provide data fields")
         end
 
-        {val; field-stmts} = compile-expr(context, f.value)
+        {val; compiled-stmts} = compile-expr(context, f.value)
 
-        { cl-cons(j-field(f.name, val), fieldvs); field-stmts + stmts }
+        # Can only have s-method as the top-level expression of a field (i.e. no nesting)
+        cases(Expr) f.value:
+          | s-method(_, _, _, _, _, _, _, _, _, _) =>
+            binder-func = val
+            binder-stmts = compiled-stmts
+
+            init-expr-rhs = j-app(binder-func, [clist: j-id(tmp-bind)])
+            bind = j-expr(j-bracket-assign(j-id(tmp-bind), j-str(f.name), init-expr-rhs))
+
+            # Binder function must be generated first
+            { fieldvs; cl-append(binder-stmts, stmts); cl-cons(bind, binds) }
+
+          | else => 
+            # Fields are evaluated top to bottom
+            { cl-snoc(fieldvs, j-field(f.name, val)); cl-append(stmts, compiled-stmts); binds }
+        end
       end
 
-      { j-obj(fieldvs); stmts }
+      # Emit a temporary object to bind against
+      var-obj = j-var(tmp-bind, j-obj(fieldvs))
+
+      # Init statements and object bind come before method binding
+      init-stmts = cl-snoc(stmts, var-obj)
+      ordered-stmts = cl-append(init-stmts, binds)
+
+      { j-id(tmp-bind); ordered-stmts }
 
     | s-array(l, elts) =>
       { elts-vals; elts-stmts } = compile-list(context, elts)
@@ -579,7 +908,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         # Just emit the body as an expression
         compile-expr(context, body)
     | s-template(l) => nyi("s-template")
-    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) => nyi("s-method")
+    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, _blocky) =>
+      # name is always empty according to parse-pyret.js:1280
+      # TODO(alex): Make s-method in non(s-obj) or with/shared member context a well-formedness error
+      #   Can only have s-method as the top-level expression of a field (i.e. no nesting)
+      
+      # NOTE(alex): Currently cannot do recursive object initialization
+      #   Manually assign the shared/with member with j-bracket vs returning a j-field
+      { binder-func; method-stmts } = compile-method(context, l, name, args, body)
+
+      # Assume callers will generate binding code correctly
+      { binder-func; method-stmts }
     | s-type(l, name, params, ann) => raise("s-type already removed")
     | s-newtype(l, name, namet) => raise("s-newtype already removed")
     | s-when(l, test, body, blocky) => 
@@ -638,7 +977,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Perform a shallow copy of obj with JS(Object.assign)
       shallow-copy-fn = j-bracket(j-id(OBJECT), j-str("assign"))
       shallow-copy-name = fresh-id(compiler-name("shallow-copy"))
-      shallow-copy-call = j-app(shallow-copy-fn, cl-sing(to-extend))
+      shallow-copy-call = j-app(shallow-copy-fn, [clist: j-obj(cl-empty), to-extend])
       shallow-copy = j-var(shallow-copy-name, shallow-copy-call)
 
       prelude-stmts = cl-append(obj-stmts, cl-sing(shallow-copy))
@@ -652,7 +991,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         cl-append(stmts, cl-sing(j-expr(field-extend)))
       end
 
-      { j-id(shallow-copy-name); extend-stmts }
+      rebind-stmt = j-expr(rt-method("$rebind", [clist: j-id(shallow-copy-name)]))
+
+      { j-id(shallow-copy-name); cl-snoc(extend-stmts, rebind-stmt) }
 
     | s-for(l, iter, bindings, ann, body, blocky) => 
       compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
@@ -727,8 +1068,115 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
-    | s-check(l, name, body, keyword-check) => nyi("s-check")
-    | s-check-test(l, op, refinement, left, right) => nyi("s-check-test")
+    | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) => 
+
+      # Currently makes no assumpetions and takes no actions about where the check block is
+      #   i.e. the check blocks are NOT moved to the end of a block direct-codegen.arr
+      #
+      # Emits:
+      #   checkBlockTestRunner("TEST NAME", function() { compiled-body });
+      #
+
+      { check-block-val; check-block-stmts } = compile-expr(context, body)
+      # TODO(alex): insert test scaffolding here
+      # TODO(alex): insert check blocks inline or in a separate area?
+      # TODO(alex): check block returns?
+
+      # Wrap the check block into a function (check-block)
+      js-check-block-func-name = cases(Option) name:
+        | some(string) => fresh-id(compiler-name("check-block-" + string))
+        | none => fresh-id(compiler-name("check-block"))
+      end
+
+      js-check-block-func-block = j-block(cl-append(check-block-stmts, 
+                                                    cl-sing(j-expr(check-block-val))))
+      js-check-block-func = j-fun("0", js-check-block-func-name.to-compiled(), 
+                                  cl-empty, js-check-block-func-block)
+
+      test-block-name = cases(Option) name:
+        | some(string) => j-str(string)
+        | none => j-str(js-check-block-func-name.to-compiled())
+      end
+
+      # Pass function check-block and the name to the test runner
+      tester-call = j-expr(rt-method("$checkBlock", [clist: test-block-name, js-check-block-func]))
+
+      { j-undefined; cl-sing(tester-call) }
+
+    | s-check-test(l :: Loc, 
+                   op :: A.CheckOp, 
+                   refinement :: Option<Expr>, 
+                   left :: Expr, 
+                   right :: Option<Expr>, 
+                   cause :: Option<Expr>) =>
+
+      # Emits:
+      #   _checkTest(function() {
+      #     left-statements
+      #     right-statements 
+      #     return check-op(left-value, right-value);
+      #   }, loc, lhs, rhs);
+      #
+      # _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
+      #
+      # check-op-result = {
+      #   success: boolean
+      #   lhs: any
+      #   rhs: any
+      # }
+      #
+      # Individual tests are wrapped in functions to allow individual tests to fail
+      #  but still possible to run other tests
+      
+      check-op = cases(A.CheckOp) op:
+        | s-op-is(_) => binop-result("op==")
+        | s-op-is-not(_) => binop-result("op<>")
+        | else => raise("NYI check op ID")
+      end
+
+      { raw-js-test-val; raw-js-test-stmts; lhs; rhs } = cases(CheckOpDesugar) check-op:
+        | binop-result(bin-op) =>
+          cases(Option) right:
+            | some(right-expr) => 
+              # Assuming this compile-expr returns j-binop
+              { j-test-val; j-test-stmts; lhs; rhs } =
+                compile-s-op(context, l, l, bin-op, left, right-expr)
+
+              { j-test-val; j-test-stmts ; lhs; some(rhs) } 
+
+            | none => raise("Attempting to use a binary check op without the RHS")
+          end
+        | refinement-result(the-refinement, negate) => raise("NYI check refinement")
+        | predicate-result(predicate) => raise("NYI check predicate")
+      end
+
+      test-loc = j-str(l.format(true))
+
+      # Thunk the JS test code; returns a check-op-result (described above)
+
+      # If there was no RHS expression, explicitly insert an 'undefined'
+      simple-return-fields = [clist: 
+        j-field("success", raw-js-test-val),
+        j-field("lhs", lhs),
+      ]
+      return-fields = cases(Option) rhs:
+        | some(right-expr) => cl-append(simple-return-fields, 
+                                        cl-sing(j-field("rhs", right-expr)))
+        | none => cl-append(simple-return-fields, 
+                            cl-sing(j-field("rhs", j-undefined)))
+      end
+      return-expr = j-obj(return-fields)
+
+      thunk-body = cl-snoc(raw-js-test-stmts, j-return(return-expr))
+      thunk = j-fun("0", "$check", cl-empty, j-block(thunk-body))
+
+      check-test-args = [clist: thunk, test-loc]
+
+      # TODO(alex): insert test scaffolding here
+      tester-call = j-expr(rt-method("$checkTest", check-test-args))
+
+      { j-undefined; [clist: tester-call] }
+
     | s-load-table(
         l :: Loc,
         headers :: List<FieldName>,
@@ -1306,7 +1754,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
         # TODO(alex): builtin spy function call or inline formatting/reporting?
         # Builtin spy function call
-        spy-call = rt-method("_spy", cl-sing(spy-block-obj))
+        spy-call = j-expr(rt-method("$spy", cl-sing(spy-block-obj)))
 
         { j-undefined; cl-sing(spy-call) }
       else:

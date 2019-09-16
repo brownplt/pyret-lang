@@ -93,7 +93,10 @@
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
       "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
-      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]]
+      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+      "Equal": ["local", "EqualityResult"],
+      "NotEqual": ["arrow", ["String", "Any", "Any"], ["local", "EqualityResult"]],
+      "Unknown": ["arrow", ["String", "Any", "Any"], ["local", "EqualityResult"]]
     },
     "aliases": {
       "Any": "tany",

@@ -38,11 +38,14 @@ export const makeRequireAsync = (
         throw new Error("Path did not exist in requireSync: " + nextPath);
       }
       const stoppedPath = nextPath + ".stopped";
-      if(stoppedPath in cache) { resolve(cache[stoppedPath]); return; }
+      // Get the absolute path to uniquely identify modules
+      // Cache modules based upon the absolute path for singleton modules
+      const cachePath = path.resolve(stoppedPath);
+      if(cachePath in cache) { resolve(cache[cachePath]); return; }
       let runner: any = null;
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = wrapContent(contents);
-      runner = stopify.stopifyLocally(toStopify, {});
+      runner = stopify.stopifyLocally(toStopify, {newMethod: "direct"});
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
       const stopifyModuleExports = {
@@ -59,6 +62,8 @@ export const makeRequireAsync = (
         RegExp,
         stopify,
         Error,
+        Image,
+        decodeURIComponent,
         require: requireAsync,
         "module": stopifyModuleExports,
         // TS 'export' syntax desugars to 'exports.name = value;'
@@ -81,7 +86,7 @@ export const makeRequireAsync = (
           return;
         }
         const toReturn = runner.g.module.exports;
-        cache[stoppedPath] = toReturn;
+        cache[cachePath] = toReturn;
         resolve(toReturn);
       });
     });
@@ -98,7 +103,10 @@ export const makeRequireAsync = (
       throw new Error("Path did not exist in requireSync: " + nextPath);
     }
     const stoppedPath = nextPath + ".stopped";
-    if(stoppedPath in cache) { return cache[stoppedPath]; }
+    // Get the absolute path to uniquely identify modules
+    // Cache modules based upon the absolute path for singleton modules
+    const cachePath = path.resolve(stoppedPath);
+    if(cachePath in cache) { return cache[cachePath]; }
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
       const module = {
@@ -131,7 +139,7 @@ export const makeRequireAsync = (
         currentRunner.g.module = lastModule;
         // Need to set 'exports' global to work with TS export desugaring
         currentRunner.g.exports = lastModule.exports;
-        cache[stoppedPath] = toReturn;
+        cache[cachePath] = toReturn;
         kontinue({ type: 'normal', value: toReturn });
       });
     });

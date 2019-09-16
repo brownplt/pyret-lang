@@ -12,6 +12,8 @@ import pathlib as P
 import sha as sha
 import string-dict as D
 
+type Expr = A.Expr
+type Loc = SL.Srcloc
 flat-prim-app = A.prim-app-info-c(false)
 
 type CList = CL.ConcatList
@@ -75,6 +77,11 @@ j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
 
+
+data DesugarResult:
+  | pyret(ast)
+  | js(ast)
+end
 
 fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr):
   # Split binds and their values
