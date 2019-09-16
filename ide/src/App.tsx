@@ -148,7 +148,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.setState(
                     {
                         interactionErrors: [errors.toString()],
-                        interactErrorExists: true,
                     }
                 );
             },
@@ -181,7 +180,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     this.setState(
                                         {
                                             interactionErrors: runResult.result.error,
-                                            interactErrorExists: true
                                         }
                                     );
                                 }
@@ -252,6 +250,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState(
             {
                 interactionErrors: [],
+                definitionsHighlights: []
             }
         );
         if (this.isPyretFile) {
@@ -415,7 +414,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 lintFailures={this.state.lintFailures}
                 name={this.state.currentFileName}
                 highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}
                 program={this.state.currentFileContents}
                 onEdit={this.onEdit}></DefChunks>);
         }
