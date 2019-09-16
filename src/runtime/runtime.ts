@@ -192,10 +192,8 @@ var NumberErrbacks: NumericErrorCallbacks = {
 export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
     return Unknown("Function", v1, v2);
-  // TODO(alex): Handle/detect methods
-  // } else if (isMethod(v1) && isMethod(v2)) {
-  //  return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
-  //  TODO(alex): Handle/detect rough numbers
+  } else if (isMethod(v1) && isMethod(v2)) {
+    return Unknown("Method", v1, v2);
   } else if (isRoughNumber(v1) && isRoughNumber(v2)) {
     return Unknown('Roughnums', v1,  v2);
   } else if (v1 === v2) {
