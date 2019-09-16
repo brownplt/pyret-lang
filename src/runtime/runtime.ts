@@ -254,8 +254,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
-      
-      // TODO(alex): Handle methods
+    } else if (isMethod(v1) && isMethod(v2)) {
+      return Unknown("Methods", v1, v2);
     } else if (isPTuple(v1) && isPTuple(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("PTuple Length", v1, v2);
