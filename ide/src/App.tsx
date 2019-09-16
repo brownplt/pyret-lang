@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
+import { Check, TestResult } from './Check';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
@@ -91,6 +92,7 @@ type EditorState = {
     currentFileName: string;
     currentFileContents: string;
     typeCheck: boolean;
+    checks: Check[],
     interactions: { name: string, value: any }[];
     interactionErrors: string[];
     interactErrorExists: boolean;
@@ -171,9 +173,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         control.bfsSetup.path.join(
                                             control.path.runBase,
                                             `${this.state.currentFileName}.json`));
-
+                                const checks = runResult.result.$checks;
                                 this.setState({
-                                    interactions: results
+                                    interactions: results,
+                                    checks: checks
                                 });
 
                                 if (results[0].name === "error") {
@@ -207,6 +210,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     ...this.props.currentFileDirectory,
                     this.props.currentFileName)),
             typeCheck: true,
+            checks: [],
             interactions: [{
                 name: "Note",
                 value: "Press Run to compile and run"
@@ -426,18 +430,22 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     render() {
         const interactionValues =
-            <pre className="interactions-area"
-                 style={{ fontSize: this.state.fontSize }}>
-                {
-                    this.state.interactions.map(
-                        (i) => {
-                            return <Interaction key={i.name}
-                                                name={i.name}
-                                                value={i.value}
-                                                setMessage={this.setMessage}/>
-                        })
-                }
-            </pre>;
+            <div style={{ fontSize: this.state.fontSize }}>
+                <pre className="checks-area">
+                    { this.state.checks.map(c => <TestResult check={c}></TestResult>)}
+                </pre>
+                <pre className="interactions-area">
+                    {
+                        this.state.interactions.map(
+                            (i) => {
+                                return <Interaction key={i.name}
+                                                    name={i.name}
+                                                    value={i.value}
+                                                    setMessage={this.setMessage}/>
+                            })
+                    }
+                </pre>
+            </div>;
 
         const dropdown = this.state.dropdownVisible && (
             <Dropdown>
