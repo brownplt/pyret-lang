@@ -95,7 +95,6 @@ type EditorState = {
     checks: Check[],
     interactions: { name: string, value: any }[];
     interactionErrors: string[];
-    interactErrorExists: boolean;
     lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
     autoRun: boolean;
@@ -141,7 +140,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.setState(
                     {
                         interactionErrors: errors,
-                        interactErrorExists: true,
                         definitionsHighlights: places
                     }
                 );
@@ -192,7 +190,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
                                 this.setState({
                                     interactionErrors: [runResult.result.error],
-                                    interactErrorExists: true
                                 });
                             }
                         }
@@ -216,7 +213,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 value: "Press Run to compile and run"
             }],
             interactionErrors: [],
-            interactErrorExists: false,
             lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
@@ -256,7 +252,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
         this.setState(
             {
                 interactionErrors: [],
-                interactErrorExists: false
             }
         );
         if (this.isPyretFile) {
@@ -278,7 +273,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         value: this.currentFile
                     }],
                 interactionErrors: ["Error: Run is not supported on this file type"],
-                interactErrorExists: true
             });
         }
     };
@@ -413,8 +407,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             return <SingleCodeMirrorDefinitions
                 text={this.state.currentFileContents}
                 onEdit={this.onEdit}
-                highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}>
+                highlights={this.state.definitionsHighlights}>
             </SingleCodeMirrorDefinitions>;
         }
         else if (this.state.editorMode === EEditor.Chunks) {
@@ -514,7 +507,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         const rightHandSide =
             <div className="interactions-area-container">
-                {this.state.interactErrorExists ? (
+                {this.state.interactionErrors.length > 0 ? (
                     <SplitterLayout vertical={true}
                                     percentage={true}>
                         {interactionValues}
