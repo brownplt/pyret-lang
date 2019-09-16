@@ -1,4 +1,5 @@
 import React from 'react';
+import {RenderedValue} from './RenderedValue';
 
 export type Check = {
     lhs: any,
@@ -15,14 +16,17 @@ export type TestResultProps = {
 export type TestResultState = {};
 export class TestResult extends React.Component<TestResultProps, TestResultState> {
   render() {
+    const doNothing = () => {};
     let message;
     const c = this.props.check;
     if(c.success) {
-      message = `Test succeeded at ${c.loc}`
+      message = <pre className="test-result">Test passed at {c.loc}</pre>;
     }
     else {
-      message = `Test failed at ${c.loc}: ${c.lhs} was not equal to ${c.rhs}`
+      const lhsRendered = <RenderedValue value={c.lhs} setMessage={doNothing}></RenderedValue>;
+      const rhsRendered = <RenderedValue value={c.rhs} setMessage={doNothing}></RenderedValue>;
+      message = <pre className="test-result">Test failed at {c.loc}: {lhsRendered} was not equal to {rhsRendered}</pre>;
     }
-    return <pre>{message}</pre>;
+    return message;
   }
 }
