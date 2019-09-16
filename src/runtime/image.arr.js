@@ -2009,9 +2009,12 @@ return module.exports = {
     return new CropImage(x, y, width, height, img);
   },
   scale: /* @stopify flat */ function (factor, img) {
+    factor = jsnums.toFixnum(factor);
     return new ScaleImage(factor, factor, img);
   },
   "scale-xy": /* @stopify flat */ function (xFactor, yFactor, img) {
+    xFactor = jsnums.toFixnum(xFactor);
+    yFactor = jsnums.toFixnum(yFactor);
     return new ScaleImage(xFactor, yFactor, img);
   },
   "empty-scene": /* @stopify flat */ function (width, height) {
