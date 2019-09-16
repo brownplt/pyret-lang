@@ -42,7 +42,7 @@ export const makeRequireAsync = (
       let runner: any = null;
       const contents = String(fs.readFileSync(nextPath));
       const toStopify = wrapContent(contents);
-      runner = stopify.stopifyLocally(toStopify, {});
+      runner = stopify.stopifyLocally(toStopify, {newMethod: "direct"});
       if(runner.kind !== "ok") { reject(runner); }
       fs.writeFileSync(stoppedPath, runner.code);
       const stopifyModuleExports = {
@@ -59,7 +59,7 @@ export const makeRequireAsync = (
         RegExp,
         stopify,
         Error,
-        Image: () => { return new Image(); },
+        Image,
         decodeURIComponent,
         require: requireAsync,
         "module": stopifyModuleExports,
