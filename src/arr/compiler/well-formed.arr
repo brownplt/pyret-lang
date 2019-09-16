@@ -371,7 +371,12 @@ fun wrap-reject-standalones-in-check(target) block:
   in-check-block := true
   ret = cases(Option) target:
     | none => true
-    | some(t) => reject-standalone-exprs(t.stmts, false)
+    | some(t) =>
+      if is-link(t.stmts):
+        reject-standalone-exprs(t.stmts, false)
+      else:
+        true
+      end
   end
   in-check-block := cur-in-check
   ret
