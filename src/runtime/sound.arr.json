@@ -2,14 +2,20 @@
     "provides": {
         "values": {
             "juliet": "String",
-            "getArray": ["arrow", ["String"], "tany"],
-            "makesound": ["arrow", ["String"],
+            "getBuffer": ["arrow", ["String"], "tany"],
+            "_makesound": ["arrow", ["String"],
+                ["local", "Sound"]
+            ],
+            "_urlSound": ["arrow", ["String"],
                 ["local", "Sound"]
             ]
+
         },
-        "datatypes": { "Sound": ["data", "Sound", [],
+        "datatypes": {
+            "Sound": ["data", "Sound", [],
                 [], {}
-            ] },
+            ]
+        },
         "aliases": {}
     }
 }
