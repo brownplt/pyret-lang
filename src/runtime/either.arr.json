@@ -1,0 +1,383 @@
+{
+    "theMap": "{\"version\":3,\"sources\":[\"file:///home/tiffany/pyret-lang/src/runtime/either.arr\"],\"names\":[\"file:///home/tiffany/pyret-lang/src/runtime/either.arr\"],\"mappings\":\"AAACA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA\",\"file\":\"file:///home/tiffany/pyret-lang/src/runtime/either.arr\"}",
+    "nativeRequires": [],
+    "provides": {
+        "modules": {},
+        "values": {
+            "right": {
+                "bind": "let",
+                "origin": {
+                    "local-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
+                        2,
+                        97,
+                        10,
+                        17,
+                        112
+                    ],
+                    "definition-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
+                        2,
+                        97,
+                        10,
+                        17,
+                        112
+                    ],
+                    "new-definition": true,
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
+                },
+                "typ": [
+                    "forall",
+                    [
+                        "atom#a#10",
+                        "atom#b#11"
+                    ],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tid",
+                                "atom#b#11"
+                            ]
+                        ],
+                        [
+                            "data%",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "$ELF"
+                                    },
+                                    "name": "Either"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
+                                    ]
+                                ]
+                            ],
+                            "right"
+                        ]
+                    ]
+                ]
+            },
+            "is-right": {
+                "bind": "let",
+                "origin": {
+                    "local-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
+                        2,
+                        97,
+                        10,
+                        17,
+                        112
+                    ],
+                    "definition-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
+                        2,
+                        97,
+                        10,
+                        17,
+                        112
+                    ],
+                    "new-definition": true,
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
+                },
+                "typ": [
+                    "forall",
+                    [
+                        "atom#a#10",
+                        "atom#b#11"
+                    ],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "$ELF"
+                                    },
+                                    "name": "Either"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
+                                    ]
+                                ]
+                            ]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin://global"
+                            },
+                            "name": "Boolean"
+                        }
+                    ]
+                ]
+            },
+            "is-left": {
+                "bind": "let",
+                "origin": {
+                    "local-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        9,
+                        2,
+                        80,
+                        9,
+                        16,
+                        94
+                    ],
+                    "definition-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        9,
+                        2,
+                        80,
+                        9,
+                        16,
+                        94
+                    ],
+                    "new-definition": true,
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
+                },
+                "typ": [
+                    "forall",
+                    [
+                        "atom#a#10",
+                        "atom#b#11"
+                    ],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "$ELF"
+                                    },
+                                    "name": "Either"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
+                                    ]
+                                ]
+                            ]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin://global"
+                            },
+                            "name": "Boolean"
+                        }
+                    ]
+                ]
+            },
+            "is-Either": {
+                "bind": "let",
+                "origin": {
+                    "local-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        8,
+                        0,
+                        60,
+                        11,
+                        3,
+                        116
+                    ],
+                    "definition-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        8,
+                        0,
+                        60,
+                        11,
+                        3,
+                        116
+                    ],
+                    "new-definition": true,
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
+                },
+                "typ": [
+                    "forall",
+                    [
+                        "atom#a#10",
+                        "atom#b#11"
+                    ],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "$ELF"
+                                    },
+                                    "name": "Either"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
+                                    ]
+                                ]
+                            ]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin://global"
+                            },
+                            "name": "Boolean"
+                        }
+                    ]
+                ]
+            },
+            "left": {
+                "bind": "let",
+                "origin": {
+                    "local-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        9,
+                        2,
+                        80,
+                        9,
+                        16,
+                        94
+                    ],
+                    "definition-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        9,
+                        2,
+                        80,
+                        9,
+                        16,
+                        94
+                    ],
+                    "new-definition": true,
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
+                },
+                "typ": [
+                    "forall",
+                    [
+                        "atom#a#10",
+                        "atom#b#11"
+                    ],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tid",
+                                "atom#a#10"
+                            ]
+                        ],
+                        [
+                            "data%",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "$ELF"
+                                    },
+                                    "name": "Either"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
+                                    ]
+                                ]
+                            ],
+                            "left"
+                        ]
+                    ]
+                ]
+            }
+        },
+        "datatypes": {
+            "Either": [
+                "data",
+                "Either",
+                [
+                    "atom#a#10",
+                    "atom#b#11"
+                ],
+                [
+                    [
+                        "left",
+                        [
+                            [
+                                "v",
+                                [
+                                    "tid",
+                                    "atom#a#10"
+                                ]
+                            ]
+                        ],
+                        {}
+                    ],
+                    [
+                        "right",
+                        [
+                            [
+                                "v",
+                                [
+                                    "tid",
+                                    "atom#b#11"
+                                ]
+                            ]
+                        ],
+                        {}
+                    ]
+                ],
+                {}
+            ]
+        },
+        "aliases": {
+            "Either": {
+                "tag": "name",
+                "origin": {
+                    "import-type": "$ELF"
+                },
+                "name": "Either"
+            }
+        }
+    },
+    "requires": []
+}
