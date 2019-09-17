@@ -1169,7 +1169,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       check-test-args = [clist: thunk, test-loc]
 
-      # TODO(alex): insert test scaffolding here
       tester-call = j-expr(rt-method("$checkTest", check-test-args))
 
       { j-undefined; [clist: tester-call] }
