@@ -406,8 +406,6 @@ end
 # Rebinding should simply be calling something like:
 #   'oldObject.method["$binder"](newObject)'
 #
-# TODO(alex): Generate rebinding call
-#
 fun compile-method(context, 
       l :: Loc,
       name :: String,
