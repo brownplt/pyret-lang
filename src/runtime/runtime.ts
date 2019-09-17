@@ -277,7 +277,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       continue;
 
     } else if (isNothing(v1) && isNothing(v2)) {
-      // TODO(alex): Is equality defined for Pyret Nothing?
+      // Equality is defined for 'nothing'
+      // 'nothing' is always equal to 'nothing'
       continue; 
 
     } else if (isPRef(v1) && isPRef(v2)) {
