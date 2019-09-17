@@ -1705,7 +1705,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { js-message-value; js-message-stmts } = cases(Option) message:
           | some(message-expr) => compile-expr(context, message-expr)
           
-          # TODO(alex): null or empty string?
+          # Use 'null' to signal the builtinSpyFunction that there was no spy block message
           | none => { j-null; cl-empty }
         end
 
