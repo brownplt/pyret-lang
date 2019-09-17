@@ -38,12 +38,8 @@ runtime: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
 	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
 	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
 
-web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js runtime
+web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js build/worker/page.html build/worker/main.js
 	mkdir -p build/worker; 
-	make build/worker/bundled-node-compile-deps.js
-	make build/worker/runtime-files.json
-	make build/worker/page.html
-	make build/worker/main.js
 	pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts runtime
@@ -66,7 +62,7 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
  
 parser: src/arr/compiler/pyret-parser.js
 
-build/worker/main.js: src/webworker/*.ts runtime
+build/worker/main.js: src/webworker/*.ts build/worker/runtime-files.json
 	browserify $(WEBWORKER_SRC_DIR)/main.ts -p [ tsify ] -o $(WEBWORKER_BUILD_DIR)/main.js
 
 build/worker/page.html: src/webworker/page.html
