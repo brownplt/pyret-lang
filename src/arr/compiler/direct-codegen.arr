@@ -1686,10 +1686,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-spy-block(loc, message, contents) =>
 
-      # TODO(alex): make code generation aware of spy block options
-      # Emit with a special do-print/do-eval flag
-      # Do not emit
-
       # Model each spy block as a spy block object
       # SpyBlockObject {
       #   message: () -> String,
@@ -1699,6 +1695,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
       # Translate spy blocks into:
       #   builtinSpyFunction(SpyBlockObject)
+      #
+      # Push responsibility of runtime spy-enabling to the builtinSpyFunction
       if context.options.enable-spies:
 
         # Generate spy code
