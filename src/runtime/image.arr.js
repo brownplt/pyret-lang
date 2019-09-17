@@ -373,8 +373,6 @@ var clone = function (obj) {
   }
   return c;
 };
-// TODO(joe): not sufficient
-var equals = /* @stopify flat */ function (v1, v2) { return v1 === v2; };
 
 var imageEquals = /* @stopify flat */ function (left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
@@ -1288,7 +1286,7 @@ TextImage.prototype.equals = /* @stopify flat */ function (other) {
     this.weight === other.weight &&
     this.font === other.font &&
     this.underline === other.underline &&
-    equals(this.color, other.color))
+    ColorEquals(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
@@ -1513,7 +1511,7 @@ EllipseImage.prototype.equals = /* @stopify flat */ function (other) {
     this.width === other.width &&
     this.height === other.height &&
     this.style === other.style &&
-    equals(this.color, other.color))
+    ColorEquals(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
