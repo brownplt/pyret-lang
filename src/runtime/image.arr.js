@@ -17,10 +17,11 @@ function isNum(n) { return typeof n === "number"; }
 //////////////////////////////////////////////////////////////////////
 var makeColor = /* @stopify flat */ function (r, g, b, a) {
   if (a === undefined) { a = 1; }
-  if ([r, g, b, a].filter(isNum).length !== 4) {
+  if ([r, g, b, a].filter(jsnums.isPyretNumber).length !== 4) {
     throw new Error("Internal error: non-number in makeColor argList ", [r, g, b, a]);
   }
-  return new Color(r, g, b, a);
+  return new Color(jsnums.toFixnum(r), jsnums.toFixnum(g), jsnums.toFixnum(b),
+    jsnums.toFixnum(a));
 };
 
 

@@ -87,7 +87,12 @@
     },
     "datatypes": {
       "Image": ["data", "Image", [], [], {}],
-      "Color": ["data", "Color", [], [], {}]
+      "Color": ["data", "Color", [], [], {
+        "red": "Number",
+        "green": "Number",
+        "blue": "Number",
+        "alpha": "Number"
+      }]
     }
   }
 }
