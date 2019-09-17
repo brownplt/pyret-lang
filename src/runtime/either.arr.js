@@ -1,6 +1,6 @@
-var $underscore_import18 = require("../.././../builtin/global.arr.js");
-var _global = require("../.././../builtin/global.arr.js");
-var _runtime = require("../.././../builtin/runtime.js");
+var $underscore_import18 = require("././global.arr.js");
+var _global = require("././global.arr.js");
+var _runtime = require("././runtime.js");
 var _nothing = undefined;
 var nothing17 = $underscore_import18.nothing;
 var $left9 = { "names": ["v"] };
