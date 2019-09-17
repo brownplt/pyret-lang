@@ -1721,7 +1721,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
           js-spy-expr-func-name = fresh-id(compiler-name("spy-expr"))
 
-          # TODO(alex): what are j-fun.id
           js-spy-return = j-return(js-spy-value)
           js-spy-expr-func-block = j-block(cl-append(js-spy-stmts, cl-sing(js-spy-return)))
           js-spy-expr-fun = j-fun("0", js-spy-expr-func-name.to-compiled(), cl-empty, js-spy-expr-func-block)
