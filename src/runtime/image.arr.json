@@ -77,7 +77,8 @@
       "scene-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
       "image-url": ["arrow", ["String"], "Image"],
       "bitmap-url": ["arrow", ["String"], "Image"],
-      "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"]
+      "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"],
+      "colors-equal": ["arrow", ["Color", "Color"], "Boolean"]
     },
     "aliases": {
       "Image": { "tag": "name", 

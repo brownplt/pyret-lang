@@ -11,6 +11,11 @@ function Color(r, g, b, a) {
   this.alpha = a;
 }
 
+var ColorsEqual = /* @stopify flat */ function (c1, c2) {
+  return (c1.red === c2.red) && (c1.green === c2.green) && (c1.blue === c2.blue)
+    && (c1.alpha === c2.alpha);
+}
+
 /* @stopify flat */
 function isNum(n) { return typeof n === "number"; }
 
@@ -683,7 +688,7 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   if (this.vertices && other.vertices) {
     return (this.style === other.style &&
       verticesEqual(this.vertices, other.vertices) &&
-      equals(this.color, other.color));
+      ColorsEquals(this.color, other.color));
   }
   // if it's something more sophisticated, render both images to canvases
   // First check canvas dimensions, then go pixel-by-pixel
@@ -2096,5 +2101,8 @@ return module.exports = {
   },
   "make-color": /* @stopify flat */ function (r, g, b, a) {
     return makeColor(r, g, b, a);
+  },
+  "colors-equal": /* @stopify flat */ function (color1, color2) {
+    return ColorsEqual(color1, color2);
   }
 };
