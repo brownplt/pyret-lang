@@ -1078,9 +1078,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
 
       { check-block-val; check-block-stmts } = compile-expr(context, body)
-      # TODO(alex): insert test scaffolding here
-      # TODO(alex): insert check blocks inline or in a separate area?
-      # TODO(alex): check block returns?
 
       # Wrap the check block into a function (check-block)
       js-check-block-func-name = cases(Option) name:
