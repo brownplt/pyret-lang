@@ -956,7 +956,6 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   method s-table(self, l :: Loc, header :: List<A.FieldName>, rows :: List<A.TableRow>) block:
-    # TODO(alex): Allow methods in tables?
     wf-table-headers(l, header)
     if is-empty(header) block:
       true
@@ -973,22 +972,24 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.table-row-wrong-size(header-loc, header, _row))
         end
         for lists.all(elem from _row.elems):
+          # NOTE(alex): Do NOT allow s-methods in tables
           wrap-visit-allow-s-method(self, elem, false)
         end
       end
     end
   end,
   method s-table-extend(self, l, column-binds, extensions) block:
-    # TODO(alex): Allow methods in tables?
     bound-names = S.list-to-tree-set(map(lam(b :: A.Bind): b.id.toname() end, column-binds.binds))
     for L.all(extension from extensions):
       cases(A.TableExtendField) extension block:
         | s-table-extend-field(_, _, val, ann) => 
+          # NOTE(alex): Do NOT allow s-methods in tables
           wrap-visit-allow-s-method(self, val, false) and ann.visit(self)
         | s-table-extend-reducer(_, _, reducer, col, ann) =>
           when (not(bound-names.member(col.toname()))):
             add-error(C.table-reducer-bad-column(extension, column-binds.l))
           end
+          # NOTE(alex): Do NOT allow s-methods in tables
           wrap-visit-allow-s-method(self, reducer, false) and ann.visit(self)
       end
     end

@@ -372,7 +372,6 @@ end
 
 #
 # Does NOT support method expressions
-# TODO(alex): Deprecate method expressions?
 #
 # Generates a function and a nested function of the form:
 #
@@ -406,8 +405,6 @@ end
 # Rebinding methods should be handled by a RUNTIME function.
 # Rebinding should simply be calling something like:
 #   'oldObject.method["$binder"](newObject)'
-#
-# TODO(alex): Generate rebinding call
 #
 fun compile-method(context, 
       l :: Loc,
@@ -910,15 +907,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-template(l) => nyi("s-template")
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, _blocky) =>
       # name is always empty according to parse-pyret.js:1280
-      # TODO(alex): Make s-method in non(s-obj) or with/shared member context a well-formedness error
+      # s-method in non(s-obj) or with/shared member context a well-formedness error
       #   Can only have s-method as the top-level expression of a field (i.e. no nesting)
+      # Assume s-methods are only in well-formed spots and callers will generate the
+      #   binding code correctly
+      # Return the binder function and the required statements
       
       # NOTE(alex): Currently cannot do recursive object initialization
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
       { binder-func; method-stmts } = compile-method(context, l, name, args, body)
 
-      # Assume callers will generate binding code correctly
       { binder-func; method-stmts }
+
     | s-type(l, name, params, ann) => raise("s-type already removed")
     | s-newtype(l, name, namet) => raise("s-newtype already removed")
     | s-when(l, test, body, blocky) => 
@@ -1078,9 +1078,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
 
       { check-block-val; check-block-stmts } = compile-expr(context, body)
-      # TODO(alex): insert test scaffolding here
-      # TODO(alex): insert check blocks inline or in a separate area?
-      # TODO(alex): check block returns?
 
       # Wrap the check block into a function (check-block)
       js-check-block-func-name = cases(Option) name:
@@ -1172,7 +1169,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       check-test-args = [clist: thunk, test-loc]
 
-      # TODO(alex): insert test scaffolding here
       tester-call = j-expr(rt-method("$checkTest", check-test-args))
 
       { j-undefined; [clist: tester-call] }
@@ -1690,10 +1686,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-spy-block(loc, message, contents) =>
 
-      # TODO(alex): make code generation aware of spy block options
-      # Emit with a special do-print/do-eval flag
-      # Do not emit
-
       # Model each spy block as a spy block object
       # SpyBlockObject {
       #   message: () -> String,
@@ -1703,6 +1695,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
       # Translate spy blocks into:
       #   builtinSpyFunction(SpyBlockObject)
+      #
+      # Push responsibility of runtime spy-enabling to the builtinSpyFunction
       if context.options.enable-spies:
 
         # Generate spy code
@@ -1711,7 +1705,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { js-message-value; js-message-stmts } = cases(Option) message:
           | some(message-expr) => compile-expr(context, message-expr)
           
-          # TODO(alex): null or empty string?
+          # Use 'null' to signal the builtinSpyFunction that there was no spy block message
           | none => { j-null; cl-empty }
         end
 
@@ -1727,7 +1721,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
           js-spy-expr-func-name = fresh-id(compiler-name("spy-expr"))
 
-          # TODO(alex): what are j-fun.id
           js-spy-return = j-return(js-spy-value)
           js-spy-expr-func-block = j-block(cl-append(js-spy-stmts, cl-sing(js-spy-return)))
           js-spy-expr-fun = j-fun("0", js-spy-expr-func-name.to-compiled(), cl-empty, js-spy-expr-func-block)
@@ -1752,8 +1745,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                                 )
                               )
 
-        # TODO(alex): builtin spy function call or inline formatting/reporting?
         # Builtin spy function call
+        # Runtime is responsible for output
         spy-call = j-expr(rt-method("$spy", cl-sing(spy-block-obj)))
 
         { j-undefined; cl-sing(spy-call) }

@@ -52,9 +52,9 @@ BrowserFS.install({});
 
 BrowserFS.configure({
     fs: "WorkerFS",
-    // TODO(alex): Web Workers do not have access to LocalStorage
+    // Web Workers do not have access to LocalStorage.
     // Source: https://stackoverflow.com/questions/6179159/accessing-localstorage-from-a-webworker 
-    //fs: "LocalStorage"
+    // Must use BrowserFS to talk to the main thread and gain access to LocalStorage
     options: {
       worker: self,
     }

@@ -1629,7 +1629,9 @@ fun synthesis-op(top-level, app-loc, op, op-loc, left, right, context):
   end
   if (op == "opand") or (op == "opor"):
     # Checking the LHS and RHS of these operators
-    # TODO(alex): define '_and' and '_or' functions?
+
+    # NOTE(alex): Per talks with joe, do NOT define '_and' and '_or' functions
+    #   The only overridable method should be _equals
     left-result = checking(left, t-boolean(op-loc), top-level, context)
     cases(TypingResult) left-result:
       | typing-result(lhs-ast, lhs-ty, lhs-out-context) =>
