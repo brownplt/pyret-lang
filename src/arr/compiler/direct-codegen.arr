@@ -372,7 +372,6 @@ end
 
 #
 # Does NOT support method expressions
-# TODO(alex): Deprecate method expressions?
 #
 # Generates a function and a nested function of the form:
 #
@@ -910,15 +909,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-template(l) => nyi("s-template")
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, _blocky) =>
       # name is always empty according to parse-pyret.js:1280
-      # TODO(alex): Make s-method in non(s-obj) or with/shared member context a well-formedness error
+      # s-method in non(s-obj) or with/shared member context a well-formedness error
       #   Can only have s-method as the top-level expression of a field (i.e. no nesting)
+      # Assume s-methods are only in well-formed spots and callers will generate the
+      #   binding code correctly
+      # Return the binder function and the required statements
       
       # NOTE(alex): Currently cannot do recursive object initialization
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
       { binder-func; method-stmts } = compile-method(context, l, name, args, body)
 
-      # Assume callers will generate binding code correctly
       { binder-func; method-stmts }
+
     | s-type(l, name, params, ann) => raise("s-type already removed")
     | s-newtype(l, name, namet) => raise("s-newtype already removed")
     | s-when(l, test, body, blocky) => 
