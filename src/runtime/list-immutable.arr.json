@@ -20,7 +20,7 @@
       "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "lOfA"]],
       "push": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "lOfA"]],
       "filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], "lOfA"], "lOfA"]],
-      "reduce": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "lOfA", "tvb"], "tvb"]],
+      "fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "lOfA", "tvb"], "tvb"]],
       "sum": ["arrow", ["lOfInt"], "Number"],
       "min": ["arrow", ["lOfInt"], "Number"],
       "max": ["arrow", ["lOfInt"], "Number"],
