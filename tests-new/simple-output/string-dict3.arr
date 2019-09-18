@@ -11,7 +11,7 @@ G.assert( L.at( D.values( dict ), 3 ), 'da', "Non-matching value" )
 
 fresh-dict = D.insert( dict, "e", 'ea' )
 
-msg = for L.reduce( s from "", k from D.keys(fresh-dict)):
+msg = for L.fold( s from "", k from D.keys(fresh-dict)):
  s + k
 end
 

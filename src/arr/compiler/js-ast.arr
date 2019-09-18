@@ -407,6 +407,10 @@ data JExpr:
       self.right.print-ugly-source(printer)
     end,
     method tosource(self): PP.flow([list: self.left.tosource(), self.op.tosource(), self.right.tosource()]) end
+
+  # j-fun.id is used to uniquely identify functions as keys in a map to their original Pyret location
+  # TODO(alex): Support JS-to-Pyret source map translation
+  #   See: js/base/exn-stack-parser.js
   | j-fun(id :: String, name :: String, args :: CList<A.Name>, body :: JBlock) with:
     method label(self): "j-fun" end,
     method print-ugly-source(self, printer) block:

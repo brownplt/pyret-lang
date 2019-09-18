@@ -41,7 +41,7 @@ module.exports = {
   'filter': function( fun, list ) {
     return list.filter( fun );
   },
-  'reduce': function( fun, list, val ) {
+  'fold': function( fun, list, val ) {
     return list.reduce( fun, val );
   },
   'sum': function( list ) {

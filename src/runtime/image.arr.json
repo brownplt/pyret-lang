@@ -60,7 +60,7 @@
       "name-to-color": ["arrow", ["String"], "Color"],
       "is-image-color": ["arrow", ["Any"], "Boolean"],
       "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
-      "images-difference": ["arrow", ["Image", "Image"], "Boolean"],
+      "images-difference": ["arrow", ["Image", "Image"], ["Either", "Number", "String"]],
       "is-side-count": ["arrow", ["Any"], "Boolean"],
       "is-step-count": ["arrow", ["Number"], "Boolean"],
       "is-mode": ["arrow", ["Any"], "Boolean"],
@@ -77,7 +77,8 @@
       "scene-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
       "image-url": ["arrow", ["String"], "Image"],
       "bitmap-url": ["arrow", ["String"], "Image"],
-      "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"]
+      "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"],
+      "colors-equal": ["arrow", ["Color", "Color"], "Boolean"]
     },
     "aliases": {
       "Image": { "tag": "name", 
@@ -87,7 +88,12 @@
     },
     "datatypes": {
       "Image": ["data", "Image", [], [], {}],
-      "Color": ["data", "Color", [], [], {}]
+      "Color": ["data", "Color", [], [], {
+        "red": "Number",
+        "green": "Number",
+        "blue": "Number",
+        "alpha": "Number"
+      }]
     }
   }
 }

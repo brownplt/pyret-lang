@@ -19,15 +19,17 @@ export class ImageWidget extends React.Component<ImageWidgetProps, ImageWidgetSt
   }
   updateCanvas() {
     const ctx = this.canvas!.getContext('2d');
-    ctx!.clearRect(0, 0, this.props.image.getHeight(), this.props.image.getHeight());
+    ctx!.clearRect(0, 0, this.props.image.getWidth(), this.props.image.getHeight());
     this.props.image.render(ctx, 0, 0);
   }
   render() {
       return (
+        <div>
           <canvas
             width={this.props.image.getWidth()}
             height={this.props.image.getHeight()}
             ref={canvas => this.canvas = canvas}></canvas>
+        </div>
       )
   }
 }

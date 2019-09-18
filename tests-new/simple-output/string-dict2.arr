@@ -9,7 +9,7 @@ dict = D.count( member-list )
 G.assert( D.size( dict ), 3, "Incorrect key count" )
 G.assert( D.get( dict, "c" ), 1, "Incorrect key-value pair" )
 
-msg = for L.reduce( s from "", k from D.keys( dict )):
+msg = for L.fold( s from "", k from D.keys( dict )):
  s + k
 end
 

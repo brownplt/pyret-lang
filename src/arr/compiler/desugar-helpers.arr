@@ -95,14 +95,10 @@ fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann
   shadow binds = binds.reverse()
   shadow args = args.reverse()
 
-  # TODO(alex): for loops are documented to desugar
+  # for loops are documented to desugar
   #   for f1(v1 from s1..., vn from sn) block end
   # into
   #   f1(lam(v1...vn) block end, s1...sn)
-  # HOWEVER: Some iterator-like functions are of the form:
-  #   f1(s1...sn, lam(v1..vn) block end)
-  # (i.e. builtin list map)
-  # Is that an error? Should for loops be desugared into that instead?
   lambda-for = A.s-lam(loc, "", empty, binds, ann, "", body, none, none, true)
   A.s-app(loc,
           iter,

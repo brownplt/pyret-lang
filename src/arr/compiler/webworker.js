@@ -23,7 +23,7 @@
         }
         var parsed = e.data;
         var options = JSON.stringify(parsed.options);
-        // TODO(alex): May need to due complex message handling here
+        // NOTE(alex): Assume the webworker gets messages in the appropriate shape
         
         RUNTIME.runThunk(function() {
           return onCompile.app(options, respondForPy);

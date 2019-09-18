@@ -1,5 +1,6 @@
 const jsnums = require("./js-numbers.js");
-var RUNTIME = require('./runtime.js');
+const RUNTIME = require("./runtime.js");
+const Either = require("./either.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -11,16 +12,22 @@ function Color(r, g, b, a) {
   this.alpha = a;
 }
 
+var ColorsEqual = /* @stopify flat */ function (c1, c2) {
+  return (c1.red === c2.red) && (c1.green === c2.green) && (c1.blue === c2.blue)
+    && (c1.alpha === c2.alpha);
+}
+
 /* @stopify flat */
 function isNum(n) { return typeof n === "number"; }
 
 //////////////////////////////////////////////////////////////////////
 var makeColor = /* @stopify flat */ function (r, g, b, a) {
   if (a === undefined) { a = 1; }
-  if ([r, g, b, a].filter(isNum).length !== 4) {
+  if ([r, g, b, a].filter(jsnums.isPyretNumber).length !== 4) {
     throw new Error("Internal error: non-number in makeColor argList ", [r, g, b, a]);
   }
-  return new Color(r, g, b, a);
+  return new Color(jsnums.toFixnum(r), jsnums.toFixnum(g), jsnums.toFixnum(b),
+    jsnums.toFixnum(a));
 };
 
 
@@ -367,8 +374,6 @@ var clone = function (obj) {
   }
   return c;
 };
-// TODO(joe): not sufficient
-var equals = /* @stopify flat */ function (v1, v2) { return v1 === v2; };
 
 var imageEquals = /* @stopify flat */ function (left, right) {
   if (!isImage(left) || !isImage(right)) { return false; }
@@ -647,7 +652,6 @@ BaseImage.prototype.toDomNode = function (params) {
   var height = that.getHeight();
   var canvas = makeCanvas(width, height);
   var ctx;
-  console.log("In toDomNode");
   // KLUDGE: on IE, the canvas rendering functions depend on a
   // context where the canvas is attached to the DOM tree.
   // We initialize an afterAttach hook; the client's responsible
@@ -682,7 +686,7 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   if (this.vertices && other.vertices) {
     return (this.style === other.style &&
       verticesEqual(this.vertices, other.vertices) &&
-      equals(this.color, other.color));
+      ColorsEquals(this.color, other.color));
   }
   // if it's something more sophisticated, render both images to canvases
   // First check canvas dimensions, then go pixel-by-pixel
@@ -732,10 +736,10 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
        values in the low double digits indicate pretty similar images, in the
        low hundreds something is clearly off.
     */
-BaseImage.prototype.difference = function (other) {
+BaseImage.prototype.difference = /* @stopify flat */ function (other) {
   if (Math.floor(this.width) !== Math.floor(other.getWidth()) ||
     Math.floor(this.height) !== Math.floor(other.getHeight())) {
-    return RUNTIME.ffi.makeLeft("different-size([" + this.width + ", " + this.height + "], [" +
+    return Either.left("different-size([" + this.width + ", " + this.height + "], [" +
       other.getWidth() + ", " + other.getHeight() + "])");
   }
 
@@ -758,7 +762,7 @@ BaseImage.prototype.difference = function (other) {
     w2 = Math.floor(c2.width),
     h2 = Math.floor(c2.height);
   if (w1 !== w2 || h1 !== h2) {
-    return RUNTIME.makeLeft("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
+    return Either.left("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
       c2.width + ", " + c2.height + "])");
   }
   var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
@@ -769,10 +773,12 @@ BaseImage.prototype.difference = function (other) {
       data2 = ctx2.getImageData(0, 0, w2, h2);
     var pixels1 = data1.data,
       pixels2 = data2.data;
-    return RUNTIME.ffi.makeRight(rmsDiff(pixels1, pixels2));
+    return Either.right(rmsDiff(pixels1, pixels2));
   } catch (e) {
+    console.error("Error: ", e);
+    debugger;
     // if we violate CORS, just bail
-    return RUNTIME.ffi.makeLeft("exception: " + String(e));
+    return Either.left("exception: " + String(e));
   }
 };
 
@@ -1282,7 +1288,7 @@ TextImage.prototype.equals = /* @stopify flat */ function (other) {
     this.weight === other.weight &&
     this.font === other.font &&
     this.underline === other.underline &&
-    equals(this.color, other.color))
+    ColorEquals(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
@@ -1507,7 +1513,7 @@ EllipseImage.prototype.equals = /* @stopify flat */ function (other) {
     this.width === other.width &&
     this.height === other.height &&
     this.style === other.style &&
-    equals(this.color, other.color))
+    ColorEquals(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
@@ -1779,10 +1785,7 @@ var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
 
 var ImageUrlImage = function (url) {
   return RUNTIME.pauseStack(function (restarter) {
-    console.log("Before rawImage = Image");
     var rawImage = new Image();
-    console.log("After rawImage = Image: ", rawImage);
-    debugger;
     /*if (RUNTIME.hasParam("imgUrlProxy")) {
       url = RUNTIME.getParam("imgUrlProxy")(url);
     }*/
@@ -2095,5 +2098,8 @@ return module.exports = {
   },
   "make-color": /* @stopify flat */ function (r, g, b, a) {
     return makeColor(r, g, b, a);
+  },
+  "colors-equal": /* @stopify flat */ function (color1, color2) {
+    return ColorsEqual(color1, color2);
   }
 };
