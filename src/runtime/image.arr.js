@@ -1,5 +1,6 @@
 const jsnums = require("./js-numbers.js");
-var RUNTIME = require('./runtime.js');
+const RUNTIME = require("./runtime.js");
+const Either = require("./either.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -651,7 +652,6 @@ BaseImage.prototype.toDomNode = function (params) {
   var height = that.getHeight();
   var canvas = makeCanvas(width, height);
   var ctx;
-  console.log("In toDomNode");
   // KLUDGE: on IE, the canvas rendering functions depend on a
   // context where the canvas is attached to the DOM tree.
   // We initialize an afterAttach hook; the client's responsible
@@ -736,10 +736,10 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
        values in the low double digits indicate pretty similar images, in the
        low hundreds something is clearly off.
     */
-BaseImage.prototype.difference = function (other) {
+BaseImage.prototype.difference = /* @stopify flat */ function (other) {
   if (Math.floor(this.width) !== Math.floor(other.getWidth()) ||
     Math.floor(this.height) !== Math.floor(other.getHeight())) {
-    return RUNTIME.ffi.makeLeft("different-size([" + this.width + ", " + this.height + "], [" +
+    return Either.left("different-size([" + this.width + ", " + this.height + "], [" +
       other.getWidth() + ", " + other.getHeight() + "])");
   }
 
@@ -762,7 +762,7 @@ BaseImage.prototype.difference = function (other) {
     w2 = Math.floor(c2.width),
     h2 = Math.floor(c2.height);
   if (w1 !== w2 || h1 !== h2) {
-    return RUNTIME.makeLeft("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
+    return Either.left("different-size-dom([" + c1.width + ", " + c1.height + "], [" +
       c2.width + ", " + c2.height + "])");
   }
   var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
@@ -773,10 +773,12 @@ BaseImage.prototype.difference = function (other) {
       data2 = ctx2.getImageData(0, 0, w2, h2);
     var pixels1 = data1.data,
       pixels2 = data2.data;
-    return RUNTIME.ffi.makeRight(rmsDiff(pixels1, pixels2));
+    return Either.right(rmsDiff(pixels1, pixels2));
   } catch (e) {
+    console.error("Error: ", e);
+    debugger;
     // if we violate CORS, just bail
-    return RUNTIME.ffi.makeLeft("exception: " + String(e));
+    return Either.left("exception: " + String(e));
   }
 };
 
@@ -1783,10 +1785,7 @@ var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
 
 var ImageUrlImage = function (url) {
   return RUNTIME.pauseStack(function (restarter) {
-    console.log("Before rawImage = Image");
     var rawImage = new Image();
-    console.log("After rawImage = Image: ", rawImage);
-    debugger;
     /*if (RUNTIME.hasParam("imgUrlProxy")) {
       url = RUNTIME.getParam("imgUrlProxy")(url);
     }*/
@@ -2047,7 +2046,7 @@ return module.exports = {
     return imageEquals(img1, img2);
   },
   "images-difference": /* @stopify flat */ function (img1, img2) {
-    return imageDifference(img1, img2);
+    return imageDifference(img1, img2)["v"];
   },
   "is-side-count": /* @stopify flat */ function (sth) {
     return isSideCount(sth);
