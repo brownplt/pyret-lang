@@ -423,7 +423,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         const interactionValues =
             <div style={{ fontSize: this.state.fontSize }}>
                 <pre className="checks-area">
-                    { this.state.checks.map(c => <TestResult check={c}></TestResult>)}
+                    { this.state.checks && this.state.checks.map(c => <TestResult check={c}></TestResult>)}
                 </pre>
                 <pre className="interactions-area">
                     {
