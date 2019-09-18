@@ -307,6 +307,9 @@
         "Option": function(name, arg) { 
           return mkApp1(mkName({ "import-type": "uri", uri: "builtin://option" }, name), arg); 
         },
+        "Either": function(name, arg1, arg2) { 
+          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://either" }, name), arg1, arg2); 
+        },
         "Maker": function(_, arg, ret) {
           var maker = {
             "make":  ["arrow", [["RawArray", arg]], ret],
