@@ -7,5 +7,7 @@ export const compileProgram = "program.arr";
 export const runBase = path.join(root, "compiled", "project");
 export const runProgram = "program.arr.js";
 export const uncompiled = path.join(root, "uncompiled");
+export const compiled = path.join(root, "compiled");
+export const compiledBuiltin = path.join(compiled, "builtin");
 export const program = path.join(compileBase, compileProgram);
 export const pyretJarr = "pyret.jarr";
