@@ -32,11 +32,22 @@ build/runtime/%.js : src/runtime/%.ts
 runtime-src-dir:
 	mkdir -p $(RUNTIME_SRC_DIR)
 
-runtime: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
+STOPIFIED_BUILTINS := $(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) $(RUNTIME_TS_COMPILED_FILES:%.js=%.js.stopped)
+
+%.js.stopped : %.js
+	cp $< $<.tostopify
+	sed -i "1i (function () {" $<.tostopify
+	echo "})();" >> $<.tostopify
+	stopify $<.tostopify $@
+	rm $<.tostopify
+
+runtime-copy: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
 	cp $(RUNTIME_JS_SRCS) $(RUNTIME_BUILD_DIR)
 	cp $(RUNTIME_JSON_SRCS) $(RUNTIME_BUILD_DIR)
 	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
 	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
+
+runtime: runtime-copy $(STOPIFIED_BUILTINS)
 
 web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js build/worker/page.html build/worker/main.js
 	mkdir -p build/worker; 
