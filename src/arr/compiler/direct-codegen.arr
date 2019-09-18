@@ -1789,7 +1789,7 @@ end
 
 
 fun create-prelude(prog, provides, env, options, shadow import-flags) block:
-  runtime-builtin-relative-path = options.runtime-builtin-relative-path
+
   fun get-base-dir( source, build-dir ):
     source-head = ask:
       | string-index-of( source, "file://" ) == 0 then: 7
@@ -1850,11 +1850,19 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
     string-index-of(s, prefix) == 0
   end
 
+
+  runtime-builtin-relative-path = options.runtime-builtin-relative-path
+
   fun uri-to-import(uri, name) block:
     ask:
       | starts-with(uri, "builtin://") then:
         builtin-name = string-substring(uri, 10, string-length(uri))
-        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str( relative-path + runtime-builtin-relative-path + builtin-name + ".arr.js")]))
+        the-path = cases(Option) runtime-builtin-relative-path:
+          | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + "builtin/" + builtin-name + ".arr.js"
+
+          | none => relative-path + "../builtin/" + builtin-name + ".arr.js"
+        end
+        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str(the-path)]))
       | starts-with(uri, "jsfile://") or starts-with(uri, "file://") then:
         target-path = uri-to-real-fs-path(uri)
         this-path = uri-to-real-fs-path(provides.from-uri)
@@ -1867,10 +1875,16 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   uri-to-local-js-name = [D.mutable-string-dict:]
 
   fun import-builtin(bind-name :: A.Name, name :: String):
+    the-path = cases(Option) runtime-builtin-relative-path: 
+      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + "builtin/" + name 
+
+      | none => relative-path + "../builtin/" + name
+    end
+
     J.j-var(bind-name, 
             j-app(j-id(const-id("require")), 
                   [clist: 
-                    j-str( relative-path + runtime-builtin-relative-path + name)]))
+                    j-str(the-path)]))
   end
 
   global-import = import-builtin(GLOBAL, "global.arr.js")
