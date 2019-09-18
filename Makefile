@@ -38,7 +38,7 @@ STOPIFIED_BUILTINS := $(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_
 	cp $< $<.tostopify
 	sed -i "1i (function () {" $<.tostopify
 	echo "})();" >> $<.tostopify
-	stopify $<.tostopify $@
+	stopify --new direct $<.tostopify $@
 	rm $<.tostopify
 
 runtime-copy: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
