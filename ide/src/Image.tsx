@@ -24,10 +24,12 @@ export class ImageWidget extends React.Component<ImageWidgetProps, ImageWidgetSt
   }
   render() {
       return (
+        <div>
           <canvas
             width={this.props.image.getWidth()}
             height={this.props.image.getHeight()}
             ref={canvas => this.canvas = canvas}></canvas>
+        </div>
       )
   }
 }
