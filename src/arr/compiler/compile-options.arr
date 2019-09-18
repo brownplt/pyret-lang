@@ -56,7 +56,6 @@ fun populate-options(dictionary, this-pyret-dir) block:
     .or-else(P.resolve(P.join(this-pyret-dir, "config.json")))
   runtime-annotations = not(dictionary.has-key("no-runtime-annotations"))
   runtime-builtin-relative-path = dictionary.get("runtime-builtin-relative-path")
-    .or-else(compile-opts.runtime-builtin-relative-path)
   standalone-file = dictionary.get("standalone-file").or-else(compile-opts.standalone-file)
   tail-calls = not(dictionary.has-key("improper-tail-calls"))
   type-check = dictionary.get("type-check").or-else(false)
