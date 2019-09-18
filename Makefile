@@ -35,11 +35,7 @@ runtime-src-dir:
 STOPIFIED_BUILTINS := $(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) $(RUNTIME_TS_COMPILED_FILES:%.js=%.js.stopped)
 
 %.js.stopped : %.js
-	cp $< $<.tostopify
-	sed -i "1i (function () {" $<.tostopify
-	echo "})();" >> $<.tostopify
-	stopify --new direct $<.tostopify $@
-	rm $<.tostopify
+	node src/webworker/scripts/stopify-compile.js $< $@
 
 runtime-copy: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
 	cp $(RUNTIME_JS_SRCS) $(RUNTIME_BUILD_DIR)
