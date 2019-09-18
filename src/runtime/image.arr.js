@@ -2046,7 +2046,7 @@ return module.exports = {
     return imageEquals(img1, img2);
   },
   "images-difference": /* @stopify flat */ function (img1, img2) {
-    return imageDifference(img1, img2)["v"];
+    return imageDifference(img1, img2);
   },
   "is-side-count": /* @stopify flat */ function (sth) {
     return isSideCount(sth);

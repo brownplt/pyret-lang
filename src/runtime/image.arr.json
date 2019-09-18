@@ -60,7 +60,7 @@
       "name-to-color": ["arrow", ["String"], "Color"],
       "is-image-color": ["arrow", ["Any"], "Boolean"],
       "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
-      "images-difference": ["arrow", ["Image", "Image"], "Boolean"],
+      "images-difference": ["arrow", ["Image", "Image"], ["Either", "Number", "String"]],
       "is-side-count": ["arrow", ["Any"], "Boolean"],
       "is-step-count": ["arrow", ["Number"], "Boolean"],
       "is-mode": ["arrow", ["Any"], "Boolean"],
