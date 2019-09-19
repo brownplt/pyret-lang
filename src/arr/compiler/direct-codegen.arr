@@ -487,28 +487,51 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       # Expose top-level values and variables to outside modules
       # Use variable names as keys
-      {fields; stmts} = for fold({fields; stmts} from {cl-empty; cl-empty}, dv from dvs) block:
+      {fields; stmts; locs} = for fold({fields; stmts; locs} from {cl-empty; cl-empty; cl-empty}, dv from dvs) block:
         cases(A.DefinedValue) dv:
           | s-defined-value(name, def-v) =>
             block:
               {val; field-stmts} = compile-expr(context, def-v)
 
-              { cl-cons(j-field(name, val), fields); field-stmts + stmts }
+              location = [clist:
+                j-field("source", j-str(def-v.l.source)),
+                j-field("startLine", j-num(def-v.l.start-line)),
+                j-field("startColumn", j-num(def-v.l.start-column)),
+                j-field("startChar", j-num(def-v.l.start-char)),
+                j-field("endLine", j-num(def-v.l.end-line)),
+                j-field("endColumn", j-num(def-v.l.end-column)),
+                j-field("endChar", j-num(def-v.l.end-char))
+              ]
+              { cl-cons(j-field(name, val), fields); field-stmts + stmts;
+                cl-cons(j-field(name, j-obj(location)), locs) }
             end
 
           | s-defined-var(name, id) =>
             block:
+              location = [clist:
+                j-field("source", j-str(id.l.source)),
+                j-field("startLine", j-num(id.l.start-line)),
+                j-field("startColumn", j-num(id.l.start-column)),
+                j-field("startChar", j-num(id.l.start-char)),
+                j-field("endLine", j-num(id.l.end-line)),
+                j-field("endColumn", j-num(id.l.end-column)),
+                j-field("endChar", j-num(id.l.end-char))
+              ]
               # TODO(alex): Box variables so external code can mutate variables
-              { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts }
+              { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
+                cl-cons(j-field(name, j-obj(location)), locs) }
             end
         end
       end
 
       check-results = rt-method("$checkResults", [clist: ])
 
+      spy "locs": locs end
+
       ans = j-obj(fields + [clist:
                 j-field("$answer", a-exp),
-                j-field("$checks", check-results)])
+                j-field("$checks", check-results),
+                j-field("$locations", j-obj(locs))])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
       {assign-ans; a-stmts + stmts}
