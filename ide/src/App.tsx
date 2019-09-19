@@ -107,6 +107,7 @@ type EditorState = {
     fsBrowserVisible: boolean;
     compiling: boolean;
     compileQueued: boolean;
+    setupFinished: boolean;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -128,6 +129,13 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         control.setupWorkerMessageHandler(
             console.log,
+            () => {
+                console.log("setup finished");
+                this.setState({setupFinished: true})
+                if (this.state.compileQueued) {
+                    this.update();
+                }
+            },
             (errors: string[]) => {
                 this.setState({compiling: false});
                 if (this.state.compileQueued) {
@@ -236,6 +244,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             fsBrowserVisible: false,
             compiling: false,
             compileQueued: false,
+            setupFinished: false,
         };
     };
 
@@ -269,12 +278,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }
         );
         if (this.isPyretFile) {
-            this.setMessage("Compilation started");
-            if (!this.state.compiling) {
+            if (!this.state.compiling && this.state.setupFinished) {
                 this.setState({
                     compiling: true,
                     compileQueued: false,
                 });
+                this.setMessage("Compilation started");
                 control.compile(
                     this.currentFileDirectory,
                     this.currentFileName,

@@ -30,6 +30,7 @@ let compileStart = window.performance.now();
  */
 export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
+  setupFinished: () => void,
   compileFailure: (e: string[]) => void,
   runtimeFailure: (e: string[]) => void,
   lintFailure: (data: { name: string, errors: string[]}) => void,
@@ -52,6 +53,8 @@ export const makeBackendMessageHandler = (
         lintFailure(msgObject.data);
       } else if (msgType === "lint-success") {
         lintSuccess(msgObject.data);
+      } else if (msgType === "setup-finished") {
+        setupFinished();
       } else if (msgType === "compile-failure") {
         compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {

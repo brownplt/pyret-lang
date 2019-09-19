@@ -130,6 +130,7 @@ export const run = (
 
 export const setupWorkerMessageHandler = (
   onLog: (l: string) => void,
+  setupFinished: () => void,
   onCompileFailure: (e: string[]) => void,
   onRuntimeFailure: (e: string[]) => void,
   lintFailure: (data: { name: string, errors: string[]}) => void,
@@ -137,6 +138,7 @@ export const setupWorkerMessageHandler = (
   onCompileSuccess: () => void): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
+    setupFinished,
     onCompileFailure,
     onRuntimeFailure,
     lintFailure,
