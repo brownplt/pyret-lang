@@ -179,37 +179,38 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         this.setState({compiling: false});
                         if (this.state.compileQueued) {
                             this.update();
-                        }
-                        console.log(runResult);
-                        if (runResult.result !== undefined) {
-                            if (runResult.result.error === undefined) {
-                                this.setMessage("Run completed successfully");
+                        } else {
+                            console.log(runResult);
+                            if (runResult.result !== undefined) {
+                                if (runResult.result.error === undefined) {
+                                    this.setMessage("Run completed successfully");
 
-                                const results =
-                                    makeResult(
-                                        runResult.result,
-                                        control.bfsSetup.path.join(
-                                            control.path.runBase,
-                                            `${this.state.currentFileName}.json`));
-                                const checks = runResult.result.$checks;
-                                this.setState({
-                                    interactions: results,
-                                    checks: checks
-                                });
+                                    const results =
+                                        makeResult(
+                                            runResult.result,
+                                            control.bfsSetup.path.join(
+                                                control.path.runBase,
+                                                `${this.state.currentFileName}.json`));
+                                    const checks = runResult.result.$checks;
+                                    this.setState({
+                                        interactions: results,
+                                        checks: checks
+                                    });
 
-                                if (results[0].name === "error") {
-                                    this.setState(
-                                        {
-                                            interactionErrors: runResult.result.error,
-                                        }
-                                    );
+                                    if (results[0].name === "error") {
+                                        this.setState(
+                                            {
+                                                interactionErrors: runResult.result.error,
+                                            }
+                                        );
+                                    }
+                                } else {
+                                    this.setMessage("Run failed with error(s)");
+
+                                    this.setState({
+                                        interactionErrors: [runResult.result.error],
+                                    });
                                 }
-                            } else {
-                                this.setMessage("Run failed with error(s)");
-
-                                this.setState({
-                                    interactionErrors: [runResult.result.error],
-                                });
                             }
                         }
                     },
