@@ -34,9 +34,9 @@ function makeResult(result: any, compiledJSONPath: string): { name: string, valu
     const providedValuesKeys = Object.keys(programJSON.provides.values);
 
     const insertLineNumber = (key: string) => {
-        const column =
+        const startLine =
             providedValues[key].origin["local-bind-site"][1];
-        return { line: column, name: key, value: result[key] };
+        return { line: startLine, name: key, value: result[key] };
     };
 
     type Result = {
