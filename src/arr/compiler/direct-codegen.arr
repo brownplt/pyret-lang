@@ -526,8 +526,6 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       check-results = rt-method("$checkResults", [clist: ])
 
-      spy "locs": locs end
-
       ans = j-obj(fields + [clist:
                 j-field("$answer", a-exp),
                 j-field("$checks", check-results),
