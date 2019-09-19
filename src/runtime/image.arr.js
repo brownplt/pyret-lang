@@ -1894,71 +1894,87 @@ var DoesPauseAndKontinue = function (mode) {
 
 return module.exports = {
   triangle: /* @stopify flat */ function (size, style, color) {
-    return new TriangleImage(size, 360 - 60, size, style, convertColor(color));
+    return new TriangleImage(jsnums.toFixnum(size), 360 - 60, jsnums.toFixnum(size), style,
+      convertColor(color));
   },
   "right-triangle": /* @stopify flat */ function (side1, side2, style, color) {
-    return new TriangleImage(side1, 360 - 90, side2, style, convertColor(color));
+    return new TriangleImage(jsnums.toFixnum(side1), 360 - 90, jsnums.toFixnum(side2), style,
+      convertColor(color));
   },
   "isosceles-triangle": /* @stopify flat */ function (side, angle, style, color) {
-    return new TriangleImage((2 * side * Math.sin((angle * Math.PI / 180) / 2)),
-      360 - ((180 - angle) / 2), side, style, convertColor(color));
+    return new TriangleImage((2 * jsnums.toFixnum(side) * Math.sin((jsnums.toFixnum(angle) * Math.PI / 180) / 2)),
+      360 - ((180 - jsnums.toFixnum(angle)) / 2), jsnums.toFixnum(side), style, convertColor(color));
   },
   "triangle-sss": /* @stopify flat */ function (sideA, sideB, sideC, style, color) {
-    return TriangleSSS(sideA, sideB, sideC, style, convertColor(color));
+    return TriangleSSS(jsnums.toFixnum(sideA), jsnums.toFixnum(sideB), jsnums.toFixnum(sideC), style,
+      convertColor(color));
   },
   "triangle-ass": /* @stopify flat */ function (angleA, sideB, sideC, style, color) {
-    return TriangleASS(angleA, sideB, sideC, style, convertColor(color));
+    return TriangleASS(jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), jsnums.toFixnum(sideC), style,
+      convertColor(color));
   },
   "triangle-sas": /* @stopify flat */ function (sideA, angleB, sideC, style, color) {
-    return TriangleSAS(sideA, angleB, sideC, style, convertColor(color));
+    return TriangleSAS(jsnums.toFixnum(sideA), jsnums.toFixnum(angleB), jsnums.toFixnum(sideC), style,
+      convertColor(color));
   },
   "triangle-ssa": /* @stopify flat */ function (sideA, sideB, angleC, style, color) {
-    return TriangleSSA(sideA, sideB, angleC, style, convertColor(color));
+    return TriangleSSA(jsnums.toFixnum(sideA), jsnums.toFixnum(sideB), jsnums.toFixnum(angleC), style,
+      convertColor(color));
   },
   "triangle-aas": /* @stopify flat */ function (angleA, angleB, sideC, style, color) {
-    return TriangleAAS(angleA, angleB, sideC, style, convertColor(color));
+    return TriangleAAS(jsnums.toFixnum(angleA), jsnums.toFixnum(angleB), jsnums.toFixnum(sideC), style,
+      convertColor(color));
   },
   "triangle-asa": /* @stopify flat */ function (angleA, sideB, angleC, style, color) {
-    return TriangleASA(angleA, sideB, angleC, style, convertColor(color));
+    return TriangleASA(jsnums.toFixnum(angleA), jsnums.toFixnum(sideB), jsnums.toFixnum(angleC), style,
+      convertColor(color));
   },
   "triangle-saa": /* @stopify flat */ function (sideA, angleB, angleC, style, color) {
-    return TriangleSAA(sideA, angleB, angleC, style, convertColor(color));
+    return TriangleSAA(jsnums.toFixnum(sideA), jsnums.toFixnum(angleB), jsnums.toFixnum(angleC), style,
+      convertColor(color));
   },
   ellipse: /* @stopify flat */ function (width, height, style, color) {
-    return new EllipseImage(width, height, style, convertColor(color));
+    return new EllipseImage(jsnums.toFixnum(width), jsnums.toFixnum(height), style, convertColor(color));
   },
   circle: /* @stopify flat */ function (radius, style, color) {
-    return new EllipseImage(2 * radius, 2 * radius, style, convertColor(color));
+    return new EllipseImage(2 * jsnums.toFixnum(radius), 2 * jsnums.toFixnum(radius), style,
+      convertColor(color));
   },
   rectangle: /* @stopify flat */ function (width, height, style, color) {
-    return new RectangleImage(width, height, style, convertColor(color));
+    return new RectangleImage(jsnums.toFixnum(width), jsnums.toFixnum(height), style, convertColor(color));
   },
   square: /* @stopify flat */ function (length, style, color) {
-    return new RectangleImage(length, length, style, convertColor(color));
+    return new RectangleImage(jsnums.toFixnum(length), jsnums.toFixnum(length), style, convertColor(color));
   },
   rhombus: /* @stopify flat */ function (side, angle, style, color) {
-    return new RhombusImage(side, angle, style, convertColor(color));
+    return new RhombusImage(jsnums.toFixnum(side), jsnums.toFixnum(angle), style, convertColor(color));
   },
   line: /* @stopify flat */ function (x, y, color) {
-    return new LineImage(x, y, convertColor(color));
+    return new LineImage(jsnums.toFixnum(x), jsnums.toFixnum(y), convertColor(color));
   },
   "add-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
-    return new OverlayImage(new LineImage((x2 - x1), (y2 - y1), convertColor(color)), img, Math.min(x1, x2), Math.min(y1, y2));
+    return new OverlayImage(new LineImage((jsnums.toFixnum(x2) - jsnums.toFixnum(x1)),
+      (jsnums.toFixnum(y2) - jsnums.toFixnum(y1)), convertColor(color)), img,
+      Math.min(jsnums.toFixnum(x1), jsnums.toFixnum(x2)),
+      Math.min(jsnums.toFixnum(y1), jsnums.toFixnum(y2)));
   },
   star: /* @stopify flat */ function (side, style, color) {
-    return new PolygonImage(side, 5, 2, style, convertColor(color));
+    return new PolygonImage(jsnums.toFixnum(side), 5, 2, style, convertColor(color));
   },
   "radial-star": /* @stopify flat */ function (points, outer, inner, style, color) {
-    return new StarImage(points, inner, outer, style, convertColor(color));
+    return new StarImage(jsnums.toFixnum(points), jsnums.toFixnum(inner), jsnums.toFixnum(outer), style,
+      convertColor(color));
   },
   "star-sized": /* @stopify flat */ function (points, outer, inner, style, color) {
-    return new StarImage(points, inner, outer, style, convertColor(color));
+    return new StarImage(jsnums.toFixnum(points), jsnums.toFixnum(inner), jsnums.toFixnum(outer), style,
+      convertColor(color));
   },
   "star-polygon": /* @stopify flat */ function (length, count, step, style, color) {
-    return new PolygonImage(length, count, step, style, convertColor(color));
+    return new PolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), jsnums.toFixnum(step), style,
+      convertColor(color));
   },
   "regular-polygon": /* @stopify flat */ function (length, count, style, color) {
-    return new PolygonImage(length, count, 1, style, convertColor(color));
+    return new PolygonImage(jsnums.toFixnum(length), jsnums.toFixnum(count), 1, style, convertColor(color));
   },
   overlay: /* @stopify flat */ function (img1, img2) {
     return new OverlayImage(img1, img2, "center", "center");
@@ -1967,7 +1983,7 @@ return module.exports = {
     return new OverlayImage(img1, img2, X, Y);
   },
   "overlay-xy": /* @stopify flat */ function (img1, dx, dy, img2) {
-    return new OverlayImage(img1, img2, dx, dy);
+    return new OverlayImage(img1, img2, jsnums.toFixnum(dx), jsnums.toFixnum(dy));
   },
   underlay: /* @stopify flat */ function (img1, img2) {
     return new OverlayImage(img2, img1, "center", "center");
@@ -1976,7 +1992,7 @@ return module.exports = {
     return new OverlayImage(img2, img1, X, Y);
   },
   "underlay-xy": /* @stopify flat */ function (img1, dx, dy, img2) {
-    return new OverlayImage(img2, img1, -dx, -dy);
+    return new OverlayImage(img2, img1, -(jsnums.toFixnum(dx)), -(jsnums.toFixnum(dy)));
   },
   beside: /* @stopify flat */ function (img1, img2) {
     return new OverlayImage(img1, img2, "beside", "middle");
@@ -1991,13 +2007,15 @@ return module.exports = {
     return new OverlayImage(img1, img2, X, "above");
   },
   rotate: /* @stopify flat */ function (angle, img) {
-    return new RotateImage(angle, img);
+    return new RotateImage(jsnums.toFixnum(angle), img);
   },
   text: /* @stopify flat */ function (str, size, color) {
-    return new TextImage(str, size, convertColor(color), "normal", "Optimizer", "normal", "normal", false);
+    return new TextImage(str, jsnums.toFixnum(size), convertColor(color), "normal", "Optimizer",
+      "normal", "normal", false);
   },
   "text-font": /* @stopify flat */ function (str, size, color, face, family, style, weight, underline) {
-    return new TextImage(str, size, convertColor(color), face, family, style, weight, underline);
+    return new TextImage(str, jsnums.toFixnum(size), convertColor(color), face, family, style,
+      weight, underline);
   },
   "flip-horizontal": /* @stopify flat */  function (img) {
     return new FlipImage(img, "horizontal");
@@ -2009,7 +2027,8 @@ return module.exports = {
     return new FrameImage(img);
   },
   crop: /* @stopify flat */ function (x, y, width, height, img) {
-    return new CropImage(x, y, width, height, img);
+    return new CropImage(jsnums.toFixnum(x), jsnums.toFixnum(y), jsnums.toFixnum(width),
+      jsnums.toFixnum(height), img);
   },
   scale: /* @stopify flat */ function (factor, img) {
     factor = jsnums.toFixnum(factor);
@@ -2021,7 +2040,7 @@ return module.exports = {
     return new ScaleImage(xFactor, yFactor, img);
   },
   "empty-scene": /* @stopify flat */ function (width, height) {
-    return new SceneImage(width, height, [], true);
+    return new SceneImage(jsnums.toFixnum(width), jsnums.toFixnum(height), [], true);
   },
   "empty-image": new SceneImage(0, 0, [], true),
   "is-image": /* @stopify flat */ function (img) {
@@ -2052,7 +2071,7 @@ return module.exports = {
     return isSideCount(sth);
   },
   "is-step-count": /* @stopify flat */ function (num) {
-    return isStepCount(num);
+    return isStepCount(jsnums.toFixnum(num));
   },
   "is-mode": /* @stopify flat */ function (x) {
     return isMode(x);
@@ -2067,28 +2086,30 @@ return module.exports = {
     return isPlaceY(x);
   },
   "color-at-position": /* @stopify flat */ function (img, x, y) {
-    return colorAtPosition(img, x, y);
+    return colorAtPosition(img, jsnums.toFixnum(x), jsnums.toFixnum(y));
   },
   "image-to-color-list": /* @stopify flat */ function (img) {
     return imageToColorList(img);
   },
   "color-list-to-image": /* @stopify flat */ function (lOfC, width, height, pinX, pinY) {
-    return colorListToImage(lOfC, width, height, pinX, pinY);
+    return colorListToImage(lOfC, jsnums.toFixnum(width), jsnums.toFixnum(height), jsnums.toFixnum(pinX),
+      jsnums.toFixnum(pinY));
   },
   "color-list-to-bitmap": /* @stopify flat */ function (lOfC, width, height) {
-    return colorListToImage(lOfC, width, height, 0, 0);
+    return colorListToImage(lOfC, jsnums.toFixnum(width), jsnums.toFixnum(height), 0, 0);
   },
   "put-image": /* @stopify flat */ function (image, x, y, background) {
-    return PutImage(image, x, y, background);
+    return PutImage(image, jsnums.toFixnum(x), jsnums.toFixnum(y), background);
   },
   "place-image": /* @stopify flat */ function (image, x, y, background) {
-    return PlaceImage(image, x, y, background);
+    return PlaceImage(image, jsnums.toFixnum(x), jsnums.toFixnum(y), background);
   },
   "place-image-align": /* @stopify flat */ function (image, x, y, placeX, placeY, background) {
-    return PlaceImageAlign(image, x, y, placeX, placeY, background);
+    return PlaceImageAlign(image, jsnums.toFixnum(x), jsnums.toFixnum(y), placeX, placeY, background);
   },
   "scene-line": /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
-    return SceneLineImage(img, x1, y1, x2, y2, convertColor(color));
+    return SceneLineImage(img, jsnums.toFixnum(x1), jsnums.toFixnum(y1), jsnums.toFixnum(x2),
+      jsnums.toFixnum(y2), convertColor(color));
   },
   "image-url": /* @stopify flat */ function (url) {
     return ImageUrlImage(url);
