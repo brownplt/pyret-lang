@@ -105,6 +105,8 @@ type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
+    compiling: boolean;
+    compileQueued: boolean;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -127,6 +129,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.setupWorkerMessageHandler(
             console.log,
             (errors: string[]) => {
+                this.setState({compiling: false});
+                if (this.state.compileQueued) {
+                    this.update();
+                }
                 this.setMessage("Compilation failed with error(s)")
                 const places: any = [];
                 for (let i = 0; i < errors.length; i++) {
@@ -154,11 +160,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
             onLintFailure,
             onLintSuccess,
             () => {
-                this.setMessage("Run started");
+                const x = new Date();
+                console.log(`Run ${x} started`);
+                this.setMessage(`Run started`);
                 control.run(
                     control.path.runBase,
                     control.path.runProgram,
                     (runResult: any) => {
+                        console.log(`Run ${x} finished`);
+                        this.setState({compiling: false});
+                        if (this.state.compileQueued) {
+                            this.update();
+                        }
                         console.log(runResult);
                         if (runResult.result !== undefined) {
                             if (runResult.result.error === undefined) {
@@ -214,13 +227,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
             lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
-            updateTimer: setTimeout(this.update, 2000),
+            updateTimer: setTimeout(() => { return; }, 0),
             dropdownVisible: false,
             editorMode: EEditor.Text,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
+            compiling: false,
+            compileQueued: false,
         };
     };
 
@@ -255,10 +270,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
         );
         if (this.isPyretFile) {
             this.setMessage("Compilation started");
-            control.compile(
-                this.currentFileDirectory,
-                this.currentFileName,
-                this.state.typeCheck);
+            if (!this.state.compiling) {
+                this.setState({
+                    compiling: true,
+                    compileQueued: false,
+                });
+                control.compile(
+                    this.currentFileDirectory,
+                    this.currentFileName,
+                    this.state.typeCheck);
+            } else {
+                this.setState({compileQueued: true});
+            }
         } else {
             this.setMessage("Visited a non-pyret file");
             this.setState({
