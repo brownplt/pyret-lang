@@ -8,7 +8,11 @@ PYRET_JARR := build/phaseA/pyret.jarr
 $(PYRET_JARR) : $(PYRET_JARR_SRC)
 	pyret --checks none -c $< -o $@
 
-build: src/arr/compiler/pyret-parser.js $(PYRET_JARR)
+BUILD_DEPS := \
+	src/arr/compiler/pyret-parser.js \
+	$(PYRET_JARR)
+
+build: $(BUILD_DEPS)
 
 all-tests: build runtime web
 	jest --verbose
@@ -71,7 +75,7 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 
 RUNTIME_DEPS := \
-	build \
+	$(BUILD_DEPS) \
 	$(RUNTIME_SRC_DIR) \
 	$(RUNTIME_BUILD_DIR) \
 	$(RUNTIME_TS_COMPILED_FILES) \
@@ -85,7 +89,7 @@ web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker
 	mkdir -p build/worker; 
 	pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
-build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts runtime
+build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNTIME_DEPS)
 	tsc $(WEBWORKER_SRC_DIR)/scripts/runtime-bundler.ts --outDir $(WEBWORKER_BUILD_DIR)
 	node $(WEBWORKER_BUILD_DIR)/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
