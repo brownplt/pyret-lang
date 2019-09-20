@@ -529,13 +529,16 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       check-results = rt-method("$checkResults", [clist: ])
 
+      answer1 = fresh-id(compiler-name("answer"))
+      answer-var = j-var(answer1, a-exp)
+
       ans = j-obj(fields + [clist:
-                j-field("$answer", a-exp),
+                j-field("$answer", j-id(answer1)),
                 j-field("$checks", check-results),
                 j-field("$locations", j-list(true, locs))])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
-      {assign-ans; a-stmts + stmts}
+      {assign-ans; a-stmts + cl-sing(answer-var) + stmts}
     | s-block(l, exprs) => compile-seq(context, exprs)
     | s-num(l, n) => 
       e = if num-is-fixnum(n):
