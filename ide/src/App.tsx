@@ -56,9 +56,9 @@ function makeResult(result: any, compiledJSONPath: string): { name: string, valu
     };
 
     const compareLocations = (a: any, b: any): number => {
-        if (a.startLine < b.startLine) {
+        if (a.srcloc.startLine < b.srcloc.startLine) {
             return -1;
-        } else if (a.startLine > b.startLine) {
+        } else if (a.srcloc.startLine > b.srcloc.startLine) {
             return 1;
         } else {
             return 0;
@@ -73,13 +73,12 @@ function makeResult(result: any, compiledJSONPath: string): { name: string, valu
             .sort(compareResults);
     } else {
         var sortedLoc = result.$locations.sort(compareLocations);
-        console.log("sorted: ", sortedLoc );
         // we do not have source location information for bindings, so we sort
         // them alphabetically by identifier name
-        return Object.keys(result).sort().map((key) => {
+        return sortedLoc.map((key: any) => {
             return {
-                name: key,
-                value: result[key]
+                name: key.name,
+                value: result[key.name]
             }
         });
     }
