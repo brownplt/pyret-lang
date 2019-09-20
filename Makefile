@@ -2,8 +2,13 @@
 
 all: build parser
 
-build: src/arr/compiler/pyret-parser.js
-	pyret --checks none -c src/arr/compiler/pyret.arr -o build/phaseA/pyret.jarr
+PYRET_JARR_SRC := src/arr/compiler/pyret.arr
+PYRET_JARR := build/phaseA/pyret.jarr
+
+$(PYRET_JARR) : $(PYRET_JARR_SRC)
+	pyret --checks none -c $< -o $@
+
+build: src/arr/compiler/pyret-parser.js $(PYRET_JARR)
 
 all-tests: build runtime web
 	jest --verbose
