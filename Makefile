@@ -85,9 +85,15 @@ RUNTIME_DEPS := \
 
 runtime: $(RUNTIME_DEPS)
 
-web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js build/worker/page.html build/worker/main.js
-	mkdir -p build/worker; 
+WORKER_BUILD_DIR := build/worker
+
+$(WORKER_BUILD_DIR):
+	mkdir -p $(WORKER_BUILD_DIR)
+
+build/worker/pyret.jarr : build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(WORKER_BUILD_DIR)
 	pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
+
+web: build/worker/pyret.jarr build/worker/page.html build/worker/main.js
 
 build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNTIME_DEPS)
 	tsc $(WEBWORKER_SRC_DIR)/scripts/runtime-bundler.ts --outDir $(WEBWORKER_BUILD_DIR)
