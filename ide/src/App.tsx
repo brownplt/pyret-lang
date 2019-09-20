@@ -420,7 +420,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         clearTimeout(this.state.updateTimer);
         this.setState({
             currentFileContents: value,
-            updateTimer: setTimeout(this.update, 0),
+            updateTimer: setTimeout(this.update, 250),
         });
     }
 
