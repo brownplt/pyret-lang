@@ -28,6 +28,7 @@ after_failure:
 - echo "--actual end of .travis script--"
 before_deploy:
 - cd ide
+- npm install
 - npm run build
 deploy:
   provider: s3
