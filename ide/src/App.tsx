@@ -55,6 +55,16 @@ function makeResult(result: any, compiledJSONPath: string): { name: string, valu
         }
     };
 
+    const compareLocations = (a: any, b: any): number => {
+        if (a.startLine < b.startLine) {
+            return -1;
+        } else if (a.startLine > b.startLine) {
+            return 1;
+        } else {
+            return 0;
+        }
+    };
+
     if (providedValuesKeys.length !== 0) {
         // we have source location information for bindings, so we sort them
         // based on which column they are bound on
@@ -62,6 +72,8 @@ function makeResult(result: any, compiledJSONPath: string): { name: string, valu
             .map(insertLineNumber)
             .sort(compareResults);
     } else {
+        var sortedLoc = result.$locations.sort(compareLocations);
+        console.log("sorted: ", sortedLoc );
         // we do not have source location information for bindings, so we sort
         // them alphabetically by identifier name
         return Object.keys(result).sort().map((key) => {

@@ -492,8 +492,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-defined-value(name, def-v) =>
             block:
               {val; field-stmts} = compile-expr(context, def-v)
-
-              location = [clist:
+              sloc = [clist:
                 j-field("source", j-str(def-v.l.source)),
                 j-field("startLine", j-num(def-v.l.start-line)),
                 j-field("startColumn", j-num(def-v.l.start-column)),
@@ -503,12 +502,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                 j-field("endChar", j-num(def-v.l.end-char))
               ]
               { cl-cons(j-field(name, val), fields); field-stmts + stmts;
-                cl-cons(j-field(name, j-obj(location)), locs) }
+                cl-cons(j-obj([clist:
+                  j-field("name", j-str(name)),
+                  j-field("srcloc", j-obj(sloc))]), locs) }
             end
 
           | s-defined-var(name, id) =>
             block:
-              location = [clist:
+              sloc = [clist:
                 j-field("source", j-str(id.l.source)),
                 j-field("startLine", j-num(id.l.start-line)),
                 j-field("startColumn", j-num(id.l.start-column)),
@@ -519,7 +520,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               ]
               # TODO(alex): Box variables so external code can mutate variables
               { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
-                cl-cons(j-field(name, j-obj(location)), locs) }
+                cl-cons(j-obj([clist:
+                  j-field("name", j-str(name)),
+                  j-field("srcloc", j-obj(sloc))]), locs) }
             end
         end
       end
@@ -529,7 +532,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       ans = j-obj(fields + [clist:
                 j-field("$answer", a-exp),
                 j-field("$checks", check-results),
-                j-field("$locations", j-obj(locs))])
+                j-field("$locations", j-list(true, locs))])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
       {assign-ans; a-stmts + stmts}
