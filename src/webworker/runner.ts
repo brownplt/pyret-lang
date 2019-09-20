@@ -129,6 +129,7 @@ export const makeRequireAsync = (
         fs.writeFileSync(stoppedPath, stopifiedCode);
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
+        cwd = oldWd;
         if(result.type !== "normal") {
           kontinue(result);
           return;
@@ -176,6 +177,9 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     const contents = fs.readFileSync(nextPath);
     // TS 'export' syntax desugars to 'exports.name = value;'
     // Adding an 'exports' parameter simulates the global 'exports' variable
+    // Also, the comment below has meaning to eslint and makes it ignore the
+    // use of the Function constructor (which we do intend)
+    // eslint-disable-next-line
     const f = new Function("require", "module", "exports", contents);
     const module = {
       exports: { 
