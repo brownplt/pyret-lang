@@ -335,7 +335,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(() => { return; }, 0),
             dropdownVisible: false,
-            editorMode: EEditor.Text,
+            editorMode: EEditor.Chunks,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
