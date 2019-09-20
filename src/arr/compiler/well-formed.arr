@@ -292,6 +292,34 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
   end
 end
 
+
+fun unit-opname(u :: A.Unit):
+  cases(A.Unit) u:
+    | u-mul(_, _, _, _) => "*"
+    | u-div(_, _, _, _) => "/"
+  end
+end
+fun reachable-ops-unit(self, l, op-l, parent, u):
+  cases(A.Unit) u block:
+    | u-mul(l2, op-l2, lhs, rhs) =>
+      if A.is-u-mul(parent) block:
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+      else:
+        add-error(C.mixed-unit-ops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+      end
+    | u-div(l2, op-l2, lhs, rhs) =>
+      if A.is-u-div(parent) block:
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+        reachable-ops-unit(self, l2, op-l2, u, lhs)
+      else:
+        add-error(C.mixed-unit-ops(l, unit-opname(parent), op-l, unit-opname(u), op-l2))
+      end
+    | else => u.visit(self)
+  end
+end
+
+
 fun fields-to-binds(members :: List<A.Member>) -> List<A.Bind>:
   for map(mem from members):
     A.s-bind(mem.l, false, A.s-name(mem.l, mem.name), A.a-blank)
@@ -347,9 +375,9 @@ fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) blo
                   ED.text(" operator expression probably isn't intentional.")]], l)
         end
       | s-id(_, _) => wf-error([list: [ED.para: ED.text("A standalone variable name probably isn't intentional.")]], l)
-      | s-num(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-frac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
-      | s-rfrac(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-num(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-frac(_, _, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
+      | s-rfrac(_, _, _, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-bool(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-str(_, _) => wf-error([list: [ED.para: ED.text("A standalone value probably isn't intentional.")]], l)
       | s-dot(_, _, _) => wf-error([list: [ED.para: ED.text("A standalone field-lookup expression probably isn't intentional.")]], l)
@@ -869,16 +897,20 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := old-pbl
     ans
   end,
-  method s-frac(self, l, num, den) block:
+  method s-frac(self, l, num, den, u) block:
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
+
+    u.visit(self)
     true
   end,
-  method s-rfrac(self, l, num, den) block:
+  method s-rfrac(self, l, num, den, u) block:
     when den == 0:
       add-error(C.zero-fraction(l, num))
     end
+
+    u.visit(self)
     true
   end,
   method s-id(self, l, id) block:
@@ -999,6 +1031,41 @@ well-formed-visitor = A.default-iter-visitor.{
   method a-name(self, l, id) block:
     when A.is-s-underscore(id):
       add-error(C.underscore-as-ann(l))
+    end
+    true
+  end,
+  method a-unit(self, l, base, u) block:
+    cases(A.Unit) u:
+      | u-base(_, id) => when not(A.is-s-underscore(id)): u.visit(self) end
+      | else => u.visit(self)
+    end
+    base.visit(self)
+    true
+  end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: A.Unit, rhs :: A.Unit) block:
+    reachable-ops-unit(self, l, op-l, A.u-mul(l, op-l, lhs, rhs), lhs)
+    reachable-ops-unit(self, l, op-l, A.u-mul(l, op-l, lhs, rhs), rhs)
+    true
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: A.Unit, rhs :: A.Unit) block:
+    reachable-ops-unit(self, l, op-l, A.u-div(l, op-l, lhs, rhs), lhs)
+    reachable-ops-unit(self, l, op-l, A.u-div(l, op-l, lhs, rhs), rhs)
+    true
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: A.Unit, n :: Number) block:
+    when (n == 0) or not(num-is-integer(n)):
+      add-error(C.invalid-unit-power(l, n))
+    end
+
+    when A.is-u-one(u):
+      add-error(C.one-as-power-base(l, n))
+    end
+    u.visit(self)
+    true
+  end,
+  method u-base(self, l :: Loc, id :: A.Name) block:
+    when A.is-s-underscore(id):
+      add-error(C.underscore-as-unit(l))
     end
     true
   end
@@ -1259,14 +1326,14 @@ top-level-visitor = A.default-iter-visitor.{
   method s-prim-app(_, l :: Loc, _fun :: String, args :: List<A.Expr>, app-info :: A.PrimAppInfo):
     well-formed-visitor.s-prim-app(l, _fun, args, app-info)
   end,
-  method s-frac(_, l :: Loc, num, den):
-    well-formed-visitor.s-frac(l, num, den)
+  method s-frac(_, l :: Loc, num, den, u):
+    well-formed-visitor.s-frac(l, num, den, u)
   end,
   method s-reactor(self, l, fields):
     well-formed-visitor.s-reactor(l, fields)
   end,
-  method s-rfrac(_, l :: Loc, num, den):
-    well-formed-visitor.s-rfrac(l, num, den)
+  method s-rfrac(_, l :: Loc, num, den, u):
+    well-formed-visitor.s-rfrac(l, num, den, u)
   end,
   method s-id(_, l :: Loc, id :: A.Name):
     well-formed-visitor.s-id(l, id)
@@ -1319,6 +1386,9 @@ top-level-visitor = A.default-iter-visitor.{
   method s-table-extend(_, l :: Loc, column-binds :: A.ColumnBinds, extensions :: List<A.TableExtendField>):
     well-formed-visitor.s-table-extend(l, column-binds, extensions)
   end,
+  method s-num(self, l, n, u):
+    well-formed-visitor.s-num(l, n, u)
+  end,
   method a-arrow(_, l, args, ret, use-parens):
     well-formed-visitor.a-arrow(l, args, ret, use-parens)
   end,
@@ -1336,6 +1406,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
   method a-pred(_, l, ann, exp):
     well-formed-visitor.a-pred(l, ann, exp)
+  end,
+  method a-unit(_, l, ann, u):
+    well-formed-visitor.a-unit(l, ann, u)
   end,
   method a-dot(_, l, obj, field):
     well-formed-visitor.a-dot(l, obj, field)

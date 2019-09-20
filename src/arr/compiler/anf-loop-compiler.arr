@@ -330,7 +330,57 @@ fun is-function-flat(flatness-env :: FL.FEnv, fun-name :: String) -> Boolean:
   is-flat-enough(flatness-opt)
 end
 
+fun normalize-unit-help(u :: A.Unit, factor :: NumInteger, acc :: D.MutableStringDict<NumInteger>) -> D.MutableStringDict<NumInteger>:
+  cases (A.Unit) u block:
+    | u-one(_) => acc
+    | u-base(l, id) =>
+      acc.set-now(tostring(id), acc.get-now(tostring(id)).or-else(0) + factor)
+      acc
+    | u-mul(_, _, lhs, rhs) => normalize-unit-help(lhs, factor, normalize-unit-help(rhs, factor, acc))
+    | u-div(_, _, lhs, rhs) => normalize-unit-help(lhs, factor, normalize-unit-help(rhs, factor * -1, acc))
+    | u-pow(_, _, shadow u, n) => normalize-unit-help(u, n * factor, acc)
+    | u-paren(_, shadow u) => normalize-unit-help(u, factor, acc)
+  end
+end
+fun normalize-unit(u :: A.Unit) -> D.StringDict<NumInteger>:
+  normalize-unit-help(u, 1, [mutable-string-dict: ]).freeze()
+end
 
+fun compile-unit-help(u :: A.Unit) -> J.JExpr:
+  normalized = normalize-unit(u)
+  fields = normalized.fold-keys(
+    lam(key, acc):
+      power = normalized.get-value(key)
+      if power == 0:
+        acc
+      else:
+        val = if num-is-fixnum(power):
+          j-num(power)
+        else:
+          rt-method("makeNumberFromString", [clist: j-str(tostring(power))])
+        end
+        CL.concat-cons(j-field(key, val), acc)
+      end
+    end,
+    CL.concat-empty)
+
+  if fields.length() == 0:
+    rt-field("UNIT_ONE")
+  else:
+    j-obj(CL.concat-cons(j-field("$count", j-num(fields.length())), fields))
+  end
+end
+fun compile-unit(u :: A.Unit) -> J.JExpr:
+  cases (A.Unit) u block:
+    | u-base(l, id) =>
+      if A.is-s-underscore(id):
+        rt-field("UNIT_ANY")
+      else:
+        compile-unit-help(u)
+      end
+    | else => compile-unit-help(u)
+  end
+end
 
 fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
@@ -395,6 +445,12 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         rt-method(pred-maker, [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
         cl-append(compiled-base.other-stmts, compiled-exp.other-stmts)
         )
+    | a-unit(l, base, u) =>
+      compiled-base = compile-ann(base, visitor)
+      compiled-unit = compile-unit(u)
+      c-exp(
+        rt-method("makeUnitAnn", [clist: compiled-base.exp, compiled-unit, visitor.get-loc(l)]),
+        cl-empty)
     | a-dot(l, m, field) =>
       c-exp(
         rt-method("getDotAnn", [clist:
@@ -1667,11 +1723,16 @@ compiler-visitor = {
   method a-srcloc(self, l, loc):
     c-exp(self.get-loc(loc), cl-empty)
   end,
-  method a-num(self, l :: Loc, n :: Number):
-    if num-is-fixnum(n):
+  method a-num(self, l :: Loc, n :: Number, u :: A.Unit) block:
+    if num-is-fixnum(n) and A.is-u-one(u):
       c-exp(j-parens(j-num(n)), cl-empty)
     else:
-      c-exp(rt-method("makeNumberFromString", [clist: j-str(tostring(n))]), cl-empty)
+      make-num-call = rt-method("makeNumberFromString", [clist: j-str(tostring(n))])
+      if A.is-u-one(u):
+        c-exp(make-num-call, cl-empty)
+      else:
+        c-exp(rt-method("addUnit", [clist: make-num-call, compile-unit(u)]), cl-empty)
+      end
     end
   end,
   method a-str(self, l :: Loc, s :: String):
@@ -1907,21 +1968,22 @@ remove-useless-if-visitor = N.default-map-visitor.{
 
 check:
   d = N.dummy-loc
+  u = A.u-one(d)
   true1 = N.a-if(d, N.a-bool(d, true),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 2))))
-  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 2, u))))
+  true1.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 1, u))
 
   false4 = N.a-if(d, N.a-bool(d, false),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 3))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4))))
-  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 3, u))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u))))
+  false4.visit(remove-useless-if-visitor) is N.a-val(d, N.a-num(d, 4, u))
 
   N.a-if(d, N.a-id(d, A.s-name(d, "x")), N.a-lettable(d, true1), N.a-lettable(d, false4)
     ).visit(remove-useless-if-visitor)
     is N.a-if(d, N.a-id(d, A.s-name(d, "x")),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 1))),
-    N.a-lettable(d, N.a-val(d, N.a-num(d, 4))))
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 1, u))),
+    N.a-lettable(d, N.a-val(d, N.a-num(d, 4, u))))
 
 end
 |#

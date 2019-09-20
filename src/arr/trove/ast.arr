@@ -104,6 +104,9 @@ str-extract = PP.str("extract")
 str-load-table = PP.str("load-table:")
 str-src = PP.str("source:")
 str-sanitize = PP.str("sanitize")
+str-one = PP.str("1")
+str-times = PP.str("*")
+str-divide = PP.str("/")
 
 data Name:
   | s-underscore(l :: Loc) with:
@@ -137,7 +140,7 @@ data Name:
     method tosourcestring(self): "$type$" + self.s end,
     method toname(self): self.s end,
     method key(self): "tglobal#" + self.s end
-    
+
   | s-atom(base :: String, serial :: Number) with:
     method to-compiled-source(self): PP.str(self.to-compiled()) end,
     method to-compiled(self): self.base + tostring(self.serial) end,
@@ -928,15 +931,38 @@ data Expr:
   | s-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "s-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | s-num(l :: Loc, n :: Number) with:
+  | s-num(l :: Loc, n :: Number, u :: Unit) with:
     method label(self): "s-num" end,
-    method tosource(self): PP.number(self.n) end
-  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
+    method tosource(self):
+      if is-u-one(self.u):
+        PP.number(self.n)
+      else:
+        PP.separate(str-percent,
+          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
+      end
+    end
+  | s-frac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit) with:
     method label(self): "s-frac" end,
-    method tosource(self): PP.number(self.num) + PP.str("/") + PP.number(self.den) end
-  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger) with:
+    method tosource(self) block:
+      base-str = PP.number(self.num) + PP.str("/") + PP.number(self.den)
+      if is-u-one(self.u):
+        base-str
+      else:
+        PP.separate(str-percent,
+          [list: base-str, PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
+      end
+    end
+  | s-rfrac(l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit) with:
     method label(self): "s-rfrac" end,
-    method tosource(self): PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den) end
+    method tosource(self):
+      base-str = PP.str("~") + PP.number(self.num) + PP.str("/") + PP.number(self.den)
+      if is-u-one(self.u):
+        base-str
+      else:
+        PP.separate(str-percent,
+          [list: base-str, PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
+      end
+    end
   | s-bool(l :: Loc, b :: Boolean) with:
     method label(self): "s-bool" end,
     method tosource(self): PP.str(tostring(self.b)) end
@@ -1625,6 +1651,38 @@ sharing:
   end
 end
 
+data Unit:
+  | u-one(l :: Loc) with:
+    method label(self): "u-one" end,
+    method tosource(self): str-one end
+  | u-base(l :: Loc, id :: Name) with:
+    method label(self): "u-base" end,
+    method tosource(self): self.id.tosource() end
+  | u-mul(l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit) with:
+    method label(self): "u-mul" end,
+    method tosource(self):
+      PP.separate(str-space, [list: self.lhs.tosource(), str-times, self.rhs.tosource()])
+    end
+  | u-div(l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit) with:
+    method label(self): "u-div" end,
+    method tosource(self):
+      PP.separate(str-space, [list: self.lhs.tosource(), str-divide, self.rhs.tosource()])
+    end
+  | u-pow(l :: Loc, op-l :: Loc, u :: Unit, n :: Number) with:
+    method label(self): "u-pow" end,
+    method tosource(self):
+      PP.separate(str-space, [list: self.u.tosource(), str-caret, PP.number(self.n)])
+    end
+  | u-paren(l :: Loc, u :: Unit) with:
+    method label(self): "u-paren" end,
+    method tosource(self): PP.paren(self.u.tosource()) end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
 data Ann:
   | a-blank with:
     method label(self): "a-blank" end,
@@ -1691,6 +1749,12 @@ data Ann:
   | a-pred(l :: Loc, ann :: Ann, exp :: Expr) with:
     method label(self): "a-pred" end,
     method tosource(self): self.ann.tosource() + str-percent + PP.parens(self.exp.tosource()) end,
+  | a-unit(l :: Loc, ann :: Ann, u :: Unit) with:
+    method label(self): "a-unit" end,
+    method tosource(self) block:
+      unit-str = PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)
+      self.ann.tosource() + str-percent + unit-str
+    end
   | a-dot(l :: Loc, obj :: Name, field :: String) with:
     method label(self): "a-dot" end,
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
@@ -2130,14 +2194,14 @@ default-map-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(l, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number):
-    s-num(l, n)
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
+    s-num(l, n, u.visit(self))
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-frac(l, num, den)
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    s-frac(l, num, den, u.visit(self))
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-rfrac(l, num, den)
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    s-rfrac(l, num, den, u.visit(self))
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(l, b)
@@ -2342,11 +2406,32 @@ default-map-visitor = {
   method a-pred(self, l, ann, exp):
     a-pred(l, ann.visit(self), exp.visit(self))
   end,
+  method a-unit(self, l, ann, u):
+    a-unit(l, ann.visit(self), u.visit(self))
+  end,
   method a-dot(self, l, obj, field):
     a-dot(l, obj.visit(self), field)
   end,
   method a-field(self, l, name, ann):
     a-field(l, name, ann.visit(self))
+  end,
+  method u-one(self, l):
+    u-one(l)
+  end,
+  method u-base(self, l, id):
+    u-base(l, id)
+  end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-mul(l, op-l, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-div(l, op-l, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: Unit, n :: Number):
+    u-pow(l, op-l, u.visit(self), n)
+  end,
+  method u-paren(self, l :: Loc, u :: Unit):
+    u-paren(l, u.visit(self))
   end
 }
 
@@ -2690,14 +2775,14 @@ default-iter-visitor = {
   method s-srcloc(self, l, shadow loc):
     true
   end,
-  method s-num(self, l :: Loc, n :: Number):
-    true
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
+    u.visit(self)
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    true
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    u.visit(self)
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    true
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    u.visit(self)
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     true
@@ -2892,11 +2977,32 @@ default-iter-visitor = {
   method a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
   end,
+  method a-unit(self, l, ann, u):
+    ann.visit(self) and u.visit(self)
+  end,
   method a-dot(self, l, obj, field):
     obj.visit(self)
   end,
   method a-field(self, l, name, ann):
     ann.visit(self)
+  end,
+  method u-one(self, l):
+    true
+  end,
+  method u-base(self, l, id):
+    true
+  end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    lhs.visit(self) and rhs.visit(self)
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    lhs.visit(self) and rhs.visit(self)
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: Unit, n :: Number):
+    u.visit(self)
+  end,
+  method u-paren(self, l :: Loc, u :: Unit):
+    u.visit(self)
   end
 }
 
@@ -3227,14 +3333,14 @@ dummy-loc-visitor = {
   method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
   end,
-  method s-num(self, l :: Loc, n :: Number):
-    s-num(dummy-loc, n)
+  method s-num(self, l :: Loc, n :: Number, u :: Unit):
+    s-num(dummy-loc, n, u.visit(self))
   end,
-  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-frac(dummy-loc, num, den)
+  method s-frac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    s-frac(dummy-loc, num, den, u.visit(self))
   end,
-  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger):
-    s-rfrac(dummy-loc, num, den)
+  method s-rfrac(self, l :: Loc, num :: NumInteger, den :: NumInteger, u :: Unit):
+    s-rfrac(dummy-loc, num, den, u.visit(self))
   end,
   method s-bool(self, l :: Loc, b :: Boolean):
     s-bool(dummy-loc, b)
@@ -3439,10 +3545,27 @@ dummy-loc-visitor = {
   method a-pred(self, l, ann, exp):
     a-pred(dummy-loc, ann.visit(self), exp.visit(self))
   end,
+  method a-unit(self, l, ann, u):
+    a-unit(dummy-loc, ann.visit(self), u.visit(self))
+  end,
   method a-dot(self, l, obj, field):
     a-dot(dummy-loc, obj, field)
   end,
   method a-field(self, l, name, ann):
     a-field(dummy-loc, name, ann.visit(self))
+  end,
+  method u-one(self, l): u-one(dummy-loc) end,
+  method u-base(self, l, id): u-base(dummy-loc, id) end,
+  method u-mul(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-mul(dummy-loc, dummy-loc, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-div(self, l :: Loc, op-l :: Loc, lhs :: Unit, rhs :: Unit):
+    u-div(dummy-loc, dummy-loc, lhs.visit(self), rhs.visit(self))
+  end,
+  method u-pow(self, l :: Loc, op-l :: Loc, u :: Unit, n :: Number):
+    u-pow(dummy-loc, dummy-loc, u.visit(self), n)
+  end,
+  method u-paren(self, l :: Loc, u :: Unit):
+    u-paren(dummy-loc, u.visit(self))
   end
 }

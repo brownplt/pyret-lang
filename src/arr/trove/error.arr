@@ -2428,6 +2428,177 @@ data RuntimeError:
     method render-reason(self):
       ED.text("")
     end
+  | units-on-unsupported-ann(loc, unit-str) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.loc.is-builtin():
+        [ED.error:
+          ed-intro("unit annotation", self.loc, -1, true),
+          ED.cmcode(self.loc),
+          [ED.para: ED.text("It annotated a type which does not support units.")],
+          please-report-bug()]
+      else if src-available(self.loc):
+        cases(O.Option) maybe-ast(self.loc):
+          | some(ast) =>
+            [ED.error:
+              ed-intro("unit annotation", self.loc, -1, true),
+              ED.cmcode(self.loc),
+              [ED.para:
+                ED.highlight(ED.text("The unit " + self.unit-str), [ED.locs: ast.l], 0),
+                ED.text(" annotated a "),
+                ED.highlight(ED.text("base type"), [ED.locs: ast.ann.l], 1),
+                ED.text(" which does not support units. Consider removing the unit annotation or changing the base type.")]]
+          | none =>
+            [ED.error:
+              ed-intro("unit annotation", self.loc, -1, true),
+              ED.cmcode(self.loc),
+              [ED.para:
+                ED.text("It annotated a type which does not support units. "),
+                ED.text("Consider removing the unit annotation or changing the base type.")]]
+        end
+      else:
+        self.render-reason()
+      end
+    end,
+    method render-reason(self) block:
+      base-err = [ED.para:
+        ed-simple-intro("unit annotation", self.loc),
+        ED.text("The annotation is annotated with the unit "),
+        ED.code(ED.text(self.unit-str)),
+        ED.text(" but does not support unit annotations.")]
+      if self.loc.is-builtin():
+        [ED.error: base-err, please-report-bug()]
+      else:
+        [ED.error: base-err]
+      end
+    end
+  | incompatible-units(reason, u, v) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast) block:
+      base-err-msg = [ED.para:
+        ED.text("The units "),
+        ED.code(ED.text(self.u)),
+        ED.text(" and "),
+        ED.code(ED.text(self.v)),
+        ED.text(" are not compatible")]
+      [ED.error:
+        cases(O.Option) maybe-stack-loc(0, true) block:
+          | some(loc) =>
+            default-err-msg = [ED.sequence:
+              ed-intro(self.reason, loc, -1, true),
+              ED.cmcode(loc),
+              base-err-msg]
+            if loc.is-builtin():
+              [ED.sequence:
+                ed-intro(self.reason, loc, -1, true),
+                base-err-msg,
+                please-report-bug()]
+            else if src-available(loc):
+              cases(O.Option) maybe-ast(loc):
+                | some(ast) =>
+                  cases(Any) ast:
+                    | s-op(_l, op-l, opname, l, r) =>
+                      left-loc = l.l
+                      right-loc = r.l
+                      [ED.sequence:
+                        ed-intro(self.reason, loc, -1, true),
+                        ED.cmcode(loc),
+                        [ED.para:
+                          ED.text("The "),
+                          ED.highlight(ED.text("left side"), [ED.locs: left-loc], 0),
+                          ED.text(" had the unit:")],
+                        ED.code(ED.text(self.u)),
+                        [ED.para:
+                          ED.text("The "),
+                          ED.highlight(ED.text("right side"), [ED.locs: right-loc], 1),
+                          ED.text(" had the unit: ")],
+                        ED.code(ED.text(self.v)),
+                        [ED.para: ED.text("These units are not compatible")]]
+                    | else => default-err-msg
+                  end
+                | none => default-err-msg
+              end
+            else:
+              base-err-msg
+            end
+          | none =>
+            [ED.sequence:
+              [ED.para:
+                ED.text("A "),
+                ED.code(ED.text(self.reason)),
+                ED.text(" errored.")],
+              base-err-msg]
+        end]
+    end,
+    method render-reason(self) block:
+      base-err-msg = [ED.para:
+        ED.text("The units "),
+        ED.code(ED.text(self.u)),
+        ED.text(" and "),
+        ED.code(ED.text(self.v)),
+        ED.text(" are not compatible")]
+      [ED.error: ED.maybe-stack-loc(0, false,
+        lam(loc):
+          [ED.sequence:
+            ed-simple-intro(self.reason, loc),
+            base-err-msg]
+        end,
+        [ED.sequence:
+          [ED.para:
+            ED.text("A "),
+            ED.code(ED.text(self.reason)),
+            ED.text(" errored.")],
+          base-err-msg])]
+    end
+  | invalid-unit-state(opname, n, desc) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      base-err-msg = [ED.sequence:
+        [ED.para:
+          ED.text("The " + self.opname + " function failed.")],
+        [ED.para:
+          ED.code(ED.text(tostring(self.n))),
+          ED.text(" is an invalid argument because: "),
+          ED.text(self.desc)]]
+      [ED.error:
+        cases(O.Option) maybe-stack-loc(0, false):
+          | some(loc) =>
+            if loc.is-builtin():
+              [ED.sequence:
+                ed-intro(self.opname + " function", loc, -1, true),
+                [ED.para:
+                  ED.code(ED.text(tostring(self.n))),
+                  ED.text(" is an invalid argument because: "),
+                  ED.text(self.desc)],
+                please-report-bug()]
+            else if src-available(loc):
+              [ED.sequence:
+                ed-intro(self.opname + " function", loc, -1, true),
+                ED.cmcode(loc),
+                [ED.para:
+                  ED.code(ED.text(tostring(self.n))),
+                  ED.text(" is an invalid argument because: "),
+                  ED.text(self.desc)]]
+            else:
+              base-err-msg
+            end
+          | none => base-err-msg
+        end]
+    end,
+    method render-reason(self):
+      [ED.error: ED.maybe-stack-loc(0, false,
+        lam(loc):
+          [ED.sequence:
+            ed-simple-intro(self.opname + " function", loc),
+            [ED.para:
+              ED.code(ED.text(tostring(self.n))),
+              ED.text(" is an invalid argument because: "),
+              ED.text(self.desc)]]
+        end,
+        [ED.sequence:
+          [ED.para: ED.text("The " + self.opname + " function failed.")],
+          [ED.para:
+            ED.code(ED.text(tostring(self.n))),
+            ED.text(" is an invalid argument because: "),
+            ED.text(self.desc)]])]
+    end
 end
 
 data ParseError:

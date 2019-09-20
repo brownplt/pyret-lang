@@ -670,6 +670,57 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
+  | invalid-unit-power(loc, power) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Reading a "),
+          ED.highlight(ED.text("unit annotation"), [ED.locs: self.loc], 0),
+          ED.text(" errored:")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.text("The exponent "),
+          ED.embed(self.power),
+          ED.text(" is not allowed in unit expressions. "),
+          ED.text("Make sure to use a non-zero integer value.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret disallows units with the exponent")],
+        [ED.para:
+          ED.embed(self.power)],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.loc),
+          ED.text(". Make sure to use a non-zero integer value.")]]
+    end
+  | one-as-power-base(loc, power) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Reading a "),
+          ED.highlight(ED.text("unit annotation"), [ED.locs: self.loc], 0),
+          ED.text(" errored:")],
+        ED.cmcode(self.loc),
+        [ED.para:
+          ED.code(ED.text("1")),
+          ED.text(" is raised to the power "),
+          ED.embed(self.power),
+          ED.text(". One cannot be raised to a power")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.code(ED.text("1")),
+          ED.text(" is raised to the power ")],
+        [ED.para:
+          ED.embed(self.power)],
+        [ED.para:
+          ED.text("at "),
+          ED.loc(self.loc),
+          ED.text(". One cannot be raised to a power")]]
+    end
   | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
     method render-fancy-reason(self):
       [ED.error:
@@ -691,6 +742,36 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("Operators of different kinds cannot be mixed at the same level, but "),
+          ED.code(ED.text(self.op-a-name)),
+          ED.text(" is at "),
+          ED.loc(self.op-a-loc),
+          ED.text(" at the same level as "),
+          ED.code(ED.text(self.op-b-name)),
+          ED.text(" at "),
+          ED.loc(self.op-b-loc),
+          ED.text(". Use parentheses to group the operations and to make the order of operations clear.")]]
+    end
+  | mixed-unit-ops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Reading this "),
+          ED.highlight(ED.text("unit"), [ED.locs: self.exp-loc], -1),
+          ED.text(" errored:")],
+        ED.cmcode(self.exp-loc),
+        [ED.para:
+          ED.text("The "),
+          ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
+          ED.text(" operation is at the same level as the "),
+          ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], 1)),
+          ED.text(" operation.")],
+        [ED.para:
+          ED.text("Use parentheses to group the operations and to make the order of operations clear.")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Unit operators of different kinds cannot be mixed at the same level, but "),
           ED.code(ED.text(self.op-a-name)),
           ED.text(" is at "),
           ED.loc(self.op-a-loc),
@@ -971,6 +1052,27 @@ data CompileError:
           ED.text(" cannot be used as "),
           ED.text(self.kind),
           ED.text(".")]]
+    end
+  | underscore-as-unit(l :: Loc) with:
+    method render-fancy-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The underscore "),
+          ED.code(ED.highlight(ED.text("_"), [ED.locs: self.l], 0)),
+          ED.text(" is invalid."),
+          ED.text(" Underscores can only be used in units when"),
+          ED.text(" they are an annotation and there is nothing else in the unit expression")]]
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("The underscore "),
+          ED.code(ED.text("_")),
+          ED.text(" at "),
+          ED.loc(self.l),
+          ED.text(" is invalid."),
+          ED.text(" Underscores can only be used in units when"),
+          ED.text(" they are an annotation and there is nothing else in the unit expression")]]
     end
   | underscore-as-pattern(l :: Loc) with:
     method render-fancy-reason(self):

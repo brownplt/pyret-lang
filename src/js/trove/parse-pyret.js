@@ -968,6 +968,48 @@
           // (prim-expr e)
           return tr(node.kids[0]);
         },
+        'dim-expr': function(node) {
+          // (LANGLE|LT) unit-expr (RANGLE|GT) | (LANGLE|LT) NUMBER (RANGLE|GT)
+          return tr(node.kids[1])
+        },
+        'unit-atom': function(node) {
+          if (node.kids.length === 1 && node.kids[0].name === 'NAME') {
+            return RUNTIME.getField(ast, 'u-base')
+              .app(pos(node.pos), name(node.kids[0]))
+          } else if (node.kids.length === 1 && node.kids[0].name === 'NUMBER') {
+            if (node.kids[0].value !== '1') {
+              throw "Invalid number in unit: " + node.kids[0].value;
+            }
+            return RUNTIME.getField(ast, 'u-one').app(pos(node.pos));
+          } else if (node.kids.length === 3 && node.kids[1].name === 'CARET') {
+            return RUNTIME.getField(ast, 'u-pow')
+              .app(pos(node.pos), pos(node.kids[1].pos), tr(node.kids[0]), number(node.kids[2]));
+          } else {
+            // (unit-expr PAREN unit-expr PAREN)
+            return RUNTIME.getField(ast, 'u-paren')
+              .app(pos(node.pos), tr(node.kids[1]));
+          }
+        },
+        'unit-expr': function(node) {
+          if (node.kids.length === 1) {
+            // (unit-expr unit-atom)
+            return tr(node.kids[0])
+          } else {
+            function mkUnit(op, lhs, rhs) {
+              var unitType = op.name === 'STAR' ? 'u-mul' : 'u-div';
+              return RUNTIME.getField(ast, unitType)
+                .app(pos2(node.kids[0].pos, rhs.pos),
+                     pos(op.pos),
+                     lhs,
+                     tr(rhs));
+            }
+            var unit = mkUnit(node.kids[1], tr(node.kids[0]), node.kids[2]);
+            for (var i = 4; i < node.kids.length; i += 2) {
+              unit = mkUnit(node.kids[i - 1], unit, node.kids[i]);
+            }
+            return unit;
+          }
+        },
         'tuple-expr': function(node) {
           return RUNTIME.getField(ast, 's-tuple')
               .app(pos(node.pos), tr(node.kids[1]))
@@ -1139,21 +1181,55 @@
           }
         },
         'num-expr': function(node) {
-          // (num-expr n)
-          return RUNTIME.getField(ast, 's-num')
-            .app(pos(node.pos), number(node.kids[0]));
+          if (node.kids.length == 1) {
+            // (num-expr n)
+            var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
+            return RUNTIME.getField(ast, 's-num')
+              .app(pos(node.pos), number(node.kids[0]), u);
+          } else {
+            // (num-expr n PERCENT dim-expr)
+            return RUNTIME.getField(ast, 's-num')
+              .app(pos(node.pos), number(node.kids[0]), tr(node.kids[2]));
+          }
         },
         'frac-expr': function(node) {
-          // (frac-expr n)
           var numden = node.kids[0].value.split("/");
-          return RUNTIME.getField(ast, 's-frac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+          if (node.kids.length == 1) {
+            // (frac-expr n)
+            var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
+            return RUNTIME.getField(ast, 's-frac')
+              .app(pos(node.pos),
+                   RUNTIME.makeNumberFromString(numden[0]),
+                   RUNTIME.makeNumberFromString(numden[1]),
+                   u);
+          } else {
+            // (frac-expr n PERCENT dim-expr)
+            return RUNTIME.getField(ast, 's-frac')
+              .app(pos(node.pos),
+                RUNTIME.makeNumberFromString(numden[0]),
+                RUNTIME.makeNumberFromString(numden[1]),
+                tr(node.kids[2]));
+          }
         },
         'rfrac-expr': function(node) {
           // (rfrac-expr n)
           var numden = node.kids[0].value.substring(1).split("/");
-          return RUNTIME.getField(ast, 's-rfrac')
-            .app(pos(node.pos), RUNTIME.makeNumberFromString(numden[0]), RUNTIME.makeNumberFromString(numden[1]));
+          if (node.kids.length == 1) {
+            // (rfrac-expr n)
+            var u = RUNTIME.getField(ast, 'u-one').app(pos(node.pos))
+            return RUNTIME.getField(ast, 's-rfrac')
+              .app(pos(node.pos),
+                   RUNTIME.makeNumberFromString(numden[0]),
+                   RUNTIME.makeNumberFromString(numden[1]),
+                   u);
+          } else {
+            // (rfrac-expr n PERCENT dim-expr)
+            return RUNTIME.getField(ast, 's-rfrac')
+              .app(pos(node.pos),
+                RUNTIME.makeNumberFromString(numden[0]),
+                RUNTIME.makeNumberFromString(numden[1]),
+                tr(node.kids[2]));
+          }
         },
         'string-expr': function(node) {
           return RUNTIME.getField(ast, 's-str')
@@ -1332,6 +1408,11 @@
           // (pred-ann ann PERCENT LPAREN exp RPAREN)
           return RUNTIME.getField(ast, 'a-pred')
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[3]));
+        },
+        'unit-ann': function(node) {
+          // (unit-ann ann PERCENT dim-expr)
+          return RUNTIME.getField(ast, 'a-unit')
+            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'dot-ann': function(node) {
           // (dot-ann n1 PERIOD n2)

@@ -41,6 +41,9 @@ str-provide = PP.str("provide")
 str-as = PP.str("as")
 str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
+str-percent = PP.str("%")
+str-caret = PP.str("^")
+str-space = PP.str(" ")
 
 dummy-loc = SL.builtin("dummy-location")
 is-s-provide-complete = A.is-s-provide-complete
@@ -461,9 +464,16 @@ data AVal:
   | a-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "a-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
-  | a-num(l :: Loc, n :: Number) with:
+  | a-num(l :: Loc, n :: Number, u :: A.Unit) with:
     method label(self): "a-num" end,
-    method tosource(self): PP.number(self.n) end
+    method tosource(self):
+      if A.is-u-one(self.u):
+        PP.number(self.n)
+      else:
+        PP.separate(str-percent,
+          [list: PP.number(self.n), PP.surround(INDENT, 0, PP.langle, self.u.tosource(), PP.rangle)])
+      end
+    end
   | a-str(l :: Loc, s :: String) with:
     method label(self): "a-str" end,
     method tosource(self): PP.str(torepr(self.s)) end
@@ -577,7 +587,7 @@ end
 fun strip-loc-val(val :: AVal):
   cases(AVal) val:
     | a-srcloc(_, l) => a-srcloc(dummy-loc, l)
-    | a-num(_, n) => a-num(dummy-loc, n)
+    | a-num(_, n, u) => a-num(dummy-loc, n, u)
     | a-str(_, s) => a-str(dummy-loc, s)
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
@@ -705,8 +715,8 @@ default-map-visitor = {
   method a-srcloc(self, l, loc):
     a-srcloc(l, loc)
   end,
-  method a-num(self, l :: Loc, n :: Number):
-    a-num(l, n)
+  method a-num(self, l :: Loc, n :: Number, u :: A.Unit):
+    a-num(l, n, u)
   end,
   method a-str(self, l :: Loc, s :: String):
     a-str(l, s)
@@ -761,6 +771,7 @@ fun freevars-ann-acc(ann :: A.Ann, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-tuple(l, fields) => freevars-list-acc(fields, seen-so-far)
     | a-app(l, a, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
     | a-method-app(l, a, _, args) => freevars-list-acc(args, freevars-ann-acc(a, seen-so-far))
+    | a-unit(l, a, u) => freevars-ann-acc(a, seen-so-far)
     | a-pred(l, a, pred) =>
       name = cases(A.Expr) pred:
         | s-id(_, n) => n
@@ -811,7 +822,7 @@ where:
   x = n("x")
   y = n("y")
   freevars-e(
-      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4)),
+      a-let(d, a-bind(d, x, A.a-blank), a-val(d, a-num(d, 4, A.u-one(d))),
         a-lettable(d, a-val(d, a-id(d, y))))).keys-list() is [list: y.key()]
 end
 
@@ -968,7 +979,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-srcloc(_, _) => seen-so-far
-    | a-num(_, _) => seen-so-far
+    | a-num(_, _, _) => seen-so-far
     | a-str(_, _) => seen-so-far
     | a-bool(_, _) => seen-so-far
     | a-undefined(_) => seen-so-far

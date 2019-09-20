@@ -181,3 +181,25 @@ check "all within variants are defined":
   within-abs-now3 does-not-raise
   within3 does-not-raise
 end
+
+check "comparing strings":
+  within(0)("dog", "dog") is true
+  within(0)("dog", "Dog") is false
+  within(0.5)("dog", "Dog") is true
+  within(0.25)("dog", "Dog") is false
+
+  within-abs(0)("dog", "dog") is true
+  within-abs(0)("dog", "Dog") is false
+  within-abs(1)("dog", "Dog") is true
+  within-abs(1)("dog", "DOg") is false
+
+  within(0)("dog", "dog") is true
+  within(0)("dog", "Dog") is false
+  within(0.5)("dog", "Dog") is true
+  within(0.25)("dog", "Dog") is false
+
+  within-abs(0)("dog", "dog") is true
+  within-abs(0)("dog", "Dog") is false
+  within-abs(1)("dog", "Dog") is true
+  within-abs(1)("dog", "DOg") is false
+end

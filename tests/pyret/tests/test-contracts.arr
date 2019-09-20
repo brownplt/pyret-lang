@@ -457,3 +457,102 @@ check "standalone contract statements":
     ```) is%(output) success
 end
 
+check "Should notice unit mis-matches":
+  run-str(
+    ```
+    fun id(n :: Number): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    fun id(n :: Number%<m>): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    fun id(n :: Number%<m>%(num-is-integer)): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    type N = Number%(num-is-integer)
+    fun id(n :: N%<m>): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    type N = Number%<m>%(num-is-integer)
+    fun id(n :: N): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    type N = Number%<m>%(num-is-integer)
+    fun id(n :: N%<s>): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    fun id(n :: Any%<m>): n end
+    id(1%<s>)
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    fun id(n :: {Number%<s>; Number%<m>}): n end
+    id({1%<s>; 1%<s>})
+    ```) is%(output) contract-error
+  run-str(
+    ```
+    fun id(n :: { a :: Number%<s>, b :: Number%<m>}): n end
+    id({ a: 1%<s>, b: 1%<s>})
+    ```) is%(output) contract-error
+  run-str(
+    ```
+  type MyAny = Any%<1>
+  fun id(n :: MyAny%<m>): n end
+  id(1%<m>)
+    ```) is%(output) contract-error
+
+  run-str(
+    ```
+    fun id(n :: Number%<m>%(num-is-integer)): n end
+    id(1%<m>)
+    ```) is%(output) success
+  run-str(
+    ```
+    fun id(n :: Number%<_>%(num-is-integer)): n end
+    id(1%<m>)
+    ```) is%(output) success
+  run-str(
+    ```
+    fun id(n :: Number%<_>%(num-is-integer)): n end
+    id(1)
+    ```) is%(output) success
+  run-str(
+    ```
+    fun id(n :: Any): n end
+    id(1%<s>)
+    ```) is%(output) success
+  run-str(
+    ```
+    fun id(n :: Any%<s>): n end
+    id(1%<s>)
+    ```) is%(output) success
+  run-str(
+    ```
+    fun id(n :: {Number%<s>; Number%<m>}): n end
+    id({1%<s>; 1%<m>})
+    ```) is%(output) success
+  run-str(
+    ```
+    type N = Number%<m>%(num-is-integer)
+    fun id(n :: { a :: Number%<s>, b :: Number%<m>}): n end
+    id({ a: 1%<s>, b: 1%<m>})
+    ```) is%(output) success
+  run-str(
+    ```
+  type MyAny = Any
+  fun id(n :: MyAny): n end
+  id(1%<m>)
+    ```) is%(output) success
+end

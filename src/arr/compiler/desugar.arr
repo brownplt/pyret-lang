@@ -93,7 +93,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
   cases(A.Ann) a:
     | a-blank => a
     | a-any(_) => a
-    | a-name(_, _) => a
+    | a-name(l, _) => a
     | a-type-var(_, _) => a
     | a-dot(_, _, _) => a
     | a-arrow(l, args, ret, use-parens) =>
@@ -108,6 +108,8 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
       A.a-record(l, fields.map(desugar-afield))
     | a-tuple(l, fields) =>
       A.a-tuple(l, fields.map(desugar-ann))
+    | a-unit(l, ann, u) =>
+      A.a-unit(l, desugar-ann(ann), u)
     | a-pred(l, ann, exp) =>
       A.a-pred(l, desugar-ann(ann), desugar-expr(exp))
   end
@@ -528,11 +530,11 @@ fun desugar-expr(expr :: A.Expr):
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
-    | s-num(_, _) => expr
+    | s-num(_, _, _) => expr
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
-    | s-frac(l, num, den) => A.s-num(l, num / den) # NOTE: Possibly must preserve further?
+    | s-frac(l, num, den, u) => A.s-num(l, num / den, u) # NOTE: Possibly must preserve further?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
-    | s-rfrac(l, num, den) => A.s-num(l, num-to-roughnum(num / den)) # NOTE: Possibly must preserve further?
+    | s-rfrac(l, num, den, u) => A.s-num(l, num-to-roughnum(num / den), u) # NOTE: Possibly must preserve further?
     | s-str(_, _) => expr
     | s-bool(_, _) => expr
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
@@ -958,8 +960,8 @@ where:
   p = lam(str): PP.surface-parse(str, "test").block.visit(A.dummy-loc-visitor) end
   ds = lam(prog): desugar-expr(prog).visit(unglobal).visit(A.dummy-loc-visitor) end
   id = lam(s): A.s-id(d, A.s-name(d, s)) end
-  one = A.s-num(d, 1)
-  two = A.s-num(d, 2)
+  one = A.s-num(d, 1, A.u-one(d))
+  two = A.s-num(d, 2, A.u-one(d))
   pretty = lam(prog): prog.tosource().pretty(80).join-str("\n") end
 
   if-else = "if true: 5 else: 6 end"

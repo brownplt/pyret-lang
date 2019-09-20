@@ -617,7 +617,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     /**Makes a PNumber using the given string
 
        @param {string} s
-       @return {!PNumber} with value n
+       @param {unit} u
+       @return {!PNumber} with value n and unit u
     */
     function makeNumberFromString(s) {
       var result = jsnums.fromString(s, NumberErrbacks);
@@ -1986,18 +1987,29 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           curLeft = current.left;
           curRight = current.right;
+          var isIdentical = thisRuntime.ffi.isEqual(identical3(curLeft, curRight))
 
-          if (thisRuntime.ffi.isEqual(identical3(curLeft, curRight))) {
+          if (!fromWithin && isIdentical) {
+            continue;
+          } else if (isIdentical && !(isNumber(curLeft) || isNumber(curRight)) && !jsnums.isUnitnum(tol)) {
+            // when this equality check is from a within call and the tolerance
+            // has a unit, we can't just check for equality because we need to
+            // check for unit-mismatches between the tolerance and compared values
+            // see commits 7c66302 and 7ddfc67
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
-            if (tol) {
+            if (!jsnums.checkUnit(jsnums.getUnit(curLeft), jsnums.getUnit(curRight))) {
+              toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path + ".units", curLeft, curRight);
+            } else if (tol) {
               if (rel) {
-                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, NumberErrbacks)) {
+                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, "equality", NumberErrbacks)) {
                   continue;
                 } else {
                   toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
                 }
-              } else if (jsnums.roughlyEquals(curLeft, curRight, tol, NumberErrbacks)) {
+              } else if (!jsnums.checkUnit(jsnums.getUnit(curLeft), jsnums.getUnit(tol))) {
+                toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path + ".tolerance-units", curLeft, curRight);
+              } else if (jsnums.roughlyEquals(curLeft, curRight, tol, "equality", NumberErrbacks)) {
                 continue;
               } else {
                 toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
@@ -2211,7 +2223,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbsNow3(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs-now3",
-        tol, thisRuntime.NumNonNegative);
+        tol, thisRuntime.NumNonNegativeAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3(...)"], 2, $a, false); }
         return equal3(l, r, EQUAL_NOW, tol, TOL_IS_ABS, FROM_WITHIN);
@@ -2231,7 +2243,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbs3(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs3",
-        tol, thisRuntime.NumNonNegative);
+        tol, thisRuntime.NumNonNegativeAnyUnit);
 
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3(...)"], 2, $a, false); }
@@ -2260,7 +2272,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbsNow(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs-now",
-        tol, thisRuntime.NumNonNegative);
+        tol, thisRuntime.NumNonNegativeAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now(...)"], 2, $a, false); }
         return safeCall(function() {
@@ -2272,7 +2284,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function equalWithinAbs(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs",
-        tol, thisRuntime.Number);
+        tol, thisRuntime.NumberAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs(...)"], 2, $a, false); }
         return safeCall(function () {
@@ -2435,13 +2447,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     // JS function from Pyret values to Pyret equality answers
     function identical3(v1, v2) {
+      var v1IsRough = jsnums.isRoughnum(v1)
+      var v2IsRough = jsnums.isRoughnum(v2)
+
       if (isFunction(v1) && isFunction(v2)) {
         return thisRuntime.ffi.unknown.app("Functions", v1,  v2);
       } else if (isMethod(v1) && isMethod(v2)) {
         return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
-      } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
+      } else if (v1IsRough && v2IsRough) {
         return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
-      } else if (v1 === v2) {
+      } else if (v1 === v2 || (!(v1IsRough || v2IsRough) && jsnums.isPyretNumber(v1) && jsnums.isPyretNumber(v2) && jsnums.equals(v1, v2, NumberErrbacks))) {
         return thisRuntime.ffi.equal;
       } else {
         return thisRuntime.ffi.notEqual.app("", v1, v2);
@@ -2875,14 +2890,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return new PPrimAnn(name, jsPred);
     }
 
-    function makePrimAnn(name, jsPred) {
-      var nameC = new PPrimAnn(name, jsPred);
+    function fillPrimAnnNamespace(name, ann) {
       // NOTE(joe): the $type$ sadness is because we only have one dynamic
       // namespace
-      runtimeTypeBindings[name] = nameC;
-      runtimeNamespaceBindings['$type$' + name] = nameC;
-      runtimeNamespaceBindings[name] = nameC;
-      thisRuntime[name] = nameC;
+      runtimeTypeBindings[name] = ann;
+      runtimeNamespaceBindings['$type$' + name] = ann;
+      runtimeNamespaceBindings[name] = ann;
+      thisRuntime[name] = ann;
+    }
+
+    function makePrimAnn(name, jsPred) {
+      var nameC = new PPrimAnn(name, jsPred);
+      fillPrimAnnNamespace(name, nameC);
     }
 
     function PAnnList(anns) {
@@ -2922,6 +2941,38 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return checkI(0);
     }
 
+    function PUnitAnn(ann, u, implicit) {
+      this.ann = ann;
+      this.u = u;
+      this.flat = true;
+      this.implicit = implicit;
+    }
+    function makeUnitAnn(ann, u, srcloc) {
+      if (ann.withUnit === undefined) {
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(u), srcloc);
+      }
+      return ann.withUnit(u, srcloc);
+    }
+    PUnitAnn.prototype.withUnit = function(unit, srcloc) {
+      if (this.implicit || jsnums.checkUnit(this.u, unit)) {
+        return new PUnitAnn(this.ann, unit, false);
+      } else {
+        thisRuntime.ffi.throwUnitsOnUnsupportedAnn(jsnums.unitToString(unit), srcloc);
+      }
+    }
+    PUnitAnn.prototype.check = function(compilerLoc, val) {
+      var u = jsnums.getUnit(val);
+      if (!jsnums.checkUnit(u, this.u)) {
+        var expectedUnit = jsnums.unitToString(this.u);
+        var actualUnit = jsnums.unitToString(u);
+        return thisRuntime.ffi.contractFail(
+          makeSrcloc(compilerLoc),
+          thisRuntime.ffi.makeUnitFailure(val, this.ann.name || "", expectedUnit, actualUnit, this.implicit));
+      } else {
+        return this.ann.check(compilerLoc, val);
+      }
+    }
+
     function PPredAnn(ann, pred, predname) {
       this.ann = ann;
       this.pred = pred;
@@ -2939,6 +2990,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       var newAnn = new PPredAnn(ann, pred, predname);
       newAnn.flat = true;
       return newAnn;
+    }
+    PPredAnn.prototype.withUnit = function(unit, srcloc) {
+      return new PPredAnn(makeUnitAnn(this.ann, unit, srcloc), this.pred, this.predName, this.flat)
     }
     PPredAnn.prototype.check = function(compilerLoc, val) {
       function fail() {
@@ -3861,6 +3915,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       throwSqrtNegative: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwLogNonPositive: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
       throwIncomparableValues: function(msg) { thisRuntime.ffi.throwMessageException(msg); },
+      throwIncompatibleUnits: function(op, l, r) { thisRuntime.ffi.throwIncompatibleUnits(op, l, r); },
+      throwInvalidUnitState: function(op, n, desc) { thisRuntime.ffi.throwInvalidUnitState(op, n, desc) },
       throwInternalError: function(msg) { thisRuntime.ffi.throwInternalError(msg); },
     };
 
@@ -4848,6 +4904,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     var rng = seedrandom("ahoy, world!");
 
+    var UNIT_ONE = jsnums.UNIT_ONE;
+    var UNIT_ANY = jsnums.UNIT_ANY;
+
     var num_random = function(max) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-random"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-random",
@@ -4867,19 +4926,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_equal = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-equals"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-equals",
-        l, thisRuntime.Number, r, thisRuntime.Number);
+        l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.equals(l, r, NumberErrbacks));
     };
 
     var num_within_abs = function(delta) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-within-abs",
-        delta, thisRuntime.NumNonNegative);
+        delta, thisRuntime.NumNonNegativeAnyUnit);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within"], 2, $a, false); }
         thisRuntime.checkArgsInternal2("Numbers", "from within",
-          l, thisRuntime.Number, r, thisRuntime.Number);
-        return makeBoolean(jsnums.roughlyEquals(l, r, delta, NumberErrbacks));
+          l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+        return makeBoolean(jsnums.roughlyEquals(l, r, delta, "num-within-abs operation", NumberErrbacks));
       }, "num-within-abs(...)");
     }
 
@@ -4889,29 +4948,31 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a, false); }
         thisRuntime.checkArgsInternal2("Numbers", "from within-rel",
-          l, thisRuntime.Number, r, thisRuntime.Number);
-        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, NumberErrbacks));
+          l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, "num-within-rel operation", NumberErrbacks));
       }, "num-within-rel(...)");
     }
 
     var num_max = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-max"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-max",
-        l, thisRuntime.Number, r, thisRuntime.Number);
+        l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-max operation");
       if (jsnums.greaterThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
     var num_min = function(l, r) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-min"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-min",
-        l, thisRuntime.Number, r, thisRuntime.Number);
+        l, thisRuntime.NumberAnyUnit, r, thisRuntime.NumberAnyUnit);
+      jsnums.ensureSameUnits(l, r, NumberErrbacks, "num-min operation");
       if (jsnums.lessThanOrEqual(l, r, NumberErrbacks)) { return l; } else { return r; }
     }
 
     var num_abs = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-abs"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-abs",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.abs(n, NumberErrbacks));
     }
 
@@ -4959,6 +5020,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeNumberBig(jsnums.atan2(y, x, NumberErrbacks));
     };
 
+    // TODO(benmusch): Support units here?
     var num_modulo = function(n, mod) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-modulo"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-modulo",
@@ -4966,6 +5028,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeNumberBig(jsnums.modulo(n, mod, NumberErrbacks));
     }
 
+    // TODO(benmusch): Support units here?
     var num_remainder = function(n, m) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-remainder"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-remainder",
@@ -4976,8 +5039,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_truncate = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
-        n, thisRuntime.Number);
-      if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
+        n, thisRuntime.NumberAnyUnit);
+      if (jsnums.isPositive(n, NumberErrbacks)) {
         return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
       } else {
         return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
@@ -4986,37 +5049,37 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqrt",
-        n, thisRuntime.NumNonNegative);
+        n, thisRuntime.NumNonNegativeAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.sqrt(n, NumberErrbacks));
     }
     var num_sqr = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqr"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqr",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.sqr(n, NumberErrbacks));
     }
     var num_ceiling = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-celing",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
     }
     var num_floor = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-floor",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
     }
     var num_round = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-round",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.round(n, NumberErrbacks));
     }
     var num_round_even = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-round-even",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.roundEven(n, NumberErrbacks));
     }
     var num_log = function(n) {
@@ -5034,19 +5097,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_exact = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exact"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-exact",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
     }
     var num_to_rational = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-rational"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-to-rational",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
     }
     var num_to_roughnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-roughnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-to-roughnum",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeNumberBig(jsnums.toRoughnum(n, NumberErrbacks));
     }
     var num_to_fixnum = function(n) {
@@ -5058,67 +5121,67 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var num_is_integer = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-integer"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-integer",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isInteger(n))
     }
     var num_is_rational = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-rational"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-rational",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isRational(n))
     }
     var num_is_roughnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-roughnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-roughnum",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isRoughnum(n))
     }
     var num_is_positive = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-positive"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-positive",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isPositive(n))
     }
     var num_is_negative = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-negative"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-negative",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isNegative(n))
     }
     var num_is_non_positive = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-non-positive"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-non-positive",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isNonPositive(n))
     }
     var num_is_non_negative = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-non-negative"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-non-negative",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(jsnums.isNonNegative(n))
     }
     var num_is_fixnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-fixnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-is-fixnum",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeBoolean(typeof n === "number");
     }
     var num_expt = function(n, pow) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-expt"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-is-rational",
-        n, thisRuntime.Number, pow, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit, pow, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.expt(n, pow, NumberErrbacks));
     }
     var num_tostring = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-tostring"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-tostring",
-        n, thisRuntime.Number);
+        n, thisRuntime.NumberAnyUnit);
       return thisRuntime.makeString(String(n));
     }
     var num_tostring_digits = function(n, digits) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-string-digits"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-to-string-digits",
-        n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+        n, thisRuntime.NumberAnyUnit, digits, thisRuntime.NumInteger);
       return thisRuntime.makeString(jsnums.toStringDigits(n, digits, NumberErrbacks));
     }
     function random(max) {
@@ -5754,6 +5817,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'checkConstructorArgs': checkConstructorArgs,
       'checkConstructorArgs2': checkConstructorArgs2,
       'getDotAnn': getDotAnn,
+      'makeUnitAnn': makeUnitAnn,
       'makePredAnn': makePredAnn,
       'makeFlatPredAnn': makeFlatPredAnn,
       'makePrimitiveAnn': makePrimitiveAnn,
@@ -5923,6 +5987,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_to_string': num_tostring,
       'num_tostring_digits': num_tostring_digits,
       'num_to_fixnum': num_to_fixnum,
+      'addUnit': jsnums.addUnit,
+      'UNIT_ONE': UNIT_ONE,
+      'UNIT_ANY': UNIT_ANY,
 
       'string_contains': string_contains,
       'string_append': string_append,
@@ -6067,15 +6134,32 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makePrimAnn': makePrimAnn
     };
 
-    makePrimAnn("Number", isNumber);
-    makePrimAnn("Exactnum", jsnums.isRational);
-    makePrimAnn("Roughnum", jsnums.isRoughnum);
-    makePrimAnn("NumInteger", jsnums.isInteger);
-    makePrimAnn("NumRational", jsnums.isRational);
-    makePrimAnn("NumPositive", jsnums.isPositive);
-    makePrimAnn("NumNegative", jsnums.isNegative);
-    makePrimAnn("NumNonPositive", jsnums.isNonPositive);
-    makePrimAnn("NumNonNegative", jsnums.isNonNegative);
+    function makePrimUnitAnn(name, checkFun, unit) {
+      var ann = makePrimitiveAnn(name, checkFun);
+      ann = new PUnitAnn(ann, unit, true);
+      fillPrimAnnNamespace(name, ann);
+    }
+
+    makePrimUnitAnn("Number", isNumber, UNIT_ONE);
+    makePrimUnitAnn("Exactnum", jsnums.isRational, UNIT_ONE);
+    makePrimUnitAnn("Roughnum", jsnums.isRoughnum, UNIT_ONE);
+    makePrimUnitAnn("NumInteger", jsnums.isInteger, UNIT_ONE);
+    makePrimUnitAnn("NumRational", jsnums.isRational, UNIT_ONE);
+    makePrimUnitAnn("NumPositive", jsnums.isPositive, UNIT_ONE);
+    makePrimUnitAnn("NumNegative", jsnums.isNegative, UNIT_ONE);
+    makePrimUnitAnn("NumNonPositive", jsnums.isNonPositive, UNIT_ONE);
+    makePrimUnitAnn("NumNonNegative", jsnums.isNonNegative, UNIT_ONE);
+
+    makePrimAnn("NumberAnyUnit", isNumber);
+    makePrimAnn("ExactnumAnyUnit", jsnums.isRational);
+    makePrimAnn("RoughnumAnyUnit", jsnums.isRoughnum);
+    makePrimAnn("NumIntegerAnyUnit", jsnums.isInteger);
+    makePrimAnn("NumRationalAnyUnit", jsnums.isRational);
+    makePrimAnn("NumPositiveAnyUnit", jsnums.isPositive);
+    makePrimAnn("NumNegativeAnyUnit", jsnums.isNegative);
+    makePrimAnn("NumNonPositiveAnyUnit", jsnums.isNonPositive);
+    makePrimAnn("NumNonNegativeAnyUnit", jsnums.isNonNegative);
+
     makePrimAnn("String", isString);
     makePrimAnn("Boolean", isBoolean);
     makePrimAnn("RawArray", isArray);
@@ -6084,7 +6168,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     makePrimAnn("Nothing", isNothing);
     makePrimAnn("Object", isObject);
     makePrimAnn("Tuple", isTuple);
-    makePrimAnn("Any", function() { return true; });
+    makePrimUnitAnn("Any", function() { return true; }, UNIT_ANY);
+
 
     thisRuntime.namespace = Namespace.namespace(runtimeNamespaceBindings);
 

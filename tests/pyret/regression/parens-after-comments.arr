@@ -6,6 +6,8 @@ fun program-block(contents):
     empty, A.s-block(A.dummy-loc, contents))
 end
 
+one = A.u-one(A.dummy-loc)
+
 check "https://github.com/brownplt/pyret-lang/issues/828":
   P.does-parse(```
 ### Comment 1
@@ -22,8 +24,8 @@ check "https://github.com/brownplt/pyret-lang/issues/828":
 (1 + 2)
                      ```).visit(A.dummy-loc-visitor)
     is program-block([list:
-      A.s-op(A.dummy-loc, A.dummy-loc, "op*", A.s-num(A.dummy-loc, 3), A.s-num(A.dummy-loc, 2)),
-      A.s-paren(A.dummy-loc, A.s-op(A.dummy-loc, A.dummy-loc, "op+", A.s-num(A.dummy-loc, 1), A.s-num(A.dummy-loc, 2)))
+      A.s-op(A.dummy-loc, A.dummy-loc, "op*", A.s-num(A.dummy-loc, 3, one), A.s-num(A.dummy-loc, 2, one)),
+      A.s-paren(A.dummy-loc, A.s-op(A.dummy-loc, A.dummy-loc, "op+", A.s-num(A.dummy-loc, 1, one), A.s-num(A.dummy-loc, 2, one)))
     ])
 
   P.get-parse-result("ab#|...|#cd").visit(A.dummy-loc-visitor)

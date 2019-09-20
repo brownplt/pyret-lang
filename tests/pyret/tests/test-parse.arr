@@ -468,3 +468,46 @@ check "should parse reactors":
   does-parse("reactor: end") is false
   does-parse("reactor end") is false
 end
+
+check "should parse unit-annotated numbers":
+  does-parse("2%<m>") is true
+  does-parse("2%<(m)>") is true
+  does-parse("2%<m * n>") is true
+  does-parse("2%<m / n>") is true
+  does-parse("2%<m / n * o>") is true
+  does-parse("2%<m ^ 1>") is true
+  does-parse("2%<m ^ 1.2>") is true # should be wf-error
+  does-parse("2%<(m / n) ^ -5 * (o ^ 10)>") is true
+  does-parse("2%<1>") is true
+  does-parse("2%<1 * m>") is true
+
+  does-parse("2%<>") is false
+  does-parse("2%<()>") is false
+  does-parse("2%<m *>") is false
+  does-parse("2%<m*n>") is false
+  does-parse("2%<m />") is false
+  does-parse("2%<m/n>") is false
+  does-parse("2%<m^1>") is false
+  does-parse("2%<m ^ 6/5>") is false
+  does-parse("2%<m ^ n>") is false
+  does-parse("2%<m^1>") is false
+  does-parse("2%<2>") raises ""
+  does-parse("2%<-2>") raises ""
+end
+
+check "should parse unit-anns numbers":
+  does-parse("n :: Number%<m>%<s> = 0") is false
+  does-parse("n :: Number%<m>%(is-even)%<s> = 0") is false
+  does-parse("n :: Number%(is-two)%<m> = 0") is false
+  does-parse("n :: Number%<>%(is-even) = 0") is false
+  does-parse("n :: Number%<> = 0") is false
+
+  # should be caught by wf:
+  does-parse("n :: Number%<m / s * m> = 0") is true
+
+  does-parse("n :: Number%<m>%(is-even) = 0") is true
+  does-parse("n :: Number%<m> = 0") is true
+  does-parse("n :: Number%<m>%(is-even) = 0") is true
+  does-parse("n :: Number%<m>%(is-two)%(is-even) = 0") is true
+  does-parse("n :: String%<m> = 'foo'") is true
+end

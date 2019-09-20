@@ -98,7 +98,7 @@ pyretnum := fixnum | boxnum
 A fixnum is simply a JS double, and we prefer to use them
 whenever possible, viz., for integers that are small enough.
 
-boxnum := BigInteger | Rational | Roughnum.
+boxnum := BigInteger | Rational | Roughnum | Unitnum.
 
 An integer is either a fixnum or a BigInteger.
 
@@ -108,6 +108,8 @@ define("pyret-base/js/js-numbers", function() {
   'use strict';
   // Abbreviation
   var Numbers = {};
+  var UNIT_ONE = { "$name": "ONE" };
+  var UNIT_ANY = { "$name": "ANY" };
 
   // makeNumericBinop: (fixnum fixnum -> any) (pyretnum pyretnum -> any) -> (pyretnum pyretnum) X
   // Creates a binary function that works either on fixnums or boxnums.
@@ -116,7 +118,6 @@ define("pyret-base/js/js-numbers", function() {
   var makeNumericBinop = function(onFixnums, onBoxednums, options) {
     options = options || {};
     return function(x, y, errbacks) {
-
       if (options.isXSpecialCase && options.isXSpecialCase(x, errbacks))
         return options.onXSpecialCase(x, y, errbacks);
       if (options.isYSpecialCase && options.isYSpecialCase(y, errbacks))
@@ -134,7 +135,11 @@ define("pyret-base/js/js-numbers", function() {
         y = liftFixnumInteger(y, x);
       }
 
-      if (x instanceof Roughnum) {
+      if (x instanceof Unitnum || y instanceof Unitnum) {
+        // if x or y have units, ensure they are both wrapped in unitnums
+        x = _withUnit(x, getUnit(x), true);
+        y = _withUnit(y, getUnit(y), true);
+      } else if (x instanceof Roughnum) {
         // y is rough, rat or bigint
         if (!(y instanceof Roughnum)) {
           // y is rat or bigint
@@ -240,13 +245,19 @@ define("pyret-base/js/js-numbers", function() {
     return (typeof(thing) === 'number'
             || (thing instanceof Rational ||
                 thing instanceof Roughnum ||
-                thing instanceof BigInteger));
+                thing instanceof BigInteger ||
+                thing instanceof Unitnum));
   };
 
   // isRational: pyretnum -> boolean
   var isRational = function(n) {
     return (typeof(n) === 'number' ||
             (isPyretNumber(n) && n.isRational()));
+  };
+
+  // isUnitnum: pyretnum -> boolean
+  var isUnitnum = function(n) {
+    return n instanceof Unitnum;
   };
 
   var isExact = isRational;
@@ -356,14 +367,20 @@ define("pyret-base/js/js-numbers", function() {
       }
     },
     function(x, y, errbacks) {
-      return x.add(y);
+      return x.add(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
-     onXSpecialCase: function(x, y, errbacks) { return y; },
+     onXSpecialCase: function(x, y, errbacks) {
+       ensureSameUnits(x, y, errbacks, "+ operation");
+       return y;
+     },
      isYSpecialCase: function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
-     onYSpecialCase: function(x, y, errbacks) { return x; }
+     onYSpecialCase: function(x, y, errbacks) {
+       ensureSameUnits(x, y, errbacks, "+ operation");
+       return x;
+     }
     });
 
   var subtract = function(x, y, errbacks) {
@@ -389,14 +406,20 @@ define("pyret-base/js/js-numbers", function() {
       }
     },
     function(x, y, errbacks) {
-      return x.subtract(y);
+      return x.subtract(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x) && _integerIsZero(x) },
-     onXSpecialCase: function(x, y, errbacks) { return negate(y, errbacks); },
+     onXSpecialCase: function(x, y, errbacks) {
+       ensureSameUnits(x, y, errbacks, "- operation");
+       return negate(y, errbacks);
+     },
      isYSpecialCase: function(y, errbacks) {
        return isInteger(y) && _integerIsZero(y) },
-     onYSpecialCase: function(x, y, errbacks) { return x; }
+     onYSpecialCase: function(x, y, errbacks) {
+       ensureSameUnits(x, y, errbacks, "- operation");
+       return x;
+     }
     });
 
   // mulitply: pyretnum pyretnum -> pyretnum
@@ -425,7 +448,7 @@ define("pyret-base/js/js-numbers", function() {
       return x.multiply(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
-      return (isInteger(x) &&
+      return (isInteger(x) && !(x instanceof Unitnum) &&
               (_integerIsZero(x) || _integerIsOne(x) || _integerIsNegativeOne(x))) },
      onXSpecialCase: function(x, y, errbacks) {
        if (_integerIsZero(x))
@@ -436,7 +459,7 @@ define("pyret-base/js/js-numbers", function() {
          return negate(y, errbacks);
      },
      isYSpecialCase: function(y, errbacks) {
-       return (isInteger(y) &&
+       return (isInteger(y) && !(y instanceof Unitnum) &&
                (_integerIsZero(y) || _integerIsOne(y) || _integerIsNegativeOne(y)))},
      onYSpecialCase: function(x, y, errbacks) {
        if (_integerIsZero(y))
@@ -452,7 +475,7 @@ define("pyret-base/js/js-numbers", function() {
   var divide = makeNumericBinop(
     function(x, y, errbacks) {
       if (_integerIsZero(y))
-        errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
+        errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
       var div = x / y;
       if (isOverflow(div)) {
         return (makeBignum(x)).divide(makeBignum(y), errbacks);
@@ -464,7 +487,7 @@ define("pyret-base/js/js-numbers", function() {
     },
     function(x, y, errbacks) {
       if (equalsAnyZero(y, errbacks)) {
-        errbacks.throwDivByZero('/: division by zero, ' + x + ' ' + y);
+        errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
       }
       return x.divide(y, errbacks);
     },
@@ -474,7 +497,7 @@ define("pyret-base/js/js-numbers", function() {
       },
       onXSpecialCase: function(x, y, errbacks) {
         if (equalsAnyZero(y, errbacks)) {
-          errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
+          errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
         }
         return 0;
       },
@@ -482,7 +505,7 @@ define("pyret-base/js/js-numbers", function() {
         return equalsAnyZero(y, errbacks);
       },
       onYSpecialCase: function(x, y, errbacks) {
-        errbacks.throwDivByZero("/: division by zero, " + x + ' ' + y);
+        errbacks.throwDivByZero("/: division by zero, " + x.toString() + ' ' + y.toString());
       }
     });
 
@@ -507,7 +530,7 @@ define("pyret-base/js/js-numbers", function() {
   var equalsAnyZero = function(x, errbacks) {
     if (typeof(x) === 'number') return x === 0;
     if (isRoughnum(x)) return x.n === 0;
-    return x.equals(0, errbacks);
+    return equals(_withoutUnit(x), 0, errbacks);
   };
 
   // eqv: pyretnum pyretnum -> boolean
@@ -527,7 +550,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   // used for within
-  var roughlyEquals = function(x, y, delta, errbacks) {
+  var roughlyEquals = function(x, y, delta, where, errbacks) {
+    ensureSameUnits(x, y, errbacks, where + "'s arguments");
+    ensureSameUnits(y, delta, errbacks, where + "'s tolerance");
+
     if (isNegative(delta)) {
       errbacks.throwToleranceError("negative tolerance " + delta);
     }
@@ -536,7 +562,7 @@ define("pyret-base/js/js-numbers", function() {
 
     if (isRoughnum(delta) && delta.n === Number.MIN_VALUE) {
       if ((isRoughnum(x) || isRoughnum(y)) &&
-            (Math.abs(subtract(x,y).n) === Number.MIN_VALUE)) {
+            (Math.abs(_withoutUnit(subtract(x,y)).n) === Number.MIN_VALUE)) {
         errbacks.throwToleranceError("roughnum tolerance too small for meaningful comparison, " + x + ' ' + y + ' ' + delta);
       }
     }
@@ -548,7 +574,12 @@ define("pyret-base/js/js-numbers", function() {
     return approxEquals(ratx, raty, ratdelta, errbacks);
   };
 
-  var roughlyEqualsRel = function(computedValue, trueValue, delta, errbacks) {
+  var roughlyEqualsRel = function(computedValue, trueValue, delta, where, errbacks) {
+    if (!checkUnit(getUnit(delta), UNIT_ONE)) {
+      errbacks.throwInvalidUnitState("relative rough equality", delta, "tolerance cannot have a unit");
+    }
+    ensureSameUnits(computedValue, trueValue, errbacks, where + "'s arguments");
+
     if (isNegative(delta)) {
       errbacks.throwRelToleranceError('negative relative tolerance ' + delta)
     }
@@ -597,7 +628,7 @@ define("pyret-base/js/js-numbers", function() {
       return x >= y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.greaterThanOrEqual(y);
+      return x.greaterThanOrEqual(y, errbacks);
     })(x, y, errbacks);
   }
 
@@ -607,7 +638,7 @@ define("pyret-base/js/js-numbers", function() {
       return x <= y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.lessThanOrEqual(y);
+      return x.lessThanOrEqual(y, errbacks);
     })(x, y, errbacks);
   };
 
@@ -617,7 +648,7 @@ define("pyret-base/js/js-numbers", function() {
       return x > y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.greaterThan(y);
+      return x.greaterThan(y, errbacks);
     })(x, y, errbacks);
   };
 
@@ -627,7 +658,7 @@ define("pyret-base/js/js-numbers", function() {
       return x < y;
     }
     return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.lessThan(y);
+      return x.lessThan(y, errbacks);
     })(x, y, errbacks);
   };
 
@@ -642,13 +673,21 @@ define("pyret-base/js/js-numbers", function() {
       }
     },
     function(x, y, errbacks) {
-      return x.expt(y, errbacks);
+      if (!checkUnit(getUnit(y), UNIT_ONE)) {
+        errbacks.throwInvalidUnitState("num-expt", y, "power cannot have a unit")
+      }
+      return x.expt(_withoutUnit(y), errbacks);
     },
     {
       isXSpecialCase: function(x, errbacks) {
-        return eqv(x, 0, errbacks) || eqv(x, 1, errbacks);
+        return (eqv(x, 0, errbacks) || eqv(x, 1, errbacks));
       },
       onXSpecialCase: function(x, y, errbacks) {
+        if (!checkUnit(getUnit(y), UNIT_ONE)) {
+          // need this because the isXSpecialCase check cannot look at the y
+          errbacks.throwInvalidUnitState("num-expt", y, "power cannot have a unit")
+        }
+
         if (eqv(x, 0, errbacks)) {
           if (eqv(y, 0, errbacks)) {
             return 1;
@@ -663,7 +702,7 @@ define("pyret-base/js/js-numbers", function() {
       },
 
       isYSpecialCase: function(y, errbacks) {
-        return eqv(y, 0, errbacks) || lessThan(y, 0, errbacks);
+        return !(y instanceof Unitnum) && (eqv(y, 0, errbacks) || lessThan(y, 0, errbacks));
       },
       onYSpecialCase: function(x, y, errbacks) {
         if (eqv(y, 0, errbacks)) {
@@ -736,19 +775,19 @@ define("pyret-base/js/js-numbers", function() {
   var numerator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
-    return n.numerator();
+    return n.numerator(errbacks);
   };
 
   // denominator: pyretnum -> pyretnum
   var denominator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return 1;
-    return n.denominator();
+    return n.denominator(errbacks);
   };
 
   // sqrt: pyretnum -> pyretnum
   var sqrt = function(n, errbacks) {
-    if (lessThan(n, 0, errbacks)) {
+    if (isNegative(n)) {
       errbacks.throwSqrtNegative('sqrt: negative argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -805,7 +844,7 @@ define("pyret-base/js/js-numbers", function() {
     if ( eqv(n, 1, errbacks) ) {
       return 0;
     }
-    if (lessThanOrEqual(n, 0, errbacks)) {
+    if (isNonPositive(n)) {
       errbacks.throwLogNonPositive('log: non-positive argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -880,7 +919,7 @@ define("pyret-base/js/js-numbers", function() {
   // acos: pyretnum -> pyretnum
   var acos = function(n, errbacks) {
     if (eqv(n, 1, errbacks)) { return 0; }
-    if (lessThan(n, -1, errbacks) || greaterThan(n, 1, errbacks)) {
+    if (lessThan(_withoutUnit(n), -1, errbacks) || greaterThan(_withoutUnit(n), 1, errbacks)) {
       errbacks.throwDomainError('acos: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -892,7 +931,7 @@ define("pyret-base/js/js-numbers", function() {
   // asin: pyretnum -> pyretnum
   var asin = function(n, errbacks) {
     if (eqv(n, 0, errbacks)) { return 0; }
-    if (lessThan(n, -1, errbacks) || greaterThan(n, 1, errbacks)) {
+    if (lessThan(_withoutUnit(n), -1, errbacks) || greaterThan(_withoutUnit(n), 1, errbacks)) {
       errbacks.throwDomainError('asin: out of domain argument ' + n);
     }
     if (typeof(n) === 'number') {
@@ -1046,6 +1085,181 @@ define("pyret-base/js/js-numbers", function() {
   //////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
 
+  // Unit operations
+
+  var COUNT_FIELD = "$count";
+
+  var _withUnit = function(n, u, forceUnitnum) {
+    if (checkUnit(u, UNIT_ONE) && !forceUnitnum) {
+      return _withoutUnit(n);
+    } else if (n instanceof Unitnum) {
+      return _withUnit(n.n, u, forceUnitnum);
+    } else {
+      return new Unitnum(n, u);
+    }
+  }
+
+  var _withoutUnit = function(n) {
+    if (n instanceof Unitnum) {
+      return _withoutUnit(n.n);
+    } else {
+      return n;
+    }
+  }
+
+  var unitToString = function(u) {
+    if (u === UNIT_ONE) return "1";
+    if (u === UNIT_ANY) return "_";
+
+    var unitStrs = [];
+    for (var unitName in u) {
+      if (!u.hasOwnProperty(unitName) || unitName === COUNT_FIELD) continue
+
+      var power = u[unitName];
+      if (_integerIsOne(power)) {
+        unitStrs = unitStrs.concat(unitName)
+      } else if (!_integerIsZero(power)) {
+        unitStrs = unitStrs.concat(unitName + " ^ " + power.toString())
+      }
+    }
+    return unitStrs.sort().join(" * ");
+  };
+
+  var getUnit = function(n) {
+    if (n instanceof Unitnum) {
+      return n.u;
+    } else {
+      return UNIT_ONE;
+    }
+  };
+
+  var addUnit = function(n, u) {
+    return _withUnit(n, u, false);
+  };
+
+  var _unitExponentOf = function(u, key) {
+    if (u.hasOwnProperty(key)) {
+      return u[key];
+    } else {
+      return 0;
+    }
+  };
+
+  // represent the unit as a list of objects, used by CPO
+  var unitToList = function(u) {
+    if (u === UNIT_ONE || u === UNIT_ANY) return [];
+
+    var items = [];
+    for (var unitName in u) {
+      if (!u.hasOwnProperty(unitName) || unitName === COUNT_FIELD) continue
+      items.push({ name: unitName, pow: u[unitName] });
+    }
+
+    var comparator = function(a, b) {
+      if (a.name > b.name) { return 1 }
+      else if (a.name < b.name) { return -1 }
+      else { return 0 }
+    }
+    return items.sort(comparator);
+  }
+
+  var _unitMap = function(u, f) {
+    if (u === UNIT_ONE || u === UNIT_ANY) return u;
+
+    var newUnit = {};
+    newUnit[COUNT_FIELD] = u[COUNT_FIELD]
+    for (var unitName in u) {
+      if (!u.hasOwnProperty(unitName) || unitName === COUNT_FIELD) continue
+      newUnit[unitName] = f(u[unitName]);
+    }
+    return newUnit;
+  }
+
+  var _unitFilter = function(u, f) {
+    if (u === UNIT_ONE || u === UNIT_ANY) return u;
+
+    var newUnit = {};
+    newUnit[COUNT_FIELD] = 0;
+    for (var unitName in u) {
+      if (!u.hasOwnProperty(unitName) || !f(u[unitName]) || unitName === COUNT_FIELD) continue
+      newUnit[unitName] = u[unitName];
+      newUnit[COUNT_FIELD] += 1;
+    }
+
+    if (newUnit[COUNT_FIELD] === 0) return UNIT_ONE;
+    return newUnit;
+  }
+
+  var checkUnit = function(u1, u2) {
+    if (u1 === UNIT_ANY || u2 === UNIT_ANY) return true;
+    if (u1 === UNIT_ONE || u2 === UNIT_ONE) return u1 === u2;
+
+    for (var unitName in u1) {
+      if (!u1.hasOwnProperty(unitName)) continue
+
+      if (!_integerEquals(_unitExponentOf(u1, unitName), _unitExponentOf(u2, unitName))) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  var _unitMerge = function(u1, u2) {
+    if (u1 === UNIT_ONE) return u2;
+    if (u2 === UNIT_ONE) return u1;
+
+    var newUnit = {};
+    for (var unitName in Object.assign({}, u1, u2)) {
+      if (!u1.hasOwnProperty(unitName) && !u2.hasOwnProperty(unitName)) continue
+      if (unitName === COUNT_FIELD) continue;
+
+      var newExp = _integerAdd(_unitExponentOf(u1, unitName), _unitExponentOf(u2, unitName));
+      if (!_integerIsZero(newExp)) {
+        newUnit[unitName] = newExp;
+      }
+    }
+
+    var numKeys = Object.keys(newUnit).length
+    if (numKeys !== 0) {
+      newUnit[COUNT_FIELD] = Object.keys(newUnit).length
+      return newUnit;
+    } else {
+      return UNIT_ONE;
+    }
+  }
+
+  var _unitInvert = function(u) {
+    return _unitMap(u, function(n) { return _integerMultiply(-1, n) })
+  }
+
+  var unitNumerator = function(u) {
+    return _unitFilter(u, function(pow) { return _integerGreaterThan(pow, 0) });
+  }
+
+  var unitDenominator = function(u) {
+    return unitNumerator(_unitInvert(u));
+  }
+
+  var ensureSameUnits = function(n1, n2, errbacks, opName) {
+    var u1 = getUnit(n1);
+    var u2 = getUnit(n2);
+
+    if (!checkUnit(u1, u2)) {
+      errbacks.throwIncompatibleUnits(opName, unitToString(u1), unitToString(u2));
+    }
+  }
+
+  var _throwUnitsUnsupported = function(u, errbacks, opName) {
+    errbacks.throwGeneralError("The " + opName + " operation does not support units" +
+      " but was given an argument with the unit " + unitToString(u))
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+
   // Integer operations
   // Integers are either represented as fixnums or as BigIntegers.
 
@@ -1055,12 +1269,14 @@ define("pyret-base/js/js-numbers", function() {
   var makeIntegerBinop = function(onFixnums, onBignums, options) {
     options = options || {};
     return (function(m, n) {
-      if (m instanceof Rational) {
-        m = numerator(m);
+      if (m instanceof Rational || m instanceof Unitnum) {
+        // TODO(benmusch): Is this okay? Can we always use fixnums?
+        // TODO(benmusch): Consider lifting both to unitnums
+        m = m.toFixnum();
       }
 
-      if (n instanceof Rational) {
-        n = numerator(n);
+      if (n instanceof Rational || n instanceof Unitnum) {
+        n = n.toFixnum();
       }
 
       if (typeof(m) === 'number' && typeof(n) === 'number') {
@@ -1087,8 +1303,8 @@ define("pyret-base/js/js-numbers", function() {
   var makeIntegerUnOp = function(onFixnums, onBignums, options, errbacks) {
     options = options || {};
     return (function(m) {
-      if (m instanceof Rational) {
-        m = numerator(m);
+      if (m instanceof Rational || m instanceof Unitnum) {
+        m = m.toFixnum();
       }
 
       if (typeof(m) === 'number') {
@@ -1333,10 +1549,25 @@ define("pyret-base/js/js-numbers", function() {
   // isRational: -> boolean
   // Produce true if the number is rational.
 
+  // isRoughnum: -> boolean
+  // Produce true if the number is roughnum.
+
   // isExact === isRational
 
   // isReal: -> boolean
   // Produce true if the number is real.
+
+  // isPositive: -> boolean
+  // Produce true if the number is positive.
+
+  // isNonNegative: -> boolean
+  // Produce true if the number is positive.
+
+  // isNegative: -> boolean
+  // Produce true if the number is positive.
+
+  // isNonPositive: -> boolean
+  // Produce true if the number is positive.
 
   // toRational: -> pyretnum
   // Produce an exact number.
@@ -1400,6 +1631,9 @@ define("pyret-base/js/js-numbers", function() {
   // atan: -> pyretnum
   // Produce the arc tangent.
 
+  // tan: -> pyretnum
+  // Produce the arc tangent.
+
   // cos: -> pyretnum
   // Produce the cosine.
 
@@ -1421,10 +1655,209 @@ define("pyret-base/js/js-numbers", function() {
   // round: -> pyretnum
   // Round to the nearest integer.
 
+  // roundEven: -> pyretnum
+  // Round to the nearest integer, returning an exactnum if the number is
+  // between integers
+
   // equals: pyretnum -> boolean
   // Produce true if the given number of the same type is equal.
 
   //////////////////////////////////////////////////////////////////////
+
+  // Unitnums
+  var Unitnum = function(n, u) {
+    this.n = n;
+    this.u = u;
+  };
+
+  Unitnum.prototype.toString = function() {
+    var unitStr = "%<" + unitToString(this.u) + ">"
+    return this.n.toString() + unitStr;
+  };
+
+  Unitnum.prototype.isFinite = function() {
+    return typeof(this.n) === "number" || this.n.isFinite();
+  };
+
+  Unitnum.prototype.isInteger = function() {
+    return isInteger(this.n);
+  };
+
+  Unitnum.prototype.isRational = function() {
+    return isRational(this.n);
+  };
+
+  Unitnum.prototype.isRoughnum = function() {
+    return isRoughnum(this.n);
+  };
+
+  Unitnum.prototype.isExact = Unitnum.prototype.isRational;
+
+  Unitnum.prototype.isPositive = function() {
+    return isPositive(this.n);
+  };
+
+  Unitnum.prototype.isNonNegative = function() {
+    return isNonNegative(this.n);
+  };
+
+  Unitnum.prototype.isNegative = function() {
+    return isNegative(this.n);
+  };
+
+  Unitnum.prototype.isNonPositive = function() {
+    return isNonPositive(this.n);
+  };
+
+  Unitnum.prototype.toRational = function() {
+    return _withUnit(toRational(this.n), this.u, false);
+  }
+
+  Unitnum.prototype.toExact = Unitnum.prototype.toRational;
+
+  Unitnum.prototype.toRoughnum = function() {
+    return _withUnit(toRoughnum(this.n), this.u, false);
+  };
+
+  Unitnum.prototype.toFixnum = function() {
+    return toFixnum(this.n);
+  };
+
+  Unitnum.prototype.greaterThan = function(n, errbacks) {
+    ensureSameUnits(this, n, errbacks, "> operation");
+    return greaterThan(_withoutUnit(this.n), _withoutUnit(n));
+  };
+
+  Unitnum.prototype.greaterThanOrEqual = function(n, errbacks) {
+    ensureSameUnits(this, n, errbacks, ">= operation");
+    return greaterThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
+  };
+
+  Unitnum.prototype.lessThan = function(n, errbacks) {
+    ensureSameUnits(this, n, errbacks, "< operation");
+    return lessThan(_withoutUnit(this.n), _withoutUnit(n));
+  };
+
+  Unitnum.prototype.lessThanOrEqual = function(n, errbacks) {
+    ensureSameUnits(this, n, errbacks, "<= operation");
+    return lessThanOrEqual(_withoutUnit(this.n), _withoutUnit(n));
+  };
+
+  Unitnum.prototype.add = function(n, errbacks) {
+    ensureSameUnits(this, n, errbacks, "+ operation");
+    return _withUnit(add(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
+  };
+
+  Unitnum.prototype.subtract = function(n, errbacks) {
+    ensureSameUnits(this, n, errbacks, "- operation");
+    return _withUnit(subtract(_withoutUnit(this), _withoutUnit(n), errbacks), this.u, false);
+  };
+
+  Unitnum.prototype.multiply = function(n, errbacks) {
+    var newUnit = _unitMerge(this.u, n.u);
+    return _withUnit(multiply(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit, false);
+  };
+
+  Unitnum.prototype.divide = function(n, errbacks) {
+    var newUnit = _unitMerge(this.u, _unitInvert(n.u));
+    return _withUnit(divide(_withoutUnit(this), _withoutUnit(n), errbacks), newUnit, false);
+  };
+
+  Unitnum.prototype.numerator = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "numerator");
+  };
+
+  Unitnum.prototype.denominator = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "denominator");
+  };
+
+  Unitnum.prototype.integerSqrt = function(errbacks) {
+    var that = this;
+    var newUnit = _unitMap(this.u, function(pow) {
+      if (!_integerIsZero(_integerModulo(pow, 2))) {
+        errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
+      } else {
+        return halve(pow, errbacks);
+      }
+    });
+    return _withUnit(integerSqrt(this.n), newUnit, false);
+  };
+
+  Unitnum.prototype.sqrt = function(errbacks) {
+    var that = this;
+    var newUnit = _unitMap(this.u, function(pow) {
+      if (!_integerIsZero(_integerModulo(pow, 2))) {
+        errbacks.throwInvalidUnitState("num-sqrt", that, "not all units had an even exponent");
+      } else {
+        return halve(pow, errbacks);
+      }
+    });
+    return _withUnit(sqrt(this.n), newUnit, false);
+  };
+
+  Unitnum.prototype.abs = function() {
+    return _withUnit(abs(this.n), this.u, false);
+  };
+
+  Unitnum.prototype.floor = function() {
+    return _withUnit(floor(this.n), this.u, false);
+  };
+
+  Unitnum.prototype.ceiling = function() {
+    return _withUnit(ceiling(this.n), this.u, false);
+  };
+
+  Unitnum.prototype.log = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "log");
+  };
+
+  Unitnum.prototype.tan = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "tan");
+  };
+
+  Unitnum.prototype.atan = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "atan");
+  };
+
+  Unitnum.prototype.cos = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "cos");
+  };
+
+  Unitnum.prototype.sin = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "sin");
+  };
+
+  Unitnum.prototype.expt = function(n, errbacks) {
+    if (!isInteger(n)) {
+      errbacks.throwInvalidUnitState("num-expt", n, "a number with a unit cannot be raised to a non-integer power");
+    }
+    var newUnit = _unitMap(this.u, function(pow) { return n * pow });
+    return _withUnit(expt(this.n, n), newUnit, false);
+  };
+
+  Unitnum.prototype.exp = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "exp", false);
+  };
+
+  Unitnum.prototype.acos = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "acos", false);
+  };
+
+  Unitnum.prototype.asin = function(errbacks) {
+    _throwUnitsUnsupported(this.u, errbacks, "asin", false);
+  };
+
+  Unitnum.prototype.round = function() {
+    return _withUnit(round(this.n), this.u, false);
+  };
+
+  Unitnum.prototype.roundEven = function() {
+    return _withUnit(roundEven(this.n), this.u, false);
+  };
+
+  Unitnum.prototype.equals = function(other) {
+    return checkUnit(this.u, getUnit(other)) && equals(this.n, other.n);
+  };
 
   // Rationals
 
@@ -3937,6 +4370,10 @@ define("pyret-base/js/js-numbers", function() {
     if (!isInteger(digits)) {
       errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
     }
+
+    if (n instanceof Unitnum) {
+      return toStringDigits(n.n, digits, errbacks) + "%<" + unitToString(n.u) + ">";
+    }
     var tenDigits = expt(10, digits, errbacks);
     var d = toFixnum(digits);
     n = divide(round(multiply(n, tenDigits, errbacks), errbacks), tenDigits, errbacks);
@@ -3951,7 +4388,7 @@ define("pyret-base/js/js-numbers", function() {
       return ans;
     }
     // n is not an integer implies that d >= 1
-    var decimal = toRepeatingDecimal(n.numerator(), n.denominator(), undefined, errbacks);
+    var decimal = toRepeatingDecimal(numerator(n), denominator(n), undefined, errbacks);
     var ans = decimal[1].toString();
     while (ans.length < d) {
       ans += decimal[2];
@@ -3968,9 +4405,20 @@ define("pyret-base/js/js-numbers", function() {
   Numbers['makeBignum'] = makeBignum;
   Numbers['makeRational'] = Rational.makeInstance;
   Numbers['makeRoughnum'] = Roughnum.makeInstance;
+  Numbers['addUnit'] = addUnit;
+  Numbers['getUnit'] = getUnit;
+  Numbers['checkUnit'] = checkUnit;
+  Numbers['ensureSameUnits'] = ensureSameUnits;
+  Numbers['unitToString'] = unitToString;
+  Numbers['unitNumerator'] = unitNumerator;
+  Numbers['unitDenominator'] = unitDenominator;
+  Numbers['unitToList'] = unitToList;
+  Numbers['UNIT_ONE'] = UNIT_ONE;
+  Numbers['UNIT_ANY'] = UNIT_ANY;
 
   Numbers['isPyretNumber'] = isPyretNumber;
   Numbers['isRational'] = isRational;
+  Numbers['isUnitnum'] = isUnitnum;
   Numbers['isReal'] = isReal;
   Numbers['isExact'] = isExact;
   Numbers['isInteger'] = isInteger;

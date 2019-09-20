@@ -679,6 +679,7 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
     | a-record(_, fields) => fields.map(_.ann).all(is-stateful-ann)
     | a-tuple(_, fields) => fields.all(is-stateful-ann)
     | a-app(_, inner, args) => is-stateful-ann(inner)
+    | a-unit(_, _, _) => true # TODO(Benmusch, 4 Jun 2019): true for now. Could refine later
     | a-pred(_, _, _) => true # TODO(Oak, 21 Jan 2016): true for now. Could refine later
     | a-dot(_, _, _) => true # TODO(Oak, 7 Feb 2016): true for now. Could refine later
     | a-checked(_, _) => raise("NYI")
@@ -1040,6 +1041,9 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         T.t-app(ann-to-typ(ann), map(ann-to-typ, args), l, false)
       | a-pred(l, ann, exp) =>
         # TODO(joe): give more info than this to type checker?  only needed dynamically, right?
+        ann-to-typ(ann)
+      | a-unit(l, ann, u) =>
+        # TODO(benmusch): needs to change if/when units are added to the type checker
         ann-to-typ(ann)
       | a-dot(l, obj, field) =>
         maybe-b = resolved.type-bindings.get-now(obj.key())

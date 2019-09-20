@@ -6,6 +6,7 @@ provide-types *
 import ast as A
 import srcloc as SL
 import file("ast-anf.arr") as N
+import string-dict as SD
 
 type Loc = SL.Srcloc
 
@@ -166,11 +167,14 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
           end)
         
       end)
-    | s-num(l, n) => k(N.a-val(l, N.a-num(l, n)))
+    | s-num(l, n, u) =>
+        k(N.a-val(l, N.a-num(l, n, u)))
       # num, den are exact ints, and s-frac desugars to the exact rational num/den
-    | s-frac(l, num, den) => k(N.a-val(l, N.a-num(l, num / den))) # Possibly unneeded if removed by desugar?
+    | s-frac(l, num, den, u) =>
+      k(N.a-val(l, N.a-num(l, num / den, u))) # Possibly unneeded if removed by desugar?
       # num, den are exact ints, and s-rfrac desugars to the roughnum fraction corresponding to num/den
-    | s-rfrac(l, num, den) => k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den)))) # Possibly unneeded if removed by desugar?
+    | s-rfrac(l, num, den, u) =>
+      k(N.a-val(l, N.a-num(l, num-to-roughnum(num / den), u))) # Possibly unneeded if removed by desugar?
     | s-str(l, s) => k(N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
@@ -342,7 +346,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       N.a-let(
         l,
         bind(l, array-id),
-        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length())], flat-prim-app),
+        N.a-prim-app(l, "makeArrayN", [list: N.a-num(l, values.length(), A.u-one(l))], flat-prim-app),
         anf-name-arr-rec(values, array-id, 0, lam():
           k(N.a-val(l, N.a-id(l, array-id)))
         end))

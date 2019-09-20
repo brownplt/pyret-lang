@@ -566,11 +566,11 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("checking for s-undefined not implemented")
         | s-srcloc(l, loc) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-num(l, n) =>
+        | s-num(l, n, u) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-frac(l, num, den) =>
+        | s-frac(l, num, den, u) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-rfrac(l, num, den) =>
+        | s-rfrac(l, num, den, u) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-bool(l, b) =>
           check-synthesis(e, expect-type, top-level, context)
@@ -828,11 +828,11 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-undefined not implemented")
     | s-srcloc(l, loc) =>
       typing-result(e, t-srcloc(l), context)
-    | s-num(l, n) =>
+    | s-num(l, n, u) =>
       typing-result(e, t-number(l), context)
-    | s-frac(l, num, den) =>
+    | s-frac(l, num, den, u) =>
       typing-result(e, t-number(l), context)
-    | s-rfrac(l, num, den) =>
+    | s-rfrac(l, num, den, u) =>
       typing-result(e, t-number(l), context)
     | s-bool(l, b) =>
       typing-result(e, t-boolean(l), context)
@@ -2295,6 +2295,9 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
             fold-errors([list: C.cant-typecheck("missing annotation on " + tostring(ann), l)])
         end
       end)
+    | a-unit(l, ann, u) =>
+      # TODO(benmusch): Change this to tc units
+      to-type(ann, context)
     | a-dot(l, obj, field) =>
       key = obj.key()
       origin = context.module-names.get(key)
