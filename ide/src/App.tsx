@@ -85,6 +85,63 @@ type EditorProps = {
     currentFileName: string;
 };
 
+enum CompileState {
+    // Starting state for the application. We are waiting for the webworker to
+    // give us confirmation that it has finished its setup phase and is ready
+    // to receive compilation requests.
+    //
+    // Startup -> StartupQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // Startup -> Ready
+    //   The webworker finishes its setup.
+    Startup,
+
+    // We are waiting for the webworker to give us confirmation that it has
+    // finished its setup phase so that we can satisfy a queued compilation
+    // request.
+    //
+    // StartupQueue -> StartupQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // StartupQueue -> Compile
+    //   The webworker finishes its setup
+    StartupQueue,
+
+    // We are able to immediately satisfy any compilation requests.
+    //
+    // Ready -> Compile
+    //   The user edits the definitions area or clicks "run".
+    Ready,
+
+    // We are compiling the program. Any compilation request generated during
+    // this state will queue it for later.
+    //
+    // Compile -> CompileQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // Compile -> Ready
+    //   Compilation succeeded. The program is run.
+    //
+    // Compile -> Ready
+    //   Compilation failed.
+    Compile,
+
+    // We have received a compilation request during a compilation.
+    //
+    // CompileQueue -> CompileQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // CompileQueue -> Compile
+    //   Compilation either succeeded or failed. Either way, the program is not
+    //   run.
+    CompileQueue,
+}
+
+const invalidCompileState = (state: CompileState): void => {
+    throw new Error(`illegal CompileState reached: ${state}`);
+};
+
 type EditorState = {
     browseRoot: string;
     browsePath: string[];
@@ -105,9 +162,7 @@ type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
-    compiling: boolean;
-    compileQueued: boolean;
-    setupFinished: boolean;
+    compileState: CompileState;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -131,16 +186,26 @@ class Editor extends React.Component<EditorProps, EditorState> {
             console.log,
             () => {
                 console.log("setup finished");
-                this.setState({setupFinished: true})
-                if (this.state.compileQueued) {
-                    this.update();
+
+                if (this.state.compileState === CompileState.Startup) {
+                    this.setState({compileState: CompileState.Ready});
+                } else if (this.state.compileState === CompileState.StartupQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.run();
+                } else {
+                    invalidCompileState(this.state.compileState);
                 }
             },
             (errors: string[]) => {
-                this.setState({compiling: false});
-                if (this.state.compileQueued) {
-                    this.update();
+                if (this.state.compileState === CompileState.Compile) {
+                    this.setState({compileState: CompileState.Ready});
+                } else if (this.state.compileState === CompileState.CompileQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.run();
+                } else {
+                    invalidCompileState(this.state.compileState);
                 }
+
                 this.setMessage("Compilation failed with error(s)")
                 const places: any = [];
                 for (let i = 0; i < errors.length; i++) {
@@ -168,18 +233,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
             onLintFailure,
             onLintSuccess,
             () => {
-                const x = new Date();
-                console.log(`Run ${x} started`);
-                this.setMessage(`Run started`);
-                control.run(
-                    control.path.runBase,
-                    control.path.runProgram,
-                    (runResult: any) => {
-                        console.log(`Run ${x} finished`);
-                        this.setState({compiling: false});
-                        if (this.state.compileQueued) {
-                            this.update();
-                        } else {
+                if (this.state.compileState === CompileState.Compile) {
+                    this.setState({compileState: CompileState.Ready});
+
+                    const x = new Date();
+                    console.log(`Run ${x} started`);
+                    this.setMessage(`Run started`);
+                    control.run(
+                        control.path.runBase,
+                        control.path.runProgram,
+                        (runResult: any) => {
+                            console.log(`Run ${x} finished`);
                             console.log(runResult);
                             if (runResult.result !== undefined) {
                                 if (runResult.result.error === undefined) {
@@ -212,9 +276,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     });
                                 }
                             }
-                        }
-                    },
-                    this.state.runKind);
+                        },
+                        this.state.runKind);
+                } else if (this.state.compileState === CompileState.CompileQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.run();
+                } else {
+                    invalidCompileState(this.state.compileState);
+                }
             });
 
         this.state = {
@@ -243,9 +312,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
-            compiling: false,
-            compileQueued: false,
-            setupFinished: false,
+            compileState: CompileState.Startup,
         };
     };
 
@@ -279,18 +346,23 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }
         );
         if (this.isPyretFile) {
-            if (!this.state.compiling && this.state.setupFinished) {
-                this.setState({
-                    compiling: true,
-                    compileQueued: false,
-                });
+            if (this.state.compileState === CompileState.Startup) {
+                this.setState({compileState: CompileState.StartupQueue});
+            } else if (this.state.compileState === CompileState.StartupQueue) {
+                // state remains as StartupQueue
+            } else if (this.state.compileState === CompileState.Ready) {
+                this.setState({compileState: CompileState.Compile});
                 this.setMessage("Compilation started");
                 control.compile(
                     this.currentFileDirectory,
                     this.currentFileName,
                     this.state.typeCheck);
+            } else if (this.state.compileState === CompileState.Compile) {
+                this.setState({compileState: CompileState.CompileQueue});
+            } else if (this.state.compileState === CompileState.CompileQueue) {
+                // state remains as CompileQueue
             } else {
-                this.setState({compileQueued: true});
+                invalidCompileState(this.state.compileState);
             }
         } else {
             this.setMessage("Visited a non-pyret file");
