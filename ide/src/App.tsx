@@ -223,17 +223,18 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     this.setState({compileState: CompileState.Ready});
                 } else if (this.state.compileState === CompileState.StartupQueue) {
                     this.setState({compileState: CompileState.Ready});
-                    this.run();
+                    this.update();
                 } else {
                     invalidCompileState(this.state.compileState);
                 }
             },
             (errors: string[]) => {
+                console.log("COMPILE FAILURE");
                 if (this.state.compileState === CompileState.Compile) {
                     this.setState({compileState: CompileState.Ready});
                 } else if (this.state.compileState === CompileState.CompileQueue) {
                     this.setState({compileState: CompileState.Ready});
-                    this.run();
+                    this.update();
                 } else {
                     invalidCompileState(this.state.compileState);
                 }
@@ -264,6 +265,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             onLintFailure,
             onLintSuccess,
             () => {
+                console.log("COMPILE SUCCESS");
                 if (this.state.compileState === CompileState.Compile) {
                     this.setState({compileState: CompileState.Ready});
 
@@ -306,7 +308,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         this.state.runKind);
                 } else if (this.state.compileState === CompileState.CompileQueue) {
                     this.setState({compileState: CompileState.Ready});
-                    this.run();
+                    this.update();
                 } else {
                     invalidCompileState(this.state.compileState);
                 }
