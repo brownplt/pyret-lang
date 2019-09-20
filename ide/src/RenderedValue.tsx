@@ -5,13 +5,11 @@ import { ImageWidget } from './Image';
 
 type RenderedValueProps = {
   value: any;
-  setMessage: (newMessage: string) => void;
 };
 
-type RenderedValueState = {
+type RenderedValueState = {};
 
-};
-function convert(value: any, setMessage : (newMessage: string) => void) {
+function convert(value: any) {
   if (value === undefined) {
     return "undefined";
   } else if (typeof value === 'number') {
@@ -27,8 +25,7 @@ function convert(value: any, setMessage : (newMessage: string) => void) {
     return (
       <TableWidget headers={value._headers}
         rows={value._rows}
-        htmlify={(v) => convert(v, setMessage)}
-        setMessage={setMessage}>
+        htmlify={(v) => convert(v)}>
       </TableWidget>
     );
   } else if (value.$brand === 'image') {
@@ -45,6 +42,6 @@ function convert(value: any, setMessage : (newMessage: string) => void) {
 
 export class RenderedValue extends React.Component<RenderedValueProps, RenderedValueState> {
   render() {
-    return convert(this.props.value, this.props.setMessage);
+    return convert(this.props.value);
   }
 }

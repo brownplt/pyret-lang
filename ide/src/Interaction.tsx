@@ -4,13 +4,11 @@ import {RenderedValue} from './RenderedValue';
 type InteractionProps = {
     name: string;
     value: any;
-    setMessage: (newMessage: string) => void;
 };
 
 type InteractionState = {};
 
 export class Interaction extends React.Component<InteractionProps, InteractionState> {
-
     render() {
         if (this.props.name === "$checks" || this.props.name === "$answer") {
             return null;
@@ -21,7 +19,7 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
                 <pre className="interaction-identifier">
                     {this.props.name} =&nbsp;
                 </pre>
-                <RenderedValue value={this.props.value} setMessage={this.props.setMessage}></RenderedValue>
+                <RenderedValue value={this.props.value}></RenderedValue>
             </div>
         )
     };

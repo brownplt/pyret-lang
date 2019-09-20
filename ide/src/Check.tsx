@@ -16,15 +16,14 @@ export type TestResultProps = {
 export type TestResultState = {};
 export class TestResult extends React.Component<TestResultProps, TestResultState> {
   render() {
-    const doNothing = () => {};
     let message;
     const c = this.props.check;
     if(c.success) {
       message = <pre className="test-result">Test passed at {c.loc}</pre>;
     }
     else {
-      const lhsRendered = <RenderedValue value={c.lhs} setMessage={doNothing}></RenderedValue>;
-      const rhsRendered = <RenderedValue value={c.rhs} setMessage={doNothing}></RenderedValue>;
+      const lhsRendered = <RenderedValue value={c.lhs}></RenderedValue>;
+      const rhsRendered = <RenderedValue value={c.rhs}></RenderedValue>;
       message = <pre className="test-result">Test failed at {c.loc}: {lhsRendered} was not equal to {rhsRendered}</pre>;
     }
     return message;

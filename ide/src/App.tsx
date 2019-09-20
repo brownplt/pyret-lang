@@ -153,6 +153,27 @@ const invalidCompileState = (state: CompileState): void => {
     throw new Error(`illegal CompileState reached: ${state}`);
 };
 
+const compileStateToString = (state: CompileState): string => {
+    // TODO(michael): these could be more pirate-themed
+    if (state === CompileState.Startup) {
+        return "Finishing setup";
+    } else if (state === CompileState.StartupQueue) {
+        return "Compile request on hold: finishing setup";
+    } else if (state === CompileState.Ready) {
+        return "Ready";
+    } else if (state === CompileState.Compile) {
+        return "Compiling";
+    } else if (state === CompileState.CompileQueue) {
+        return "Compile request on hold: already compiling";
+    } else {
+        const assertNever = (_arg: never): never => {
+            throw new Error("assertNever");
+        };
+
+        return assertNever(state);
+    }
+};
+
 type EditorState = {
     browseRoot: string;
     browsePath: string[];
@@ -217,7 +238,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     invalidCompileState(this.state.compileState);
                 }
 
-                this.setMessage("Compilation failed with error(s)")
                 const places: any = [];
                 for (let i = 0; i < errors.length; i++) {
                     const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
@@ -249,7 +269,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
                     const x = new Date();
                     console.log(`Run ${x} started`);
-                    this.setMessage(`Run started`);
                     control.run(
                         control.path.runBase,
                         control.path.runProgram,
@@ -258,8 +277,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             console.log(runResult);
                             if (runResult.result !== undefined) {
                                 if (runResult.result.error === undefined) {
-                                    this.setMessage("Run completed successfully");
-
                                     const results =
                                         makeResult(
                                             runResult.result,
@@ -280,8 +297,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         );
                                     }
                                 } else {
-                                    this.setMessage("Run failed with error(s)");
-
                                     this.setState({
                                         interactionErrors: [runResult.result.error],
                                     });
@@ -363,7 +378,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 // state remains as StartupQueue
             } else if (this.state.compileState === CompileState.Ready) {
                 this.setState({compileState: CompileState.Compile});
-                this.setMessage("Compilation started");
                 control.compile(
                     this.currentFileDirectory,
                     this.currentFileName,
@@ -376,7 +390,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 invalidCompileState(this.state.compileState);
             }
         } else {
-            this.setMessage("Visited a non-pyret file");
             this.setState({
                 interactions: [
                     {
@@ -547,8 +560,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             (i) => {
                                 return <Interaction key={i.name}
                                                     name={i.name}
-                                                    value={i.value}
-                                                    setMessage={this.setMessage}/>
+                                                    value={i.value}/>
                             })
                     }
                 </pre>
@@ -668,7 +680,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         {rightHandSide}
                     </SplitterLayout>
                 </div>
-                <Footer message={this.state.message}></Footer>
+                <Footer message={compileStateToString(this.state.compileState)}></Footer>
             </div>
         );
     }
