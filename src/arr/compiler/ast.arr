@@ -548,7 +548,7 @@ data DefinedValue:
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
-  | s-defined-var(name :: String, id :: Name) with:
+  | s-defined-var(name :: String, id :: Name, loc :: Loc) with:
     method label(self): "s-defined-var" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id.toname()))

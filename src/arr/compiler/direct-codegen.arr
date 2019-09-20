@@ -507,16 +507,16 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                   j-field("srcloc", j-obj(sloc))]), locs) }
             end
 
-          | s-defined-var(name, id) =>
+          | s-defined-var(name, id, id-loc) =>
             block:
               sloc = [clist:
-                j-field("source", j-str(id.l.source)),
-                j-field("startLine", j-num(id.l.start-line)),
-                j-field("startColumn", j-num(id.l.start-column)),
-                j-field("startChar", j-num(id.l.start-char)),
-                j-field("endLine", j-num(id.l.end-line)),
-                j-field("endColumn", j-num(id.l.end-column)),
-                j-field("endChar", j-num(id.l.end-char))
+                j-field("source", j-str(id-loc.source)),
+                j-field("startLine", j-num(id-loc.start-line)),
+                j-field("startColumn", j-num(id-loc.start-column)),
+                j-field("startChar", j-num(id-loc.start-char)),
+                j-field("endLine", j-num(id-loc.end-line)),
+                j-field("endColumn", j-num(id-loc.end-column)),
+                j-field("endChar", j-num(id-loc.end-char))
               ]
               # TODO(alex): Box variables so external code can mutate variables
               { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;

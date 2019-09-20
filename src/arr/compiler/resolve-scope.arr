@@ -1017,7 +1017,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         cases(C.ValueBinder) vb.binder block:
           | vb-let => A.s-defined-value(key, A.s-id(loc, atom))
           | vb-letrec => A.s-defined-value(key, A.s-id-letrec(loc, atom, true))
-          | vb-var => A.s-defined-var(key, atom)
+          | vb-var => A.s-defined-var(key, atom, loc)
         end
       end
 
