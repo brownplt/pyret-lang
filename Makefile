@@ -26,24 +26,29 @@ RUNTIME_JSON_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.json)
 RUNTIME_TS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.ts)
 RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js)
 
-build/runtime/%.js : src/runtime/%.ts
+$(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
 	tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
-runtime-src-dir:
+$(RUNTIME_SRC_DIR):
 	mkdir -p $(RUNTIME_SRC_DIR)
 
-STOPIFIED_BUILTINS := $(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) $(RUNTIME_TS_COMPILED_FILES:%.js=%.js.stopped)
+$(RUNTIME_BUILD_DIR):
+	mkdir -p $(RUNTIME_BUILD_DIR)
 
-%.js.stopped : %.js
+STOPIFIED_BUILTINS := \
+	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
+	$(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped)
+
+$(RUNTIME_BUILD_DIR)/%.js.stopped : $(RUNTIME_SRC_DIR)/%.js
 	node src/webworker/scripts/stopify-compile.js $< $@
 
-runtime-copy: build runtime-src-dir $(RUNTIME_TS_COMPILED_FILES)
-	cp $(RUNTIME_JS_SRCS) $(RUNTIME_BUILD_DIR)
-	cp $(RUNTIME_JSON_SRCS) $(RUNTIME_BUILD_DIR)
+$(RUNTIME_BUILD_DIR)/%.js.stopped : $(RUNTIME_BUILD_DIR)/%.js
+	node src/webworker/scripts/stopify-compile.js $< $@
+
+runtime: build $(RUNTIME_SRC_DIR) $(RUNTIME_BUILD_DIR) $(RUNTIME_TS_COMPILED_FILES) $(STOPIFIED_BUILTINS)
+	cp $(RUNTIME_SRC_DIR)/{*.js,*.json} $(RUNTIME_BUILD_DIR)
 	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
 	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
-
-runtime: runtime-copy $(STOPIFIED_BUILTINS)
 
 web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js build/worker/page.html build/worker/main.js
 	mkdir -p build/worker; 
