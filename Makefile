@@ -46,7 +46,8 @@ $(RUNTIME_BUILD_DIR)/%.js.stopped : $(RUNTIME_BUILD_DIR)/%.js
 	node src/webworker/scripts/stopify-compile.js $< $@
 
 runtime: build $(RUNTIME_SRC_DIR) $(RUNTIME_BUILD_DIR) $(RUNTIME_TS_COMPILED_FILES) $(STOPIFIED_BUILTINS)
-	cp $(RUNTIME_SRC_DIR)/{*.js,*.json} $(RUNTIME_BUILD_DIR)
+	cp $(RUNTIME_SRC_DIR)/*.js $(RUNTIME_BUILD_DIR)
+	cp $(RUNTIME_SRC_DIR)/*.json $(RUNTIME_BUILD_DIR)
 	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
 	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
 
