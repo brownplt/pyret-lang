@@ -24,5 +24,22 @@ notifications:
 addons:
   chrome: stable
 after_failure:
-  - sleep 10
-  - echo "--actual end of .travis script--"
+- sleep 10
+- echo "--actual end of .travis script--"
+before_deploy:
+- cd ide
+- npm run build
+deploy:
+  provider: s3
+  access_key_id: "AKIAUCA3RRQKLUSZTBS5"
+  bucket: pyret-anchor
+  local-dir: build
+  upload-dir: anchor
+  skip_cleanup: true
+  detect_encoding: true
+  on:
+    repo: brownplt/pyret-lang
+    branch: anchor
+  secret_access_key:
+    secure: treaayJygr/gh3flJ7kMSNNMkGkqqUefme19xMEXoR8UUJIYT+OT1YCH/YDJPm0sa+nHJL5gakxqmAFv2RWF1rHw9c7clAytJ1tu5Ed0arhFoPTC2lHKCXSYggQTEfRR2IigBy3hiVDLF2mPP5eZ0ByygN7toOuqg0WVDuKYJJs=
+
