@@ -25,6 +25,12 @@ RUNTIME_JS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.js)
 RUNTIME_JSON_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.json)
 RUNTIME_TS_SRCS := $(wildcard $(RUNTIME_SRC_DIR)/*.ts)
 RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js)
+RUNTIME_COPIED_BUILTINS := \
+	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%) \
+	$(RUNTIME_JSON_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%)
+STOPIFIED_BUILTINS := \
+	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
+	$(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped)
 
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
 	tsc $< --outDir $(RUNTIME_BUILD_DIR)
@@ -35,19 +41,19 @@ $(RUNTIME_SRC_DIR):
 $(RUNTIME_BUILD_DIR):
 	mkdir -p $(RUNTIME_BUILD_DIR)
 
-STOPIFIED_BUILTINS := \
-	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
-	$(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped)
-
 $(RUNTIME_BUILD_DIR)/%.js.stopped : $(RUNTIME_SRC_DIR)/%.js
 	node src/webworker/scripts/stopify-compile.js $< $@
 
 $(RUNTIME_BUILD_DIR)/%.js.stopped : $(RUNTIME_BUILD_DIR)/%.js
 	node src/webworker/scripts/stopify-compile.js $< $@
 
-runtime: build $(RUNTIME_SRC_DIR) $(RUNTIME_BUILD_DIR) $(RUNTIME_TS_COMPILED_FILES) $(STOPIFIED_BUILTINS)
-	cp $(RUNTIME_SRC_DIR)/*.js $(RUNTIME_BUILD_DIR)
-	cp $(RUNTIME_SRC_DIR)/*.json $(RUNTIME_BUILD_DIR)
+$(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.js
+	cp $< $@
+
+$(RUNTIME_BUILD_DIR)/%.json : $(RUNTIME_SRC_DIR)/%.json
+	cp $< $@
+
+runtime: build $(RUNTIME_SRC_DIR) $(RUNTIME_BUILD_DIR) $(RUNTIME_TS_COMPILED_FILES) $(STOPIFIED_BUILTINS) $(RUNTIME_COPIED_BUILTINS)
 	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
 	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
 
