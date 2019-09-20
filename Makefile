@@ -31,6 +31,9 @@ RUNTIME_COPIED_BUILTINS := \
 STOPIFIED_BUILTINS := \
 	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
 	$(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped)
+RUNTIME_ARR_SRC_DIR := src/runtime-arr
+RUNTIME_ARR_SRCS := $(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
+RUNTIME_ARR_COMPILED_FILES := $(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
 	tsc $< --outDir $(RUNTIME_BUILD_DIR)
@@ -53,9 +56,24 @@ $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.js
 $(RUNTIME_BUILD_DIR)/%.json : $(RUNTIME_SRC_DIR)/%.json
 	cp $< $@
 
-runtime: build $(RUNTIME_SRC_DIR) $(RUNTIME_BUILD_DIR) $(RUNTIME_TS_COMPILED_FILES) $(STOPIFIED_BUILTINS) $(RUNTIME_COPIED_BUILTINS)
-	cd src/runtime-arr/ && node ../../build/phaseA/pyret.jarr --build-runnable unified.arr --builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" --runtime-builtin-relative-path "./" --type-check true
-	mv src/runtime-arr/compiled/project/* $(RUNTIME_BUILD_DIR)
+$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
+	cd $(RUNTIME_ARR_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
+		--build-runnable $*.arr \
+		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
+		--runtime-builtin-relative-path "./" \
+		--type-check true
+	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
+
+RUNTIME_DEPS := \
+	build \
+	$(RUNTIME_SRC_DIR) \
+	$(RUNTIME_BUILD_DIR) \
+	$(RUNTIME_TS_COMPILED_FILES) \
+	$(STOPIFIED_BUILTINS) \
+	$(RUNTIME_COPIED_BUILTINS) \
+	$(RUNTIME_ARR_COMPILED_FILES)
+
+runtime: $(RUNTIME_DEPS)
 
 web: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js build/worker/page.html build/worker/main.js
 	mkdir -p build/worker; 
