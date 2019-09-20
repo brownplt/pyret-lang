@@ -232,28 +232,28 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 console.log("COMPILE FAILURE");
                 if (this.state.compileState === CompileState.Compile) {
                     this.setState({compileState: CompileState.Ready});
+
+                    const places: any = [];
+                    for (let i = 0; i < errors.length; i++) {
+                        const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
+                        if (matches !== null) {
+                            matches.forEach((m) => {
+                                places.push(m.match(/\d+/g)!.map(Number));
+                            });
+                        }
+                    }
+                    this.setState(
+                        {
+                            interactionErrors: errors,
+                            definitionsHighlights: places
+                        }
+                    );
                 } else if (this.state.compileState === CompileState.CompileQueue) {
                     this.setState({compileState: CompileState.Ready});
                     this.update();
                 } else {
                     invalidCompileState(this.state.compileState);
                 }
-
-                const places: any = [];
-                for (let i = 0; i < errors.length; i++) {
-                    const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
-                    if (matches !== null) {
-                        matches.forEach((m) => {
-                            places.push(m.match(/\d+/g)!.map(Number));
-                        });
-                    }
-                }
-                this.setState(
-                    {
-                        interactionErrors: errors,
-                        definitionsHighlights: places
-                    }
-                );
             },
             (errors: string[]) => {
                 this.setState(
@@ -420,7 +420,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         clearTimeout(this.state.updateTimer);
         this.setState({
             currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250),
+            updateTimer: setTimeout(this.update, 0),
         });
     }
 
