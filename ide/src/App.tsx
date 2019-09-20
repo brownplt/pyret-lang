@@ -6,7 +6,7 @@ import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
-import { FontSize } from './FontSize';
+import { Sizer } from './Sizer';
 import { FSBrowser } from './FSBrowser';
 import { Dropdown, DropdownOption } from './Dropdown';
 import { Header } from './Header';
@@ -195,6 +195,7 @@ type EditorState = {
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
     compileState: CompileState;
+    compileDelay: number;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -341,6 +342,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             definitionsHighlights: [],
             fsBrowserVisible: false,
             compileState: CompileState.Startup,
+            compileDelay: 250,
         };
     };
 
@@ -420,7 +422,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         clearTimeout(this.state.updateTimer);
         this.setState({
             currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250),
+            updateTimer: setTimeout(this.update, this.state.compileDelay),
         });
     }
 
@@ -594,12 +596,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
             </FSBrowser>;
 
         const fontSize =
-            <FontSize onIncrease={this.onIncreaseFontSize}
-                      onDecrease={this.onDecreaseFontSize}
-                      onReset={this.onResetFontSize}
-                      size={this.state.fontSize}
-                      key="FontSize">
-            </FontSize>;
+            <Sizer onIncrease={this.onIncreaseFontSize}
+                   onDecrease={this.onDecreaseFontSize}
+                   onReset={this.onResetFontSize}
+                   name={`Font (${this.state.fontSize} px)`}
+                   key="FontSize">
+            </Sizer>;
+
+        const compileDelay =
+            <Sizer onIncrease={() => this.setState({compileDelay: this.state.compileDelay + 50})}
+                   onDecrease={() => this.setState({compileDelay: this.state.compileDelay > 0 ? this.state.compileDelay - 50 : 0})}
+                   onReset={() => this.setState({compileDelay: 250})}
+                   name={`delay (${this.state.compileDelay} ms)`}
+                   key="compileDelay">
+            </Sizer>;
 
         const textEditor =
             <button className="text-editor"
@@ -630,6 +640,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {chunkEditor}
                     {builtinsLoader}
                     {fontSize}
+                    {compileDelay}
                 </Tab>
             </Menu>;
 
