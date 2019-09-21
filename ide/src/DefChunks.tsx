@@ -20,7 +20,13 @@ type DefChunkState = {
 };
 
 export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
-  constructor(props : DefChunkProps) { super(props); this.state = { editor: null, updateTimer: setTimeout(this.lint.bind(this), 0), focused: false,  }; }
+  constructor(props : DefChunkProps) {
+    super(props);
+    const onFirstUpdate = () => {
+      this.lint(this.props.chunk);
+    }
+    this.state = { editor: null, updateTimer: setTimeout(onFirstUpdate, 0), focused: false,  };
+  }
 
   componentWillReceiveProps() {
     if(this.state.editor !== null) {
@@ -45,14 +51,17 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
       }
     }
   }
-  scheduleUpdate() {
+  scheduleUpdate(value : string) {
     clearTimeout(this.state.updateTimer);
     this.setState({
-        updateTimer: setTimeout(this.lint.bind(this), 250),
-    });
+        updateTimer: setTimeout(() => {
+          this.props.onEdit(this.props.index, value);
+          this.lint(value);
+        }, 250)
+      });
   }
-  lint() {
-    control.lint(this.props.chunk, this.props.name);
+  lint(value : string) {
+    control.lint(value, this.props.name);
   }
   render() {
     let borderWidth = "1px";
@@ -85,8 +94,7 @@ export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
           lineNumberFormatter: (l) => String(l + this.props.startLine)
         }}
         onChange={(editor, __, value) => {
-          this.scheduleUpdate();
-          return this.props.onEdit(this.props.index, value)
+          this.scheduleUpdate(value);
         }
         }
         autoCursor={false}>
