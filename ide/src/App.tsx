@@ -419,8 +419,11 @@ class Editor extends React.Component<EditorProps, EditorState> {
     onEdit = (value: string): void => {
         clearTimeout(this.state.updateTimer);
         this.setState({
-            currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250),
+    //        currentFileContents: value,
+            updateTimer: setTimeout(() => {
+                this.setState({currentFileContents: value});
+                this.update();
+            }, 250),
         });
     }
 
