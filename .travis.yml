@@ -34,6 +34,7 @@ before_deploy:
 - CI=false npm run build
 deploy:
   provider: s3
+  acl: public_read
   access_key_id: "AKIAUCA3RRQKLUSZTBS5"
   bucket: pyret-anchor
   local-dir: build
