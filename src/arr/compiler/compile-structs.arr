@@ -1671,13 +1671,13 @@ data CompileError:
             | none =>
               [ED.error:
                 [ED.para:
-                  ED.text("1The declaration of "),
+                  ED.text("The declaration of "),
                   ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
                   ED.text(" shadows the declaration of a built-in of the same name.")]]
             | some(imp-loc) =>
               [ED.error:
                 [ED.para:
-                  ED.text("2The declaration of "),
+                  ED.text("The declaration of "),
                   ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
                   ED.text(" shadows the declaration of a built-in of the same name, which was imported "),
                   ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]]
@@ -1689,33 +1689,41 @@ data CompileError:
               [ED.error:
                 if is-builtin-loc:
                   [ED.para:
-                    ED.text("3The declaration of "),
+                    ED.text("The declaration of "),
                     ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
                     ED.text(" shadows a built-in declaration of the same name.")]
                 else:
                   [ED.para:
-                    ED.text("4The declaration of "),
+                    ED.text("The declaration of "),
                     ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
                     ED.text(" shadows a previous declaration of "),
                     ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color)]
                 end]
             | some(imp-loc) =>
-              [ED.error:
-                if is-builtin-loc:
+              if imp-loc == self.old-loc:
                   [ED.para:
-                    ED.text("5The declaration of "),
-                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
-                    ED.text(" shadows a built-in declaration of the same name, which was imported "),
-                    ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
-                else:
-                  [ED.para:
-                    ED.text("6The declaration of "),
+                    ED.text("The declaration of "),
                     ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
                     ED.text(" shadows a previous declaration of "),
-                    ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
-                    ED.text(", which was imported "),
-                    ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
-                end]
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color)]
+              else: 
+                [ED.error:
+                  if is-builtin-loc:
+                    [ED.para:
+                      ED.text("The declaration of "),
+                      ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                      ED.text(" shadows a built-in declaration of the same name, which was imported "),
+                      ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
+                  else:
+                    [ED.para:
+                      ED.text("The declaration of "),
+                      ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                      ED.text(" shadows a previous declaration of "),
+                      ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
+                      ED.text(", which was imported "),
+                      ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
+                  end]
+              end
           end
       end
     end,

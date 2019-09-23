@@ -1251,11 +1251,24 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       fun expand-data-spec(val-env, type-env, spec, pre-path, hidden):
         cases(A.NameSpec) spec:
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
+            remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
             # TODO(joe): need to condition on pre-path being empty/referring to
             # another module as above in expand-name-spec
-            for each(k from datatypes.keys-list-now()):
-              data-expr = datatypes.get-value-now(k)
-              expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
+            cases(Option) remote-reference-uri:
+              | none => 
+                for each(k from datatypes.keys-list-now()):
+                  data-expr = datatypes.get-value-now(k)
+                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
+                end
+              | some(remote-uri) =>
+                datatyps-from-module = initial-env.provides-by-uri-value(remote-uri).data-definitions
+                for each(k from datatyps-from-module.keys-list()):
+                  data-name = cases(C.DataExport) datatyps-from-module.get-value(k):
+                    | d-alias(_, name) => name
+                    | d-type(_, typ) => typ.name
+                  end
+                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-name)], none), pre-path, hidden)
+                end
             end
           | s-module-ref(shadow l, path, as-name) =>
             maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
