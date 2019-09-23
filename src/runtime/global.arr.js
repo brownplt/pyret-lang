@@ -136,6 +136,10 @@ module.exports = {
 
   'string-to-number': runtime['string-to-number'],
 
+  'string-to-lower': function(s) {
+    return s.toLowerCase();
+  },
+
   'raise': function(v) {
     throw v;
   }

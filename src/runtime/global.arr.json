@@ -91,7 +91,9 @@
 
       "string-to-number": ["arrow", ["String"], "oOfN"],
 
-      "raise": ["arrow", ["Any"], "Nothing"],
+      "string-to-lower": ["arrow", ["String"], "String"],
+
+      "raise": ["arrow", ["Any"], "tbot"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
       "is-NotEqual": ["arrow", ["Any"], "Boolean"],
