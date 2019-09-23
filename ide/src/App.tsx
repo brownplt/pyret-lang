@@ -291,7 +291,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                         checks: checks
                                     });
 
-                                    if (results[0].name === "error") {
+                                    if (results[0] !== undefined && results[0].name === "error") {
                                         this.setState(
                                             {
                                                 interactionErrors: runResult.result.error,
