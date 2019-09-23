@@ -91,10 +91,12 @@ export const makeRequireAsync = (
 
           callback(toReturn);
         }),
-
         pause: (callback: (line: number) => void): void => {
           runner.pause(callback);
-        }
+        },
+        resume: (): void => {
+          runner.resume();
+        },
       });
     });
   };

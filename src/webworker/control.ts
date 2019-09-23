@@ -119,13 +119,25 @@ export const run = (
   programFileName: string,
   callback: (result: any) => void,
   runKind: backend.RunKind): void => {
-  backend.runProgram(
+  backend.runProgram2(
     runner,
     baseDirectory,
     programFileName,
     runKind)
-    .catch((x) => { console.error(x); return {result: {error: String(x.value)}} })
-    .then(callback);
+    .then((runner: any): void => {
+      console.log("the runner", runner);
+      try {
+        (window as any).runner = runner;
+        runner.pause((n: number) => console.log("Paused, n=", n));
+        runner.run(callback);
+        //runner.resume();
+      } catch (x) {
+        console.error(x);
+        callback({
+          result: {error: String(x.value)}
+        });
+      }
+    });
 };
 
 export const setupWorkerMessageHandler = (
