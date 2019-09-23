@@ -2,11 +2,12 @@
 
 all: build parser
 
-PYRET_JARR_SRC := src/arr/compiler/pyret.arr
+PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr)
+
 PYRET_JARR := build/phaseA/pyret.jarr
 
-$(PYRET_JARR) : $(PYRET_JARR_SRC)
-	pyret --checks none -c $< -o $@
+$(PYRET_JARR) : $(PYRET_JARR_DEPS)
+	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR) 
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \
