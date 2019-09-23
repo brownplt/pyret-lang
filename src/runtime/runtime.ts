@@ -8,6 +8,7 @@ import { callbackify } from "util";
  */
 
 const _NUMBER = require("./js-numbers.js");
+const _OPTION = require('./option.arr.js');
 
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
@@ -510,6 +511,15 @@ export function pauseStack(callback) {
   });
 }
 
+function stringToNumber(s: string): any {
+  var result = _NUMBER['fromString'](s);
+  if (result === false) {
+    return _OPTION['none'];
+  } else {
+    return _OPTION['some'](result);
+  }
+}
+
 
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value
@@ -544,3 +554,5 @@ module.exports["_greaterThan"] = _NUMBER["greaterThan"];
 module.exports["_lessThanOrEqual"] = _NUMBER["lessThanOrEqual"];
 module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
+
+module.exports["string-to-number"] = stringToNumber;

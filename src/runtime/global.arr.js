@@ -2,7 +2,6 @@ var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
 var assert = require('assert');
-const option = require('./option.arr.js');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -135,14 +134,7 @@ module.exports = {
     };
   },
 
-  'string-to-number': function(string) {
-    var result = numbers['fromString'](string);
-    if (result === false) {
-      return option['none'];
-    } else {
-      return option['some'](result);
-    }
-  },
+  'string-to-number': runtime['string-to-number'],
 
   'raise': function(v) {
     throw v;
