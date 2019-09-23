@@ -142,5 +142,9 @@ module.exports = {
     } else {
       return option['some'](result);
     }
+  },
+
+  'raise': function(v) {
+    throw v;
   }
 };
