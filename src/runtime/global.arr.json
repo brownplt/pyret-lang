@@ -3,7 +3,10 @@
   "provides": {
     "shorthands": {
       "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
-      "tva":      ["tid", "a"]
+      "tva":      ["tid", "a"],
+      "oOfN": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://option" },
+                "name": "Option" }, ["Number"]]
     },
     "values": {
       "display-string": ["arrow", ["String"], "Nothing"],
@@ -85,6 +88,8 @@
       "num-within-abs": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
       "num-within-rel": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
       "not": ["arrow", ["Boolean"], "Boolean"],
+
+      "string-to-number": ["arrow", ["String"], "oOfN"],
 
       "is-Equal": ["arrow", ["Any"], "Boolean"],
       "is-NotEqual": ["arrow", ["Any"], "Boolean"],
