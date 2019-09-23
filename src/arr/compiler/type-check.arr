@@ -478,7 +478,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           end)
         | s-if-pipe(l, branches) =>
           raise("s-if-pipe should have already been desugared")
-        | s-if-pipe-else(l, branches, _else) =>
+        | s-if-pipe-else(l, branches, _else, _blocky) =>
           raise("s-if-pipe-else should have already been desugared")
         | s-if(l, branches, blocky) =>
           # TODO(ALEX): check s-if handling
