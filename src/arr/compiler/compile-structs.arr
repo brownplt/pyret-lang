@@ -1267,6 +1267,41 @@ data CompileError:
             ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
       end
     end
+  | name-not-provided(name-loc, imp-loc, name :: A.Name, typ :: String) with:
+    method render-fancy-reason(self):
+      cases(SL.Srcloc) self.name-loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin import that's not defined"),
+            ED.text(self.name.toname()), ED.text("at"),
+            draw-and-highlight(self.name-loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name "),
+              ED.code(ED.highlight(ED.text(self.name.toname()), [ED.locs: self.name-loc], 0)),
+              ED.text(" is not provided as a " + self.typ + " in the import at ")],
+            ED.cmcode(self.imp-loc)]
+      end
+    end,
+    method render-reason(self):
+      cases(SL.Srcloc) self.id.l:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin import that's not defined"),
+            ED.text(self.name.toname()), ED.text("at"),
+            draw-and-highlight(self.name-loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The identifier "),
+              ED.code(ED.text(self.name.toname())),
+              ED.text(" at "),
+              ED.loc(self.name-loc),
+              ED.text(" is not provided as a " + self.typ + " in the import at "),
+              ED.loc(self.imp-loc)]]
+      end
+    end
   | unbound-id(id :: A.Expr) with:
     method render-fancy-reason(self):
       cases(SL.Srcloc) self.id.l:

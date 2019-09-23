@@ -874,10 +874,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     "$included-" + to-string(include-counter)
   end
 
-  fun add-value-name(env, vname, as-name, mod-info):
+  fun add-value-name(l, imp-loc, env, vname, as-name, mod-info):
     maybe-value-export = mod-info.values.get(vname.toname())
-    cases(Option) maybe-value-export:
-      | none => raise("Cannot find name " + vname.toname())
+    cases(Option) maybe-value-export block:
+      | none =>
+        name-errors := link(C.name-not-provided(l, imp-loc, vname, "value"), name-errors)
+        env
       | some(value-export) =>
         vbinder = cases(C.ValueExport) value-export block:
           | v-var(_, t) => C.vb-var
@@ -889,10 +891,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
-  fun add-type-name(type-env, tname, as-name, mod-info):
+  fun add-type-name(l, imp-loc, type-env, tname, as-name, mod-info):
     maybe-type-export = mod-info.aliases.get(tname.toname())
-    cases(Option) maybe-type-export:
-      | none => raise("Cannot find type name " + tname.toname())
+    cases(Option) maybe-type-export block:
+      | none =>
+        name-errors := link(C.name-not-provided(l, imp-loc, tname, "type"), name-errors)
+        type-env
       | some(t) =>
         { orig-name; uri-of-typ; loc-of-typ } = cases(T.Type) t:
           | t-name(module-name, id, loc, _) =>
@@ -909,10 +913,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
-  fun add-module-name(module-env, mname, as-name, mod-info):
+  fun add-module-name(l, imp-loc, module-env, mname, as-name, mod-info):
     maybe-module-export = mod-info.modules.get(mname.toname())
-    cases(Option) maybe-module-export:
-      | none => raise("Cannot find module name " + mname.toname())
+    cases(Option) maybe-module-export block:
+      | none =>
+        name-errors := link(C.name-not-provided(l, imp-loc, mname, "module"), name-errors)
+        module-env
       | some(uri) =>
         atom-env = make-import-atom-for(as-name, mod-info.from-uri, module-env, module-bindings,
           C.module-bind(C.bo-module(as-name.l, S.builtin(uri), mod-info.from-uri, mname), _, uri))
@@ -926,13 +932,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     end
   end
 
-  fun add-spec({imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
+  fun add-spec(imp-loc, {imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
     fun add-name-spec(name-spec, dict, which-env, adder):
       cases(A.NameSpec) name-spec block:
         | s-star(l, hidings) =>          
           imported-names = star-names(dict.keys-list(), hidings)
           for fold(shadow which-env from which-env, n from imported-names):
-            adder(which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
+            adder(l, imp-loc, which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
           end
         | s-module-ref(l, path, as-name) =>
           maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
@@ -944,7 +950,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             | none => path.last()
             | some(n) => n
           end
-          adder(which-env, path.last(), as-name, mod-info)
+          adder(l, imp-loc, which-env, path.last(), as-name, mod-info)
       end
     end
 
@@ -1057,7 +1063,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
         mod-info = initial-env.provides-by-uri-value(dotted-uri)
         {specs-e; specs-te; specs-me; _ } = for fold(shadow acc from acc, s from specs):
-          add-spec(acc, mod-info, s)
+          add-spec(l, acc, mod-info, s)
         end
         {specs-e; specs-te; specs-me; link(A.s-include-from(l, [list: atom], specs), imp-imps)}
     end
