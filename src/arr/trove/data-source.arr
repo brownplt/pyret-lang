@@ -1,8 +1,18 @@
 # Data Source Pyret Definitions
 provide *
 provide-types *
-import global as _
-include option
+import global as G
+import option as O
+include from O:
+  type Option,
+end
+none = O.none
+some = O.some
+num-to-string = G.num-to-str
+string-to-number = G.string-to-number
+raise = G.raise
+torepr = G.js-to-string
+string-tolower = G.string-to-lower
 
 data CellContent<A>:
   | c-empty
@@ -29,8 +39,8 @@ type DataSourceLoader#|<A,B>|# = {
   load :: (RawArray<String>, RawArray<DataSourceLoaderOption#|<A,B>|#> -> LoadedTable#|<A,B>|#)
 }
 
-fun option-sanitizer(val-sanitizer):
-  lam(x, col, row):
+fun option-sanitizer<A, B>(val-sanitizer :: (CellContent<A>, Number, Number -> CellContent<B>)) -> (CellContent<A>, Number, Number -> Option<CellContent<B>>):
+  lam(x :: CellContent<A>, col, row):
     cases(CellContent) x:
       | c-empty => none
       | else => some(val-sanitizer(x, col, row))
@@ -38,7 +48,7 @@ fun option-sanitizer(val-sanitizer):
   end
 end
 
-fun string-sanitizer(x, col, row):
+fun string-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> String:
   cases(CellContent) x:
     | c-empty => ""
     | c-str(s) => s
@@ -48,8 +58,8 @@ fun string-sanitizer(x, col, row):
   end
 end
 
-fun num-sanitizer(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun num-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
       cases(Option) string-to-number(s):
@@ -66,8 +76,8 @@ fun num-sanitizer(x, col, row):
   end
 end
 
-fun bool-sanitizer(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun bool-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Boolean:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-bool(b) => b
     | c-num(n) =>
@@ -118,7 +128,7 @@ fun strings-only(x, col, row):
       as-str = cases(CellContent) x:
         | c-num(n) => "the number " + num-to-string(n)
         | c-bool(b) => "the boolean " + torepr(b)
-        | c-datum(datum) => "the datum " + torepr(datum)
+        | c-custom(datum) => "the datum " + torepr(datum)
         | c-empty => "the empty cell"
       end
       raise('Cannot sanitize ' + as-str + ' at '
@@ -134,7 +144,7 @@ fun numbers-only(x, col, row):
       as-str = cases(CellContent) x:
         | c-str(s) => "the string " + torepr(s)
         | c-bool(b) => "the boolean " + torepr(b)
-        | c-datum(datum) => "the datum " + torepr(datum)
+        | c-custom(datum) => "the datum " + torepr(datum)
         | c-empty => "an empty cell"
       end
       raise('Cannot sanitize ' + as-str + ' at '
@@ -150,7 +160,7 @@ fun booleans-only(x, col, row):
       as-str = cases(CellContent) x:
         | c-num(n) => "the number " + num-to-string(n)
         | c-str(s) => "the string " + torepr(s)
-        | c-datum(datum) => "the datum " + torepr(datum)
+        | c-custom(datum) => "the datum " + torepr(datum)
         | c-empty => "an empty cell"
       end
       raise('Cannot sanitize ' + as-str + ' at '
@@ -167,7 +177,7 @@ fun empty-only(x, col, row):
         | c-num(n) => "number " + num-to-string(n)
         | c-str(s) => "string " + torepr(s)
         | c-bool(b) => "boolean " + torepr(b)
-        | c-datum(datum) => "datum " + torepr(datum)
+        | c-custom(datum) => "datum " + torepr(datum)
       end
       raise('Cannot sanitize the ' + as-str + ' at '
           + loc + ' as an empty cell')
