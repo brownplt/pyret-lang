@@ -130,18 +130,29 @@ export const runProgram = (
     const entry = runner.makeRequireAsync(baseDir);
     const resultP = entry(program);
 
-    let wrapper = async function() {
-      const start = window.performance.now();
-      let result = await resultP;
-      const end = window.performance.now();
+    const wrapper = new Promise<RunResult>((resolve, _reject) => {
+      const startRequire = window.performance.now();
+      resultP.then((asyncRunner: any) => {
+        console.log("asyncRunner", asyncRunner);
+        const endRequire = window.performance.now();
 
-      return {
-        time: end - start,
-        result: result,
-      };
-    };
+        const startRun = window.performance.now();
+        asyncRunner.run((result: any) => {
+          const endRun = window.performance.now();
 
-    return wrapper();
+          console.log("require time", endRequire - startRequire);
+          console.log("run time", endRun - startRun);
+          console.log("total time", endRun - startRequire);
+
+          resolve({
+            time: endRun - startRequire,
+            result: result,
+          })
+        });
+      });
+    });
+
+    return wrapper;
   } else {
     // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
     return assertNever(runKind);

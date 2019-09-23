@@ -78,16 +78,23 @@ export const makeRequireAsync = (
       });
       runner.path = nextPath;
       currentRunner = runner;
-      runner.run((result: any) => {
-        // TODO(Alex): fix stopify bug where evaled result is not passed to AbstractRunner.onDone callback
-        cwd = oldWd;
-        if(result.type !== "normal") {
-          reject(result);
-          return;
+
+      resolve({
+        run: (callback: (result: any) => void): void => runner.run((result: any) => {
+          // TODO(Alex): fix stopify bug where evaled result is not passed to AbstractRunner.onDone callback
+          cwd = oldWd;
+          if(result.type !== "normal") {
+            throw new Error(result);
+          }
+          const toReturn = runner.g.module.exports;
+          cache[cachePath] = toReturn;
+
+          callback(toReturn);
+        }),
+
+        pause: (callback: (line: number) => void): void => {
+          runner.pause(callback);
         }
-        const toReturn = runner.g.module.exports;
-        cache[cachePath] = toReturn;
-        resolve(toReturn);
       });
     });
   };
