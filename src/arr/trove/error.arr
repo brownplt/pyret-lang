@@ -2467,7 +2467,8 @@ data ParseError:
             ED.text("Pyret thinks this code is probably a function header:")],
           ED.cmcode(self.a),
           [ED.para:
-            ED.text("Function header must not have space before the "),
+            ED.highlight(ED.text("Function headers"), [ED.locs: self.a], -1),
+            ED.text(" must not have space before the "),
             ED.highlight(ED.text("arguments"), [ED.locs: self.b], 0),
             ED.text(".")]]
       else:
@@ -2482,8 +2483,8 @@ data ParseError:
       [ED.error:
         [ED.para:
           ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
-          ED.text(" is probably a function call, but there should be no space"),
-          ED.text(" between the function and its arguments.")]]
+          ED.text(" is probably a function header, but there should be no space"),
+          ED.text(" between the arguments.")]]
     end
   | parse-error-next-token(loc, next-token :: String) with:
     method render-fancy-reason(self, src-available):
