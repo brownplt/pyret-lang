@@ -87,9 +87,10 @@ type-let-expr: TYPE-LET type-let-bind (COMMA type-let-bind)* (BLOCK|COLON) block
 contract-stmt: NAME COLONCOLON ty-params (ann | noparen-arrow-ann)
 
 fun-expr: FUN NAME fun-header (BLOCK|COLON) doc-string block where-clause END
-fun-header: ty-params args return-ann
+fun-header: ty-params args return-ann | ty-params bad-args return-ann
 ty-params: [(LANGLE|LT) comma-names (RANGLE|GT)]
 args: (PARENNOSPACE|PARENAFTERBRACE) [binding (COMMA binding)*] RPAREN
+bad-args: PARENSPACE [binding (COMMA binding)*] RPAREN
 return-ann: [THINARROW ann]
 doc-string: [DOC STRING]
 where-clause: [WHERE block]

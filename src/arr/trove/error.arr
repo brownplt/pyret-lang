@@ -2459,6 +2459,32 @@ data ParseError:
           ED.text(" is probably a function call, but there should be no space"),
           ED.text(" between the function and its arguments.")]]
     end
+  | parse-error-bad-fun-header(a, b) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.a) and src-available(self.b):
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks this code is probably a function header:")],
+          ED.cmcode(self.a),
+          [ED.para:
+            ED.text("Function header must not have space before the "),
+            ED.highlight(ED.text("arguments"), [ED.locs: self.b], 0),
+            ED.text(".")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks the code at "), ED.loc(self.a),
+            ED.text(" is probably a function header, but there should be no space"),
+            ED.text(" before the arguments.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
+          ED.text(" is probably a function call, but there should be no space"),
+          ED.text(" between the function and its arguments.")]]
+    end
   | parse-error-next-token(loc, next-token :: String) with:
     method render-fancy-reason(self, src-available):
       if src-available(self.loc):

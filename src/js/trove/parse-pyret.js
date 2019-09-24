@@ -525,16 +525,25 @@
         },
         'fun-header': function(node) {
           // (fun-header ty-params args return-ann)
-          return {
-            tyParams: tr(node.kids[0]),
-            args: tr(node.kids[1]),
-            returnAnn: tr(node.kids[2])
-          };
+          if (node.kids[1].name === "bad-args") {
+            return {
+              lparenPos: pos(node.kids[1].kids[0].pos)
+            };
+          } else {
+            return {
+              tyParams: tr(node.kids[0]),
+              args: tr(node.kids[1]),
+              returnAnn: tr(node.kids[2])
+            };
+          }
         },
         'fun-expr': function(node) {
           // (fun-expr FUN fun-name fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[6]);
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1]),
@@ -823,6 +832,9 @@
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            if (header.lparenPos) {
+              RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+            }
             var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, 's-method-field')
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
@@ -1003,6 +1015,9 @@
             // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            if (header.lparenPos) {
+              RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+            }
             var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, "s-method-field")
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
@@ -1239,6 +1254,9 @@
           // (lambda-expr LAM fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-lam')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
@@ -1248,6 +1266,9 @@
           // (method-expr METHOD fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
