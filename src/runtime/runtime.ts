@@ -472,7 +472,7 @@ var _globalTraceValues = [];
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
-  _globalTraceValues.push([loc, value]);
+  _globalTraceValues.push({srcloc: loc, value});
   return value;
 }
 

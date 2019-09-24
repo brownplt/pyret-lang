@@ -16,9 +16,10 @@ export class Interaction extends React.Component<InteractionProps, InteractionSt
 
         return (
             <div className="interaction">
+                {this.props.name !== "" ?
                 <pre className="interaction-identifier">
                     {this.props.name} =&nbsp;
-                </pre>
+                </pre> : null}
                 <RenderedValue value={this.props.value}></RenderedValue>
             </div>
         )

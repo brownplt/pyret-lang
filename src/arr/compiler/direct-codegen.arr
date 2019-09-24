@@ -480,6 +480,15 @@ fun compile-method(context,
   { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
+fun compile-srcloc(l):
+  contents = cases(Loc) l:
+    | builtin(name) => [clist: j-str(name)]
+    | srcloc(uri, sl, sc, schar, el, ec, echar) =>
+      [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
+  end
+  j-list(false, contents)
+end
+
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
     | s-module(l, answer, dms, dvs, dts, checks) =>
@@ -492,38 +501,20 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-defined-value(name, def-v) =>
             block:
               {val; field-stmts} = compile-expr(context, def-v)
-              sloc = [clist:
-                j-field("source", j-str(def-v.l.source)),
-                j-field("startLine", j-num(def-v.l.start-line)),
-                j-field("startColumn", j-num(def-v.l.start-column)),
-                j-field("startChar", j-num(def-v.l.start-char)),
-                j-field("endLine", j-num(def-v.l.end-line)),
-                j-field("endColumn", j-num(def-v.l.end-column)),
-                j-field("endChar", j-num(def-v.l.end-char))
-              ]
+              sloc = compile-srcloc(def-v.l)
               { cl-cons(j-field(name, val), fields); field-stmts + stmts;
                 cl-cons(j-obj([clist:
                   j-field("name", j-str(name)),
-                  j-field("srcloc", j-obj(sloc))]), locs) }
+                  j-field("srcloc", sloc)]), locs) }
             end
 
           | s-defined-var(name, id, id-loc) =>
-            block:
-              sloc = [clist:
-                j-field("source", j-str(id-loc.source)),
-                j-field("startLine", j-num(id-loc.start-line)),
-                j-field("startColumn", j-num(id-loc.start-column)),
-                j-field("startChar", j-num(id-loc.start-char)),
-                j-field("endLine", j-num(id-loc.end-line)),
-                j-field("endColumn", j-num(id-loc.end-column)),
-                j-field("endChar", j-num(id-loc.end-char))
-              ]
-              # TODO(alex): Box variables so external code can mutate variables
-              { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
-                cl-cons(j-obj([clist:
-                  j-field("name", j-str(name)),
-                  j-field("srcloc", j-obj(sloc))]), locs) }
-            end
+            sloc = compile-srcloc(id-loc)
+            # TODO(alex): Box variables so external code can mutate variables
+            { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
+              cl-cons(j-obj([clist:
+                j-field("name", j-str(name)),
+                j-field("srcloc", sloc)]), locs) }
         end
       end
 
@@ -571,12 +562,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-app(fv, argvs); fstmts + argstmts }
 
     | s-srcloc(_, l) =>
-      contents = cases(Loc) l:
-        | builtin(name) => [clist: j-str(name)]
-        | srcloc(uri, sl, sc, schar, el, ec, echar) =>
-          [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
-      end
-      { j-list(false, contents); cl-empty }
+      { compile-srcloc(l); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
       { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
