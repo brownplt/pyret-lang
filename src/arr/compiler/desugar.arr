@@ -210,7 +210,7 @@ fun desugar-member(f):
   cases(A.Member) f:
     | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       A.s-method-field(l, name, params, args, ann, doc, desugar-expr(body),
-      _check-loc, _check.map(lam (b): desugar-expr(b) end), blocky)
+      _check-loc, _check.map(lam(b): desugar-expr(b) end), blocky)
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
@@ -455,10 +455,10 @@ fun desugar-expr(expr :: A.Expr):
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body, blocky) =>
-      values = bindings.map(lam (to-map): s-for-bind(to-map.l, to-map.bind, desugar-expr(to-map.value)) end)
-      s-for(l, iter, values, ann, desugar-expr(body), blocky)
+      values = bindings.map(lam(to-map): A.s-for-bind(to-map.l, to-map.bind, desugar-expr(to-map.value)) end)
+      A.s-for(l, iter, values, ann, desugar-expr(body), blocky)
     | s-op(l, op-l, op, left, right) =>
-      s-op(l, op-l, op, desugar-expr(left), desugar-expr(right))
+      A.s-op(l, op-l, op, desugar-expr(left), desugar-expr(right))
     | s-id(l, x) => expr
     | s-id-modref(_, _, _, _) => expr
     | s-id-var-modref(_, _, _, _) => expr
@@ -477,7 +477,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
     | s-ref(l, ann) => A.s-ref(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
-      s-construct(l, modifier, desugar-expr(constructor), elts.map(lam (e): desugar-expr(e) end))
+      A.s-construct(l, modifier, desugar-expr(constructor), elts.map(lam(e): desugar-expr(e) end))
     | s-reactor(l, fields) =>
       fields-by-name = SD.make-mutable-string-dict()
       init-and-non-init = for lists.partition(f from fields) block:
