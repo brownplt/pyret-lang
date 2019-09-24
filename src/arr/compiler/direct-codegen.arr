@@ -528,6 +528,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       check-results = rt-method("$checkResults", [clist: ])
+      traces = rt-method("$getTraces", [clist: ])
 
       answer1 = fresh-id(compiler-name("answer"))
       answer-var = j-var(answer1, a-exp)
@@ -535,6 +536,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       ans = j-obj(fields + [clist:
                 j-field("$answer", j-id(answer1)),
                 j-field("$checks", check-results),
+                j-field("$traces", traces),
                 j-field("$locations", j-list(true, locs))])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
@@ -568,7 +570,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       {argvs; argstmts} = compile-list(context, args)
       { j-app(fv, argvs); fstmts + argstmts }
 
-    | s-srcloc(_, l) => { j-str("srcloc"); cl-empty }
+    | s-srcloc(_, l) =>
+      contents = cases(Loc) l:
+        | builtin(name) => [clist: j-str(name)]
+        | srcloc(uri, sl, sc, schar, el, ec, echar) =>
+          [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
+      end
+      { j-list(false, contents); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
       { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
