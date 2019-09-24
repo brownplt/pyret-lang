@@ -123,9 +123,18 @@ fun desugar(program :: A.Program):
           - all where blocks are none
           - contains no s-name (e.g. call resolve-names first)
         Postconditions on program:
+          - NOTE(tiffay): Outdated postconditions
           - in addition to preconditions,
             contains no s-for, s-if (will all be s-if-else), s-op, s-method-field,
                         s-cases (will all be s-cases-else), s-not, s-when, s-if-pipe, s-paren
+          - contains no s-underscore in expression position (but it may
+            appear in binding positions as in s-let-bind, s-letrec-bind)
+        Postconditions on program:
+          - contains no s-if, s-if-pipe, s-if-else-pipe, s-cases, s-when, s-paren
+          - s-for will remain: it is useful to know for the code generator
+          - s-op will remain: code generated for these ops are an implementation detail
+          - s-method-field will remain: different code generated properties based on position
+          - s-not will remain: code generated is also an implementation detail
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
@@ -444,10 +453,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
     | s-for(l, iter, bindings, ann, body, blocky) =>
-      values = bindings.map(_.value).map(desugar-expr)
-      name = "for-body<" + l.format(false) + ">"
-      the-function = A.s-lam(l, name, [list: ], bindings.map(_.bind).map(desugar-bind), desugar-ann(ann), "", desugar-expr(body), none, none, blocky)
-      A.s-app(l, desugar-expr(iter), link(the-function, values))
+      values = bindings.map(lam (to-map): s-for-bind(to-map.l, to-map.bind, desugar-expr(to-map.value)) end)
+      s-for(l, iter, values, ann, desugar-expr(body), blocky)
     | s-op(l, op-l, op, left, right) =>
       cases(Option) get-arith-op(op):
         | some(field) =>
