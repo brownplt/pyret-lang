@@ -134,7 +134,7 @@ fun desugar(program :: A.Program):
           - s-for will remain: it is useful to know for the code generator
           - s-op will remain: code generated for these ops are an implementation detail
           - s-method-field will remain: different code generated properties based on position
-          - s-not will remain: code generated is also an implementation detail
+          - s-not does not exist
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
