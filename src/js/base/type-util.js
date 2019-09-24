@@ -117,17 +117,21 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
+<<<<<<< HEAD
   function bindToPyret(runtime, value) {
     var wrapper = function(t) {
       return runtime.makeObject({ bind: "let", typ: t });
     };
     var typ;
+=======
+  function bindToPyret(runtime, value, shorthands) {
+>>>>>>> f3899101c... in the process of cleaning up stale build state, I noticed that these functions were missing an argument
     var origin = runtime.makeObject({ provided: false });
     if(!value.bind) {
       return runtime.makeObject({
         origin: origin,
         bind: "let",
-        typ: toPyretType(runtime, expandType(value))
+        typ: toPyretType(runtime, expandType(value, shorthands))
       });
     }
     else {
@@ -139,7 +143,7 @@ define("pyret-base/js/type-util", [], function() {
       if(value.bind === "let") {
         return runtime.makeObject({
           origin: origin,
-          typ: toPyretType(runtime, expandType(value.typ)),
+          typ: toPyretType(runtime, expandType(value.typ, shorthands)),
           bind: "let"
         });
       }
@@ -161,14 +165,14 @@ define("pyret-base/js/type-util", [], function() {
           bind: "fun",
           name: value.name || "",
           flatness: flatness,
-          typ: toPyretType(runtime, expandType(value.typ))
+          typ: toPyretType(runtime, expandType(value.typ, shorthands))
         });
       }
       else if(value.bind === "var") {
         return runtime.makeObject({
           origin: origin,
           bind: "var",
-          typ: toPyretType(runtime, expandType(value.typ))
+          typ: toPyretType(runtime, expandType(value.typ, shorthands))
         });
       }
       else {
