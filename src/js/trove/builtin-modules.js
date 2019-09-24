@@ -144,7 +144,7 @@
 
                     return RUNTIME.makeObject({
                       name: k,
-                      value: t.bindToPyret(RUNTIME, expanded)
+                      value: t.bindToPyret(RUNTIME, expanded, shorthands)
                     });
                   });
                 }

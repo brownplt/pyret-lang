@@ -118,13 +118,13 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
-  function bindToPyret(runtime, value) {
+  function bindToPyret(runtime, value, shorthands) {
     var origin = runtime.makeObject({ provided: false });
     if(!value.bind) {
       return runtime.makeObject({
         origin: origin,
         bind: "let",
-        typ: toPyretType(runtime, expandType(value))
+        typ: toPyretType(runtime, expandType(value, shorthands))
       });
     }
     else {
@@ -136,7 +136,7 @@ define("pyret-base/js/type-util", [], function() {
       if(value.bind === "let") {
         return runtime.makeObject({
           origin: origin,
-          typ: toPyretType(runtime, expandType(value.typ)),
+          typ: toPyretType(runtime, expandType(value.typ, shorthands)),
           bind: "let"
         });
       }
@@ -158,14 +158,14 @@ define("pyret-base/js/type-util", [], function() {
           bind: "fun",
           name: value.name || "",
           flatness: flatness,
-          typ: toPyretType(runtime, expandType(value.typ))
+          typ: toPyretType(runtime, expandType(value.typ, shorthands))
         });
       }
       else if(value.bind === "var") {
         return runtime.makeObject({
           origin: origin,
           bind: "var",
-          typ: toPyretType(runtime, expandType(value.typ))
+          typ: toPyretType(runtime, expandType(value.typ, shorthands))
         });
       }
       else {
