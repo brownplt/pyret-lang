@@ -208,7 +208,8 @@ end
 fun desugar-member(f):
   cases(A.Member) f:
     | s-method-field(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      A.s-data-field(l, name, desugar-expr(A.s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)))
+      A.s-method-field(l, name, params, args, ann, doc, desugar-expr(body),
+      _check-loc, _check.map(lam (b): desugar-expr(b) end), blocky)
     | s-data-field(l, name, value) =>
       A.s-data-field(l, name, desugar-expr(value))
     | else =>
