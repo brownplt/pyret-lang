@@ -195,6 +195,7 @@ type EditorState = {
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
     compileState: CompileState;
+    currentRunner: any;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -305,6 +306,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                 }
                             }
                         },
+                        (runner: any) => {
+                            this.setState({currentRunner: runner});
+                        },
                         this.state.runKind);
                 } else if (this.state.compileState === CompileState.CompileQueue) {
                     this.setState({compileState: CompileState.Ready});
@@ -341,6 +345,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             definitionsHighlights: [],
             fsBrowserVisible: false,
             compileState: CompileState.Startup,
+            currentRunner: undefined,
         };
     };
 
@@ -535,6 +540,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    stop = () => {
+        if (this.state.currentRunner !== undefined) {
+            this.state.currentRunner.pause((line: number) => console.log("paused on line", line))
+        }
+    };
+
     makeDefinitions() {
         if (this.state.editorMode === EEditor.Text) {
             return <SingleCodeMirrorDefinitions
@@ -655,7 +666,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             <div className="page-container">
                 <Header>
                     {this.stopify ? (
-                        <button className="stop-available">
+                        <button className="stop-available"
+                                onClick={this.stop}>
                             Stop
                         </button>
                     ) : (

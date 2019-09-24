@@ -118,6 +118,7 @@ export const run = (
   baseDirectory: string,
   programFileName: string,
   callback: (result: any) => void,
+  runnerCallback: (runner: any) => void,
   runKind: backend.RunKind): void => {
   backend.runProgram2(
     runner,
@@ -125,12 +126,9 @@ export const run = (
     programFileName,
     runKind)
     .then((runner: any): void => {
-      console.log("the runner", runner);
+      runnerCallback(runner);
       try {
-        (window as any).runner = runner;
-        runner.pause((n: number) => console.log("Paused, n=", n));
         runner.run(callback);
-        //runner.resume();
       } catch (x) {
         console.error(x);
         callback({
