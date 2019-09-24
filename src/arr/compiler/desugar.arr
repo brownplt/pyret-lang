@@ -137,6 +137,7 @@ fun desugar(program :: A.Program):
           - s-not does not exist
           - contains no s-underscore in expression position (but it may
             appear in binding positions as in s-let-bind, s-letrec-bind)
+          - s-construct is not desugared
         ```
   cases(A.Program) program block:
     | s-program(l, _provide, provided-types, provides, imports, body) =>
@@ -476,31 +477,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
     | s-ref(l, ann) => A.s-ref(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
-      cases(A.ConstructModifier) modifier:
-        | s-construct-normal =>
-          len = elts.length()
-          desugared-elts = elts.map(desugar-expr)
-          if len <= 5:
-            A.s-app(constructor.l,
-              A.s-prim-app(constructor.l, "getMaker" + tostring(len),
-                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make" + tostring(len)),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
-              desugared-elts)
-          else:
-            A.s-app(constructor.l,
-              A.s-prim-app(constructor.l, "getMaker",
-                [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make"),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
-              [list: A.s-array(l, desugared-elts)])
-          end
-        | s-construct-lazy =>
-          A.s-app(constructor.l,
-            A.s-prim-app(constructor.l, "getLazyMaker",
-              [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "lazy-make"),
-                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
-            [list: A.s-array(l,
-                  elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
-      end
+      s-construct(l, modifier, desugar-expr(constructor), elts.map(lam (e): desugar-expr(e) end))
     | s-reactor(l, fields) =>
       fields-by-name = SD.make-mutable-string-dict()
       init-and-non-init = for lists.partition(f from fields) block:
