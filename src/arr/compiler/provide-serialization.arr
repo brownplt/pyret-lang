@@ -161,7 +161,7 @@ fun compile-provided-type(typ):
         [clist: j-str("tyapp"), compile-provided-type(base),
           j-list(true, CL.map_list(compile-provided-type, args))])
     | t-top(_, _) => j-str("tany")
-    | t-bot(_) => j-str("tbot")
+    | t-bot(_, _) => j-str("tbot")
     | t-record(fields, l, _) =>
       j-list(false,
         [clist: j-str("record"), j-obj(for cl-map-sd(key from fields):
