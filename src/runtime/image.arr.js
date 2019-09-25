@@ -686,7 +686,7 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   if (this.vertices && other.vertices) {
     return (this.style === other.style &&
       verticesEqual(this.vertices, other.vertices) &&
-      ColorsEquals(this.color, other.color));
+      ColorsEqual(this.color, other.color));
   }
   // if it's something more sophisticated, render both images to canvases
   // First check canvas dimensions, then go pixel-by-pixel
