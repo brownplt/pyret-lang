@@ -1879,7 +1879,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
       | starts-with(uri, "builtin://") then:
         builtin-name = string-substring(uri, 10, string-length(uri))
         the-path = cases(Option) runtime-builtin-relative-path:
-          | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + "builtin/" + builtin-name + ".arr.js"
+          | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + builtin-name + ".arr.js"
 
           | none => relative-path + "../builtin/" + builtin-name + ".arr.js"
         end
@@ -1897,7 +1897,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
 
   fun import-builtin(bind-name :: A.Name, name :: String):
     the-path = cases(Option) runtime-builtin-relative-path: 
-      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + "builtin/" + name 
+      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + name 
 
       | none => relative-path + "../builtin/" + name
     end
