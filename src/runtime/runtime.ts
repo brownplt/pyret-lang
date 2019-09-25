@@ -390,14 +390,21 @@ interface CheckResult {
   success: boolean,
   path: string,
   loc: string,
-  lhs: any,
-  rhs: any,
+  lhs: CheckExprEvalResult,
+  rhs: CheckExprEvalResult,
+  exception?: any,
+}
+
+interface CheckExprEvalResult {
+  value: any,
+  exception: boolean,
+  exception_val: any,
 }
 
 interface CheckTestResult {
   success: boolean,
-  lhs: any,
-  rhs: any,
+  lhs: CheckExprEvalResult,
+  rhs: CheckExprEvalResult,
 }
 
 var _globalCheckContext: string[] = [];
@@ -431,23 +438,54 @@ function checkResults(): CheckResult[] {
   return getCheckResults();
 }
 
-function eagerCheckTest(test: () => CheckTestResult, loc: string): void {
+function eagerCheckTest(lhs: () => any,  rhs: () => any,
+  test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult, 
+  loc: string): void {
+
+  let lhs_expr_eval: CheckExprEvalResult = {
+    value: undefined,
+    exception: false,
+    exception_val: undefined,
+  };
+
+  let rhs_expr_eval: CheckExprEvalResult = {
+    value: undefined,
+    exception: false,
+    exception_val: undefined,
+  };
+
   try {
-    let result = test();
+    lhs_expr_eval.value = lhs();
+  } catch(e) {
+    lhs_expr_eval.exception = true;
+    lhs_expr_eval.exception_val = e;
+  }
+
+  try {
+    rhs_expr_eval.value = rhs();
+  } catch(e) {
+    rhs_expr_eval.exception = true;
+    rhs_expr_eval.exception_val = e;
+  }
+
+  try {
+    let result = test(lhs_expr_eval, rhs_expr_eval);
     _globalCheckResults.push({
         success: result.success,
         path: _globalCheckContext.join(),
         loc: loc,
         lhs: result.lhs,
         rhs: result.rhs,
+        exception: undefined,
     });
   } catch(e) {
     _globalCheckResults.push({
         success: false,
         path: _globalCheckContext.join(),
         loc: loc,
-        lhs: undefined,
-        rhs: undefined,
+        lhs: lhs_expr_eval,
+        rhs: rhs_expr_eval,
+        exception: e,
     });
   } 
 }
