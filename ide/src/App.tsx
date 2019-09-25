@@ -131,8 +131,13 @@ enum CompileState {
     // Compile -> CompileQueue
     //   The user edits the definitions area or clicks "run".
     //
-    // Compile -> Ready
-    //   Compilation succeeded. The program is run.
+    // Compile -> RunningWithStops
+    //   Compilation (with stopify) succeeded and autoRun is enabled. The
+    //   program is run.
+    //
+    // Compile -> RunningWithoutStops
+    //   Compilation (without stopify) succeeded and autoRun is enabled. The
+    //   program is run.
     //
     // Compile -> Ready
     //   Compilation failed.
@@ -147,6 +152,33 @@ enum CompileState {
     //   Compilation either succeeded or failed. Either way, the program is not
     //   run.
     CompileQueue,
+
+    CompileRun,
+    CompileRunQueue,
+
+    // The program (which has been compiled with Stopify) is running. It can be
+    // stopped by the user when the press the "stop" button.
+    //
+    // RunningWithStops -> Stopped
+    //   The user presses the "stop" button. The program is stopped.
+    //
+    // RunningWithStops -> Ready
+    //   The program finishes its execution.
+    //
+    // RunningWithStops -> Compile
+    //   The user edits the definitions area or hits "run".
+    RunningWithStops,
+
+    // The program is running. It has not been compiled with Stopify, so it
+    // cannot be interrupted.
+    //
+    // RunningWithoutStops -> Ready
+    //   The program finishes its execution
+    RunningWithoutStops,
+
+    // Stopped -> Compile
+    //   The user edits the definitions area or hits  the "run" button.
+    Stopped,
 }
 
 const invalidCompileState = (state: CompileState): void => {
@@ -165,6 +197,16 @@ const compileStateToString = (state: CompileState): string => {
         return "Compiling";
     } else if (state === CompileState.CompileQueue) {
         return "Compile request on hold: already compiling";
+    } else if (state === CompileState.CompileRun) {
+        return "Waiting to run: compiling";
+    } else if (state === CompileState.CompileRunQueue) {
+        return "Compile and run requests on hold: already compiling"
+    } else if (state === CompileState.RunningWithStops) {
+        return "Running (stop button enabled)";
+    } else if (state === CompileState.RunningWithoutStops) {
+        return "Running (stop button disabled)";
+    } else if (state === CompileState.Stopped) {
+        return "Program execution stopped"
     } else {
         const assertNever = (_arg: never): never => {
             throw new Error("assertNever");
@@ -231,7 +273,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             },
             (errors: string[]) => {
                 console.log("COMPILE FAILURE");
-                if (this.state.compileState === CompileState.Compile) {
+                if (this.state.compileState === CompileState.Compile
+                    || this.state.compileState === CompileState.CompileRun) {
                     this.setState({compileState: CompileState.Ready});
 
                     const places: any = [];
@@ -249,7 +292,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             definitionsHighlights: places
                         }
                     );
-                } else if (this.state.compileState === CompileState.CompileQueue) {
+                } else if (this.state.compileState === CompileState.CompileQueue
+                           || this.state.compileState === CompileState.CompileRunQueue) {
                     this.setState({compileState: CompileState.Ready});
                     this.update();
                 } else {
@@ -269,13 +313,23 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 console.log("COMPILE SUCCESS");
                 if (this.state.compileState === CompileState.Compile) {
                     this.setState({compileState: CompileState.Ready});
-
+                } else if (this.state.compileState === CompileState.CompileQueue
+                           || this.state.compileState === CompileState.CompileRunQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.update();
+                } else if (this.state.compileState === CompileState.CompileRun) {
+                    if (this.stopify) {
+                        this.setState({compileState: CompileState.RunningWithStops});
+                    } else {
+                        this.setState({compileState: CompileState.RunningWithoutStops});
+                    }
                     const x = new Date();
                     console.log(`Run ${x} started`);
                     control.run(
                         control.path.runBase,
                         control.path.runProgram,
                         (runResult: any) => {
+                            this.setState({compileState: CompileState.Ready});
                             console.log(`Run ${x} finished`);
                             console.log(runResult);
                             if (runResult.result !== undefined) {
@@ -310,9 +364,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             this.setState({currentRunner: runner});
                         },
                         this.state.runKind);
-                } else if (this.state.compileState === CompileState.CompileQueue) {
-                    this.setState({compileState: CompileState.Ready});
-                    this.update();
                 } else {
                     invalidCompileState(this.state.compileState);
                 }
@@ -371,7 +422,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return this.state.runKind === control.backend.RunKind.Async;
     }
 
-    run = () => {
+    run = (runAfterwards: boolean) => {
         this.setState(
             {
                 interactionErrors: [],
@@ -384,15 +435,27 @@ class Editor extends React.Component<EditorProps, EditorState> {
             } else if (this.state.compileState === CompileState.StartupQueue) {
                 // state remains as StartupQueue
             } else if (this.state.compileState === CompileState.Ready) {
-                this.setState({compileState: CompileState.Compile});
+                if (runAfterwards || this.state.autoRun) {
+                    this.setState({compileState: CompileState.CompileRun});
+                } else {
+                    this.setState({compileState: CompileState.Compile});
+                }
                 control.compile(
                     this.currentFileDirectory,
                     this.currentFileName,
                     this.state.typeCheck);
             } else if (this.state.compileState === CompileState.Compile) {
                 this.setState({compileState: CompileState.CompileQueue});
+            } else if (this.state.compileState === CompileState.CompileRun) {
+                this.setState({compileState: CompileState.CompileRunQueue});
             } else if (this.state.compileState === CompileState.CompileQueue) {
                 // state remains as CompileQueue
+            } else if (this.state.compileState === CompileState.CompileRunQueue) {
+                // state remains as CompileRunQueue
+            } else if (this.state.compileState === CompileState.RunningWithStops) {
+                // state remains as RunningWithStops
+            } else if (this.state.compileState === CompileState.RunningWithoutStops) {
+                // state remains as RunningWithoutStops
             } else {
                 invalidCompileState(this.state.compileState);
             }
@@ -416,9 +479,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.fs.writeFileSync(
             this.currentFile,
             this.state.currentFileContents);
-        if (this.state.autoRun) {
-            this.run();
-        }
+        this.run(false);
     }
 
     onEdit = (value: string): void => {
@@ -677,7 +738,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     )}
                     <div className="run-container">
                         <button className="run-ready"
-                                onClick={this.run}>
+                                onClick={() => this.run(true)}>
                             Run
                         </button>
                         <button className="run-options"
