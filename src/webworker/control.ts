@@ -118,14 +118,29 @@ export const run = (
   baseDirectory: string,
   programFileName: string,
   callback: (result: any) => void,
+  runnerCallback: (runner: any) => void,
   runKind: backend.RunKind): void => {
-  backend.runProgram(
+  backend.runProgram2(
     runner,
     baseDirectory,
     programFileName,
     runKind)
-    .catch((x) => { console.error(x); return {result: {error: String(x.value)}} })
-    .then(callback);
+    .then((runner: any): void => {
+      // the "runner" here is only a runner if RunKind is equal to Async
+      if (runKind === backend.RunKind.Async) {
+        runnerCallback(runner);
+      }
+      try {
+        if (runKind === backend.RunKind.Async) {
+          runner.run(callback);
+        }
+      } catch (x) {
+        console.error(x);
+        callback({
+          result: {error: String(x.value)}
+        });
+      }
+    });
 };
 
 export const setupWorkerMessageHandler = (
