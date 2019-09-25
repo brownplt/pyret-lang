@@ -3,13 +3,16 @@
         "values": {
             "juliet": "String",
             "getBuffer": ["arrow", ["String"], "tany"],
-            "_makesound": ["arrow", ["String"],
+            "makeSound": ["arrow", ["Any", "Any", "Any"],
                 ["local", "Sound"]
             ],
-            "_urlSound": ["arrow", ["String"],
+            "urlSound": ["arrow", ["String"],
                 ["local", "Sound"]
-            ]
-
+            ],
+            "overlay": ["arrow", ["tany"],
+                ["local", "Sound"]
+            ],
+            "playSound": ["arrow", ["tany"], "Any"]
         },
         "datatypes": {
             "Sound": ["data", "Sound", [],
