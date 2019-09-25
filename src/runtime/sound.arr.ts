@@ -39,9 +39,10 @@ export function getBuffer(path: string):AudioBuffer {
     })
 }
 
+
 function _makesound(sample_rate: number, data_array: number[]): Sound {
     const sound = {
-        '$brand': "$sound",
+        '$brand': "sound",
         'sample-rate': sample_rate,
         'data-array': data_array,
         'play': () => playSound()
@@ -49,13 +50,17 @@ function _makesound(sample_rate: number, data_array: number[]): Sound {
     return sound;
 }
 
-export function playSound() { }
+export function playSound() { console.log("Playing sound")}
 
 export function _urlSound(path: string): Sound {
     var buffer = getBuffer(path);
-    var data_array = Array.from(buffer.getChannelData(0));   
-    var sample_rate = buffer.sampleRate;
-    return _makesound(sample_rate, data_array);
+    //var data_array = Array.from(buffer.getChannelData(0));   
+    //var sample_rate = buffer.sampleRate;
+    //console.log("Length:" + data_array.length);
+    //console.log(data_array.slice(0,500));
+    const sample_rate2 = 10;
+    const data_array2 = [3,-1,10,4,10,2,1,-5,9,2,3,4,5,6,4,3,2,4,3,5,6,4,3,5,7,4,3,2,3,5,10];
+    return _makesound(sample_rate2, data_array2);
 }
 
 interface Sound {
