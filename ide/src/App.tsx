@@ -434,7 +434,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 this.setState({compileState: CompileState.StartupQueue});
             } else if (this.state.compileState === CompileState.StartupQueue) {
                 // state remains as StartupQueue
-            } else if (this.state.compileState === CompileState.Ready) {
+            } else if (this.state.compileState === CompileState.Ready
+                       || this.state.compileState === CompileState.Stopped) {
                 if (runAfterwards || this.state.autoRun) {
                     this.setState({compileState: CompileState.CompileRun});
                 } else {
@@ -453,6 +454,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             } else if (this.state.compileState === CompileState.CompileRunQueue) {
                 // state remains as CompileRunQueue
             } else if (this.state.compileState === CompileState.RunningWithStops) {
+                this.stop();
+                this.update();
                 // state remains as RunningWithStops
             } else if (this.state.compileState === CompileState.RunningWithoutStops) {
                 // state remains as RunningWithoutStops
@@ -604,6 +607,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
     stop = () => {
         if (this.state.currentRunner !== undefined) {
             this.state.currentRunner.pause((line: number) => console.log("paused on line", line))
+            this.setState({
+                currentRunner: undefined,
+                compileState: CompileState.Stopped
+            });
         }
     };
 
@@ -726,7 +733,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    {this.stopify ? (
+                    {this.stopify && this.state.compileState === CompileState.RunningWithStops ? (
                         <button className="stop-available"
                                 onClick={this.stop}>
                             Stop
