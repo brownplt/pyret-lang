@@ -8,6 +8,7 @@ import { callbackify } from "util";
  */
 
 const _NUMBER = require("./js-numbers.js");
+const _OPTION = require('./option.arr.js');
 
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
@@ -466,11 +467,16 @@ function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
   }
 }
 
+var _globalTraceValues = [];
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
+  _globalTraceValues.push({srcloc: loc, value});
   return value;
 }
+
+function getTraces() { return _globalTraceValues; }
 
 // Allow '+' for string concat. 
 // Otherwise, defer to the number library.
@@ -510,6 +516,15 @@ export function pauseStack(callback) {
   });
 }
 
+function stringToNumber(s: string): any {
+  var result = _NUMBER['fromString'](s);
+  if (result === false) {
+    return _OPTION['none'];
+  } else {
+    return _OPTION['some'](result);
+  }
+}
+
 
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value
@@ -522,6 +537,8 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
+module.exports["$getTraces"] = getTraces;
+
 module.exports["$spy"] = _spy;
 module.exports["$rebind"] = _rebind;
 
@@ -544,3 +561,5 @@ module.exports["_greaterThan"] = _NUMBER["greaterThan"];
 module.exports["_lessThanOrEqual"] = _NUMBER["lessThanOrEqual"];
 module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
+
+module.exports["string-to-number"] = stringToNumber;

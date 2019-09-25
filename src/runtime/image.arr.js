@@ -549,7 +549,17 @@ var translateVertices = /* @stopify flat */ function (vertices) {
 
 
 // Base class for all images.
-var BaseImage = /* @stopify flat */ function () { this.$brand = "image"; };
+var BaseImage = /* @stopify flat */ function () {
+  const that = this;
+  this.$brand = "image";
+  this._equals = function (img) {
+    if (imageEquals(that, img)) {
+      return RUNTIME.Equal;
+    } else {
+      return RUNTIME.NotEqual("image properties are not equal", that, img);
+    }
+  };
+};
 
 BaseImage.prototype.updatePinhole = /* @stopify flat */ function (x, y) {
   var aCopy = clone(this);
@@ -686,7 +696,7 @@ BaseImage.prototype.equals = /* @stopify flat */ function (other) {
   if (this.vertices && other.vertices) {
     return (this.style === other.style &&
       verticesEqual(this.vertices, other.vertices) &&
-      ColorsEquals(this.color, other.color));
+      ColorsEqual(this.color, other.color));
   }
   // if it's something more sophisticated, render both images to canvases
   // First check canvas dimensions, then go pixel-by-pixel

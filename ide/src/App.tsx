@@ -26,62 +26,35 @@ enum EEditor {
 type AppProps = {};
 type AppState = {};
 
-function makeResult(result: any, compiledJSONPath: string): { name: string, value: any }[] {
-    const programJSON = JSON.parse(
-        control.bfsSetup.fs.readFileSync(compiledJSONPath));
-
-    const providedValues = programJSON.provides.values;
-    const providedValuesKeys = Object.keys(programJSON.provides.values);
-
-    const insertLineNumber = (key: string) => {
-        const startLine =
-            providedValues[key].origin["local-bind-site"][1];
-        return { line: startLine, name: key, value: result[key] };
-    };
-
-    type Result = {
-        line: number,
-        name: string,
-        value: any,
-    };
-
-    const compareResults = (a: Result, b: Result): number => {
-        if (a.line < b.line) {
-            return -1;
-        } else if (a.line > b.line) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
-
+function makeResult(result: any, moduleUri: string): { name: string, value: any }[] {
     const compareLocations = (a: any, b: any): number => {
-        if (a.srcloc.startLine < b.srcloc.startLine) {
-            return -1;
-        } else if (a.srcloc.startLine > b.srcloc.startLine) {
-            return 1;
-        } else {
-            return 0;
-        }
+        return a.srcloc[1] - b.srcloc[1];
     };
 
-    if (providedValuesKeys.length !== 0) {
-        // we have source location information for bindings, so we sort them
-        // based on which column they are bound on
-        return providedValuesKeys
-            .map(insertLineNumber)
-            .sort(compareResults);
-    } else {
-        var sortedLoc = result.$locations.sort(compareLocations);
-        // we do not have source location information for bindings, so we sort
-        // them alphabetically by identifier name
-        return sortedLoc.map((key: any) => {
+    // There may be toplevel expressions in many modules, but we only want to
+    // show the ones from the main module we're working on
+    const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
+
+    const allWithLocs = result.$locations.concat(mainTraces);
+
+    // We combine and then sort to get the traces interleaved correctly with named values
+    const allSorted = allWithLocs.sort(compareLocations);
+    return allSorted.map((key: any) => {
+        if('name' in key) {
             return {
                 name: key.name,
+                line: key.srcloc[1],
                 value: result[key.name]
-            }
-        });
-    }
+            };
+        }
+        else {
+            return {
+                name: "",
+                line: key.srcloc[1],
+                value: key.value
+            };
+        }
+    });
 }
 
 type LintFailure = {
@@ -337,9 +310,10 @@ class Editor extends React.Component<EditorProps, EditorState> {
                                     const results =
                                         makeResult(
                                             runResult.result,
+                                            'file://' + 
                                             control.bfsSetup.path.join(
-                                                control.path.runBase,
-                                                `${this.state.currentFileName}.json`));
+                                                control.path.compileBase,
+                                                this.state.currentFileName));
                                     const checks = runResult.result.$checks;
                                     this.setState({
                                         interactions: results,
