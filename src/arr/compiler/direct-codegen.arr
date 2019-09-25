@@ -54,6 +54,7 @@ j-true = J.j-true
 j-false = J.j-false
 j-num = J.j-num
 j-str = J.j-str
+j-bool = J.j-bool
 j-return = J.j-return
 j-assign = J.j-assign
 j-if = J.j-if
@@ -1132,73 +1133,123 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                    cause :: Option<Expr>) =>
 
       # Emits:
-      #   _checkTest(function() {
-      #     left-statements
-      #     right-statements 
-      #     return check-op(left-value, right-value);
-      #   }, loc, lhs, rhs);
+      #   _checkTest(lh-func: () -> any, rh-func: () -> any, 
+      #              test-func: (check-expr-result, check-expr-result) -> check-op-result, 
+      #              loc: String) -> void
+      #
+      #   _checkTest(function lh-func() {}, 
+      #              function rh-func() {}, 
+      #              function test-func(lhs, rhs) {}, loc);
       #
       # _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
+      # 
+      # check-expr-result = {
+      #   value: any,
+      #   exception: bool
+      # }
       #
       # check-op-result = {
-      #   success: boolean
-      #   lhs: any
-      #   rhs: any
+      #   success: boolean,
+      #   lhs: check-expr-result,
+      #   rhs: check-expr-result,
       # }
       #
       # Individual tests are wrapped in functions to allow individual tests to fail
       #  but still possible to run other tests
       
+      fun make-check-op-result(success :: JExpr, lhs :: JExpr, rhs :: JExpr):
+        j-obj([clist:
+          j-field("success", success),
+          j-field("lhs", lhs),
+          j-field("rhs", rhs),
+        ])
+      end
+
+      test-loc = j-str(l.format(true))
+
       check-op = cases(A.CheckOp) op:
         | s-op-is(_) => binop-result("op==")
         | s-op-is-not(_) => binop-result("op<>")
         | else => raise("NYI check op ID")
       end
 
-      { raw-js-test-val; raw-js-test-stmts; lhs; rhs } = cases(CheckOpDesugar) check-op:
+      cases(CheckOpDesugar) check-op:
         | binop-result(bin-op) =>
           cases(Option) right:
             | some(right-expr) =>
+              fun thunk-it(name :: String, val :: JExpr, stmts :: CList<JStmt>):
+                body = j-block(cl-snoc(stmts, j-return(val)))
+                j-fun("0", name, cl-empty, body)
+              end
+
+              fun exception-check(exception-flag :: JExpr, lhs :: JExpr, rhs :: JExpr):
+                check-body = j-block([clist: 
+                  j-return(make-check-op-result(j-bool(false), lhs, rhs))
+                ])
+                j-if1(exception-flag, check-body)
+              end
               
+              # Thunk the LHS
               { lhs; l-stmt } = compile-expr(context, left)
+              lh-func = thunk-it("LHS", lhs, l-stmt)
+
+              # Thunk the RHS
               { rhs; r-stmt } = compile-expr(context, right-expr)
+              rh-func = thunk-it("RHS", rhs, r-stmt)
+
+              # Thunk the bin check op
+              lhs-param-name = fresh-id(compiler-name("lhs"))
+              rhs-param-name = fresh-id(compiler-name("rhs"))
+
+              lhs-value = j-bracket(j-id(lhs-param-name), j-str("value"))
+              # LHS exception check
+              lhs-exception = j-bracket(j-id(lhs-param-name), j-str("exception"))
+              lhs-exception-check = exception-check(
+                lhs-exception, 
+                j-id(lhs-param-name),
+                j-id(rhs-param-name)
+              )
+
+              rhs-value = j-bracket(j-id(rhs-param-name), j-str("value"))
+              # LHS exception check
+              rhs-exception = j-bracket(j-id(rhs-param-name), j-str("exception"))
+              rhs-exception-check = exception-check(
+                rhs-exception, 
+                j-id(lhs-param-name),
+                j-id(rhs-param-name)
+              )
 
               # Assuming this compile-expr returns j-binop
-              j-test-val = compile-s-op(context, l, l, bin-op, lhs, rhs)
+              j-test-val = 
+                compile-s-op(context, l, l, bin-op, lhs-value, rhs-value)
 
-              { j-test-val; l-stmt + r-stmt ; lhs; some(rhs) } 
+              success-result = make-check-op-result(
+                j-test-val,
+                j-id(lhs-param-name),
+                j-id(rhs-param-name)
+              )
+
+              test-body-stmts = [clist: 
+                lhs-exception-check, 
+                rhs-exception-check, 
+                j-return(success-result)
+              ] 
+              test-body = j-block(test-body-stmts)
+              test-func = 
+                j-fun("0", "TEST", [clist: lhs-param-name, rhs-param-name], test-body)
+
+
+              tester-call-args = [clist: lh-func, rh-func, test-func, test-loc]
+              tester-call = j-expr(rt-method("$checkTest", tester-call-args))
+
+              { j-undefined; [clist: tester-call] }
 
             | none => raise("Attempting to use a binary check op without the RHS")
           end
+
         | refinement-result(the-refinement, negate) => raise("NYI check refinement")
         | predicate-result(predicate) => raise("NYI check predicate")
       end
-
-      test-loc = j-str(l.format(true))
-
-      # Thunk the JS test code; returns a check-op-result (described above)
-
-      # If there was no RHS expression, explicitly insert an 'undefined'
-      simple-return-fields = [clist: 
-        j-field("success", raw-js-test-val),
-        j-field("lhs", lhs),
-      ]
-      return-fields = cases(Option) rhs:
-        | some(right-expr) => cl-append(simple-return-fields, 
-                                        cl-sing(j-field("rhs", right-expr)))
-        | none => cl-append(simple-return-fields, 
-                            cl-sing(j-field("rhs", j-undefined)))
-      end
-      return-expr = j-obj(return-fields)
-
-      thunk-body = cl-snoc(raw-js-test-stmts, j-return(return-expr))
-      thunk = j-fun("0", "$check", cl-empty, j-block(thunk-body))
-
-      check-test-args = [clist: thunk, test-loc]
-
-      tester-call = j-expr(rt-method("$checkTest", check-test-args))
-
-      { j-undefined; [clist: tester-call] }
 
     | s-load-table(
         l :: Loc,
