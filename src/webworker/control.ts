@@ -126,9 +126,14 @@ export const run = (
     programFileName,
     runKind)
     .then((runner: any): void => {
-      runnerCallback(runner);
+      // the "runner" here is only a runner if RunKind is equal to Async
+      if (runKind === backend.RunKind.Async) {
+        runnerCallback(runner);
+      }
       try {
-        runner.run(callback);
+        if (runKind === backend.RunKind.Async) {
+          runner.run(callback);
+        }
       } catch (x) {
         console.error(x);
         callback({
