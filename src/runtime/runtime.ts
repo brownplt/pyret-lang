@@ -467,11 +467,16 @@ function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
   }
 }
 
+var _globalTraceValues = [];
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
+  _globalTraceValues.push({srcloc: loc, value});
   return value;
 }
+
+function getTraces() { return _globalTraceValues; }
 
 // Allow '+' for string concat. 
 // Otherwise, defer to the number library.
@@ -532,6 +537,8 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
+module.exports["$getTraces"] = getTraces;
+
 module.exports["$spy"] = _spy;
 module.exports["$rebind"] = _rebind;
 

@@ -480,6 +480,15 @@ fun compile-method(context,
   { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
+fun compile-srcloc(l):
+  contents = cases(Loc) l:
+    | builtin(name) => [clist: j-str(name)]
+    | srcloc(uri, sl, sc, schar, el, ec, echar) =>
+      [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
+  end
+  j-list(false, contents)
+end
+
 fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
   cases(A.Expr) expr block:
     | s-module(l, answer, dms, dvs, dts, checks) =>
@@ -492,42 +501,25 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-defined-value(name, def-v) =>
             block:
               {val; field-stmts} = compile-expr(context, def-v)
-              sloc = [clist:
-                j-field("source", j-str(def-v.l.source)),
-                j-field("startLine", j-num(def-v.l.start-line)),
-                j-field("startColumn", j-num(def-v.l.start-column)),
-                j-field("startChar", j-num(def-v.l.start-char)),
-                j-field("endLine", j-num(def-v.l.end-line)),
-                j-field("endColumn", j-num(def-v.l.end-column)),
-                j-field("endChar", j-num(def-v.l.end-char))
-              ]
+              sloc = compile-srcloc(def-v.l)
               { cl-cons(j-field(name, val), fields); field-stmts + stmts;
                 cl-cons(j-obj([clist:
                   j-field("name", j-str(name)),
-                  j-field("srcloc", j-obj(sloc))]), locs) }
+                  j-field("srcloc", sloc)]), locs) }
             end
 
           | s-defined-var(name, id, id-loc) =>
-            block:
-              sloc = [clist:
-                j-field("source", j-str(id-loc.source)),
-                j-field("startLine", j-num(id-loc.start-line)),
-                j-field("startColumn", j-num(id-loc.start-column)),
-                j-field("startChar", j-num(id-loc.start-char)),
-                j-field("endLine", j-num(id-loc.end-line)),
-                j-field("endColumn", j-num(id-loc.end-column)),
-                j-field("endChar", j-num(id-loc.end-char))
-              ]
-              # TODO(alex): Box variables so external code can mutate variables
-              { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
-                cl-cons(j-obj([clist:
-                  j-field("name", j-str(name)),
-                  j-field("srcloc", j-obj(sloc))]), locs) }
-            end
+            sloc = compile-srcloc(id-loc)
+            # TODO(alex): Box variables so external code can mutate variables
+            { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
+              cl-cons(j-obj([clist:
+                j-field("name", j-str(name)),
+                j-field("srcloc", sloc)]), locs) }
         end
       end
 
       check-results = rt-method("$checkResults", [clist: ])
+      traces = rt-method("$getTraces", [clist: ])
 
       answer1 = fresh-id(compiler-name("answer"))
       answer-var = j-var(answer1, a-exp)
@@ -535,6 +527,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       ans = j-obj(fields + [clist:
                 j-field("$answer", j-id(answer1)),
                 j-field("$checks", check-results),
+                j-field("$traces", traces),
                 j-field("$locations", j-list(true, locs))])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
@@ -568,7 +561,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       {argvs; argstmts} = compile-list(context, args)
       { j-app(fv, argvs); fstmts + argstmts }
 
-    | s-srcloc(_, l) => { j-str("srcloc"); cl-empty }
+    | s-srcloc(_, l) =>
+      { compile-srcloc(l); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
       { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
@@ -1885,7 +1879,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
       | starts-with(uri, "builtin://") then:
         builtin-name = string-substring(uri, 10, string-length(uri))
         the-path = cases(Option) runtime-builtin-relative-path:
-          | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + "builtin/" + builtin-name + ".arr.js"
+          | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + builtin-name + ".arr.js"
 
           | none => relative-path + "../builtin/" + builtin-name + ".arr.js"
         end
@@ -1903,7 +1897,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
 
   fun import-builtin(bind-name :: A.Name, name :: String):
     the-path = cases(Option) runtime-builtin-relative-path: 
-      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + "builtin/" + name 
+      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + name 
 
       | none => relative-path + "../builtin/" + name
     end
