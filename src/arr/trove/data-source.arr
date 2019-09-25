@@ -101,8 +101,8 @@ fun bool-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Bool
   end
 end
 
-fun strict-num-sanitizer(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun strict-num-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
       cases(Option) string-to-number(s):
@@ -120,8 +120,8 @@ fun strict-num-sanitizer(x, col, row):
   end
 end
 
-fun strings-only(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun strings-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> String:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) => s
     | else =>
@@ -130,14 +130,15 @@ fun strings-only(x, col, row):
         | c-bool(b) => "the boolean " + torepr(b)
         | c-custom(datum) => "the datum " + torepr(datum)
         | c-empty => "the empty cell"
+        | c-str(s) => raise("unreachable")
       end
       raise('Cannot sanitize ' + as-str + ' at '
           + loc + ' as a string')
   end
 end
 
-fun numbers-only(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun numbers-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-num(n) => n
     | else =>
@@ -146,14 +147,15 @@ fun numbers-only(x, col, row):
         | c-bool(b) => "the boolean " + torepr(b)
         | c-custom(datum) => "the datum " + torepr(datum)
         | c-empty => "an empty cell"
+        | c-num(n) => raise("unreachable")
       end
       raise('Cannot sanitize ' + as-str + ' at '
           + loc + ' as a number')
   end
 end
 
-fun booleans-only(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun booleans-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Boolean:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-bool(b) => b
     | else =>
@@ -162,14 +164,15 @@ fun booleans-only(x, col, row):
         | c-str(s) => "the string " + torepr(s)
         | c-custom(datum) => "the datum " + torepr(datum)
         | c-empty => "an empty cell"
+        | c-bool(b) => raise("unreachable")
       end
       raise('Cannot sanitize ' + as-str + ' at '
           + loc + ' as a boolean')
   end
 end
 
-fun empty-only(x, col, row):
-  loc = 'column ' + col + ', row ' + num-to-string(row)
+fun empty-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Option<A>:
+  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-empty => none
     | else =>
@@ -178,6 +181,7 @@ fun empty-only(x, col, row):
         | c-str(s) => "string " + torepr(s)
         | c-bool(b) => "boolean " + torepr(b)
         | c-custom(datum) => "datum " + torepr(datum)
+        | c-empty => raise("unreachable")
       end
       raise('Cannot sanitize the ' + as-str + ' at '
           + loc + ' as an empty cell')
