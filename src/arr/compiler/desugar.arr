@@ -506,26 +506,10 @@ fun desugar-expr(expr :: A.Expr):
       A.s-table-filter(l, A.s-column-binds(column-binds.l, column-binds.binds, desugar-expr(column-binds.table)),
         desugar-expr(predicate))
     | s-spy-block(l, message, contents) =>
-      ds-message = cases(Option<A.Expr>) message:
-        | none => A.s-str(l, "")
-        | some(msg) => desugar-expr(msg)
-      end
-      ds-contents-list = for map(spy-exp from contents):
-        cases(A.SpyField) spy-exp:
-          | s-spy-expr(l2, name, value, _) =>
-            {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
-        end
-      end
-      ds-contents = for L.foldr(acc from {empty; empty; empty}, ds-content from ds-contents-list):
-        {
-          ds-content.{0} ^ link(_, acc.{0});
-          ds-content.{1} ^ link(_, acc.{1});
-          ds-content.{2} ^ link(_, acc.{2})
-        }
-      end
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
-        [list: A.s-srcloc(l, l), ds-message,
-          A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+      A.s-spy-block(l, cases(Option) message:
+        | some(shadow message) => some(desugar-expr(message))
+        | none => none
+        end, contents.map(lam(c): A.s-spy-expr(c.l, c.name, desugar-expr(c.value), c.implicit-label) end))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
