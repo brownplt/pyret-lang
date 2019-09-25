@@ -556,7 +556,7 @@ var BaseImage = /* @stopify flat */ function () {
     if (imageEquals(that, img)) {
       return RUNTIME.Equal;
     } else {
-      return RUNTIME.NotEqual("a good reason", that, img);
+      return RUNTIME.NotEqual("image properties are not equal", that, img);
     }
   };
 };
