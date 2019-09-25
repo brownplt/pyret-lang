@@ -284,9 +284,7 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
-fun compile-s-op(context, l, op-l, op, left, right):
-  { lv; lstmts } = compile-expr(context, left)
-  { rv; rstmts } = compile-expr(context, right)
+fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
   val = ask:
     # Pyret number operations compatible with JS numbers
     # Always assume Pyret numbers when compiling
@@ -331,7 +329,8 @@ fun compile-s-op(context, l, op-l, op, left, right):
     | op == "opand" then: j-binop(lv, J.j-and, rv)
     | otherwise: nyi(op)
   end
-  { val; lstmts + rstmts; lv; rv }
+
+  val
 end
 
 data BindableKind:
@@ -565,8 +564,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { compile-srcloc(l); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
-      { val; stmts; _lv; _rv } = compile-s-op(context, l, op-l, op, left, right)
-      { val; stmts }
+      { lv; l-stmts } = compile-expr(context, left)
+      { rv; r-stmts } = compile-expr(context, right)
+
+      val = compile-s-op(context, l, op-l, op, lv, rv)
+
+      { val; l-stmts + r-stmts }
 
     | s-lam(l, name, _, args, _, _, body, _, _, _) =>
 
@@ -1155,12 +1158,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { raw-js-test-val; raw-js-test-stmts; lhs; rhs } = cases(CheckOpDesugar) check-op:
         | binop-result(bin-op) =>
           cases(Option) right:
-            | some(right-expr) => 
-              # Assuming this compile-expr returns j-binop
-              { j-test-val; j-test-stmts; lhs; rhs } =
-                compile-s-op(context, l, l, bin-op, left, right-expr)
+            | some(right-expr) =>
+              
+              { lhs; l-stmt } = compile-expr(context, left)
+              { rhs; r-stmt } = compile-expr(context, right-expr)
 
-              { j-test-val; j-test-stmts ; lhs; some(rhs) } 
+              # Assuming this compile-expr returns j-binop
+              j-test-val = compile-s-op(context, l, l, bin-op, lhs, rhs)
+
+              { j-test-val; l-stmt + r-stmt ; lhs; some(rhs) } 
 
             | none => raise("Attempting to use a binary check op without the RHS")
           end
