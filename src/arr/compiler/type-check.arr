@@ -632,8 +632,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-data should have already been desugared")
         | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data-expr should have been handled by s-letrec")
-        | s-for(l, iterator, bindings, ann, body) =>
-          raise("s-for should have already been desugared")
+        | s-for(l, iterator, bindings, ann, body, blocky) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-check(l, name, body, keyword-check) =>
           typing-result(e, expect-type, context)
       end
