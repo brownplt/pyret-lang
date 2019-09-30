@@ -3,6 +3,8 @@
         "values": {
             "juliet": "String",
             "getBuffer": ["arrow", ["String"], "tany"],
+            "getArray": ["arrow", ["String"], "tany"],
+            "inputArray": ["arrow", ["tany", "Number", "Number"], "tany"],
             "makeSound": ["arrow", ["Any", "Any", "Any"],
                 ["local", "Sound"]
             ],
@@ -11,8 +13,7 @@
             ],
             "overlay": ["arrow", ["tany"],
                 ["local", "Sound"]
-            ],
-            "playSound": ["arrow", ["tany"], "Any"]
+            ]
         },
         "datatypes": {
             "Sound": ["data", "Sound", [],
