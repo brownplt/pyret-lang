@@ -10,7 +10,7 @@ end
 my-list :: List<Number> = [L.list: 1, 2, 3]
 
 fun printList(list :: List<Number>):
-  msg = for L.reduce( s from "", e from list):
+  msg = for L.fold( s from "", e from list):
    s + G.js-to-string(e)
   end
 

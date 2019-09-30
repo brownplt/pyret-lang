@@ -84,12 +84,13 @@ function compileSuccess() {
         console.log("Run complete with: ", result.result);
         console.log("Run complete in: ", result.time);
       },
+      (x: any) => {},
       runChoice === 'ASYNC' ? control.backend.RunKind.Async : control.backend.RunKind.Sync);
     runChoice = NO_RUNS;
   }
 }
 
-const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, compileFailure, echoLog, () => {}, () => {}, compileSuccess);
+const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, () => {}, compileFailure, echoLog, () => {}, () => {}, compileSuccess);
 
 control.worker.onmessage = function(e) {
 

@@ -13,7 +13,6 @@ require('pyret-codemirror-mode/mode/pyret');
 type SingleCodeMirrorDefinitionsProps = {
   onEdit: (s: string) => void,
   highlights: number[][],
-  interactErrorExists: boolean,
   text: string
 };
 type SingleCodeMirrorDefinitionsState = {
@@ -26,7 +25,7 @@ export class SingleCodeMirrorDefinitions extends React.Component<SingleCodeMirro
 
   componentDidUpdate() {
     if(this.state.editor !== null) {
-      if (this.props.interactErrorExists) {
+      if (this.props.highlights.length > 0) {
           for (let i = 0; i < this.props.highlights.length; i++) {
               this.state.editor.getDoc().markText(
                   { line: this.props.highlights[i][0] - 1,
@@ -36,8 +35,9 @@ export class SingleCodeMirrorDefinitions extends React.Component<SingleCodeMirro
                   { className: "styled-background-error" });
           }
       } else {
-          for (let i = 0; i < this.state.editor.getDoc().getAllMarks().length; i++) {
-              this.state.editor.getDoc().getAllMarks()[i].clear();
+          const marks = this.state.editor.getDoc().getAllMarks();
+          for (let i = 0; i < marks.length; i++) {
+              marks[i].clear();
           }
       }
     }

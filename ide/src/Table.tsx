@@ -7,8 +7,8 @@ type TableWidgetProps = {
     htmlify: (x: any) => any;
     headers: string[];
     rows: any[][];
-    setMessage: (newMessage: string) => void;
 };
+
 type TableWidgetState = {};
 
 export class TableWidget extends React.Component<TableWidgetProps, TableWidgetState> {
@@ -29,8 +29,7 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
         const defaultPageSize = showOptions ? maxRowsPerPage : this.props.rows.length;
         return (
             <div className="table-container">
-                <CopyToClipboard text={data.map((d) => d.join("\t")).join("\n")}
-                                 onCopy={() => this.props.setMessage("Copied table data")}>
+                <CopyToClipboard text={data.map((d) => d.join("\t")).join("\n")}>
                     <div className="table-copy">
                         &#128203;
                     </div>

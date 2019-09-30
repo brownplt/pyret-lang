@@ -99,5 +99,6 @@
   "devDependencies": {
     "case-sensitive-paths-webpack-plugin": "^2.2.0",
     "copy-webpack-plugin": "^5.0.4"
-  }
+  },
+  "homepage": "."
 }

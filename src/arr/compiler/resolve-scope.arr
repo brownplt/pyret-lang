@@ -1012,11 +1012,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       defined-vals = for map(key from non-globals): 
         vb = self.env.get-value(key)
+        loc = vb.origin.local-bind-site
         atom = vb.atom
         cases(C.ValueBinder) vb.binder block:
-          | vb-let => A.s-defined-value(key, A.s-id(l, atom))
-          | vb-letrec => A.s-defined-value(key, A.s-id-letrec(l, atom, true))
-          | vb-var => A.s-defined-var(key, atom)
+          | vb-let => A.s-defined-value(key, A.s-id(loc, atom))
+          | vb-letrec => A.s-defined-value(key, A.s-id-letrec(loc, atom, true))
+          | vb-var => A.s-defined-var(key, atom, loc)
         end
       end
 

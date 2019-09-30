@@ -30,6 +30,7 @@ let compileStart = window.performance.now();
  */
 export const makeBackendMessageHandler = (
   echoLog: (l: string) => void,
+  setupFinished: () => void,
   compileFailure: (e: string[]) => void,
   runtimeFailure: (e: string[]) => void,
   lintFailure: (data: { name: string, errors: string[]}) => void,
@@ -52,6 +53,8 @@ export const makeBackendMessageHandler = (
         lintFailure(msgObject.data);
       } else if (msgType === "lint-success") {
         lintSuccess(msgObject.data);
+      } else if (msgType === "setup-finished") {
+        setupFinished();
       } else if (msgType === "compile-failure") {
         compileFailure(msgObject.data);
       } else if (msgType === "compile-success") {
@@ -109,6 +112,51 @@ const assertNever = (_arg: never): never => {
   throw new Error('assertNever');
 };
 
+export const runProgram2 = (
+  runner: any,
+  baseDir: string,
+  program: string,
+  runKind: RunKind): Promise<any> => {
+  if (runKind === RunKind.Sync) {
+    const start = window.performance.now();
+    const result = runner.makeRequire(baseDir)(program);
+    const end = window.performance.now();
+    return Promise.resolve({
+      time: end - start,
+      result: result
+    });
+  } else if (runKind === RunKind.Async) {
+    return new Promise<any>((resolve, _reject) => {
+      const startRequire = window.performance.now();
+      runner.makeRequireAsync(baseDir)(program).then((asyncRunner: any) => {
+        const endRequire = window.performance.now();
+        console.log("require time", endRequire - startRequire);
+        resolve({
+          run: (callback: (result: RunResult) => void): void => {
+            const startRun = window.performance.now();
+            asyncRunner.run((result: any) => {
+              const endRun = window.performance.now();
+              console.log("run time", endRun - startRun);
+              callback({
+                time: endRun - startRequire,
+                result: result,
+              });
+            });
+          },
+          pause: (callback: (line: number) => void): void => {
+            asyncRunner.pause(callback);
+          },
+          resume: (): void => {
+            asyncRunner.resume();
+          },
+        });
+      });
+    });
+  } else {
+    return assertNever(runKind);
+  }
+};
+
 export const runProgram = (
   runner: any,
   baseDir: string,
@@ -127,18 +175,29 @@ export const runProgram = (
     const entry = runner.makeRequireAsync(baseDir);
     const resultP = entry(program);
 
-    let wrapper = async function() {
-      const start = window.performance.now();
-      let result = await resultP;
-      const end = window.performance.now();
+    const wrapper = new Promise<RunResult>((resolve, _reject) => {
+      const startRequire = window.performance.now();
+      resultP.then((asyncRunner: any) => {
+        console.log("asyncRunner", asyncRunner);
+        const endRequire = window.performance.now();
 
-      return {
-        time: end - start,
-        result: result,
-      };
-    };
+        const startRun = window.performance.now();
+        asyncRunner.run((result: any) => {
+          const endRun = window.performance.now();
 
-    return wrapper();
+          console.log("require time", endRequire - startRequire);
+          console.log("run time", endRun - startRun);
+          console.log("total time", endRun - startRequire);
+
+          resolve({
+            time: endRun - startRequire,
+            result: result,
+          })
+        });
+      });
+    });
+
+    return wrapper;
   } else {
     // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
     return assertNever(runKind);

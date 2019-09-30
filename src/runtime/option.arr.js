@@ -7,10 +7,7 @@
 //   | some(elt :: a)
 //   | none
 // end
-var g15 = require("././global.arr.js");
-var _global = require("././global.arr.js");
 var _nothing = undefined;
-var nothing14 = g15.nothing;
 var $some9 = {"names":["elt"]};
 var $none10 = {"names":false};
 var Option1 = {"some":function some(elt11) {
@@ -36,5 +33,5 @@ return module["exports"] = {"is-none":is$none3,
                             "is-Option":is$Option6,
                             "is-some":is$some5,
                             "some":some4,
-                            "$answer":_global["trace-value"]("srcloc",nothing14),
+                            "$answer":_nothing,
                             "$checks":undefined};

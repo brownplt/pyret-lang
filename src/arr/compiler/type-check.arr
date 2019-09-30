@@ -478,7 +478,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           end)
         | s-if-pipe(l, branches) =>
           raise("s-if-pipe should have already been desugared")
-        | s-if-pipe-else(l, branches, _else) =>
+        | s-if-pipe-else(l, branches, _else, _blocky) =>
           raise("s-if-pipe-else should have already been desugared")
         | s-if(l, branches, blocky) =>
           # TODO(ALEX): check s-if handling
@@ -632,8 +632,8 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           raise("s-data should have already been desugared")
         | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
           raise("s-data-expr should have been handled by s-letrec")
-        | s-for(l, iterator, bindings, ann, body) =>
-          raise("s-for should have already been desugared")
+        | s-for(l, iterator, bindings, ann, body, blocky) =>
+          check-synthesis(e, expect-type, top-level, context)
         | s-check(l, name, body, keyword-check) =>
           typing-result(e, expect-type, context)
       end
@@ -1629,7 +1629,9 @@ fun synthesis-op(top-level, app-loc, op, op-loc, left, right, context):
   end
   if (op == "opand") or (op == "opor"):
     # Checking the LHS and RHS of these operators
-    # TODO(alex): define '_and' and '_or' functions?
+
+    # NOTE(alex): Per talks with joe, do NOT define '_and' and '_or' functions
+    #   The only overridable method should be _equals
     left-result = checking(left, t-boolean(op-loc), top-level, context)
     cases(TypingResult) left-result:
       | typing-result(lhs-ast, lhs-ty, lhs-out-context) =>

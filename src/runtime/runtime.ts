@@ -8,6 +8,7 @@ import { callbackify } from "util";
  */
 
 const _NUMBER = require("./js-numbers.js");
+const _OPTION = require('./option.arr.js');
 
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
@@ -123,7 +124,9 @@ function equalityResultToBool(ans: EqualityResult): boolean {
   }
 }
 
-function isFunction(obj: any): boolean { return typeof obj === "function"; }
+function isFunction(obj: any): boolean { 
+  return (typeof obj === "function") && !(isMethod(obj)); 
+}
 
 function isMethod(obj: any): boolean { 
   return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
@@ -131,9 +134,6 @@ function isMethod(obj: any): boolean {
 
 // TODO(alex): Will nothing always be value 'undefined'?
 function isNothing(obj: any): boolean { return obj === undefined };
-
-// TODO(alex): Identify opaque types
-function isOpaque(val: any): boolean { return false; }
 
 const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
 const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
@@ -195,10 +195,8 @@ var NumberErrbacks: NumericErrorCallbacks = {
 export function identical3(v1: any, v2: any): EqualityResult {
   if (isFunction(v1) && isFunction(v2)) {
     return Unknown("Function", v1, v2);
-  // TODO(alex): Handle/detect methods
-  // } else if (isMethod(v1) && isMethod(v2)) {
-  //  return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
-  //  TODO(alex): Handle/detect rough numbers
+  } else if (isMethod(v1) && isMethod(v2)) {
+    return Unknown("Method", v1, v2);
   } else if (isRoughNumber(v1) && isRoughNumber(v2)) {
     return Unknown('Roughnums', v1,  v2);
   } else if (v1 === v2) {
@@ -257,8 +255,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
     } else if (isFunction(v1) && isFunction(v2)) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
-      
-      // TODO(alex): Handle methods
+    } else if (isMethod(v1) && isMethod(v2)) {
+      return Unknown("Methods", v1, v2);
     } else if (isPTuple(v1) && isPTuple(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("PTuple Length", v1, v2);
@@ -280,7 +278,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       continue;
 
     } else if (isNothing(v1) && isNothing(v2)) {
-      // TODO(alex): Is equality defined for Pyret Nothing?
+      // Equality is defined for 'nothing'
+      // 'nothing' is always equal to 'nothing'
       continue; 
 
     } else if (isPRef(v1) && isPRef(v2)) {
@@ -391,14 +390,21 @@ interface CheckResult {
   success: boolean,
   path: string,
   loc: string,
-  lhs: any,
-  rhs: any,
+  lhs: CheckExprEvalResult,
+  rhs: CheckExprEvalResult,
+  exception?: any,
+}
+
+interface CheckExprEvalResult {
+  value: any,
+  exception: boolean,
+  exception_val: any,
 }
 
 interface CheckTestResult {
   success: boolean,
-  lhs: any,
-  rhs: any,
+  lhs: CheckExprEvalResult,
+  rhs: CheckExprEvalResult,
 }
 
 var _globalCheckContext: string[] = [];
@@ -432,23 +438,54 @@ function checkResults(): CheckResult[] {
   return getCheckResults();
 }
 
-function eagerCheckTest(test: () => CheckTestResult, loc: string): void {
+function eagerCheckTest(lhs: () => any,  rhs: () => any,
+  test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult, 
+  loc: string): void {
+
+  let lhs_expr_eval: CheckExprEvalResult = {
+    value: undefined,
+    exception: false,
+    exception_val: undefined,
+  };
+
+  let rhs_expr_eval: CheckExprEvalResult = {
+    value: undefined,
+    exception: false,
+    exception_val: undefined,
+  };
+
   try {
-    let result = test();
+    lhs_expr_eval.value = lhs();
+  } catch(e) {
+    lhs_expr_eval.exception = true;
+    lhs_expr_eval.exception_val = e;
+  }
+
+  try {
+    rhs_expr_eval.value = rhs();
+  } catch(e) {
+    rhs_expr_eval.exception = true;
+    rhs_expr_eval.exception_val = e;
+  }
+
+  try {
+    let result = test(lhs_expr_eval, rhs_expr_eval);
     _globalCheckResults.push({
         success: result.success,
         path: _globalCheckContext.join(),
         loc: loc,
         lhs: result.lhs,
         rhs: result.rhs,
+        exception: undefined,
     });
   } catch(e) {
     _globalCheckResults.push({
         success: false,
         path: _globalCheckContext.join(),
         loc: loc,
-        lhs: undefined,
-        rhs: undefined,
+        lhs: lhs_expr_eval,
+        rhs: rhs_expr_eval,
+        exception: e,
     });
   } 
 }
@@ -468,11 +505,16 @@ function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
   }
 }
 
+var _globalTraceValues = [];
+
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
+  _globalTraceValues.push({srcloc: loc, value});
   return value;
 }
+
+function getTraces() { return _globalTraceValues; }
 
 // Allow '+' for string concat. 
 // Otherwise, defer to the number library.
@@ -512,6 +554,15 @@ export function pauseStack(callback) {
   });
 }
 
+function stringToNumber(s: string): any {
+  var result = _NUMBER['fromString'](s);
+  if (result === false) {
+    return _OPTION['none'];
+  } else {
+    return _OPTION['some'](result);
+  }
+}
+
 
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value
@@ -524,6 +575,8 @@ module.exports["is-NotEqual"] = isNotEqual;
 module.exports["is-Unknown"] = isUnknown;
 
 // Expected runtime functions
+module.exports["$getTraces"] = getTraces;
+
 module.exports["$spy"] = _spy;
 module.exports["$rebind"] = _rebind;
 
@@ -546,3 +599,5 @@ module.exports["_greaterThan"] = _NUMBER["greaterThan"];
 module.exports["_lessThanOrEqual"] = _NUMBER["lessThanOrEqual"];
 module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
+
+module.exports["string-to-number"] = stringToNumber;

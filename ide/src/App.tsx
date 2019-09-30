@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
+import { Check, TestResult } from './Check';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
@@ -25,51 +26,35 @@ enum EEditor {
 type AppProps = {};
 type AppState = {};
 
-function makeResult(result: any, compiledJSONPath: string): { name: string, value: any }[] {
-    const programJSON = JSON.parse(
-        control.bfsSetup.fs.readFileSync(compiledJSONPath));
-
-    const providedValues = programJSON.provides.values;
-    const providedValuesKeys = Object.keys(programJSON.provides.values);
-
-    const insertLineNumber = (key: string) => {
-        const column =
-            providedValues[key].origin["local-bind-site"][1];
-        return { line: column, name: key, value: result[key] };
+function makeResult(result: any, moduleUri: string): { name: string, value: any }[] {
+    const compareLocations = (a: any, b: any): number => {
+        return a.srcloc[1] - b.srcloc[1];
     };
 
-    type Result = {
-        line: number,
-        name: string,
-        value: any,
-    };
+    // There may be toplevel expressions in many modules, but we only want to
+    // show the ones from the main module we're working on
+    const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
 
-    const compareResults = (a: Result, b: Result): number => {
-        if (a.line < b.line) {
-            return -1;
-        } else if (a.line > b.line) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
+    const allWithLocs = result.$locations.concat(mainTraces);
 
-    if (providedValuesKeys.length !== 0) {
-        // we have source location information for bindings, so we sort them
-        // based on which column they are bound on
-        return providedValuesKeys
-            .map(insertLineNumber)
-            .sort(compareResults);
-    } else {
-        // we do not have source location information for bindings, so we sort
-        // them alphabetically by identifier name
-        return Object.keys(result).sort().map((key) => {
+    // We combine and then sort to get the traces interleaved correctly with named values
+    const allSorted = allWithLocs.sort(compareLocations);
+    return allSorted.map((key: any) => {
+        if('name' in key) {
             return {
-                name: key,
-                value: result[key]
-            }
-        });
-    }
+                name: key.name,
+                line: key.srcloc[1],
+                value: result[key.name]
+            };
+        }
+        else {
+            return {
+                name: "",
+                line: key.srcloc[1],
+                value: key.value
+            };
+        }
+    });
 }
 
 type LintFailure = {
@@ -84,6 +69,126 @@ type EditorProps = {
     currentFileName: string;
 };
 
+enum CompileState {
+    // Starting state for the application. We are waiting for the webworker to
+    // give us confirmation that it has finished its setup phase and is ready
+    // to receive compilation requests.
+    //
+    // Startup -> StartupQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // Startup -> Ready
+    //   The webworker finishes its setup.
+    Startup,
+
+    // We are waiting for the webworker to give us confirmation that it has
+    // finished its setup phase so that we can satisfy a queued compilation
+    // request.
+    //
+    // StartupQueue -> StartupQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // StartupQueue -> Compile
+    //   The webworker finishes its setup
+    StartupQueue,
+
+    // We are able to immediately satisfy any compilation requests.
+    //
+    // Ready -> Compile
+    //   The user edits the definitions area or clicks "run".
+    Ready,
+
+    // We are compiling the program. Any compilation request generated during
+    // this state will queue it for later.
+    //
+    // Compile -> CompileQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // Compile -> RunningWithStops
+    //   Compilation (with stopify) succeeded and autoRun is enabled. The
+    //   program is run.
+    //
+    // Compile -> RunningWithoutStops
+    //   Compilation (without stopify) succeeded and autoRun is enabled. The
+    //   program is run.
+    //
+    // Compile -> Ready
+    //   Compilation failed.
+    Compile,
+
+    // We have received a compilation request during a compilation.
+    //
+    // CompileQueue -> CompileQueue
+    //   The user edits the definitions area or clicks "run".
+    //
+    // CompileQueue -> Compile
+    //   Compilation either succeeded or failed. Either way, the program is not
+    //   run.
+    CompileQueue,
+
+    CompileRun,
+    CompileRunQueue,
+
+    // The program (which has been compiled with Stopify) is running. It can be
+    // stopped by the user when the press the "stop" button.
+    //
+    // RunningWithStops -> Stopped
+    //   The user presses the "stop" button. The program is stopped.
+    //
+    // RunningWithStops -> Ready
+    //   The program finishes its execution.
+    //
+    // RunningWithStops -> Compile
+    //   The user edits the definitions area or hits "run".
+    RunningWithStops,
+
+    // The program is running. It has not been compiled with Stopify, so it
+    // cannot be interrupted.
+    //
+    // RunningWithoutStops -> Ready
+    //   The program finishes its execution
+    RunningWithoutStops,
+
+    // Stopped -> Compile
+    //   The user edits the definitions area or hits  the "run" button.
+    Stopped,
+}
+
+const invalidCompileState = (state: CompileState): void => {
+    throw new Error(`illegal CompileState reached: ${state}`);
+};
+
+const compileStateToString = (state: CompileState): string => {
+    // TODO(michael): these could be more pirate-themed
+    if (state === CompileState.Startup) {
+        return "Finishing setup";
+    } else if (state === CompileState.StartupQueue) {
+        return "Compile request on hold: finishing setup";
+    } else if (state === CompileState.Ready) {
+        return "Ready";
+    } else if (state === CompileState.Compile) {
+        return "Compiling";
+    } else if (state === CompileState.CompileQueue) {
+        return "Compile request on hold: already compiling";
+    } else if (state === CompileState.CompileRun) {
+        return "Waiting to run: compiling";
+    } else if (state === CompileState.CompileRunQueue) {
+        return "Compile and run requests on hold: already compiling"
+    } else if (state === CompileState.RunningWithStops) {
+        return "Running (stop button enabled)";
+    } else if (state === CompileState.RunningWithoutStops) {
+        return "Running (stop button disabled)";
+    } else if (state === CompileState.Stopped) {
+        return "Program execution stopped"
+    } else {
+        const assertNever = (_arg: never): never => {
+            throw new Error("assertNever");
+        };
+
+        return assertNever(state);
+    }
+};
+
 type EditorState = {
     browseRoot: string;
     browsePath: string[];
@@ -91,9 +196,9 @@ type EditorState = {
     currentFileName: string;
     currentFileContents: string;
     typeCheck: boolean;
+    checks: Check[],
     interactions: { name: string, value: any }[];
     interactionErrors: string[];
-    interactErrorExists: boolean;
     lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
     autoRun: boolean;
@@ -104,6 +209,8 @@ type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
+    compileState: CompileState;
+    currentRunner: any;
 };
 
 class Editor extends React.Component<EditorProps, EditorState> {
@@ -125,76 +232,115 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         control.setupWorkerMessageHandler(
             console.log,
-            (errors: string[]) => {
-                this.setMessage("Compilation failed with error(s)")
-                const places: any = [];
-                for (let i = 0; i < errors.length; i++) {
-                    const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
-                    if (matches !== null) {
-                        matches.forEach((m) => {
-                            places.push(m.match(/\d+/g)!.map(Number));
-                        });
-                    }
+            () => {
+                console.log("setup finished");
+
+                if (this.state.compileState === CompileState.Startup) {
+                    this.setState({compileState: CompileState.Ready});
+                } else if (this.state.compileState === CompileState.StartupQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.update();
+                } else {
+                    invalidCompileState(this.state.compileState);
                 }
-                this.setState(
-                    {
-                        interactionErrors: errors,
-                        interactErrorExists: true,
-                        definitionsHighlights: places
+            },
+            (errors: string[]) => {
+                console.log("COMPILE FAILURE");
+                if (this.state.compileState === CompileState.Compile
+                    || this.state.compileState === CompileState.CompileRun) {
+                    this.setState({compileState: CompileState.Ready});
+
+                    const places: any = [];
+                    for (let i = 0; i < errors.length; i++) {
+                        const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
+                        if (matches !== null) {
+                            matches.forEach((m) => {
+                                places.push(m.match(/\d+/g)!.map(Number));
+                            });
+                        }
                     }
-                );
+                    this.setState(
+                        {
+                            interactionErrors: errors,
+                            definitionsHighlights: places
+                        }
+                    );
+                } else if (this.state.compileState === CompileState.CompileQueue
+                           || this.state.compileState === CompileState.CompileRunQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.update();
+                } else {
+                    invalidCompileState(this.state.compileState);
+                }
             },
             (errors: string[]) => {
                 this.setState(
                     {
                         interactionErrors: [errors.toString()],
-                        interactErrorExists: true,
                     }
                 );
             },
             onLintFailure,
             onLintSuccess,
             () => {
-                this.setMessage("Run started");
-                control.run(
-                    control.path.runBase,
-                    control.path.runProgram,
-                    (runResult: any) => {
-                        console.log(runResult);
-                        if (runResult.result !== undefined) {
-                            if (runResult.result.error === undefined) {
-                                this.setMessage("Run completed successfully");
+                console.log("COMPILE SUCCESS");
+                if (this.state.compileState === CompileState.Compile) {
+                    this.setState({compileState: CompileState.Ready});
+                } else if (this.state.compileState === CompileState.CompileQueue
+                           || this.state.compileState === CompileState.CompileRunQueue) {
+                    this.setState({compileState: CompileState.Ready});
+                    this.update();
+                } else if (this.state.compileState === CompileState.CompileRun) {
+                    if (this.stopify) {
+                        this.setState({compileState: CompileState.RunningWithStops});
+                    } else {
+                        this.setState({compileState: CompileState.RunningWithoutStops});
+                    }
+                    const x = new Date();
+                    console.log(`Run ${x} started`);
+                    control.run(
+                        control.path.runBase,
+                        control.path.runProgram,
+                        (runResult: any) => {
+                            this.setState({compileState: CompileState.Ready});
+                            console.log(`Run ${x} finished`);
+                            console.log(runResult);
+                            if (runResult.result !== undefined) {
+                                if (runResult.result.error === undefined) {
+                                    const results =
+                                        makeResult(
+                                            runResult.result,
+                                            'file://' + 
+                                            control.bfsSetup.path.join(
+                                                control.path.compileBase,
+                                                this.state.currentFileName));
+                                    const checks = runResult.result.$checks;
+                                    this.setState({
+                                        interactions: results,
+                                        checks: checks
+                                    });
 
-                                const results =
-                                    makeResult(
-                                        runResult.result,
-                                        control.bfsSetup.path.join(
-                                            control.path.runBase,
-                                            `${this.state.currentFileName}.json`));
-
-                                this.setState({
-                                    interactions: results
-                                });
-
-                                if (results[0].name === "error") {
-                                    this.setState(
-                                        {
-                                            interactionErrors: runResult.result.error,
-                                            interactErrorExists: true
-                                        }
-                                    );
+                                    if (results[0] !== undefined && results[0].name === "error") {
+                                        this.setState(
+                                            {
+                                                interactionErrors: runResult.result.error,
+                                            }
+                                        );
+                                    }
+                                } else {
+                                    this.setState({
+                                        interactionErrors: [runResult.result.error],
+                                    });
                                 }
-                            } else {
-                                this.setMessage("Run failed with error(s)");
-
-                                this.setState({
-                                    interactionErrors: [runResult.result.error],
-                                    interactErrorExists: true
-                                });
                             }
-                        }
-                    },
-                    this.state.runKind);
+                        },
+                        (runner: any) => {
+                            this.setState({currentRunner: runner});
+                        },
+                        this.state.runKind);
+                } else {
+                    invalidCompileState(this.state.compileState);
+                }
             });
 
         this.state = {
@@ -207,22 +353,24 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     ...this.props.currentFileDirectory,
                     this.props.currentFileName)),
             typeCheck: true,
+            checks: [],
             interactions: [{
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
             interactionErrors: [],
-            interactErrorExists: false,
             lintFailures: {},
             runKind: control.backend.RunKind.Async,
             autoRun: true,
-            updateTimer: setTimeout(this.update, 2000),
+            updateTimer: setTimeout(() => { return; }, 0),
             dropdownVisible: false,
-            editorMode: EEditor.Text,
+            editorMode: EEditor.Chunks,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
+            compileState: CompileState.Startup,
+            currentRunner: undefined,
         };
     };
 
@@ -248,21 +396,47 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return this.state.runKind === control.backend.RunKind.Async;
     }
 
-    run = () => {
+    run = (runAfterwards: boolean) => {
         this.setState(
             {
                 interactionErrors: [],
-                interactErrorExists: false
+                definitionsHighlights: []
             }
         );
         if (this.isPyretFile) {
-            this.setMessage("Compilation started");
-            control.compile(
-                this.currentFileDirectory,
-                this.currentFileName,
-                this.state.typeCheck);
+            if (this.state.compileState === CompileState.Startup) {
+                this.setState({compileState: CompileState.StartupQueue});
+            } else if (this.state.compileState === CompileState.StartupQueue) {
+                // state remains as StartupQueue
+            } else if (this.state.compileState === CompileState.Ready
+                       || this.state.compileState === CompileState.Stopped) {
+                if (runAfterwards || this.state.autoRun) {
+                    this.setState({compileState: CompileState.CompileRun});
+                } else {
+                    this.setState({compileState: CompileState.Compile});
+                }
+                control.compile(
+                    this.currentFileDirectory,
+                    this.currentFileName,
+                    this.state.typeCheck);
+            } else if (this.state.compileState === CompileState.Compile) {
+                this.setState({compileState: CompileState.CompileQueue});
+            } else if (this.state.compileState === CompileState.CompileRun) {
+                this.setState({compileState: CompileState.CompileRunQueue});
+            } else if (this.state.compileState === CompileState.CompileQueue) {
+                // state remains as CompileQueue
+            } else if (this.state.compileState === CompileState.CompileRunQueue) {
+                // state remains as CompileRunQueue
+            } else if (this.state.compileState === CompileState.RunningWithStops) {
+                this.stop();
+                this.update();
+                // state remains as RunningWithStops
+            } else if (this.state.compileState === CompileState.RunningWithoutStops) {
+                // state remains as RunningWithoutStops
+            } else {
+                invalidCompileState(this.state.compileState);
+            }
         } else {
-            this.setMessage("Visited a non-pyret file");
             this.setState({
                 interactions: [
                     {
@@ -274,7 +448,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         value: this.currentFile
                     }],
                 interactionErrors: ["Error: Run is not supported on this file type"],
-                interactErrorExists: true
             });
         }
     };
@@ -283,16 +456,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.fs.writeFileSync(
             this.currentFile,
             this.state.currentFileContents);
-        if (this.state.autoRun) {
-            this.run();
-        }
+        this.run(false);
     }
 
     onEdit = (value: string): void => {
         clearTimeout(this.state.updateTimer);
         this.setState({
-            currentFileContents: value,
-            updateTimer: setTimeout(this.update, 250),
+    //        currentFileContents: value,
+            updateTimer: setTimeout(() => {
+                this.setState({currentFileContents: value});
+                this.update();
+            }, 250),
         });
     }
 
@@ -404,13 +578,22 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
+    stop = () => {
+        if (this.state.currentRunner !== undefined) {
+            this.state.currentRunner.pause((line: number) => console.log("paused on line", line))
+            this.setState({
+                currentRunner: undefined,
+                compileState: CompileState.Stopped
+            });
+        }
+    };
+
     makeDefinitions() {
         if (this.state.editorMode === EEditor.Text) {
             return <SingleCodeMirrorDefinitions
                 text={this.state.currentFileContents}
                 onEdit={this.onEdit}
-                highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}>
+                highlights={this.state.definitionsHighlights}>
             </SingleCodeMirrorDefinitions>;
         }
         else if (this.state.editorMode === EEditor.Chunks) {
@@ -418,7 +601,6 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 lintFailures={this.state.lintFailures}
                 name={this.state.currentFileName}
                 highlights={this.state.definitionsHighlights}
-                interactErrorExists={this.state.interactErrorExists}
                 program={this.state.currentFileContents}
                 onEdit={this.onEdit}></DefChunks>);
         }
@@ -426,18 +608,21 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
     render() {
         const interactionValues =
-            <pre className="interactions-area"
-                 style={{ fontSize: this.state.fontSize }}>
-                {
-                    this.state.interactions.map(
-                        (i) => {
-                            return <Interaction key={i.name}
-                                                name={i.name}
-                                                value={i.value}
-                                                setMessage={this.setMessage}/>
-                        })
-                }
-            </pre>;
+            <div style={{ fontSize: this.state.fontSize }}>
+                <pre className="checks-area">
+                    { this.state.checks && this.state.checks.map(c => <TestResult check={c}></TestResult>)}
+                </pre>
+                <pre className="interactions-area">
+                    {
+                        this.state.interactions.map(
+                            (i) => {
+                                return <Interaction key={i.name}
+                                                    name={i.name}
+                                                    value={i.value}/>
+                            })
+                    }
+                </pre>
+            </div>;
 
         const dropdown = this.state.dropdownVisible && (
             <Dropdown>
@@ -506,7 +691,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         const rightHandSide =
             <div className="interactions-area-container">
-                {this.state.interactErrorExists ? (
+                {this.state.interactionErrors.length > 0 ? (
                     <SplitterLayout vertical={true}
                                     percentage={true}>
                         {interactionValues}
@@ -522,8 +707,9 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    {this.stopify ? (
-                        <button className="stop-available">
+                    {this.stopify && this.state.compileState === CompileState.RunningWithStops ? (
+                        <button className="stop-available"
+                                onClick={this.stop}>
                             Stop
                         </button>
                     ) : (
@@ -533,7 +719,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     )}
                     <div className="run-container">
                         <button className="run-ready"
-                                onClick={this.run}>
+                                onClick={() => this.run(true)}>
                             Run
                         </button>
                         <button className="run-options"
@@ -553,7 +739,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         {rightHandSide}
                     </SplitterLayout>
                 </div>
-                <Footer message={this.state.message}></Footer>
+                <Footer message={compileStateToString(this.state.compileState)}></Footer>
             </div>
         );
     }

@@ -1,37 +1,103 @@
 {
-    "theMap": "{\"version\":3,\"sources\":[\"file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr\"],\"names\":[\"file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr\"],\"mappings\":\"AAACA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA\",\"file\":\"file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr\"}",
+    "theMap": "{\"version\":3,\"sources\":[\"file:///home/tiffany/pyret-lang/src/runtime/either.arr\"],\"names\":[\"file:///home/tiffany/pyret-lang/src/runtime/either.arr\"],\"mappings\":\"AAACA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA;AAAAA\",\"file\":\"file:///home/tiffany/pyret-lang/src/runtime/either.arr\"}",
     "nativeRequires": [],
     "provides": {
         "modules": {},
         "values": {
-            "is-none": {
+            "right": {
                 "bind": "let",
                 "origin": {
                     "local-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        8,
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
                         2,
-                        84,
-                        8,
-                        8,
-                        90
+                        97,
+                        10,
+                        17,
+                        112
                     ],
                     "definition-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        8,
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
                         2,
-                        84,
-                        8,
-                        8,
-                        90
+                        97,
+                        10,
+                        17,
+                        112
                     ],
                     "new-definition": true,
-                    "uri-of-definition": "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr"
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
                 },
                 "typ": [
                     "forall",
                     [
-                        "atom#a#10"
+                        "atom#a#10",
+                        "atom#b#11"
+                    ],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tid",
+                                "atom#b#11"
+                            ]
+                        ],
+                        [
+                            "data%",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "$ELF"
+                                    },
+                                    "name": "Either"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
+                                    ]
+                                ]
+                            ],
+                            "right"
+                        ]
+                    ]
+                ]
+            },
+            "is-right": {
+                "bind": "let",
+                "origin": {
+                    "local-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
+                        2,
+                        97,
+                        10,
+                        17,
+                        112
+                    ],
+                    "definition-bind-site": [
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        10,
+                        2,
+                        97,
+                        10,
+                        17,
+                        112
+                    ],
+                    "new-definition": true,
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
+                },
+                "typ": [
+                    "forall",
+                    [
+                        "atom#a#10",
+                        "atom#b#11"
                     ],
                     [
                         "arrow",
@@ -43,12 +109,16 @@
                                     "origin": {
                                         "import-type": "$ELF"
                                     },
-                                    "name": "Option"
+                                    "name": "Either"
                                 },
                                 [
                                     [
                                         "tid",
                                         "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
                                     ]
                                 ]
                             ]
@@ -64,85 +134,35 @@
                     ]
                 ]
             },
-            "none": {
+            "is-left": {
                 "bind": "let",
                 "origin": {
                     "local-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        8,
-                        2,
-                        84,
-                        8,
-                        8,
-                        90
-                    ],
-                    "definition-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        8,
-                        2,
-                        84,
-                        8,
-                        8,
-                        90
-                    ],
-                    "new-definition": true,
-                    "uri-of-definition": "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr"
-                },
-                "typ": [
-                    "forall",
-                    [
-                        "atom#a#10"
-                    ],
-                    [
-                        "data%",
-                        [
-                            "tyapp",
-                            {
-                                "tag": "name",
-                                "origin": {
-                                    "import-type": "$ELF"
-                                },
-                                "name": "Option"
-                            },
-                            [
-                                [
-                                    "tid",
-                                    "atom#a#10"
-                                ]
-                            ]
-                        ],
-                        "none"
-                    ]
-                ]
-            },
-            "is-Option": {
-                "bind": "let",
-                "origin": {
-                    "local-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        6,
-                        0,
-                        47,
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
                         9,
-                        3,
+                        2,
+                        80,
+                        9,
+                        16,
                         94
                     ],
                     "definition-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        6,
-                        0,
-                        47,
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
                         9,
-                        3,
+                        2,
+                        80,
+                        9,
+                        16,
                         94
                     ],
                     "new-definition": true,
-                    "uri-of-definition": "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr"
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
                 },
                 "typ": [
                     "forall",
                     [
-                        "atom#a#10"
+                        "atom#a#10",
+                        "atom#b#11"
                     ],
                     [
                         "arrow",
@@ -154,12 +174,16 @@
                                     "origin": {
                                         "import-type": "$ELF"
                                     },
-                                    "name": "Option"
+                                    "name": "Either"
                                 },
                                 [
                                     [
                                         "tid",
                                         "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
                                     ]
                                 ]
                             ]
@@ -175,34 +199,35 @@
                     ]
                 ]
             },
-            "is-some": {
+            "is-Either": {
                 "bind": "let",
                 "origin": {
                     "local-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        7,
-                        2,
-                        65,
-                        7,
-                        18,
-                        81
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        8,
+                        0,
+                        60,
+                        11,
+                        3,
+                        116
                     ],
                     "definition-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        7,
-                        2,
-                        65,
-                        7,
-                        18,
-                        81
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        8,
+                        0,
+                        60,
+                        11,
+                        3,
+                        116
                     ],
                     "new-definition": true,
-                    "uri-of-definition": "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr"
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
                 },
                 "typ": [
                     "forall",
                     [
-                        "atom#a#10"
+                        "atom#a#10",
+                        "atom#b#11"
                     ],
                     [
                         "arrow",
@@ -214,12 +239,16 @@
                                     "origin": {
                                         "import-type": "$ELF"
                                     },
-                                    "name": "Option"
+                                    "name": "Either"
                                 },
                                 [
                                     [
                                         "tid",
                                         "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
                                     ]
                                 ]
                             ]
@@ -235,34 +264,35 @@
                     ]
                 ]
             },
-            "some": {
+            "left": {
                 "bind": "let",
                 "origin": {
                     "local-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        7,
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        9,
                         2,
-                        65,
-                        7,
-                        18,
-                        81
+                        80,
+                        9,
+                        16,
+                        94
                     ],
                     "definition-bind-site": [
-                        "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr",
-                        7,
+                        "file:///home/tiffany/pyret-lang/src/runtime/either.arr",
+                        9,
                         2,
-                        65,
-                        7,
-                        18,
-                        81
+                        80,
+                        9,
+                        16,
+                        94
                     ],
                     "new-definition": true,
-                    "uri-of-definition": "file:///home/michael/projects/pyret-lang/src/runtime-arr/option.arr"
+                    "uri-of-definition": "file:///home/tiffany/pyret-lang/src/runtime/either.arr"
                 },
                 "typ": [
                     "forall",
                     [
-                        "atom#a#10"
+                        "atom#a#10",
+                        "atom#b#11"
                     ],
                     [
                         "arrow",
@@ -281,34 +311,39 @@
                                     "origin": {
                                         "import-type": "$ELF"
                                     },
-                                    "name": "Option"
+                                    "name": "Either"
                                 },
                                 [
                                     [
                                         "tid",
                                         "atom#a#10"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#b#11"
                                     ]
                                 ]
                             ],
-                            "some"
+                            "left"
                         ]
                     ]
                 ]
             }
         },
         "datatypes": {
-            "Option": [
+            "Either": [
                 "data",
-                "Option",
+                "Either",
                 [
-                    "atom#a#10"
+                    "atom#a#10",
+                    "atom#b#11"
                 ],
                 [
                     [
-                        "some",
+                        "left",
                         [
                             [
-                                "elt",
+                                "v",
                                 [
                                     "tid",
                                     "atom#a#10"
@@ -318,7 +353,16 @@
                         {}
                     ],
                     [
-                        "none",
+                        "right",
+                        [
+                            [
+                                "v",
+                                [
+                                    "tid",
+                                    "atom#b#11"
+                                ]
+                            ]
+                        ],
                         {}
                     ]
                 ],
@@ -326,12 +370,12 @@
             ]
         },
         "aliases": {
-            "Option": {
+            "Either": {
                 "tag": "name",
                 "origin": {
                     "import-type": "$ELF"
                 },
-                "name": "Option"
+                "name": "Either"
             }
         }
     },

@@ -10,7 +10,7 @@ G.assert( L.contains( big-list, 77 ), true, "Does not contain new value" )
 
 mapped = L.map( lam( x ): x / 11 end, big-list )
 
-msg = for L.reduce(string from "", e from mapped):
+msg = for L.fold(string from "", e from mapped):
   string + G.js-to-string(e)
 end
 

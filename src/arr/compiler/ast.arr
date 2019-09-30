@@ -548,7 +548,7 @@ data DefinedValue:
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), self.value.tosource())
     end
-  | s-defined-var(name :: String, id :: Name) with:
+  | s-defined-var(name :: String, id :: Name, loc :: Loc) with:
     method label(self): "s-defined-var" end,
     method tosource(self):
       PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.id.toname()))
@@ -1936,8 +1936,8 @@ default-map-visitor = {
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
-  method s-defined-var(self, name, id):
-    s-defined-var(name, id.visit(self))
+  method s-defined-var(self, name, id, loc):
+    s-defined-var(name, id.visit(self), loc)
   end,
   method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))
@@ -2541,7 +2541,7 @@ default-iter-visitor = {
   method s-defined-value(self, name, val):
     val.visit(self)
   end,
-  method s-defined-var(self, name, id):
+  method s-defined-var(self, name, id, loc):
     id.visit(self)
   end,
   method s-defined-type(self, name, typ):
@@ -3142,8 +3142,8 @@ dummy-loc-visitor = {
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
-  method s-defined-var(self, name, id):
-    s-defined-var(name, id.visit(self))
+  method s-defined-var(self, name, id, loc):
+    s-defined-var(name, id.visit(self), loc)
   end,
   method s-defined-type(self, name, typ):
     s-defined-type(name, typ.visit(self))

@@ -54,3 +54,9 @@ Outputs a 'compiled' directory into the current working directory
 ``` shell
 node /path/to/pyret-lang/build/phaseA --builtin-js-dir /path/to/pyret-lang/runtime --build-runnable /path/to/pyret/local-program
 ```
+
+### Compiling a builtin Pyret module locally
+Outputs a 'compiled' directory into the current working directory
+``` shell
+node /path/to/pyret-lang/build/phaseA --builtin-js-dir /path/to/pyret-lang/runtime --build-runnable /path/to/pyret/local-program --runtime-builtin-relative-path "../path/to/builtin/directory/at/runtime" --type-check [true|false]
+```
