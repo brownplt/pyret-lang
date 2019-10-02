@@ -1,21 +1,56 @@
-#lang ragg
-
 /*
   name: PyretGrammar
 */
-
 program: prelude block
 
-prelude: [provide-stmt] [provide-types-stmt] import-stmt*
+prelude: (provide-stmt|import-stmt)*
 
 import-stmt: INCLUDE import-source
+import-stmt: INCLUDE FROM module-ref COLON [include-spec (COMMA include-spec)* [COMMA]] END
 import-stmt: IMPORT import-source AS NAME
 import-stmt: IMPORT comma-names FROM import-source
 import-source: import-special | import-name
 import-special: NAME PARENNOSPACE STRING (COMMA STRING)* RPAREN
 import-name: NAME
-provide-stmt: PROVIDE stmt END | PROVIDE STAR
-provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES STAR
+
+
+include-spec: include-name-spec
+            | include-type-spec
+            | include-data-spec
+            | include-module-spec
+
+include-name-spec: name-spec
+include-type-spec: TYPE name-spec
+include-data-spec: DATA data-name-spec [hiding-spec]
+include-module-spec: MODULE name-spec
+
+provide-stmt: provide-vals-stmt | provide-types-stmt | provide-block
+
+provide-vals-stmt:  PROVIDE stmt END | PROVIDE (STAR|TIMES)
+provide-types-stmt: PROVIDE-TYPES record-ann | PROVIDE-TYPES (STAR|TIMES)
+
+provide-block: PROVIDECOLON [provide-spec (COMMA provide-spec)* [COMMA]] END
+provide-block: PROVIDE FROM module-ref COLON [provide-spec (COMMA provide-spec)* [COMMA]] END
+
+provide-spec: provide-name-spec
+            | provide-type-spec
+            | provide-data-spec
+            | provide-module-spec
+
+name-spec: (STAR|TIMES) [hiding-spec] | module-ref | module-ref AS NAME
+data-name-spec: (STAR|TIMES) | module-ref
+
+provide-name-spec: name-spec
+provide-type-spec: TYPE name-spec
+provide-data-spec: DATA data-name-spec [hiding-spec]
+provide-module-spec: MODULE name-spec
+
+hiding-spec: HIDING (PARENSPACE | PARENNOSPACE) [(NAME COMMA)* NAME] RPAREN
+
+module-ref: (NAME DOT)* NAME
+
+
+
 comma-names: NAME (COMMA NAME)*
 
 block: stmt*
@@ -83,7 +118,7 @@ when-expr: WHEN binop-expr (BLOCK|COLON) block END
 
 binop-expr: expr (binop expr)*
 
-binop: PLUS | DASH | STAR | SLASH | LEQ | GEQ | EQUALEQUAL | SPACESHIP | EQUALTILDE
+binop: PLUS | DASH | TIMES | SLASH | LEQ | GEQ | EQUALEQUAL | SPACESHIP | EQUALTILDE
      | NEQ  | LT  | GT | AND | OR | CARET
 
 check-op: IS | ISEQUALEQUAL | ISEQUALTILDE | ISSPACESHIP | ISROUGHLY

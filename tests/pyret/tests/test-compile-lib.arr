@@ -45,7 +45,6 @@ check "Worklist generation (simple)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -114,7 +113,6 @@ check "Worklist generation (DAG)":
       method get-native-modules(self): empty end,
       method get-extra-imports(self): CM.minimal-imports end,
       method get-dependencies(self): CL.get-dependencies(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
-      method get-provides(self): CL.get-provides(CL.pyret-string(modules.get-value-now(name)), self.uri()) end,
       method get-globals(self): CM.no-builtins.globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -177,7 +175,6 @@ check "Worklist generation (Cycle)":
       method get-options(self, options): options end,
       method get-native-modules(self): empty end,
       method get-dependencies(self): CL.get-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method uri(self): "file://" + name end,
       method name(self): name end,
@@ -239,7 +236,6 @@ check "Multiple includes":
       method get-modified-time(self): 0 end,
       method get-options(self, options): options end,
       method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
-      method get-provides(self): CL.get-provides(self.get-module(), self.uri()) end,
       method get-globals(self): CM.standard-globals end,
       method get-native-modules(self): empty end,
       method uri(self): "file://" + name end,
@@ -319,6 +315,7 @@ check "raw-provide-syntax":
         name: "string-to-num",
         value: {
           bind: "let",
+          origin: {provided: false},
           typ: {
             tag: "arrow",
             args: [list: gr("String")],
@@ -334,6 +331,7 @@ check "raw-provide-syntax":
         name: "num-greater",
         value: {
           bind: "let",
+          origin: {provided: false},
           typ: {
             tag: "arrow",
             args: [list: gr("Number"), gr("Number")],
@@ -357,12 +355,14 @@ check "raw-provide-syntax":
         name: "Ither",
         typ: {
           tag: "data",
+          origin: {provided: false},
           name: "Ither",
           params: [list: "a", "b"],
           variants: [list:
             {
               tag: "variant",
               name: "left",
+              withmembers: [list:],
               vmembers: [list: {
                 tag: "variant-member",
                 name: "value",
@@ -373,6 +373,7 @@ check "raw-provide-syntax":
             {
               tag: "variant",
               name: "right",
+              withmembers: [list:],
               vmembers: [list: {
                 tag: "variant-member",
                 name: "value",
@@ -403,6 +404,7 @@ check "raw-provide-syntax":
 
   provs = CM.provides-from-raw-provides("test-raw-provides", {
     uri: "test-raw-provides",
+    modules: raw-array-to-list(raw.get-raw-module-provides()),
     values: raw-array-to-list(raw.get-raw-value-provides()),
     aliases: raw-array-to-list(raw.get-raw-alias-provides()),
     datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
@@ -417,10 +419,14 @@ check "raw-provide-syntax":
     bn("global", name)
   end
 
+  o = lam(n):
+    CM.bind-origin(l, l, false, "test-raw-provides", A.s-name(l, n))
+  end
+
   provs.values is
     [string-dict:
       "string-to-num",
-      CM.v-just-type(T.t-arrow(
+      CM.v-just-type(o("string-to-num"), T.t-arrow(
         [list: g("String")],
         T.t-app(
           bn("option", "Option"),
@@ -428,7 +434,7 @@ check "raw-provide-syntax":
           l, false),
         l, false)),
       "num-greater",
-      CM.v-just-type(T.t-arrow(
+      CM.v-just-type(o("num-greater"), T.t-arrow(
         [list: g("Number"), g("Number")],
         g("Boolean"),
         l, false))
@@ -440,21 +446,27 @@ check "raw-provide-syntax":
 end
 
 check:
+  l = SL.builtin("test-provides1")
+  o = lam(n): CM.bind-origin(l, l, false, "test-raw-provides", A.s-name(l, n)) end
   ps = CM.provides("test-provides1",
+    # MARK(joe/ben): modules
+    mt,
     [string-dict:
-      "x", CM.v-just-type(T.t-name(T.dependency("builtin(global)"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)
 
-  ce = CM.compile-env(CM.globals(mt, mt),
+  ce = CM.compile-env(CM.globals(mt, mt, mt),
     [SD.mutable-string-dict:
       "builtin://global",
       CM.module-as-string(
-          CM.provides("builtin://global", mt, mt,
+          # MARK(joe/ben): modules
+          CM.provides("builtin://global", mt, mt, mt,
             [SD.string-dict:
               "Number", T.t-data("Number", empty, empty, SD.make-string-dict(), A.dummy-loc)]),
           CM.no-builtins,
+          CM.computed-none,
           CM.ok("dummy")
         )
       ],
@@ -464,8 +476,9 @@ check:
   canon = AU.canonicalize-provides(ps, ce)
 
   canon is CM.provides("test-provides1",
+    mt, #MARK(joe/ben): modules
     [string-dict:
-      "x", CM.v-just-type(T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
+      "x", CM.v-just-type(o("x"), T.t-name(T.module-uri("builtin://global"), A.s-global("Number"), A.dummy-loc, false))
     ],
     mt,
     mt)

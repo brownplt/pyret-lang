@@ -1,7 +1,19 @@
 ({
   requires: [],
   nativeRequires: ["path"],
-  provides: {},
+  provides: {
+    values: {
+      "normalize": ["arrow", ["String"], "String"],
+      "join": ["arrow", ["String", "String"], "String"],
+      "resolve": ["arrow", ["String"], "String"],
+      "relative": ["arrow", ["String", "String"], "String"],
+      "dirname": ["arrow", ["String"], "String"],
+      "extname": ["arrow", ["String"], "String"],
+      "basename": ["arrow", ["String", "String"], "String"],
+      "path-sep": "String",
+      "is-absolute": ["arrow", ["String"], "Boolean"]
+    }
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, path) {
     var values = {
       "normalize": RUNTIME.makeFunction(function(p) {

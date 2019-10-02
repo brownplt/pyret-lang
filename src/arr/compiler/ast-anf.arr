@@ -43,9 +43,8 @@ str-from = PP.str("from")
 str-newtype = PP.str("newtype ")
 
 dummy-loc = SL.builtin("dummy-location")
-is-s-provide-complete = A.is-s-provide-complete
 data AProg:
-  | a-program(l :: Loc, provides :: A.Provide%(is-s-provide-complete), imports :: List<AImport>, body :: AExpr) with:
+  | a-program(l :: Loc, provides :: A.ProvideBlock, imports :: List<A.Import>, body :: AExpr) with:
     method label(self): "a-program" end,
     method tosource(self):
       PP.group(
@@ -53,41 +52,6 @@ data AProg:
           + PP.hardline
           + self.body.tosource()
         )
-    end
-sharing:
-  method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
-  end
-end
-
-data AImportType:
-  | a-import-builtin(l :: Loc, lib :: String) with:
-    method tosource(self): PP.str(self.lib) end
-  | a-import-special(l :: Loc, kind :: String, args :: List<String>) with:
-    method tosource(self):
-      PP.group(PP.str(self.kind)
-          + PP.parens(PP.nest(INDENT,
-            PP.separate(PP.commabreak, self.args.map(PP.str)))))
-    end
-end
-
-data AImport:
-  | a-import-complete(
-      l :: Loc,
-      values :: List<A.Name>,
-      types :: List<A.Name>,
-      import-type :: AImportType,
-      vals-name :: A.Name,
-      types-name :: A.Name) with:
-    method label(self): "a-import-complete" end,
-    method tosource(self):
-      PP.flow([list: str-import,
-          PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
-          str-from,
-          self.import-type.tosource(),
-          str-as,
-          self.vals-name.tosource(),
-          self.types-name.tosource()])
     end
 sharing:
   method visit(self, visitor):
@@ -274,6 +238,13 @@ sharing:
   end
 end
 
+data ADefinedModule:
+  | a-defined-module(name :: String, value :: A.Name, uri :: String) with:
+    method label(self): "a-defined-module" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.uri))
+    end
+end
 data ADefinedValue:
   | a-defined-value(name :: String, value :: AVal) with:
     method label(self): "a-defined-value" end,
@@ -306,10 +277,9 @@ data ALettable:
   | a-module(
       l :: Loc,
       answer :: AVal,
+      defined-modules :: List<ADefinedModule>,
       defined-values :: List<ADefinedValue>,
       defined-types :: List<ADefinedType>,
-      provided-values :: AVal,
-      provided-types,
       checks :: AVal) with:
     method label(self): "a-module" end,
     method tosource(self):
@@ -319,14 +289,14 @@ data ALettable:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
             PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | a-id-var(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-var" end,
     method tosource(self): PP.str("!" + tostring(self.id)) end
+  | a-id-var-modref(l :: Loc, id :: A.Name, uri :: String, name :: String) with:
+    method label(self): "a-id-var-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@!") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | a-id-letrec(l :: Loc, id :: A.Name, safe :: Boolean) with:
     method label(self): "a-id-letrec" end,
     method tosource(self): PP.str("~!" + tostring(self.id)) end
@@ -477,6 +447,9 @@ data AVal:
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
+  | a-id-modref(l :: Loc, id :: A.Name, uri :: String, name :: String) with:
+    method label(self): "a-id-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-safe-letrec" end,
     method tosource(self): PP.str("~" + tostring(self.id)) end
@@ -489,20 +462,7 @@ end
 fun strip-loc-prog(p :: AProg):
   cases(AProg) p:
     | a-program(_, prov, imports, body) =>
-      a-program(dummy-loc, prov, imports.map(strip-loc-import), body ^ strip-loc-expr)
-  end
-end
-
-fun strip-loc-import(i :: AImport):
-  cases(AImport) i:
-    | a-import-complete(_, vns, tns, imp, vn, tn) =>
-      a-import-complete(dummy-loc, vns, tns, imp, vn, tn)
-  end
-end
-
-fun strip-loc-import-type(i :: AImportType):
-  cases(AImportType) i:
-    | a-import-builtin(_, name, id) => a-import-builtin(dummy-loc, name, id)
+      a-program(dummy-loc, prov, imports, body ^ strip-loc-expr)
   end
 end
 
@@ -531,9 +491,8 @@ end
 
 fun strip-loc-lettable(lettable :: ALettable):
   cases(ALettable) lettable:
-    | a-module(_, answer, dv, dt, provides, types, checks) =>
-      a-module(dummy-loc, strip-loc-val(answer), dv, dt, strip-loc-val(provides),
-        types.map(_.visit(A.dummy-loc-visitor)), strip-loc-val(checks))
+    | a-module(_, answer, dv, dt, checks) =>
+      a-module(dummy-loc, strip-loc-val(answer), dv, dt, strip-loc-val(checks))
     | a-if(_, c, t, e) =>
       a-if(dummy-loc, strip-loc-val(c), strip-loc-expr(t), strip-loc-expr(e))
     | a-assign(_, id, value) => a-assign(dummy-loc, id, strip-loc-val(value))
@@ -562,6 +521,7 @@ fun strip-loc-lettable(lettable :: ALettable):
     | a-method(_, name, args, ret, body) =>
       a-method(dummy-loc, name, args, ret, strip-loc-expr(body))
     | a-id-var(_, id) => a-id-var(dummy-loc, id)
+    | a-id-var-modref(_, id, uri, name) => a-id-var-modref(dummy-loc, id, uri, name)
     | a-id-letrec(_, id, safe) => a-id-letrec(dummy-loc, id, safe)
     | a-val(_, v) =>
       a-val(dummy-loc, strip-loc-val(v))
@@ -582,19 +542,17 @@ fun strip-loc-val(val :: AVal):
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
     | a-id(_, id) => a-id(dummy-loc, id)
+    | a-id-modref(_, id, uri, name) => a-id-modref(dummy-loc, id, uri, name)
     | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
   end
 end
 
 default-map-visitor = {
-  method a-module(self, l :: Loc, answer :: AVal, dv, dt, provides :: AVal, types :: List<A.AField>, checks :: AVal):
-    a-module(l, answer.visit(self), dv, dt, provides.visit(self), types, checks.visit(self))
+  method a-module(self, l :: Loc, answer :: AVal, dm, dv, dt, checks):
+    a-module(l, answer.visit(self), dm, dv, dt, checks.visit(self))
   end,
-  method a-program(self, l :: Loc, p, imports :: List<AImport>, body :: AExpr):
+  method a-program(self, l :: Loc, p, imports :: List<A.Import>, body :: AExpr):
     a-program(l, p, imports.map(_.visit(self)), body.visit(self))
-  end,
-  method a-import-builtin(self, l :: Loc, lib :: String, name :: A.Name):
-    a-import-builtin(l, lib, name)
   end,
   method a-type-bind(self, l, name, ann):
     a-type-bind(l, name, ann)
@@ -720,8 +678,14 @@ default-map-visitor = {
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
   end,
+  method a-id-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    a-id-modref(l, id, uri, name)
+  end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     a-id-var(l, id)
+  end,
+  method a-id-var-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    a-id-var-modref(l, id, uri, name)
   end,
   method a-id-letrec(self, l :: Loc, id :: A.Name, safe :: Boolean):
     a-id-letrec(l, id, safe)
@@ -848,11 +812,9 @@ fun freevars-branches-acc(branches :: List<ACasesBranch>, seen-so-far :: NameDic
 end
 fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(ALettable) e block:
-    | a-module(_, ans, dv, dt, provs, types, checks) =>
+    | a-module(_, ans, dm, dv, dt, checks) =>
       freevars-v-acc(ans,
-        freevars-v-acc(provs,
-          freevars-list-acc(types.map(_.ann),
-            freevars-v-acc(checks, seen-so-far))))
+        freevars-v-acc(checks, seen-so-far))
     | a-cases(_, typ, val, branches, _else) =>
       freevars-ann-acc(typ,
         freevars-v-acc(val,
@@ -941,6 +903,9 @@ fun freevars-l-acc(e :: ALettable, seen-so-far :: NameDict<A.Name>) -> NameDict<
     | a-id-var(_, id) => 
       seen-so-far.set-now(id.key(), id)
       seen-so-far
+    | a-id-var-modref(_, id, _, _) => 
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
     | a-id-letrec(_, id, _) => 
       seen-so-far.set-now(id.key(), id)
       seen-so-far
@@ -956,6 +921,9 @@ end
 fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Name>:
   cases(AVal) v block:
     | a-id(_, id) =>
+      seen-so-far.set-now(id.key(), id)
+      seen-so-far
+    | a-id-modref(_, id, uri, name) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
     | a-id-var(_, id) =>
@@ -980,16 +948,29 @@ fun freevars-v(v :: AVal) -> FrozenNameDict<A.Name>:
   freevars-v-acc(v, empty-dict()).freeze()
 end
 
+fun freevars-name-spec(ns, acc):
+  cases(A.NameSpec) ns:
+    | s-local-ref(_, name, _) => acc.set-now(name.key(), name)
+    | else => nothing
+  end
+end
+
+fun freevars-provides-acc(provide-block, acc):
+  for each(spec from provide-block.specs) block:
+    freevars-name-spec(spec.name-spec, acc)
+    when is-link(provide-block.path):
+      acc.set-now(provide-block.path.first.key(), provide-block.path.first)
+    end
+  end
+end
+
 fun freevars-prog(p :: AProg) -> FrozenNameDict<A.Name>:
   cases(AProg) p block:
-    | a-program(l, _, imports, body) =>
-      body-vars = freevars-e-acc(body, empty-dict())
-      for each(i from imports):
-        for each(n from i.values + i.types):
-          body-vars.remove-now(n.key())
-        end
-      end
-      body-vars.freeze()
+    | a-program(l, provide-block, imports, body) =>
+      provide-free-vars = empty-dict()
+      freevars-provides-acc(provide-block, provide-free-vars)
+      all-vars = freevars-e-acc(body, provide-free-vars)
+      all-vars.freeze()
   end
 end
 

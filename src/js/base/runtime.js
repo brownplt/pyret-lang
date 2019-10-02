@@ -4673,6 +4673,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         l, thisRuntime.String, r, thisRuntime.String);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
+    var string_starts_with = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-starts-with"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-starts-with",
+        l, thisRuntime.String, r, thisRuntime.String);
+      return thisRuntime.makeBoolean(l.startsWith(r));
+    }
+    var string_ends_with = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ends-with"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-ends-with",
+        l, thisRuntime.String, r, thisRuntime.String);
+      return thisRuntime.makeBoolean(l.endsWith(r));
+    }
     var string_length = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-length"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Strings", "string-length",
@@ -5250,7 +5262,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             }
           },
           function(r) {
-            // CONSOLE.log("Result from module: ", r);
+            // CONSOLE.log("Result from module: ", uri, r);
             realm.instantiated[uri] = r;
             if(uri in postLoadHooks) {
               return thisRuntime.safeCall(function() {
@@ -5283,6 +5295,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
           "types": types,
+          "modules": {},
           "internal": internal || {}
         })
       });
@@ -5411,6 +5424,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         args[i] = arguments[i];
       }
       return args;
+    }
+
+    function getModuleField(uri, which, name) {
+      var mod = thisRuntime.modules[uri];
+      var ppt = thisRuntime.getField(mod, "provide-plus-types");
+      var dict = thisRuntime.getField(ppt, which);
+      if(which === "values") {
+        return thisRuntime.getField(dict, name);
+      }
+      else {
+        return dict[name];
+      }
     }
 
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
@@ -5632,6 +5657,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'string-equal': makeFunction(string_equals, "string-equal"),
       'string-contains': makeFunction(string_contains, "string-contains"),
+      'string-starts-with': makeFunction(string_contains, "string-starts-with"),
+      'string-ends-with': makeFunction(string_contains, "string-ends-with"),
       'string-append': makeFunction(string_append, "string-append"),
       'string-length': makeFunction(string_length, "string-length"),
       'string-isnumber': makeFunction(string_isnumber, "string-isnumber"),
@@ -6034,6 +6061,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeJSModuleReturn' : makeJSModuleReturn,
       'makeModuleReturn' : makeModuleReturn,
 
+      'getModuleField' : getModuleField,
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
@@ -6041,7 +6069,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
-          "types": runtimeTypeBindings
+          "types": runtimeTypeBindings,
+          "modules": {}
         })
       }),
 

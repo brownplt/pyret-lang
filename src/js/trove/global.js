@@ -295,6 +295,8 @@
                         'name': 'string-char-at',
                         'typ': ['arrow', ['String', 'Number'], 'String']},
       "string-contains":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
+      "string-starts-with":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
+      "string-ends-with":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
       "string-equal":{'bind': 'fun', 'flatness': 0, 'name': 'string-equal', 'typ': 'StrPred2'},
       "string-explode":{'bind': 'fun',
                         'flatness': 0,
@@ -338,7 +340,6 @@
                                'flatness': 0,
                                'name': 'string-to-code-points',
                                'typ': ['arrow', ['String'], ['List', 'Number']]},
-
       "_plus":   {'bind': 'fun',
                   'flatness': false,
                   'name': '_plus',
@@ -391,7 +392,20 @@
       "NumRational": "Number",
       "NumInteger": "Number",
       "Roughnum": "Number",
-      "Exactnum": "Number"
+      "Exactnum": "Number",
+      "Boolean": "Boolean",
+      "Number": "Number",
+      "String": "String",
+      "Nothing": "Nothing",
+      "RawArray": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "RawArray" },
+      "Row": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Row" },
+      "Table": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Table" }
     },
     datatypes: {
       "Number": ["data", "Number", [], [], {

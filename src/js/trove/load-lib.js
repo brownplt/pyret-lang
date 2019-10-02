@@ -3,7 +3,28 @@
     { "import-type": "builtin", name: "runtime-lib" }
   ],
   nativeRequires: ["pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "pyret-base/js/secure-loader"],
-  provides: {},
+  provides: {
+    values: {
+      "run-program": "tany",
+      "is-success-result": "tany",
+      "is-failure-result": "tany",
+      "get-result-answer": "tany",
+      "get-result-realm": "tany",
+      "get-result-compile-result": "tany",
+      "get-result-stacktrace": "tany",
+      "render-check-results": "tany",
+      "render-error-message": "tany",
+      "empty-realm": "tany",
+      "is-exit": "tany",
+      "is-exit-quiet": "tany",
+      "get-exit-code": "tany"
+    },
+    types: {
+      Module: "tany",
+      ModuleResult: "tany",
+      Realm: "tany"
+    }
+  },
   theModule: function(runtime, namespace, uri, runtimeLib, loadHooksLib, stackLib, loader) {
     var EXIT_SUCCESS = 0;
     var EXIT_ERROR = 1;

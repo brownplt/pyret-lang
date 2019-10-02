@@ -74,9 +74,18 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
-  function dataType(name, params, variants, methods) {
+  function dataRefinement(basetype, variant) {
+    return {
+      tag: "data-refinement",
+      basetype: basetype,
+      variant: variant
+    };
+  }
+
+  function dataType(origin, name, params, variants, methods) {
     return {
       tag: "data",
+      origin: origin,
       name: name,
       params: params,
       variants: variants,
@@ -84,18 +93,20 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
-  function variant(name, vmembers) {
+  function variant(name, vmembers, withmembers) {
     return {
       tag: "variant",
       name: name,
-      vmembers: vmembers
+      vmembers: vmembers,
+      withmembers: withmembers
     };
   }
 
-  function singletonVariant(name) {
+  function singletonVariant(name, withmembers) {
     return {
       tag: "singleton-variant",
-      name: name
+      name: name,
+      withmembers: withmembers
     }
   }
 
@@ -108,64 +119,108 @@ define("pyret-base/js/type-util", [], function() {
   }
 
   function bindToPyret(runtime, value) {
-    var wrapper = function(t) {
-      return runtime.makeObject({ bind: "let", typ: t });
-    };
-    var typ;
-    if(value.bind) {
-      if(value.bind === "fun") {
-        typ = value.typ;
-        wrapper = function(t) {
-          // Flatness had better be (a) an integer and (b) a non-negative number,
-          // otherwise treat it as an infinitely-deep function
-          var flatnessInt = parseInt(value.flatness);
-          var flatness = flatnessInt === value.flatness && flatnessInt >= 0 ? flatnessInt : false;
-          return runtime.makeObject({ bind: "fun", name: value.name || "", flatness: flatness, typ: t});
-        };
-      }
-      else if(value.bind === "var") {
-        typ = value.typ;
-        wrapper = function(t) {
-          return runtime.makeObject({ bind: "var", typ: t });
-        };
-      }
+    var origin = runtime.makeObject({ provided: false });
+    if(!value.bind) {
+      return runtime.makeObject({
+        origin: origin,
+        bind: "let",
+        typ: toPyretType(runtime, expandType(value))
+      });
     }
     else {
-      typ = value;
+      if(typeof value.origin === "object") {
+        origin = value.origin;
+        origin.provided = true;
+        origin = runtime.makeObject(origin);
+      }
+      if(value.bind === "let") {
+        return runtime.makeObject({
+          origin: origin,
+          typ: toPyretType(runtime, expandType(value.typ)),
+          bind: "let"
+        });
+      }
+      else if(value.bind === "alias") {
+        return runtime.makeObject({
+          'original-name': value["original-name"],
+          origin: origin,
+          bind: "alias",
+          typ: false
+        });
+      }
+      else if(value.bind === "fun") {
+        var flatnessInt = parseInt(value.flatness);
+        // Flatness had better be (a) an integer and (b) a non-negative number,
+        // otherwise treat it as an infinitely-deep function
+        var flatness = flatnessInt === value.flatness && flatnessInt >= 0 ? flatnessInt : false;
+        return runtime.makeObject({
+          origin: origin,
+          bind: "fun",
+          name: value.name || "",
+          flatness: flatness,
+          typ: toPyretType(runtime, expandType(value.typ))
+        });
+      }
+      else if(value.bind === "var") {
+        return runtime.makeObject({
+          origin: origin,
+          bind: "var",
+          typ: toPyretType(runtime, expandType(value.typ))
+        });
+      }
+      else {
+        console.error("Bad value provide format:", value);
+        throw new Error("Bad value provide format");
+      }
     }
-    return wrapper(toPyretType(runtime, expandType(typ)));
   }
+
 
   function toPyretType(runtime, typ) {
     var O = runtime.makeObject;
     var L = runtime.ffi.makeList;
     var tp = function(thing) { return toPyretType(runtime, thing); };
+    function provided(o) { o.provided = true; return O(o); }
     if(typ === "tany") { return O({ tag: "any" }); }
     if(typ === "tbot") { return O({ tag: "bot" }); }
     switch(typ.tag) {
       case "any":
         return O({ tag: "any"});
+      case "data-alias":
+        return O({ tag: "data-alias", origin: provided(typ.origin), name : typ.name });
       case "data":
         var methods = Object.keys(typ.methods).map(function(k) {
           return O({ name: k, value: tp(typ.methods[k]) });
         });
+        var origin;
+        if(typeof typ.origin === "object" && typeof typ.origin.provided !== "boolean") { origin = provided(typ.origin); }
+        else { origin = O({provided: false}); }
         return O({
           tag: "data",
+          origin: origin,
           name: typ.name,
           params: L(typ.params),
           variants: L(typ.variants.map(tp)),
           methods: L(methods)
         });
       case "variant":
+        var methods = Object.keys(typ.withmembers).map(function(k) {
+          return O({ name: k, value: tp(typ.withmembers[k]) });
+        });
         return O({
           tag: "variant",
           name: typ.name,
           vmembers: L(typ.vmembers.map(tp)),
+          withmembers: L(methods)
         });
       case "singleton-variant":
+        var methods = Object.keys(typ.withmembers).map(function(k) {
+          return O({ name: k, value: tp(typ.withmembers[k]) });
+        });
         return O({
           tag: "singleton-variant",
-          name: typ.name
+          name: typ.name,
+          withmembers: L(methods)
         });
       case "variant-member":
         return O({
@@ -178,6 +233,12 @@ define("pyret-base/js/type-util", [], function() {
         return O({
           tag: "record",
           fields: L(Object.keys(typ.fields).map(function(f) { return O({ tag: "member", name: f, value: tp(typ.fields[f]) }); })),
+        });
+      case "data-refinement":
+        return O({
+          tag: "data-refinement",
+          basetype: tp(typ.basetype),
+          variant: typ.variant
         });
       case "name":
         return O({
@@ -223,13 +284,14 @@ define("pyret-base/js/type-util", [], function() {
     if(typ.bind == 'fun') {
       return {
         bind: typ.bind,
+        origin: typ.origin,
         flatness: typ.flatness,
         name: typ.name,
         typ: expandType(typ.typ, shorthands)
       };
     }
     else if (typ.bind === 'var') {
-      return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
+      return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
     }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
@@ -303,10 +365,20 @@ define("pyret-base/js/type-util", [], function() {
       }
       else {
         if(v.length === 1) {
-          return singletonVariant(v[0]);
+          return singletonVariant(v[0], {});
         }
         else if(v.length === 2) {
-          return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }));
+          if(Array.isArray(v[1])) {
+            return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }), {});
+          }
+          else {
+            return singletonVariant(v[0], expandRecord(v[1], shorthands));
+          }
+        }
+        else if(v.length === 3) {
+          return variant(v[0],
+            v[1].map(function(m) { return expandMember(m, shorthands); }),
+            expandRecord(v[2], shorthands));
         }
         else {
           throw new Error("Bad serialized variant: " + String(v));
@@ -354,13 +426,31 @@ define("pyret-base/js/type-util", [], function() {
             elts: typ[1].map(function(t) { return expandType(t, shorthands); })
           };
         }
+        else if(head === "data" && typ.length === 6 && iA(typ[3]) && iA(typ[4]) && iO(typ[5])) {
+          return {
+            tag: "data",
+            origin: typ[1],
+            name: typ[2],
+            params: typ[3],
+            variants: typ[4].map(function(v) { return expandVariant(v, shorthands); }),
+            methods: expandRecord(typ[5], shorthands)
+          };
+        }
         else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
           return {
             tag: "data",
+            origin: {provided: false},
             name: typ[1],
             params: typ[2],
             variants: typ[3].map(function(v) { return expandVariant(v, shorthands); }),
             methods: expandRecord(typ[4], shorthands)
+          };
+        }
+        else if(head === "data-alias" && typ.length === 3) {
+          return {
+            tag: "data-alias",
+            origin: typ[1],
+            name: typ[2]
           };
         }
         else if(head === "tid" && typ.length === 2) {
@@ -387,6 +477,13 @@ define("pyret-base/js/type-util", [], function() {
           return {
             tag: "record",
             fields: expandRecord(typ[1], shorthands)
+          };
+        }
+        else if(head === "data%") {
+          return {
+            tag: "data-refinement",
+            basetype: expandType(typ[1], shorthands),
+            variant: typ[2]
           };
         }
         else if(head === "tyapp") {

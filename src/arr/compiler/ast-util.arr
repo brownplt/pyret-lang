@@ -39,18 +39,18 @@ fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "curr
 
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _provide, _provide-types, imports, body) =>
+    | s-program(l1, _provide, _provide-types, provides, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              A.s-program(l1, _provide, _provide-types, imports,
+              A.s-program(l1, _provide, _provide-types, provides, imports,
                 A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))]))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): prog
               else:
-                A.s-program(l1, _provide, _provide-types, imports,
+                A.s-program(l1, _provide, _provide-types, provides, imports,
                   A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))]))
               end
           end
@@ -70,12 +70,12 @@ end
 
 fun wrap-toplevels(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _prov, _prov-types, imps, body) =>
+    | s-program(l1, _prov, _prov-types, provides, imps, body) =>
       new-body = cases(A.Expr) body:
         | s-block(l2, stmts) => A.s-block(l2, map(wrap-if-needed, stmts))
         | else => wrap-if-needed(body)
       end
-      A.s-program(l1, _prov, _prov-types, imps, new-body)
+      A.s-program(l1, _prov, _prov-types, provides, imps, new-body)
   end
 end
 
@@ -174,7 +174,7 @@ fun default-env-map-visitor<a, c>(
   A.default-map-visitor.{
     env: initial-env,
     type-env: initial-type-env,
-    method s-program(self, l, _provide, _provide-types, imports, body):
+    method s-program(self, l, _provide, _provide-types, provides, imports, body):
       visit-provide = _provide.visit(self)
       visit-provide-types = _provide-types.visit(self)
       visit-imports = for map(i from imports):
@@ -185,7 +185,8 @@ fun default-env-map-visitor<a, c>(
         bind-handlers.s-header(i, acc.val-env, acc.type-env)
       end
       visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
-      A.s-program(l, visit-provide, visit-provide-types, visit-imports, visit-body)
+      # MARK(joe/ben)
+      A.s-program(l, visit-provide, visit-provide-types, provides, visit-imports, visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       new-envs = { val-env: self.env, type-env: self.type-env }
@@ -288,7 +289,7 @@ fun default-env-iter-visitor<a, c>(
     env: initial-env,
     type-env: initial-type-env,
 
-    method s-program(self, l, _provide, _provide-types, imports, body):
+    method s-program(self, l, _provide, _provide-types, provides, imports, body):
       if _provide.visit(self) and _provide-types.visit(self):
         new-envs = { val-env: self.env, type-env: self.type-env }
         imported-envs = for fold(acc from new-envs, i from imports):
@@ -296,6 +297,7 @@ fun default-env-iter-visitor<a, c>(
         end
         new-visitor = self.{ env: imported-envs.val-env, type-env: imported-envs.type-env }
         lists.all(_.visit(new-visitor), imports) and body.visit(new-visitor)
+        # MARK(joe/ben): provides
       else:
         false
       end
@@ -690,15 +692,14 @@ end
 set-tail-visitor = A.default-map-visitor.{
   is-tail: false,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dm, dv, dt, checks):
     no-tail = self.{is-tail: false}
     A.s-module(
       l,
       answer.visit(no-tail),
+      dm.map(_.visit(no-tail)),
       dv.map(_.visit(no-tail)),
       dt.map(_.visit(no-tail)),
-      provides.visit(no-tail),
-      types.map(_.visit(no-tail)),
       checks.visit(no-tail))
   end,
 
@@ -876,29 +877,38 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
   cases(CS.ExtraImports) env:
     | extra-imports(imports) =>
-      full-imports = p.imports + for map(i from imports):
-          name-to-use = if i.as-name == "_": A.s-underscore(p.l) else: A.s-name(p.l, i.as-name) end
-          cases(CS.Dependency) i.dependency:
-            | builtin(name) =>
-              loc = SL.builtin(i.as-name)
-              A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(loc, _)),
-                i.types.map(A.s-name(loc, _)),
-                A.s-const-import(p.l, name),
-                name-to-use,
-                name-to-use)
-            | dependency(protocol, args) =>
-              A.s-import-complete(
-                p.l,
-                i.values.map(A.s-name(p.l, _)),
-                i.types.map(A.s-name(p.l, _)),
-                A.s-special-import(p.l, protocol, args),
-                name-to-use,
-                name-to-use)
+      #|
+         NOTE(Ben): I've moved the existing p.imports *after* these generated imports,
+         so that any user-requested imports have to coexist in the global environment,
+         rather than globals having to coexist in the user's environment.
+         Additionally, this allows for better srcloc reporting: suppose the user's program says
+           `import some from option`
+         which is already existing in the global scope.  The global import will have
+         srcloc=A.dummy-loc, but the deliberate import will have srcloc within the file,
+         which will ensure the error message refers to that explicit location.
+         (I can't change how `resolve-scope:add-value-name` or `resolve-scope:make-import-atom-for`
+         handle this case, because we haven't finished resolving names to know whether the name
+         collision is acceptable or not.)
+      |#
+      l = A.dummy-loc
+      full-imports = for fold(lst from empty, i from imports):
+          name-to-use = if i.as-name == "_": A.global-names.make-atom("$extra-import") else: A.s-name(l, i.as-name) end
+          ast-dep = cases(CS.Dependency) i.dependency:
+            | builtin(name) => A.s-const-import(p.l, name)
+            | dependency(protocol, args) => A.s-special-import(p.l, protocol, args)
           end
-        end
-      A.s-program(p.l, p._provide, p.provided-types, full-imports, p.block)
+          import-line = A.s-import(p.l, ast-dep, name-to-use)
+          include-line = 
+            A.s-include-from(p.l, [list: name-to-use],
+              i.values.map(lam(v):
+                A.s-include-name(l, A.s-module-ref(l, [list: A.s-name(l, v)], none))
+              end) +
+              i.types.map(lam(t):
+                A.s-include-type(l, A.s-module-ref(l, [list: A.s-name(l, t)], none))
+              end))
+          link(import-line, link(include-line, empty)) + lst
+        end + p.imports
+      A.s-program(p.l, p._provide, p.provided-types, p.provides, full-imports, p.block)
   end
 end
 
@@ -907,13 +917,6 @@ fun import-to-dep(imp):
     # crossover compatibility
     | s-const-import(_, modname) => CS.builtin(modname)
     | s-special-import(_, protocol, args) => CS.dependency(protocol, args)
-  end
-end
-
-fun import-to-dep-anf(imp):
-  cases(N.AImportType) imp:
-    | a-import-builtin(_, name) => CS.builtin(name)
-    | a-import-special(_, kind, args) => CS.dependency(kind, args)
   end
 end
 
@@ -933,6 +936,34 @@ is-s-data-expr = A.is-s-data-expr
 is-t-name = T.is-t-name
 type NameChanger = (T.Type%(is-t-name) -> T.Type)
 
+fun get-name-spec-key(ns :: A.NameSpec):
+  cases(A.NameSpec) ns block:
+    | s-star(_, _) => raise("Should not get star name-specs in type-checker")
+    | s-module-ref(_, path, _) =>
+      when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
+      path.first.key()
+    | s-local-ref(l, name, as-name) =>
+      name.key()
+  end
+end
+fun get-name-spec-key-and-name(ns :: A.NameSpec):
+  cases(A.NameSpec) ns block:
+    | s-star(_, _) => raise("Should not get star name-specs in type-checker")
+    | s-module-ref(_, path, as-name) =>
+      when is-none(as-name): raise("Should always have an as-name post resolve-scope") end
+      when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
+      { path.first.key(); as-name.value.toname() }
+  end
+end
+fun get-name-spec-atom-and-name(ns :: A.NameSpec):
+  cases(A.NameSpec) ns block:
+    | s-star(_, _) => raise("Should not get star name-specs in type-checker")
+    | s-module-ref(_, path, as-name) =>
+      when is-none(as-name): raise("Should always have an as-name post resolve-scope") end
+      when path.length() <> 1: raise("Path for a module-ref should always be length 1") end
+      { path.first; as-name.value.toname() }
+  end
+end
 
 fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
   fun collect-shared-fields(vs :: List<A.Variant>) -> SD.StringDict<T.Type>:
@@ -1011,13 +1042,11 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         cases(A.Name) id:
           | s-type-global(name) =>
             cases(Option<String>) compile-env.globals.types.get(name):
-              | none => raise("Name not found in globals.types: " + name)
-              | some(key) =>
-                cases(Option<URI>) compile-env.my-modules.get(key):
-                  | none => raise("Module not found in compile-env.my-modules: " + key
-                        + " (looked up for " + name + " for module " + uri + ")")
-                  | some(mod-uri) => T.t-name(T.module-uri(mod-uri), id, l, false)
-                end
+              | none =>
+                raise("Name not found in globals.types: " + name)
+              | some(origin) =>
+                # ```include from string-dict: type StringDict as SD end```
+                T.t-name(T.module-uri(origin.uri-of-definition), origin.original-name, l, false)
             end
           | s-atom(_, _) => T.t-name(T.module-uri(uri), id, l, false)
           | else => raise("Bad name found in ann-to-typ: " + id.key())
@@ -1042,36 +1071,10 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
         # TODO(joe): give more info than this to type checker?  only needed dynamically, right?
         ann-to-typ(ann)
       | a-dot(l, obj, field) =>
-        maybe-b = resolved.type-bindings.get-now(obj.key())
-        cases(Option) maybe-b:
-          | none =>
-            T.t-top(l, false)
-          | some(b) =>
-            cases(CS.TypeBinder) b.binder:
-              | tb-module(dot-uri) =>
-                T.t-name(module-uri(dot-uri), A.s-name(l, field), l, false)
-              | else =>
-
-                # NOTE(joe): This case comes up in the way we expose modules
-                # across repl entries. If one entry does `import string-dict as
-                # SD` others will see it as a type-let bound type (tb-type-let
-                # in compile-structs). If those entries use
-                # `SD.MutableStringDict` as an annotation on a provided value,
-                # then it will look like an a-dot is happening to a type-let
-                # bound type. The fundamental issue is that type-env-from-env
-                # in resolve-names can't distinguish between modules and
-                # aliases coming from globals, so these necessarily get
-                # conflated. Ideally, we'd have more information in Globals to
-                # tell us this, and that would let all of the appropriate setup
-                # happen in resolve scope to make this case truly never happen.
-                # Instead, this is necessary.
-
-                T.t-top(l, false)
-
-                # raise("Fatal error: used a-dot on a non-module annotation.  Should be caught in resolve-scope. " + to-repr(A.a-dot(l, obj, field)) + "\n" + to-repr(b) + "\n")
-
-            end
-        end
+        # TODO(joe): maybe-b = resolved.module-bindings.get-now(obj.key())
+        # Then use the information to provide the right a-dot type by looking
+        # it up on the module.
+        T.t-top(l, false)
       | a-checked(checked, residual) =>
         raise("a-checked should only be generated by the type-checker")
     end
@@ -1119,44 +1122,86 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     end
   end
   cases(A.Program) resolved.ast:
-    | s-program(l, provide-complete, _, _, _) =>
-      cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, values, aliases, datas) =>
-          val-typs = SD.make-mutable-string-dict()
-          for each(v from values) block:
-            binding = resolved.bindings.get-value-now(v.v.key())
-            provided-value = cases(CS.ValueBinder) binding.binder:
-              | vb-var => CS.v-var(ann-to-typ(v.ann))
-              | else => CS.v-just-type(ann-to-typ(v.ann))
+    | s-program(_, _, _, provide-blocks, _, _) =>
+      cases(A.ProvideBlock) provide-blocks.first block:
+          # NOTE(joe): assume the provide block is resolved
+        | s-provide-block(_, _, provide-specs) =>
+          mp-specs = provide-specs.filter(A.is-s-provide-module)
+          mod-provides = for fold(mp from [SD.string-dict:], m from mp-specs):
+            cases(A.NameSpec) m.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                mod-info = compile-env.provides-by-uri-value(uri)
+                mod-uri = mod-info.modules.get-value(name.toname())
+                mp.set(as-name.toname(), mod-uri)
+              | s-local-ref(l, name, as-name) =>
+                mb = resolved.env.module-bindings.get-value-now(name.key())
+                mp.set(as-name.toname(), mb.uri)
+              | else => raise("All provides should be resolved to local or remote refs")
             end
-            val-typs.set-now(v.v.toname(), provided-value)
           end
-          alias-typs = SD.make-mutable-string-dict()
-          for each(a from aliases):
-            # TODO(joe): recursive lookup here until reaching a non-alias?
-            target-binding = resolved.type-bindings.get-value-now(a.in-name.key())
-            typ = cases(Option) target-binding.ann:
-              | none => T.t-top(l, false)
-              | some(target-ann) =>
-                if A.is-Ann(a):
-                  ann-to-typ(target-ann)
-                else:
-                  T.t-top(l, false)
+          
+          vp-specs = provide-specs.filter(A.is-s-provide-name)
+          val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
+            cases(A.NameSpec) v.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
+                origin = val-export.origin
+                corrected-origin = CS.bind-origin(
+                  as-name.l,
+                  origin.definition-bind-site,
+                  origin.new-definition,
+                  origin.uri-of-definition,
+                  origin.original-name)
+                vp.set(as-name.toname(), CS.v-alias(corrected-origin, origin-name))
+              | s-local-ref(l, name, as-name) =>
+                vb = resolved.env.bindings.get-value-now(name.key())
+                provided-value = cases(CS.ValueBinder) vb.binder:
+                  | vb-var => CS.v-var(vb.origin, ann-to-typ(vb.ann))
+                  | else => CS.v-just-type(vb.origin, ann-to-typ(vb.ann))
                 end
+                vp.set(as-name.toname(), provided-value)
             end
-            alias-typs.set-now(a.out-name.toname(), typ)
           end
-          data-typs = SD.make-mutable-string-dict()
-          for each(d from datas):
-            exp = resolved.datatypes.get-value-now(d.d.key())
-            data-typs.set-now(d.d.key(), data-expr-to-datatype(exp))
+          #|
+          spy "get-named-provides":
+            vp-specs,
+            val-provides
           end
-          CS.provides(
+          |#
+
+          tp-specs = provide-specs.filter(A.is-s-provide-type)
+          typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
+            cases(A.NameSpec) t.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                tp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
+              | s-local-ref(l, name, as-name) =>
+                tb = resolved.env.type-bindings.get-value-now(name.key())
+                typ = cases(Option) tb.ann:
+                  | none => T.t-top(l, false)
+                  | some(target-ann) => ann-to-typ(target-ann)
+                end
+                tp.set(as-name.toname(), typ)
+            end
+          end
+          
+          dp-specs = provide-specs.filter(A.is-s-provide-data)
+          data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
+            cases(A.NameSpec) d.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                # TODO(joe): do remote lookup here to get a better location than SL.builtin for the origin
+                dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
+              | s-local-ref(l, name, as-name) =>
+                exp = resolved.env.datatypes.get-value-now(name.toname())
+                dp.set(as-name.toname(), CS.d-type(CS.bind-origin(l, exp.l, true, uri, name), data-expr-to-datatype(exp)))
+            end
+          end
+          provs = CS.provides(
               uri,
-              val-typs.freeze(),
-              alias-typs.freeze(),
-              data-typs.freeze()
-            )
+              mod-provides,
+              val-provides,
+              typ-provides,
+              data-provides)
+          provs
       end
   end
 end
@@ -1176,6 +1221,13 @@ fun canonicalize-variant(v :: T.TypeVariant, uri :: URI, tn :: NameChanger) -> T
       T.t-variant(name, canonicalize-fields(fields, uri, tn), c(with-fields), l)
     | t-singleton-variant(name, with-fields, l) =>
       T.t-singleton-variant(name, c(with-fields), l)
+  end
+end
+
+fun canonicalize-data-export(de :: CS.DataExport, uri :: URI, tn :: NameChanger) -> CS.DataExport:
+  cases(CS.DataExport) de:
+    | d-alias(origin, name) => de
+    | d-type(origin, typ) => CS.d-type(origin, canonicalize-data-type(typ, uri, tn))
   end
 end
 
@@ -1214,9 +1266,10 @@ end
 
 fun canonicalize-value-export(ve :: CS.ValueExport, uri :: URI, tn):
   cases(CS.ValueExport) ve:
-    | v-just-type(t) => CS.v-just-type(canonicalize-names(t, uri, tn))
-    | v-var(t) => CS.v-var(canonicalize-names(t, uri, tn))
-    | v-fun(t, name, flatness) => CS.v-fun(canonicalize-names(t, uri, tn), name, flatness)
+    | v-alias(o, n) => CS.v-alias(o, n)
+    | v-just-type(o, t) => CS.v-just-type(o, canonicalize-names(t, uri, tn))
+    | v-var(o, t) => CS.v-var(o, canonicalize-names(t, uri, tn))
+    | v-fun(o, t, name, flatness) => CS.v-fun(o, canonicalize-names(t, uri, tn), name, flatness)
   end
 end
 
@@ -1226,6 +1279,7 @@ fun find-mod(compile-env, uri) -> Option<String>:
     other-uri == uri
   end
 end
+
 
 fun transform-dict-helper(canonicalizer):
   lam(d, uri, transformer):
@@ -1237,15 +1291,15 @@ end
 
 transform-value-dict = transform-dict-helper(canonicalize-value-export)
 transform-dict = transform-dict-helper(canonicalize-names)
-transform-data-dict = transform-dict-helper(canonicalize-data-type)
+transform-data-dict = transform-dict-helper(canonicalize-data-export)
 
 fun transform-provides(provides, compile-env, transformer):
   cases(CS.Provides) provides:
-  | provides(from-uri, values, aliases, data-definitions) =>
+  | provides(from-uri, modules, values, aliases, data-definitions) =>
     new-vals = transform-value-dict(values, from-uri, transformer)
     new-aliases = transform-dict(aliases, from-uri, transformer)
     new-data-definitions = transform-data-dict(data-definitions, from-uri, transformer)
-    CS.provides(from-uri, new-vals, new-aliases, new-data-definitions)
+    CS.provides(from-uri, modules, new-vals, new-aliases, new-data-definitions)
   end
 end
 
@@ -1261,21 +1315,7 @@ fun canonicalize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvi
     | t-name(origin, name, loc, inferred) =>
       cases(T.NameOrigin) origin:
       | local => T.t-name(T.module-uri(provides.from-uri), name, loc, inferred)
-      | module-uri(uri) =>
-        cases(Option<String>) find-mod(compile-env, uri):
-        | some(_) => T.t-name(T.module-uri(uri), name, loc, inferred)
-        | none =>
-          if string-index-of(uri, "builtin://") == 0:
-            T.t-name(T.module-uri(uri), name, loc, inferred)
-          else if uri == provides.from-uri:
-            T.t-name(T.module-uri(uri), name, loc, inferred)
-          else:
-          # TODO(joe): This should become an error once things are localized again
-
-            #T.t-name(T.module-uri(uri), name, loc)
-            raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
-          end
-        end
+      | module-uri(uri) => t
       | dependency(d) =>
         provides-for-d = compile-env.provides-by-dep-key(d)
         cases(Option<CS.Provides>) provides-for-d:
@@ -1305,18 +1345,7 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
         if uri == provides.from-uri:
           T.t-name(T.local, name, loc, inferred)
         else:
-          cases(Option<String>) find-mod(compile-env, uri):
-          | some(d) => T.t-name(T.dependency(d), name, loc, inferred)
-          | none =>
-            if string-index-of(uri, "builtin://") == 0:
-              T.t-name(T.module-uri(uri), name, loc, inferred)
-            else:
-              # TODO(joe): This should become an error once things are localized again
-              #T.t-name(T.module-uri(uri), name, loc)
-
-              raise("Unknown module URI for type: " + torepr(t) + " in provides for " + provides.from-uri)
-            end
-          end
+          t
         end
       | dependency(d) =>
         provides-for-d = compile-env.my-modules.get(d)
@@ -1331,7 +1360,7 @@ fun localize-provides(provides :: CS.Provides, compile-env :: CS.CompileEnvironm
 end
 
 # TODO(MATT): this does not actually get the provided module values
-fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
+fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: CS.CompileEnvironment):
   transformer = lam(t):
     cases(T.Type) t:
       | t-name(origin, name, l, inferred) =>
@@ -1341,47 +1370,75 @@ fun get-typed-provides(typed :: TCS.Typed, uri :: URI, compile-env :: CS.Compile
   end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
-    | s-program(_, provide-complete, _, _, _) =>
-      cases(A.Provide) provide-complete block:
-        | s-provide-complete(_, values, aliases, datas) =>
-          val-typs = SD.make-mutable-string-dict()
-          for each(v from values):
-            # TODO(joe): This function needs to take a NameResolution to figure
-            # out vars, just like get-named-provides does
-            val-typs.set-now(v.v.toname(), CS.v-just-type(c(typed.info.types.get-value(v.v.key()))))
-          end
-          alias-typs = SD.make-mutable-string-dict()
-          for each(a from aliases):
-            # TODO(joe): recursive lookup here until reaching a non-alias?
-           cases(Option) typed.info.data-types.get(a.in-name.key()):
-              | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
-              | none =>
-                # NOTE(joe): This was commented _in_ on new-horizons.
-                #cases(Option) typed.info.branders.get-now(a.in-name.key()):
-                #  | some(typ) => alias-typs.set-now(a.out-name.toname(), c(typ))
-                #  | else =>
-                #    typ = typed.info.aliases.get-value-now(a.in-name.key())
-                #    alias-typs.set-now(a.out-name.toname(), c(typ))
-                #end
+    | s-program(_, _, _, provide-blocks, _, _) =>
+      cases(A.ProvideBlock) provide-blocks.first block:
+        | s-provide-block(_, _, provide-specs) =>
 
-                # NOTE(joe): We look up `typ` by key, and then
-                # canonicalize-names converts all the names to be s-global-type
-                # which removes all gensym information from what's provided
-                # as types.
-                typ = typed.info.aliases.get-value(a.in-name.key())
-                alias-typs.set-now(a.out-name.toname(), c(typ))
+          mp-specs = provide-specs.filter(A.is-s-provide-module)
+          mod-provides = for fold(mp from [SD.string-dict:], m from mp-specs):
+            cases(A.NameSpec) m.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                mod-info = compile-env.provides-by-uri-value(uri)
+                mod-uri = mod-info.modules.get-value(name.toname())
+                mp.set(as-name.toname(), mod-uri)
+              | s-local-ref(l, name, as-name) =>
+                mb = resolved.env.module-bindings.get-value-now(name.key())
+                mp.set(as-name.toname(), mb.uri)
+              | else => raise("All provides should be resolved to local or remote refs")
             end
           end
-          data-typs = SD.make-mutable-string-dict()
-          for each(d from datas):
-            data-typs.set-now(d.d.toname(), canonicalize-data-type(typed.info.data-types.get-value(d.d.key()), uri, transformer))
+          
+          vp-specs = provide-specs.filter(A.is-s-provide-name)
+          val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
+            cases(A.NameSpec) v.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
+                vp.set(as-name.toname(), CS.v-alias(val-export.origin, origin-name))
+              | s-local-ref(l, name, as-name) =>
+                tc-typ = typed.info.types.get-value(name.key())
+                val-bind = resolved.env.bindings.get-value-now(name.key())
+                # TODO(joe): Still have v-var questions here
+                vp.set(as-name.toname(), CS.v-just-type(val-bind.origin, c(tc-typ)))
+            end
           end
-          CS.provides(
+
+          tp-specs = provide-specs.filter(A.is-s-provide-type)
+          typ-provides = for fold(tp from [SD.string-dict:], t from tp-specs):
+            cases(A.NameSpec) t.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                tp.set(as-name.toname(), T.t-name(T.module-uri(uri), name, l, false))
+              | s-local-ref(l, name, as-name) =>
+                key = name.key()
+                cases(Option) typed.info.data-types.get(key):
+                  | some(typ) => tp.set(name, c(typ))
+                  | none =>
+                    typ = typed.info.aliases.get-value(key)
+                    tp.set(as-name.toname(), c(typ))
+                end
+            end
+
+          end
+          
+          dp-specs = provide-specs.filter(A.is-s-provide-data)
+          data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
+            cases(A.NameSpec) d.name-spec:
+              | s-remote-ref(l, shadow uri, name, as-name) =>
+                # TODO(joe): Get better location information for SL.builtin(uri)
+                dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
+              | s-local-ref(l, name, as-name) =>
+                exp = resolved.env.datatypes.get-value-now(name.toname())
+                origin = CS.bind-origin(l, exp.l, true, uri, name)
+                dp.set(as-name.toname(), CS.d-type(origin, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer)))
+                
+            end
+          end
+          provs = CS.provides(
               uri,
-              val-typs.freeze(),
-              alias-typs.freeze(),
-              data-typs.freeze()
-            )
+              mod-provides,
+              val-provides,
+              typ-provides,
+              data-provides)
+          provs
       end
   end
 end

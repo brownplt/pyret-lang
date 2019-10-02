@@ -3,7 +3,7 @@ import file("../test-parse-helper.arr") as P
 
 fun program-block(contents):
   A.s-program(A.dummy-loc, A.s-provide-none(A.dummy-loc), A.s-provide-types-none(A.dummy-loc),
-    empty, A.s-block(A.dummy-loc, contents))
+    empty, empty, A.s-block(A.dummy-loc, contents))
 end
 
 check "https://github.com/brownplt/pyret-lang/issues/828":
