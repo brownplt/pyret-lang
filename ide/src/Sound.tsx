@@ -27,34 +27,51 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     }
   }
 
-  togglePlay = () => {
-    
-    if (!this.state.isPlaying) {
-      const dataArray = this.props.sound['data-array'];
-      const numChannels = dataArray.length;
-      const timePassed = this.state.progress / this.FPS;
-      const duration = this.props.sound.duration - timePassed;
-      const sampleRate = this.props.sound['sample-rate'];
-      const frameCount = duration * sampleRate;
-      let startIndex = Math.round(timePassed * sampleRate);
+  playSound = () => {
+    const dataArray = this.props.sound['data-array'];
+    const numChannels = dataArray.length;
+    const timePassed = this.state.progress / this.FPS;
+    const duration = this.props.sound.duration - timePassed;
+    const sampleRate = this.props.sound['sample-rate'];
+    const frameCount = duration * sampleRate;
+    let startIndex = Math.round(timePassed * sampleRate);
 
-      var myArrayBuffer = this.audioCtx.createBuffer(numChannels, frameCount, sampleRate);
-      for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
-        var nowBuffering = myArrayBuffer.getChannelData(channel);
-        let soundArray = dataArray[channel];
-        for (var i = startIndex; i < myArrayBuffer.length; i++) {
-          nowBuffering[i-startIndex] = soundArray[i];
-        }
+    var myArrayBuffer = this.audioCtx.createBuffer(numChannels, frameCount, sampleRate);
+    for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
+      var nowBuffering = myArrayBuffer.getChannelData(channel);
+      let soundArray = dataArray[channel];
+      for (var i = startIndex; i < myArrayBuffer.length; i++) {
+        nowBuffering[i-startIndex] = soundArray[i];
       }
-      this.source = this.audioCtx.createBufferSource();
-      this.source.buffer = myArrayBuffer;
-      this.source.connect(this.audioCtx.destination);
-      this.source.start();
+    }
+    this.source = this.audioCtx.createBufferSource();
+    this.source.buffer = myArrayBuffer;
+    this.source.connect(this.audioCtx.destination);
+    this.source.start();
+  }
+
+  togglePlay = () => {
+    if (!this.state.isPlaying) {
+      this.playSound();
       }
       else {
         this.source.stop();
       }
     this.setState({ isPlaying: !this.state.isPlaying });
+  }
+
+  handleClick = (e : any) => {
+    var rect = e.target.getBoundingClientRect();
+    let x = e.clientX - rect.left
+    console.log(e.clientX - rect.left);
+    let maxProgress = this.FPS * this.props.sound.duration;
+    let newProg = Math.round((x / this.WIDTH) * (maxProgress));
+    
+    this.setState({progress: newProg});
+    
+    if(this.state.isPlaying) {
+      this.togglePlay();
+    }
   }
 
   
@@ -127,20 +144,22 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
           <div style={{ border: "1px solid red"}}>
           <button onClick={this.togglePlay}>{!this.state.isPlaying ? "Play" : "Stop"}</button>
           <button onClick={this.handleReset}>Reset</button>
-          <div style={{position: "relative", width: this.WIDTH, height: this.HEIGHT}}>
+          <div style={{position: "relative", width: this.WIDTH, height: this.HEIGHT}}
+            onClick={this.handleClick}>
           <canvas
             width={this.WIDTH}
             height={this.HEIGHT}
             style={{ position: "absolute", top: "0", left: "0", border: "1px solid blue"}}
-            ref={this.waveformCanvas}></canvas>
+            ref={this.waveformCanvas} 
+            ></canvas>
+            
           <canvas
             width={this.WIDTH}
             height={this.HEIGHT}
             style={{ position: "absolute", top: "0", left: "0",border: "1px solid pink"}}
-            ref={this.progressCanvas}></canvas>
+            ref={this.progressCanvas}
+            ></canvas>
           </div>
-          
-          
           </div>
       )
   }
