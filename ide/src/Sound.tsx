@@ -1,5 +1,5 @@
 import React from 'react';
-
+//props = para to constr to widget
 type SoundWidgetProps = {
     sound: any
 };
@@ -31,21 +31,21 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     
     if (!this.state.isPlaying) {
       const dataArray = this.props.sound['data-array'];
-    const numChannels = dataArray.length;
-    const duration = this.props.sound.duration;
-    const sampleRate = this.props.sound['sample-rate'];
-    const frameCount = duration * sampleRate;
-   
+      const numChannels = dataArray.length;
+      const timePassed = this.state.progress / this.FPS;
+      const duration = this.props.sound.duration - timePassed;
+      const sampleRate = this.props.sound['sample-rate'];
+      const frameCount = duration * sampleRate;
+      let startIndex = Math.round(timePassed * sampleRate);
+
       var myArrayBuffer = this.audioCtx.createBuffer(numChannels, frameCount, sampleRate);
       for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
         var nowBuffering = myArrayBuffer.getChannelData(channel);
         let soundArray = dataArray[channel];
-        
-        for (var i = 0; i < myArrayBuffer.length; i++) {
-          nowBuffering[i] = soundArray[i];
+        for (var i = startIndex; i < myArrayBuffer.length; i++) {
+          nowBuffering[i-startIndex] = soundArray[i];
         }
       }
-      
       this.source = this.audioCtx.createBufferSource();
       this.source.buffer = myArrayBuffer;
       this.source.connect(this.audioCtx.destination);
@@ -70,6 +70,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     context.lineTo(lineX, this.HEIGHT);
     context.stroke();
   }
+
   drawWaveForm = () => {
     const canvas = this.waveformCanvas.current;
     const context = canvas.getContext('2d');
@@ -87,9 +88,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       context.lineTo(x,y_coord);
       x += deltaX;
     });
-    context.stroke();
-
-    
+    context.stroke();  
   }
 
   componentDidUpdate() {
@@ -107,7 +106,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     if(this.state.isPlaying) {
       this.setState({progress : this.state.progress + 1});
       if(this.state.progress / this.FPS > this.props.sound.duration) {
-        this.setState({progress: this.props.sound.duration * this.FPS});
+        this.setState({progress: 0});
         if(this.state.isPlaying) {
           this.togglePlay();
         }
@@ -120,8 +119,6 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       this.togglePlay();
     }
     this.setState({progress: 0});
-    
-    
   }
 
   
