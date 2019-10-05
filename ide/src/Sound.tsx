@@ -40,7 +40,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
       var nowBuffering = myArrayBuffer.getChannelData(channel);
       let soundArray = dataArray[channel];
-      for (var i = startIndex; i < myArrayBuffer.length; i++) {
+      for (var i = startIndex; i < soundArray.length; i++) {
         nowBuffering[i-startIndex] = soundArray[i];
       }
     }
@@ -69,9 +69,11 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     
     this.setState({progress: newProg});
     
-    if(this.state.isPlaying) {
-      this.togglePlay();
-    }
+   if(this.state.isPlaying) {
+    this.togglePlay();
+    setTimeout(this.togglePlay, 100);
+   
+   }
   }
 
   
@@ -143,7 +145,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       return (
           <div style={{ border: "1px solid red"}}>
           <button onClick={this.togglePlay}>{!this.state.isPlaying ? "Play" : "Stop"}</button>
-          <button onClick={this.handleReset}>Reset</button>
+          <button onClick={this.handleReset}>{this.state.progress}</button>
           <div style={{position: "relative", width: this.WIDTH, height: this.HEIGHT}}
             onClick={this.handleClick}>
           <canvas
