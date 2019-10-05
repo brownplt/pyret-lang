@@ -5,14 +5,20 @@ type SoundWidgetProps = {
 };
 type SoundWidgetState = {
    progress: number,
-   isPlaying: boolean
+   isPlaying: boolean,
+   isMouseDown: boolean,
+   startBox: number,
+   endBox: number,
+   viewStart: number,
+   viewEnd: number,
+   viewWidth: number
 };
 
 export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetState> {
   waveformCanvas: any;
   progressCanvas: any;
   HEIGHT: number = 100;
-  WIDTH: number = 600;
+  WIDTH: number = 500;
   FPS: number = 30.0;
   source: any;
   audioCtx: any;
@@ -23,7 +29,13 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     this.audioCtx = new AudioContext();
     this.state = {
       progress: 0, // 1 unit = 1/10 second
-      isPlaying: false
+      isPlaying: false,
+      isMouseDown: false,
+      startBox: 0,
+      endBox: -1,
+      viewStart: 0,
+      viewEnd: this.WIDTH,
+      viewWidth: this.WIDTH
     }
   }
 
@@ -60,10 +72,33 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     this.setState({ isPlaying: !this.state.isPlaying });
   }
 
+  handleMouseDown = (e:any) => {
+    
+    var rect = e.target.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    this.setState({isMouseDown: true, startBox: x});
+  }
+  handleMouseUp = (e:any) => {
+    if(this.state.isMouseDown) {
+      var rect = e.target.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      console.log("Box from: " + this.state.startBox + " to " + this.state.endBox);
+      
+      this.setState({ isMouseDown: false, viewWidth: this.state.endBox - this.state.startBox, viewStart: this.state.startBox, viewEnd: this.state.endBox, startBox: 0, endBox: -1, });
+    }
+  }
+  handleMouseMove = (e:any) => {
+    if(this.state.isMouseDown) {
+      var rect = e.target.getBoundingClientRect();
+      let x = e.clientX - rect.left;
+      this.setState({endBox: x});
+    }
+  }
   handleClick = (e : any) => {
+   
     var rect = e.target.getBoundingClientRect();
     let x = e.clientX - rect.left
-    console.log(e.clientX - rect.left);
+    //console.log(e.clientX - rect.left);
     let maxProgress = this.FPS * this.props.sound.duration;
     let newProg = Math.round((x / this.WIDTH) * (maxProgress));
     
@@ -88,6 +123,11 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     context.moveTo(lineX, 0);
     context.lineTo(lineX, this.HEIGHT);
     context.stroke();
+    context.strokeStyle = "#0000FF";
+    if(this.state.endBox > 0) {
+      context.strokeRect(this.state.startBox,0,this.state.endBox - this.state.startBox, this.HEIGHT);
+    }
+    
   }
 
   drawWaveForm = () => {
@@ -147,7 +187,10 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
           <button onClick={this.togglePlay}>{!this.state.isPlaying ? "Play" : "Stop"}</button>
           <button onClick={this.handleReset}>{this.state.progress}</button>
           <div style={{position: "relative", width: this.WIDTH, height: this.HEIGHT}}
-            onClick={this.handleClick}>
+            onDoubleClick={this.handleClick}
+            onMouseDown={this.handleMouseDown}
+            onMouseUp={this.handleMouseUp}
+            onMouseMove={this.handleMouseMove}>
           <canvas
             width={this.WIDTH}
             height={this.HEIGHT}
