@@ -1,7 +1,4 @@
-import { Howl, Howler } from 'howler';
 const RUNTIME = require('./runtime.js');
-
-export const juliet = "helllo world";
 
 export function getBuffer(path: string): AudioBuffer {
     debugger;
@@ -43,21 +40,9 @@ export function makeSound(sample_rate: number, duration: number, data_array: num
         '$brand': "sound",
         'sample-rate': sample_rate,
         'duration': duration,
-        'data-array': data_array,
-        'play': () => playSound(sound)
+        'data-array': data_array
     }
     return sound;
-}
-
-export function playSound(sound: Sound) {
-    //@ts-ignore
-    var audioCtx = AudioContext();
-    var source;
-    source = audioCtx.createBufferSource();
-    var frameCount = sound.duration*sound['data-array'][0].length
-    source.buffer = audioCtx.createBuffer(sound['data-array'].length,frameCount,sound['sample-rate']);
-    source.connect(audioCtx.destination);
-    source.start();
 }
 
 export function urlSound(path: string): Sound {
@@ -70,10 +55,25 @@ export function urlSound(path: string): Sound {
     }
     var sample_rate = buffer.sampleRate;
     var duration = buffer.duration;
+    console.log(data_array);
     return makeSound(sample_rate, duration, data_array);
 }
 
+function checkSampleRate(samples: Sound[]): boolean {
+    var i = 0
+    var sample_rate = samples[i]["sample-rate"];
+    for (var i = 1; i < samples.length; i++) {
+        if (samples[i]["sample-rate"] != sample_rate) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export function overlay(samples: Sound[]): Sound {
+    if (!checkSampleRate(samples)) {
+        throw new Error("samples rates not equal for all samples");
+    }
     var numSamples = samples.length;
     var maxChannels = 0;
     var maxDuration = 0;
@@ -88,32 +88,87 @@ export function overlay(samples: Sound[]): Sound {
     }
     var frameCount = maxDuration * sample_rate;
     var mixed = new Array(maxChannels);
-    console.log(mixed);
-    console.log(frameCount);
     for (var m = 0; m < maxChannels; m++) {
         mixed[m] = new Array(frameCount);
         for (var n = 0; n < frameCount; n++) {
             mixed[m][n] = 0;
         }
     }
-    console.log(mixed);
     for (var j = 0; j < numSamples; j++) {
         for (var srcChannel = 0; srcChannel < samples[j]['data-array'].length; srcChannel++) {
             var _in = samples[j]['data-array'][srcChannel];
             for (var i = 0; i < _in.length; i++) {
-                console.log(mixed);
                 mixed[srcChannel][i] += _in[i];
-                console.log(mixed);
             }
         }
     }
     return makeSound(sample_rate, maxDuration, mixed);
 }
 
+export function concat(samples: Sound[]): Sound {
+    if (!checkSampleRate(samples)) {
+        throw new Error("samples rates not equal for all samples");
+    }
+    var numSamples = samples.length;
+    var maxChannels = 0;
+    var totalDuration = 0;
+    var sample_rate = samples[0]['sample-rate'];
+    for (var i = 0; i < numSamples; i++) {
+        if (samples[i]['data-array'].length > maxChannels) {
+            maxChannels = samples[i]['data-array'].length;
+        }
+        totalDuration += samples[i].duration;
+    }
+    var frameCount = totalDuration * sample_rate;
+    var mixed = new Array(maxChannels);
+    for (var m = 0; m < maxChannels; m++) {
+        mixed[m] = new Array(frameCount);
+        for (var n = 0; n < frameCount; n++) {
+            mixed[m][n] = 0;
+        }
+    }
+    for (var j = 0; j < numSamples; j++) {
+        var fc = samples[j].duration * sample_rate;
+        for (var srcChannel = 0; srcChannel < samples[j]['data-array'].length; srcChannel++) {
+            var _in = samples[j]['data-array'][srcChannel];
+            for (var i = 0; i < _in.length; i++) {
+                mixed[srcChannel][j * fc + i] = _in[i];
+            }
+        }
+    }
+    return makeSound(sample_rate, totalDuration, mixed);
+}
+
+export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
+    var sample_rate = sample['sample-rate'];
+    var duration = sample.duration;
+    var arr = sample['data-array'];
+    var new_sample_rate = sample_rate * rate;
+    var new_dur = duration/rate;
+    return makeSound(new_sample_rate, new_dur, arr);
+}
+
+export function shorten(sample: Sound, start: number, end: number): Sound {
+    if (end > sample.duration || start > sample.duration || end < start) {
+        throw new Error("invalid start or end");
+    }
+    var sample_rate = sample['sample-rate'];
+    var dur = sample.duration;
+    var arr = sample['data-array'];
+    var new_arr = new Array(arr.length);
+    for (var channel = 0; channel < arr.length; channel++) {
+        new_arr[channel] = arr[channel].slice(start * sample_rate, end * sample_rate);
+        return makeSound(sample_rate, end - start, new_arr);
+    }
+}
+
+export function normalize(sample: Sound): Sound {
+    return sample;
+}
+
 interface Sound {
     '$brand': string,
     'sample-rate': number,
     'duration': number,
-    'data-array': number[][],
-    'play': () => any
+    'data-array': number[][]
 }
