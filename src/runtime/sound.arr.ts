@@ -35,6 +35,54 @@ export function getBuffer(path: string): AudioBuffer {
     })
 }
 
+export function getArray(path: string): Float32Array {
+    //@ts-ignore
+    var audioCtx = AudioContext();
+    var source;
+
+    source = audioCtx.createBufferSource();
+    //@ts-ignore
+    var request = XMLHttpRequest();
+
+    request.open('GET', path, true);
+
+    request.responseType = 'arraybuffer';
+    return RUNTIME.pauseStack(function (restarter) {
+        request.onload = function () {
+            var audioData = request.response;
+            audioCtx.decodeAudioData(audioData, function (buffer) {
+                source.buffer = buffer;
+                source.connect(audioCtx.destination);
+                source.loop = true;
+                restarter.resume(buffer.getChannelData(0));
+            },
+
+                function (e) {
+                    restarter.error(new Error("Error with decoding audio data"));
+                });
+
+        }
+
+        request.send();
+
+    })
+}
+
+export function inputArray(soundArray: Float32Array, sampleRate: number, duration: number):AudioBuffer {
+    //@ts-ignore
+    var audioCtx = AudioContext();
+    var frameCount = duration * sampleRate;
+    var numChannels = 1;
+    var myArrayBuffer = audioCtx.createBuffer(numChannels, frameCount, sampleRate);
+    console.log(myArrayBuffer);
+    var nowBuffering = myArrayBuffer.getChannelData(0);
+        for (var i = 0; i < myArrayBuffer.length; i++) {
+            nowBuffering[i] = soundArray[i];
+            console.log(nowBuffering);
+        }
+    return myArrayBuffer;
+ }
+
 export function makeSound(sample_rate: number, duration: number, data_array: number[][]): Sound {
     const sound = {
         '$brand': "sound",
