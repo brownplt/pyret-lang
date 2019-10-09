@@ -13,6 +13,15 @@
             ],
             "overlay": ["arrow", ["tany"],
                 ["local", "Sound"]
+            ],
+            "concat": ["arrow", ["tany"],
+                ["local", "Sound"]
+            ],
+            "setPlaybackSpeed": ["arrow", ["Any", "Number"],
+                ["local", "Sound"]
+            ],
+            "shorten": ["arrow", ["Any", "Number", "Number"],
+                ["local", "Sound"]
             ]
         },
         "datatypes": {
