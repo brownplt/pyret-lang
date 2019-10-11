@@ -11,7 +11,8 @@ type SoundWidgetState = {
    endBox: number,
    startIndex: number, //zoom related
    endIndex: number,
-   focusDuration: number
+   focusDuration: number,
+   hoverLoc: number
 };
 
 export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetState> {
@@ -19,7 +20,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   progressCanvas: any;
   HEIGHT: number = 100;
   WIDTH: number = 500;
-  FPS: number = 30.0;
+  FPS: number = 120.0;
   source: any;
   audioCtx: any;
   MIN_ZOOM_BOX_WIDTH: number = 5;
@@ -37,7 +38,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       endBox: -1,
       startIndex: 0,
       endIndex: this.props.sound.duration * this.props.sound['sample-rate'],
-      focusDuration: this.props.sound.duration
+      focusDuration: this.props.sound.duration,
+      hoverLoc: 0
     }
   }
 
@@ -97,6 +99,9 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
         const focusDuration = (endPixel - startPixel) / this.WIDTH * this.state.focusDuration;
         console.log("Box:" + startIndex + " to " + endIndex + " duration: " + focusDuration);
         if(endIndex - startIndex > this.MIN_PIXELS_VIEW) {
+          if(this.state.isPlaying) {
+            this.togglePlay();
+          }
           this.setState({progress: 0, startIndex, endIndex, focusDuration });
           setTimeout(this.drawWaveForm, 100);
         }
@@ -108,9 +113,10 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     }
   }
   handleMouseMove = (e:any) => {
+    var rect = e.target.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    this.setState({hoverLoc: x});
     if(this.state.isMouseDown) {
-      var rect = e.target.getBoundingClientRect();
-      let x = e.clientX - rect.left;
       this.setState({endBox: x});
     }
   }
@@ -121,6 +127,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     //console.log(e.clientX - rect.left);
     let maxProgress = this.FPS * this.state.focusDuration;
     let newProg = Math.round((x / this.WIDTH) * (maxProgress));
+    console.log(newProg);
     
     this.setState({progress: newProg});
     
@@ -203,15 +210,36 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   handleResetZoom = () => {
+    if(this.state.isPlaying) {
+      this.togglePlay();
+    }
     this.setState({progress: 0, startIndex: 0, endIndex: this.props.sound.duration * this.props.sound['sample-rate'], focusDuration: this.props.sound.duration });
     setTimeout(this.drawWaveForm, 25);
   }
+
+  getCurrentIndex = () => {
+    return Math.round((this.state.progress / this.FPS) * this.props.sound['sample-rate'] + this.state.startIndex);
+  }
+
+  getAmplitudeAt = (index : number)=> {
+    return this.props.sound['data-array'][0][index];
+  }
+
+  getHoverIndex = () => {
+     return Math.round(this.state.hoverLoc / this.WIDTH * this.state.focusDuration * this.props.sound['sample-rate'] + this.state.startIndex)
+  }
+
+  
+
+  
+
   render() {
       return (
           <div style={{ border: "1px solid red"}}>
           <button onClick={this.togglePlay}>{!this.state.isPlaying ? "Play" : "Stop"}</button>
-          <button onClick={this.handleReset}>{this.state.progress}</button>
+          <button onClick={this.handleReset}>Reset Progress</button>
           <button onClick={this.handleResetZoom}>Reset Zoom </button>
+          <button>Download</button>
           <div style={{position: "relative", width: this.WIDTH, height: this.HEIGHT}}
             onDoubleClick={this.handleClick}
             onMouseDown={this.handleMouseDown}
@@ -230,6 +258,12 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             style={{ position: "absolute", top: "0", left: "0",border: "1px solid pink"}}
             ref={this.progressCanvas}
             ></canvas>
+          </div>
+          <div>
+            <p>{"Index: " + this.getCurrentIndex()}</p>
+            <p>{"Amp: " + this.getAmplitudeAt(this.getCurrentIndex())}</p>
+            <p>{"Hover Index: " + this.getHoverIndex()}</p>
+            <p>{"Hover Amp: " + this.getAmplitudeAt(this.getHoverIndex())}</p>
           </div>
           </div>
       )
