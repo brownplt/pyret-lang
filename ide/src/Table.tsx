@@ -39,7 +39,8 @@ export class TableWidget extends React.Component<TableWidgetProps, TableWidgetSt
                             showPagination={showOptions}
                             pageSize={defaultPageSize}
                             showPageSizeOptions={false}
-                            filterable={showOptions}/>
+                            sortable={false}
+                            filterable={false}/>
             </div>
         );
     }
