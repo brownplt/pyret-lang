@@ -563,6 +563,17 @@ function stringToNumber(s: string): any {
   }
 }
 
+const allModules = { };
+
+function addModule(uri : string, vals : any) {
+  allModules[uri] = {values: vals};
+}
+function getModuleValue(uri : string, k : string) {
+  return allModules[uri].values[k];
+}
+
+module.exports["addModule"] = addModule;
+module.exports["getModuleValue"] = getModuleValue;
 
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value

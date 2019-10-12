@@ -540,7 +540,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         rt-method("_makeNumberFromString", [clist: j-str(tostring(n)), rt-field(NUMBER_ERR_CALLBACKS)])
       end
       {e; cl-empty}
-    | s-id(l, id) => {j-id(js-id-of(id)); cl-empty}
+    | s-id(l, id) =>
+      b = context.post-env.bindings
+      when b.has-key-now(id.key()) and not(b.get-value-now(id.key()).origin.new-definition):
+        context.free-bindings.set-now(id.key(), b.get-value-now(id.key()))
+      end
+      {j-id(js-id-of(id)); cl-empty}
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
     | s-id-modref(l, id, _, field) =>
       {objv; obj-stmts} = compile-expr(context, A.s-id(l, id))
@@ -1865,7 +1870,7 @@ fun gen-tuple-bind(context, fields, as-name, value):
 end
 
 
-fun create-prelude(prog, provides, env, options, shadow import-flags) block:
+fun create-prelude(prog, provides, env, free-bindings, options, shadow import-flags) block:
 
   fun get-base-dir( source, build-dir ):
     source-head = ask:
@@ -1939,12 +1944,18 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
 
           | none => relative-path + "../builtin/" + builtin-name + ".arr.js"
         end
-        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str(the-path)]))
+        [clist:
+          J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str(the-path)])),
+          J.j-expr(rt-method("addModule", [clist: j-str(uri), j-id(js-id-of(name))]))
+        ]
       | starts-with(uri, "jsfile://") or starts-with(uri, "file://") then:
         target-path = uri-to-real-fs-path(uri)
         this-path = uri-to-real-fs-path(provides.from-uri)
         js-require-path = P.relative(P.dirname(this-path), target-path)
-        J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str("./" + js-require-path)]))
+        [clist:
+          J.j-var(js-id-of(name), j-app(j-id(const-id("require")), [clist: j-str("./" + js-require-path)])),
+          J.j-expr(rt-method("addModule", [clist: j-str(uri), j-id(js-id-of(name))]))
+        ]
     end
   end
 
@@ -1973,7 +1984,7 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import
-  manual-imports = [clist: global-import, runtime-import, nothing-import]
+  manual-imports = [clist: runtime-import, global-import, nothing-import]
 
   shadow manual-imports = if import-flags.table-import:
     cl-append(manual-imports, cl-sing(table-import))
@@ -2005,9 +2016,9 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
         uri = env.uri-by-dep-key(dep-key)
         uri-to-local-js-name.set-now(uri, name)
         uri-to-import(uri, name)
-      | else => J.j-var(const-id("SKIP"), J.j-undefined)
+      | else => CL.concat-empty
     end
-  end
+  end.foldl(_ + _, CL.concat-empty)
 
   # We _also_ insert a require for any modules that have a globally-referenced
   # name. This won't re-instantiate them since require() caches modules; it just
@@ -2022,11 +2033,11 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
     when not(uri-to-local-js-name.has-key-now(uri)) block:
       new-name = fresh-id(compiler-name("G"))
       uri-to-local-js-name.set-now(uri, new-name)
-      implicit-imports := cl-cons(uri-to-import(uri, new-name), implicit-imports)
+      implicit-imports := uri-to-import(uri, new-name) + implicit-imports
     end
   end
 
-  import-stmts = explicit-imports + implicit-imports + manual-imports
+  import-stmts = manual-imports + explicit-imports + implicit-imports
 
   # We also build up a list of var statements that bind local JS names for
   # all the globals used as identifiers, to make compiling uses of s-global
@@ -2037,8 +2048,14 @@ fun create-prelude(prog, provides, env, options, shadow import-flags) block:
     J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
   end
 
-  import-stmts + pyret-globals-as-js-ids
+  from-modules = for CL.map_list(k from free-bindings.keys-list-now()):
+    binding = free-bindings.get-value-now(k)
+    uri = binding.origin.uri-of-definition
+    name = binding.origin.original-name.toname()
+    J.j-var(js-id-of(binding.atom), rt-method("getModuleValue", [clist: j-str(uri), j-str(name)]))
+  end
 
+  import-stmts + pyret-globals-as-js-ids + from-modules
 end
 
 fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) block:
@@ -2054,6 +2071,8 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
     translated-datatype-map.set-now(key, translated-datatype)
   end
 
+  free-bindings = [D.mutable-string-dict:]
+
   {ans; stmts} = compile-expr({
     uri: provides.from-uri,
     options: options,
@@ -2061,9 +2080,11 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
     datatypes: translated-datatype-map,
     env: env,
     post-env: post-env,
+    free-bindings: free-bindings
   }, prog.block)
 
-  prelude = create-prelude(prog, provides, env, options, import-flags)
+
+  prelude = create-prelude(prog, provides, env, free-bindings, options, import-flags)
 
   # module-body = J.j-block(global-binds + stmts + [clist: j-return(ans)])
   module-body = J.j-block(prelude + stmts + [clist: j-return(ans)])
