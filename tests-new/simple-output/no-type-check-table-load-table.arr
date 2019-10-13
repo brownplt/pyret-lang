@@ -8,15 +8,15 @@ import tables as T
 
 my-table = load-table: first, second, third
   source: T._makeTableSkeletonFromCSVString(```a,b,c
-1,2,3
-4,5,6
-7,8,9 ```)
+1,true,a
+4,false,b
+7,true,c ```)
 end
 
 expected-table = table: first, second, third
-  row: "1", "2", "3"
-  row: "4", "5", "6"
-  row: "7", "8", "9"
+  row: 1, true, "a"
+  row: 4, false, "b"
+  row: 7, true, "c"
 end
 
 passes-when-true = T._primitiveEqual(expected-table, my-table)
