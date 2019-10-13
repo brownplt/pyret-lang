@@ -8,9 +8,9 @@ import tables as T
 
 my-table = load-table: first, second, third
   source: T._makeTableSkeletonFromCSVString(```a,b,c
-1,true,a
-4,false,b
-7,true,c ```)
+1,TRUE,a
+4,FALSE,b
+7,TRUE,c ```)
 end
 
 expected-table = table: first, second, third
