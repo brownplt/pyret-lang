@@ -3,10 +3,17 @@
 import equality as E
 
 check "numbers":
+  identical(4/5, ~0.8) is false
+  identical3(4/5, ~0.8) satisfies E.is-NotEqual
+  identical(4/5, 4/5) is true
+  identical(4/5, 8/10) is true
+  identical(4/5, 4/10 + 4/10) is true
+  identical(4/5, 3/5) is false
   identical(1, 1) is true
   identical(1, 2) is false
   equal-always(1, 1) is true
   equal-always(1, 2) is false
+  equal-always3(4/5, ~0.8) satisfies E.is-Unknown
   equal-now(1, 1) is true
   equal-now(1, 2) is false
   equal-always3(~3, ~3) satisfies E.is-Unknown

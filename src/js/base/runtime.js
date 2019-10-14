@@ -2468,15 +2468,35 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function identical3(v1, v2) {
       if (isFunction(v1) && isFunction(v2)) {
         return thisRuntime.ffi.unknown.app("Functions", v1,  v2);
-      } else if (isMethod(v1) && isMethod(v2)) {
-        return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
-      } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
-        return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
-      } else if (v1 === v2) {
-        return thisRuntime.ffi.equal;
-      } else {
-        return thisRuntime.ffi.notEqual.app("", v1, v2);
       }
+      if (isMethod(v1) && isMethod(v2)) {
+        return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
+
+      }
+      var v1IsNum = jsnums.isPyretNumber(v1);
+      var v2IsNum = jsnums.isPyretNumber(v2);
+      if (v1IsNum && v2IsNum) {
+        var v1IsRough = jsnums.isRoughnum(v1);
+        var v2IsRough = jsnums.isRoughnum(v2);
+
+        if (v1IsRough && v2IsRough) {
+          return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
+        }
+        else if (v1IsRough || v2IsRough) {
+          return thisRuntime.ffi.notEqual.app("Numbers", v1, v2);
+        }
+        else if (jsnums.equals(v1, v2, NumberErrbacks)) {
+          return thisRuntime.ffi.equal; 
+        }
+        else {
+          return thisRuntime.ffi.notEqual.app("Numbers", v1, v2); 
+        }
+      }
+      if (v1 === v2) {
+        return thisRuntime.ffi.equal;
+      }
+
+      return thisRuntime.ffi.notEqual.app("", v1, v2);
     };
     // Pyret function from Pyret values to Pyret equality answers
     var identical3Py = makeFunction(function(v1, v2) {
