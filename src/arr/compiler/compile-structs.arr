@@ -2785,9 +2785,9 @@ data CompileError:
     method render-fancy-reason(self):
       
       bad-column = self.sanitize-expr.name
-      bad-column-name = bad-column.tosource().pretty(80)
+      bad-column-name = bad-column.toname()
       sanitizer = self.sanitize-expr.sanitizer
-      sanitizer-name = sanitizer.tosource().pretty(80)
+      sanitizer-name = sanitizer.tosource().pretty(80).join-str(" ")
       [ED.error:
         [ED.para:
           ED.text("The column "),
