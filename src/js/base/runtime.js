@@ -2335,6 +2335,37 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }, equalityToBool, "equal-now");
     };
 
+    const ROUGH_TOL = jsnums.fromFixnum(0.000001, NumberErrbacks);
+    // JS function from Pyret values to Pyret equality answers
+    function roughlyEqualAlways3(left, right) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always3"], 2, $a, false); }
+      return equal3(left, right, EQUAL_ALWAYS, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+    };
+    // JS function from Pyret values to Pyret booleans (or throws)
+    function roughlyEqualAlways(v1, v2) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a, false); }
+      if (((typeof v1 === 'number')  && (typeof v2 === 'number')) ||
+          ((typeof v1 === 'string')  && (typeof v2 === 'string')) ||
+          ((typeof v1 === 'boolean') && (typeof v2 === 'boolean'))) {
+        return v1 === v2;
+      }
+      return safeCall(function() {
+        return equal3(v1, v2, EQUAL_ALWAYS, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+      }, equalityToBool, "roughly-equal-always");
+    };
+    // JS function from Pyret values to Pyret equality answers
+    function roughlyEqualNow3(left, right) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now3"], 2, $a, false); }
+      return equal3(left, right, EQUAL_NOW, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+    };
+    // JS function from Pyret values to Pyret booleans (or throws)
+    function roughlyEqualNow(v1, v2) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now"], 2, $a, false); }
+      return safeCall(function() {
+        return equal3(v1, v2, EQUAL_NOW, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+      }, equalityToBool, "roughly-equal-now");
+    };
+    
     // JS function from Pyret values to JS booleans
     // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
@@ -5717,6 +5748,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'equal-always3': makeFunction(equalAlways3, "equal-always3"),
       'equal-always': makeFunction(equalAlways, "equal-always"),
 
+      'roughly-equal': makeFunction(roughlyEqualAlways, "roughly-equal"),
+      'roughly-equal-now3': makeFunction(roughlyEqualNow3, "roughly-equal-now3"),
+      'roughly-equal-now': makeFunction(roughlyEqualNow, "roughly-equal-now"),
+      'roughly-equal-always3': makeFunction(roughlyEqualAlways3, "roughly-equal-always3"),
+      'roughly-equal-always': makeFunction(roughlyEqualAlways, "roughly-equal-always"),
+
       'within-abs-now3' : makeFunction(equalWithinAbsNow3, "within-abs-now3"),
       'within-rel-now3' : makeFunction(equalWithinRelNow3, "within-rel-now3"),
       'within-abs3' : makeFunction(equalWithinAbs3, "within-abs3"),
@@ -5994,6 +6031,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'equal_now': equalNow,
       'equal_always3': equalAlways3,
       'equal_always': equalAlways,
+      'roughly_equal': roughlyEqualAlways,
+      'roughly_equal_now3': roughlyEqualNow3,
+      'roughly_equal_now': roughlyEqualNow,
+      'roughly_equal_always3': roughlyEqualAlways3,
+      'roughly_equal_always': roughlyEqualAlways,
       'combineEquality': combineEquality,
 
       'within': equalWithinRel, //?
