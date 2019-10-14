@@ -2132,5 +2132,6 @@ return module.exports = {
   },
   "colors-equal": /* @stopify flat */ function (color1, color2) {
     return ColorsEqual(color1, color2);
-  }
+  },
+  colorDb: colorDb
 };
