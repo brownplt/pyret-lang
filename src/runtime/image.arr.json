@@ -78,7 +78,8 @@
       "image-url": ["arrow", ["String"], "Image"],
       "bitmap-url": ["arrow", ["String"], "Image"],
       "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"],
-      "colors-equal": ["arrow", ["Color", "Color"], "Boolean"]
+      "colors-equal": ["arrow", ["Color", "Color"], "Boolean"],
+      "colorDb": "Any"
     },
     "aliases": {
       "Image": { "tag": "name", 
