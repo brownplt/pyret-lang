@@ -1,0 +1,32 @@
+{
+    "requires": [],
+    "provides": {
+        "shorthands": {
+            "Chart": ["local", "Chart"],
+            "Color": ["local", "Color"]
+        },
+        "values": {
+            "test-print": ["arrow", ["Number"], "Number"],
+            "add-one": ["arrow", ["Number"], "Number"],
+
+            "check-color": ["arrow", ["Any"], "Any"]
+        },
+        "aliases": {
+            "Chart": { "tag": "name",
+                        "origin": { "import-type": "uri", "uri": "builtin://chart" },
+                        "name": "Chart" },
+            "Color": ["local", "Color"]
+        },
+        "datatypes": {
+            "Chart": ["data", "Chart", [], [], {}],
+            "Color": ["data", "Color", [], [],
+                {
+                    "red": "Number",
+                    "green": "Number",
+                    "blue": "Number",
+                    "alpha": "Number"
+                }
+            ]
+        }
+    }
+}
