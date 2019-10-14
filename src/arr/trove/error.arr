@@ -2592,28 +2592,44 @@ data ParseError:
           draw-and-highlight(self.loc),
           ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
-  | parse-error-bad-check-operator(loc) with:
+  | parse-error-bad-check-operator(op) with:
     method render-fancy-reason(self, src-available):
-      if src-available(self.loc):
+      if src-available(self.op.l):
         [ED.error: 
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("testing operator"), [ED.locs: self.loc], 0)],
-          ED.cmcode(self.loc),
+            ED.highlight(ED.text("testing operator"), [ED.locs: self.op.l], 0)],
+          ED.cmcode(self.op.l),
           [ED.para:
             ED.text(" must be used inside a "),
             ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
-          [ED.para:
-            ED.text("Did you mean to use one of the comparison operators instead?")]]
+          cases(Any) self.op:
+            | s-op-raises(_) =>
+              [ED.para:
+                ED.text("You may have been looking for the "), ED.code(ED.text("raise")),
+                ED.text(" operator, or perhaps you meant to use a comparison operator instead.")]
+            | else =>
+              [ED.para:
+                ED.text("Did you mean to use one of the comparison operators instead?")]
+          end
+        ]
       else:
         [ED.error: 
           [ED.para-nospace:
             ED.text("The testing operator at "),
-            ED.loc(self.loc),
+            ED.loc(self.op.l),
             ED.text(" must be used inside a "),
             ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
-          [ED.para:
-            ED.text("Did you mean to use one of the comparison operators instead?")]]
+          cases(Any) self.op:
+            | s-raises(_) =>
+              [ED.para:
+                ED.text("You may have been looking for the "), ED.code(ED.text("raise")),
+                ED.text(" operator, or perhaps you meant to use a comparison operator instead.")]
+            | else =>
+              [ED.para:
+                ED.text("Did you mean to use one of the comparison operators instead?")]
+          end
+        ]
       end
     end,
     method render-reason(self):

@@ -604,7 +604,7 @@ module-const-error = t-module("builtin://error",
       [list: ],
       [list:
         t-variant("parse-error-next-token", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
-        t-variant("parse-error-bad-check-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-check-operator", [list: {"op"; t-top}], [string-dict: ]),
         t-variant("parse-error-bad-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-bad-number", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-eof", [list: {"loc"; t-top}], [string-dict: ]),
