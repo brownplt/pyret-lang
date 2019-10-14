@@ -313,7 +313,7 @@ fun reachable-ops(self, l, op-l, op, ast):
   end
 end
 
-fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) block:
+fun reject-standalone-exprs(stmts :: List, ignore-last :: Boolean) block:
   to-examine = if ignore-last:
     # Ignore the last statement, because it might well be an expression
     stmts.reverse().rest.reverse()
