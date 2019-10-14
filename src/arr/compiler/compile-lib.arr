@@ -345,7 +345,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       var ast-ended = AU.append-nothing-if-necessary(ast)
       ast := nothing
       add-phase("Added nothing", ast-ended)
-      ast-ended := AU.wrap-toplevels(ast-ended)
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
@@ -356,7 +355,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       end
       cases(CS.CompileResult) wf block:
         | ok(_) =>
-          var wf-ast = wf.code
+          var wf-ast = AU.wrap-toplevels(wf.code)
           wf := nothing
           var checked = checker(wf-ast)
           wf-ast := nothing

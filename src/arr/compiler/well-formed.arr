@@ -383,11 +383,11 @@ fun wrap-reject-standalones-in-check(target) block:
 end
 
 
-fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
+fun wf-block-stmts(visitor, l, stmts :: List%(is-link), toplevel :: Boolean) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts)
   ensure-distinct-lines(A.dummy-loc, false, stmts)
-  when not(in-check-block):
+  when not(in-check-block) and not(toplevel):
     reject-standalone-exprs(stmts, true)
   end
   lists.all(_.visit(visitor), stmts)
@@ -596,7 +596,7 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else:
       wf-last-stmt(parent-block-loc, stmts.last())
-      wf-block-stmts(self, parent-block-loc, stmts)
+      wf-block-stmts(self, parent-block-loc, stmts, false)
       true
     end
   end,
@@ -1007,7 +1007,7 @@ well-formed-visitor = A.default-iter-visitor.{
 top-level-visitor = A.default-iter-visitor.{
   method s-program(self, l, _provide, _provide-types, provides, imports, body):
     ok-body = cases(A.Expr) body:
-      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
+      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts, true)
       | else => body.visit(self)
     end
     ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))

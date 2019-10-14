@@ -265,6 +265,18 @@ check "underscores":
   run-str("{a: 1}._") is%(output) compile-error(CS.is-underscore-as)
 end
 
+check "standalone expressions":
+  cok("1 + 2\n1 + 5") is empty
+  cok("x = 5\n1 == 1\nx") is empty
+  cok("x = 10\nx + 1\nx") is empty
+  cok("x = 5\ny = 12\nx\ny") is empty
+
+  run-str("block: 1 + 2\n1 + 3 end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x\ny end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x = 10\nx\nx + 1 end") is%(output) compile-error(CS.is-wf-err)
+end
+
+
 #|
       it("should notice empty blocks", function(done) {
         P.checkCompileError("lam(): end", function(e) {
