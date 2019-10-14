@@ -241,7 +241,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
                 if A.is-s-template(first) and prev-is-template:
                   add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
-                  add-error(C.same-line(loc, first.l, A.is-s-paren(AU.unwrap-if-wrapped(first))))
+                  add-error(C.same-line(loc, first.l, A.is-s-paren(first)))
                 else:
                   nothing
                 end

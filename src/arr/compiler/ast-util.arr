@@ -68,44 +68,6 @@ fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   end
 end
 
-fun unwrap-if-wrapped(exp :: A.Expr) -> A.Expr:
-  cases(A.Expr) exp:
-    | s-app(_, f, args) =>
-      cases(A.Expr) f:
-        | s-dot(_, obj, field) =>
-          cases(A.Expr) obj:
-            | s-id(_, name) =>
-              cases(A.Name) name:
-                | s-name(_, ident) =>
-                  if (ident == "builtins") and (field == "trace-value"):
-                    cases(List) args:
-                      | link(loc, rest) =>
-                        cases(List) rest:
-                          | link(arg, tail) =>
-                            if A.is-s-srcloc(loc) and L.is-empty(tail):
-                              arg
-                            else:
-                              exp
-                            end
-                          | else =>
-                            exp
-                        end
-                      | else =>
-                        exp
-                    end
-                  else:
-                    exp
-                  end
-                | else => exp
-              end
-            | else => exp
-          end
-        | else => exp
-      end
-    | else => exp
-  end
-end
-
 fun wrap-toplevels(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
     | s-program(l1, _prov, _prov-types, provides, imps, body) =>
