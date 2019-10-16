@@ -517,9 +517,9 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("{(a): true}")).not.toBe(false);
       expect(parse("{(a, b): true}")).not.toBe(false); // colon ==> lambda
       expect(parse("{(a, b); true}")).toBe(false); // semicolon ==> tuple with invalid first arg
-      expect(parse("{ (): true}")).toBe(false);
-      expect(parse("{ (a): true}")).toBe(false);
-      expect(parse("{ (a, b): true}")).toBe(false);
+      expect(parse("{ (): true}")).not.toBe(false);  // NOTE: will be caught with a bad-args parse later
+      expect(parse("{ (a): true}")).not.toBe(false); // NOTE: will be caught with a bad-args parse later
+      expect(parse("{ (a, b): true}")).not.toBe(false);  // NOTE: will be caught with a bad-args parse later
       expect(parse("{(1 + 2); (3 + 4)}")).not.toBe(false);
       expect(parse("{ (1 + 2); (3 + 4) }")).not.toBe(false);
     });
