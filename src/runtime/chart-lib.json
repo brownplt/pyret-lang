@@ -6,9 +6,6 @@
             "Color": ["local", "Color"]
         },
         "values": {
-            "test-print": ["arrow", ["Number"], "Number"],
-            "add-one": ["arrow", ["Number"], "Number"],
-
             "check-color": ["arrow", ["Any"], "Any"]
         },
         "aliases": {
