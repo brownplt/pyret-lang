@@ -33,6 +33,15 @@ function pieChart(table) {
     };
 }
 
+function histogramChart(table) {
+    return {
+        "$brand": "chart",
+        "chartType": "Histogram",
+        "_headers": table._headers,
+        "_rows": table._rows
+    };
+}
+
 return module.exports = {
     "check-color": /* @stopify flat */ function (val) {
         return checkColor(val);
@@ -42,5 +51,8 @@ return module.exports = {
     },
     "pie-chart": /* @stopify flat */ function (table) {
         return pieChart(table);
+    },
+    "histogram-chart": /* @stopify flat */ function (table) {
+        return histogramChart(table);
     }
 }
