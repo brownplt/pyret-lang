@@ -13,6 +13,7 @@ type ChartWidgetState = {};
 export class ChartWidget extends React.Component<ChartWidgetProps, ChartWidgetState> {
     render() {
         const options = {
+            // TODO(tiffany): get title from the chart
             title: "Title",
             // TODO(tiffany): max of horizontal axis needs to be max value
             hAxis: { title: this.props.headers[1],
