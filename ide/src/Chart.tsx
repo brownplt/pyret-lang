@@ -14,8 +14,11 @@ export class ChartWidget extends React.Component<ChartWidgetProps, ChartWidgetSt
     render() {
         const options = {
             title: "Title",
-            hAxis: { title: this.props.headers[1], viewWindow: { min: 0, max: 15 } },
-            vAxis: { title: this.props.headers[0], viewWindow: { min: 0, max: this.props.rows.length } },
+            // TODO(tiffany): max of horizontal axis needs to be max value
+            hAxis: { title: this.props.headers[1],
+                     viewWindow: { min: 0, max: 15 } },
+            vAxis: { title: this.props.headers[0],
+                     viewWindow: { min: 0, max: this.props.rows.length } },
             legend: "none"
         };
         const headers = [this.props.headers];
