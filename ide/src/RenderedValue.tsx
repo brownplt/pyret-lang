@@ -2,6 +2,8 @@ import React from 'react';
 
 import { TableWidget } from './Table';
 import { ImageWidget } from './Image';
+import { ChartWidget } from './Chart';
+
 
 type RenderedValueProps = {
   value: any;
@@ -32,6 +34,14 @@ function convert(value: any) {
     return (
       <ImageWidget image={value}>
       </ImageWidget>
+    );
+  } else if (value.$brand === 'chart') {
+    return (
+      <ChartWidget
+        headers={value._headers}
+        rows={value._rows}
+        chartType={value.chartType}>
+      </ChartWidget>
     );
   } else if (typeof value === 'object') {
     // TODO(michael) palceholder for better object display

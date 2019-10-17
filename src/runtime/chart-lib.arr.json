@@ -3,27 +3,30 @@
     "provides": {
         "shorthands": {
             "Chart": ["local", "Chart"],
-            "Color": ["local", "Color"]
+            "Color": { "tag": "name",
+                        "origin": { "import-type": "uri", "uri": "builtin://image" },
+                        "name": "Color" },
+            "Table": { "tag": "name",
+                        "origin": { "import-type": "uri", "uri": "builtin://tables" },
+                        "name": "Table" }
         },
         "values": {
-            "check-color": ["arrow", ["Any"], "Any"]
+            "check-color": ["arrow", ["Any"], "Any"],
+            "bar-chart": ["arrow", ["Table"], "Chart"]
         },
         "aliases": {
             "Chart": { "tag": "name",
                         "origin": { "import-type": "uri", "uri": "builtin://chart" },
                         "name": "Chart" },
-            "Color": ["local", "Color"]
+            "Color": { "tag": "name",
+                        "origin": { "import-type": "uri", "uri": "builtin://image" },
+                        "name": "Color" },
+            "Table": { "tag": "name",
+                        "origin": { "import-type": "uri", "uri": "builtin://tables" },
+                        "name": "Table" }
         },
         "datatypes": {
-            "Chart": ["data", "Chart", [], [], {}],
-            "Color": ["data", "Color", [], [],
-                {
-                    "red": "Number",
-                    "green": "Number",
-                    "blue": "Number",
-                    "alpha": "Number"
-                }
-            ]
+            "Chart": ["data", "Chart", [], [], {}]
         }
     }
 }
