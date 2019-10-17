@@ -21,7 +21,16 @@ function barChart(table) {
         "chartType": "BarChart",
         "_headers": table._headers,
         "_rows": table._rows
-    }
+    };
+}
+
+function pieChart(table) {
+    return {
+        "$brand": "chart",
+        "chartType": "PieChart",
+        "_headers": table._headers,
+        "_rows": table._rows
+    };
 }
 
 return module.exports = {
@@ -30,5 +39,8 @@ return module.exports = {
     },
     "bar-chart": /* @stopify flat */ function (table) {
         return barChart(table);
+    },
+    "pie-chart": /* @stopify flat */ function (table) {
+        return pieChart(table);
     }
 }

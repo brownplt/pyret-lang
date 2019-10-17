@@ -12,7 +12,8 @@
         },
         "values": {
             "check-color": ["arrow", ["Any"], "Any"],
-            "bar-chart": ["arrow", ["Table"], "Chart"]
+            "bar-chart": ["arrow", ["Table"], "Chart"],
+            "pie-chart": ["arrow", ["Table"], "Chart"]
         },
         "aliases": {
             "Chart": { "tag": "name",
