@@ -1,5 +1,16 @@
 import React from 'react';
-//props = para to constr to widget
+import './Sound.css';
+
+const blackDownloadIcon = require('./SoundWidgetImages/download_black.png');
+const whitePlayIcon = require('./SoundWidgetImages/play_white.png');
+const blackPlayIcon = require('./SoundWidgetImages/play_black.png');
+const whiteZoomIcon = require('./SoundWidgetImages/zoomout_white.png');
+const blackZoomIcon = require('./SoundWidgetImages/zoomout_black.png');
+const whitePauseIcon = require('./SoundWidgetImages/pause_white.png');
+const blackPauseIcon = require('./SoundWidgetImages/pause_black.png');
+const whiteResetIcon = require('./SoundWidgetImages/reset_white.png');
+const blackResetIcon = require('./SoundWidgetImages/reset_black.png');
+
 type SoundWidgetProps = {
     sound: any
 };
@@ -12,14 +23,15 @@ type SoundWidgetState = {
    startIndex: number, //zoom related
    endIndex: number,
    focusDuration: number,
-   hoverLoc: number
+   hoverLoc: number,
+   zoomLog: number[][]
 };
 
 export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetState> {
   waveformCanvas: any;
   progressCanvas: any;
   HEIGHT: number = 100;
-  WIDTH: number = 500;
+  WIDTH: number = 425;
   FPS: number = 120.0;
   source: any;
   audioCtx: any;
@@ -39,7 +51,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       startIndex: 0,
       endIndex: this.props.sound.duration * this.props.sound['sample-rate'],
       focusDuration: this.props.sound.duration,
-      hoverLoc: 0
+      hoverLoc: 0,
+      zoomLog: []
     }
   }
 
@@ -142,13 +155,13 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   drawProgress = () => {
     const canvas = this.progressCanvas.current;
     const context = canvas.getContext('2d');
-    context.lineWidth = 1;
+    context.lineWidth = 2;
     context.strokeStyle = "#FF0000";
     context.clearRect(0, 0,this.WIDTH, this.HEIGHT);
     context.beginPath();
     let lineX = ((this.state.progress/this.FPS / (this.state.focusDuration))) * this.WIDTH;
-    context.moveTo(lineX, 0);
-    context.lineTo(lineX, this.HEIGHT);
+    context.moveTo(Math.max(1, lineX), 0);
+    context.lineTo(Math.max(1,lineX), this.HEIGHT);
     context.stroke();
     context.strokeStyle = "#0000FF";
     if(this.state.endBox > 0) {
@@ -162,8 +175,9 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     const canvas = this.waveformCanvas.current;
     const context = canvas.getContext('2d');
     context.lineWidth = 1;
+    context.fillStyle = '#FFFFFF';
+    context.fillRect(0, 0,this.WIDTH, this.HEIGHT);
     context.strokeStyle = '#000000';
-    context.clearRect(0, 0,this.WIDTH, this.HEIGHT);
     context.beginPath();
     context.moveTo(0, this.HEIGHT / 2.0);
     const channel0 = this.props.sound['data-array'][0]; //first 100 elements for now
@@ -232,15 +246,41 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   
 
   
+  getResetIcon = () => {
+    if(this.state.progress == 0) {
+      return whiteResetIcon;
+    }
+    return blackResetIcon;
+  }
 
+  getPlayIcon = () => {
+    if(this.state.isPlaying) {
+      return blackPauseIcon;
+    }
+    return blackPlayIcon;
+  }
+
+  getZoomIcon = () => {
+    if(this.state.focusDuration == this.props.sound.duration) {
+      return whiteZoomIcon;
+    }
+    return blackZoomIcon;
+  }
+
+  getDownloadIcon = () => {
+    return blackDownloadIcon;
+  }
   render() {
       return (
-          <div style={{ border: "1px solid red"}}>
-          <button onClick={this.togglePlay}>{!this.state.isPlaying ? "Play" : "Stop"}</button>
-          <button onClick={this.handleReset}>Reset Progress</button>
-          <button onClick={this.handleResetZoom}>Reset Zoom </button>
-          <button>Download</button>
-          <div style={{position: "relative", width: this.WIDTH, height: this.HEIGHT}}
+          <div>
+          <div className="ButtonBar" style={{background: "#3790cc", display:"flex", maxWidth: "150px", paddingLeft: "10px", paddingTop: "5px", paddingBottom: "5px"}}>
+            <MyButton onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress == 0}/>
+            <MyButton onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
+            <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration == this.props.sound.duration}/>
+            <MyButton onClick={() => {}} icon={this.getDownloadIcon()} isDisabled={true}/>
+          </div>
+          <div className="CanvasWrapper" style={{marginTop: "2px", background: "#3790cc" , textAlign: "center", width: this.WIDTH + 50, height: this.HEIGHT + 20}}>
+          <div className="CanvasContainer" style={{marginTop: "10px", display: "inline-block", position: "relative", width: this.WIDTH, height: this.HEIGHT}}
             onDoubleClick={this.handleClick}
             onMouseDown={this.handleMouseDown}
             onMouseUp={this.handleMouseUp}
@@ -248,18 +288,19 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
           <canvas
             width={this.WIDTH}
             height={this.HEIGHT}
-            style={{ position: "absolute", top: "0", left: "0", border: "1px solid blue"}}
+            style={{ position: "absolute", top: "0", left: "0"}}
             ref={this.waveformCanvas} 
             ></canvas>
             
           <canvas
             width={this.WIDTH}
             height={this.HEIGHT}
-            style={{ position: "absolute", top: "0", left: "0",border: "1px solid pink"}}
+            style={{ position: "absolute", top: "0", left: "0"}}
             ref={this.progressCanvas}
             ></canvas>
           </div>
-          <div>
+          </div>
+          <div className="DataContainer">
             <p>{"Index: " + this.getCurrentIndex()}</p>
             <p>{"Amp: " + this.getAmplitudeAt(this.getCurrentIndex())}</p>
             <p>{"Hover Index: " + this.getHoverIndex()}</p>
@@ -269,3 +310,21 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       )
   }
 }
+
+type MyButtonProps = {
+  onClick: any,
+  icon: any,
+  isDisabled: boolean
+}
+class MyButton extends React.Component<MyButtonProps, {}> {
+  render() {
+    return <div  onClick={this.props.isDisabled ? () => {} : this.props.onClick}> 
+      <div className={this.props.isDisabled ? "fake" : "hoverable"} style={{ maxHeight: "25px", minHeight: "25px", height: "25px", marginRight: "10px" }}>
+        <img style={{ display: "block", maxHeight: "100%", minHeight: "100%" }} src={this.props.icon} />
+      </div>
+    </div>
+
+  }
+}
+
+
