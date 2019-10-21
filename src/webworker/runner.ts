@@ -3,7 +3,6 @@ const assert = require('assert');
 const immutable = require('immutable');
 export const stopify = require('@stopify/stopify');
 const browserFS = require('./browserfs-setup.ts');
-const howler = require('howler');
 
 (window as any)["stopify"] = stopify;
 
@@ -14,8 +13,7 @@ const nodeModules = {
   'assert': assert,
   'csv-parse/lib/sync': csv,
   'fs': browserFS.fs,
-  'immutable': immutable,
-  'howler': howler
+  'immutable': immutable
 };
 
 function wrapContent(content: string): string {

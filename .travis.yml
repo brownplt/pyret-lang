@@ -1,10 +1,11 @@
 env:
-  secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
+  secure: VUzGIHwCM6SIsa/pbtcMOA8TSwhfomiRomlHYEPrJFyZ+2sgcNtOX5A67w+hV9LcTtQFwKGmXUwlr0gfo2O82ZBLqIJ/fEPztC7mJxZNe4Hh6sPA+EFQz0Zfbce0aMWJ/Xct6+tR5COBt1RhhYpM1xyol3xFKr8sO13pfAT5Qb7iQ/M8WcMivfqMMg7Ue/PadJ90BsgyAPtXPMdfJ/Sq8KvrBxxgxPM5bPIx+lDn85E3KCS5wV8dcHpjOYjotqW5klRioE0Br5vWOdYUeWndNq9oGiavHybuUZF44qoGTeREjiKPxC4CVzvM4M7dyxQgkH4H54X2AQwb7RBCgsuku7+KK7Vnn2F5v/5hsyLhNqo6qCwVU3xodZeikgaO4RKdgEY65qATsd7WeIvSQcOjvhnnXdIDoqI2U+9tclhAQKTwlgDzg5NU/2MM6q5NetRV70zKwKAzt8n6Bf/e8mD5vDbNGi2WJLBF3FQD0JQsU79tGkGw8q91exRSms7QFWX1pvpNZuf+AD+YEHw8WmDJRcWc8sbD5Lv0iKE3K7Dnipth1hDZh69WUrZSjhByFAVsDam2leZ2My/I8nlXxtdqhdAOIf14Pm+0/5uGDb5IMtBTCOoAONLzsuBddX/pjmdxdgeg8neLPLnk1y4tKScsSIIpyG/ymmcePJNBA7uEeOM=
   global:
   - BROWSER_BINARY=/usr/bin/google-chrome
   - BROWSER="chrome"
   - SHOW_BROWSER="false"
   - BASE_URL="http://localhost:8080"
+  - secure: P1AJEh9DPWanaONF4A92bxVn1j+PQgtAJ2bcc4SSHH8o5hzjgcor8zM7E3g+lkrSLFVQH3K7ghny97+Bvl7CNGGypGhVjWNzRkWXflg8BcNTNSg0U4lKlVtOIfalczUCg2PNCt0I84Avwqw739ku4irNMbubPLkOdQpH1H9uKH4DTXE5Kw9m4r3iWxv3VYMC3qqyiaIhLNqu3694UroDSfgP23r8hqylzu3xmdRRBCeEbBJj5tedNAfk0/GNCLWRTtXQzq6pjj09gaSWJRZ2aJhKpefogdYzv45rw8qL7OyyzYy27Qo+bqSJYCvoHePdnisddU2l0D5bclDNkKIT4lyUL9FgGHUPdqTxiGex8suBrwxXbkgGUGcn4CwK6ihEMeI3JN0CoK7Lc1LA1l9wfztX6tZdWx+ygwi9TfOa8xDQ1tJ+LqByusIOyWHcLps3EizeWCIEKPUszG9dAlRKwl10LiKxZmY568YPt1RQ67Ghmc9oEYepKjWL+NqYYFprspn4zgeqfvIWaIiu+clNi3dnZALDkfns2Z3um6PptxC0vzaXUkEoDhY99UpK5HZIqged32Hy7V8cXN7nJlLoGcdEztxaL9sRR+EGX20OnzSTc1JKmkl5FYNWZ3aJ9Zdjsv1Hfjr/Nw3PY1k1vYPMe3CPl2wzYWYJDv3kMA8J/Fo=
 git:
   submodules: false
 language: node_js
@@ -20,7 +21,7 @@ script:
 - npm run all-tests
 notifications:
   slack:
-    secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
+    secure: CGDy4Mshlf2q6RrHhn01HgTbtBZGQ8H0upbFeE7ONr2/YWH665/GB4+Dy9FliZyyfpK+H1zvK56MYyu+uOHPm5+CtbCi1GTsZeJMwHVlU110fZLaMdx9y0ze0KI0etp5CSG5YDHBtIFo4PViP4mkLtCogYgAfayln7+lw+ActtE2zaSE3SXH0oONM++dtqEJ7dya+//g/1rbk1qjHzrIEwc/LN/hbhIbGvsRqVc4lnoLJaX5iB/YFGPrysEIl9bMPLlrxZ4PT6sLFqWbSYNaEKmcFcow+mkuQ+5SSI25JRQVXSB2q/wmJiHUkS21RXf0Il5dCY0gvsmDMtawZTeidUxatNUG7kColNrrTLQ8fMRdSexSPXiS+yS23XcQW9znfHnRcmjj6HYi4tBzohPGjvDvv/zLIeKELnRyHJBYG1Qv45PX/1Ce9br47CrSNcXR1347rIyHFIvIIkfUJyoys2SEtnADFL1GuTf2oVElVB9/PysBlZ9483DMRhUEl/QRpR3gyWWhbq56KffdU+O9qeVvhjeU4jowbxsOFarRV5VPz+Trjw5DZ8Xl7o9pZkgzazqassa76Nq2biUzYbSKChYLg6nl40U1Tu7Xl92x4Ak9ly9XlJURADeZwH3VMeq6lmx3QH6vmvvWDlW9bTyXzompZZzgZ/jIsrBnOuAMb9g=
 addons:
   chrome: stable
 after_failure:
@@ -29,21 +30,22 @@ after_failure:
 before_deploy:
 - cd ide
 - npm install
-- echo "JOE  CI=false below avoids stopping the build on warnings from webpack about require targets"
+- echo "JOE  CI=false below avoids stopping the build on warnings from webpack about
+  require targets"
 - echo "JOE  We want to see them, but not be blocked on them"
 - CI=false npm run build
 deploy:
   provider: s3
   acl: public_read
-  access_key_id: "AKIAUCA3RRQKLUSZTBS5"
-  bucket: pyret-anchor
+  access_key_id:
+    secure: VFsaazfyNg+xSHNP70tcj51xC1VET0qTsmPPTA55S6OpZGRqrOxuef1YKIcZr9sg7Dn+Wf7A0Jvu9eoCyLjdvMmUUlGAR3gkEhG1JmSWT+ve+86ax9AGnReOcLRYMIqzdtRIQa+k73v/YGi2FThzJATDtZ0VutvaJ9oCH1BAookcjiPPmBPAeguR4lmFcvJvQFPvcQTsuhpM+jTBK2oTHZFFSGKkhUpJIWb+LJ4XE45/tCJ9bPU3KezuuTy/CkW7FKeJf7Si0Igu4nKe3MYr1vQbuz/E2YZtnOWSEhG0q3VwdL5AYq/g+2K46iqbrkrOD5iUQyDbX/piPAJLeb/+3qnUqFQdSORPGNuIj+v6cjBsg2so2QAajJCFHW6H/++JV8ObYlJZANZUhxsJwJLkx0I8hoIRTbVCVhcBOng3lCH/es4YIlRzpN3grK7j7k79YeUXIzguhvCjDLe6t/UhoywN4R/eTBjUCrl0odmGvL5KlDCJLU7desl8O0KuzTSOC+SwsYD6vEV18iV3Kz92HoOFp1BVJ5IuY/zZjWEryQN+l5H0GIHgOzyLSAWYQpjVhtyC5CJ64HXkH9pi+1cH+fpjvLI0cmsFNsswAyAUB5Yjwm1wPGGjm94cPh95u655DgYMMfj2H17C449W6H32OodhNJAE0ZrtHwApu2VYhMM=
+  bucket: pyret-anchor-sound-deploy
   local-dir: build
-  upload-dir: anchor
+  upload-dir: anchor-sound
   skip_cleanup: true
   detect_encoding: true
   on:
-    repo: brownplt/pyret-lang
-    branch: anchor
+    repo: soumyamahalakshmi/pyret-lang
+    branch: anchor-sound
   secret_access_key:
-    secure: treaayJygr/gh3flJ7kMSNNMkGkqqUefme19xMEXoR8UUJIYT+OT1YCH/YDJPm0sa+nHJL5gakxqmAFv2RWF1rHw9c7clAytJ1tu5Ed0arhFoPTC2lHKCXSYggQTEfRR2IigBy3hiVDLF2mPP5eZ0ByygN7toOuqg0WVDuKYJJs=
-
+    secure: aBqcJz37QsSKAf//zhSAgj4iUfo37cJZFH7wgh5H6Lwr2rEcBXB54X7zKcxrdMhf6lB3WXUhElMMy8QoBVEzI8ZiMxT9R1aP/ZWca9T7DgJROSNrYeERAEdD2P2RJHAPMdBMbKxCgmuhySoL9i2WxTAZWtP8RKm0gxuOIzZsMkHzAZNMsmKNIvu5w1jyrs0e6TTVtOrfSLF+Z3mmseje/uaLY0XHoIdkBhVATV2kr8O/ybVdfFJ0beFfmlqsUKrhsVtTa84GmfOJMkKid3xgNXGOouya5RDAbj04r6EEsawx1uotrDrQpU8ecdle7JRPkMm7M//nbm+/pNBKKxl/g2HS5mf/XMbTDUN0hJnvxehawe6VV54Lm4xwTnEXZRoUysuG0YgNiJF96joSSd53qaN4Q1BM4lPKNfkkJTFGcqWXy1VjBRkFp97hL0H/A7i0216+Tc6KHpkEXzMppIUMBx44YCZ9M/qYFQRjEXKHf9ifQlIdOVqgucdsmCWPrwebThPZC+0G8ha29n7PO2SVQ3wDgqc4u3tFDFj2ae5imGYXtNt1961jov4G2MkZWdjiWBbCew8e0I1Sh634Z3pw4K8s/ciouWMee3EFTHvWyEH3H/dvBc1KRMdjq84ksIP2aM+DBi+O5dwAn0pakbzT0yzYSyvR/X+eG1Yoc0/RI4=
