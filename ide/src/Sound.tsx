@@ -235,8 +235,12 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     return Math.round((this.state.progress / this.FPS) * this.props.sound['sample-rate'] + this.state.startIndex);
   }
 
-  getAmplitudeAt = (index : number)=> {
-    return this.props.sound['data-array'][0][index];
+  getAmplitudeAt = (index : number) : string =>  {
+    let amp = this.props.sound['data-array'][0][index]
+    if(amp === undefined) {
+      amp = 0;
+    }
+    return amp < 0 ? "" + amp.toFixed(4) : " " + amp.toFixed(4);
   }
 
   getHoverIndex = () => {
@@ -247,7 +251,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
   
   getResetIcon = () => {
-    if(this.state.progress == 0) {
+    if(this.state.progress === 0) {
       return whiteResetIcon;
     }
     return blackResetIcon;
@@ -261,7 +265,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   getZoomIcon = () => {
-    if(this.state.focusDuration == this.props.sound.duration) {
+    if(this.state.focusDuration === this.props.sound.duration) {
       return whiteZoomIcon;
     }
     return blackZoomIcon;
@@ -292,9 +296,9 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       return (
           <div>
           <div className="ButtonBar" style={{background: "#3790cc", display:"flex", maxWidth: "150px", paddingLeft: "10px", paddingTop: "5px", paddingBottom: "5px"}}>
-            <MyButton onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress == 0}/>
+            <MyButton onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress === 0}/>
             <MyButton onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
-            <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration == this.props.sound.duration}/>
+            <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
             <MyButton onClick={() => {}} icon={this.getDownloadIcon()} isDisabled={true}/>
           </div>
           <div className="CanvasWrapper" style={{marginTop: "2px", background: "#3790cc" , textAlign: "center", width: this.WIDTH + 50, height: this.HEIGHT + 75}}>
@@ -317,12 +321,16 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             ref={this.progressCanvas}
             ></canvas>
           </div>
-          <p style={{color: "white"}}>{this.getTimeString()}</p>
+          <p style={{margin: "0 0 0 0",color: "white"}}>{this.getTimeString()}</p>
           <div className="DataContainer" style={{color: "white", display: "flex"}}>
+          <div className="Index"> 
             <p>{"Index: " + this.getCurrentIndex()}</p>
-            <p>{"Amp: " + this.getAmplitudeAt(this.getCurrentIndex()).toFixed(4)}</p>
+            <p>{"Amp:  " + this.getAmplitudeAt(this.getCurrentIndex())}</p> 
+          </div>
+          <div className="Index">
             <p>{"Hover Index: " + this.getHoverIndex()}</p>
-            <p>{"Hover Amp: " + this.getAmplitudeAt(this.getHoverIndex()).toFixed(4)}</p>
+            <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex())}</p>
+          </div>
           </div>
           </div>
           
