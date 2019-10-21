@@ -1,12 +1,12 @@
 env:
-  secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
-  global:
-  - BROWSER_BINARY=/usr/bin/google-chrome
-  - BROWSER="chrome"
-  - SHOW_BROWSER="false"
-  - BASE_URL="http://localhost:8080"
+ secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
+ global:
+ - BROWSER_BINARY=/usr/bin/google-chrome
+ - BROWSER=“chrome”
+ - SHOW_BROWSER=“false”
+ - BASE_URL=“http://localhost:8080”
 git:
-  submodules: false
+ submodules: false
 language: node_js
 node_js:
 - 10.16.3
@@ -19,31 +19,30 @@ before_script:
 script:
 - npm run all-tests
 notifications:
-  slack:
-    secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
+ slack:
+   secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
 addons:
-  chrome: stable
+ chrome: stable
 after_failure:
 - sleep 10
-- echo "--actual end of .travis script--"
+- echo “--actual end of .travis script--”
 before_deploy:
 - cd ide
 - npm install
-- echo "JOE  CI=false below avoids stopping the build on warnings from webpack about require targets"
-- echo "JOE  We want to see them, but not be blocked on them"
+- echo “JOE  CI=false below avoids stopping the build on warnings from webpack about require targets”
+- echo “JOE  We want to see them, but not be blocked on them”
 - CI=false npm run build
 deploy:
-  provider: s3
-  acl: public_read
-  access_key_id: "AKIAUCA3RRQKLUSZTBS5"
-  bucket: pyret-anchor
-  local-dir: build
-  upload-dir: anchor
-  skip_cleanup: true
-  detect_encoding: true
-  on:
-    repo: brownplt/pyret-lang
-    branch: anchor
-  secret_access_key:
-    secure: treaayJygr/gh3flJ7kMSNNMkGkqqUefme19xMEXoR8UUJIYT+OT1YCH/YDJPm0sa+nHJL5gakxqmAFv2RWF1rHw9c7clAytJ1tu5Ed0arhFoPTC2lHKCXSYggQTEfRR2IigBy3hiVDLF2mPP5eZ0ByygN7toOuqg0WVDuKYJJs=
-
+ provider: s3
+ acl: public_read
+ access_key_id: “AKIAJCVSUC2CLGQOMVMQ”
+ bucket: pyret-anchor-sound
+ local-dir: build
+ upload-dir: anchor-sound
+ skip_cleanup: true
+ detect_encoding: true
+ on:
+   repo: soumyamahalakshmi/pyret-lang
+   branch: anchor-sound
+ secret_access_key: “TOdiKdblf8V9rnBj/oJBHUyZdDuXqGzAi9N3GjBm”
+   secure: treaayJygr/gh3flJ7kMSNNMkGkqqUefme19xMEXoR8UUJIYT+OT1YCH/YDJPm0sa+nHJL5gakxqmAFv2RWF1rHw9c7clAytJ1tu5Ed0arhFoPTC2lHKCXSYggQTEfRR2IigBy3hiVDLF2mPP5eZ0ByygN7toOuqg0WVDuKYJJs=
