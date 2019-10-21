@@ -61,7 +61,7 @@ block:
   o7 = S.overlay(ol7)
   o8 = S.overlay(ol8)
   o9 = S.overlay(ol9)
-  o10 = S.overlay(ol0)
+  o10 = S.overlay(ol10)
   o11 = S.overlay(ol11)
   o12 = S.overlay(ol12)
   o13 = S.overlay(ol13)
@@ -81,7 +81,7 @@ block:
   c7 = S.concat(ol7)
   c8 = S.concat(ol8)
   c9 = S.concat(ol9)
-  c10 = S.concat(ol0)
+  c10 = S.concat(ol10)
   c11 = S.concat(ol11)
   c12 = S.concat(ol12)
   c13 = S.concat(ol13)
@@ -129,7 +129,7 @@ block:
     t4.duration is 1/500
     t5.duration is 2/500
     t6.duration is 2/500
-    t7.duration is 2/500
+    t7.duration is 3/500
     t8.duration is 1/500
     
     #tests for overlay

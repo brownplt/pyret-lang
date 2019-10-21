@@ -1,12 +1,13 @@
 env:
- secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
- global:
- - BROWSER_BINARY=/usr/bin/google-chrome
- - BROWSER=“chrome”
- - SHOW_BROWSER=“false”
- - BASE_URL=“http://localhost:8080”
+  secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
+  global:
+  - BROWSER_BINARY=/usr/bin/google-chrome
+  - BROWSER=“chrome”
+  - SHOW_BROWSER=“false”
+  - BASE_URL=“http://localhost:8080”
+  - secure: usI287jWJrFDMNBEwBr0cazSXgeYwKlk1CcXZU99zEJEKrH8pmRM8hcKoPheDgneFRYIFJPsRfJvVctcWD1V73axgwauTMm3eEWID2nTDNZqFnSN1epBzhZ4w8J7saIm1sPbVPKoE/5YeeH5sNAI5YazIAMc6zvUwQVLEDz5k20xLZ0W3mkTFTDbJvRWmya0f8U1ivfm+4zIJ6MBPsgp0ysfr7FBNDdq91hiNrvS/gkPA1PVZ5S226GdeDlepbLYo0GjiAO/mdz/+2bbSM7ThhbiXbioKOfg9F0lw6Sya7pndlPQ6dwwJpJCPSc1UR0HBf0RbZ2QVLdNE+Ax/uXrhcjTfDifqt5Js4EGwYktCS1/zxl5AdGBG+u/cj7y5jHl0J42+KY+ONCO4NXf6CIhgOV0/Vc+NZRgO7Tv7XxWJstx0ECYgEJ4dcoF5hF0UJDaZKiO29YxcWLS7g466Upi62JPzEHHZoMZZbw7Mhc9BEMoQEeOZNRZQR1Zg0lsTWD9yvKk98LxTn8g+6rBcsAhoOn+9PIAyPgg+a4gFzfMUU6WGm+RfUdhaheez+j+uEb9k666CmfCRo0jQ468brfbsvT/e57CnV9RlGEFs+G+LI5GZikpfAjnngvVobT85Jp6V0j/RhgUXyFPyEELZHcNOIXl1YddVBSjTZbf8xlnoJU=
 git:
- submodules: false
+  submodules: false
 language: node_js
 node_js:
 - 10.16.3
@@ -19,30 +20,31 @@ before_script:
 script:
 - npm run all-tests
 notifications:
- slack:
-   secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=
+  slack:
+    secure: CGDy4Mshlf2q6RrHhn01HgTbtBZGQ8H0upbFeE7ONr2/YWH665/GB4+Dy9FliZyyfpK+H1zvK56MYyu+uOHPm5+CtbCi1GTsZeJMwHVlU110fZLaMdx9y0ze0KI0etp5CSG5YDHBtIFo4PViP4mkLtCogYgAfayln7+lw+ActtE2zaSE3SXH0oONM++dtqEJ7dya+//g/1rbk1qjHzrIEwc/LN/hbhIbGvsRqVc4lnoLJaX5iB/YFGPrysEIl9bMPLlrxZ4PT6sLFqWbSYNaEKmcFcow+mkuQ+5SSI25JRQVXSB2q/wmJiHUkS21RXf0Il5dCY0gvsmDMtawZTeidUxatNUG7kColNrrTLQ8fMRdSexSPXiS+yS23XcQW9znfHnRcmjj6HYi4tBzohPGjvDvv/zLIeKELnRyHJBYG1Qv45PX/1Ce9br47CrSNcXR1347rIyHFIvIIkfUJyoys2SEtnADFL1GuTf2oVElVB9/PysBlZ9483DMRhUEl/QRpR3gyWWhbq56KffdU+O9qeVvhjeU4jowbxsOFarRV5VPz+Trjw5DZ8Xl7o9pZkgzazqassa76Nq2biUzYbSKChYLg6nl40U1Tu7Xl92x4Ak9ly9XlJURADeZwH3VMeq6lmx3QH6vmvvWDlW9bTyXzompZZzgZ/jIsrBnOuAMb9g=
 addons:
- chrome: stable
+  chrome: stable
 after_failure:
 - sleep 10
 - echo “--actual end of .travis script--”
 before_deploy:
 - cd ide
 - npm install
-- echo “JOE  CI=false below avoids stopping the build on warnings from webpack about require targets”
+- echo “JOE  CI=false below avoids stopping the build on warnings from webpack about
+  require targets”
 - echo “JOE  We want to see them, but not be blocked on them”
 - CI=false npm run build
 deploy:
- provider: s3
- acl: public_read
- access_key_id: “AKIAJCVSUC2CLGQOMVMQ”
- bucket: pyret-anchor-sound
- local-dir: build
- upload-dir: anchor-sound
- skip_cleanup: true
- detect_encoding: true
- on:
-   repo: soumyamahalakshmi/pyret-lang
-   branch: anchor-sound
- secret_access_key: “TOdiKdblf8V9rnBj/oJBHUyZdDuXqGzAi9N3GjBm”
-   secure: treaayJygr/gh3flJ7kMSNNMkGkqqUefme19xMEXoR8UUJIYT+OT1YCH/YDJPm0sa+nHJL5gakxqmAFv2RWF1rHw9c7clAytJ1tu5Ed0arhFoPTC2lHKCXSYggQTEfRR2IigBy3hiVDLF2mPP5eZ0ByygN7toOuqg0WVDuKYJJs=
+  provider: s3
+  acl: public_read
+  access_key_id: AKIAJCVSUC2CLGQOMVMQ
+  bucket: pyret-anchor-sound
+  local-dir: build
+  upload-dir: anchor-sound
+  skip_cleanup: true
+  detect_encoding: true
+  on:
+    repo: soumyamahalakshmi/pyret-lang
+    branch: anchor-sound
+  secret_access_key:
+    secure: rSUV3tH5KDjvoMUuk2FTz8G4bJzroAQmHL12SpFnsOax6RiOb9jq2rHSF49U8MJ5NqAb49tckNjsPrrsjvo2fPGWwHWiHht7NWTnbnlJwHFOnBLUnegmmJz/AzUaN7dgq8bFTgkBrjQpk6oityRASXMrj4iB6TJrwaZHXSlgcQPFCjwWcFHZTn0Yyj8jtHWP58sTCQuNOqVvr87Yi4W+O4zayjAq90ctn+AOL7Mps0pRDfrLpMFDfzzc+dD8WHpoUNLVCcMOQD3+p4mM+JjGiRmbVbu9G9NdLwblPfxj+7tg2iAX7Z+30n0e8b+6FYOesPN4oyelBGcIdXGNGy6NLUPQ8beYaIDLewGN4c40HjyNv4d3rOKJpYtNwXGCSODi2f532YVq789x4Ato3coElAsachK5UqrBs0xHS9O9PfQmyCmmzu7agz/+7JWziLvcD+FV5s3/tZuiqTx/tc4drPYwUDLv9Fi9RItmwaFMQ5Ir8UbZW+9leAkzMRFNMD1TTu7CbXWhcukI4sXMeHNbhMWzs6nvYgOqRY+teFch7fbDUC6hhEFHaAf4eiixr1VLoh+2qYIXrs0J2++YVm4Lev4nactYpLjIzn+hrKtPxenwlVK7v5SoLC+pezmcF2zYWFjqkseoqDxZXWHTgU5usVBgCbE/ARfCtY838BDox28=
