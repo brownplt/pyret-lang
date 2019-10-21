@@ -68,7 +68,7 @@
       else if (esc === "\\") { ret += "\\"; }
       else if (esc[0] === 'u') { ret += String.fromCharCode(parseInt(esc.slice(1), 16)); }
       else if (esc[0] === 'x') { ret += String.fromCharCode(parseInt(esc.slice(1), 16)); }
-      else { ret += String.fromCharCode(parseInt(esc.slice(2), 8)); }
+      else { ret += String.fromCharCode(parseInt(esc, 8)); }
       match = escapes.exec(s);
     }
     ret += s;
@@ -550,7 +550,7 @@
           }
         }
         if (nestingDepth === 0) {
-          return this.makeWSToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
+          return this.makeWSToken(line, col, pos);
         } else {
           var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
           return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);

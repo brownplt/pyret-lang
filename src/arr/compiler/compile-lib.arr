@@ -396,19 +396,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
               end }
           else:
             add-phase("Resolved names", named-result)
-            var provides = AU.get-named-provides(named-result, locator.uri(), env)
-            var spied =
-              if options.enable-spies: named-result.ast
-              else: named-result.ast.visit(A.default-map-visitor.{
-                    method s-block(self, l, stmts):
-                      A.s-block(l, stmts.foldr(lam(stmt, acc):
-                            if A.is-s-spy-block(stmt): acc
-                            else: link(stmt.visit(self), acc)
-                            end
-                          end, empty))
-                    end
-                  })
-              end
+            var provides = dummy-provides(locator.uri())
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             # var desugared = named-result.ast
             
@@ -422,8 +410,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             any-errors := RS.check-unbound-ids-bad-assignments(desugared, named-result, env)
             add-phase("Fully desugared", desugared)
             var type-checked =
-              if options.type-check:
-                type-checked = T.type-check(desugared, env, named-result.env, modules)
+              if is-link(any-errors):
+                CS.err(unique(any-errors))
+              else if options.type-check:
+                type-checked = T.type-check(desugared.ast, env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(named-result, type-checked.code, locator.uri(), env)
                   CS.ok(desugared)
@@ -438,7 +428,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                type-checked := nothing
                 var dp-ast = DP.desugar-post-tc(tc-ast, env)
                 tc-ast := nothing
                 var cleaned = dp-ast
@@ -451,21 +440,16 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                   cleaned := cleaned.visit(AU.strip-annotations-visitor)
                 end
                 add-phase("Cleaned AST", cleaned)
-                {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
-                else:
-                  if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
-                  else:
-                    {provides; add-phase("Result", CS.err(unique(any-errors)))}
-                  end
+                when not(options.type-check) block:
+                  provides := AU.get-named-provides(named-result, locator.uri(), env)
                 end
+                {final-provides; cr} = JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, named-result.type-bindings, provides, options)
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
                 mod-result = module-as-string(canonical-provides, env, named-result.env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>
-                { module-as-string(dummy-provides(locator.uri()), env, named-result.env, type-checked);
+                { module-as-string(provides, env, type-checked);
                   if options.collect-all or options.collect-times:
                     phase("Result", type-checked, time-now(), ret).tolist()
                   else: empty

@@ -119,6 +119,8 @@ check "malformed blocks":
        "10")
     satisfies CS.is-block-needed
 
+  c("for map(): end") satisfies CS.is-wf-empty-block
+
   run-str("lam(): x = 5 end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): var x = 5 end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
