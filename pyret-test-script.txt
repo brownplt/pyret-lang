@@ -1,0 +1,229 @@
+import global as G
+import sound as S
+import list as L
+
+x = 10
+y = 10 + x
+
+# outstanding errors: 
+# 1. float point sample duration not correctly handled in library functions.
+# 2. rendering issues on sound samples created from scratch
+# 3. unable to run all tests
+
+block:
+  l0 = [L.list: [L.list: ]] #empty
+  l1 = [L.list: [L.list: 0.0001,0.002,0.000003,0.1,0.000005, 0.00006]] # data-array with one channel
+  l2 = [L.list: [L.list: 0.0003,0.0002,0.03,0.000004,0.001, 0.0005]]
+  l3 = [L.list: [L.list: 0.0003,0.0002,0.03,0.000004,0.001, 0.0005], [L.list: 0.01, 0.003, 0.005, 0.002, 0.0009, 0.006]] # data-array with 2 channels
+  l4 = [L.list: [L.list: 0,0,0,0,0,0], [L.list: 0.01, 0.003, 0.005, 0.002, 0.0009, 0.006]] 
+  l5 = [L.list: [L.list: 0,0,0,0,0,0, 0.01, 0.003, 0.005, 0.002, 0.0009, 0.006]] # data-array with longer duration
+  l6 = [L.list: [L.list: 0,0,0,0,0,0, 0.01, 0.003, 0.005, 0.002, 0.0009, 0.006], [L.list: 0.0003,0.0002,0.03,0.000004,0.001, 0.0005, 0.0001,0.002,0.000003,0.1,0.000005, 0.00006]] # data-array with longer duration and multiple channels
+  l7 = [L.list: [L.list: 0,0,0,0,0,0, 0.01, 0.003, 0.005, 0.002, 0.0009, 0.006], [L.list: 0.0003,0.0002,0.03,0.000004,0.001, 0.0005, 0.0001,0.002,0.000003,0.1,0.000005, 0.00006], [L.list: 0.0003,0.0002,0.03,0.000004,0.001, 0.0005, 0.0001,0.002,0.000003,0.1,0.000005, 0.00006]] # data-array with longer duration and multiple channels
+  
+  t0 = S.makeSound(3000,0,l0) # empty sound
+  t1 = S.makeSound(3000,1/500,l1) # sound with one channel
+  t2 = S.makeSound(3000,1/500,l2)
+  t3 = S.makeSound(3000,1/500,l3) # sound with 2 channels
+  t4 = S.makeSound(3000,1/500,l4)
+  t5 = S.makeSound(3000,2/500,l5) # sound with longer duration
+  t6 = S.makeSound(3000,2/500,l6) # sound with longer duration and multiple channels
+  t7 = S.makeSound(3000,3/500,l7)
+  t8 = S.makeSound(6000,1/500,l7) # sound with higher sample rate
+  
+  # sample lists
+  ol0 = [L.list: t0, t0] # list of 2 empty sound
+  ol1 = [L.list: t1, t0] # list of empty sound and sound with one channel
+  ol2 = [L.list: t2, t2] # the same sound twice
+  ol3 = [L.list: t2, t2, t1] # sound with different numbers of channnels
+  ol4 = [L.list: t0, t2, t1]
+  ol5 = [L.list: t0, t4, t1]
+  ol6 = [L.list: t1, t2, t1]
+  ol7 = [L.list: t1, t2, t4]
+  ol8 = [L.list: t3, t4]
+  ol9 = [L.list: t4, t0]
+  ol10 = [L.list: t4, t4]
+  ol11 = [L.list: t1, t5] # samples with different durations
+  ol12 = [L.list: t1, t5, t6] # samples with different durations and numbers of channels
+  ol13 = [L.list: t1, t5, t6, t7]
+  ol14 = [L.list: t2, t4, t7]
+  ol15 = [L.list: t0, t7]
+  ol16 = [L.list: t0] # another corner case: list of one sample
+  ol17 = [L.list: t1]
+  
+  # overlay
+  o0 = S.overlay(ol0)
+  o1 = S.overlay(ol1)
+  o2 = S.overlay(ol2)
+  o3 = S.overlay(ol3)
+  o4 = S.overlay(ol4)
+  o5 = S.overlay(ol5)
+  o6 = S.overlay(ol6)
+  o7 = S.overlay(ol7)
+  o8 = S.overlay(ol8)
+  o9 = S.overlay(ol9)
+  o10 = S.overlay(ol0)
+  o11 = S.overlay(ol11)
+  o12 = S.overlay(ol12)
+  o13 = S.overlay(ol13)
+  o14 = S.overlay(ol14)
+  o15 = S.overlay(ol15)
+  o16 = S.overlay(ol16)
+  o17 = S.overlay(ol17)
+  
+  # concat
+  c0 = S.concat(ol0)
+  c1 = S.concat(ol1)
+  c2 = S.concat(ol2)
+  c3 = S.concat(ol3)
+  c4 = S.concat(ol4)
+  c5 = S.concat(ol5)
+  c6 = S.concat(ol6)
+  c7 = S.concat(ol7)
+  c8 = S.concat(ol8)
+  c9 = S.concat(ol9)
+  c10 = S.concat(ol0)
+  c11 = S.concat(ol11)
+  c12 = S.concat(ol12)
+  c13 = S.concat(ol13)
+  c14 = S.concat(ol14)
+  c15 = S.concat(ol15)
+  c16 = S.concat(ol16)
+  c17 = S.concat(ol17)
+  
+  # set playback speed
+  pb0 = S.setPlaybackSpeed(t0, 2) # empty sound
+  pb1 = S.setPlaybackSpeed(t1, 2)
+  pb2 = S.setPlaybackSpeed(t1, 1)
+  pb3 = S.setPlaybackSpeed(t2, 4)
+  pb4 = S.setPlaybackSpeed(t2, 2)
+  pb5 = S.setPlaybackSpeed(t3, 2)
+  pb6 = S.setPlaybackSpeed(t4, 2)
+  pb7 = S.setPlaybackSpeed(t5, 4)
+  pb8 = S.setPlaybackSpeed(t6, 2)
+  pb9 = S.setPlaybackSpeed(t7, 2)
+  pb10 = S.setPlaybackSpeed(t8, 0.5)
+  pb11 = S.setPlaybackSpeed(t8, 2)
+  
+  # shorten
+  s0 = S.shorten(t0,0,0) # empty sound corner case
+  s1 = S.shorten(t1,0,0.01)
+  s2 = S.shorten(t1,0,0.02)
+  s3 = S.shorten(t2,0,0.01)
+  s4 = S.shorten(t3,0,0.01)
+  s5 = S.shorten(t4,0.01,0.01)
+  s6 = S.shorten(t4,0.01,0.02)
+  s7 = S.shorten(t5,0.01,0.03)
+  s8 = S.shorten(t6,0.01,0.03)
+  s9 = S.shorten(t7,0.01,0.04)
+  s10 = S.shorten(t8,0,0.02)
+  
+
+  check:
+    5 + 5 is 10
+    
+    # tests for makeSound
+    t0.duration is 0
+    t1.duration is 1/500
+    t2.duration is 1/500
+    t3.duration is 1/500
+    t4.duration is 1/500
+    t5.duration is 2/500
+    t6.duration is 2/500
+    t7.duration is 2/500
+    t8.duration is 1/500
+    
+    #tests for overlay
+    o0.duration is 0
+    o1.duration is 1/500
+    o2.duration is 1/500
+    o3.duration is 1/500
+    o4.duration is 1/500
+    o5.duration is 1/500
+    o6.duration is 1/500
+    o7.duration is 1/500
+    o8.duration is 1/500
+    o9.duration is 1/500
+    o10.duration is 1/500
+    o11.duration is 2/500
+    o12.duration is 2/500
+    o13.duration is 2/500
+    o14.duration is 2/500
+    o15.duration is 2/500
+    o16.duration is 0
+    o17.duration is 1/500
+    
+    o0["sample-rate"] is 3000
+    o1["sample-rate"] is 3000
+    o2["sample-rate"] is 3000
+    o17["sample-rate"] is 3000
+ 
+    o0["data-array"] is [L.list: [L.list: ]]
+      
+    # tests for concat
+    c0.duration is 0
+    c1.duration is 1/500
+    c2.duration is 2/500
+    c3.duration is 3/500
+    c4.duration is 2/500
+    c5.duration is 2/500
+    c6.duration is 3/500
+    c7.duration is 3/500
+    c8.duration is 2/500
+    c9.duration is 1/500
+    c10.duration is 2/500
+    c11.duration is 3/500
+    c12.duration is 5/500
+    c13.duration is 8/500
+    c14.duration is 5/500
+    c15.duration is 3/500
+    c16.duration is 0
+    c17.duration is 1/500
+  
+    # tests for setPlaybackSpeed
+    pb0.duration is 0
+    pb1.duration is 1/1000
+    pb2.duration is 0.02
+    pb3.duration is 0.0025
+    pb4.duration is 0.01
+    pb5.duration is 0.01
+    pb6.duration is 0.01
+    pb7.duration is 0.01
+    pb8.duration is 0.02
+    pb9.duration is 0.03
+    pb10.duration is 0.04
+    pb11.duration is 0.01
+  
+    # tests for shorten
+    s0.duration is 0
+    s1.duration is 0.01
+    s2.duration is 0.02
+    s3.duration is 0.01
+    s4.duration is 0.01
+    s5.duration is 0
+    s6.duration is 0.01
+    s7.duration is 0.02
+    s8.duration is 0.02
+    s9.duration is 0.03
+    s10.duration is 0.02
+    
+    s0["sample-rate"] is 3000
+    s1["sample-rate"] is 3000
+    s2["sample-rate"] is 3000
+    s6["sample-rate"] is 3000
+    s7["sample-rate"] is 3000
+    s9["sample-rate"] is 3000
+    s10["sample-rate"] is 60000
+    
+  end
+  nothing
+end
+
+
+
+
+
+
+  
+
+
+
