@@ -1,7 +1,18 @@
+var Jasmine = require('jasmine');
+var jazz = new Jasmine();
 const R = require("requirejs");
 var build = process.env["PHASE"] || "build/phaseA";
+R.config({
+  waitSeconds: 15000,
+  paths: {
+    "trove": "../../" + build + "/trove",
+    "js": "../../" + build + "/js",
+    "compiler": "../../" + build + "/arr/compiler",
+    "jglr": "../../lib/jglr",
+    "pyret-base": "../../" + build
+  }
+});
 R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], function(T, G, fs) {
-  _ = require("jasmine-node");
   function parse(str) {
     const toks = T.Tokenizer;
     toks.tokenizeFrom(str);
@@ -214,6 +225,23 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd``\\`asd```")).not.toBe(false);
       expect(parse("```asd``\\````")).not.toBe(false);
       expect(parse("```asd```asd```")).toBe(false);
+    });
+
+    it('should lex octal escape sequences', function() {
+      const escapeSequences = ["'\\0'", "'\\77'", "'\\101'"];
+      const expectedValues = ["'\0'", "'?'", "'A'"];
+      for (let i = 0; i < escapeSequences.length; ++i) {
+        const tokens = lex(escapeSequences[i]);
+        expect(tokens.length).toBe(2);
+        expect(tokens[0].value).toBe(expectedValues[i]);
+        expect(tokens[1].name).toBe("EOF");
+
+        const parseStr = `str = ${escapeSequences[i]}`;
+        expect(parse(parseStr)).not.toBe(false);
+      }
+
+      // invalid escape sequence
+      expect(parse("str = '\\8'")).toBe(false);
     });
   });
   describe("parsing", function() {
@@ -753,5 +781,6 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
     });
   });
 
+  jazz.execute();
 
 });

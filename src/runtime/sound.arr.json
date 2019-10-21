@@ -2,13 +2,19 @@
     "provides": {
         "values": {
             "juliet": "String",
-            "getBuffer": ["arrow", ["String"], "tany"],
-            "getArray": ["arrow", ["String"], "tany"],
-            "inputArray": ["arrow", ["tany", "Number", "Number"], "tany"],
+            "getBufferFromURL": ["arrow", ["String"], "tany"],
+            "getArrayFromSound": ["arrow", [["local", "Sound"]], "tany"],
+            "getBufferFromSound": ["arrow", [["local", "Sound"]], "tany"],
+            "getSoundFromAudioBuffer": ["arrow", ["Any"],
+                ["local", "Sound"]
+            ],
+            "createSound": ["arrow", ["Any", "Any", "Any", "Any"],
+                ["local", "Sound"]
+            ],
             "makeSound": ["arrow", ["Any", "Any", "Any"],
                 ["local", "Sound"]
             ],
-            "urlSound": ["arrow", ["String"],
+            "getSoundFromURL": ["arrow", ["String"],
                 ["local", "Sound"]
             ],
             "overlay": ["arrow", ["tany"],
@@ -21,6 +27,9 @@
                 ["local", "Sound"]
             ],
             "shorten": ["arrow", ["Any", "Number", "Number"],
+                ["local", "Sound"]
+            ],
+            "denormalizeSound": ["arrow", ["tany"],
                 ["local", "Sound"]
             ]
         },

@@ -1,7 +1,7 @@
 const RUNTIME = require('./runtime.js');
 const jsnums = require("./js-numbers.js");
 
-export function getBuffer(path: string): AudioBuffer {
+export function getBufferFromURL(path: string): AudioBuffer {
     debugger;
     //@ts-ignore
     var audioCtx = AudioContext();
@@ -36,53 +36,9 @@ export function getBuffer(path: string): AudioBuffer {
     })
 }
 
-export function getArray(path: string): Float32Array {
-    //@ts-ignore
-    var audioCtx = AudioContext();
-    var source;
-
-    source = audioCtx.createBufferSource();
-    //@ts-ignore
-    var request = XMLHttpRequest();
-
-    request.open('GET', path, true);
-
-    request.responseType = 'arraybuffer';
-    return RUNTIME.pauseStack(function (restarter) {
-        request.onload = function () {
-            var audioData = request.response;
-            audioCtx.decodeAudioData(audioData, function (buffer) {
-                source.buffer = buffer;
-                source.connect(audioCtx.destination);
-                source.loop = true;
-                restarter.resume(buffer.getChannelData(0));
-            },
-
-                function (e) {
-                    restarter.error(new Error("Error with decoding audio data"));
-                });
-
-        }
-
-        request.send();
-
-    })
+export function getArrayFromSound(sound: Sound): number[][] {
+    return sound['data-array'];
 }
-
-export function inputArray(soundArray: Float32Array, sampleRate: number, duration: number):AudioBuffer {
-    //@ts-ignore
-    var audioCtx = AudioContext();
-    var frameCount = duration * sampleRate;
-    var numChannels = 1;
-    var myArrayBuffer = audioCtx.createBuffer(numChannels, frameCount, sampleRate);
-    console.log(myArrayBuffer);
-    var nowBuffering = myArrayBuffer.getChannelData(0);
-        for (var i = 0; i < myArrayBuffer.length; i++) {
-            nowBuffering[i] = soundArray[i];
-            console.log(nowBuffering);
-        }
-    return myArrayBuffer;
- }
 
 export function makeSound(sample_rate: number, duration: number, data_array: number[][]): Sound {
     var fixed_data = new Array(data_array.length);
@@ -104,8 +60,20 @@ export function makeSound(sample_rate: number, duration: number, data_array: num
     return sound;
 }
 
-export function urlSound(path: string): Sound {
-    var buffer = getBuffer(path);
+export function getSoundFromURL(path: string): Sound {
+    var buffer = getBufferFromURL(path);
+    var numChannel = buffer.numberOfChannels;
+    var data_array = new Array(numChannel);
+    for (var channel = 0; channel < numChannel; channel++) {
+        var channel_array = Array.from(buffer.getChannelData(channel));
+        data_array[channel] = channel_array;
+    }
+    var sample_rate = buffer.sampleRate;
+    var duration = buffer.duration;
+    return makeSound(sample_rate, duration, data_array);
+}
+
+export function getSoundFromAudioBuffer(buffer: AudioBuffer): Sound {
     var numChannel = buffer.numberOfChannels;
     var data_array = new Array(numChannel);
     for (var channel = 0; channel < numChannel; channel++) {
@@ -115,6 +83,24 @@ export function urlSound(path: string): Sound {
     var sample_rate = buffer.sampleRate;
     var duration = buffer.duration;
     console.log(data_array);
+    return makeSound(sample_rate, duration, data_array);
+}
+
+export function createSound(channels: number, sample_rate: number, duration: number, data_array: number[][]) {
+    //@ts-ignore
+    var audioCtx = AudioContext();
+    var myArrayBuffer = audioCtx.createBuffer(channels, duration, sample_rate);
+
+    for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
+        // This gives us the actual array that contains the data
+        var nowBuffering = myArrayBuffer.getChannelData(channel);
+        for (var i = 0; i < myArrayBuffer.length; i++) {
+            nowBuffering[i] = data_array[channel][i];
+        }
+    }
+    var source = audioCtx.createBufferSource();
+    source.buffer = myArrayBuffer;
+    source.connect(audioCtx.destination);
     return makeSound(sample_rate, duration, data_array);
 }
 
@@ -161,7 +147,7 @@ export function overlay(samples: Sound[]): Sound {
             }
         }
     }
-    return makeSound(sample_rate, maxDuration, mixed);
+    return createSound(mixed.length, sample_rate, maxDuration, mixed);
 }
 
 export function concat(samples: Sound[]): Sound {
@@ -195,7 +181,7 @@ export function concat(samples: Sound[]): Sound {
             }
         }
     }
-    return makeSound(sample_rate, totalDuration, mixed);
+    return createSound(mixed.length, sample_rate, totalDuration, mixed);
 }
 
 export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
@@ -204,7 +190,7 @@ export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
     var arr = sample['data-array'];
     var new_sample_rate = sample_rate * rate;
     var new_dur = duration/rate;
-    return makeSound(new_sample_rate, new_dur, arr);
+    return createSound(arr.length, new_sample_rate, new_dur, arr);
 }
 
 export function shorten(sample: Sound, start: number, end: number): Sound {
@@ -221,9 +207,17 @@ export function shorten(sample: Sound, start: number, end: number): Sound {
     }
 }
 
-export function normalize(sample: Sound): Sound {
-    return sample;
+export function denormalizeSound(audioBuffer: AudioBuffer): Sound {
+    //@ts-ignore
+    var audioCtx = AudioContext();
+    var convolver = audioCtx.createConvolver();
+    
+    convolver.normalize = false;
+    convolver.buffer = audioBuffer;
+    
+    return getSoundFromAudioBuffer(convolver.buffer);
 }
+
 
 interface Sound {
     '$brand': string,

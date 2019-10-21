@@ -64,8 +64,80 @@ $(RUNTIME_BUILD_DIR)/%.js.stopped : $(RUNTIME_BUILD_DIR)/%.js
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.js
 	cp $< $@
 
-$(RUNTIME_BUILD_DIR)/%.json : $(RUNTIME_SRC_DIR)/%.json
-	cp $< $@
+PYRET_TEST_PHASE=$(P)
+ifeq ($(PYRET_TEST_PHASE),B)
+  PYRET_TEST_PHASE=$(PHASEB)
+  PYRET_TEST_PREREQ=$(PHASEB)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configB.json
+else
+ifeq ($(PYRET_TEST_PHASE),C)
+  PYRET_TEST_PHASE=$(PHASEC)
+  PYRET_TEST_PREREQ=$(PHASEC)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configC.json
+else
+  PYRET_TEST_PHASE=$(PHASEA)
+  PYRET_TEST_PREREQ=$(PHASEA)/pyret.jarr
+  PYRET_TEST_CONFIG=src/scripts/standalone-configA.json
+endif
+endif
+
+TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
+	  --builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config $(PYRET_TEST_CONFIG) \
+		--compiled-dir tests/compiled/
+
+.PHONY : test-all
+test-all: test
+
+.PHONY : test
+test: pyret-test type-check-test
+
+.PHONY : parse-test
+parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
+	cd tests/parse/ && $(NODE) parse.js
+
+TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
+TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
+REG_TEST_FILES := $(wildcard tests/pyret/regression/*.arr)
+MAIN_TEST_FILES := tests/pyret/main2.arr tests/type-check/main.arr tests/pyret/regression.arr tests/lib-test/lib-test-main.arr tests/all.arr
+
+tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) $(MAIN_TEST_FILES)
+	$(TEST_BUILD) \
+		--build-runnable tests/all.arr \
+    --outfile tests/pyret/all.jarr \
+		-check-all
+
+.PHONY : all-pyret-test
+all-pyret-test: tests/pyret/all.jarr parse-test
+	$(NODE) tests/pyret/all.jarr
+
+tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
+	$(TEST_BUILD) \
+		--outfile tests/pyret/main2.jarr \
+		--build-runnable tests/pyret/main2.arr \
+		-check-all # NOTE(joe): check-all doesn't yet do anything
+
+
+.PHONY : pyret-test
+pyret-test: phaseA tests/pyret/main2.jarr
+	$(NODE) tests/pyret/main2.jarr
+
+.PHONY : regression-test
+regression-test: tests/pyret/regression.jarr
+	$(NODE) tests/pyret/regression.jarr
+
+tests/pyret/regression.jarr: $(PYRET_TEST_PREREQ) $(REG_TEST_FILES) tests/pyret/regression.arr
+	$(TEST_BUILD) \
+		--build-runnable tests/pyret/regression.arr --outfile tests/pyret/regression.jarr
+
+.PHONY : type-check-test
+type-check-test: phaseA tests/type-check/main.jarr
+	$(NODE) tests/type-check/main.jarr
+
+tests/type-check/main.jarr: phaseA tests/type-check/main.arr $(TYPE_TEST_FILES)
+	$(TEST_BUILD) \
+		--build-runnable tests/type-check/main.arr --outfile tests/type-check/main.jarr
 
 $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 	cd $(RUNTIME_ARR_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
