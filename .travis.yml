@@ -3,8 +3,8 @@ env:
   global:
   - BROWSER_BINARY=/usr/bin/google-chrome
   - BROWSER="chrome"
-  - SHOW_BROWSER=“false”
-  - BASE_URL=“http://localhost:8080”
+  - SHOW_BROWSER="false"
+  - BASE_URL="http://localhost:8080"
   - secure: P1AJEh9DPWanaONF4A92bxVn1j+PQgtAJ2bcc4SSHH8o5hzjgcor8zM7E3g+lkrSLFVQH3K7ghny97+Bvl7CNGGypGhVjWNzRkWXflg8BcNTNSg0U4lKlVtOIfalczUCg2PNCt0I84Avwqw739ku4irNMbubPLkOdQpH1H9uKH4DTXE5Kw9m4r3iWxv3VYMC3qqyiaIhLNqu3694UroDSfgP23r8hqylzu3xmdRRBCeEbBJj5tedNAfk0/GNCLWRTtXQzq6pjj09gaSWJRZ2aJhKpefogdYzv45rw8qL7OyyzYy27Qo+bqSJYCvoHePdnisddU2l0D5bclDNkKIT4lyUL9FgGHUPdqTxiGex8suBrwxXbkgGUGcn4CwK6ihEMeI3JN0CoK7Lc1LA1l9wfztX6tZdWx+ygwi9TfOa8xDQ1tJ+LqByusIOyWHcLps3EizeWCIEKPUszG9dAlRKwl10LiKxZmY568YPt1RQ67Ghmc9oEYepKjWL+NqYYFprspn4zgeqfvIWaIiu+clNi3dnZALDkfns2Z3um6PptxC0vzaXUkEoDhY99UpK5HZIqged32Hy7V8cXN7nJlLoGcdEztxaL9sRR+EGX20OnzSTc1JKmkl5FYNWZ3aJ9Zdjsv1Hfjr/Nw3PY1k1vYPMe3CPl2wzYWYJDv3kMA8J/Fo=
 git:
   submodules: false
@@ -26,13 +26,13 @@ addons:
   chrome: stable
 after_failure:
 - sleep 10
-- echo “--actual end of .travis script--”
+- echo "--actual end of .travis script--"
 before_deploy:
 - cd ide
 - npm install
-- echo “JOE  CI=false below avoids stopping the build on warnings from webpack about
-  require targets”
-- echo “JOE  We want to see them, but not be blocked on them”
+- echo "JOE  CI=false below avoids stopping the build on warnings from webpack about
+  require targets"
+- echo "JOE  We want to see them, but not be blocked on them"
 - CI=false npm run build
 deploy:
   provider: s3
