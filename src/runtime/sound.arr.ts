@@ -6,7 +6,6 @@ export function getBufferFromURL(path: string): AudioBuffer {
     //@ts-ignore
     var audioCtx = AudioContext();
     var source;
-
     source = audioCtx.createBufferSource();
     //@ts-ignore
     var request = XMLHttpRequest();
