@@ -1,4 +1,5 @@
 const RUNTIME = require('./runtime.js');
+const jsnums = require("./js-numbers.js");
 
 export function getBuffer(path: string): AudioBuffer {
     debugger;
@@ -84,11 +85,21 @@ export function inputArray(soundArray: Float32Array, sampleRate: number, duratio
  }
 
 export function makeSound(sample_rate: number, duration: number, data_array: number[][]): Sound {
+    var fixed_data = new Array(data_array.length);
+    var fixed_duration = jsnums.toFixnum(duration);
+    for (var channel = 0; channel < data_array.length; channel++) {
+        var channel_data = data_array[channel];
+        var fixed_channel = new Array(channel_data.length);
+        for (var j = 0; j < channel_data.length; j++ ) {
+            fixed_channel[j] = jsnums.toFixnum(channel_data[j])
+        }
+    fixed_data[channel] = fixed_channel;   
+    }
     const sound = {
         '$brand': "sound",
         'sample-rate': sample_rate,
-        'duration': duration,
-        'data-array': data_array
+        'duration': fixed_duration,
+        'data-array': fixed_data
     }
     return sound;
 }
