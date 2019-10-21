@@ -13,7 +13,12 @@ node_js:
 - 10.16.3
 install:
 - npm ci
-
+before_script:
+- npm run build
+- node_modules/.bin/http-server build/worker -p 8080 &
+- sleep 5
+script:
+- npm run all-tests
 notifications:
   slack:
     secure: CGDy4Mshlf2q6RrHhn01HgTbtBZGQ8H0upbFeE7ONr2/YWH665/GB4+Dy9FliZyyfpK+H1zvK56MYyu+uOHPm5+CtbCi1GTsZeJMwHVlU110fZLaMdx9y0ze0KI0etp5CSG5YDHBtIFo4PViP4mkLtCogYgAfayln7+lw+ActtE2zaSE3SXH0oONM++dtqEJ7dya+//g/1rbk1qjHzrIEwc/LN/hbhIbGvsRqVc4lnoLJaX5iB/YFGPrysEIl9bMPLlrxZ4PT6sLFqWbSYNaEKmcFcow+mkuQ+5SSI25JRQVXSB2q/wmJiHUkS21RXf0Il5dCY0gvsmDMtawZTeidUxatNUG7kColNrrTLQ8fMRdSexSPXiS+yS23XcQW9znfHnRcmjj6HYi4tBzohPGjvDvv/zLIeKELnRyHJBYG1Qv45PX/1Ce9br47CrSNcXR1347rIyHFIvIIkfUJyoys2SEtnADFL1GuTf2oVElVB9/PysBlZ9483DMRhUEl/QRpR3gyWWhbq56KffdU+O9qeVvhjeU4jowbxsOFarRV5VPz+Trjw5DZ8Xl7o9pZkgzazqassa76Nq2biUzYbSKChYLg6nl40U1Tu7Xl92x4Ak9ly9XlJURADeZwH3VMeq6lmx3QH6vmvvWDlW9bTyXzompZZzgZ/jIsrBnOuAMb9g=
