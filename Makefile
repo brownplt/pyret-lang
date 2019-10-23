@@ -74,6 +74,7 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 		--runtime-builtin-relative-path "./" \
 		--type-check true
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
+	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
 
 RUNTIME_DEPS := \
 	$(BUILD_DEPS) \
