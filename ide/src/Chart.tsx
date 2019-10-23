@@ -24,7 +24,6 @@ export class ChartWidget extends React.Component<ChartWidgetProps, ChartWidgetSt
         };
         const headers = [this.props.headers];
         const data = headers.concat(this.props.rows);
-        console.log("data: ", data, "headers: ", this.props.headers, "rows: ", this.props.rows);
         return (
             <div>
                 <Chart
@@ -32,7 +31,6 @@ export class ChartWidget extends React.Component<ChartWidgetProps, ChartWidgetSt
                     data={data}
                     options={options}
                     width="100%"
-                    height="100%"
                     legendToggle
                 />
             </div>
