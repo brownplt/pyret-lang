@@ -43,6 +43,7 @@ function makeResult(result: any, moduleUri: string): { name: string, value: any 
         if('name' in key) {
             return {
                 name: key.name,
+                key: key.name,
                 line: key.srcloc[1],
                 value: result[key.name]
             };
@@ -50,6 +51,7 @@ function makeResult(result: any, moduleUri: string): { name: string, value: any 
         else {
             return {
                 name: "",
+                key: String(key.srcloc[1]),
                 line: key.srcloc[1],
                 value: key.value
             };
@@ -616,7 +618,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {
                         this.state.interactions.map(
                             (i) => {
-                                return <Interaction key={i.name}
+                                return <Interaction key={i.key}
                                                     name={i.name}
                                                     value={i.value}/>
                             })
