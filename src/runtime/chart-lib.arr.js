@@ -5,6 +5,7 @@ const IMAGE = require("./image.arr.js");
 const colorDb = IMAGE.colorDb;
 console.log("colorDb: ", colorDb);
 
+/* @stopify flat */
 function checkColor(val) {
     let aColor = IMAGE["is-image-color"](val);
     if (colorDb.get(val)) {
@@ -15,6 +16,8 @@ function checkColor(val) {
 
 // TODO(tiffany): rgb2hex and getNewWindow
 
+
+/* @stopify flat */
 function barChart(table) {
     return {
         "$brand": "chart",
@@ -24,6 +27,7 @@ function barChart(table) {
     };
 }
 
+/* @stopify flat */
 function pieChart(table) {
     return {
         "$brand": "chart",
@@ -33,6 +37,7 @@ function pieChart(table) {
     };
 }
 
+/* @stopify flat */
 function histogramChart(table) {
     return {
         "$brand": "chart",
@@ -41,6 +46,9 @@ function histogramChart(table) {
         "_rows": table._rows
     };
 }
+
+/* @stopify flat */
+
 
 return module.exports = {
     "check-color": /* @stopify flat */ function (val) {
