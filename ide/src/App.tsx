@@ -26,7 +26,7 @@ enum EEditor {
 type AppProps = {};
 type AppState = {};
 
-function makeResult(result: any, moduleUri: string): { name: string, value: any }[] {
+function makeResult(result: any, moduleUri: string): { key: string, name: string, value: any }[] {
     const compareLocations = (a: any, b: any): number => {
         return a.srcloc[1] - b.srcloc[1];
     };
