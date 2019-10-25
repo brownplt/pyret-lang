@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@babel/core": "7.5.5",
+    "@babel/runtime": "^7.6.3",
     "@stopify/stopify": "^0.7.2",
     "@svgr/webpack": "4.3.2",
     "@types/codemirror": "0.0.76",
