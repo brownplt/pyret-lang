@@ -156,7 +156,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
    }
   }
 
-  
+  /*
   drawProgress = () => {
     const canvas = this.progressCanvas.current;
     const context = canvas.getContext('2d');
@@ -176,7 +176,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     
   }
 
-  /*
+  
   drawWaveForm = () => {
     console.log("drawing wave form start: " + this.state.startIndex);
     const canvas = this.waveformCanvas.current;
@@ -203,12 +203,12 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
   componentDidUpdate() {
     //this.drawWaveForm();
-    this.drawProgress();
+    //this.drawProgress();
   }
 
   componentDidMount() {
     //this.drawWaveForm();
-    this.drawProgress();
+    //this.drawProgress();
     setInterval(this.updateProgress, 1000 / this.FPS);
   }
 
@@ -310,36 +310,113 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
             <MyButton onClick={() => {}} icon={this.getDownloadIcon()} isDisabled={true}/>
           </div>
-          <div className="CanvasWrapper" style={{marginTop: "2px", background: "#3790cc" , textAlign: "center", width: this.WIDTH + 50, height: this.HEIGHT + 75}}>
-          <div className="CanvasContainer" style={{marginTop: "10px", display: "inline-block", position: "relative", width: this.WIDTH, height: this.HEIGHT}}
-            onDoubleClick={this.handleClick}
-            onMouseDown={this.handleMouseDown}
-            onMouseUp={this.handleMouseUp}
-            onMouseMove={this.handleMouseMove}>
-          <WaveForm width={this.WIDTH} height={this.HEIGHT} endIndex={this.state.endIndex} startIndex={this.state.startIndex} dataArray={this.props.sound['data-array'][0]}/>
-
-          <canvas
-            width={this.WIDTH}
-            height={this.HEIGHT}
-            style={{ position: "absolute", top: "0", left: "0"}}
-            ref={this.progressCanvas}
-            ></canvas>
-          </div>
-          <p style={{margin: "0 0 0 0",color: "white"}}>{this.getTimeString()}</p>
-          <div className="DataContainer" style={{color: "white", display: "flex"}}>
-          <div className="Index"> 
-            <p>{"Index: " + this.getCurrentIndex()}</p>
-            <p>{"Amp:  " + this.getAmplitudeAt(this.getCurrentIndex())}</p> 
-          </div>
-          <div className="Index">
-            <p>{"Hover Index: " + this.getHoverIndex()}</p>
-            <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex())}</p>
-          </div>
+          <div style={{background: "#3790cc", paddingBottom: "20px", textAlign: "center"}}>
+            {this.props.sound['data-array'].map((channel: number[]) => {
+              return <OverlayedWaveForm 
+                handleClick={this.handleClick}
+                handleMouseDown={this.handleMouseDown}
+                handleMouseUp={this.handleMouseUp}
+                handleMouseMove={this.handleMouseMove}
+                width={this.WIDTH}
+                height={this.HEIGHT}
+                startBox={this.state.startBox}
+                endBox={this.state.endBox}
+                progressDisplay={this.state.progressDisplay}
+                progress={this.state.progress}
+                focusDuration={this.state.focusDuration}
+                FPS={this.FPS}
+                channel={channel}
+                startIndex={this.state.startIndex}
+                endIndex={this.state.endIndex}
+                 />
+            })}
+            <p style={{margin: "5px 0 0 0",color: "white"}}>{this.getTimeString()}</p>
+            <div className="DataContainer" style={{color: "white", display: "flex"}}>
+              <div className="Index"> 
+                <p>{"Index: " + this.getCurrentIndex()}</p>
+                <p>{"Amp:  " + this.getAmplitudeAt(this.getCurrentIndex())}</p> 
+              </div>
+              <div className="Index">
+                <p>{"Hover Index: " + this.getHoverIndex()}</p>
+                <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex())}</p>
+              </div>
+            </div>
           </div>
           </div>
           
-          </div>
+          
       )
+  }
+
+
+}
+
+type OverlayedWaveFormProps = {
+  handleClick: any,
+  handleMouseDown: any,
+  handleMouseUp: any,
+  handleMouseMove: any,
+  width: number,
+  height: number,
+  startBox: number,
+  endBox: number,
+  progressDisplay: number,
+  progress: number,
+  focusDuration: number,
+  FPS: number,
+  channel: number[],
+  startIndex: number,
+  endIndex: number
+}
+
+
+
+class OverlayedWaveForm extends React.Component<OverlayedWaveFormProps, {}> {
+  progressCanvas : any;
+  constructor(props: OverlayedWaveFormProps) {
+    super(props);
+    this.progressCanvas = React.createRef();
+  }
+  componentDidMount() {
+    this.drawProgress();
+  }
+  componentDidUpdate() {
+    this.drawProgress();
+  }
+  drawProgress = () => {
+    const canvas = this.progressCanvas.current;
+    const context = canvas.getContext('2d');
+    context.lineWidth = 2;
+    context.strokeStyle = "#FF0000";
+    context.clearRect(0, 0,this.props.width, this.props.height);
+    context.beginPath();
+    let progress = this.props.progressDisplay > 0 ?  this.props.progressDisplay : this.props.progress;
+    let lineX = ((progress/this.props.FPS / (this.props.focusDuration))) * this.props.width;
+    context.moveTo(Math.max(1, lineX), 0);
+    context.lineTo(Math.max(1,lineX), this.props.height);
+    context.stroke();
+    context.strokeStyle = "#0000FF";
+    if(this.props.endBox > 0) {
+      context.strokeRect(this.props.startBox,0,this.props.endBox - this.props.startBox, this.props.height);
+    }
+    
+  }
+  render() {
+    return <div className="CanvasWrapper" style={{marginTop: "2px", background: "#3790cc" , textAlign: "center", width: this.props.width + 50, height: this.props.height + 10}}>
+              <div className="CanvasContainer" style={{marginTop: "10px", display: "inline-block", position: "relative", width: this.props.width, height: this.props.height}}
+                onDoubleClick={this.props.handleClick}
+                onMouseDown={this.props.handleMouseDown}
+                onMouseUp={this.props.handleMouseUp}
+                onMouseMove={this.props.handleMouseMove}>
+              <WaveForm width={this.props.width} height={this.props.height} endIndex={this.props.endIndex} startIndex={this.props.startIndex} dataArray={this.props.channel}/>
+              <canvas
+              width={this.props.width}
+              height={this.props.height}
+              style={{ position: "absolute", top: "0", left: "0"}}
+              ref={this.progressCanvas}
+              ></canvas>
+              </div>
+              </div>
   }
 }
 
