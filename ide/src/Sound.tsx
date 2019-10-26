@@ -24,7 +24,8 @@ type SoundWidgetState = {
    endIndex: number,
    focusDuration: number,
    hoverLoc: number,
-   zoomLog: number[][]
+   zoomLog: number[][],
+   progressDisplay: number
 };
 
 export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetState> {
@@ -32,7 +33,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   progressCanvas: any;
   HEIGHT: number = 100;
   WIDTH: number = 425;
-  FPS: number = 120.0;
+  FPS: number = 50.0;
   source: any;
   audioCtx: any;
   MIN_ZOOM_BOX_WIDTH: number = 5;
@@ -52,12 +53,14 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       endIndex: this.props.sound.duration * this.props.sound['sample-rate'],
       focusDuration: this.props.sound.duration,
       hoverLoc: 0,
-      zoomLog: []
+      zoomLog: [],
+      progressDisplay: 0
     }
   }
 
   playSound = () => {
     const dataArray = this.props.sound['data-array'];
+    console.log("playing with number of channels=" + dataArray.length);
    // const numChannels = dataArray.length;
     const timePassed = this.state.progress / this.FPS;
     const duration = this.props.sound.duration - timePassed;
@@ -115,8 +118,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
           if(this.state.isPlaying) {
             this.togglePlay();
           }
-          this.setState({progress: 0, startIndex, endIndex, focusDuration });
-          setTimeout(this.drawWaveForm, 100);
+          this.setState({progress: 0, startIndex, endIndex, focusDuration, progressDisplay: -1 });
+          //setTimeout(this.drawWaveForm, 100);
         }
 
       }
@@ -137,16 +140,18 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
    
     var rect = e.target.getBoundingClientRect();
     let x = e.clientX - rect.left
-    //console.log(e.clientX - rect.left);
+
     let maxProgress = this.FPS * this.state.focusDuration;
+    let newProgDisplay = (x / this.WIDTH) * (maxProgress);
     let newProg = Math.round((x / this.WIDTH) * (maxProgress));
     console.log(newProg);
     
-    this.setState({progress: newProg});
+    this.setState({progress: newProg, progressDisplay: newProgDisplay});
     
    if(this.state.isPlaying) {
     this.togglePlay();
-    setTimeout(this.togglePlay, 100);
+    setTimeout(this.togglePlay, 0);
+    //this.togglePlay();
    
    }
   }
@@ -159,7 +164,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     context.strokeStyle = "#FF0000";
     context.clearRect(0, 0,this.WIDTH, this.HEIGHT);
     context.beginPath();
-    let lineX = ((this.state.progress/this.FPS / (this.state.focusDuration))) * this.WIDTH;
+    let progress = this.state.progressDisplay > 0 ?  this.state.progressDisplay : this.state.progress;
+    let lineX = ((progress/this.FPS / (this.state.focusDuration))) * this.WIDTH;
     context.moveTo(Math.max(1, lineX), 0);
     context.lineTo(Math.max(1,lineX), this.HEIGHT);
     context.stroke();
@@ -170,6 +176,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     
   }
 
+  /*
   drawWaveForm = () => {
     console.log("drawing wave form start: " + this.state.startIndex);
     const canvas = this.waveformCanvas.current;
@@ -192,6 +199,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
    
     context.stroke();  
   }
+  */
 
   componentDidUpdate() {
     //this.drawWaveForm();
@@ -199,14 +207,14 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   componentDidMount() {
-    this.drawWaveForm();
+    //this.drawWaveForm();
     this.drawProgress();
     setInterval(this.updateProgress, 1000 / this.FPS);
   }
 
   updateProgress = () => {
     if(this.state.isPlaying) {
-      this.setState({progress : this.state.progress + 1});
+      this.setState({progress : this.state.progress + 1, progressDisplay: -1});
       if(this.state.progress / this.FPS > this.state.focusDuration) {
         this.setState({progress: 0});
         if(this.state.isPlaying) {
@@ -228,11 +236,12 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       this.togglePlay();
     }
     this.setState({progress: 0, startIndex: 0, endIndex: this.props.sound.duration * this.props.sound['sample-rate'], focusDuration: this.props.sound.duration });
-    setTimeout(this.drawWaveForm, 25);
+    //setTimeout(this.drawWaveForm, 25);
   }
 
   getCurrentIndex = () => {
-    return Math.round((this.state.progress / this.FPS) * this.props.sound['sample-rate'] + this.state.startIndex);
+    let progress = this.state.progressDisplay > 0 ? this.state.progressDisplay : this.state.progress;
+    return Math.round((progress / this.FPS) * this.props.sound['sample-rate'] + this.state.startIndex);
   }
 
   getAmplitudeAt = (index : number) : string =>  {
@@ -307,13 +316,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             onMouseDown={this.handleMouseDown}
             onMouseUp={this.handleMouseUp}
             onMouseMove={this.handleMouseMove}>
-          <canvas
-            width={this.WIDTH}
-            height={this.HEIGHT}
-            style={{ position: "absolute", top: "0", left: "0"}}
-            ref={this.waveformCanvas} 
-            ></canvas>
-            
+          <WaveForm width={this.WIDTH} height={this.HEIGHT} endIndex={this.state.endIndex} startIndex={this.state.startIndex} dataArray={this.props.sound['data-array'][0]}/>
+
           <canvas
             width={this.WIDTH}
             height={this.HEIGHT}
@@ -339,11 +343,77 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 }
 
+type WaveFormProps = {
+  width: number,
+  height: number,
+  startIndex: number,
+  endIndex: number,
+  dataArray: number[]
+
+}
+
+type WaveFormState = {
+
+}
+
+class WaveForm extends React.Component<WaveFormProps, WaveFormState> {
+
+waveformCanvasRef : any;
+  constructor(props: WaveFormProps) {
+    super(props);
+    this.waveformCanvasRef = React.createRef();
+  }
+
+  drawWaveForm = () => {
+    const canvas = this.waveformCanvasRef.current;
+    const context = canvas.getContext('2d');
+    context.lineWidth = 1;
+    context.fillStyle = '#FFFFFF';
+    context.fillRect(0, 0,this.props.width, this.props.height);
+    context.strokeStyle = '#000000';
+    context.beginPath();
+    context.moveTo(0, this.props.height / 2.0);
+    const channel0 = this.props.dataArray; //first 100 elements for now
+   // const channel0 = Array.from({length: 100}, () => Math.random() * 2 - 1);
+    const deltaX = this.props.width / (this.props.endIndex - this.props.startIndex);
+    let x = 0;
+    for(let i = this.props.startIndex; i < this.props.endIndex; i++) {
+      let y_coord =  (this.props.height / 2 ) - channel0[i] * (this.props.height / 2);
+      context.lineTo(x,y_coord);
+      x += deltaX;
+    }
+   
+    context.stroke();  
+  }
+
+  componentDidMount() {
+    this.drawWaveForm();
+  }
+
+  shouldComponentUpdate(nextProps : WaveFormProps, nextState: WaveFormState) {
+    return nextProps.startIndex != this.props.startIndex || nextProps.endIndex != this.props.endIndex;
+  }
+
+  componentDidUpdate() {
+    this.drawWaveForm();
+  }
+  render() {
+    
+    return <canvas
+    width={this.props.width}
+    height={this.props.height}
+    style={{ position: "absolute", top: "0", left: "0"}}
+    ref={this.waveformCanvasRef}
+    ></canvas>;
+  }
+}
+
 type MyButtonProps = {
   onClick: any,
   icon: any,
   isDisabled: boolean
 }
+
 class MyButton extends React.Component<MyButtonProps, {}> {
   render() {
     return <div  onClick={this.props.isDisabled ? () => {} : this.props.onClick}> 
