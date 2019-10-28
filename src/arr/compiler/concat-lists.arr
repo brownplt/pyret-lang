@@ -238,16 +238,6 @@ fun map_list2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> Concat
   end
 end
 
-fun from_list<A>(l :: List<A>):
-  doc: "Returns a List version of this catenable list"
-  if is-empty(l):
-    concat-empty
-  else:
-    concat-cons(l.first, from_list(l.rest))
-  end
-end
-
-#check:
-  # [clist: 1, 2, 3] is concat-cons(1, concat-cons(2, concat-singleton(3)))
-#  nothing
-#end
+# check:
+#   [clist: 1, 2, 3] is concat-cons(1, concat-cons(2, concat-singleton(3)))
+# end
