@@ -60,14 +60,11 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
   playSound = () => {
     const dataArray = this.props.sound['data-array'];
-    console.log("playing with number of channels=" + dataArray.length);
-   // const numChannels = dataArray.length;
     const timePassed = this.state.progress / this.FPS;
     const duration = this.props.sound.duration - timePassed;
     const sampleRate = this.props.sound['sample-rate'];
     const frameCount = duration * sampleRate;
     let startIndex = Math.round((timePassed / this.state.focusDuration) * (this.state.endIndex-this.state.startIndex) + this.state.startIndex);
-    console.log("starting to play at  " + startIndex + ". Endindex=" + this.state.endIndex + " start: " + this.state.startIndex);
     var myArrayBuffer = this.audioCtx.createBuffer(1, (this.state.focusDuration - timePassed) * sampleRate, sampleRate);
     for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
       var nowBuffering = myArrayBuffer.getChannelData(channel);
@@ -102,9 +99,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     if(this.state.isMouseDown) {
       var rect = e.target.getBoundingClientRect();
       let x = e.clientX - rect.left;
-      //console.log("Box from: " + this.state.startBox + " to " + this.state.endBox);
-      let startPixel = this.state.startBox; //starting pixel
-      let endPixel = x; //ending pixel
+      let startPixel = this.state.startBox; 
+      let endPixel = x;
       if(x < this.state.startBox) {
         startPixel = x;
         endPixel = this.state.startBox;
@@ -113,13 +109,14 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
         const startIndex = Math.round(this.state.startIndex + (startPixel / this.WIDTH) * this.state.focusDuration * this.props.sound['sample-rate']);
         const endIndex = Math.round(this.state.startIndex + (endPixel / this.WIDTH) * this.state.focusDuration * this.props.sound['sample-rate']);
         const focusDuration = (endPixel - startPixel) / this.WIDTH * this.state.focusDuration;
-        console.log("Box:" + startIndex + " to " + endIndex + " duration: " + focusDuration);
+
         if(endIndex - startIndex > this.MIN_PIXELS_VIEW) {
+          this.state.zoomLog.push([this.state.startIndex, this.state.endIndex, this.state.focusDuration]);
           if(this.state.isPlaying) {
             this.togglePlay();
           }
           this.setState({progress: 0, startIndex, endIndex, focusDuration, progressDisplay: -1 });
-          //setTimeout(this.drawWaveForm, 100);
+          
         }
 
       }
@@ -140,75 +137,18 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
    
     var rect = e.target.getBoundingClientRect();
     let x = e.clientX - rect.left
-
     let maxProgress = this.FPS * this.state.focusDuration;
     let newProgDisplay = (x / this.WIDTH) * (maxProgress);
     let newProg = Math.round((x / this.WIDTH) * (maxProgress));
-    console.log(newProg);
-    
     this.setState({progress: newProg, progressDisplay: newProgDisplay});
     
    if(this.state.isPlaying) {
     this.togglePlay();
     setTimeout(this.togglePlay, 0);
-    //this.togglePlay();
-   
    }
   }
 
-  /*
-  drawProgress = () => {
-    const canvas = this.progressCanvas.current;
-    const context = canvas.getContext('2d');
-    context.lineWidth = 2;
-    context.strokeStyle = "#FF0000";
-    context.clearRect(0, 0,this.WIDTH, this.HEIGHT);
-    context.beginPath();
-    let progress = this.state.progressDisplay > 0 ?  this.state.progressDisplay : this.state.progress;
-    let lineX = ((progress/this.FPS / (this.state.focusDuration))) * this.WIDTH;
-    context.moveTo(Math.max(1, lineX), 0);
-    context.lineTo(Math.max(1,lineX), this.HEIGHT);
-    context.stroke();
-    context.strokeStyle = "#0000FF";
-    if(this.state.endBox > 0) {
-      context.strokeRect(this.state.startBox,0,this.state.endBox - this.state.startBox, this.HEIGHT);
-    }
-    
-  }
-
-  
-  drawWaveForm = () => {
-    console.log("drawing wave form start: " + this.state.startIndex);
-    const canvas = this.waveformCanvas.current;
-    const context = canvas.getContext('2d');
-    context.lineWidth = 1;
-    context.fillStyle = '#FFFFFF';
-    context.fillRect(0, 0,this.WIDTH, this.HEIGHT);
-    context.strokeStyle = '#000000';
-    context.beginPath();
-    context.moveTo(0, this.HEIGHT / 2.0);
-    const channel0 = this.props.sound['data-array'][0]; //first 100 elements for now
-   // const channel0 = Array.from({length: 100}, () => Math.random() * 2 - 1);
-    const deltaX = this.WIDTH / (this.state.endIndex - this.state.startIndex);
-    let x = 0;
-    for(let i = this.state.startIndex; i < this.state.endIndex; i++) {
-      let y_coord =  (this.HEIGHT / 2 ) - channel0[i] * (this.HEIGHT / 2);
-      context.lineTo(x,y_coord);
-      x += deltaX;
-    }
-   
-    context.stroke();  
-  }
-  */
-
-  componentDidUpdate() {
-    //this.drawWaveForm();
-    //this.drawProgress();
-  }
-
   componentDidMount() {
-    //this.drawWaveForm();
-    //this.drawProgress();
     setInterval(this.updateProgress, 1000 / this.FPS);
   }
 
@@ -236,7 +176,6 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       this.togglePlay();
     }
     this.setState({progress: 0, startIndex: 0, endIndex: this.props.sound.duration * this.props.sound['sample-rate'], focusDuration: this.props.sound.duration });
-    //setTimeout(this.drawWaveForm, 25);
   }
 
   getCurrentIndex = () => {
@@ -256,9 +195,6 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
      return Math.round(this.state.hoverLoc / this.WIDTH * this.state.focusDuration * this.props.sound['sample-rate'] + this.state.startIndex);
   }
 
-  
-
-  
   getResetIcon = () => {
     if(this.state.progress === 0) {
       return whiteResetIcon;
@@ -301,6 +237,22 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     if(a < 10) return "0" + a;
     return a;
   }
+
+  handleZoomOut = () => {
+    let prev = this.state.zoomLog.pop();
+    if(prev === undefined) return;
+    if(this.state.isPlaying) {
+      this.togglePlay();
+    }
+    this.setState({progress: 0, startIndex: prev[0], endIndex: prev[1], focusDuration: prev[2]});
+
+  }
+
+  //returns true if the operation was successful
+  setFocus = (startIndex: number, endIndex: number) : boolean => {
+
+    return true;
+  }
   render() {
       return (
           <div>
@@ -309,6 +261,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             <MyButton onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
             <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
             <MyButton onClick={() => {}} icon={this.getDownloadIcon()} isDisabled={true}/>
+            <MyButton onClick={this.handleZoomOut} icon={this.getZoomIcon()} isDisabled={false} />
           </div>
           <div style={{background: "#3790cc", paddingBottom: "20px", textAlign: "center"}}>
             {this.props.sound['data-array'].map((channel: number[]) => {
@@ -451,7 +404,6 @@ waveformCanvasRef : any;
     context.beginPath();
     context.moveTo(0, this.props.height / 2.0);
     const channel0 = this.props.dataArray; //first 100 elements for now
-   // const channel0 = Array.from({length: 100}, () => Math.random() * 2 - 1);
     const deltaX = this.props.width / (this.props.endIndex - this.props.startIndex);
     let x = 0;
     for(let i = this.props.startIndex; i < this.props.endIndex; i++) {
