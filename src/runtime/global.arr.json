@@ -3,7 +3,15 @@
   "provides": {
     "shorthands": {
       "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
-      "tva":      ["tid", "a"],
+      "rOfB": ["tyapp", ["local", "RawArray"], [["tid", "b"]]],
+      "lOfInt": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "name": "List" }, ["Number"]],
+      "lOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "name": "List" }, [["tid", "a"]]],
+      "tva": ["tid", "a"],
+      "tvb": ["tid", "b"],
       "oOfN": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://option" },
                 "name": "Option" }, ["Number"]]
@@ -15,6 +23,12 @@
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
       "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
+      "raw-array-at": ["forall", ["a"], ["arrow", ["rOfA", "Number"], "tva"]],
+      "raw-array-get": ["forall", ["a", "b"], ["arrow", ["lOfA", "Number"], "rOfB"]],
+      "raw-array-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
+      "raw-array-sum": ["arrow", ["lOfInt"], "Number"],
+      "raw-array-min": ["arrow", ["lOfInt"], "Number"],
+      "raw-array-max": ["arrow", ["lOfInt"], "Number"],
       "time-now": ["arrow", [], "Number"],
       "console-log": ["arrow", ["tany"], "Nothing"],
       "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
@@ -133,6 +147,9 @@
       "Table": { "tag": "name", 
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "Table" },
+      "List": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "name": "List" },
       "EqualityResult": ["local", "EqualityResult"]
     },
     "datatypes": {
