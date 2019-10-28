@@ -175,7 +175,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     if(this.state.isPlaying) {
       this.togglePlay();
     }
-    this.setState({progress: 0, startIndex: 0, endIndex: this.props.sound.duration * this.props.sound['sample-rate'], focusDuration: this.props.sound.duration });
+    this.setState({progress: 0, startIndex: 0, endIndex: this.props.sound.duration * this.props.sound['sample-rate'], focusDuration: this.props.sound.duration, zoomLog: [] });
   }
 
   getCurrentIndex = () => {
