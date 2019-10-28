@@ -1,5 +1,5 @@
-import global as global
-import chart-lib as P
+import global as G
+import chart-lib as CL
 import list as L
 
 ################################################################################
@@ -17,6 +17,7 @@ type Posn = RawArray<Number>
 # HELPERS
 ################################################################################
 
+posn = {(x :: Number, y :: Number): [G.raw-array: x, y]}
 
 ################################################################################
 # METHODS
@@ -43,22 +44,29 @@ default-bounding-box :: BoundingBox = {
   is-valid: false,
 }
 
-#fun get-bounding-box(ps :: L.List<Posn>) -> BoundingBox:
-#  cases (L.List<RawArray<Number>>) ps:
-#    | empty => default-bounding-box.{is-valid: false}
-#    | link(f, r) =>
-#      fun compute(p :: (Number, Number -> Number), accessor :: (Posn -> Number)):
-#        for fold(prev from accessor(f), e from r): p(prev, accessor(e)) end
-#      end
-#      default-bounding-box.{
-#        x-min: compute(num-min, fst),
-#        x-max: compute(num-max, fst),
-#        y-min: compute(num-min, snd),
-#        y-max: compute(num-max, snd),
-#        is-valid: true,
-#      }
-#  end
-#end
+fun compute-min(ps :: RawArray<Number>) -> Number:
+  G.raw-array-fold(G.num-min, 0, ps)
+end
+
+fun compute-max(ps :: RawArray<Number>) -> Number:
+  G.raw-array-fold(G.num-max, 0, ps)
+end
+
+fun get-bounding-box(ps :: L.List<Posn>) -> BoundingBox:
+  if L.length(ps) == 0:
+    default-bounding-box.{is-valid: false}
+  else:
+    x-arr = G.raw-array-get(ps, 0)
+    y-arr = G.raw-array-get(ps, 1)
+    default-bounding-box.{
+      x-min: compute-min(x-arr),
+      x-max: compute-max(x-arr),
+      y-min: compute-min(y-arr),
+      y-max: compute-max(y-arr),
+      is-valid: true,
+    }
+  end
+end
 
 ################################################################################
 # DEFAULT VALUES
