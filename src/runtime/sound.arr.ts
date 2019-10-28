@@ -187,22 +187,24 @@ export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
     var sample_rate = sample['sample-rate'];
     var duration = sample.duration;
     var arr = sample['data-array'];
-    var new_sample_rate = sample_rate * rate;
-    var new_dur = duration/rate;
+    var rate_fixed = jsnums.toFixnum(rate);
+    var new_sample_rate = sample_rate * rate_fixed;
+    var new_dur = duration/rate_fixed;
     return createSound(arr.length, new_sample_rate, new_dur, arr);
 }
 
 export function shorten(sample: Sound, start: number, end: number): Sound {
-    if (end > sample.duration || start > sample.duration || end < start) {
+    var start_fixed = jsnums.toFixnum(start);
+    var end_fixed = jsnums.toFixnum(end);
+    if (end_fixed > sample.duration || start_fixed > sample.duration || end_fixed < start_fixed) {
         throw new Error("invalid start or end");
     }
     var sample_rate = sample['sample-rate'];
-    var dur = sample.duration;
     var arr = sample['data-array'];
     var new_arr = new Array(arr.length);
     for (var channel = 0; channel < arr.length; channel++) {
-        new_arr[channel] = arr[channel].slice(start * sample_rate, end * sample_rate);
-        return makeSound(sample_rate, end - start, new_arr);
+        new_arr[channel] = arr[channel].slice(start_fixed * sample_rate, end_fixed * sample_rate);
+        return makeSound(sample_rate, end_fixed - start_fixed, new_arr);
     }
 }
 
