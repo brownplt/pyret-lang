@@ -616,11 +616,8 @@ well-formed-visitor = A.default-iter-visitor.{
     end
   end,
   method s-user-block(self, l :: Loc, body :: A.Expr) block:
-    old-pbl = parent-block-loc
     parent-block-loc := l
-    ans = body.visit(self)
-    parent-block-loc := old-pbl
-    ans
+    wrap-visit-allow-s-method(self, body, false)
   end,
   method s-tuple-bind(self, l, fields, as-name) block:
     true
@@ -896,14 +893,13 @@ well-formed-visitor = A.default-iter-visitor.{
     ans
   end,
   method s-for(self, l, iterator, bindings, ann, body, blocky) block:
-    old-pbl = parent-block-loc
-    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    ans = iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
-    parent-block-loc := old-pbl
-    ans
+    wrap-visit-allow-s-method(self, iterator, false) and 
+      lists.all(wrap-visit-allow-s-method(self, _, false), bindings) and 
+      ann.visit(self) and 
+      wrap-visit-allow-s-method(self, body, false)
   end,
   method s-frac(self, l, num, den) block:
     when den == 0:

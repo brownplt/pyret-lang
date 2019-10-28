@@ -4138,15 +4138,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return arr[ix];
     };
 
-    var raw_array_sort_nums = function(arr, asc) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 1, $a, false); }
-      thisRuntime.checkArgsInternal2("RawArrays", "raw-array-sort-nums", arr, thisRuntime.RawArray, asc, thisRuntime.Boolean);
-      const wrappedLT = (x, y) => jsnums.lessThan(x,y)?    1 : jsnums.roughlyEquals(x, y, 0)? 0 : -1;
-      const wrappedGT = (x, y) => jsnums.greaterThan(x,y)? 1 : jsnums.roughlyEquals(x, y, 0)? 0 : -1;
-      arr.sort(asc? wrappedLT : wrappedGT);
-      return arr;
-    };
-
     var raw_array_obj_destructure = function(arr, keys) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-obj-destructure",
@@ -5462,7 +5453,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }),
 
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
-      'raw-array-sort-nums': makeFunction(raw_array_sort_nums,"raw-array-sort-nums"),
       'get-value': makeFunction(getValue, "get-value"),
       'list-to-raw-array': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'has-field': makeFunction(hasField, "has-field"),
@@ -5674,7 +5664,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-build': makeFunction(raw_array_build, "raw-array-build"),
       'raw-array-build-opt': makeFunction(raw_array_build_opt, "raw-array-build-opt"),
       'raw-array-get': makeFunction(raw_array_get, "raw-array-get"),
-      'raw-array-sort-nums': makeFunction(raw_array_sort_nums,"raw-array-sort-nums"),
       'raw-array-set': makeFunction(raw_array_set, "raw-array-set"),
       'raw-array-length': makeFunction(raw_array_length, "raw-array-length"),
       'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
