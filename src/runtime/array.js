@@ -10,7 +10,7 @@ module.exports = {
   'get': function( list, index ) {
     var arr = [];
     for (i = 0; i < list.length; i++) {
-      arr.push(list.at(i).at(index));
+      arr.push(list[i][index]);
     }
     return arr;
   },
@@ -25,9 +25,9 @@ module.exports = {
     return arr.reduce( function( x, y ) { return x + y; }, 0 );
   },
   'min': function( arr ) {
-    return arr.reduce( function( x, y ) { return Math.min( x, y ); }, list[0] );
+    return arr.reduce( function( x, y ) { return Math.min( x, y ); }, arr[0] );
   },
   'max': function( arr ) {
-    return arr.reduce( function( x, y ) { return Math.max( x, y ); }, list[0] );
+    return arr.reduce( function( x, y ) { return Math.max( x, y ); }, arr[0] );
   }
 };
