@@ -1,6 +1,9 @@
+provide *
+
 import global as G
 import chart-lib as CL
 import list as L
+import option as O
 
 ################################################################################
 # CONSTANTS
@@ -45,11 +48,11 @@ default-bounding-box :: BoundingBox = {
 }
 
 fun compute-min(ps :: RawArray<Number>) -> Number:
-  G.raw-array-fold(G.num-min, 0, ps)
+  G.raw-array-min(ps)
 end
 
 fun compute-max(ps :: RawArray<Number>) -> Number:
-  G.raw-array-fold(G.num-max, 0, ps)
+  G.raw-array-max(ps)
 end
 
 fun get-bounding-box(ps :: L.List<Posn>) -> BoundingBox:
@@ -87,3 +90,4 @@ end
 # PLOTS
 ################################################################################
 
+#fun bar-chart(table):
