@@ -120,6 +120,14 @@ fun weave-contracts(contracts, rev-binds) block:
     else if A.is-s-letrec-bind(bind): A.s-letrec-bind(bind.l, bind.b, new-v)
     end
   end
+
+  fun is-blank-contract(a):
+    if A.is-a-blank(a): true
+    else if A.is-a-tuple(a):
+      a.fields.all({(elt): is-blank-contract(elt)})
+    else: false
+    end
+  end
     
   ans = for fold(acc from empty, bind from rev-binds):
     cases(A.Bind) bind.b:
@@ -136,7 +144,7 @@ fun weave-contracts(contracts, rev-binds) block:
               else:
                 cases(A.Expr) bind.value:
                   | s-fun(l-fun, name, params, args, ret, doc, body, _check-loc, _check, blocky) =>
-                    if not(args.all({(a): A.is-a-blank(a.ann)}) and A.is-a-blank(ret)) block:
+                    if not(args.all({(a): is-blank-contract(a.ann)}) and A.is-a-blank(ret)) block:
                       errors := link(C.contract-redefined(c.l, id-name, l-fun), errors)
                       link(fun-to-lam(bind), acc)
                     else if A.is-a-arrow(c.ann):
