@@ -11,6 +11,8 @@ const blackPauseIcon = require('./SoundWidgetImages/pause_black.png');
 const whiteResetIcon = require('./SoundWidgetImages/reset_white.png');
 const blackResetIcon = require('./SoundWidgetImages/reset_black.png');
 
+const FileSaver = require('file-saver');
+
 type SoundWidgetProps = {
     sound: any
 };
@@ -266,6 +268,77 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     this.handleShift(-1 * change);
   }
 
+ 
+  handleDownload = () => {
+	var new_file = URL.createObjectURL(this.createWav());
+  //console.log(new_file);
+  FileSaver.saveAs( this.createWav(), "pyret_sound.wav");
+  /*
+	var download_link = document.createElement('a');
+	download_link.href = new_file;
+	var name = "sound";
+  download_link.download = name;
+  download_link.click()
+  */
+}
+
+  createWav = () => {
+  let dataArray = this.props.sound['data-array'];
+  var numOfChan = dataArray.length,
+      length = dataArray[0].length * numOfChan * 2 + 44,
+      buffer = new ArrayBuffer(length),
+      view = new DataView(buffer),
+      channels = [], i, sample,
+      offset = 0,
+      pos = 0;
+
+  // write WAVE header
+  setUint32(0x46464952);                         // "RIFF"
+  setUint32(length - 8);                         // file length - 8
+  setUint32(0x45564157);                         // "WAVE"
+
+  setUint32(0x20746d66);                         // "fmt " chunk
+  setUint32(16);                                 // length = 16
+  setUint16(1);                                  // PCM (uncompressed)
+  setUint16(numOfChan);
+  setUint32(this.props.sound['sample-rate']);
+  setUint32(this.props.sound['sample-rate'] * 2 * numOfChan); // avg. bytes/sec
+  setUint16(numOfChan * 2);                      // block-align
+  setUint16(16);                                 // 16-bit (hardcoded in this demo)
+
+  setUint32(0x61746164);                         // "data" - chunk
+  setUint32(length - pos - 4);                   // chunk length
+
+  // write interleaved data
+  for(i = 0; i < dataArray.length; i++){
+    channels.push(dataArray[i]);
+  }
+
+  while(pos < length) {
+    for(i = 0; i < numOfChan; i++) {             // interleave channels
+      sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+      //console.log(channels[i][offset])
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
+      //console.log("transformed: "  + sample);
+      view.setInt16(pos, sample, true);          // write 16-bit sample
+      pos += 2;
+    }
+    offset++                                     // next source sample
+  }
+
+  // create Blob
+  return new Blob([buffer], {type: "audio/wav"});
+
+  function setUint16(data: any) {
+    view.setUint16(pos, data, true);
+    pos += 2;
+  }
+
+  function setUint32(data: any) {
+    view.setUint32(pos, data, true);
+    pos += 4;
+  }
+}
 
   render() {
       return (
@@ -274,10 +347,11 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             <MyButton onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress === 0}/>
             <MyButton onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
             <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
-            <MyButton onClick={() => {}} icon={this.getDownloadIcon()} isDisabled={true}/>
+            <MyButton onClick={this.handleDownload} icon={this.getDownloadIcon()} isDisabled={false}/>
             <MyButton onClick={this.handleZoomOut} icon={this.getZoomIcon()} isDisabled={false} />
             <MyButton onClick={this.handleShiftLeft} icon={this.getZoomIcon()} isDisabled={false} />
             <MyButton onClick={this.handleShiftRight} icon={this.getZoomIcon()} isDisabled={false} />
+            
           </div>
           <div style={{background: "#3790cc", paddingBottom: "20px", textAlign: "center"}}>
             {this.props.sound['data-array'].map((channel: number[]) => {
