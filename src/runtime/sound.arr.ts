@@ -171,14 +171,16 @@ export function concat(samples: Sound[]): Sound {
             mixed[m][n] = 0;
         }
     }
+    var index = 0;
     for (var j = 0; j < numSamples; j++) {
         var fc = samples[j].duration * sample_rate;
         for (var srcChannel = 0; srcChannel < samples[j]['data-array'].length; srcChannel++) {
             var _in = samples[j]['data-array'][srcChannel];
             for (var i = 0; i < _in.length; i++) {
-                mixed[srcChannel][j * fc + i] = _in[i];
+                mixed[srcChannel][index + i] = _in[i];
             }
         }
+        index += fc;
     }
     return createSound(mixed.length, sample_rate, totalDuration, mixed);
 }
