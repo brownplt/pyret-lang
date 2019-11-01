@@ -131,7 +131,7 @@ export function overlay(samples: Sound[]): Sound {
             maxDuration = samples[i].duration;
         }
     }
-    var frameCount = maxDuration * sample_rate;
+    var frameCount = Math.round(maxDuration*sample_rate);
     var mixed = new Array(maxChannels);
     for (var m = 0; m < maxChannels; m++) {
         mixed[m] = new Array(frameCount);
@@ -164,7 +164,7 @@ export function concat(samples: Sound[]): Sound {
         }
         totalDuration += samples[i].duration;
     }
-    var frameCount = totalDuration * sample_rate;
+    var frameCount = Math.round(totalDuration*sample_rate);
     var mixed = new Array(maxChannels);
     for (var m = 0; m < maxChannels; m++) {
         mixed[m] = new Array(frameCount);
@@ -192,7 +192,6 @@ export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
     var arr = sample['data-array'];
     var rate_fixed = jsnums.toFixnum(rate);
     var new_sample_rate = sample_rate * rate_fixed;
-    var new_dur = duration/rate_fixed;
     return makeSound(new_sample_rate, arr);
 }
 
@@ -206,7 +205,7 @@ export function shorten(sample: Sound, start: number, end: number): Sound {
     var arr = sample['data-array'];
     var new_arr = new Array(arr.length);
     for (var channel = 0; channel < arr.length; channel++) {
-        new_arr[channel] = arr[channel].slice(start_fixed * sample_rate, end_fixed * sample_rate);
+        new_arr[channel] = arr[channel].slice(Math.round(start_fixed*sample_rate), Math.round(end_fixed*sample_rate));
         return makeSound(sample_rate, new_arr);
     }
 }
