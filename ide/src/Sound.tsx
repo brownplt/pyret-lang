@@ -2,14 +2,18 @@ import React from 'react';
 import './Sound.css';
 
 const blackDownloadIcon = require('./SoundWidgetImages/download_black.png');
-const whitePlayIcon = require('./SoundWidgetImages/play_white.png');
 const blackPlayIcon = require('./SoundWidgetImages/play_black.png');
 const whiteZoomIcon = require('./SoundWidgetImages/zoomout_white.png');
 const blackZoomIcon = require('./SoundWidgetImages/zoomout_black.png');
-const whitePauseIcon = require('./SoundWidgetImages/pause_white.png');
 const blackPauseIcon = require('./SoundWidgetImages/pause_black.png');
 const whiteResetIcon = require('./SoundWidgetImages/reset_white.png');
 const blackResetIcon = require('./SoundWidgetImages/reset_black.png');
+const whiteRightIcon = require('./SoundWidgetImages/right_white.png');
+const whiteLeftIcon = require('./SoundWidgetImages/left_white.png');
+const blackRightIcon = require('./SoundWidgetImages/right_black.png');
+const blackLeftIcon = require('./SoundWidgetImages/left_black.png');
+const blackUndoIcon = require('./SoundWidgetImages/undo_zoom_black.png');
+const whiteUndoIcon = require('./SoundWidgetImages/undozoom_white.png');
 
 const FileSaver = require('file-saver');
 
@@ -35,7 +39,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   progressCanvas: any;
   HEIGHT: number = 100;
   WIDTH: number = 425;
-  FPS: number = 50.0;
+  FPS: number = 40.0;
   source: any;
   audioCtx: any;
   MIN_ZOOM_BOX_WIDTH: number = 5;
@@ -91,6 +95,11 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     this.setState({ isPlaying: !this.state.isPlaying });
   }
 
+  handleMouseLeave = (e:any) => {
+    if(this.state.isMouseDown) {
+      this.setState({progress: 0, startBox: 0, endBox: 0, progressDisplay: -1, isMouseDown: false});
+    }
+  }
   handleMouseDown = (e:any) => {
     
     var rect = e.target.getBoundingClientRect();
@@ -270,92 +279,85 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
  
   handleDownload = () => {
-	var new_file = URL.createObjectURL(this.createWav());
-  //console.log(new_file);
-  FileSaver.saveAs( this.createWav(), "pyret_sound.wav");
-  /*
-	var download_link = document.createElement('a');
-	download_link.href = new_file;
-	var name = "sound";
-  download_link.download = name;
-  download_link.click()
-  */
-}
+    FileSaver.saveAs( this.createWav(), "pyret_sound.wav");
+  }
 
   createWav = () => {
-  let dataArray = this.props.sound['data-array'];
-  var numOfChan = dataArray.length,
-      length = dataArray[0].length * numOfChan * 2 + 44,
-      buffer = new ArrayBuffer(length),
-      view = new DataView(buffer),
-      channels = [], i, sample,
-      offset = 0,
-      pos = 0;
+    let dataArray = this.props.sound['data-array'];
+    var numOfChan = dataArray.length,
+        length = dataArray[0].length * numOfChan * 2 + 44,
+        buffer = new ArrayBuffer(length),
+        view = new DataView(buffer),
+        channels = [], i, sample,
+        offset = 0,
+        pos = 0;
+    setUint32(0x46464952);                         // "RIFF"
+    setUint32(length - 8);                         // file length - 8
+    setUint32(0x45564157);                         // "WAVE"
 
-  // write WAVE header
-  setUint32(0x46464952);                         // "RIFF"
-  setUint32(length - 8);                         // file length - 8
-  setUint32(0x45564157);                         // "WAVE"
+    setUint32(0x20746d66);                         // "fmt " chunk
+    setUint32(16);                                 // length = 16
+    setUint16(1);                                  // PCM (uncompressed)
+    setUint16(numOfChan);
+    setUint32(this.props.sound['sample-rate']);
+    setUint32(this.props.sound['sample-rate'] * 2 * numOfChan); // avg. bytes/sec
+    setUint16(numOfChan * 2);                      // block-align
+    setUint16(16);                                 // 16-bit (hardcoded in this demo)
 
-  setUint32(0x20746d66);                         // "fmt " chunk
-  setUint32(16);                                 // length = 16
-  setUint16(1);                                  // PCM (uncompressed)
-  setUint16(numOfChan);
-  setUint32(this.props.sound['sample-rate']);
-  setUint32(this.props.sound['sample-rate'] * 2 * numOfChan); // avg. bytes/sec
-  setUint16(numOfChan * 2);                      // block-align
-  setUint16(16);                                 // 16-bit (hardcoded in this demo)
+    setUint32(0x61746164);                         // "data" - chunk
+    setUint32(length - pos - 4);                   // chunk length
 
-  setUint32(0x61746164);                         // "data" - chunk
-  setUint32(length - pos - 4);                   // chunk length
+    for(i = 0; i < dataArray.length; i++){
+      channels.push(dataArray[i]);
+    }
+    while(pos < length) {
+      for(i = 0; i < numOfChan; i++) {             // interleave channels
+        sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
+        view.setInt16(pos, sample, true);          // write 16-bit sample
+        pos += 2;
+      }
+      offset++                                     // next source sample
+    }
+    return new Blob([buffer], {type: "audio/wav"});
 
-  // write interleaved data
-  for(i = 0; i < dataArray.length; i++){
-    channels.push(dataArray[i]);
-  }
-
-  while(pos < length) {
-    for(i = 0; i < numOfChan; i++) {             // interleave channels
-      sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
-      //console.log(channels[i][offset])
-      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
-      //console.log("transformed: "  + sample);
-      view.setInt16(pos, sample, true);          // write 16-bit sample
+    function setUint16(data: any) {
+      view.setUint16(pos, data, true);
       pos += 2;
     }
-    offset++                                     // next source sample
+
+    function setUint32(data: any) {
+      view.setUint32(pos, data, true);
+      pos += 4;
+    }
   }
 
-  // create Blob
-  return new Blob([buffer], {type: "audio/wav"});
 
-  function setUint16(data: any) {
-    view.setUint16(pos, data, true);
-    pos += 2;
+  undoIconIsDisabled = () => {
+    return this.state.zoomLog.length == 0;
   }
 
-  function setUint32(data: any) {
-    view.setUint32(pos, data, true);
-    pos += 4;
+  leftIconIsDisabled = () => {
+    return this.state.startIndex - Math.round((this.state.endIndex-this.state.startIndex) * 0.1) < 0;
   }
-}
 
+  rightIconIsDisabled = () => {
+    return Math.round((this.state.endIndex-this.state.startIndex) * 0.1) + this.state.endIndex >= this.props.sound['data-array'][0].length;
+  }
   render() {
       return (
           <div>
-          <div className="ButtonBar" style={{background: "#3790cc", display:"flex", maxWidth: "150px", paddingLeft: "10px", paddingTop: "5px", paddingBottom: "5px"}}>
+          <div className="ButtonBar" style={{background: "#3790cc", display:"flex", maxWidth: "180px", paddingLeft: "10px", paddingTop: "5px", paddingBottom: "5px"}}>
             <MyButton onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress === 0}/>
             <MyButton onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
             <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
+            <MyButton onClick={this.handleZoomOut} icon={this.undoIconIsDisabled() ? whiteUndoIcon : blackUndoIcon} isDisabled={this.undoIconIsDisabled()} />
             <MyButton onClick={this.handleDownload} icon={this.getDownloadIcon()} isDisabled={false}/>
-            <MyButton onClick={this.handleZoomOut} icon={this.getZoomIcon()} isDisabled={false} />
-            <MyButton onClick={this.handleShiftLeft} icon={this.getZoomIcon()} isDisabled={false} />
-            <MyButton onClick={this.handleShiftRight} icon={this.getZoomIcon()} isDisabled={false} />
-            
           </div>
           <div style={{background: "#3790cc", paddingBottom: "20px", textAlign: "center"}}>
             {this.props.sound['data-array'].map((channel: number[]) => {
               return <OverlayedWaveForm 
+                handleMouseLeave={this.handleMouseLeave}
                 handleClick={this.handleClick}
                 handleMouseDown={this.handleMouseDown}
                 handleMouseUp={this.handleMouseUp}
@@ -383,15 +385,17 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
                 <p>{"Hover Index: " + this.getHoverIndex()}</p>
                 <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex())}</p>
               </div>
+              <div style={{display: "flex", marginTop: "10px", marginLeft: "80px"}}>
+                <MyButton onClick={this.handleShiftLeft} icon={this.leftIconIsDisabled() ? whiteLeftIcon : blackLeftIcon} isDisabled={this.leftIconIsDisabled()} />
+                <MyButton onClick={this.handleShiftRight} icon={this.rightIconIsDisabled() ? whiteRightIcon : blackRightIcon} isDisabled={this.rightIconIsDisabled()} />
+              </div>
+              
+            
             </div>
           </div>
           </div>
-          
-          
       )
   }
-
-
 }
 
 type OverlayedWaveFormProps = {
@@ -399,6 +403,7 @@ type OverlayedWaveFormProps = {
   handleMouseDown: any,
   handleMouseUp: any,
   handleMouseMove: any,
+  handleMouseLeave: any,
   width: number,
   height: number,
   startBox: number,
@@ -450,7 +455,8 @@ class OverlayedWaveForm extends React.Component<OverlayedWaveFormProps, {}> {
                 onDoubleClick={this.props.handleClick}
                 onMouseDown={this.props.handleMouseDown}
                 onMouseUp={this.props.handleMouseUp}
-                onMouseMove={this.props.handleMouseMove}>
+                onMouseMove={this.props.handleMouseMove}
+                onMouseLeave={this.props.handleMouseLeave}>
               <WaveForm width={this.props.width} height={this.props.height} endIndex={this.props.endIndex} startIndex={this.props.startIndex} dataArray={this.props.channel}/>
               <canvas
               width={this.props.width}
