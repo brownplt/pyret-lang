@@ -248,11 +248,25 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
   }
 
-  //returns true if the operation was successful
-  setFocus = (startIndex: number, endIndex: number) : boolean => {
-
-    return true;
+  
+  handleShift = (change: number) => {
+    if(this.state.startIndex+change < 0 || this.state.endIndex+change > this.props.sound.duration * this.props.sound['sample-rate']) return;
+    if(this.state.isPlaying) {
+      this.togglePlay();
+    }
+    this.setState({progress: 0, startIndex: this.state.startIndex + change, endIndex: this.state.endIndex+change});
   }
+  handleShiftRight = () => {
+    let change = Math.round((this.state.endIndex-this.state.startIndex) * 0.1);
+    this.handleShift(change);
+  }
+
+  handleShiftLeft = () => {
+    let change = Math.round((this.state.endIndex-this.state.startIndex) * 0.1);
+    this.handleShift(-1 * change);
+  }
+
+
   render() {
       return (
           <div>
@@ -262,6 +276,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
             <MyButton onClick={() => {}} icon={this.getDownloadIcon()} isDisabled={true}/>
             <MyButton onClick={this.handleZoomOut} icon={this.getZoomIcon()} isDisabled={false} />
+            <MyButton onClick={this.handleShiftLeft} icon={this.getZoomIcon()} isDisabled={false} />
+            <MyButton onClick={this.handleShiftRight} icon={this.getZoomIcon()} isDisabled={false} />
           </div>
           <div style={{background: "#3790cc", paddingBottom: "20px", textAlign: "center"}}>
             {this.props.sound['data-array'].map((channel: number[]) => {
@@ -427,7 +443,6 @@ waveformCanvasRef : any;
     this.drawWaveForm();
   }
   render() {
-    
     return <canvas
     width={this.props.width}
     height={this.props.height}
