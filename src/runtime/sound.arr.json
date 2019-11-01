@@ -3,15 +3,19 @@
         "values": {
             "juliet": "String",
             "getBufferFromURL": ["arrow", ["String"], "tany"],
-            "getArrayFromSound": ["arrow", [["local", "Sound"]], "tany"],
-            "getBufferFromSound": ["arrow", [["local", "Sound"]], "tany"],
+            "getArrayFromSound": ["arrow", [
+                ["local", "Sound"]
+            ], "tany"],
+            "getBufferFromSound": ["arrow", [
+                ["local", "Sound"]
+            ], "tany"],
             "getSoundFromAudioBuffer": ["arrow", ["Any"],
                 ["local", "Sound"]
             ],
             "createSound": ["arrow", ["Any", "Any", "Any", "Any"],
                 ["local", "Sound"]
             ],
-            "makeSound": ["arrow", ["Any", "Any", "Any"],
+            "makeSound": ["arrow", ["Any", "Any"],
                 ["local", "Sound"]
             ],
             "getSoundFromURL": ["arrow", ["String"],

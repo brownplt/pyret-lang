@@ -39,9 +39,9 @@ export function getArrayFromSound(sound: Sound): number[][] {
     return sound['data-array'];
 }
 
-export function makeSound(sample_rate: number, duration: number, data_array: number[][]): Sound {
+export function makeSound(sample_rate: number, data_array: number[][]): Sound {
     var fixed_data = new Array(data_array.length);
-    var fixed_duration = jsnums.toFixnum(duration);
+    var fixed_sample_rate = jsnums.toFixnum(sample_rate);
     for (var channel = 0; channel < data_array.length; channel++) {
         var channel_data = data_array[channel];
         var fixed_channel = new Array(channel_data.length);
@@ -50,9 +50,10 @@ export function makeSound(sample_rate: number, duration: number, data_array: num
         }
     fixed_data[channel] = fixed_channel;   
     }
+    var fixed_duration = fixed_data[0].length/fixed_sample_rate;
     const sound = {
         '$brand': "sound",
-        'sample-rate': sample_rate,
+        'sample-rate': fixed_sample_rate,
         'duration': fixed_duration,
         'data-array': fixed_data
     }
@@ -69,7 +70,7 @@ export function getSoundFromURL(path: string): Sound {
     }
     var sample_rate = buffer.sampleRate;
     var duration = buffer.duration;
-    return makeSound(sample_rate, duration, data_array);
+    return makeSound(sample_rate, data_array);
 }
 
 export function getSoundFromAudioBuffer(buffer: AudioBuffer): Sound {
@@ -82,7 +83,7 @@ export function getSoundFromAudioBuffer(buffer: AudioBuffer): Sound {
     var sample_rate = buffer.sampleRate;
     var duration = buffer.duration;
     console.log(data_array);
-    return makeSound(sample_rate, duration, data_array);
+    return makeSound(sample_rate, data_array);
 }
 
 export function createSound(channels: number, sample_rate: number, duration: number, data_array: number[][]) {
@@ -100,7 +101,7 @@ export function createSound(channels: number, sample_rate: number, duration: num
     var source = audioCtx.createBufferSource();
     source.buffer = myArrayBuffer;
     source.connect(audioCtx.destination);
-    return makeSound(sample_rate, duration, data_array);
+    return makeSound(sample_rate, data_array);
 }
 
 function checkSampleRate(samples: Sound[]): boolean {
@@ -146,7 +147,7 @@ export function overlay(samples: Sound[]): Sound {
             }
         }
     }
-    return createSound(mixed.length, sample_rate, maxDuration, mixed);
+    return makeSound(sample_rate, mixed);
 }
 
 export function concat(samples: Sound[]): Sound {
@@ -182,7 +183,7 @@ export function concat(samples: Sound[]): Sound {
         }
         index += fc;
     }
-    return createSound(mixed.length, sample_rate, totalDuration, mixed);
+    return makeSound(sample_rate, mixed);
 }
 
 export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
@@ -192,7 +193,7 @@ export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
     var rate_fixed = jsnums.toFixnum(rate);
     var new_sample_rate = sample_rate * rate_fixed;
     var new_dur = duration/rate_fixed;
-    return createSound(arr.length, new_sample_rate, new_dur, arr);
+    return makeSound(new_sample_rate, arr);
 }
 
 export function shorten(sample: Sound, start: number, end: number): Sound {
@@ -206,7 +207,7 @@ export function shorten(sample: Sound, start: number, end: number): Sound {
     var new_arr = new Array(arr.length);
     for (var channel = 0; channel < arr.length; channel++) {
         new_arr[channel] = arr[channel].slice(start_fixed * sample_rate, end_fixed * sample_rate);
-        return makeSound(sample_rate, end_fixed - start_fixed, new_arr);
+        return makeSound(sample_rate, new_arr);
     }
 }
 
