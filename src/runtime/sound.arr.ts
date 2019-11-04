@@ -221,6 +221,7 @@ export function denormalizeSound(audioBuffer: AudioBuffer): Sound {
     return getSoundFromAudioBuffer(convolver.buffer);
 }
 
+//https://teropa.info/blog/2016/08/04/sine-waves.html
 export function getSineWave(): Sound {
     const REAL_TIME_FREQUENCY = 440; 
     const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
