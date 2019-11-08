@@ -1009,10 +1009,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       extend-stmts = for fold(stmts from prelude-stmts, field from fields) block:
         # TODO(alex): Assuming A.Member.s-data-field
         { extend-ans; extend-stmts } = compile-expr(context, field.value)
+        field-expr = if (A.is-s-method(field.value)):
+          j-app(extend-ans, [clist: j-id(shallow-copy-name)])
+        else:
+          extend-ans
+        end
         field-extend = j-bracket-assign(j-id(shallow-copy-name), 
                                         j-str(field.name), 
-                                        extend-ans)
-        cl-append(stmts, cl-sing(j-expr(field-extend)))
+                                        field-expr)
+        cl-append(cl-append(stmts, extend-stmts), cl-sing(j-expr(field-extend)))
       end
 
       rebind-stmt = j-expr(rt-method("$rebind", [clist: j-id(shallow-copy-name)]))
