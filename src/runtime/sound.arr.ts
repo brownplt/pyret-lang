@@ -221,6 +221,49 @@ export function denormalizeSound(audioBuffer: AudioBuffer): Sound {
     return getSoundFromAudioBuffer(convolver.buffer);
 }
 
+//https://teropa.info/blog/2016/08/04/sine-waves.html
+export function getSineWave(): Sound {
+    const REAL_TIME_FREQUENCY = 440; 
+    const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
+
+    //@ts-ignore
+    let audioContext = AudioContext();
+    let myBuffer = audioContext.createBuffer(1, 88200, 44100);
+    let myArray = myBuffer.getChannelData(0);
+    for (let sampleNumber = 0 ; sampleNumber < 88200 ; sampleNumber++) {
+        myArray[sampleNumber] = generateSample(sampleNumber);
+    }
+
+    function generateSample(sampleNumber) {
+        let sampleTime = sampleNumber / 44100;
+        let sampleAngle = sampleTime * ANGULAR_FREQUENCY;
+        return Math.sin(sampleAngle);
+    }
+
+    return getSoundFromAudioBuffer(myBuffer);
+}
+
+export function getCosineWave(): Sound {
+    const REAL_TIME_FREQUENCY = 440; 
+    const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
+
+    //@ts-ignore
+    let audioContext = AudioContext();
+    let myBuffer = audioContext.createBuffer(1, 88200, 44100);
+    let myArray = myBuffer.getChannelData(0);
+    for (let sampleNumber = 0 ; sampleNumber < 88200 ; sampleNumber++) {
+        myArray[sampleNumber] = generateSample(sampleNumber);
+    }
+
+    function generateSample(sampleNumber) {
+        let sampleTime = sampleNumber / 44100;
+        let sampleAngle = sampleTime * ANGULAR_FREQUENCY;
+        return Math.cos(sampleAngle);
+    }
+
+    return getSoundFromAudioBuffer(myBuffer);
+}
+
 
 interface Sound {
     '$brand': string,

@@ -35,6 +35,12 @@
             ],
             "denormalizeSound": ["arrow", ["tany"],
                 ["local", "Sound"]
+            ],
+            "getSineWave": ["arrow", [], 
+                ["local", "Sound"]
+            ],
+            "getCosineWave": ["arrow", [], 
+                ["local", "Sound"]
             ]
         },
         "datatypes": {
