@@ -36,6 +36,9 @@
             "denormalizeSound": ["arrow", ["tany"],
                 ["local", "Sound"]
             ],
+            "getTone": ["arrow", ["String"], 
+                ["local", "Sound"]
+            ],
             "getSineWave": ["arrow", [], 
                 ["local", "Sound"]
             ],
