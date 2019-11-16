@@ -44,6 +44,9 @@
             ],
             "getCosineWave": ["arrow", [], 
                 ["local", "Sound"]
+            ],
+            "fade": ["arrow", ["tany"],
+                ["local", "Sound"]
             ]
         },
         "datatypes": {

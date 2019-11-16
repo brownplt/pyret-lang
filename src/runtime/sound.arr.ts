@@ -353,6 +353,19 @@ export function getCosineWave(): Sound {
     return getSoundFromAudioBuffer(myBuffer);
 }
 
+export function fade(sound: Sound): Sound {
+    var sample_rate = sound['sample-rate'];
+    var duration = sound['duration'];
+    var k = Math.log(0.01)/(sample_rate*duration);
+    var data_array = sound['data-array'];
+    for (var channel = 0; channel < data_array.length; channel++) {
+        for(var i=0; i < data_array[channel].length; i++) {
+            data_array[channel][i] = data_array[channel][i] * Math.exp(i*k);
+        }
+    }
+    return makeSound(sample_rate, data_array);
+}
+
 interface Sound {
     '$brand': string,
     'sample-rate': number,
