@@ -366,6 +366,22 @@ export function fade(sound: Sound): Sound {
     return makeSound(sample_rate, data_array);
 }
 
+export function removeVocals(sound: Sound): Sound {
+    var sample_rate = sound['sample-rate'];
+    var data_array = sound['data-array'];
+    var channel1 = 1;
+    var channel2 = 0;
+    var diff = 0.0;
+    for(var i=0; i < data_array[channel1].length; i++) {
+        diff = Math.abs(data_array[channel1][i]/data_array[channel2][i]);
+        if (diff > 0.7 && diff < 1.5) {
+            data_array[channel1][i]=diff;
+            data_array[channel2][i]=diff;
+        }
+    }
+    return makeSound(sample_rate, data_array);
+}
+
 interface Sound {
     '$brand': string,
     'sample-rate': number,

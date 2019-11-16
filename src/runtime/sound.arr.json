@@ -47,6 +47,9 @@
             ],
             "fade": ["arrow", ["tany"],
                 ["local", "Sound"]
+            ],
+            "removeVocals": ["arrow", ["tany"],
+                ["local", "Sound"]
             ]
         },
         "datatypes": {
