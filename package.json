@@ -33,6 +33,7 @@
         "mkdirp": "^0.5.1",
         "node-uuid": "^1.4.8",
         "q": "~1.0.1",
+        "react-hotkeys": "^2.0.0",
         "requirejs": "~2.1.15",
         "s-expression": "~2.2.0",
         "seedrandom": "~2.3.10",

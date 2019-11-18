@@ -3,11 +3,13 @@
 }
 
 .Index {
-  padding: 10px 20px 0 0;
-  text-align: left;
+  margin-top: 10px;
+  margin-left: 3%;
+  min-width: 30%;
+  max-width: 30%;
 }
 
 .Index p {
-  margin: 0 10px 0 10px;
+  margin: 0 0 0 0;
   padding: 0 0 0 0;
 }

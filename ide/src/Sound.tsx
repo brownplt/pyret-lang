@@ -1,5 +1,6 @@
 import React from 'react';
 import './Sound.css';
+import { GlobalHotKeys } from "react-hotkeys";
 
 const blackDownloadIcon = require('./SoundWidgetImages/download_black.png');
 const blackPlayIcon = require('./SoundWidgetImages/play_black.png');
@@ -69,8 +70,9 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     const timePassed = this.state.progress / this.FPS;
     const duration = this.props.sound.duration - timePassed;
     const sampleRate = this.props.sound['sample-rate'];
-    const frameCount = duration * sampleRate;
     let startIndex = Math.round((timePassed / this.state.focusDuration) * (this.state.endIndex-this.state.startIndex) + this.state.startIndex);
+    let numSamples = (this.state.focusDuration - timePassed) * sampleRate;
+    if(numSamples < 1) return;
     var myArrayBuffer = this.audioCtx.createBuffer(1, (this.state.focusDuration - timePassed) * sampleRate, sampleRate);
     for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
       var nowBuffering = myArrayBuffer.getChannelData(channel);
@@ -255,7 +257,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     if(this.state.isPlaying) {
       this.togglePlay();
     }
-    this.setState({progress: 0, startIndex: prev[0], endIndex: prev[1], focusDuration: prev[2]});
+    this.setState({progress: 0, progressDisplay: 0, startIndex: prev[0], endIndex: prev[1], focusDuration: prev[2]});
 
   }
 
@@ -267,6 +269,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     }
     this.setState({progress: 0, startIndex: this.state.startIndex + change, endIndex: this.state.endIndex+change});
   }
+
   handleShiftRight = () => {
     let change = Math.round((this.state.endIndex-this.state.startIndex) * 0.1);
     this.handleShift(change);
@@ -283,8 +286,6 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   createWav = () => {
-   
-
     let dataArray = this.props.sound['data-array'];
     var numOfChan = dataArray.length,
         headerBytes = 44, //equal to number of bytes set below
@@ -323,9 +324,8 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     while(currentByteOffset < totalBytes) {
       for(let i = 0; i < numOfChan; i++) {             // interleave channels
         let sample = Math.max(-1, Math.min(1, dataArray[i][currentSampleIndex])); // clamp to [-1, 1]
-        //sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
-        sample = (sample < 0 ? sample * 32768 : sample * 32767);
-        view.setInt16(currentByteOffset, sample, true);          // write 16-bit sample
+        let sample16 = Math.round(sample < 0 ? sample * 32768 : sample * 32767);
+        view.setInt16(currentByteOffset, sample16, true);          // write 16-bit sample
         currentByteOffset += 2;
       }
       currentSampleIndex += 1;                                     // next source sample
@@ -345,15 +345,62 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   rightIconIsDisabled = () => {
     return Math.round((this.state.endIndex-this.state.startIndex) * 0.1) + this.state.endIndex >= this.props.sound['data-array'][0].length;
   }
+
+  shiftProgress = (right : boolean) => {
+    let delta = right ? 1 : -1;
+    let maxProgress = this.FPS * this.state.focusDuration;
+    let newProg = (this.state.progressDisplay == -1 ? this.state.progress : this.state.progressDisplay) + delta*maxProgress*0.01;
+    if(newProg >= maxProgress) newProg = maxProgress;
+    if(newProg < 0) newProg = 0;
+    this.setState({progress: Math.round(newProg), progressDisplay: newProg});
+    if(this.state.isPlaying) {
+    this.togglePlay();
+    setTimeout(this.togglePlay, 0);
+   }
+  }
+
+  handleKeyPress = (event : any) => {
+    console.log(event.key);
+    if(event.key == 'j') {
+      this.shiftProgress(false);
+    }
+    if(event.key == 'k') {
+      this.shiftProgress(true);
+    }
+    if(event.key == 'w') {
+      let indexRange = this.state.endIndex - this.state.startIndex;
+      let endIndex = Math.round(this.state.endIndex - 0.05 * indexRange);
+      if(endIndex - this.state.startIndex > this.MIN_PIXELS_VIEW) {
+        this.state.zoomLog.push([this.state.startIndex, this.state.endIndex, this.state.focusDuration]);
+        if(this.state.isPlaying) {
+          this.togglePlay();
+        }
+        this.setState({progress: 0, endIndex, focusDuration: (endIndex-this.state.startIndex) / this.props.sound['sample-rate'], progressDisplay: -1 });
+        
+      }
+    }
+    if(event.key == 's') {
+      this.handleZoomOut();
+    }
+    if(event.key == ' ') {
+      this.togglePlay();
+    }
+    if(event.key == 'a') {
+      this.handleShiftLeft();
+    }
+    if(event.key == 'd') {
+      this.handleShiftRight();
+    }
+  }
   render() {
-      return (
-          <div>
+      return  (
+          <div aria-labelledby="tab_1" aria-label="Sound Widget"  id="test" onKeyPress={this.handleKeyPress} tabIndex={0}>
           <div className="ButtonBar" style={{background: "#3790cc", display:"flex", maxWidth: "180px", paddingLeft: "10px", paddingTop: "5px", paddingBottom: "5px"}}>
-            <MyButton onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress === 0}/>
-            <MyButton onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
-            <MyButton onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
-            <MyButton onClick={this.handleZoomOut} icon={this.undoIconIsDisabled() ? whiteUndoIcon : blackUndoIcon} isDisabled={this.undoIconIsDisabled()} />
-            <MyButton onClick={this.handleDownload} icon={this.getDownloadIcon()} isDisabled={false}/>
+            <MyButton tabIndex={1} ariaLabel="reset" onClick={this.handleReset} icon={this.getResetIcon()} isDisabled={this.state.progress === 0}/>
+            <MyButton tabIndex={2} ariaLabel={this.state.isPlaying ? "pause" : "play"} onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false}/>
+            <MyButton tabIndex={3} ariaLabel= "reset zoom" onClick={this.handleResetZoom} icon={this.getZoomIcon()} isDisabled={this.state.focusDuration === this.props.sound.duration}/>
+            <MyButton tabIndex={4} ariaLabel= "zoom out"onClick={this.handleZoomOut} icon={this.undoIconIsDisabled() ? whiteUndoIcon : blackUndoIcon} isDisabled={this.undoIconIsDisabled()} />
+            <MyButton tabIndex={5} ariaLabel="download" onClick={this.handleDownload} icon={this.getDownloadIcon()} isDisabled={false}/>
           </div>
           <div style={{background: "#3790cc", paddingBottom: "20px", textAlign: "center"}}>
             {this.props.sound['data-array'].map((channel: number[]) => {
@@ -378,23 +425,28 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
             })}
             <p style={{margin: "5px 0 0 0",color: "white"}}>{this.getTimeString()}</p>
             <div className="DataContainer" style={{color: "white", display: "flex"}}>
-              <div className="Index"> 
-                <p>{"Index: " + this.getCurrentIndex()}</p>
-                <p>{"Amp:  " + this.getAmplitudeAt(this.getCurrentIndex())}</p> 
+              <div className="Index" style={{textAlign: "left"}}> 
+                <p>{"Progress Index: " + this.getCurrentIndex()}</p>
+                <p>{"Progress Amp:  " + this.getAmplitudeAt(this.getCurrentIndex())}</p> 
               </div>
-              <div className="Index">
+              <div className="Index"  style={{textAlign: "left"}}>
                 <p>{"Hover Index: " + this.getHoverIndex()}</p>
                 <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex())}</p>
               </div>
-              <div style={{display: "flex", marginTop: "10px", marginLeft: "80px"}}>
-                <MyButton onClick={this.handleShiftLeft} icon={this.leftIconIsDisabled() ? whiteLeftIcon : blackLeftIcon} isDisabled={this.leftIconIsDisabled()} />
-                <MyButton onClick={this.handleShiftRight} icon={this.rightIconIsDisabled() ? whiteRightIcon : blackRightIcon} isDisabled={this.rightIconIsDisabled()} />
+              <div className="Index" style={{textAlign: "left"}}> 
+                <p>{"Focus Range"}</p>
+                <p>{"[" + this.state.startIndex + ", " + this.state.endIndex + "]"} </p> 
               </div>
+              {/*<div style={{display: "flex", marginTop: "10px", marginLeft: "80px"}}>
+                <MyButton tabIndex={6}ariaLabel="shift left" onClick={this.handleShiftLeft} icon={this.leftIconIsDisabled() ? whiteLeftIcon : blackLeftIcon} isDisabled={this.leftIconIsDisabled()} />
+                <MyButton tabIndex={7}ariaLabel="shift right" onClick={this.handleShiftRight} icon={this.rightIconIsDisabled() ? whiteRightIcon : blackRightIcon} isDisabled={this.rightIconIsDisabled()} />
+          </div>*/}
               
             
             </div>
           </div>
           </div>
+          
       )
   }
 }
@@ -451,8 +503,8 @@ class OverlayedWaveForm extends React.Component<OverlayedWaveFormProps, {}> {
     
   }
   render() {
-    return <div className="CanvasWrapper" style={{marginTop: "2px", background: "#3790cc" , textAlign: "center", width: this.props.width + 50, height: this.props.height + 10}}>
-              <div className="CanvasContainer" style={{marginTop: "10px", display: "inline-block", position: "relative", width: this.props.width, height: this.props.height}}
+    return <div aria-label={"Channel 0 Waveform"} className="CanvasWrapper" style={{marginTop: "2px", background: "#3790cc" , textAlign: "center", width: this.props.width + 50, height: this.props.height + 10}}>
+              <div aria-hidden="true" className="CanvasContainer" style={{marginTop: "10px", display: "inline-block", position: "relative", width: this.props.width, height: this.props.height}}
                 onDoubleClick={this.props.handleClick}
                 onMouseDown={this.props.handleMouseDown}
                 onMouseUp={this.props.handleMouseUp}
@@ -536,16 +588,16 @@ waveformCanvasRef : any;
 type MyButtonProps = {
   onClick: any,
   icon: any,
-  isDisabled: boolean
+  isDisabled: boolean,
+  ariaLabel: string,
+  tabIndex: number
 }
 
 class MyButton extends React.Component<MyButtonProps, {}> {
   render() {
-    return <div  onClick={this.props.isDisabled ? () => {} : this.props.onClick}> 
-      <div className={this.props.isDisabled ? "fake" : "hoverable"} style={{ maxHeight: "25px", minHeight: "25px", height: "25px", marginRight: "10px" }}>
-        <img style={{ display: "block", maxHeight: "100%", minHeight: "100%" }} src={this.props.icon} />
+    return <div role="button"aria-label={this.props.ariaLabel}   onClick={this.props.isDisabled ? () => {} : this.props.onClick} tabIndex={0} className={this.props.isDisabled ? "fake" : "hoverable"} style={{ maxHeight: "25px", minHeight: "25px", height: "25px", width: "25px", minWidth: "25px", marginRight: "10px" }}>
+        <img  aria-hidden="true" style={{ display: "block", maxHeight: "100%", minHeight: "100%" }} src={this.props.icon} />
       </div>
-    </div>
 
   }
 }
