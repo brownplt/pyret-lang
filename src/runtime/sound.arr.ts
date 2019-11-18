@@ -1,5 +1,71 @@
 const RUNTIME = require('./runtime.js');
 const jsnums = require("./js-numbers.js");
+const toneMap = {
+    B8:7902.133,
+    A8:7040,
+    G8:6271.927,
+    F8:5587.652,
+    E8:5274.041,
+    D8:4698.636,
+    C8:4186.009,
+    B7:3951.066,
+    A7:3520,
+    G7:3135.963,
+    F7:2793.826,
+    E7:2637.02,
+    D7:2349.318,
+    C7:2093.005,
+    B6:1975.533,
+    A6:1760,
+    G6:1567.982,
+    F6:1396.913,
+    E6:1318.51,
+    D6:1174.659,
+    C6:1046.502,
+    B5:987.7666,
+    A5:880,
+    G5:783.9909,
+    F5:698.4565,
+    E5:659.2551,
+    D5:587.3295,
+    C5:523.2511,
+    B4:493.8833,
+    A4:440,
+    G4:391.9954,
+    F4:349.2282,
+    E4:329.6276,
+    D4:293.6648,
+    C4:261.6256,
+    B3:246.9417,
+    A3:220,
+    G3:195.9977,
+    F3:174.6141,
+    E3:164.8138,
+    D3:146.8324,
+    C3:130.8128,
+    B2:123.4708,
+    A2:110,
+    G2:97.99886,
+    F2:87.30706,
+    E2:82.40689,
+    D2:73.41619,
+    C2:65.40639,
+    B1:61.73541,
+    A1:55,
+    G1:48.99943,
+    F1:43.65353,
+    E1:41.20344,
+    D1:36.7081,
+    C1:32.7032,
+    B0:30.86771,
+    A0:27.5,
+    G0:24.49971,
+    F0:21.82676,
+    E0:20.60172,
+    D0:18.35405,
+    C0:16.3516
+};
+    
 
 export function getBufferFromURL(path: string): AudioBuffer {
     debugger;
@@ -243,6 +309,29 @@ export function getSineWave(): Sound {
     return getSoundFromAudioBuffer(myBuffer);
 }
 
+//https://teropa.info/blog/2016/08/04/sine-waves.html
+export function getTone(key: string): Sound {
+    const REAL_TIME_FREQUENCY = toneMap[key]; 
+    const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
+
+    //@ts-ignore
+    let audioContext = AudioContext();
+    let myBuffer = audioContext.createBuffer(1, 22050, 44100);
+    let myArray = myBuffer.getChannelData(0);
+    for (let sampleNumber = 0 ; sampleNumber < 22050 ; sampleNumber++) {
+        myArray[sampleNumber] = generateSample(sampleNumber);
+    }
+
+    function generateSample(sampleNumber) {
+        let sampleTime = sampleNumber / 44100;
+        let sampleAngle = sampleTime * ANGULAR_FREQUENCY;
+        return Math.sin(sampleAngle);
+    }
+
+    return getSoundFromAudioBuffer(myBuffer);
+}
+
+
 export function getCosineWave(): Sound {
     const REAL_TIME_FREQUENCY = 440; 
     const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
@@ -264,6 +353,34 @@ export function getCosineWave(): Sound {
     return getSoundFromAudioBuffer(myBuffer);
 }
 
+export function fade(sound: Sound): Sound {
+    var sample_rate = sound['sample-rate'];
+    var duration = sound['duration'];
+    var k = Math.log(0.01)/(sample_rate*duration);
+    var data_array = sound['data-array'];
+    for (var channel = 0; channel < data_array.length; channel++) {
+        for(var i=0; i < data_array[channel].length; i++) {
+            data_array[channel][i] = data_array[channel][i] * Math.exp(i*k);
+        }
+    }
+    return makeSound(sample_rate, data_array);
+}
+
+export function removeVocals(sound: Sound): Sound {
+    var sample_rate = sound['sample-rate'];
+    var data_array = sound['data-array'];
+    var channel1 = 0;
+    var channel2 = 1;
+    var diff = 0.0;
+    for(var i=0; i < data_array[channel1].length; i++) {
+        diff = Math.abs(data_array[channel1][i]/data_array[channel2][i]);
+        if (diff > 0.7 && diff < 1.5) {
+            data_array[channel1][i]=0;
+            data_array[channel2][i]=0;
+        }
+    }
+    return makeSound(sample_rate, data_array);
+}
 
 interface Sound {
     '$brand': string,

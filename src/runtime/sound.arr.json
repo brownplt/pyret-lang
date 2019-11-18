@@ -36,10 +36,19 @@
             "denormalizeSound": ["arrow", ["tany"],
                 ["local", "Sound"]
             ],
+            "getTone": ["arrow", ["String"], 
+                ["local", "Sound"]
+            ],
             "getSineWave": ["arrow", [], 
                 ["local", "Sound"]
             ],
             "getCosineWave": ["arrow", [], 
+                ["local", "Sound"]
+            ],
+            "fade": ["arrow", ["tany"],
+                ["local", "Sound"]
+            ],
+            "removeVocals": ["arrow", ["tany"],
                 ["local", "Sound"]
             ]
         },
