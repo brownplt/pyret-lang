@@ -30,6 +30,13 @@ module.exports = {
     }
     return list;
   },
+  'map3': function( fun, list1, list2, list3 ) {
+    var list = [];
+    for (let i = 0; i < list1.length; i++) {
+      list.push(fun(list1[i], list2[i], list3[i]));
+    }
+    return list;
+  },
   'slice': function( list, start, end) {
     if(end === undefined) { end = list.length; }
     return list.slice( start, end );

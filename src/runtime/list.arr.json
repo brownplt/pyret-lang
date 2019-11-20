@@ -19,6 +19,7 @@
       "to-raw-array": ["forall", ["a"], ["arrow", ["lOfA"], "rOfA"]],
       "map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "lOfA"], "lOfB"]],
       "map2": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva", "tva"], "tvb"], "lOfA", "lOfA"], "lOfB"]],
+      "map3": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva", "tva", "tva"], "tvb"], "lOfA", "lOfA", "lOfA"], "lOfB"]],
       "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "lOfA"]],
       "push": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "lOfA"]],
       "filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], "lOfA"], "lOfA"]],
