@@ -200,9 +200,8 @@ fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   # TODO(tiffany): uncomment after implementing each
   #values.each(check-num)
   #labels.each(check-string)
-  value-lists = L.map({(v): [L.list: v]}, values)
   bar-chart-series(default-bar-chart-series.{
-    tab: to-table2(labels, value-lists),
+    tab: to-table2(labels, values),
     legends: [G.raw-array: ''],
     has-legend: false,
   })
