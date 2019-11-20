@@ -44,6 +44,10 @@ function convert(value: any) {
       </ChartWidget>
     );
   } else if (typeof value === 'object') {
+    if(Array.isArray(value) && value.length > 100) {
+      const message = (value.length - 100) + " elements hidden"
+      return JSON.stringify(value.slice(0, 100).concat(["... " + message]));
+    }
     // TODO(michael) palceholder for better object display
     return JSON.stringify(value);
   }

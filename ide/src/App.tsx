@@ -26,7 +26,7 @@ enum EEditor {
 type AppProps = {};
 type AppState = {};
 
-function makeResult(result: any, moduleUri: string): { name: string, value: any }[] {
+function makeResult(result: any, moduleUri: string): { key: string, name: string, value: any }[] {
     const compareLocations = (a: any, b: any): number => {
         return a.srcloc[1] - b.srcloc[1];
     };
@@ -43,6 +43,7 @@ function makeResult(result: any, moduleUri: string): { name: string, value: any 
         if('name' in key) {
             return {
                 name: key.name,
+                key: key.name,
                 line: key.srcloc[1],
                 value: result[key.name]
             };
@@ -50,6 +51,7 @@ function makeResult(result: any, moduleUri: string): { name: string, value: any 
         else {
             return {
                 name: "",
+                key: String(key.srcloc[1]),
                 line: key.srcloc[1],
                 value: key.value
             };
@@ -197,7 +199,7 @@ type EditorState = {
     currentFileContents: string;
     typeCheck: boolean;
     checks: Check[],
-    interactions: { name: string, value: any }[];
+    interactions: { key: string, name: string, value: any }[];
     interactionErrors: string[];
     lintFailures: {[name : string]: LintFailure};
     runKind: control.backend.RunKind;
@@ -355,6 +357,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             typeCheck: true,
             checks: [],
             interactions: [{
+                key: "Note",
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
@@ -440,10 +443,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
             this.setState({
                 interactions: [
                     {
+                        key: "Error",
                         name: "Error",
                         value: "Run is not supported on this file type"
                     },
                     {
+                        key: "File",
                         name: "File",
                         value: this.currentFile
                     }],
@@ -485,6 +490,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
     onExpandChild = (child: string, fullChildPath: string): void => {
         this.setState({
             interactions: [{
+                key: "Note",
                 name: "Note",
                 value: "Press Run to compile and run"
             }],
@@ -616,7 +622,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     {
                         this.state.interactions.map(
                             (i) => {
-                                return <Interaction key={i.name}
+                                return <Interaction key={i.key}
                                                     name={i.name}
                                                     value={i.value}/>
                             })

@@ -3,6 +3,7 @@ const PyretOption = require("./option.arr.js");
 const List = require("./list.arr.js");
 const parse = require("csv-parse/lib/sync")
 const fs = require("fs");
+const jsnums = require("./js-numbers.js");
 
 interface Table {
   'add-column': (columnName: string, newVals: any[]) => Table,
@@ -369,6 +370,34 @@ function _tableSkeletonChangeHeaders(
   return { headers: newHeaders, rows: skeleton.rows };
 }
 
+enum CellType { CellString, CellNumber, CellBoolean};
+
+function guessType(val : string) : CellType {
+  const maybeNumber = jsnums.fromString(val);
+  if(maybeNumber !== false) {
+    return CellType.CellNumber;
+  }
+  else if(val === "TRUE" || val === "FALSE") {
+    return CellType.CellBoolean;
+  }
+  else {
+    return CellType.CellString;
+  }
+}
+
+function convertCell(c : CellType, s : string) {
+  switch(c) {
+    case CellType.CellString:
+      return s;
+    case CellType.CellNumber:
+      return jsnums.fromString(s);
+    case CellType.CellBoolean:
+      return s === "TRUE";
+    default:
+      throw new Error("Unknown cell type: " + String(c) + " " + String(s));
+  }
+}
+
 function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
   const headers = [];
 
@@ -379,13 +408,21 @@ function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
         return column;
       });
     }
-  })
+  });
+
+  var converters = [];
 
   const rows: any[][] = csv.map((row: object) => {
     const result = [];
 
+    if(converters.length === 0) {
+      for (let i = 0; i < headers.length; i++) {
+        converters.push(guessType(row[headers[i]]));
+      }
+    }
+
     for (let i = 0; i < headers.length; i++) {
-      result.push(row[headers[i]]);
+      result.push(convertCell(converters[i], row[headers[i]]));
     }
 
     return result;
