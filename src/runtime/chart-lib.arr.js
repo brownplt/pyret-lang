@@ -18,7 +18,25 @@ function checkColor(val) {
 
 
 /* @stopify flat */
-function barChart(table) {
+function barChart(tableFromRawArray) {
+    headers = [];
+    rows = [];
+
+    for(let i = 0; i < tableFromRawArray.length; i++) {
+        headers.push(tableFromRawArray[i][0]);
+        rows.push(tableFromRawArray[i][1]);
+    }
+
+    return {
+        "$brand": "chart",
+        "chartType": "BarChart",
+        "_headers": headers,
+        "_rows": rows
+    };
+}
+
+/* @stopify flat */
+function barChartFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "BarChart",
@@ -54,8 +72,11 @@ return module.exports = {
     "check-color": /* @stopify flat */ function (val) {
         return checkColor(val);
     },
-    "bar-chart": /* @stopify flat */ function (table) {
-        return barChart(table);
+    "bar-chart": /* @stopify flat */ function (tableFromRawArray) {
+        return barChart(tableFromRawArray);
+    },
+    "bar-chart-from-table": /* @stopify flat */ function (table) {
+        return barChartFromTable(table);
     },
     "pie-chart": /* @stopify flat */ function (table) {
         return pieChart(table);
