@@ -3,7 +3,7 @@ import Chart from 'react-google-charts';
 
 type ChartWidgetProps = {
     headers: any[];
-    rows: any;
+    rows: any[][];
     chartType: any;
 };
 
@@ -15,13 +15,11 @@ export class ChartWidget extends React.Component<ChartWidgetProps, ChartWidgetSt
             // TODO(tiffany): get title from the chart
             title: "Title",
             // TODO(tiffany): max of horizontal axis needs to be max value
-            // TODO(tiffany): hTitle needed from props
-            hAxis: { title: "hAxis Title",
+            hAxis: { title: this.props.headers[1],
                      viewWindow: { min: 0, max: 15 } },
             // TODO(tiffany): get max of vertical axis instead of num objs
-            // TODO(tiffany): vTitle needed from props
-            vAxis: { title: "vAxis Title",
-                     viewWindow: { min: 0, max: 10 /*this.props.rows.length*/ } },
+            vAxis: { title: this.props.headers[0],
+                     viewWindow: { min: 0, max: this.props.rows.length } },
             legend: "none"
         };
         const headers = [this.props.headers];

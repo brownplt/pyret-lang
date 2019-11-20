@@ -19,19 +19,13 @@ function checkColor(val) {
 
 /* @stopify flat */
 function barChart(tableFromRawArray) {
-    headers = [];
-    rows = [];
-
-    for(let i = 0; i < tableFromRawArray.length; i++) {
-        headers.push(tableFromRawArray[i][0]);
-        rows.push(tableFromRawArray[i][1]);
-    }
+    headers = ["",""];
 
     return {
         "$brand": "chart",
         "chartType": "BarChart",
         "_headers": headers,
-        "_rows": rows
+        "_rows": tableFromRawArray
     };
 }
 
