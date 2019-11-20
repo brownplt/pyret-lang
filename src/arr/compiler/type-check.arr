@@ -1652,6 +1652,7 @@ fun synthesis-op(top-level, app-loc, op, op-loc, left, right, context):
       else if op == "op>": "_greaterthan"
       else if op == "op>=": "_greaterequal"
       else if op == "op<=": "_lessequal"
+      else: raise("unknown op: " + op)
       end
     choose-type(opname)
       .typing-bind(lam(fun-type, shadow context):

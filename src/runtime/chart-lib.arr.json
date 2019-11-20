@@ -8,13 +8,21 @@
                         "name": "Color" },
             "Table": { "tag": "name",
                         "origin": { "import-type": "uri", "uri": "builtin://tables" },
-                        "name": "Table" }
+                        "name": "Table" },
+            "rOfR": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://global" },
+                "name": "RawArray" }, [{ "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://global" },
+                "name": "RawArray" }]]
         },
         "values": {
             "check-color": ["arrow", ["Any"], "Any"],
-            "bar-chart": ["arrow", ["Table"], "Chart"],
-            "pie-chart": ["arrow", ["Table"], "Chart"],
-            "histogram-chart": ["arrow", ["Table"], "Chart"]
+            "bar-chart": ["arrow", ["rOfR"], "Chart"],
+            "bar-chart-from-table": ["arrow", ["Table"], "Chart"],
+            "pie-chart-from-table": ["arrow", ["Table"], "Chart"],
+            "histogram-from-table": ["arrow", ["Table"], "Chart"],
+            "scatter-chart-from-table": ["arrow", ["Table"], "Chart"],
+            "line-chart-from-table": ["arrow", ["Table"], "Chart"]
         },
         "aliases": {
             "Chart": { "tag": "name",

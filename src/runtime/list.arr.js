@@ -13,8 +13,29 @@ module.exports = {
   'contains': function( list, elm ) {
     return list.some( function(cur) { return cur === elm; } );
   },
+  'to-raw-array': function( list ) {
+    var arr = [];
+    for (let i = 0; i < list.length; i++) {
+      arr.push(list[i]);
+    }
+    return arr;
+  },
   'map': function( fun, list ) {
     return list.map( fun );
+  },
+  'map2': function( fun, list1, list2 ) {
+    var list = [];
+    for (let i = 0; i < list1.length; i++) {
+      list.push(fun(list1[i], list2[i]));
+    }
+    return list;
+  },
+  'map3': function( fun, list1, list2, list3 ) {
+    var list = [];
+    for (let i = 0; i < list1.length; i++) {
+      list.push(fun(list1[i], list2[i], list3[i]));
+    }
+    return list;
   },
   'slice': function( list, start, end) {
     if(end === undefined) { end = list.length; }

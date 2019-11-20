@@ -18,7 +18,19 @@ function checkColor(val) {
 
 
 /* @stopify flat */
-function barChart(table) {
+function barChart(tableFromRawArray) {
+    headers = ["",""];
+
+    return {
+        "$brand": "chart",
+        "chartType": "BarChart",
+        "_headers": headers,
+        "_rows": tableFromRawArray
+    };
+}
+
+/* @stopify flat */
+function barChartFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "BarChart",
@@ -28,7 +40,7 @@ function barChart(table) {
 }
 
 /* @stopify flat */
-function pieChart(table) {
+function pieChartFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "PieChart",
@@ -38,7 +50,7 @@ function pieChart(table) {
 }
 
 /* @stopify flat */
-function histogramChart(table) {
+function histogramFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "Histogram",
@@ -48,19 +60,45 @@ function histogramChart(table) {
 }
 
 /* @stopify flat */
+function scatterChartFromTable(table) {
+    return {
+        "$brand": "chart",
+        "chartType": "ScatterChart",
+        "_headers": table._headers,
+        "_rows": table._rows
+    };
+}
 
+/* @stopify flat */
+function lineChartFromTable(table) {
+    return {
+        "$brand": "chart",
+        "chartType": "LineChart",
+        "_headers": table._headers,
+        "_rows": table._rows
+    };
+}
 
 return module.exports = {
     "check-color": /* @stopify flat */ function (val) {
         return checkColor(val);
     },
-    "bar-chart": /* @stopify flat */ function (table) {
-        return barChart(table);
+    "bar-chart": /* @stopify flat */ function (tableFromRawArray) {
+        return barChart(tableFromRawArray);
     },
-    "pie-chart": /* @stopify flat */ function (table) {
-        return pieChart(table);
+    "bar-chart-from-table": /* @stopify flat */ function (table) {
+        return barChartFromTable(table);
     },
-    "histogram-chart": /* @stopify flat */ function (table) {
-        return histogramChart(table);
+    "pie-chart-from-table": /* @stopify flat */ function (table) {
+        return pieChartFromTable(table);
+    },
+    "histogram-from-table": /* @stopify flat */ function (table) {
+        return histogramFromTable(table);
+    },
+    "scatter-chart-from-table": /* @stopify flat */ function (table) {
+        return scatterChartFromTable(table);
+    },
+    "line-chart-from-table": /* @stopify flat */ function (table) {
+        return lineChartFromTable(table);
     }
 }
