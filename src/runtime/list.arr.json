@@ -4,12 +4,16 @@
     "shorthands": {
       "lOfA": ["tyapp", ["local", "List"], [["tid", "a"]]],
       "lOfB": ["tyapp", ["local", "List"], [["tid", "b"]]],
+      "lOfC": ["tyapp", ["local", "List"], [["tid", "c"]]],
+      "lOfD": ["tyapp", ["local", "List"], [["tid", "d"]]],
       "lOfInt": ["tyapp", ["local", "List"], ["Number"]],
       "rOfA": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://global" },
                 "name": "RawArray" }, [["tid", "a"]]],
       "tva": ["tid", "a"],
-      "tvb": ["tid", "b"]
+      "tvb": ["tid", "b"],
+      "tvc": ["tid", "c"],
+      "tvd": ["tid", "d"]
     },
     "values": {
       "list": ["forall", ["a"], ["Maker", ["tid", "a"], "lOfA"]],
@@ -18,8 +22,8 @@
       "contains": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "Boolean"]],
       "to-raw-array": ["forall", ["a"], ["arrow", ["lOfA"], "rOfA"]],
       "map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "lOfA"], "lOfB"]],
-      "map2": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva", "tva"], "tvb"], "lOfA", "lOfA"], "lOfB"]],
-      "map3": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva", "tva", "tva"], "tvb"], "lOfA", "lOfA", "lOfA"], "lOfB"]],
+      "map2": ["forall", ["a", "b", "c"], ["arrow", [["arrow", ["tva", "tvb"], "tvc"], "lOfA", "lOfB"], "lOfC"]],
+      "map3": ["forall", ["a", "b", "c", "d"], ["arrow", [["arrow", ["tva", "tvb", "tvc"], "tvd"], "lOfA", "lOfB", "lOfC"], "lOfD"]],
       "slice": ["forall", ["a"], ["arrow", ["lOfA", "Number", "Number"], "lOfA"]],
       "push": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "lOfA"]],
       "filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], "lOfA"], "lOfA"]],
