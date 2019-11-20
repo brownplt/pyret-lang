@@ -19,8 +19,9 @@
             "check-color": ["arrow", ["Any"], "Any"],
             "bar-chart": ["arrow", ["rOfR"], "Chart"],
             "bar-chart-from-table": ["arrow", ["Table"], "Chart"],
-            "pie-chart": ["arrow", ["Table"], "Chart"],
-            "histogram-chart": ["arrow", ["Table"], "Chart"]
+            "pie-chart-from-table": ["arrow", ["Table"], "Chart"],
+            "histogram-from-table": ["arrow", ["Table"], "Chart"],
+            "scatter-chart-from-table": ["arrow", ["Table"], "Chart"]
         },
         "aliases": {
             "Chart": { "tag": "name",

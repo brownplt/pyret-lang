@@ -40,7 +40,7 @@ function barChartFromTable(table) {
 }
 
 /* @stopify flat */
-function pieChart(table) {
+function pieChartFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "PieChart",
@@ -50,7 +50,7 @@ function pieChart(table) {
 }
 
 /* @stopify flat */
-function histogramChart(table) {
+function histogramFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "Histogram",
@@ -60,7 +60,14 @@ function histogramChart(table) {
 }
 
 /* @stopify flat */
-
+function scatterChartFromTable(table) {
+    return {
+        "$brand": "chart",
+        "chartType": "ScatterChart",
+        "_headers": table._headers,
+        "_rows": table._rows
+    };
+}
 
 return module.exports = {
     "check-color": /* @stopify flat */ function (val) {
@@ -72,10 +79,13 @@ return module.exports = {
     "bar-chart-from-table": /* @stopify flat */ function (table) {
         return barChartFromTable(table);
     },
-    "pie-chart": /* @stopify flat */ function (table) {
-        return pieChart(table);
+    "pie-chart-from-table": /* @stopify flat */ function (table) {
+        return pieChartFromTable(table);
     },
-    "histogram-chart": /* @stopify flat */ function (table) {
-        return histogramChart(table);
+    "histogram-from-table": /* @stopify flat */ function (table) {
+        return histogramFromTable(table);
+    },
+    "scatter-chart-from-table": /* @stopify flat */ function (table) {
+        return scatterChartFromTable(table);
     }
 }
