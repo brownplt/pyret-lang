@@ -69,6 +69,16 @@ function scatterChartFromTable(table) {
     };
 }
 
+/* @stopify flat */
+function lineChartFromTable(table) {
+    return {
+        "$brand": "chart",
+        "chartType": "LineChart",
+        "_headers": table._headers,
+        "_rows": table._rows
+    };
+}
+
 return module.exports = {
     "check-color": /* @stopify flat */ function (val) {
         return checkColor(val);
@@ -87,5 +97,8 @@ return module.exports = {
     },
     "scatter-chart-from-table": /* @stopify flat */ function (table) {
         return scatterChartFromTable(table);
+    },
+    "line-chart-from-table": /* @stopify flat */ function (table) {
+        return lineChartFromTable(table);
     }
 }

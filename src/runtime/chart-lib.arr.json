@@ -21,7 +21,8 @@
             "bar-chart-from-table": ["arrow", ["Table"], "Chart"],
             "pie-chart-from-table": ["arrow", ["Table"], "Chart"],
             "histogram-from-table": ["arrow", ["Table"], "Chart"],
-            "scatter-chart-from-table": ["arrow", ["Table"], "Chart"]
+            "scatter-chart-from-table": ["arrow", ["Table"], "Chart"],
+            "line-chart-from-table": ["arrow", ["Table"], "Chart"]
         },
         "aliases": {
             "Chart": { "tag": "name",
