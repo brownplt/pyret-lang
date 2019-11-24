@@ -127,10 +127,29 @@ export function makeSound(sample_rate: number, data_array: number[][]): Sound {
     return sound;
 }
 
+function getGDriveLink(path: string): string {
+    var splitted = path.split("/"); 
+    console.log(splitted);
+    var id;
+    for (var s in splitted) {
+        console.log(s);
+        if (splitted[s].includes("id=")) {
+            console.log(splitted[s]);
+            id = splitted[s].split("id=")[1];
+            console.log(id);
+        }
+    }
+    return "https://cors-anywhere.herokuapp.com/https://drive.google.com/uc?export=download&id="+id;
+}
+
 export function getSoundFromURL(path: string): Sound {
     if (path.length==0) {
         throw new Error("URL is empty, hence invalid!!");
     }
+    if (path.includes("drive.google.com")) {
+        path = getGDriveLink(path);
+    }
+    console.log(path);
     var buffer = getBufferFromURL(path);
     var numChannel = buffer.numberOfChannels;
     var data_array = new Array(numChannel);
