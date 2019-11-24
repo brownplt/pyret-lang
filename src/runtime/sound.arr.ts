@@ -68,7 +68,6 @@ const toneMap = {
     
 
 export function getBufferFromURL(path: string): AudioBuffer {
-    debugger;
     //@ts-ignore
     var audioCtx = AudioContext();
     var source;
@@ -106,6 +105,8 @@ export function getArrayFromSound(sound: Sound): number[][] {
 }
 
 export function makeSound(sample_rate: number, data_array: number[][]): Sound {
+    if(data_array.length==0 || sample_rate==0)
+        throw new Error("Parameters to sound are empty, hence - inavlid!");
     var fixed_data = new Array(data_array.length);
     var fixed_sample_rate = jsnums.toFixnum(sample_rate);
     for (var channel = 0; channel < data_array.length; channel++) {
@@ -127,6 +128,9 @@ export function makeSound(sample_rate: number, data_array: number[][]): Sound {
 }
 
 export function getSoundFromURL(path: string): Sound {
+    if (path.length==0) {
+        throw new Error("URL is empty, hence invalid!!");
+    }
     var buffer = getBufferFromURL(path);
     var numChannel = buffer.numberOfChannels;
     var data_array = new Array(numChannel);
@@ -135,11 +139,13 @@ export function getSoundFromURL(path: string): Sound {
         data_array[channel] = channel_array;
     }
     var sample_rate = buffer.sampleRate;
-    var duration = buffer.duration;
     return makeSound(sample_rate, data_array);
 }
 
 export function getSoundFromAudioBuffer(buffer: AudioBuffer): Sound {
+    if (buffer.length==0) {
+        throw new Error("Buffer is empty, hence invalid!!");
+    }
     var numChannel = buffer.numberOfChannels;
     var data_array = new Array(numChannel);
     for (var channel = 0; channel < numChannel; channel++) {
@@ -147,12 +153,14 @@ export function getSoundFromAudioBuffer(buffer: AudioBuffer): Sound {
         data_array[channel] = channel_array;
     }
     var sample_rate = buffer.sampleRate;
-    var duration = buffer.duration;
     console.log(data_array);
     return makeSound(sample_rate, data_array);
 }
 
 export function createSound(channels: number, sample_rate: number, duration: number, data_array: number[][]) {
+    if(sample_rate==0 || channels==0 || data_array.length==0) {
+        throw new Error("One or more parameters to sound are empty, hence - invalid!!");
+    }  
     //@ts-ignore
     var audioCtx = AudioContext();
     var myArrayBuffer = audioCtx.createBuffer(channels, duration, sample_rate);
@@ -182,6 +190,9 @@ function checkSampleRate(samples: Sound[]): boolean {
 }
 
 export function overlay(samples: Sound[]): Sound {
+    if(samples.length==0) {
+        throw new Error("Set of sound samples are empty, hence - invalid!!");
+    }
     if (!checkSampleRate(samples)) {
         throw new Error("samples rates not equal for all samples");
     }
@@ -217,6 +228,9 @@ export function overlay(samples: Sound[]): Sound {
 }
 
 export function concat(samples: Sound[]): Sound {
+    if(samples.length==0) {
+        throw new Error("Set of sound samples are empty, hence - invalid!!");
+    }
     if (!checkSampleRate(samples)) {
         throw new Error("samples rates not equal for all samples");
     }
@@ -254,8 +268,10 @@ export function concat(samples: Sound[]): Sound {
 
 export function setPlaybackSpeed(sample: Sound, rate: number): Sound {
     var sample_rate = sample['sample-rate'];
-    var duration = sample.duration;
     var arr = sample['data-array'];
+    if(arr.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
     var rate_fixed = jsnums.toFixnum(rate);
     var new_sample_rate = sample_rate * rate_fixed;
     return makeSound(new_sample_rate, arr);
@@ -269,6 +285,9 @@ export function shorten(sample: Sound, start: number, end: number): Sound {
     }
     var sample_rate = sample['sample-rate'];
     var arr = sample['data-array'];
+    if(arr.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
     var new_arr = new Array(arr.length);
     for (var channel = 0; channel < arr.length; channel++) {
         new_arr[channel] = arr[channel].slice(Math.round(start_fixed*sample_rate), Math.round(end_fixed*sample_rate));
@@ -277,6 +296,9 @@ export function shorten(sample: Sound, start: number, end: number): Sound {
 }
 
 export function denormalizeSound(audioBuffer: AudioBuffer): Sound {
+    if(audioBuffer.length==0) {
+        throw new Error("Buffer is empty, hence - invalid!!");
+    }
     //@ts-ignore
     var audioCtx = AudioContext();
     var convolver = audioCtx.createConvolver();
@@ -312,6 +334,10 @@ export function getSineWave(): Sound {
 //https://teropa.info/blog/2016/08/04/sine-waves.html
 export function getTone(key: string): Sound {
     const REAL_TIME_FREQUENCY = toneMap[key]; 
+    console.log(REAL_TIME_FREQUENCY);
+    if(REAL_TIME_FREQUENCY==null) {
+        throw new Error("Given Octave doesn't exist! Please try a valid tone such as C8, A4 etc.");
+    }
     const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
 
     //@ts-ignore
@@ -358,6 +384,9 @@ export function fade(sound: Sound): Sound {
     var duration = sound['duration'];
     var k = Math.log(0.01)/(sample_rate*duration);
     var data_array = sound['data-array'];
+    if(data_array.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
     for (var channel = 0; channel < data_array.length; channel++) {
         for(var i=0; i < data_array[channel].length; i++) {
             data_array[channel][i] = data_array[channel][i] * Math.exp(i*k);
@@ -369,6 +398,9 @@ export function fade(sound: Sound): Sound {
 export function removeVocals(sound: Sound): Sound {
     var sample_rate = sound['sample-rate'];
     var data_array = sound['data-array'];
+    if(data_array.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
     var channel1 = 0;
     var channel2 = 1;
     var diff = 0.0;
