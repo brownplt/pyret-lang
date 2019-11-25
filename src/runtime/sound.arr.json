@@ -1,24 +1,17 @@
 {
     "provides": {
         "values": {
-            "juliet": "String",
-            "getBufferFromURL": ["arrow", ["String"], "tany"],
-            "getArrayFromSound": ["arrow", [
+            "get-buffer-from-url": ["arrow", ["String"], "tany"],
+            "get-array-from-sound": ["arrow", [
                 ["local", "Sound"]
             ], "tany"],
-            "getBufferFromSound": ["arrow", [
-                ["local", "Sound"]
-            ], "tany"],
-            "getSoundFromAudioBuffer": ["arrow", ["Any"],
+            "get-sound-from-audio-buffer": ["arrow", ["Any"],
                 ["local", "Sound"]
             ],
-            "createSound": ["arrow", ["Any", "Any", "Any", "Any"],
+            "make-sound": ["arrow", ["Any", "Any"],
                 ["local", "Sound"]
             ],
-            "makeSound": ["arrow", ["Any", "Any"],
-                ["local", "Sound"]
-            ],
-            "getSoundFromURL": ["arrow", ["String"],
+            "get-sound-from-url": ["arrow", ["String"],
                 ["local", "Sound"]
             ],
             "overlay": ["arrow", ["tany"],
@@ -27,28 +20,28 @@
             "concat": ["arrow", ["tany"],
                 ["local", "Sound"]
             ],
-            "setPlaybackSpeed": ["arrow", ["Any", "Number"],
+            "set-playback-speed": ["arrow", ["Any", "Number"],
                 ["local", "Sound"]
             ],
             "shorten": ["arrow", ["Any", "Number", "Number"],
                 ["local", "Sound"]
             ],
-            "denormalizeSound": ["arrow", ["tany"],
+            "denormalize-sound": ["arrow", ["tany"],
                 ["local", "Sound"]
             ],
-            "getTone": ["arrow", ["String"], 
+            "get-tone": ["arrow", ["String"],
                 ["local", "Sound"]
             ],
-            "getSineWave": ["arrow", [], 
+            "get-sine-wave": ["arrow", [],
                 ["local", "Sound"]
             ],
-            "getCosineWave": ["arrow", [], 
+            "get-cosine-wave": ["arrow", [],
                 ["local", "Sound"]
             ],
             "fade": ["arrow", ["tany"],
                 ["local", "Sound"]
             ],
-            "removeVocals": ["arrow", ["tany"],
+            "remove-vocals": ["arrow", ["tany"],
                 ["local", "Sound"]
             ]
         },
