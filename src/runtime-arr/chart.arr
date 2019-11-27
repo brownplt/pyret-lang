@@ -39,6 +39,10 @@ fun to-table2(xs :: L.List<Any>, ys :: L.List<Any>) -> TableIntern:
   L.to-raw-array(L.map2({(x, y): [G.raw-array: x, y]}, xs, ys))
 end
 
+fun to-table3(xs :: L.List<Any>, ys :: L.List<Any>, zs :: L.List<Any>) -> TableIntern:
+  L.to-raw-array(L.map3({(x, y, z): [G.raw-array: x, y, z]}, xs, ys, zs))
+end
+
 # TODO(tiffany): add in get-vs-from-img after VS is implemented
 
 ################################################################################
@@ -94,6 +98,12 @@ end
 # DEFAULT VALUES
 ################################################################################
 
+type PieChartSeries = {
+  tab :: TableIntern,
+}
+
+default-pie-chart-series = {}
+
 type BarChartSeries = {
   tab :: TableIntern,
   legends :: RawArray<String>,
@@ -118,6 +128,15 @@ default-chart-window-object :: ChartWindowObject = {
   render: method(self): G.raise('unimplemented') end,
 }
 
+type PieChartWindowObject = {
+  title :: String,
+  width :: Number,
+  height :: Number,
+  render :: ( -> IM.Image),
+}
+
+default-pie-chart-window-object :: PieChartWindowObject = default-chart-window-object
+
 type BarChartWindowObject = {
   title :: String,
   width :: Number,
@@ -141,9 +160,12 @@ default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-o
 ################################################################################
 
 data DataSeries:
+  | pie-chart-series(obj :: PieChartSeries) with:
+    is-single: true,
+    #constr: {(): pie-chart-series},
   | bar-chart-series(obj :: BarChartSeries) with:
     is-single: true,
-    constr: {(): bar-chart-series},
+    #constr: {(): bar-chart-series},
 # TODO(tiffany): add _output and test get-vs-from-img after VS is implemented
 end
 
@@ -156,36 +178,77 @@ fun check-chart-window(p :: ChartWindowObject) -> Nothing:
 end
 
 data ChartWindow:
+  | pie-chart-window(obj :: PieChartWindowObject) with:
+    #constr: {(): pie-chart-window},
+    title: method(self, title :: String): pie-chart-window(self.obj.{title: title}) end,
+    width: method(self, width :: Number): pie-chart-window(self.obj.{width: width}) end,
+    height: method(self, height :: Number): pie-chart-window(self.obj.{height: height}) end,
+    display: method(self):
+      _ = check-chart-window(self.obj)
+      self.obj.{interact: true}.render()
+    end,
+    get-image: method(self):
+      _ = check-chart-window(self.obj)
+      self.obj.{interact: false}.render()
+    end,
   | bar-chart-window(obj :: BarChartWindowObject) with:
-    constr: {(): bar-chart-window},
-    x-axis: method(self, x-axis :: String): self.constr()(self.obj.{x-axis: x-axis}) end,
-    y-axis: method(self, y-axis :: String): self.constr()(self.obj.{y-axis: y-axis}) end,
-    y-min: method(self, y-min :: Number): self.constr()(self.obj.{y-min: O.some(y-min)}) end,
-    y-max: method(self, y-max :: Number): self.constr()(self.obj.{y-max: O.some(y-max)}) end,
-sharing:
-  method display(self):
-    _ = check-chart-window(self.obj)
-    self.obj.{interact: true}.render()
-  end,
-  method get-image(self):
-    _ = check-chart-window(self.obj)
-    self.obj.{interact: false}.render()
-  end,
-  method title(self, title :: String):
-    self.constr()(self.obj.{title: title})
-  end,
-  method width(self, width :: Number):
-    self.constr()(self.obj.{width: width})
-  end,
-  method height(self, height :: Number):
-    self.constr()(self.obj.{height: height})
-  end,
+    #constr: {(): bar-chart-window},
+    x-axis: method(self, x-axis :: String): bar-chart-window(self.obj.{x-axis: x-axis}) end,
+    y-axis: method(self, y-axis :: String): bar-chart-window(self.obj.{y-axis: y-axis}) end,
+    y-min: method(self, y-min :: Number): bar-chart-window(self.obj.{y-min: O.some(y-min)}) end,
+    y-max: method(self, y-max :: Number): bar-chart-window(self.obj.{y-max: O.some(y-max)}) end,
+    title: method(self, title :: String): bar-chart-window(self.obj.{title: title}) end,
+    width: method(self, width :: Number): bar-chart-window(self.obj.{width: width}) end,
+    height: method(self, height :: Number): bar-chart-window(self.obj.{height: height}) end,
+    display: method(self):
+      _ = check-chart-window(self.obj)
+      self.obj.{interact: true}.render()
+    end,
+    get-image: method(self):
+      _ = check-chart-window(self.obj)
+      self.obj.{interact: false}.render()
+    end,
+#sharing:
+  # TODO(tiffany): add the following 3 methods to every ChartWindow
+  # title: method(self, title :: String): self.constr()(self.obj.{title: title}) end,
+  # width: method(self, width :: Number): self.constr()(self.obj.{width: width}) end,
+  # height: method(self, height :: Number): self.constr()(self.obj.{height: height}) end,
+  #display: method(self):
+  #    _ = check-chart-window(self.obj)
+  #    self.obj.{interact: true}.render()
+  #  end,
+  #  get-image: method(self):
+  #    _ = check-chart-window(self.obj)
+  #    self.obj.{interact: false}.render()
+  #  end,
+  #
   # TODO(tiffany): add _output and test get-vs-from-img after VS is implemented
 end
 
 ################################################################################
 # FUNCTIONS
 ################################################################################
+
+fun pie-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> DataSeries block:
+  doc: ```
+       Consume labels, a list of string, and values, a list of numbers
+       and construct a pie chart
+       ```
+  label-length = L.length(labels)
+  value-length = L.length(values)
+  when label-length <> value-length:
+    G.raise('pie-chart: labels and values should have the same length')
+  end
+  when label-length == 0:
+    G.raise('pie-chart: need at least one data')
+  end
+  # TODO(tiffany): uncomment after implementing each
+  #values.each(check-num)
+  #labels.each(check-string)
+  pie-chart-series(default-pie-chart-series.{
+    tab: to-table2(labels, values)
+  })
+end
 
 fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> DataSeries block:
   doc: ```
@@ -214,6 +277,10 @@ end
 fun render-chart(s :: DataSeries) -> ChartWindow:
   doc: 'Render it!'
   cases (DataSeries) s:
+    | pie-chart-series(obj) =>
+      pie-chart-window(default-pie-chart-window-object.{
+        render: method(self): CL.pie-chart(obj.tab) end
+      })
     | bar-chart-series(obj) =>
       bar-chart-window(default-bar-chart-window-object.{
         render: method(self):

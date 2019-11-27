@@ -20,7 +20,6 @@ function checkColor(val) {
 /* @stopify flat */
 function barChart(tableFromRawArray) {
     headers = ["",""];
-
     return {
         "$brand": "chart",
         "chartType": "BarChart",
@@ -36,6 +35,16 @@ function barChartFromTable(table) {
         "chartType": "BarChart",
         "_headers": table._headers,
         "_rows": table._rows
+    };
+}
+
+/* @stopify flat */
+function pieChart(tableFromRawArray) {
+    return {
+        "$brand": "chart",
+        "chartType": "PieChart",
+        "_headers": ["",""],
+        "_rows": tableFromRawArray
     };
 }
 
@@ -88,6 +97,9 @@ return module.exports = {
     },
     "bar-chart-from-table": /* @stopify flat */ function (table) {
         return barChartFromTable(table);
+    },
+    "pie-chart": /* @stopify flat */ function (tableFromRawArray) {
+        return pieChart(tableFromRawArray);
     },
     "pie-chart-from-table": /* @stopify flat */ function (table) {
         return pieChartFromTable(table);
