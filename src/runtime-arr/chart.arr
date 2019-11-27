@@ -162,10 +162,8 @@ default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-o
 data DataSeries:
   | pie-chart-series(obj :: PieChartSeries) with:
     is-single: true,
-    #constr: {(): pie-chart-series},
   | bar-chart-series(obj :: BarChartSeries) with:
     is-single: true,
-    #constr: {(): bar-chart-series},
 # TODO(tiffany): add _output and test get-vs-from-img after VS is implemented
 end
 
@@ -209,19 +207,20 @@ data ChartWindow:
       self.obj.{interact: false}.render()
     end,
 #sharing:
+
   # TODO(tiffany): add the following 3 methods to every ChartWindow
   # title: method(self, title :: String): self.constr()(self.obj.{title: title}) end,
   # width: method(self, width :: Number): self.constr()(self.obj.{width: width}) end,
   # height: method(self, height :: Number): self.constr()(self.obj.{height: height}) end,
-  #display: method(self):
-  #    _ = check-chart-window(self.obj)
-  #    self.obj.{interact: true}.render()
-  #  end,
-  #  get-image: method(self):
-  #    _ = check-chart-window(self.obj)
-  #    self.obj.{interact: false}.render()
-  #  end,
-  #
+  # display: method(self):
+  #   _ = check-chart-window(self.obj)
+  #   self.obj.{interact: true}.render()
+  # end,
+  # get-image: method(self):
+  #   _ = check-chart-window(self.obj)
+  #   self.obj.{interact: false}.render()
+  # end,
+  
   # TODO(tiffany): add _output and test get-vs-from-img after VS is implemented
 end
 
