@@ -1,6 +1,5 @@
 import React from 'react';
 import './Sound.css';
-import { GlobalHotKeys } from "react-hotkeys";
 
 const blackDownloadIcon = require('./SoundWidgetImages/download_black.png');
 const blackPlayIcon = require('./SoundWidgetImages/play_black.png');
@@ -118,7 +117,11 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       if(endPixel - startPixel >= this.MIN_ZOOM_BOX_WIDTH) {
         const startIndex = Math.round(this.state.startIndex + (startPixel / this.WIDTH) * this.state.focusDuration * this.props.sound['sample-rate']);
         const endIndex = Math.round(this.state.startIndex + (endPixel / this.WIDTH) * this.state.focusDuration * this.props.sound['sample-rate']);
-        this.setFocus(startIndex, endIndex);
+        if(endIndex - startIndex > this.MIN_FOCUSED_SAMPLES) {
+          this.setFocus(startIndex, endIndex);
+
+        }
+       
       }
       this.setState({ isMouseDown: false, startBox: 0, endBox: -1});
     }
@@ -189,7 +192,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   getHoverIndex = () => {
-     return Math.round(this.state.hoverLoc / this.WIDTH * this.state.focusDuration * this.props.sound['sample-rate'] + this.state.startIndex);
+     return Math.floor(this.state.hoverLoc / this.WIDTH * this.state.focusDuration * this.props.sound['sample-rate'] + this.state.startIndex);
   }
 
 
@@ -311,7 +314,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
       end = start + this.MIN_FOCUSED_SAMPLES;
     }
     if (start < 0) start = 0;
-    if (end >= this.props.sound.duration * this.props.sound['sample-rate']) end =  this.props.sound['data-array'][0].length - 1;
+    if (end >= this.props.sound['data-array'][0].length) end =  this.props.sound['data-array'][0].length - 1;
     if(this.state.isPlaying) {
       this.togglePlay();
     }
@@ -546,7 +549,7 @@ waveformCanvasRef : any;
     let delta = 1;
     // could possibly try to filter out some samples so that we can render quicker.
     const deltaX = this.props.width / (this.props.endIndex - this.props.startIndex);
-    for(let i = this.props.startIndex; i < this.props.endIndex; i = i + delta) {
+    for(let i = this.props.startIndex; i <= this.props.endIndex; i = i + delta) {
       let y_coord =  (this.props.height / 2 ) - this.props.dataArray[i] * (this.props.height / 2);
       context.lineTo(x,y_coord);
       x += deltaX;
@@ -555,13 +558,19 @@ waveformCanvasRef : any;
   }
 
   componentDidMount() {
-    console.log("mounting");
     this.drawWaveForm();
   }
 
   shouldComponentUpdate(nextProps : WaveFormProps, nextState: WaveFormState) {
-    console.log("checking if should update");
-    return nextProps.startIndex != this.props.startIndex || nextProps.endIndex != this.props.endIndex;
+    return nextProps.startIndex != this.props.startIndex || nextProps.endIndex != this.props.endIndex || !this.checkArrayEquality(nextProps.dataArray, this.props.dataArray);
+  }
+
+  checkArrayEquality = (arr1 : number[], arr2: number[]) => {
+    if(arr1.length != arr2.length) return false;
+    for(let i  = 0; i < arr1.length; i++) {
+      if(arr1[i] != arr2[i]) return false;
+    }
+    return true;
   }
 
   componentDidUpdate() {
