@@ -154,6 +154,25 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     setInterval(this.updateProgress, 1000 / this.FPS);
   }
 
+ 
+  
+  static getDerivedStateFromProps(nextProps:any, prevState:any) {
+    let s = {
+      progress: 0, // 1 unit = 1/10 second
+      isPlaying: false,
+      isMouseDown: false,
+      startBox: 0,
+      endBox: -1,
+      startIndex: 0,
+      endIndex: nextProps.sound['data-array'][0].length-1,
+      focusDuration: nextProps.sound.duration,
+      hoverLoc: 0,
+      progressDisplay: 0,
+      focusedChannel: 0
+    };
+    return s;
+  }
+
   updateProgress = () => {
     if(this.state.isPlaying) {
       this.setState({progress : this.state.progress + 1, progressDisplay: -1});
@@ -562,10 +581,10 @@ waveformCanvasRef : any;
   }
 
   shouldComponentUpdate(nextProps : WaveFormProps, nextState: WaveFormState) {
-    return nextProps.startIndex != this.props.startIndex || nextProps.endIndex != this.props.endIndex || !this.checkArrayEquality(nextProps.dataArray, this.props.dataArray);
+    return nextProps.startIndex != this.props.startIndex || nextProps.endIndex != this.props.endIndex || !this.arrayEquals(nextProps.dataArray, this.props.dataArray);
   }
 
-  checkArrayEquality = (arr1 : number[], arr2: number[]) => {
+  arrayEquals = (arr1 : number[], arr2: number[]) => {
     if(arr1.length != arr2.length) return false;
     for(let i  = 0; i < arr1.length; i++) {
       if(arr1[i] != arr2[i]) return false;
