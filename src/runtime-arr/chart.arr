@@ -3,6 +3,7 @@ provide-types *
 
 import global as G
 import chart-lib as CL
+import either as E
 import image as IM
 import list as L
 import option as O
