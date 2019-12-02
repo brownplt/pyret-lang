@@ -216,6 +216,17 @@ default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window
 ################################################################################
 
 data DataSeries:
+  | scatter-plot-series(obj :: ScatterPlotSeries) with:
+    is-single: false,
+    color: method(self, color :: I.Color):
+      scatter-plot-series(self.obj.{color: some(color)})
+    end,
+    legend: method(self, legend :: String):
+      scatter-plot-series(self.obj.{legend: legend})
+    end,
+    point-size: method(self, point-size :: Number):
+      scatter-plot-series(self.obj.{point-size: point-size})
+    end,
   | pie-chart-series(obj :: PieChartSeries) with:
     is-single: true,
   | bar-chart-series(obj :: BarChartSeries) with:
