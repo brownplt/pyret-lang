@@ -244,7 +244,6 @@ end
 
 data ChartWindow:
   | pie-chart-window(obj :: PieChartWindowObject) with:
-    #constr: {(): pie-chart-window},
     title: method(self, title :: String): pie-chart-window(self.obj.{title: title}) end,
     width: method(self, width :: Number): pie-chart-window(self.obj.{width: width}) end,
     height: method(self, height :: Number): pie-chart-window(self.obj.{height: height}) end,
@@ -257,7 +256,6 @@ data ChartWindow:
       self.obj.{interact: false}.render()
     end,
   | bar-chart-window(obj :: BarChartWindowObject) with:
-    #constr: {(): bar-chart-window},
     x-axis: method(self, x-axis :: String): bar-chart-window(self.obj.{x-axis: x-axis}) end,
     y-axis: method(self, y-axis :: String): bar-chart-window(self.obj.{y-axis: y-axis}) end,
     y-min: method(self, y-min :: Number): bar-chart-window(self.obj.{y-min: O.some(y-min)}) end,
