@@ -154,24 +154,6 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     setInterval(this.updateProgress, 1000 / this.FPS);
   }
 
- 
-  
-  static getDerivedStateFromProps(nextProps:any, prevState:any) {
-    let s = {
-      progress: 0, // 1 unit = 1/10 second
-      isPlaying: false,
-      isMouseDown: false,
-      startBox: 0,
-      endBox: -1,
-      startIndex: 0,
-      endIndex: nextProps.sound['data-array'][0].length-1,
-      focusDuration: nextProps.sound.duration,
-      hoverLoc: 0,
-      progressDisplay: 0,
-      focusedChannel: 0
-    };
-    return s;
-  }
 
   updateProgress = () => {
     if(this.state.isPlaying) {
