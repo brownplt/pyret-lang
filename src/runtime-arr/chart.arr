@@ -187,6 +187,30 @@ default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-o
   y-max: O.none,
 }
 
+type PlotChartWindowObject = {
+  title :: String,
+  width :: Number,
+  height :: Number,
+  render :: ( -> IM.Image),
+  x-axis :: String,
+  y-axis :: String,
+  x-min :: Option<Number>,
+  x-max :: Option<Number>,
+  x-max :: Option<Number>,
+  y-max :: Option<Number>,
+  num-samples :: Number,
+}
+
+default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
+  x-axis: '',
+  y-axis: '',
+  x-min: none,
+  x-max: none,
+  y-min: none,
+  y-max: none,
+  num-samples: 1000,
+}
+
 ################################################################################
 # DATA DEFINITIONS
 ################################################################################
