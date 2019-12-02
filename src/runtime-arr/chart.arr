@@ -131,6 +131,19 @@ type BarChartSeries = {
 
 default-bar-chart-series = {}
 
+type ScatterPlotSeries = {
+  ps :: L.List<Posn>,
+  color :: Option<IM.Color>,
+  legend :: String,
+  point-size :: Number,
+}
+
+default-scatter-plot-series = {
+  color: none,
+  legend: '',
+  point-size: 7,
+}
+
 ###########
 
 type ChartWindowObject = {
