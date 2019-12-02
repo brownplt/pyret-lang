@@ -271,6 +271,30 @@ data ChartWindow:
       _ = check-chart-window(self.obj)
       self.obj.{interact: false}.render()
     end,
+  | plot-chart-window(obj :: PlotChartWindowObject) with:
+    x-axis: x-axis-method,
+    y-axis: y-axis-method,
+    x-min: x-min-method,
+    x-max: x-max-method,
+    y-min: y-min-method,
+    y-max: y-max-method,
+    num-samples: method(self, num-samples :: Number) block:
+      when (num-samples <= 0) or (num-samples > 100000) or not(num-is-integer(num-samples)):
+        G.raise('num-samples: value must be an ineger between 1 and 100000')
+      end
+      plot-chart-window(self.obj.{num-samples: num-samples})
+    end,
+    title: method(self, title :: String): plot-chart-window(self.obj.{title: title}) end,
+    width: method(self, width :: Number): plot-chart-window(self.obj.{width: width}) end,
+    height: method(self, height :: Number): plot-chart-window(self.obj.{height: height}) end,
+    display: method(self):
+      _ = check-chart-window(self.obj)
+      self.obj.{interact: true}.render()
+    end,
+    get-image: method(self):
+      _ = check-chart-window(self.obj)
+      self.obj.{interact: false}.render()
+    end,
 #sharing:
 
   # TODO(tiffany): add the following 3 methods to every ChartWindow
