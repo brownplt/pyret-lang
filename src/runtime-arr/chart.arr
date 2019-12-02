@@ -317,6 +317,18 @@ end
 # FUNCTIONS
 ################################################################################
 
+fun scatter-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSeries block:
+  when xs.length() <> ys.length():
+    G.raise('scatter-plot: xs and ys should have the same length')
+  end
+  # TODO(tiffany): uncomment after implementing each
+  #xs.each(check-num)
+  #ys.each(check-num)
+  scatter-plot-series(default-scatter-plot-series.{
+    ps: L.map3({(x, y, z): [G.raw-array: x, y, z]}, xs, ys, L.map({(_): ''}, xs))
+  })
+end
+
 fun pie-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> DataSeries block:
   doc: ```
        Consume labels, a list of string, and values, a list of numbers
