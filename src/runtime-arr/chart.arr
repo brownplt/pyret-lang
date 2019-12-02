@@ -94,6 +94,24 @@ fun get-bounding-box(ps :: L.List<Posn>) -> BoundingBox:
   end
 end
 
+fun merge-bounding-box(bs :: L.List<BoundingBox>) -> BoundingBox:
+  for L.fold(prev from default-bounding-box, e from bs):
+    ask:
+      | e.is-valid and prev.is-valid then:
+        default-bounding-box.{
+          x-min: G.num-min(e.x-min, prev.x-min),
+          x-max: G.num-max(e.x-max, prev.x-max),
+          y-min: G.num-min(e.y-min, prev.y-min),
+          y-max: G.num-max(e.y-max, prev.y-max),
+          is-valid: true,
+        }
+      | e.is-valid then: e
+      | prev.is-valid then: prev
+      | otherwise: default-bounding-box
+    end
+  end
+end
+
 ################################################################################
 # DEFAULT VALUES
 ################################################################################
