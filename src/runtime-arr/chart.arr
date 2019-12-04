@@ -139,7 +139,7 @@ type ScatterPlotSeries = {
 }
 
 default-scatter-plot-series = {
-  color: none,
+  color: O.none,
   legend: '',
   point-size: 7,
 }
@@ -204,10 +204,10 @@ type PlotChartWindowObject = {
 default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
-  x-min: none,
-  x-max: none,
-  y-min: none,
-  y-max: none,
+  x-min: O.none,
+  x-max: O.none,
+  y-min: O.none,
+  y-max: O.none,
   num-samples: 1000,
 }
 
@@ -218,8 +218,8 @@ default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window
 data DataSeries:
   | scatter-plot-series(obj :: ScatterPlotSeries) with:
     is-single: false,
-    color: method(self, color :: I.Color):
-      scatter-plot-series(self.obj.{color: some(color)})
+    color: method(self, color :: IM.Color):
+      scatter-plot-series(self.obj.{color: O.some(color)})
     end,
     legend: method(self, legend :: String):
       scatter-plot-series(self.obj.{legend: legend})
@@ -272,14 +272,14 @@ data ChartWindow:
       self.obj.{interact: false}.render()
     end,
   | plot-chart-window(obj :: PlotChartWindowObject) with:
-    x-axis: x-axis-method,
-    y-axis: y-axis-method,
-    x-min: x-min-method,
-    x-max: x-max-method,
-    y-min: y-min-method,
-    y-max: y-max-method,
+    x-axis: method(self, x-axis :: String): plot-chart-window(self.obj.{x-axis: x-axis}) end,
+    y-axis: method(self, y-axis :: String): plot-chart-window(self.obj.{y-axis: y-axis}) end,
+    x-min: method(self, x-min :: Number): plot-chart-window(self.obj.{x-min: O.some(x-min)}) end,
+    x-max: method(self, x-max :: Number): plot-chart-window(self.obj.{x-max: O.some(x-max)}) end,
+    y-min: method(self, y-min :: Number): plot-chart-window(self.obj.{y-min: O.some(y-min)}) end,
+    y-max: method(self, y-max :: Number): plot-chart-window(self.obj.{y-max: O.some(y-max)}) end,
     num-samples: method(self, num-samples :: Number) block:
-      when (num-samples <= 0) or (num-samples > 100000) or not(num-is-integer(num-samples)):
+      when (num-samples <= 0) or (num-samples > 100000) or G.not(G.num-is-integer(num-samples)):
         G.raise('num-samples: value must be an ineger between 1 and 100000')
       end
       plot-chart-window(self.obj.{num-samples: num-samples})
@@ -318,14 +318,14 @@ end
 ################################################################################
 
 fun scatter-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSeries block:
-  when xs.length() <> ys.length():
+  when L.length(xs) <> L.length(ys):
     G.raise('scatter-plot: xs and ys should have the same length')
   end
   # TODO(tiffany): uncomment after implementing each
   #xs.each(check-num)
   #ys.each(check-num)
   scatter-plot-series(default-scatter-plot-series.{
-    ps: L.map3({(x, y, z): [G.raw-array: x, y, z]}, xs, ys, L.map({(_): ''}, xs))
+    ps: L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
   })
 end
 
@@ -377,6 +377,8 @@ end
 fun render-chart(s :: DataSeries) -> ChartWindow:
   doc: 'Render it!'
   cases (DataSeries) s:
+    # TODO(tiffany): fix scatter-plot-series
+    | scatter-plot-series(_) => plot-chart-window(default-plot-chart-window-object)
     | pie-chart-series(obj) =>
       pie-chart-window(default-pie-chart-window-object.{
         render: method(self): CL.pie-chart(obj.tab) end
