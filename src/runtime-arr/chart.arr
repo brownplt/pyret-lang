@@ -178,7 +178,7 @@ type FunctionPlotSeries = {
 }
 
 default-function-plot-series = {
-  color: none,
+  color: O.none,
   legend: '',
 }
 
