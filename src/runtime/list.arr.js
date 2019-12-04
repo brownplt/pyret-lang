@@ -20,6 +20,11 @@ module.exports = {
     }
     return arr;
   },
+  'each': function( fun, lst ) {
+    for (let i = 0; i < lst.length; i++) {
+      lst[i] = fun(lst[i]);
+    }
+  },
   'map': function( fun, list ) {
     return list.map( fun );
   },

@@ -22,6 +22,9 @@ type TableIntern = RawArray<RawArray<Any>>
 # HELPERS
 ################################################################################
 
+fun check-num(v :: Number) -> Nothing: nothing end
+fun check-string(v :: String) -> Nothing: nothing end
+
 posn = {(x :: Number, y :: Number): [G.raw-array: x, y]}
 
 unsafe-equal = {(x :: Number, y :: Number): (x <= y) and (y <= x)}
@@ -445,9 +448,8 @@ fun line-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSerie
   when L.length(xs) <> L.length(ys):
     G.raise('line-plot: xs and ys should have the same length')
   end
-  # TODO(tiffany): uncomment after implementing each
-  #xs.each(check-num)
-  #ys.each(check-num)
+  xs.each(check-num)
+  ys.each(check-num)
   line-plot-series(default-line-plot-series.{
     ps: L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
   })
@@ -457,9 +459,8 @@ fun scatter-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSe
   when L.length(xs) <> L.length(ys):
     G.raise('scatter-plot: xs and ys should have the same length')
   end
-  # TODO(tiffany): uncomment after implementing each
-  #xs.each(check-num)
-  #ys.each(check-num)
+  xs.each(check-num)
+  ys.each(check-num)
   scatter-plot-series(default-scatter-plot-series.{
     ps: L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
   })
@@ -482,9 +483,8 @@ fun pie-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   when label-length == 0:
     G.raise('pie-chart: need at least one data')
   end
-  # TODO(tiffany): uncomment after implementing each
-  #values.each(check-num)
-  #labels.each(check-string)
+  values.each(check-num)
+  labels.each(check-string)
   pie-chart-series(default-pie-chart-series.{
     tab: to-table2(labels, values)
   })
@@ -500,9 +500,8 @@ fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   when label-length <> value-length:
     G.raise('bar-chart: labels and values should have the same length')
   end
-  # TODO(tiffany): uncomment after implementing each
-  #values.each(check-num)
-  #labels.each(check-string)
+  values.each(check-num)
+  labels.each(check-string)
   bar-chart-series(default-bar-chart-series.{
     tab: to-table2(labels, values),
     legends: [G.raw-array: ''],
@@ -522,8 +521,7 @@ fun histogram-from-list(values :: L.List<Number>) -> DataSeries block:
   doc: ```
        Consume a list of numbers and construct a histogram
        ```
-  # TODO(tiffany): uncomment after implementing each
-  #values.each(check-num)
+  values.each(check-num)
   histogram-series(default-histogram-series.{
     tab: to-table2(L.map({(_): ''}, values), values),
   })
