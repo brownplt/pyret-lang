@@ -289,6 +289,14 @@ default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window
 ################################################################################
 
 data DataSeries:
+  | line-plot-series(obj :: LinePlotSeries) with:
+    is-single: false,
+    color: method(self, color :: IM.Color):
+      scatter-plot-series(self.obj.{color: O.some(color)})
+    end,
+    legend: method(self, legend :: String):
+      scatter-plot-series(self.obj.{legend: legend})
+    end,
   | scatter-plot-series(obj :: ScatterPlotSeries) with:
     is-single: false,
     color: method(self, color :: IM.Color):
@@ -299,6 +307,14 @@ data DataSeries:
     end,
     point-size: method(self, point-size :: Number):
       scatter-plot-series(self.obj.{point-size: point-size})
+    end,
+  | function-plot-series(obj :: FunctionPlotSeries) with:
+    is-single: false,
+    color: method(self, color :: IM.Color):
+      scatter-plot-series(self.obj.{color: O.some(color)})
+    end,
+    legend: method(self, legend :: String):
+      scatter-plot-series(self.obj.{legend: legend})
     end,
   | pie-chart-series(obj :: PieChartSeries) with:
     is-single: true,
@@ -491,6 +507,8 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
   doc: 'Render it!'
   cases (DataSeries) s:
     # TODO(tiffany): fix scatter-plot-series
+    | line-plot-series(_) => plot-chart-window(default-plot-chart-window-object)
+    | function-plot-series(_) => plot-chart-window(default-plot-chart-window-object)
     | scatter-plot-series(_) => plot-chart-window(default-plot-chart-window-object)
     | pie-chart-series(obj) =>
       pie-chart-window(default-pie-chart-window-object.{
