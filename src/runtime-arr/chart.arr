@@ -435,6 +435,24 @@ end
 # FUNCTIONS
 ################################################################################
 
+fun function-plot-from-list(f :: PlottableFunction) -> DataSeries:
+  function-plot-series(default-function-plot-series.{
+    f: f,
+  })
+end
+
+fun line-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSeries block:
+  when L.length(xs) <> L.length(ys):
+    G.raise('line-plot: xs and ys should have the same length')
+  end
+  # TODO(tiffany): uncomment after implementing each
+  #xs.each(check-num)
+  #ys.each(check-num)
+  line-plot-series(default-line-plot-series.{
+    ps: map2({(x, y): [G.raw-array: x, y]}, xs, ys)
+  })
+end
+
 fun scatter-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSeries block:
   when L.length(xs) <> L.length(ys):
     G.raise('scatter-plot: xs and ys should have the same length')
