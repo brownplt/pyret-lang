@@ -131,6 +131,19 @@ type BarChartSeries = {
 
 default-bar-chart-series = {}
 
+type HistogramSeries = {
+  tab :: TableIntern,
+  bin-width :: Option<Number>,
+  max-num-bins :: Option<Number>,
+  min-num-bins :: Option<Number>,
+}
+
+default-histogram-series = {
+  bin-width: O.none,
+  max-num-bins: O.none,
+  min-num-bins: O.none,
+}
+
 type ScatterPlotSeries = {
   ps :: L.List<Posn>,
   color :: Option<IM.Color>,
@@ -187,6 +200,27 @@ default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-o
   y-max: O.none,
 }
 
+type HistogramChartWindowObject = {
+  title :: String,
+  width :: Number,
+  height :: Number,
+  render :: ( -> IM.Image),
+  x-axis :: String,
+  y-axis :: String,
+  x-min :: Option<Number>,
+  x-max :: Option<Number>,
+  y-max :: Option<Number>,
+}
+
+default-histogram-chart-window-object :: HistogramChartWindowObject =
+  default-chart-window-object.{
+    x-axis: '',
+    y-axis: '',
+    x-min: O.none,
+    x-max: O.none,
+    y-max: O.none,
+  }
+
 type PlotChartWindowObject = {
   title :: String,
   width :: Number,
@@ -231,6 +265,23 @@ data DataSeries:
     is-single: true,
   | bar-chart-series(obj :: BarChartSeries) with:
     is-single: true,
+  | histogram-series(obj :: HistogramSeries) with:
+    is-single: true,
+    method bin-width(self, bin-width :: Number):
+      histogram-series(self.obj.{bin-width: O.some(bin-width)})
+    end,
+    method max-num-bins(self, max-num-bins :: Number):
+      histogram-series(self.obj.{max-num-bins: O.some(max-num-bins)})
+    end,
+    method min-num-bins(self, min-num-bins :: Number):
+      histogram-series(self.obj.{min-num-bins: O.some(min-num-bins)})
+    end,
+    method num-bins(self, num-bins :: Number):
+      histogram-series(self.obj.{
+        min-num-bins: O.some(num-bins),
+        max-num-bins: O.some(num-bins)
+      })
+    end,
 # TODO(tiffany): add _output and test get-vs-from-img after VS is implemented
 end
 
@@ -271,6 +322,12 @@ data ChartWindow:
       _ = check-chart-window(self.obj)
       self.obj.{interact: false}.render()
     end,
+  | histogram-chart-window(obj :: HistogramChartWindowObject) with:
+    x-axis: method(self, x-axis :: String): histogram-chart-window(self.obj.{x-axis: x-axis}) end,
+    y-axis: method(self, y-axis :: String): histogram-chart-window(self.obj.{y-axis: y-axis}) end,
+    x-min: method(self, x-min :: Number): histogram-chart-window(self.obj.{x-min: O.some(x-min)}) end,
+    x-max: method(self, x-max :: Number): histogram-chart-window(self.obj.{x-max: O.some(x-max)}) end,
+    y-max: method(self, y-max :: Number): histogram-chart-window(self.obj.{y-max: O.some(y-max)}) end,
   | plot-chart-window(obj :: PlotChartWindowObject) with:
     x-axis: method(self, x-axis :: String): plot-chart-window(self.obj.{x-axis: x-axis}) end,
     y-axis: method(self, y-axis :: String): plot-chart-window(self.obj.{y-axis: y-axis}) end,
@@ -370,6 +427,17 @@ fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   })
 end
 
+fun histogram-from-list(values :: L.List<Number>) -> DataSeries block:
+  doc: ```
+       Consume a list of numbers and construct a histogram
+       ```
+  # TODO(tiffany): uncomment after implementing each
+  #values.each(check-num)
+  histogram-series(default-histogram-series.{
+    tab: to-table2(L.map({(_): ''}, values), values),
+  })
+end
+
 ################################################################################
 # PLOTS
 ################################################################################
@@ -400,6 +468,39 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
                 | else => G.nothing
               end
           CL.bar-chart(obj.tab)
+        end
+      })
+    | histogram-series(obj) =>
+      histogram-chart-window(default-histogram-chart-window-object.{
+        render: method(self):
+          shadow self = self.{y-min: O.none}
+          _ = cases (Option) self.x-min:
+                | some(x-min) =>
+                  cases (Option) self.x-max:
+                    | some(x-max) =>
+                      if x-min >= x-max:
+                        G.raise("render: x-min must be strictly less than x-max")
+                      else:
+                        G.nothing
+                      end
+                    | else => G.nothing
+                  end
+                | else => G.nothing
+              end
+          _ = cases (Option) self.y-min:
+                | some(y-min) =>
+                  cases (Option) self.y-max:
+                    | some(y-max) =>
+                      if y-min >= y-max:
+                        G.raise("render: y-min must be strictly less than y-max")
+                      else:
+                        G.nothing
+                      end
+                    | else => G.nothing
+                  end
+                | else => G.nothing
+              end
+          CL.histogram(obj.tab)
         end
       })
   end

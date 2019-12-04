@@ -59,6 +59,16 @@ function pieChartFromTable(table) {
 }
 
 /* @stopify flat */
+function histogram(tableFromRawArray) {
+    return {
+        "$brand": "chart",
+        "chartType": "Histogram",
+        "_headers": ["",""],
+        "_rows": tableFromRawArray
+    };
+}
+
+/* @stopify flat */
 function histogramFromTable(table) {
     return {
         "$brand": "chart",
@@ -103,6 +113,9 @@ return module.exports = {
     },
     "pie-chart-from-table": /* @stopify flat */ function (table) {
         return pieChartFromTable(table);
+    },
+    "histogram": /* @stopify flat */ function (tableFromRawArray) {
+        return histogram(tableFromRawArray);
     },
     "histogram-from-table": /* @stopify flat */ function (table) {
         return histogramFromTable(table);
