@@ -24,6 +24,8 @@ type TableIntern = RawArray<RawArray<Any>>
 
 posn = {(x :: Number, y :: Number): [G.raw-array: x, y]}
 
+unsafe-equal = {(x :: Number, y :: Number): (x <= y) and (y <= x)}
+
 fun map2(xs :: L.List<Any>, ys :: L.List<Any>):
   L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
 end
