@@ -279,6 +279,12 @@ data DataSeries:
     is-single: true,
   | bar-chart-series(obj :: BarChartSeries) with:
     is-single: true,
+  # TODO(tiffany): add box-plot-series in by adding a |
+  # box-plot-series(obj :: BoxChartSeries) with:
+  #  is-single: true,
+  #  horizontal: method(self, h):
+  #    box-plot-series(self.obj.{horizontal: h})
+  #  end
   | histogram-series(obj :: HistogramSeries) with:
     is-single: true,
     method bin-width(self, bin-width :: Number):
@@ -320,6 +326,21 @@ data ChartWindow:
       _ = check-chart-window(self.obj)
       self.obj.{interact: false}.render()
     end,
+  # TODO(tiffany): add box-plot-chart-window in with a |
+  # box-plot-chart-window(obj :: BoxChartWindowObject) with:
+  #  x-axis: method(self, x-axis :: String): box-plot-chart-window(self.obj.{x-axis: x-axis}) end,
+  #  y-axis: method(self, y-axis :: String): box-plot-chart-window(self.obj.{y-axis: y-axis}) end,
+  #  title: method(self, title :: String): box-plot-chart-window(self.obj.{title: title}) end,
+  #  width: method(self, width :: Number): box-plot-chart-window(self.obj.{width: width}) end,
+  #  height: method(self, height :: Number): box-plot-chart-window(self.obj.{height: height}) end,
+  #  display: method(self):
+  #    _ = check-chart-window(self.obj)
+  #    self.obj.{interact: true}.render()
+  #  end,
+  #  get-image: method(self):
+  #    _ = check-chart-window(self.obj)
+  #    self.obj.{interact: false}.render()
+  #  end,
   | bar-chart-window(obj :: BarChartWindowObject) with:
     x-axis: method(self, x-axis :: String): bar-chart-window(self.obj.{x-axis: x-axis}) end,
     y-axis: method(self, y-axis :: String): bar-chart-window(self.obj.{y-axis: y-axis}) end,
@@ -469,6 +490,13 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
           CL.bar-chart(obj.tab)
         end
       })
+    # TODO(tiffany): implement CL.box-plot
+    # box-plot-series(obj) =>
+    #  box-plot-chart-window(default-box-plot-chart-window-object.{
+    #    render: method(self):
+    #      CL.box-plot(self, obj)
+    #    end
+    #  })
     | histogram-series(obj) =>
       histogram-chart-window(default-histogram-chart-window-object.{
         render: method(self):
