@@ -447,6 +447,10 @@ fun scatter-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSe
   })
 end
 
+# TODO(tiffany): implement labeled-scatter-plot-from-list
+
+# TODO(tiffany): implement exploding-pie-chart-from-list
+
 fun pie-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> DataSeries block:
   doc: ```
        Consume labels, a list of string, and values, a list of numbers
@@ -488,6 +492,14 @@ fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   })
 end
 
+# TODO(tiffany): implement grouped-bar-chart-from-list
+
+# TODO(tiffany): implement box-plot-from-list
+
+# TODO(tiffany): implement labeled-box-plot-from-list
+
+# TODO(tiffany): implement freq-bar-chart-from-list
+
 fun histogram-from-list(values :: L.List<Number>) -> DataSeries block:
   doc: ```
        Consume a list of numbers and construct a histogram
@@ -498,6 +510,8 @@ fun histogram-from-list(values :: L.List<Number>) -> DataSeries block:
     tab: to-table2(L.map({(_): ''}, values), values),
   })
 end
+
+# TODO(tiffany): implement labeled-histogram-from-list
 
 ################################################################################
 # PLOTS
@@ -578,3 +592,17 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
 #  render-now = {(x): render-chart(x).get-image()}
 end
 
+
+# TODO(tiffany): implement inbound-x
+
+# TODO(tiffany): implement inbound-y
+
+# TODO(tiffany): implement inbound-xy
+
+# TODO(tiffany): implement dist
+
+# TODO(tiffany): implement nearest
+
+# TODO(tiffany): implement find-pt-on-edge
+
+# TODO(tiffany): implement line-plot-edge-cut
