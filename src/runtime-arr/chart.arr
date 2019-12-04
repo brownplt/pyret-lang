@@ -448,8 +448,8 @@ fun line-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSerie
   when L.length(xs) <> L.length(ys):
     G.raise('line-plot: xs and ys should have the same length')
   end
-  xs.each(check-num)
-  ys.each(check-num)
+  L.each(check-num, xs)
+  L.each(check-num, ys)
   line-plot-series(default-line-plot-series.{
     ps: L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
   })
@@ -459,8 +459,8 @@ fun scatter-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSe
   when L.length(xs) <> L.length(ys):
     G.raise('scatter-plot: xs and ys should have the same length')
   end
-  xs.each(check-num)
-  ys.each(check-num)
+  L.each(check-num, xs)
+  L.each(check-num, ys)
   scatter-plot-series(default-scatter-plot-series.{
     ps: L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
   })
@@ -483,8 +483,8 @@ fun pie-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   when label-length == 0:
     G.raise('pie-chart: need at least one data')
   end
-  values.each(check-num)
-  labels.each(check-string)
+  L.each(check-num, values)
+  L.each(check-string, labels)
   pie-chart-series(default-pie-chart-series.{
     tab: to-table2(labels, values)
   })
@@ -500,8 +500,8 @@ fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   when label-length <> value-length:
     G.raise('bar-chart: labels and values should have the same length')
   end
-  values.each(check-num)
-  labels.each(check-string)
+  L.each(check-num, values)
+  L.each(check-string, labels)
   bar-chart-series(default-bar-chart-series.{
     tab: to-table2(labels, values),
     legends: [G.raw-array: ''],
@@ -521,7 +521,7 @@ fun histogram-from-list(values :: L.List<Number>) -> DataSeries block:
   doc: ```
        Consume a list of numbers and construct a histogram
        ```
-  values.each(check-num)
+  L.each(check-num, values)
   histogram-series(default-histogram-series.{
     tab: to-table2(L.map({(_): ''}, values), values),
   })
