@@ -292,10 +292,10 @@ data DataSeries:
   | line-plot-series(obj :: LinePlotSeries) with:
     is-single: false,
     color: method(self, color :: IM.Color):
-      scatter-plot-series(self.obj.{color: O.some(color)})
+      line-plot-series(self.obj.{color: O.some(color)})
     end,
     legend: method(self, legend :: String):
-      scatter-plot-series(self.obj.{legend: legend})
+      line-plot-series(self.obj.{legend: legend})
     end,
   | scatter-plot-series(obj :: ScatterPlotSeries) with:
     is-single: false,
@@ -311,10 +311,10 @@ data DataSeries:
   | function-plot-series(obj :: FunctionPlotSeries) with:
     is-single: false,
     color: method(self, color :: IM.Color):
-      scatter-plot-series(self.obj.{color: O.some(color)})
+      function-plot-series(self.obj.{color: O.some(color)})
     end,
     legend: method(self, legend :: String):
-      scatter-plot-series(self.obj.{legend: legend})
+      function-plot-series(self.obj.{legend: legend})
     end,
   | pie-chart-series(obj :: PieChartSeries) with:
     is-single: true,
@@ -449,7 +449,7 @@ fun line-plot-from-list(xs :: L.List<Number>, ys :: L.List<Number>) -> DataSerie
   #xs.each(check-num)
   #ys.each(check-num)
   line-plot-series(default-line-plot-series.{
-    ps: map2({(x, y): [G.raw-array: x, y]}, xs, ys)
+    ps: L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
   })
 end
 
