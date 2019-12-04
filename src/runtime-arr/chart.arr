@@ -107,6 +107,16 @@ end
 # DEFAULT VALUES
 ################################################################################
 
+type BoxChartSeries = {
+  tab :: TableIntern,
+  height :: Number,
+  horizontal :: Boolean
+}
+
+default-box-plot-series = {
+  horizontal: false
+}
+
 type PieChartSeries = {
   tab :: TableIntern,
 }
@@ -161,6 +171,20 @@ default-chart-window-object :: ChartWindowObject = {
   width: 800,
   height: 600,
   render: method(self): G.raise('unimplemented') end,
+}
+
+type BoxChartWindowObject = {
+  title :: String,
+  width :: Number,
+  height :: Number,
+  x-axis :: String,
+  y-axis :: String,
+  render :: ( -> IM.Image),
+}
+
+default-box-plot-chart-window-object :: BoxChartWindowObject = default-chart-window-object.{
+  x-axis: '',
+  y-axis: '',
 }
 
 type PieChartWindowObject = {
