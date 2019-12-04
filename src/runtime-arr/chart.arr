@@ -144,6 +144,17 @@ default-histogram-series = {
   min-num-bins: O.none,
 }
 
+type LinePlotSeries = {
+  ps :: L.List<Posn>,
+  color :: Option<IM.Color>,
+  legend :: String,
+}
+
+default-line-plot-series = {
+  color: O.none,
+  legend: '',
+}
+
 type ScatterPlotSeries = {
   ps :: L.List<Posn>,
   color :: Option<IM.Color>,
@@ -155,6 +166,17 @@ default-scatter-plot-series = {
   color: O.none,
   legend: '',
   point-size: 7,
+}
+
+type FunctionPlotSeries = {
+  f :: PlottableFunction,
+  color :: Option<IM.Color>,
+  legend :: String,
+}
+
+default-function-plot-series = {
+  color: none,
+  legend: '',
 }
 
 ###########
