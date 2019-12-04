@@ -14,6 +14,7 @@ include from O: type Option end
 # TYPE SYNONYMS
 ################################################################################
 
+type PlottableFunction = (Number -> Number)
 type Posn = RawArray<Number>
 type TableIntern = RawArray<RawArray<Any>>
 
