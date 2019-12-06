@@ -43,6 +43,9 @@
             ],
             "remove-vocals": ["arrow", ["tany"],
                 ["local", "Sound"]
+            ],
+            "get-note": ["arrow", ["String"],
+                ["local", "Sound"]
             ]
         },
         "datatypes": {
