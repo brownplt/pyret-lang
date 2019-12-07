@@ -67,6 +67,9 @@
                     ["local", "Sound"]
                 ],
                 ["local", "Sound"]
+            ],
+            "get-note": ["arrow", ["String"],
+                ["local", "Sound"]
             ]
         },
         "datatypes": {

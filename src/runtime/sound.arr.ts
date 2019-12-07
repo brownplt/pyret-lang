@@ -435,6 +435,34 @@ function getTone(key: string): Sound {
     return getSoundFromAudioBuffer(myBuffer);
 }
 
+function getNote(key: string): Sound {
+    const REAL_TIME_FREQUENCY = toneMap[key]; 
+    console.log(REAL_TIME_FREQUENCY);
+    if(REAL_TIME_FREQUENCY==null) {
+        throw new Error("Given Octave doesn't exist! Please try a valid tone such as C8, A4 etc.");
+    }
+    const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
+
+    //@ts-ignore
+    let audioContext = AudioContext();
+    let myBuffer = audioContext.createBuffer(1, 33075, 44100);
+    let myArray = myBuffer.getChannelData(0);
+    for (let sampleNumber = 0 ; sampleNumber < 22050 ; sampleNumber++) {
+        myArray[sampleNumber] = generateSample(sampleNumber);
+    }
+
+    for (let sampleNumber = 22050 ; sampleNumber < 33075 ; sampleNumber++) {
+        myArray[sampleNumber] = 0.0;
+    }
+
+    function generateSample(sampleNumber) {
+        let sampleTime = sampleNumber / 44100;
+        let sampleAngle = sampleTime * ANGULAR_FREQUENCY;
+        return Math.sin(sampleAngle);
+    }
+
+    return getSoundFromAudioBuffer(myBuffer);
+}
 
 function getCosineWave(): Sound {
     const REAL_TIME_FREQUENCY = 440; 
@@ -514,5 +542,6 @@ module.exports = {
     "get-sine-wave": getSineWave,
     "get-cosine-wave": getCosineWave,
     "fade": fade,
-    "remove-vocals": removeVocals
+    "remove-vocals": removeVocals,
+    "get-note": getNote
 };
