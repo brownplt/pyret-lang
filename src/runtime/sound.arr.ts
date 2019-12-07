@@ -99,13 +99,61 @@ function getBufferFromURL(path: string): AudioBuffer {
 
     })
 }
+
 function getArrayFromSound(sound: Sound): number[][] {
     return sound['data-array'];
+}
+
+function getChannelDataFromSound(sound: Sound, channel: number): number[] {
+    return sound['data-array'][channel];
+}
+
+function checkDuration(data_array: number[][]): boolean {
+    var dur = data_array[0].length;
+    for (var i = 1; i < data_array.length; i++) {
+        if (data_array[i].length != dur) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function checkDataEntries(data_array: number[][]): boolean {
+    for (var i = 0; i < data_array.length; i++) {
+        for (var j = 0; j < data_array[i].length; j++) {
+            if (data_array[i][j]>1 || data_array[i][j]<-1) {
+                return false;
+            }
+        }    
+    }
+    return true;
+}
+
+function makeSingleChannelSound(sample_rate: number, data_array: number[]): Sound {
+    if (typeof data_array[0] != "number") {
+        throw new Error("Invalid data array! Use makeMultiChannelSound to create a multi-channel sound");
+    }
+    var arr = new Array(1);
+    arr[0] = data_array;
+    return makeSound(sample_rate, arr);
+}
+
+function makeMultiChannelSound(sample_rate: number, data_array: number[][]): Sound {
+    if (typeof data_array[0] === "number") {
+        throw new Error("Invalid data array! Use makeSingleChannelSound to create a single-channel sound");
+    }
+    return makeSound(sample_rate, data_array);
 }
 
 function makeSound(sample_rate: number, data_array: number[][]): Sound {
     if(data_array.length==0 || sample_rate==0)
         throw new Error("Parameters to sound are empty, hence - inavlid!");
+    if(sample_rate<3000 || sample_rate>384000)
+        throw new Error("Invalid sample rate! Choose a sample rate within the range [3000, 384000].");
+    if(!checkDuration(data_array))
+        throw new Error("Invalid data array! All channels in the data array should have the same length!");
+    if(!checkDataEntries(data_array))
+        throw new Error("Invalid data array! All entries in the data array should be within the range [-1, 1]!");
     var fixed_data = new Array(data_array.length);
     var fixed_sample_rate = jsnums.toFixnum(sample_rate);
     for (var channel = 0; channel < data_array.length; channel++) {
@@ -314,12 +362,23 @@ function shorten(sample: Sound, start: number, end: number): Sound {
     }
 }
 
-function denormalizeSound(audioBuffer: AudioBuffer): Sound {
+function denormalizeSound(sample: Sound): Sound {
+    //@ts-ignore
+    var audioCtx = AudioContext();
+    var myArrayBuffer = audioCtx.createBuffer(sample['data-array'].length, sample.duration, sample['sample-rate']);
+
+    for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
+        // This gives us the actual array that contains the data
+        var nowBuffering = myArrayBuffer.getChannelData(channel);
+        for (var i = 0; i < myArrayBuffer.length; i++) {
+            nowBuffering[i] = sample["data-array"][channel][i];
+        }
+    }
+    var audioBuffer =  getBufferFromURL
     if(audioBuffer.length==0) {
         throw new Error("Buffer is empty, hence - invalid!!");
     }
-    //@ts-ignore
-    var audioCtx = AudioContext();
+
     var convolver = audioCtx.createConvolver();
     
     convolver.normalize = false;
@@ -441,10 +500,10 @@ interface Sound {
 }
 
 module.exports = {
-    "get-buffer-from-url": getBufferFromURL,
     "get-array-from-sound": getArrayFromSound,
-    "get-sound-from-audio-buffer": getSoundFromAudioBuffer,
-    "make-sound": makeSound,
+    "get-channel-data-from-sound": getChannelDataFromSound,
+    "make-single-channel-sound": makeSingleChannelSound,
+    "make-multi-channel-sound": makeMultiChannelSound,
     "get-sound-from-url": getSoundFromURL,
     "overlay": overlay,
     "concat": concat,
