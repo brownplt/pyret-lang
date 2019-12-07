@@ -99,13 +99,61 @@ function getBufferFromURL(path: string): AudioBuffer {
 
     })
 }
+
 function getArrayFromSound(sound: Sound): number[][] {
     return sound['data-array'];
+}
+
+function getChannelDataFromSound(sound: Sound, channel: number): number[] {
+    return sound['data-array'][channel];
+}
+
+function checkDuration(data_array: number[][]): boolean {
+    var dur = data_array[0].length;
+    for (var i = 1; i < data_array.length; i++) {
+        if (data_array[i].length != dur) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function checkDataEntries(data_array: number[][]): boolean {
+    for (var i = 0; i < data_array.length; i++) {
+        for (var j = 0; j < data_array[i].length; j++) {
+            if (data_array[i][j]>1 || data_array[i][j]<-1) {
+                return false;
+            }
+        }    
+    }
+    return true;
+}
+
+function makeSingleChannelSound(sample_rate: number, data_array: number[]): Sound {
+    if (typeof data_array[0] != "number") {
+        throw new Error("Invalid data array! Use makeMultiChannelSound to create a multi-channel sound");
+    }
+    var arr = new Array(1);
+    arr[0] = data_array;
+    return makeSound(sample_rate, arr);
+}
+
+function makeMultiChannelSound(sample_rate: number, data_array: number[][]): Sound {
+    if (typeof data_array[0] === "number") {
+        throw new Error("Invalid data array! Use makeSingleChannelSound to create a single-channel sound");
+    }
+    return makeSound(sample_rate, data_array);
 }
 
 function makeSound(sample_rate: number, data_array: number[][]): Sound {
     if(data_array.length==0 || sample_rate==0)
         throw new Error("Parameters to sound are empty, hence - inavlid!");
+    if(sample_rate<3000 || sample_rate>384000)
+        throw new Error("Invalid sample rate! Choose a sample rate within the range [3000, 384000].");
+    if(!checkDuration(data_array))
+        throw new Error("Invalid data array! All channels in the data array should have the same length!");
+    if(!checkDataEntries(data_array))
+        throw new Error("Invalid data array! All entries in the data array should be within the range [-1, 1]!");
     var fixed_data = new Array(data_array.length);
     var fixed_sample_rate = jsnums.toFixnum(sample_rate);
     for (var channel = 0; channel < data_array.length; channel++) {
@@ -314,12 +362,23 @@ function shorten(sample: Sound, start: number, end: number): Sound {
     }
 }
 
-function denormalizeSound(audioBuffer: AudioBuffer): Sound {
+function denormalizeSound(sample: Sound): Sound {
+    //@ts-ignore
+    var audioCtx = AudioContext();
+    var myArrayBuffer = audioCtx.createBuffer(sample['data-array'].length, sample.duration, sample['sample-rate']);
+
+    for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
+        // This gives us the actual array that contains the data
+        var nowBuffering = myArrayBuffer.getChannelData(channel);
+        for (var i = 0; i < myArrayBuffer.length; i++) {
+            nowBuffering[i] = sample["data-array"][channel][i];
+        }
+    }
+    var audioBuffer =  getBufferFromURL
     if(audioBuffer.length==0) {
         throw new Error("Buffer is empty, hence - invalid!!");
     }
-    //@ts-ignore
-    var audioCtx = AudioContext();
+
     var convolver = audioCtx.createConvolver();
     
     convolver.normalize = false;
@@ -376,6 +435,34 @@ function getTone(key: string): Sound {
     return getSoundFromAudioBuffer(myBuffer);
 }
 
+function getNote(key: string): Sound {
+    const REAL_TIME_FREQUENCY = toneMap[key]; 
+    console.log(REAL_TIME_FREQUENCY);
+    if(REAL_TIME_FREQUENCY==null) {
+        throw new Error("Given Octave doesn't exist! Please try a valid tone such as C8, A4 etc.");
+    }
+    const ANGULAR_FREQUENCY = REAL_TIME_FREQUENCY * 2 * Math.PI;
+
+    //@ts-ignore
+    let audioContext = AudioContext();
+    let myBuffer = audioContext.createBuffer(1, 33075, 44100);
+    let myArray = myBuffer.getChannelData(0);
+    for (let sampleNumber = 0 ; sampleNumber < 22050 ; sampleNumber++) {
+        myArray[sampleNumber] = generateSample(sampleNumber);
+    }
+
+    for (let sampleNumber = 22050 ; sampleNumber < 33075 ; sampleNumber++) {
+        myArray[sampleNumber] = 0.0;
+    }
+
+    function generateSample(sampleNumber) {
+        let sampleTime = sampleNumber / 44100;
+        let sampleAngle = sampleTime * ANGULAR_FREQUENCY;
+        return Math.sin(sampleAngle);
+    }
+
+    return getSoundFromAudioBuffer(myBuffer);
+}
 
 function getCosineWave(): Sound {
     const REAL_TIME_FREQUENCY = 440; 
@@ -441,10 +528,10 @@ interface Sound {
 }
 
 module.exports = {
-    "get-buffer-from-url": getBufferFromURL,
     "get-array-from-sound": getArrayFromSound,
-    "get-sound-from-audio-buffer": getSoundFromAudioBuffer,
-    "make-sound": makeSound,
+    "get-channel-data-from-sound": getChannelDataFromSound,
+    "make-single-channel-sound": makeSingleChannelSound,
+    "make-multi-channel-sound": makeMultiChannelSound,
     "get-sound-from-url": getSoundFromURL,
     "overlay": overlay,
     "concat": concat,
@@ -455,5 +542,6 @@ module.exports = {
     "get-sine-wave": getSineWave,
     "get-cosine-wave": getCosineWave,
     "fade": fade,
-    "remove-vocals": removeVocals
+    "remove-vocals": removeVocals,
+    "get-note": getNote
 };

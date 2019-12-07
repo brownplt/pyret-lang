@@ -1,32 +1,52 @@
-{
+{   
+    "requires": [
+        { "import-type": "builtin", "name": "global" }
+
+            ],
     "provides": {
         "values": {
-            "get-buffer-from-url": ["arrow", ["String"], "tany"],
             "get-array-from-sound": ["arrow", [
-                ["local", "Sound"]
-            ], "tany"],
-            "get-sound-from-audio-buffer": ["arrow", ["Any"],
+                    ["local", "Sound"]
+                ],
+                ["RawArray", "Number"]
+            ],
+            "get-channel-data-from-sound": ["arrow", [
+                    ["local", "Sound"], "Number"
+                ],
+                ["RawArray", "Number"]
+            ],
+            "make-single-channel-sound": ["arrow", ["Number", ["RawArray", "Number"]],
                 ["local", "Sound"]
             ],
-            "make-sound": ["arrow", ["Any", "Any"],
+            "make-multi-channel-sound": ["arrow", ["Number", ["RawArray", ["RawArray", "Number"]]],
                 ["local", "Sound"]
             ],
             "get-sound-from-url": ["arrow", ["String"],
                 ["local", "Sound"]
             ],
-            "overlay": ["arrow", ["tany"],
+            "overlay": ["arrow", [
+                    ["RawArray", ["local", "Sound"]]
+                ],
                 ["local", "Sound"]
             ],
-            "concat": ["arrow", ["tany"],
+            "concat": ["arrow", [
+                   ["RawArray", ["local", "Sound"]]
+                ],
                 ["local", "Sound"]
             ],
-            "set-playback-speed": ["arrow", ["Any", "Number"],
+            "set-playback-speed": ["arrow", [
+                    ["local", "Sound"], "Number"
+                ],
                 ["local", "Sound"]
             ],
-            "shorten": ["arrow", ["Any", "Number", "Number"],
+            "shorten": ["arrow", [
+                    ["local", "Sound"], "Number", "Number"
+                ],
                 ["local", "Sound"]
             ],
-            "denormalize-sound": ["arrow", ["tany"],
+            "denormalize-sound": ["arrow", [
+                    ["local", "Sound"]
+                ],
                 ["local", "Sound"]
             ],
             "get-tone": ["arrow", ["String"],
@@ -38,10 +58,17 @@
             "get-cosine-wave": ["arrow", [],
                 ["local", "Sound"]
             ],
-            "fade": ["arrow", ["tany"],
+            "fade": ["arrow", [
+                    ["local", "Sound"]
+                ],
                 ["local", "Sound"]
             ],
-            "remove-vocals": ["arrow", ["tany"],
+            "remove-vocals": ["arrow", [
+                    ["local", "Sound"]
+                ],
+                ["local", "Sound"]
+            ],
+            "get-note": ["arrow", ["String"],
                 ["local", "Sound"]
             ]
         },
