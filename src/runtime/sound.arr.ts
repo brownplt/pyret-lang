@@ -109,6 +109,9 @@ function getArrayFromSound(sound: Sound): number[][] {
 }
 
 function getChannelDataFromSound(sound: Sound, channel: number): number[] {
+    if(channel < 0 || channel >= this.getNumChannels(sound)) {
+        throw new Error("channel index is out of bounds");
+    }
     return sound['data-array'][channel];
 }
 
@@ -120,6 +123,14 @@ function getSampleRate(sound: Sound): number {
     return sound['sample-rate'];
 }
 
+function getNumSamples(sound: Sound): number {
+    return sound['data-array'][0].length;
+}
+
+function getNumChannels(sound: Sound): number {
+    return sound['data-array'].length;
+}
+
 function isSound(thing) {
   if (typeof (thing.getSampleRate) !== 'function')
     return false;
@@ -128,6 +139,21 @@ function isSound(thing) {
   return true;
 }
 
+function soundsAreEqual(sound: Sound, sound2: Sound) : boolean {
+    if(!this.isSound(sound) || ! this.isSound(sound2)) return false;
+    if(this.getNumChannels(sound) !== this.getNumChannels(sound2)) return false;
+    if(this.getSampleRate(sound) !== this.getSampleRate(sound2)) return false;
+    if(Math.round(this.getDuration(sound)) !== Math.round(this.getDuration(sound2))) return false;
+    for (var i = 1; i < sound['data-array'].length; i++) {
+        if(sound['data-array'][i].length != sound2['data-array'][i].length) return false;
+        for(let j = 0; j < sound['data-array'][i].length; j++) {
+            if(sound['data-array'][i][j].toFixed(5) !== sound2['data-array'][i][j].toFixed(5) ) return false;
+        }
+    }
+    return true;
+    
+
+}
 function checkDuration(data_array: number[][]): boolean {
     var dur = data_array[0].length;
     for (var i = 1; i < data_array.length; i++) {
@@ -377,18 +403,12 @@ function concat(sample1: Sound, sample2: Sound): Sound {
     return concatList(arr);
 }
 
+function setSampleRate(sample: Sound, sampleRate: number) : Sound {
+    return makeSound(jsnums.toFixnum(sampleRate), sample['data-array']);
+}
+
 function setPlaybackSpeed(sample: Sound, rate: number): Sound {
-    var sample_rate = sample['sample-rate'];
-    var arr = sample['data-array'];
-    if(arr.length==0) {
-        throw new Error("Sound sample is empty, hence - invalid!!");
-    }
-    var rate_fixed = jsnums.toFixnum(rate);
-    if (rate_fixed <= 0) {
-        throw new Error("invalid rate!");
-    }
-    var new_sample_rate = sample_rate * rate_fixed;
-    return makeSound(new_sample_rate, arr);
+    return setSampleRate(sample, sample['sample-rate'] * jsnums.toFixnum(rate));
 }
 
 function cropByTime(sample: Sound, start: number, end: number): Sound {
@@ -611,10 +631,14 @@ interface Sound {
 }
 
 module.exports = {
-    "get-array-from-sound": getArrayFromSound,
-    "get-channel-data-from-sound": getChannelDataFromSound,
-    "get-duration": getDuration,
-    "get-sample-rate": getSampleRate,
+    "get-multi-channel-data-arrays": getArrayFromSound,
+    "get-channel-data-array": getChannelDataFromSound,
+    "sound-duration": getDuration,
+    "sound-sample-rate": getSampleRate,
+    "sound-num-channels": getNumChannels,
+    "sound-num-samples": getNumSamples,
+    "is-sound": isSound,
+    "sounds-equal": soundsAreEqual,
     "make-sound": makeSingleChannelSound,
     "make-multi-channel-sound": makeMultiChannelSound,
     "get-sound-from-url": getSoundFromURL,
@@ -622,7 +646,8 @@ module.exports = {
     "concat-list": concatList,
     "overlay": overlay,
     "concat": concat,
-    "set-playback-speed": setPlaybackSpeed,
+    "adjust-playback-speed": setPlaybackSpeed,
+    "set-sample-rate": setSampleRate,
     "crop-by-time": cropByTime,
     "crop-by-index": cropByIndex,
     "denormalize-sound": denormalizeSound,
@@ -630,6 +655,6 @@ module.exports = {
     "get-sine-wave": getSineWave,
     "get-cosine-wave": getCosineWave,
     "fade": fade,
-    "remove-vocals": removeVocals,
+    //"remove-vocals": removeVocals,
     "get-note": getNote
 };

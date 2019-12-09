@@ -5,22 +5,26 @@
             ],
     "provides": {
         "values": {
-            "get-array-from-sound": ["arrow", [
+            "get-multi-channel-data-arrays": ["arrow", [
                     ["local", "Sound"]
                 ],
-                ["RawArray", "Number"]
+                ["RawArray", ["RawArray", "Number"]]
             ],
-            "get-channel-data-from-sound": ["arrow", [
+            "get-channel-data-array": ["arrow", [
                     ["local", "Sound"], "Number"
                 ],
                 ["RawArray", "Number"]
             ],
-            "get-duration": ["arrow", 
+            "sound-duration": ["arrow", 
             [["local", "Sound"]], 
             "Number"],
-            "get-sample-rate": ["arrow", 
+            "sound-sample-rate": ["arrow", 
             [["local", "Sound"]], 
             "Number"],
+            "sound-num-channels": ["arrow", [["local", "Sound"]], "Number"],
+            "sound-num-samples": ["arrow", [["local", "Soudn"]], "Number"],
+            "sounds-equal": ["arrow", [["local", "Sound"], ["local", "Sound"]], "Boolean"],
+            "is-sound": ["arrow", [["local", "Sound"]], "Boolean"],
             "make-sound": ["arrow", ["Number", ["RawArray", "Number"]],
                 ["local", "Sound"]
             ],
@@ -50,7 +54,12 @@
                 ],
                 ["local", "Sound"]
             ],
-            "set-playback-speed": ["arrow", [
+            "adjust-playback-speed": ["arrow", [
+                    ["local", "Sound"], "Number"
+                ],
+                ["local", "Sound"]
+            ],
+            "set-sample-rate": ["arrow", [
                     ["local", "Sound"], "Number"
                 ],
                 ["local", "Sound"]
@@ -89,6 +98,7 @@
                 ],
                 ["local", "Sound"]
             ],
+            
             "get-note": ["arrow", ["String", "Number", "Number"],
                 ["local", "Sound"]
             ]

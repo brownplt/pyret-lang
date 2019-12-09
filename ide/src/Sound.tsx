@@ -442,7 +442,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
           <div className="DataContainer" style={{ color: "white", display: "flex", textAlign: "center" }}>
             <div className="Index" style={{ textAlign: "left", minWidth: "30%" }}>
-              <p>{"Hover Channel: " + (this.state.focusedChannel + 1)} </p>
+              <p>{"Hover Channel: " + (this.state.focusedChannel)} </p>
               <p>{"Hover Index: " + this.getHoverIndex()}</p>
               <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex(), this.state.focusedChannel)}</p>
             </div>
