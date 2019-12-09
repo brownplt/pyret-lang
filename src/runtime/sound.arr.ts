@@ -571,6 +571,8 @@ function fade(sound: Sound): Sound {
     }
     var new_array = new Array(data_array.length);
     for (var channel = 0; channel < data_array.length; channel++) {
+        var channel_data = data_array[channel];
+        new_array[channel] = new Array(channel_data.length);
         for(var i=0; i < data_array[channel].length; i++) {
             new_array[channel][i] = data_array[channel][i] * Math.exp(i*k);
         }

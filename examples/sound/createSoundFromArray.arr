@@ -3,11 +3,11 @@ import sound as S
 
 #Getting sound object from URL
 #Output is a widget through which sound can be played, paused or downloaded
-sound = S.getSoundFromURL('http://bbcsfx.acropolis.org.uk/assets/07075055.wav')
+sound = S.get-sound-from-url('http://bbcsfx.acropolis.org.uk/assets/07075055.wav')
 
 
 #Getting array from the above sound object
-r = S.getArrayFromSound(sound)
+r = S.get-array-from-sound(sound)
 
 #Using the array to create a new sound
 
@@ -21,7 +21,7 @@ duration = 3000
 channels = 2
 
 #Output is a widget through which sound can be played, paused or downloaded
-newSound = S.createSound(channels,sampleRate,duration,r) 
+newSound = S.make-sound(channels,sampleRate,duration,r) 
 
 
 
