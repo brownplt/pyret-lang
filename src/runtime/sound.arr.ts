@@ -344,11 +344,17 @@ function setPlaybackSpeed(sample: Sound, rate: number): Sound {
     return makeSound(new_sample_rate, arr);
 }
 
-function shorten(sample: Sound, start: number, end: number): Sound {
+function cropByTime(sample: Sound, start: number, end: number): Sound {
     var start_fixed = jsnums.toFixnum(start);
     var end_fixed = jsnums.toFixnum(end);
-    if (end_fixed > sample.duration || start_fixed > sample.duration || end_fixed < start_fixed) {
-        throw new Error("invalid start or end");
+    return cropByIndex(sample, Math.round(start_fixed*sample['sample-rate']), Math.round(end_fixed*sample['sample-rate']));
+}
+
+function cropByIndex(sample: Sound, start: number, end:number) {
+    var start_fixed = jsnums.toFixnum(start);
+    var end_fixed = jsnums.toFixnum(end);
+    if(start_fixed < 0 || end_fixed <=start_fixed || end_fixed > sample['data-array'][0].length) {
+        throw new Error("invalid crop range");
     }
     var sample_rate = sample['sample-rate'];
     var arr = sample['data-array'];
@@ -357,9 +363,9 @@ function shorten(sample: Sound, start: number, end: number): Sound {
     }
     var new_arr = new Array(arr.length);
     for (var channel = 0; channel < arr.length; channel++) {
-        new_arr[channel] = arr[channel].slice(Math.round(start_fixed*sample_rate), Math.round(end_fixed*sample_rate));
-        return makeSound(sample_rate, new_arr);
+        new_arr[channel] = arr[channel].slice(start_fixed, end_fixed); 
     }
+    return makeSound(sample_rate, new_arr);
 }
 
 function denormalizeSound(sample: Sound): Sound {
@@ -536,7 +542,8 @@ module.exports = {
     "overlay": overlay,
     "concat": concat,
     "set-playback-speed": setPlaybackSpeed,
-    "shorten": shorten,
+    "crop-by-time": cropByTime,
+    "crop-by-index": cropByIndex,
     "denormalize-sound": denormalizeSound,
     "get-tone": getTone,
     "get-sine-wave": getSineWave,

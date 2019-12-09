@@ -39,7 +39,12 @@
                 ],
                 ["local", "Sound"]
             ],
-            "shorten": ["arrow", [
+            "crop-by-time": ["arrow", [
+                    ["local", "Sound"], "Number", "Number"
+                ],
+                ["local", "Sound"]
+            ],
+            "crop-by-index": ["arrow", [
                     ["local", "Sound"], "Number", "Number"
                 ],
                 ["local", "Sound"]
