@@ -134,7 +134,7 @@ function checkDataEntries(data_array: number[][]): boolean {
 }
 
 function makeSingleChannelSound(sample_rate: number, data_array: number[]): Sound {
-    if (typeof data_array[0] != "number") {
+    if (typeof data_array[0] !== "number") {
         throw new Error("Invalid data array! Use makeMultiChannelSound to create a multi-channel sound");
     }
     var arr = new Array(1);
