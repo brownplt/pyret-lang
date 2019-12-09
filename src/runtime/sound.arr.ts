@@ -1,5 +1,6 @@
 const RUNTIME = require('./runtime.js');
 const jsnums = require("./js-numbers.js");
+
 const toneMap = {
     B8:7902.133,
     A8:7040,
@@ -66,6 +67,9 @@ const toneMap = {
     C0:16.3516
 };
     
+function getProxiedURL(path: string): string {
+    return "https://cors-anywhere.herokuapp.com/"+path;
+}
 
 function getBufferFromURL(path: string): AudioBuffer {
     //@ts-ignore
@@ -186,7 +190,7 @@ function getGDriveLink(path: string): string {
             console.log(id);
         }
     }
-    return "https://cors-anywhere.herokuapp.com/https://drive.google.com/uc?export=download&id="+id;
+    return "https://drive.google.com/uc?export=download&id="+id;
 }
 
 function getSoundFromURL(path: string): Sound {
@@ -196,6 +200,7 @@ function getSoundFromURL(path: string): Sound {
     if (path.includes("drive.google.com")) {
         path = getGDriveLink(path);
     }
+    path = getProxiedURL(path);
     console.log(path);
     var buffer = getBufferFromURL(path);
     var numChannel = buffer.numberOfChannels;
@@ -340,6 +345,9 @@ function setPlaybackSpeed(sample: Sound, rate: number): Sound {
         throw new Error("Sound sample is empty, hence - invalid!!");
     }
     var rate_fixed = jsnums.toFixnum(rate);
+    if (rate_fixed <= 0) {
+        throw new Error("invalid rate!");
+    }
     var new_sample_rate = sample_rate * rate_fixed;
     return makeSound(new_sample_rate, arr);
 }
@@ -348,6 +356,9 @@ function shorten(sample: Sound, start: number, end: number): Sound {
     var start_fixed = jsnums.toFixnum(start);
     var end_fixed = jsnums.toFixnum(end);
     if (end_fixed > sample.duration || start_fixed > sample.duration || end_fixed < start_fixed) {
+        throw new Error("invalid start or end");
+    }
+    if (end_fixed < 0 || start_fixed < 0) {
         throw new Error("invalid start or end");
     }
     var sample_rate = sample['sample-rate'];
@@ -411,6 +422,9 @@ function getSineWave(): Sound {
 
 //https://teropa.info/blog/2016/08/04/sine-waves.html
 function getTone(key: string): Sound {
+    if(key in toneMap == false) {
+        throw new Error("Invalid key!");
+    }
     const REAL_TIME_FREQUENCY = toneMap[key]; 
     console.log(REAL_TIME_FREQUENCY);
     if(REAL_TIME_FREQUENCY==null) {
@@ -436,6 +450,9 @@ function getTone(key: string): Sound {
 }
 
 function getNote(key: string): Sound {
+    if(key in toneMap == false) {
+        throw new Error("Invalid key!");
+    }
     const REAL_TIME_FREQUENCY = toneMap[key]; 
     console.log(REAL_TIME_FREQUENCY);
     if(REAL_TIME_FREQUENCY==null) {
