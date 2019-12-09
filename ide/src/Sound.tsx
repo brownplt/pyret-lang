@@ -65,6 +65,21 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     }
   }
 
+  componentWillReceiveProps(nextProps: SoundWidgetProps) {
+    this.setState({ //reset the state if the sound passed as props is new.
+      progress: 0,
+      isPlaying: false,
+      isMouseDown: false,
+      startBox: 0,
+      endBox: -1,
+      startIndex: 0,
+      endIndex: nextProps.sound['data-array'][0].length - 1,
+      focusDuration: nextProps.sound.duration,
+      hoverLoc: 0,
+      progressDisplay: 0,
+      focusedChannel: 0
+    });
+  }
   playSound = () => {
     const dataArray = this.props.sound['data-array'];
     const timePassed = this.state.progress / this.FPS;
@@ -427,7 +442,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
 
           <div className="DataContainer" style={{ color: "white", display: "flex", textAlign: "center" }}>
             <div className="Index" style={{ textAlign: "left", minWidth: "30%" }}>
-              <p>{"Hover Channel: " + (this.state.focusedChannel + 1)} </p>
+              <p>{"Hover Channel: " + (this.state.focusedChannel)} </p>
               <p>{"Hover Index: " + this.getHoverIndex()}</p>
               <p>{"Hover Amp:  " + this.getAmplitudeAt(this.getHoverIndex(), this.state.focusedChannel)}</p>
             </div>
@@ -623,7 +638,7 @@ class WaveForm extends React.Component<WaveFormProps, {}> {
       context.moveTo(topRedLine[i], 1);
       context.lineTo(topRedLine[i + 1], 1);
       context.strokeStyle = "#FF0000";
-      context.lineWidth = 2;
+      context.lineWidth = 1;
       context.stroke();
     }
     for (let i = 0; i < botRedLine.length; i = i + 2) {
@@ -631,7 +646,7 @@ class WaveForm extends React.Component<WaveFormProps, {}> {
       context.moveTo(botRedLine[i], this.props.height - 1);
       context.lineTo(botRedLine[i + 1], this.props.height - 1);
       context.strokeStyle = "#FF0000";
-      context.lineWidth = 2;
+      context.lineWidth = 1;
       context.stroke();
     }
   }
