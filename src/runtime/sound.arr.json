@@ -15,7 +15,13 @@
                 ],
                 ["RawArray", "Number"]
             ],
-            "make-single-channel-sound": ["arrow", ["Number", ["RawArray", "Number"]],
+            "get-duration": ["arrow", 
+            [["local", "Sound"]], 
+            "Number"],
+            "get-sample-rate": ["arrow", 
+            [["local", "Sound"]], 
+            "Number"],
+            "make-sound": ["arrow", ["Number", ["RawArray", "Number"]],
                 ["local", "Sound"]
             ],
             "make-multi-channel-sound": ["arrow", ["Number", ["RawArray", ["RawArray", "Number"]]],
@@ -24,13 +30,23 @@
             "get-sound-from-url": ["arrow", ["String"],
                 ["local", "Sound"]
             ],
-            "overlay": ["arrow", [
+            "overlay-list": ["arrow", [
                     ["RawArray", ["local", "Sound"]]
                 ],
                 ["local", "Sound"]
             ],
-            "concat": ["arrow", [
+            "overlay": ["arrow", [
+                    ["local", "Sound"], ["local", "Sound"]
+                ],
+                ["local", "Sound"]
+            ],
+            "concat-list": ["arrow", [
                    ["RawArray", ["local", "Sound"]]
+                ],
+                ["local", "Sound"]
+            ],
+            "concat": ["arrow", [
+                    ["local", "Sound"], ["local", "Sound"]
                 ],
                 ["local", "Sound"]
             ],
@@ -54,13 +70,13 @@
                 ],
                 ["local", "Sound"]
             ],
-            "get-tone": ["arrow", ["String"],
+            "get-tone": ["arrow", ["String", "Number"],
                 ["local", "Sound"]
             ],
-            "get-sine-wave": ["arrow", [],
+            "get-sine-wave": ["arrow", ["Number"],
                 ["local", "Sound"]
             ],
-            "get-cosine-wave": ["arrow", [],
+            "get-cosine-wave": ["arrow", ["Number"],
                 ["local", "Sound"]
             ],
             "fade": ["arrow", [
@@ -73,7 +89,7 @@
                 ],
                 ["local", "Sound"]
             ],
-            "get-note": ["arrow", ["String"],
+            "get-note": ["arrow", ["String", "Number", "Number"],
                 ["local", "Sound"]
             ]
         },
