@@ -89,7 +89,7 @@ function getBufferFromURL(path: string): AudioBuffer {
                 source.buffer = buffer;
                 source.connect(audioCtx.destination);
                 source.loop = true;
-                console.log(buffer.getChannelData(0));
+                // console.log(buffer.getChannelData(0));
                 restarter.resume(buffer);
             },
 
@@ -231,14 +231,14 @@ function makeSound(sample_rate: number, data_array: number[][]): Sound {
 
 function getGDriveLink(path: string): string {
     var splitted = path.split("/"); 
-    console.log(splitted);
+    // console.log(splitted);
     var id;
     for (var s in splitted) {
-        console.log(s);
+        // console.log(s);
         if (splitted[s].includes("id=")) {
-            console.log(splitted[s]);
+            // console.log(splitted[s]);
             id = splitted[s].split("id=")[1];
-            console.log(id);
+            // console.log(id);
         }
     }
     return "https://drive.google.com/uc?export=download&id="+id;
@@ -252,7 +252,7 @@ function getSoundFromURL(path: string): Sound {
         path = getGDriveLink(path);
     }
     path = getProxiedURL(path);
-    console.log(path);
+    // console.log(path);
     var buffer = getBufferFromURL(path);
     var numChannel = buffer.numberOfChannels;
     var data_array = new Array(numChannel);
@@ -276,7 +276,7 @@ function getSoundFromAudioBuffer(buffer: AudioBuffer): Sound {
         data_array[channel] = channel_array;
     }
     var sample_rate = buffer.sampleRate;
-    console.log(data_array);
+    // console.log("data array"+data_array);
     return makeSound(sample_rate, data_array);
 }
 
@@ -438,10 +438,10 @@ function cropByIndex(sample: Sound, start: number, end:number) {
     return makeSound(sample_rate, new_arr);
 }
 
-function denormalizeSound(sample: Sound): Sound {
+function normalizeSound(sample: Sound): Sound {
     //@ts-ignore
     var audioCtx = AudioContext();
-    var myArrayBuffer = audioCtx.createBuffer(sample['data-array'].length, sample.duration, sample['sample-rate']);
+    var myArrayBuffer = audioCtx.createBuffer(sample['data-array'].length, sample.duration*sample['sample-rate'], sample['sample-rate']);
 
     for (var channel = 0; channel < myArrayBuffer.numberOfChannels; channel++) {
         // This gives us the actual array that contains the data
@@ -449,16 +449,16 @@ function denormalizeSound(sample: Sound): Sound {
         for (var i = 0; i < myArrayBuffer.length; i++) {
             nowBuffering[i] = sample["data-array"][channel][i];
         }
+        // console.log("channel"+myArrayBuffer.getChannelData(channel));
     }
-    var audioBuffer =  getBufferFromURL
-    if(audioBuffer.length==0) {
+    if(myArrayBuffer.length==0) {
         throw new Error("Buffer is empty, hence - invalid!!");
     }
-
+    
     var convolver = audioCtx.createConvolver();
     
-    convolver.normalize = false;
-    convolver.buffer = audioBuffer;
+    convolver.normalize = true;
+    convolver.buffer = myArrayBuffer;
     
     return getSoundFromAudioBuffer(convolver.buffer);
 }
@@ -587,7 +587,7 @@ function getCosineWave(duration: number): Sound {
     return getSoundFromAudioBuffer(myBuffer);
 }
 
-function fade(sound: Sound): Sound {
+function fadeOut(sound: Sound): Sound {
     var sample_rate = sound['sample-rate'];
     var duration = sound['duration'];
     var k = Math.log(0.01)/(sample_rate*duration);
@@ -604,6 +604,105 @@ function fade(sound: Sound): Sound {
         }
     }
     return makeSound(sample_rate, new_array);
+}
+
+function fadeOutByIndex(sound: Sound, start:number): Sound {
+    var sample_rate = sound['sample-rate'];
+    var duration = sound['duration'];
+    var k = Math.log(0.01)/(sample_rate*duration-start);
+    var data_array = sound['data-array'];
+    var start_idx = Math.round(jsnums.toFixnum(start));
+    if(start_idx < 0) {
+        throw new Error("Start index must be nonn-negative!")
+    }
+    if(start_idx > sound["data-array"][0].length) {
+        throw new Error("Start index out of bound!")
+    }
+    if(data_array.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
+    var new_array = new Array(data_array.length);
+    for (var channel = 0; channel < data_array.length; channel++) {
+        var channel_data = data_array[channel];
+        new_array[channel] = new Array(channel_data.length);
+        for(var i=0; i < data_array[channel].length; i++) {
+            if (i < start_idx) {
+                new_array[channel][i] = data_array[channel][i];
+                }
+            else {
+                var j = i - start_idx;
+                new_array[channel][i] = data_array[channel][i] * Math.exp(j*k);
+            }
+        }
+    }
+    return makeSound(sample_rate, new_array);
+}
+
+function fadeOutByTime(sound: Sound, start:number): Sound {
+    var sample_rate = sound['sample-rate'];
+    var start_fixed = jsnums.toFixnum(start);
+    var start_index = Math.round(start_fixed * sample_rate);
+    return fadeOutByIndex(sound, start_index);
+}
+
+
+function fadeIn(sound: Sound): Sound {
+    var sample_rate = sound['sample-rate'];
+    var duration = sound['duration'];
+    var k = Math.log(0.01)/(sample_rate*duration);
+    var data_array = sound['data-array'];
+    if(data_array.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
+    var new_array = new Array(data_array.length);
+    for (var channel = 0; channel < data_array.length; channel++) {
+        var channel_data = data_array[channel];
+        new_array[channel] = new Array(channel_data.length);
+        for(var i=0; i < data_array[channel].length; i++) {
+            var j = data_array[channel].length - i - 1;
+            new_array[channel][i] = data_array[channel][i] * Math.exp(j*k);
+        }
+    }
+    return makeSound(sample_rate, new_array);
+}
+
+function fadeInByIndex(sound: Sound, end:number): Sound {
+    var sample_rate = sound['sample-rate'];
+    var duration = sound['duration'];
+    var k = Math.log(0.01)/(end);
+    var data_array = sound['data-array'];
+    var end_idx = Math.round(jsnums.toFixnum(end));
+    if(end_idx < 0) {
+        throw new Error("End index must be nonn-negative!")
+    }
+    if(end_idx > sound['data-array'][0].length) {
+        throw new Error("End index out of bound!")
+    }
+    if(data_array.length==0) {
+        throw new Error("Sound sample is empty, hence - invalid!!");
+    }
+    var new_array = new Array(data_array.length);
+    for (var channel = 0; channel < data_array.length; channel++) {
+        var channel_data = data_array[channel];
+        new_array[channel] = new Array(channel_data.length);
+        for(var i=0; i < data_array[channel].length; i++) {
+            if (i <= end_idx) {
+                var j = end_idx - i - 1;
+                new_array[channel][i] = data_array[channel][i] * Math.exp(j*k);
+                }
+            else {
+                new_array[channel][i] = data_array[channel][i];
+            }
+        }
+    }
+    return makeSound(sample_rate, new_array);
+}
+
+function fadeInByTime(sound: Sound, end:number): Sound {
+    var sample_rate = sound['sample-rate'];
+    var end_fixed = jsnums.toFixnum(end);
+    var end_index = Math.round(end_fixed * sample_rate);
+    return fadeOutByIndex(sound, end_index);
 }
 
 function removeVocals(sound: Sound): Sound {
@@ -652,11 +751,16 @@ module.exports = {
     "set-sample-rate": setSampleRate,
     "crop-by-time": cropByTime,
     "crop-by-index": cropByIndex,
-    "denormalize-sound": denormalizeSound,
+    "normalize-sound": normalizeSound,
     "get-tone": getTone,
     "get-sine-wave": getSineWave,
     "get-cosine-wave": getCosineWave,
-    "fade": fade,
+    "fade-out": fadeOut,
+    "fade-in": fadeIn,
+    "fade-out-by-time": fadeOutByTime,
+    "fade-in-by-time": fadeInByTime,
+    "fade-out-by-index": fadeOutByIndex,
+    "fade-in-by-index": fadeInByIndex,
     //"remove-vocals": removeVocals,
     "get-note": getNote
 };

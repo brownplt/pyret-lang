@@ -74,7 +74,7 @@
                 ],
                 ["local", "Sound"]
             ],
-            "denormalize-sound": ["arrow", [
+            "normalize-sound": ["arrow", [
                     ["local", "Sound"]
                 ],
                 ["local", "Sound"]
@@ -88,8 +88,33 @@
             "get-cosine-wave": ["arrow", ["Number"],
                 ["local", "Sound"]
             ],
-            "fade": ["arrow", [
+            "fade-in": ["arrow", [
                     ["local", "Sound"]
+                ],
+                ["local", "Sound"]
+            ],
+            "fade-out": ["arrow", [
+                    ["local", "Sound"]
+                ],
+                ["local", "Sound"]
+            ],
+            "fade-in-by-time": ["arrow", [
+                    ["local", "Sound"], "Number"
+                ],
+                ["local", "Sound"]
+            ],
+            "fade-out-by-time": ["arrow", [
+                    ["local", "Sound"], "Number"
+                ],
+                ["local", "Sound"]
+            ],
+            "fade-in-by-index": ["arrow", [
+                    ["local", "Sound"], "Number"
+                ],
+                ["local", "Sound"]
+            ],
+            "fade-out-by-index": ["arrow", [
+                    ["local", "Sound"], "Number"
                 ],
                 ["local", "Sound"]
             ],
