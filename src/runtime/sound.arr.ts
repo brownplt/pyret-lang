@@ -132,10 +132,14 @@ function getNumChannels(sound: Sound): number {
 }
 
 function isSound(thing) {
-  if (typeof (thing.getSampleRate) !== 'function')
-    return false;
-  if (typeof (thing.getDuration) !== 'function')
-    return false;
+  try {
+      var sample_rate = thing['sample-rate'];
+      var duration = thing['duration'];
+      var data_array = thing['data-array'];
+      var sound = makeMultiChannelSound(sample_rate, data_array);
+  } catch (error) {
+      return false;
+  }
   return true;
 }
 
