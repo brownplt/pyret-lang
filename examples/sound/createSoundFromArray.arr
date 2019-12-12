@@ -1,27 +1,13 @@
 import global as G
 import sound as S
 
-#Getting sound object from URL
-#Output is a widget through which sound can be played, paused or downloaded
-sound = S.get-sound-from-url('http://bbcsfx.acropolis.org.uk/assets/07075055.wav')
+# creating a single channel sound
+arr1 = [G.raw-array: 0.1, 0.3, -0.3, 0.1, -0.9, 0.2, 1.5] #this is a very short sound!
+soundA = S.make-sound(44100, arr1)
 
-
-#Getting array from the above sound object
-r = S.get-array-from-sound(sound)
-
-#Using the array to create a new sound
-
-#sample rate can be between 3000 to 30000
-sampleRate = 3000 
-
-#duration of sound in seconds
-duration = 3000 
-
-#number of channels
-channels = 2
-
-#Output is a widget through which sound can be played, paused or downloaded
-newSound = S.make-sound(channels,sampleRate,duration,r) 
+#creating a multi-channel sound
+arr2 = [G.raw-array: [G.raw-array: 0.1,0.5,0.1], [G.raw-array: -0.1, -0.5, -0.1]]
+soundB = S.make-multi-channel-sound(44100, arr2)
 
 
 

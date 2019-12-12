@@ -8,10 +8,12 @@ soundA = S.getSoundFromURL('http://bbcsfx.acropolis.org.uk/assets/07075055.wav')
 soundB = S.getSoundFromURL('http://bbcsfx.acropolis.org.uk/assets/07075065.wav')
 
 
-soundList = [L.list: soundA, soundB]
+#overlay multiple sounds in a list
+soundC = S.overlay-list([L.list: soundA, soundB, soundA])
 
-#Output is a widget through which overlayed sound can be played, paused or downloaded
-r = S.overlay(soundList)
+#overlay two sounds
+soundD = S.overlay(soundA, soundB)
+
 
 
 

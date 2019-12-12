@@ -22,7 +22,7 @@
             [["local", "Sound"]], 
             "Number"],
             "sound-num-channels": ["arrow", [["local", "Sound"]], "Number"],
-            "sound-num-samples": ["arrow", [["local", "Soudn"]], "Number"],
+            "sound-num-samples": ["arrow", [["local", "Sound"]], "Number"],
             "sounds-equal": ["arrow", [["local", "Sound"], ["local", "Sound"]], "Boolean"],
             "is-sound": ["arrow", ["Any"], "Boolean"],
             "make-sound": ["arrow", ["Number", ["RawArray", "Number"]],
