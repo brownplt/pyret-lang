@@ -105,18 +105,15 @@ function getBufferFromURL(path: string): AudioBuffer {
 }
 
 function getArrayFromSound(sound: Sound): number[][] {
-    let ret:number[][] = [];
-    for(let channel = 0; channel < sound['data-array'].length; channel++) {
-        ret.push([...sound['data-array'][channel]])
-    }
-    return ret;
+   return sound['data-array'];
+    
 }
 
 function getChannelDataFromSound(sound: Sound, channel: number): number[] {
-    if(channel < 0 || channel >= this.getNumChannels(sound)) {
+    if(channel < 0 || channel >= sound['data-array'].length) {
         throw new Error("channel index is out of bounds");
     }
-    return [...sound['data-array'][channel]]; //copy of the array
+    return sound['data-array'][channel];
 }
 
 function getDuration(sound: Sound): number {
