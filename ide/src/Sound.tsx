@@ -45,6 +45,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   audioCtx: any;
   MIN_ZOOM_BOX_WIDTH: number = 5; // minimum number of pixels in a valid zoom box selection
   MIN_FOCUSED_SAMPLES: number = 10; // minimum number of samples the focused sound can be zoomed to.
+  MAX_DURATION: number = 180;
   constructor(props: SoundWidgetProps) {
     super(props);
     this.waveformCanvas = React.createRef();
@@ -322,6 +323,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   shiftProgress = (right: boolean) => {
+    if(this.soundOutOfBounds()) return;
     let delta = right ? 1 : -1;
     let maxProgress = this.FPS * this.state.focusDuration;
     let newProg = (this.state.progressDisplay == -1 ? this.state.progress : this.state.progressDisplay) + delta * maxProgress * 0.01;
@@ -335,6 +337,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
   }
 
   setFocus = (start: number, end: number) => {
+    if(this.soundOutOfBounds()) return;
     if (end - start < this.MIN_FOCUSED_SAMPLES) {
       end = start + this.MIN_FOCUSED_SAMPLES;
     }
@@ -399,17 +402,21 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
     this.setState({ focusedChannel: channel })
   }
 
+  soundOutOfBounds = () => {
+    return this.props.sound.duration > this.MAX_DURATION;
+  }
   render() {
     return (
       <div aria-labelledby="tab_1" aria-label="Sound Widget" id="test" onKeyPress={this.handleKeyPress} tabIndex={0}>
         <div className="ButtonBar" style={{ background: "#3790cc", display: "flex", maxWidth: "210px", paddingLeft: "10px", paddingTop: "5px", paddingBottom: "5px" }}>
           <MyButton tabIndex={1} ariaLabel="reset" onClick={this.handleReset} icon={this.state.progress == 0 ? whiteResetIcon : blackResetIcon} isDisabled={this.state.progress === 0} />
           <MyButton tabIndex={2} ariaLabel={this.state.isPlaying ? "pause" : "play"} onClick={this.togglePlay} icon={this.getPlayIcon()} isDisabled={false} />
-          <MyButton tabIndex={4} ariaLabel="zoom in" onClick={this.handleKeyZoomIn} icon={this.zoomInDisabled() ? whiteZoomInIcon : blackZoomInIcon} isDisabled={this.zoomInDisabled()} />
-          <MyButton tabIndex={4} ariaLabel="zoom out" onClick={this.handleKeyZoomOut} icon={this.zoomOutDisabled() ? whiteZoomOutIcon : blackZoomOutIcon} isDisabled={this.zoomOutDisabled()} />
-          <MyButton tabIndex={5} ariaLabel="reset zoom" onClick={this.handleResetZoom} icon={this.zoomOutDisabled() ? whiteResetZoomIcon : blackResetZoomIcon} isDisabled={this.zoomOutDisabled()} />
+          <MyButton tabIndex={4} ariaLabel="zoom in" onClick={this.handleKeyZoomIn} icon={this.zoomInDisabled() || this.soundOutOfBounds() ? whiteZoomInIcon : blackZoomInIcon} isDisabled={this.zoomInDisabled() || this.soundOutOfBounds()} />
+          <MyButton tabIndex={4} ariaLabel="zoom out" onClick={this.handleKeyZoomOut} icon={this.zoomOutDisabled() || this.soundOutOfBounds() ? whiteZoomOutIcon : blackZoomOutIcon} isDisabled={this.zoomOutDisabled() || this.soundOutOfBounds()} />
+          <MyButton tabIndex={5} ariaLabel="reset zoom" onClick={this.handleResetZoom} icon={this.zoomOutDisabled() || this.soundOutOfBounds() ? whiteResetZoomIcon : blackResetZoomIcon} isDisabled={this.zoomOutDisabled() || this.soundOutOfBounds()} />
           <MyButton tabIndex={6} ariaLabel="download" onClick={this.handleDownload} icon={this.getDownloadIcon()} isDisabled={false} />
         </div>
+        {this.soundOutOfBounds() ? <p style={{ margin: "0 0 0 0", color: "black", minWidth: "33.3%" }}>{this.getTimeString()}</p> : 
         <div style={{ background: "#3790cc", paddingBottom: "20px", textAlign: "center" }}>
           {this.props.sound['data-array'].map((channel: number[], channelNumber: number) => {
             return <div>
@@ -438,7 +445,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
                 <p style={{ color: "white", margin: "0px 20px 0px 0px" }}>{"Progress Amp:  " + this.getAmplitudeAt(this.getCurrentIndex(), channelNumber)}</p>
               </div>
             </div>
-          })}
+          })} 
 
           <div className="DataContainer" style={{ color: "white", display: "flex", textAlign: "center" }}>
             <div className="Index" style={{ textAlign: "left", minWidth: "30%" }}>
@@ -452,7 +459,7 @@ export class SoundWidget extends React.Component<SoundWidgetProps, SoundWidgetSt
               <p>{"[" + this.state.startIndex + ", " + this.state.endIndex + "]"} </p>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
     )
