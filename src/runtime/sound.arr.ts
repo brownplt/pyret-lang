@@ -702,7 +702,7 @@ function fadeInByTime(sound: Sound, end:number): Sound {
     var sample_rate = sound['sample-rate'];
     var end_fixed = jsnums.toFixnum(end);
     var end_index = Math.round(end_fixed * sample_rate);
-    return fadeOutByIndex(sound, end_index);
+    return fadeInByIndex(sound, end_index);
 }
 
 function removeVocals(sound: Sound): Sound {
