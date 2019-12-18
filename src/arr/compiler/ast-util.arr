@@ -1188,8 +1188,21 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
+                { origin-name; data-export } = compile-env.resolve-datatype-by-uri-value(uri, name.toname())
+                origin = data-export.origin
+                corrected-origin = CS.bind-origin(
+                  as-name.l,
+                  origin.definition-bind-site,
+                  false, # NOTE(joe/ben): This seems like it ought to be false,
+                         # but writing a test where that matters isn't really
+                         # doable, so it could also be origin.new-definition
+                         # without changing behavior
+                  origin.uri-of-definition,
+                  origin.original-name)
+                dp.set(as-name.toname(), CS.d-alias(corrected-origin))
+
                 # TODO(joe): do remote lookup here to get a better location than SL.builtin for the origin
-                dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
+                # dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
                 dp.set(as-name.toname(), CS.d-type(CS.bind-origin(l, exp.l, true, uri, name), data-expr-to-datatype(exp)))

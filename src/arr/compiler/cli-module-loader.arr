@@ -174,7 +174,20 @@ fun get-loadable(basedir, l, max-dep-times) -> Option<Loadable>:
   saved-path = P.join(basedir, uri-to-path(locuri, l.locator.name()))
   if not(F.file-exists(saved-path + "-static.js")) or
      (F.file-times(saved-path + "-static.js").mtime < max-dep-times.get-value(locuri)):
-    none
+    if not(F.file-exists(saved-path + ".js")) or
+       (F.file-times(saved-path + ".js").mtime < max-dep-times.get-value(locuri)):
+       none
+    else:
+      raw-static = B.builtin-raw-locator(saved-path)
+      provs = CS.provides-from-raw-provides(locuri, {
+        uri: locuri,
+        modules: raw-array-to-list(raw-static.get-raw-module-provides()),
+        values: raw-array-to-list(raw-static.get-raw-value-provides()),
+        aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
+        datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
+      })
+      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + ".js"))))
+    end
   else:
     raw-static = B.builtin-raw-locator(saved-path + "-static")
     provs = CS.provides-from-raw-provides(locuri, {

@@ -169,7 +169,10 @@ data CompileEnvironment:
         my-modules :: StringDict<URI>
       )
 sharing:
-  method value-by-uri(self, uri :: String, name :: String):
+  method value-by-uri(self, uri :: String, name :: String) block:
+    when not(self.all-modules.has-key-now(uri)):
+      spy: keys: self.all-modules.keys-list-now(), uri, name end
+    end
     cases(Option) self.all-modules
       .get-value-now(uri)
       .provides.values
@@ -218,6 +221,12 @@ sharing:
             self.resolve-datatype-by-uri(origin.uri-of-definition, name)
           | d-type(origin, typ) => some(typ)
         end
+    end
+  end,
+  method resolve-datatype-by-uri-value(self, uri, name):
+    cases(Option) self.resolve-datatype-by-uri(uri, name):
+      | none => raise("Could not find datatype " + name + " on module " + uri)
+      | some(v) => v
     end
   end,
   method value-by-origin(self, origin):
