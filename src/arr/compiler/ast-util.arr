@@ -1144,7 +1144,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
             cases(A.NameSpec) v.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
+                origin-name = name.toname()
+                val-export = compile-env.value-by-uri-value(uri, origin-name)
                 origin = val-export.origin
                 corrected-origin = CS.bind-origin(
                   as-name.l,
@@ -1188,7 +1189,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                { origin-name; data-export } = compile-env.resolve-datatype-by-uri-value(uri, name.toname())
+                origin-name = name.toname()
+                data-export = compile-env.datatype-by-uri-value(uri, origin-name)
                 origin = data-export.origin
                 corrected-origin = CS.bind-origin(
                   as-name.l,
@@ -1199,7 +1201,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                          # without changing behavior
                   origin.uri-of-definition,
                   origin.original-name)
-                dp.set(as-name.toname(), CS.d-alias(corrected-origin))
+                dp.set(as-name.toname(), CS.d-alias(corrected-origin, origin-name))
 
                 # TODO(joe): do remote lookup here to get a better location than SL.builtin for the origin
                 # dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
@@ -1405,7 +1407,8 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
           val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
             cases(A.NameSpec) v.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                { origin-name; val-export } = compile-env.resolve-value-by-uri-value(uri, name.toname())
+                origin-name = name.toname()
+                val-export = compile-env.value-by-uri-value(uri, origin-name)
                 vp.set(as-name.toname(), CS.v-alias(val-export.origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 tc-typ = typed.info.types.get-value(name.key())
@@ -1436,8 +1439,10 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
               | s-remote-ref(l, shadow uri, name, as-name) =>
-                # TODO(joe): Get better location information for SL.builtin(uri)
-                dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
+                origin-name = name.toname()
+                data-export = compile-env.datatype-by-uri-value(uri, origin-name)
+                origin = data-export.origin
+                dp.set(as-name.toname(), CS.d-alias(origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
                 origin = CS.bind-origin(l, exp.l, true, uri, name)

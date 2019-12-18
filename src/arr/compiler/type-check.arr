@@ -219,7 +219,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
         de = mod.data-definitions.get-value(k)
         typ = cases(C.DataExport) de:
           | d-alias(origin, name) =>
-            compile-env.resolve-datatype-by-uri(origin.uri-of-definition, origin.original-name.toname())
+            compile-env.resolve-datatype-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
           | d-type(origin, typ) => typ
         end
         sd.set(k, typ)

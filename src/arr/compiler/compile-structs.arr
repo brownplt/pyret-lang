@@ -196,16 +196,7 @@ sharing:
       | some(v) => v
     end
   end,
-  method resolve-value-by-uri(self, uri :: String, name :: String):
-    self.value-by-uri(uri, name).and-then(lam(ve): {name; ve} end)
-  end,
-  method resolve-value-by-uri-value(self, uri :: String, name :: String):
-    cases(Option) self.resolve-value-by-uri(uri, name):
-      | none => raise("Could not find value " + name + " on module " + uri)
-      | some(v) => v
-    end
-  end,
-  method resolve-datatype-by-uri(self, uri, name):
+  method datatype-by-uri(self, uri, name):
     cases(Option) self.all-modules
       .get-value-now(uri)
       .provides.data-definitions
@@ -218,10 +209,24 @@ sharing:
             when uri == origin.uri-of-definition:
               raise("Self-referential alias for " + name + " in module " + uri)
             end
-            self.resolve-datatype-by-uri(origin.uri-of-definition, name)
-          | d-type(origin, typ) => some(typ)
+            self.datatype-by-uri(origin.uri-of-definition, name)
+          | d-type(origin, typ) => some(de)
         end
     end
+  end,
+  method datatype-by-uri-value(self, uri, name):
+    cases(Option) self.datatype-by-uri(uri, name):
+      | none => raise("Could not find datatype " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method resolve-datatype-by-uri(self, uri, name):
+    self.datatype-by-uri(uri, name).and-then(lam(dt):
+      cases(DataExport) dt block:
+        | d-type(origin, typ) => typ
+        | else => raise("resolve-datatype-by-uri got a d-alias: " + to-repr(dt))
+      end
+    end)
   end,
   method resolve-datatype-by-uri-value(self, uri, name):
     cases(Option) self.resolve-datatype-by-uri(uri, name):
@@ -234,12 +239,6 @@ sharing:
   end,
   method value-by-origin-value(self, origin):
     self.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
-  end,
-  method resolve-value-by-origin(self, origin):
-    self.resolve-value-by-uri(origin.uri-of-definition, origin.original-name.toname())
-  end,
-  method resolve-value-by-origin-value(self, origin):
-    self.resolve-value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
   end,
   method type-by-uri(self, uri, name):
     self.all-modules
