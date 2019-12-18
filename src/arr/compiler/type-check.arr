@@ -277,7 +277,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           else:
             thismod = context.modules.get-value(tbind.origin.uri-of-definition)
             cases(Option) thismod.aliases.get(tbind.origin.original-name.toname()):
-              | none => raise("Cannot find type binding for " + tbind.origin.original-name.toname())
+              | none => raise("Cannot find type binding for " + to-repr(tbind))
               | some(typ) => global-aliases.set(key, typ)
             end
           end

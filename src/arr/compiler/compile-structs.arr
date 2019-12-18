@@ -241,10 +241,40 @@ sharing:
     self.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
   end,
   method type-by-uri(self, uri, name):
-    self.all-modules
+    cases(Option) self.all-modules
       .get-value-now(uri)
-      .provides
-      .aliases.get(name)
+      .provides.aliases
+      .get(name):
+
+      | none => none
+      | some(typ) =>
+        cases(T.Type) typ:
+          | t-name(a-mod, a-id, l, inferred) =>
+            cases(T.NameOrigin) a-mod:
+              | module-uri(shadow uri) =>
+                provides-of-aliased = self.all-modules.get-value-now(uri).provides
+                cases(Option) provides-of-aliased.data-definitions.get(a-id.toname()):
+                  | some(remote-datatype) =>
+                    de = cases(DataExport) remote-datatype:
+                      | d-alias(origin, remote-name) =>
+                        cases(Option) self.datatype-by-uri(origin.uri-of-definition, remote-name):
+                          | some(de) => de
+                          | none => raise("A datatype alias in an export was not found: " + to-repr(remote-datatype))
+                        end
+                      | d-type(_, _) => remote-datatype
+                    end
+                    some(T.t-name(T.module-uri(de.origin.uri-of-definition), A.s-type-global(de.typ.name), l, inferred))
+                  | none =>
+                    cases(Option) provides-of-aliased.aliases.get(a-id.toname()):
+                      | some(_) => self.type-by-uri(uri, a-id.toname())
+                      | none => none
+                    end
+                end
+              | else => raise("A provided type alias referred to an unresolved module: " + to-repr(typ))
+            end
+          | else => some(typ)
+        end
+    end
   end,
   method type-by-uri-value(self, uri, name):
     cases(Option) self.type-by-uri(uri, name):
