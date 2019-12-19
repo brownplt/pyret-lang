@@ -664,7 +664,7 @@ fun path-uri(pre-path, path, compile-env, mod-env):
   maybe-uri-for-path(pre-path + path.take(path.length() - 1), compile-env, mod-env)
 end
 
-fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
+fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.CompileEnvironment):
   doc: ```
        Turn all s-names into s-atom or s-global
        Requires:
@@ -1402,8 +1402,17 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
             end
             visited-ann = ann.visit(self.{env: e, type-env: new-types.env})
+            full-typ = if is-empty(params):
+              U.ann-to-typ(visited-ann, thismodule-uri, initial-env)
+            else:
+              tbody = U.ann-to-typ(visited-ann, thismodule-uri, initial-env)
+              tparams = for map(id from new-types.atoms):
+                T.t-var(id, l2, false)
+              end
+              T.t-forall(tparams, tbody, l, false)
+            end
             atom-env = make-atom-for(name, false, acc.te, type-bindings,
-              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, C.tb-ann(visited-ann)))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, C.tb-typ(full-typ)))
             new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), visited-ann)
             { e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>

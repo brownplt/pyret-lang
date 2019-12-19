@@ -472,7 +472,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
       end
     | t == "tyvar" then:
       cases(Option<T.Type>) tyvar-env.get(typ.name):
-        | none => raise("Unbound type variable " + typ.name + " in provided type.")
+        | none => raise("Unbound type variable " + typ.name + " in provided type when processing " + uri)
         | some(tv) => T.t-var(tv, l, false)
       end
     | t == "forall" then:

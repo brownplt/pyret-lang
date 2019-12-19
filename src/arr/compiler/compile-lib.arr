@@ -366,7 +366,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           var scoped = RS.desugar-scope(imported, env)
           imported := nothing
           add-phase("Desugared scope", scoped)
-          var named-result = RS.resolve-names(scoped.ast, env)
+          var named-result = RS.resolve-names(scoped.ast, locator.uri(), env)
           var any-errors = scoped.errors + named-result.errors
           scoped := nothing
           if is-link(any-errors) block:
