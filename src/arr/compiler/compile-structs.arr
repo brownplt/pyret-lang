@@ -107,7 +107,6 @@ data TypeBinder:
 end
 
 data TypeBindTyp:
-  | tb-ann(ann :: A.Ann)
   | tb-typ(typ :: T.Type)
   | tb-none
 end
@@ -117,7 +116,7 @@ data TypeBind:
       origin :: BindOrigin,
       binder :: TypeBinder,
       atom :: A.Name,
-      ann-or-typ :: TypeBindTyp)
+      typ :: TypeBindTyp)
 end
 
 data ModuleBind:

@@ -1181,10 +1181,9 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 tp.set(as-name.toname(), remote-typ)
               | s-local-ref(l, name, as-name) =>
                 tb = resolved.env.type-bindings.get-value-now(name.key())
-                typ = cases(CS.TypeBindTyp) tb.ann-or-typ:
+                typ = cases(CS.TypeBindTyp) tb.typ:
                   | tb-none => T.t-top(l, false)
                   | tb-typ(typ) => typ
-                  | tb-ann(target-ann) => ann-to-typ(target-ann)
                 end
                 tp.set(as-name.toname(), typ)
             end
