@@ -106,12 +106,18 @@ data TypeBinder:
   | tb-type-var
 end
 
+data TypeBindTyp:
+  | tb-ann(ann :: A.Ann)
+  | tb-typ(typ :: T.Type)
+  | tb-none
+end
+
 data TypeBind:
   | type-bind(
       origin :: BindOrigin,
       binder :: TypeBinder,
       atom :: A.Name,
-      ann :: Option<A.Ann>)
+      ann-or-typ :: TypeBindTyp)
 end
 
 data ModuleBind:

@@ -751,6 +751,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           # times. If not, then they count as shadowing one another (e.g. two
           # values named list coming from two different libs)
           shadowing = b.origin.uri-of-definition == from-uri
+          when not(shadowing) and env.has-key(name.toname()):
+            spy: from-uri, b, name end
+          end
           make-atom-for(name, shadowing, env, bindings, make-binding)
       end
     else:
@@ -761,7 +764,6 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.values) block:
-      # TODO: Below we should use the origin-name from globals to find the right original value
       origin = initial.globals.values.get-value(name)
       uri-of-definition = origin.uri-of-definition
       val-info = initial.value-by-origin(origin)
@@ -789,7 +791,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     for SD.each-key(name from initial.globals.types) block:
       origin = initial.globals.types.get-value(name)
       type-info = initial.type-by-origin-value(origin)
-      b = C.type-bind(C.bo-global(some(origin), origin.uri-of-definition, origin.original-name), C.tb-type-let, names.s-type-global(name), none)
+      b = C.type-bind(C.bo-global(some(origin), origin.uri-of-definition, origin.original-name), C.tb-type-let, names.s-type-global(name), C.tb-typ(type-info))
       type-bindings.set-now(names.s-type-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -916,7 +918,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | else => { tname; mod-info.from-uri; t.l }
         end
         atom-env = make-import-atom-for(as-name, uri-of-typ, type-env, type-bindings,
-          C.type-bind(C.bo-module(as-name.l, loc-of-typ, uri-of-typ, orig-name), C.tb-type-let, _, none))
+          C.type-bind(C.bo-module(as-name.l, loc-of-typ, uri-of-typ, orig-name), C.tb-type-let, _, C.tb-typ(t)))
         atom-env.env
     end
   end
@@ -1396,16 +1398,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             shadow acc = { env: e, te: te }
             new-types = for fold(shadow acc from {env: acc.te, atoms: empty}, param from params):
               atom-env = make-atom-for(param, false, acc.env, type-bindings,
-                C.type-bind(C.bo-local(l2, param), C.tb-type-var, _, none))
+                C.type-bind(C.bo-local(l2, param), C.tb-type-var, _, C.tb-none))
               { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
             end
+            visited-ann = ann.visit(self.{env: e, type-env: new-types.env})
             atom-env = make-atom-for(name, false, acc.te, type-bindings,
-              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: e, type-env: new-types.env}))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, C.tb-ann(visited-ann)))
+            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), visited-ann)
             { e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
+            # TODO(joe): What should the TypeBindTyp be here?
             atom-env-t = make-atom-for(name, false, te, type-bindings,
-              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, none))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, C.tb-none))
             atom-env = make-atom-for(tname, false, e, bindings,
               C.value-bind(C.bo-local(l2, tname), C.vb-let, _, A.a-blank))
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
@@ -1491,7 +1495,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: env}
@@ -1505,7 +1509,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
@@ -1533,7 +1537,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(param.l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(param.l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
@@ -1556,7 +1560,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
