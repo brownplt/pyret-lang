@@ -53,4 +53,4 @@ import file("./tests/modules/test-provide-data-with-provide-star.arr") as _
 import file("./tests/modules/import-datatype-as-type-alias.arr") as _
 import file("./tests/modules/test-import-data-from-data-star.arr") as _
 import file("./tests/modules/test-provide-as-simple.arr") as _
-import file("./tests/modules/test-provide-type-as-simple.arr.arr") as _
+import file("./tests/modules/test-provide-type-as-simple.arr") as _
