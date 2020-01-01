@@ -1159,9 +1159,38 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 vp.set(as-name.toname(), CS.v-alias(corrected-origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 vb = resolved.env.bindings.get-value-now(name.key())
+                # NOTE(joe/ben): The as-name below has important semantic meaning.
+                # This makes it so if you provide the same definition with
+                # multiple names, each gets a separate identity from the POV of
+                # the module system.
+
+                # This is _different_ from (rename-out) in Racket, a closely
+                # related feature. In Racket,
+                #
+                # (provide x (rename-out (x y))) (define x 10)
+                #
+                # is different from
+                #
+                # (provide x y) (define x 10) (define y x)
+                #
+                # In Pyret,
+                # provide: x, x as y end
+                # x = 10
+                #
+                # is (from the module system's POV) the same as
+                #
+                # provide: x, y end
+                # x = 10
+                # y = x
+                corrected-origin = CS.bind-origin(
+                  as-name.l,
+                  vb.origin.definition-bind-site,
+                  vb.origin.new-definition,
+                  vb.origin.uri-of-definition,
+                  as-name)
                 provided-value = cases(CS.ValueBinder) vb.binder:
-                  | vb-var => CS.v-var(vb.origin, ann-to-typ(vb.ann))
-                  | else => CS.v-just-type(vb.origin, ann-to-typ(vb.ann))
+                  | vb-var => CS.v-var(corrected-origin, ann-to-typ(vb.ann))
+                  | else => CS.v-just-type(corrected-origin, ann-to-typ(vb.ann))
                 end
                 vp.set(as-name.toname(), provided-value)
             end
@@ -1416,9 +1445,15 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
                 vp.set(as-name.toname(), CS.v-alias(val-export.origin, origin-name))
               | s-local-ref(l, name, as-name) =>
                 tc-typ = typed.info.types.get-value(name.key())
-                val-bind = resolved.env.bindings.get-value-now(name.key())
+                vb = resolved.env.bindings.get-value-now(name.key())
+                corrected-origin = CS.bind-origin(
+                  as-name.l,
+                  vb.origin.definition-bind-site,
+                  vb.origin.new-definition,
+                  vb.origin.uri-of-definition,
+                  as-name)
                 # TODO(joe): Still have v-var questions here
-                vp.set(as-name.toname(), CS.v-just-type(val-bind.origin, c(tc-typ)))
+                vp.set(as-name.toname(), CS.v-just-type(corrected-origin, c(tc-typ)))
             end
           end
 
