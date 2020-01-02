@@ -5527,7 +5527,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'raw-array-sort-nums': makeFunction(raw_array_sort_nums,"raw-array-sort-nums"),
       'get-value': makeFunction(getValue, "get-value"),
-      'list-to-raw-array': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'has-field': makeFunction(hasField, "has-field"),
 
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),

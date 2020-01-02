@@ -42,7 +42,6 @@
         "raw-array-from-list": ["forall", ["a"], ["arrow", [["List", "tva"]], ["RawArray", "tva"]]],
         "raw-array-join-str": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "String"]],
         "raw-array-sort-nums" : ["arrow", [["RawArray", "Number"], "Boolean"], ["RawArray", "Number"]],
-        "list-to-raw-array": ["forall", ["a"], ["arrow", [["List", "tva"]], ["RawArray", "tva"]]],
         "raw-list-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], ["List", "tva"]], ["List", "tvb"]]],
         "raw-list-filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], ["List", "tva"]], ["List", "tva"]]],
         "raw-list-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", ["List", "tva"]], "tvb"]],
