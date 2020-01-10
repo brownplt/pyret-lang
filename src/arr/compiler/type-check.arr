@@ -2593,9 +2593,9 @@ fun ignore-checker(l :: Loc, binds :: List<A.LetBind>, body :: Expr, blocky, con
     binding = binds.get(0)
     cases(A.Name) binding.b.id:
       | s-atom(base, _) =>
-        if string-length(base) >= 19:
-          name = string-substring(base, 0, 19)
-          if name == "result-after-checks":
+        if string-length(base) >= 20:
+          name = string-substring(base, 0, 20)
+          if name == "$result-after-checks":
             cases(Expr) body:
               | s-block(_, stmts) =>
                 maybe-module = stmts.last()
