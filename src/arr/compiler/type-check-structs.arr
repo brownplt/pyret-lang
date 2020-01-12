@@ -282,11 +282,6 @@ sharing:
   end,
   method generalize(self, typ :: Type) -> Type:
     fun collect-vars(shadow typ, var-mapping :: StringDict<Type>) -> {Type; StringDict<Type>}:
-      typ-str = typ.to-string()
-      spy "collect-vars(shadow typ, var-mapping :: StringDict<Type>)":
-        typ-str,
-        var-mapping
-      end
       cases(Type) typ:
         | t-name(_, _, _, _) =>
           {typ; var-mapping}
@@ -347,7 +342,6 @@ sharing:
       end
     end
     {new-typ; vars-mapping} = collect-vars(typ, [string-dict: ])
-    spy "VARS-MAPPING": vars-mapping end
     vars = vars-mapping.map-keys(lam(key): vars-mapping.get-value(key) end)
     if is-empty(vars): typ else: t-forall(vars, new-typ, typ.l, false) end
   end
@@ -1405,19 +1399,7 @@ data TypingResult:
       typing-result(self.ast, f(self.typ), self.out-context)
     end,
     method solve-bind(self) -> TypingResult:
-      self-ast-str = self.ast.tosource()
-      self-typ = self.typ.to-string()
-      self-out-context = self.out-context
-      spy "solve-bind(self)":
-        self-ast-str,
-        self-typ,
-        self-out-context
-      end
       self.out-context.solve-level().typing-bind(lam(solution, context):
-          spy "Inside solve-bind, lam(solution, context)":
-            solution,
-            context
-          end
         shadow context = context.substitute-in-binds(solution)
 
         shadow context = context.substitute-in-misc(solution)
