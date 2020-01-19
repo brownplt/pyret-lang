@@ -1727,9 +1727,7 @@ data RuntimeError:
         # TODO: something clever for definitions with zero parameters
         cases(Any) ast:
           | s-op(_,_,_,l,r) =>
-            {[ED.locs: l, r]
-              .filter(is-underscore)
-              .map(_.id.l);
+            {[ED.locs: l, r].filter(is-underscore).map(_.l);
               self.fun-def-loc}
           | s-app(_, _, args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
           | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
@@ -1740,6 +1738,7 @@ data RuntimeError:
           | s-extend(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
           | s-update(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
           | s-get-bang(_, obj, _) => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-for(l, _fun, args, _, b, _) => {args.map(_.l); l.upto(b.l)}
         end
       end
 
