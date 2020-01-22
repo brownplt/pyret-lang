@@ -151,6 +151,16 @@ sharing:
   end
 end
 
+fun add-when-existential(
+    maybe-existential :: Type,
+    existentials :: Set<Type % (is-t-existential)>) -> Set<Type % (is-t-existential)>:
+  if is-t-existential(maybe-existential):
+    existentials.add(maybe-existential)
+  else:
+    existentials
+  end
+end
+
 data Type:
   | t-name(module-name :: NameOrigin, id :: Name, l :: Loc, inferred :: Boolean)
   | t-arrow(args :: List<Type>, ret :: Type, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
@@ -168,32 +178,40 @@ sharing:
   method substitute(self, new-type :: Type, type-var :: Type):
     cases(Type) self:
       | t-name(_, _, _, _) => self
-      | t-arrow(args, ret, l, inferred) =>
+      | t-arrow(args, ret, l, inferred, existentials) =>
         new-args = args.map(_.substitute(new-type, type-var))
         new-ret = ret.substitute(new-type, type-var)
-        t-arrow(new-args, new-ret, l, inferred)
-      | t-app(onto, args, l, inferred) =>
+        new-existentials = add-when-existential(new-type, existentials)
+        t-arrow(new-args, new-ret, l, inferred, new-existentials)
+      | t-app(onto, args, l, inferred, existentials) =>
         new-onto = onto.substitute(new-type, type-var)
         new-args = args.map(_.substitute(new-type, type-var))
-        t-app(new-onto, new-args, l, inferred)
+        new-existentials = add-when-existential(new-type, existentials)
+        t-app(new-onto, new-args, l, inferred, new-existentials)
       | t-top(_, _) => self
       | t-bot(_, _) => self
-      | t-record(fields, l, inferred) =>
+      | t-record(fields, l, inferred, existentials) =>
         new-fields = type-member-map(fields, {(_, field-type): field-type.substitute(new-type, type-var)})
-        t-record(new-fields, l, inferred)
-      | t-tuple(elts, l, inferred) =>
-        t-tuple(elts.map(_.substitute(new-type, type-var)), l, inferred)
-      | t-forall(introduces, onto, l, inferred) =>
+        new-existentials = add-when-existential(new-type, existentials)
+        t-record(new-fields, l, inferred, new-existentials)
+      | t-tuple(elts, l, inferred, existentials) =>
+        new-existentials = add-when-existential(new-type, existentials)
+        t-tuple(elts.map(_.substitute(new-type, type-var)), l, inferred, new-existentials)
+      | t-forall(introduces, onto, l, inferred, existentials) =>
         # doesn't need to be capture avoiding thanks to resolve-names
+        new-existentials = add-when-existential(new-type, existentials)
         new-onto = onto.substitute(new-type, type-var)
-        t-forall(introduces, new-onto, l, inferred)
-      | t-ref(typ, l, inferred) =>
-        t-ref(typ.substitute(new-type, type-var), l, inferred)
-      | t-data-refinement(data-type, variant-name, l, inferred) =>
+        t-forall(introduces, new-onto, l, inferred, new-existentials)
+      | t-ref(typ, l, inferred, existentials) =>
+        new-existentials = add-when-existential(new-type, existentials)
+        t-ref(typ.substitute(new-type, type-var), l, inferred, new-existentials)
+      | t-data-refinement(data-type, variant-name, l, inferred, existentials) =>
+        new-existentials = add-when-existential(new-type, existentials)
         t-data-refinement(data-type.substitute(new-type, type-var),
                           variant-name,
                           l,
-                          inferred)
+                          inferred,
+                          new-existentials)
       | t-var(id, l, _) =>
         cases(Type) type-var:
           | t-var(var-id, _, _) =>
@@ -228,23 +246,23 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id, _, _) =>
         empty-list-set
-      | t-arrow(args, ret, _, _) =>
+      | t-arrow(args, ret, _, _, _) =>
         args.foldl(lam(arg, free): free.union(arg.free-variables()) end, ret.free-variables())
-      | t-app(onto, args, _, _) =>
+      | t-app(onto, args, _, _, _) =>
         args.foldl(lam(arg, free): free.union(arg.free-variables()) end, onto.free-variables())
       | t-top(_, _) =>
         empty-list-set
       | t-bot(_, _) =>
         empty-list-set
-      | t-record(fields, _, _) =>
+      | t-record(fields, _, _, _) =>
         fields.fold-keys(lam(key, free): free.union(fields.get-value(key).free-variables()) end, empty-list-set)
-      | t-tuple(elts, _, _) =>
+      | t-tuple(elts, _, _, _) =>
         elts.foldl(lam(elt, free): free.union(elt.free-variables()) end, empty-list-set)
-      | t-forall(_, onto, _, _) =>
+      | t-forall(_, onto, _, _, _) =>
         onto.free-variables()
-      | t-ref(typ, _, _) =>
+      | t-ref(typ, _, _, _) =>
         typ.free-variables()
-      | t-data-refinement(data-type, _, _, _) =>
+      | t-data-refinement(data-type, _, _, _, _) =>
         data-type.free-variables()
       | t-var(a-id, _, _) =>
         empty-list-set
@@ -266,16 +284,16 @@ sharing:
         true
       | t-bot(_, _) =>
         true
-      | t-record(fields, _, _) =>
+      | t-record(fields, _, _, _) =>
         sd-all(lam(key): fields.get-value(key).has-variable-free(var-type) end, fields)
-      | t-tuple(elts, _, _) =>
+      | t-tuple(elts, _, _, _) =>
         all(_.has-variable-free(var-type), elts)
-      | t-forall(_, onto, _, _) =>
+      | t-forall(_, onto, _, _, _) =>
         # TODO(MATT): can we really ignore the introduces?
         onto.has-variable-free(var-type)
-      | t-ref(typ, _, _) =>
+      | t-ref(typ, _, _, _) =>
         typ.has-variable-free(var-type)
-      | t-data-refinement(data-type, _, _, _) =>
+      | t-data-refinement(data-type, _, _, _, _) =>
         data-type.has-variable-free(var-type)
       | t-var(a-id, _, _) =>
         cases(Type) var-type:
@@ -297,30 +315,30 @@ sharing:
           | module-uri(m) => m + "." + id.key()
           | dependency(_) => dep-error(module-name)
         end
-      | t-arrow(args, ret, _, _) =>
+      | t-arrow(args, ret, _, _, _) =>
         "("
           + args.map(_.key()).join-str(", ")
           + " -> " + ret.key() + ")"
-      | t-app(onto, args, _, _) =>
+      | t-app(onto, args, _, _, _) =>
         onto.key() + "<" + args.map(_.key()).join-str(", ") + ">"
       | t-top(_, _) =>
         "Any"
       | t-bot(_, _) =>
         "Bot"
-      | t-record(fields, _, _) =>
+      | t-record(fields, _, _, _) =>
         "{" + fields.map-keys(lam(key): key + " :: " + fields.get-value(key).key() end).join-str(", ") + "}"
-      | t-tuple(elts, _, _) =>
+      | t-tuple(elts, _, _, _) =>
         "{"
           + for map(elt from elts):
               elt.key()
             end.join-str("; ")
           + "}"
-      | t-forall(introduces, onto, l, _) =>
+      | t-forall(introduces, onto, l, _, _) =>
         "<" + introduces.map(_.key()).join-str(", ") + ">"
           + onto.key()
-      | t-ref(typ, _, _) =>
+      | t-ref(typ, _, _, _) =>
         "ref " + typ.key()
-      | t-data-refinement(data-type, variant-name, l, _) =>
+      | t-data-refinement(data-type, variant-name, l, _, _) =>
         "("
           + data-type.key()
           + " %is-" + variant-name
@@ -335,24 +353,24 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id, loc, _) =>
         t-name(module-name, id, loc, inferred)
-      | t-arrow(args, ret, loc, _) =>
-        t-arrow(args, ret, loc, inferred)
-      | t-app(onto, args, loc, _) =>
-        t-app(onto, args, loc, inferred)
+      | t-arrow(args, ret, loc, _, existentials) =>
+        t-arrow(args, ret, loc, inferred, existentials)
+      | t-app(onto, args, loc, _, existentials) =>
+        t-app(onto, args, loc, inferred, existentials)
       | t-top(loc, _) =>
         t-top(loc, inferred)
       | t-bot(loc, _) =>
         t-bot(loc, inferred)
-      | t-record(fields, loc, _) =>
-        t-record(fields, loc, inferred)
-      | t-tuple(elts, loc, _) =>
-        t-tuple(elts, loc, inferred)
-      | t-forall(introduces, onto, loc, _) =>
-        t-forall(introduces, onto, loc, inferred)
-      | t-ref(typ, loc, _) =>
-        t-ref(typ, loc, inferred)
-      | t-data-refinement(data-type, variant-name, loc, _) =>
-        t-data-refinement(data-type, variant-name, loc, inferred)
+      | t-record(fields, loc, _, existentials) =>
+        t-record(fields, loc, inferred, existentials)
+      | t-tuple(elts, loc, _, existentials) =>
+        t-tuple(elts, loc, inferred, existentials)
+      | t-forall(introduces, onto, loc, _, existentials) =>
+        t-forall(introduces, onto, loc, inferred, existentials)
+      | t-ref(typ, loc, _, existentials) =>
+        t-ref(typ, loc, inferred, existentials)
+      | t-data-refinement(data-type, variant-name, loc, _, existentials) =>
+        t-data-refinement(data-type, variant-name, loc, inferred, existentials)
       | t-var(id, loc, _) =>
         t-var(id, loc, inferred)
       | t-existential(id, loc, _) =>
@@ -364,24 +382,24 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id, _, inferred) =>
         t-name(module-name, id, loc, inferred)
-      | t-arrow(args, ret, _, inferred) =>
-        t-arrow(args.map(sl), sl(ret), loc, inferred)
-      | t-app(onto, args, _, inferred) =>
-        t-app(sl(onto), args.map(sl), loc, inferred)
+      | t-arrow(args, ret, _, inferred, existentials) =>
+        t-arrow(args.map(sl), sl(ret), loc, inferred, existentials)
+      | t-app(onto, args, _, inferred, existentials) =>
+        t-app(sl(onto), args.map(sl), loc, inferred, existentials)
       | t-top(_, inferred) =>
         t-top(loc, inferred)
       | t-bot(_, inferred) =>
         t-bot(loc, inferred)
-      | t-record(fields, _, inferred) =>
-        t-record(type-member-map(fields, {(_, field-type): sl(field-type)}), loc, inferred)
-      | t-tuple(elts, _, inferred) =>
-        t-tuple(elts.map(sl), loc, inferred)
-      | t-forall(introduces, onto, _, inferred) =>
-        t-forall(introduces.map(sl), sl(onto), loc, inferred)
-      | t-ref(typ, _, inferred) =>
-        t-ref(sl(typ), loc, inferred)
-      | t-data-refinement(data-type, variant-name, _, inferred) =>
-        t-data-refinement(sl(data-type), variant-name, loc, inferred)
+      | t-record(fields, _, inferred, existentials) =>
+        t-record(type-member-map(fields, {(_, field-type): sl(field-type)}), loc, inferred, existentials)
+      | t-tuple(elts, _, inferred, existentials) =>
+        t-tuple(elts.map(sl), loc, inferred, existentials)
+      | t-forall(introduces, onto, _, inferred, existentials) =>
+        t-forall(introduces.map(sl), sl(onto), loc, inferred, existentials)
+      | t-ref(typ, _, inferred, existentials) =>
+        t-ref(sl(typ), loc, inferred, existentials)
+      | t-data-refinement(data-type, variant-name, _, inferred, existentials) =>
+        t-data-refinement(sl(data-type), variant-name, loc, inferred, existentials)
       | t-var(id, _, inferred) =>
         t-var(id, loc, inferred)
       | t-existential(id, _, inferred) =>
@@ -400,9 +418,9 @@ sharing:
             end
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-arrow(a-args, a-ret, _, _) =>
+      | t-arrow(a-args, a-ret, _, _, _) =>
         cases(Type) other:
-          | t-arrow(b-args, b-ret, _, _) =>
+          | t-arrow(b-args, b-ret, _, _, _) =>
             ask:
               | not(a-args == b-args) then: E.NotEqual("Args", self, other)
               | not(a-ret == b-ret) then: E.NotEqual("Return types", self, other)
@@ -410,9 +428,9 @@ sharing:
             end
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-app(a-onto, a-args, _, _) =>
+      | t-app(a-onto, a-args, _, _, _) =>
         cases(Type) other:
-          | t-app(b-onto, b-args, _, _) =>
+          | t-app(b-onto, b-args, _, _, _) =>
             ask:
               | not(a-onto == b-onto) then: E.NotEqual("Ontos", self, other)
               | not(a-args == b-args) then: E.NotEqual("Args", self, other)
@@ -430,27 +448,27 @@ sharing:
           | t-bot(_, _) => E.Equal
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-record(a-fields, _, _) =>
+      | t-record(a-fields, _, _, _) =>
         cases(Type) other:
-          | t-record(b-fields, _, _) =>
+          | t-record(b-fields, _, _, _) =>
             ask:
               | not(a-fields == b-fields) then: E.NotEqual("Fields", self, other)
               | otherwise: E.Equal
             end
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-tuple(a-elts, _, _) =>
+      | t-tuple(a-elts, _, _, _) =>
         cases(Type) other:
-          | t-tuple(b-elts, _, _) =>
+          | t-tuple(b-elts, _, _, _) =>
             ask:
               | not(a-elts == b-elts) then: E.NotEqual("Elements", self, other)
               | otherwise: E.Equal
             end
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-forall(a-introduces, a-onto, _, _) =>
+      | t-forall(a-introduces, a-onto, _, _, _) =>
         cases(Type) other:
-          | t-forall(b-introduces, b-onto, _, _) =>
+          | t-forall(b-introduces, b-onto, _, _, _) =>
             if (a-introduces.length() == b-introduces.length()):
               shadow b-onto = foldr2(lam(shadow b-onto, a-var, b-var):
                 b-onto.substitute(a-var, b-var)
@@ -465,18 +483,18 @@ sharing:
             end
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-ref(a-typ, _, _) =>
+      | t-ref(a-typ, _, _, _) =>
         cases(Type) other:
-          | t-ref(b-typ, _, _) =>
+          | t-ref(b-typ, _, _, _) =>
             ask:
               | not(a-typ == b-typ) then: E.NotEqual("Ref types", self, other)
               | otherwise: E.Equal
             end
           | else => E.NotEqual("Different types", self, other)
         end
-      | t-data-refinement(a-data-type, a-variant-name, _, _) =>
+      | t-data-refinement(a-data-type, a-variant-name, _, _, _) =>
         cases(Type) other:
-          | t-data-refinement(b-data-type, b-variant-name, _, _) =>
+          | t-data-refinement(b-data-type, b-variant-name, _, _, _) =>
             ask:
               | not(a-data-type == b-data-type) then: E.NotEqual("Data types", self, other)
               | not(a-variant-name == b-variant-name) then: E.NotEqual("Variant names", self, other)
@@ -514,12 +532,12 @@ sharing:
       cases(Type) typ:
         | t-name(module-name, id, _, _) =>
           id.toname()
-        | t-arrow(args, ret, _, _) =>
+        | t-arrow(args, ret, _, _, _) =>
           "("
             + args.map(h).join-str(", ")
             + " -> " + h(ret)
             + ")"
-        | t-app(onto, args, _, _) =>
+        | t-app(onto, args, _, _, _) =>
           h(onto) + "<"
             + args.map(h).join-str(", ")
             + ">"
@@ -527,21 +545,21 @@ sharing:
           "Any"
         | t-bot(_, _) =>
           "Bot"
-        | t-record(fields, _, _) =>
+        | t-record(fields, _, _, _) =>
           "{"
             + fields.map-keys(lam(key): type-member-output(key, fields.get-value(key)) end).join-str(", ")
             + "}"
-        | t-tuple(elts, _, _) =>
+        | t-tuple(elts, _, _, _) =>
           "{"
             + elts.map(h).join-str("; ")
             + "}"
-        | t-forall(introduces, onto, _, _) =>
+        | t-forall(introduces, onto, _, _, _) =>
           "forall "
             + introduces.map(h).join-str(", ")
             + " . " + h(onto)
-        | t-ref(ref-typ, _, _) =>
+        | t-ref(ref-typ, _, _, _) =>
           "ref " + h(ref-typ)
-        | t-data-refinement(data-type, variant-name, _, _) =>
+        | t-data-refinement(data-type, variant-name, _, _, _) =>
           "("
             + h(data-type)
             + " % is-" + variant-name
@@ -583,17 +601,17 @@ sharing:
 end
 
 check:
-  a-name = t-name(local, A.s-name(A.dummy-loc, "a"), A.dummy-loc, false)
-  b-name = t-name(local, A.s-name(A.dummy-loc, "b"), A.dummy-loc, false)
+  a-name = t-name(local, A.s-name(A.dummy-loc, "a"), A.dummy-loc, false, [tree-set: ])
+  b-name = t-name(local, A.s-name(A.dummy-loc, "b"), A.dummy-loc, false, [tree-set: ])
   a-name.to-string() is "a"
-  t-arrow([list: a-name, b-name], a-name, A.dummy-loc, false).to-string() is "(a, b -> a)"
+  t-arrow([list: a-name, b-name], a-name, A.dummy-loc, false, [tree-set: ]).to-string() is "(a, b -> a)"
   t-top(A.dummy-loc, false).to-string() is "Any"
   t-bot(A.dummy-loc, false).to-string() is "Bot"
-  t-record([string-dict: "a", a-name, "b", a-name], A.dummy-loc, false).to-string() is "{a :: a, b :: a}"
-  t-tuple([list: a-name, b-name], A.dummy-loc, false).to-string() is "{a; b}"
-  t-forall([list: a-name, b-name], b-name, A.dummy-loc, false).to-string() is "forall a, b . b"
-  t-ref(a-name, A.dummy-loc, false).to-string() is "ref a"
-  t-data-refinement(a-name, "a", A.dummy-loc, false).to-string() is "(a % is-a)"
+  t-record([string-dict: "a", a-name, "b", a-name], A.dummy-loc, false, [tree-set: ]).to-string() is "{a :: a, b :: a}"
+  t-tuple([list: a-name, b-name], A.dummy-loc, false, [tree-set: ]).to-string() is "{a; b}"
+  t-forall([list: a-name, b-name], b-name, A.dummy-loc, false, [tree-set: ]).to-string() is "forall a, b . b"
+  t-ref(a-name, A.dummy-loc, false, [tree-set: ]).to-string() is "ref a"
+  t-data-refinement(a-name, "a", A.dummy-loc, false, [tree-set: ]).to-string() is "(a % is-a)"
   t-var(A.s-atom("%tyvar", 0), A.dummy-loc, false).to-string() is "A"
   t-var(A.s-name(A.dummy-loc, "a"), A.dummy-loc, false).to-string() is "a"
   t-existential(A.s-name(A.dummy-loc, "a"), A.dummy-loc, false).to-string() is "?-1"
@@ -617,6 +635,28 @@ t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l, false) end
 t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l, false) end
 t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l, false) end
 t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l, false) end
-t-array   = lam(v, l): t-app(t-array-name.set-loc(l), [list: v], l, false) end
-t-option  = lam(v, l): t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option"), l, false), [list: v], l, false) end
-t-table = lam(l): t-name(builtin-uri, A.s-type-global("Table"), l, false) end
+t-array   = lam(v, l):
+  t-app(
+    t-array-name.set-loc(l),
+    [list: v],
+    l,
+    false,
+    if is-t-existential(v):
+      [tree-set: v]
+    else:
+      [tree-set: ]
+    end)
+end
+t-option  = lam(v, l):
+  t-app(
+    t-name(module-uri("builtin://option"), A.s-type-global("Option"), l, false),
+    [list: v],
+    l,
+    false,
+    if is-t-existential(v):
+      [tree-set: v]
+    else:
+      [tree-set: ]
+    end)
+end
+t-table = lam(l): t-name(builtin-uri, A.s-type-global("Table"), l, false, [tree-set: ]) end
