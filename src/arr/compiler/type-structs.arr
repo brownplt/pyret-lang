@@ -153,15 +153,15 @@ end
 
 data Type:
   | t-name(module-name :: NameOrigin, id :: Name, l :: Loc, inferred :: Boolean)
-  | t-arrow(args :: List<Type>, ret :: Type, l :: Loc, inferred :: Boolean)
-  | t-app(onto :: Type, args :: List<Type>, l :: Loc, inferred :: Boolean)
+  | t-arrow(args :: List<Type>, ret :: Type, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
+  | t-app(onto :: Type, args :: List<Type>, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
   | t-top(l :: Loc, inferred :: Boolean)
   | t-bot(l :: Loc, inferred :: Boolean)
-  | t-record(fields :: TypeMembers, l :: Loc, inferred :: Boolean)
-  | t-tuple(elts :: List<Type>, l :: Loc, inferred :: Boolean)
-  | t-forall(introduces :: List<Type>, onto :: Type, l :: Loc, inferred :: Boolean)
-  | t-ref(typ :: Type, l :: Loc, inferred :: Boolean)
-  | t-data-refinement(data-type :: Type, variant-name :: String, l :: Loc, inferred :: Boolean)
+  | t-record(fields :: TypeMembers, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
+  | t-tuple(elts :: List<Type>, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
+  | t-forall(introduces :: List<Type>, onto :: Type, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
+  | t-ref(typ :: Type, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
+  | t-data-refinement(data-type :: Type, variant-name :: String, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
   | t-var(id :: Name, l :: Loc, inferred :: Boolean)
   | t-existential(id :: Name, l :: Loc, inferred :: Boolean)
 sharing:
