@@ -619,7 +619,7 @@ fun existentials-from-type(typ :: Type) -> Set<Type % (is-t-existential)>:
 end
 
 fun existentials-from-list(lst :: List<Type>) -> Set<Type % (is-t-existential)>:
-  lst.fold(lam(acc :: Set<Type % (is-t-existential)>, x :: Type):
+  lst.foldl(lam(x :: Type, acc :: Set<Type % (is-t-existential)>):
       acc.union(existentials-from-type(x))
     end,
     empty-tree-set)
@@ -627,9 +627,68 @@ end
 
 fun existentials-from-string-dict(sd :: TypeMembers) -> Set<Type % (is-t-existential)>:
   sd.fold-keys(lam(key :: String, acc :: Set<Type % (is-t-existential)>):
-      acc.union(existentials-from-type(sd.get(key)))
+      cases(Option) sd.get(key):
+        | some(typ) => acc.union(existentials-from-type(typ))
+        | none => raise("No value for key")
+      end
     end,
     empty-tree-set)
+end
+
+# Constructors for `Type`s which have an `.existentials` field [so we don't have to
+# manually specify it when constructing new `Type`s].
+shadow t-arrow = lam(
+    args :: List<Type>,
+    ret :: Type,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-arrow):
+  existentials = existentials-from-list(args).union(existentials-from-type(ret))
+  t-arrow(args, ret, l, inferred, existentials)
+end
+shadow t-app = lam(
+    onto :: Type,
+    args :: List<Type>,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-app):
+  existentials = existentials-from-type(onto).union(existentials-from-list(args))
+  t-app(onto, args, l, inferred, existentials)
+end
+shadow t-record = lam(
+    fields :: TypeMembers,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-record):
+  existentials = existentials-from-string-dict(fields)
+  t-record(fields, l, inferred, existentials)
+end
+shadow t-tuple = lam(
+    elts :: List<Type>,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-tuple):
+  existentials = existentials-from-list(elts)
+  t-tuple(elts, l, inferred, existentials)
+end
+shadow t-forall = lam(
+    introduces :: List<Type>,
+    onto :: Type,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-forall):
+  existentials = existentials-from-list(introduces).union(existentials-from-type(onto))
+  t-forall(introduces, onto, l, inferred, existentials)
+end
+shadow t-ref = lam(
+    typ :: Type,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-ref):
+  existentials = existentials-from-type(typ)
+  t-ref(typ, l, inferred, existentials)
+end
+shadow t-data-refinement = lam(
+    data-type :: Type,
+    variant-name :: String,
+    l :: Loc,
+    inferred :: Boolean) -> Type % (is-t-data-refinement):
+  existentials = existentials-from-type(data-type)
+  t-data-refinement(data-type, variant-name, l, inferred, existentials)
 end
 
 check:
@@ -667,28 +726,6 @@ t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l, false) end
 t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l, false) end
 t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l, false) end
 t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l, false) end
-t-array   = lam(v, l):
-  t-app(
-    t-array-name.set-loc(l),
-    [list: v],
-    l,
-    false,
-    if is-t-existential(v):
-      [tree-set: v]
-    else:
-      [tree-set: ]
-    end)
-end
-t-option  = lam(v, l):
-  t-app(
-    t-name(module-uri("builtin://option"), A.s-type-global("Option"), l, false),
-    [list: v],
-    l,
-    false,
-    if is-t-existential(v):
-      [tree-set: v]
-    else:
-      [tree-set: ]
-    end)
-end
-t-table = lam(l): t-name(builtin-uri, A.s-type-global("Table"), l, false, [tree-set: ]) end
+t-array   = lam(v, l): t-app(t-array-name.set-loc(l), [list: v], l, false) end
+t-option  = lam(v, l): t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option"), l, false), [list: v], l, false) end
+t-table = lam(l): t-name(builtin-uri, A.s-type-global("Table"), l, false) end
