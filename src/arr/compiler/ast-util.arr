@@ -1265,16 +1265,16 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
   cases(T.Type) typ:
     | t-name(module-name, id, l, _) => transform-name(typ)
     | t-var(id, l, _) => typ
-    | t-arrow(args, ret, l, inferred) => T.t-arrow(map(c, args), c(ret), l, inferred)
-    | t-tuple(elts, l, inferred) => T.t-tuple(map(c, elts), l, inferred)
-    | t-app(onto, args, l, inferred) => T.t-app(c(onto), map(c, args), l, inferred)
+    | t-arrow(args, ret, l, inferred, _) => T.t-arrow(map(c, args), c(ret), l, inferred)
+    | t-tuple(elts, l, inferred, _) => T.t-tuple(map(c, elts), l, inferred)
+    | t-app(onto, args, l, inferred, _) => T.t-app(c(onto), map(c, args), l, inferred)
     | t-top(l, inferred) => T.t-top(l, inferred)
     | t-bot(l, inferred) => T.t-bot(l, inferred)
-    | t-record(fields, l, inferred) =>
+    | t-record(fields, l, inferred, _) =>
       T.t-record(canonicalize-members(fields, uri, transform-name), l, inferred)
-    | t-forall(introduces, onto, l, inferred) => T.t-forall(map(c, introduces), c(onto), l, inferred)
-    | t-ref(t, l, inferred) => T.t-ref(c(t), l, inferred)
-    | t-data-refinement(data-type, variant-name, l, inferred) =>
+    | t-forall(introduces, onto, l, inferred, _) => T.t-forall(map(c, introduces), c(onto), l, inferred)
+    | t-ref(t, l, inferred, _) => T.t-ref(c(t), l, inferred)
+    | t-data-refinement(data-type, variant-name, l, inferred, _) =>
       T.t-data-refinement(c(data-type), variant-name, l, inferred)
     | t-existential(id, l, _) => typ
   end
