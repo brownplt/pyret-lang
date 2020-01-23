@@ -954,33 +954,26 @@ fun remove-refinements-and-foralls(typ :: Type) -> Type:
     | t-arrow(args, ret, l, inferred, _) =>
       new-args = args.map(rraf)
       new-ret = rraf(ret)
-      new-existentials = existentials-from-list(new-args)
-        .union(existentials-from-type(new-ret))
-      t-arrow(new-args, new-ret, l, inferred, new-existentials)
+      t-arrow(new-args, new-ret, l, inferred)
     | t-app(onto, args, l, inferred, _) =>
       new-onto = rraf(onto)
       new-args = args.map(rraf)
-      new-existentials = existentials-from-type(new-onto)
-        .union(existentials-from-list(new-args))
-      t-app(new-onto, new-args, l, inferred, new-existentials)
+      t-app(new-onto, new-args, l, inferred)
     | t-top(_, _) => typ
     | t-bot(_, _) => typ
     | t-record(fields, l, inferred, _) =>
       new-fields = type-member-map(fields, {(_, field-type): rraf(field-type)})
-      new-existentials = existentials-from-string-dict(new-fields)
-      t-record(new-fields, l, inferred, new-existentials)
+      t-record(new-fields, l, inferred)
     | t-tuple(elts, l, inferred, _) =>
       new-elts = elts.map(rraf)
-      new-existentials = existentials-from-list(new-elts)
-      t-tuple(new-elts, l, inferred, new-existentials)
+      t-tuple(new-elts, l, inferred)
     | t-forall(introduces, onto, l, inferred, _) =>
       new-onto = introduces.foldr(lam(a-var, new-onto): new-onto.substitute(new-existential(a-var.l, false), a-var) end, onto)
       shadow new-onto = rraf(new-onto)
       new-onto
     | t-ref(ref-typ, l, inferred, _) =>
       new-ref-typ = rraf(ref-typ)
-      new-existentials = existentials-from-type(new-ref-typ)
-      t-ref(new-ref-typ, inferred, new-existentials)
+      t-ref(new-ref-typ, inferred)
     | t-data-refinement(data-type, variant-name, l, inferred, _) =>
       rraf(data-type)
     | t-var(id, l, _) =>
@@ -1019,9 +1012,7 @@ fun generalize-type(current-type :: Type, next-type :: Type):
           if (a-args.length() <> b-args.length()) or (a-onto <> b-onto): new-var()
           else:
             new-args = map2(generalize-type, a-args, b-args)
-            new-existentials = existentials-from-type(a-onto)
-              .union(existentials-from-list(new-args))
-            t-app(a-onto, new-args, a-l, a-inferred, new-existentials)
+            t-app(a-onto, new-args, a-l, a-inferred)
           end
         | else => new-var()
       end
@@ -1042,8 +1033,7 @@ fun generalize-type(current-type :: Type, next-type :: Type):
           new-fields = keys-set.fold(lam(new-fields, key):
             new-fields.set(key, generalize-type(a-fields.get-value(key), b-fields.get-value(key)))
           end, [string-dict: ])
-          new-existentials = existentials-from-string-dict(new-fields)
-          t-record(new-fields, a-l, a-inferred, new-existentials)
+          t-record(new-fields, a-l, a-inferred)
         | else => new-var()
       end
     | t-tuple(a-elts, a-l, a-inferred, _) =>
@@ -1052,8 +1042,7 @@ fun generalize-type(current-type :: Type, next-type :: Type):
           if a-elts.length() <> b-elts.length(): new-var()
           else:
             new-elts = map2(generalize-type, a-elts, b-elts)
-            new-existentials = existentials-from-list(new-elts)
-            t-tuple(new-elts, a-l, a-inferred, new-existentials)
+            t-tuple(new-elts, a-l, a-inferred)
           end
         | else => new-var()
       end
@@ -1062,8 +1051,7 @@ fun generalize-type(current-type :: Type, next-type :: Type):
       cases(Type) next-type:
         | t-ref(b-typ, _, _, _) =>
           new-onto = generalize-type(a-typ, b-typ)
-          new-existentials = existentials-from-type(new-onto)
-          t-ref(new-onto, a-l, a-inferred, new-existentials)
+          t-ref(new-onto, a-l, a-inferred)
         | else => new-var()
       end
     | t-data-refinement(_, _, _, _, _) => raise("refinements should have been removed")
@@ -1185,16 +1173,12 @@ fun maintain-common-structure(struct :: Structure, typ :: Type) -> Type:
           _maintain-structure(arg, current-path.append([list: arg-path(idx)]), new-paths)
         end, 0, args)
         new-ret = _maintain-structure(ret, current-path.append([list: ret-path]), new-paths)
-        new-existentials = existentials-from-list(new-args)
-          .union(existentials-from-type(new-ret))
-        t-arrow(new-args, new-ret, l, inferred, new-existentials)
+        t-arrow(new-args, new-ret, l, inferred)
       | t-app(onto, args, l, inferred, _) =>
         new-args = map_n(lam(idx, arg):
           _maintain-structure(arg, current-path.append([list: app-path(idx)]), new-paths)
         end, 0, args)
-        new-existentials = existentials-from-type(onto)
-          .union(existentials-from-list(new-args))
-        t-app(onto, new-args, l, inferred, new-existentials)
+        t-app(onto, new-args, l, inferred)
       | t-top(_, _) =>
         typ
       | t-bot(_, _) =>
@@ -1203,20 +1187,17 @@ fun maintain-common-structure(struct :: Structure, typ :: Type) -> Type:
         new-fields = type-member-map(fields, lam(field-name, field-type):
           _maintain-structure(field-type, current-path.append([list: record-path(field-name)]), new-paths)
         end)
-        new-existentials = existentials-from-string-dict(new-fields)
-        t-record(new-fields, l, inferred, new-existentials)
+        t-record(new-fields, l, inferred)
       | t-tuple(elts, l, inferred, _) =>
         new-elts = map_n(lam(idx, elt):
           _maintain-structure(elt, current-path.append([list: tuple-path(idx)]), new-paths)
         end, 0, elts)
-        new-existentials = existentials-from-list(new-elts)
-        t-tuple(new-elts, l, inferred, new-existentials)
+        t-tuple(new-elts, l, inferred)
       | t-forall(_, _, _, _, _) =>
         raise("Foralls should have been removed")
       | t-ref(ref-type, l, inferred, _) =>
         new-onto = _maintain-structure(ref-type, current-path.append([list: ref-path]), new-paths)
-        new-existentials = existentials-from-type(new-onto)
-        t-ref(new-onto, l, inferred, new-existentials)
+        t-ref(new-onto, l, inferred)
       | t-data-refinement(_, _, _, _, _) =>
         raise("Refinements should have been removed")
       | t-var(_, _, _) =>
@@ -1256,9 +1237,7 @@ fun instantiate-object-type(typ :: Type, context :: Context) -> FoldResult<Type>
       shadow a-onto = resolve-alias(a-onto, context)
       cases(Type) a-onto:
         | t-name(_, _, _, _) =>
-          new-existentials = existentials-from-type(a-onto)
-            .union(existentials-from-list(a-args))
-          fold-result(t-app(a-onto, a-args, a-l, inferred, new-existentials), context)
+          fold-result(t-app(a-onto, a-args, a-l, inferred), context)
         | t-forall(b-introduces, b-onto, _, _, _) =>
           if not(a-args.length() == b-introduces.length()):
             fold-errors([list: C.bad-type-instantiation(typ, b-introduces.length())])
@@ -1270,9 +1249,7 @@ fun instantiate-object-type(typ :: Type, context :: Context) -> FoldResult<Type>
           end
         | t-app(b-onto, b-args, _, _, _) =>
           instantiate-object-type(b-onto, context).bind(lam(temp-result, shadow context):
-              new-existentials = existentials-from-type(temp-result)
-                .union(existentials-from-list(a-args))
-              instantiate-object-type(t-app(temp-result, a-args, a-l, inferred, new-existentials))
+              instantiate-object-type(t-app(temp-result, a-args, a-l, inferred))
             end)
         | t-existential(_, exists-l, _) =>
           typing-error([list: C.unable-to-infer(exists-l)])
@@ -1284,7 +1261,7 @@ fun instantiate-object-type(typ :: Type, context :: Context) -> FoldResult<Type>
     | t-data-refinement(data-type, variant-name, a-l, inferred, _) =>
       instantiate-object-type(data-type, context).bind(lam(temp-result, shadow context):
           new-existentials = existentials-from-type(temp-result)
-          fold-result(t-data-refinement(temp-result, variant-name, a-l, inferred, new-existentials), context)
+          fold-result(t-data-refinement(temp-result, variant-name, a-l, inferred), context)
         end)
     | t-existential(_, _, _) =>
       fold-result(typ, context)
@@ -1329,9 +1306,7 @@ fun introduce-onto(app-type :: Type%(is-t-app), context :: Context) -> FoldResul
       end
     | t-app(a-onto, a-args, a-l, _) =>
       introduce-onto(onto, context).bind(lam(new-onto, shadow context):
-          new-existentials = existentials-from-type(new-onto)
-            .union(existentials-from-list(args))
-          introduce-onto(t-app(new-onto, args, a-l, app-type.inferred, new-existentials), context)
+          introduce-onto(t-app(new-onto, args, a-l, app-type.inferred), context)
         end)
     | else =>
       fold-errors([list: C.bad-type-instantiation(app-type, 0)])
