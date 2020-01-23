@@ -294,74 +294,77 @@ sharing:
     end
   end,
   method generalize(self, typ :: Type) -> Type:
-    typ-ex = existentials-from-type(typ)
-    if typ-ex.is-empty() or self.variables.is-empty() or typ-ex.intersect(self.variables).is-empty():
-      # There are no substitutions to perform, so don't bother recursing through typ.
+    if self.variables.is-empty():
       typ
     else:
-      fun collect-vars(shadow typ, var-mapping :: StringDict<Type>) -> {Type; StringDict<Type>}:
-        cases(Type) typ:
-          | t-name(_, _, _, _) =>
-            {typ; var-mapping}
-          | t-arrow(args, ret, l, inferred, _) =>
-            {new-ret; ret-mapping} = collect-vars(ret, var-mapping)
-            {new-args; args-mapping} = args.foldr(lam(arg, {new-args; args-mapping}):
-                {new-arg; arg-mapping} = collect-vars(arg, args-mapping)
-                {link(new-arg, new-args); arg-mapping}
-              end, {empty; ret-mapping})
-            {t-arrow(new-args, new-ret, l, inferred); args-mapping}
-          | t-app(onto, args, l, inferred, _) =>
-            {new-onto; onto-mapping} = collect-vars(onto, var-mapping)
-            {new-args; args-mapping} = args.foldr(lam(arg, {new-args; args-mapping}):
-                {new-arg; arg-mapping} = collect-vars(arg, args-mapping)
-                {link(new-arg, new-args); arg-mapping}
-              end, {empty; onto-mapping})
-            {t-app(new-onto, new-args, l, inferred); args-mapping}
-          | t-top(_, _) =>
-            {typ; var-mapping}
-          | t-bot(_, _) =>
-            {typ; var-mapping}
-          | t-record(fields, l, inferred, _) =>
-            {new-fields; fields-mapping} = fields.fold-keys(lam(key, {new-fields; fields-mapping}):
-                field-typ = fields.get-value(key)
-                {new-typ; typ-mapping} = collect-vars(field-typ, fields-mapping)
-                {new-fields.set(key, new-typ); typ-mapping}
-              end, {[string-dict: ]; var-mapping})
-            {t-record(new-fields, l, inferred); fields-mapping}
-          | t-tuple(elts, l, inferred, _) =>
-            {new-elts; elts-mapping} = elts.foldr(lam(elt, {new-elts; elts-mapping}):
-                {new-elt; elt-mapping} = collect-vars(elt, elts-mapping)
-                {link(new-elt, new-elts); elt-mapping}
-              end, {empty; var-mapping})
-            {t-tuple(new-elts, l, inferred); elts-mapping}
-          | t-forall(introduces, onto, l, inferred, _) =>
-            {new-onto; onto-mapping} = collect-vars(onto, var-mapping)
-            {t-forall(introduces, new-onto, l, inferred); onto-mapping}
-          | t-ref(onto, l, inferred, _) =>
-            {new-onto; onto-mapping} = collect-vars(onto, var-mapping)
-            {t-ref(new-onto, l, inferred); onto-mapping}
-          | t-data-refinement(data-type, variant-name, l, inferred, _) =>
-            {new-data-type; data-type-mapping} = collect-vars(data-type, var-mapping)
-            {t-data-refinement(new-data-type, variant-name, l, inferred); data-type-mapping}
-          | t-var(_, _, _) =>
-            {typ; var-mapping}
-          | t-existential(id, l, _) =>
-            if self.variables.member(typ):
-              cases(Option<Type>) var-mapping.get(typ.key()):
-                | none =>
-                  new-var = new-type-var(l)
-                  {new-var; var-mapping.set(typ.key(), new-var)}
-                | some(mapped-typ) =>
-                  {mapped-typ; var-mapping}
-              end
-            else:
+      typ-ex = existentials-from-type(typ)
+      if typ-ex.is-empty() or typ-ex.intersect(self.variables).is-empty():
+        typ
+      else:
+        fun collect-vars(shadow typ, var-mapping :: StringDict<Type>) -> {Type; StringDict<Type>}:
+          cases(Type) typ:
+            | t-name(_, _, _, _) =>
               {typ; var-mapping}
-            end
+            | t-arrow(args, ret, l, inferred, _) =>
+              {new-ret; ret-mapping} = collect-vars(ret, var-mapping)
+              {new-args; args-mapping} = args.foldr(lam(arg, {new-args; args-mapping}):
+                  {new-arg; arg-mapping} = collect-vars(arg, args-mapping)
+                  {link(new-arg, new-args); arg-mapping}
+                end, {empty; ret-mapping})
+              {t-arrow(new-args, new-ret, l, inferred); args-mapping}
+            | t-app(onto, args, l, inferred, _) =>
+              {new-onto; onto-mapping} = collect-vars(onto, var-mapping)
+              {new-args; args-mapping} = args.foldr(lam(arg, {new-args; args-mapping}):
+                  {new-arg; arg-mapping} = collect-vars(arg, args-mapping)
+                  {link(new-arg, new-args); arg-mapping}
+                end, {empty; onto-mapping})
+              {t-app(new-onto, new-args, l, inferred); args-mapping}
+            | t-top(_, _) =>
+              {typ; var-mapping}
+            | t-bot(_, _) =>
+              {typ; var-mapping}
+            | t-record(fields, l, inferred, _) =>
+              {new-fields; fields-mapping} = fields.fold-keys(lam(key, {new-fields; fields-mapping}):
+                  field-typ = fields.get-value(key)
+                  {new-typ; typ-mapping} = collect-vars(field-typ, fields-mapping)
+                  {new-fields.set(key, new-typ); typ-mapping}
+                end, {[string-dict: ]; var-mapping})
+              {t-record(new-fields, l, inferred); fields-mapping}
+            | t-tuple(elts, l, inferred, _) =>
+              {new-elts; elts-mapping} = elts.foldr(lam(elt, {new-elts; elts-mapping}):
+                  {new-elt; elt-mapping} = collect-vars(elt, elts-mapping)
+                  {link(new-elt, new-elts); elt-mapping}
+                end, {empty; var-mapping})
+              {t-tuple(new-elts, l, inferred); elts-mapping}
+            | t-forall(introduces, onto, l, inferred, _) =>
+              {new-onto; onto-mapping} = collect-vars(onto, var-mapping)
+              {t-forall(introduces, new-onto, l, inferred); onto-mapping}
+            | t-ref(onto, l, inferred, _) =>
+              {new-onto; onto-mapping} = collect-vars(onto, var-mapping)
+              {t-ref(new-onto, l, inferred); onto-mapping}
+            | t-data-refinement(data-type, variant-name, l, inferred, _) =>
+              {new-data-type; data-type-mapping} = collect-vars(data-type, var-mapping)
+              {t-data-refinement(new-data-type, variant-name, l, inferred); data-type-mapping}
+            | t-var(_, _, _) =>
+              {typ; var-mapping}
+            | t-existential(id, l, _) =>
+              if self.variables.member(typ):
+                cases(Option<Type>) var-mapping.get(typ.key()):
+                  | none =>
+                    new-var = new-type-var(l)
+                    {new-var; var-mapping.set(typ.key(), new-var)}
+                  | some(mapped-typ) =>
+                    {mapped-typ; var-mapping}
+                end
+              else:
+                {typ; var-mapping}
+              end
+          end
         end
+        {new-typ; vars-mapping} = collect-vars(typ, [string-dict: ])
+        vars = vars-mapping.map-keys(lam(key): vars-mapping.get-value(key) end)
+        t-forall(vars, new-typ, typ.l, false)
       end
-      {new-typ; vars-mapping} = collect-vars(typ, [string-dict: ])
-      vars = vars-mapping.map-keys(lam(key): vars-mapping.get-value(key) end)
-      t-forall(vars, new-typ, typ.l, false)
     end
   end
 end
