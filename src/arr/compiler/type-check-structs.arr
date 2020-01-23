@@ -304,7 +304,7 @@ sharing:
     end
   end,
   method generalize(self, typ :: Type) -> Type:
-    if existentials-from-type(typ).intersect(self.variables) == empty-string-dict:
+    if existentials-from-type(typ).intersect(self.variables) == empty-tree-set:
       # There are no substitutions to perform, so don't bother recursing through typ.
       typ
     else:
