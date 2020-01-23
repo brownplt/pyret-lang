@@ -600,6 +600,38 @@ sharing:
   |#
 end
 
+# Returns the `Type`'s `.existentials` field if it has one. Otherwise, returns the empty set.
+fun existentials-from-type(typ :: Type) -> Set<Type % (is-t-existential)>:
+  cases(Type) typ:
+    | t-name(_, _, _, _) => empty-tree-set
+    | t-arrow(_, _, _, _, existentials) => existentials
+    | t-app(_, _, _, _, existentials) => existentials
+    | t-top(_, _) => empty-tree-set
+    | t-bot(_, _) => empty-tree-set
+    | t-record(_, _, _, existentials) => existentials
+    | t-tuple(_, _, _, existentials) => existentials
+    | t-forall(_, _, _, _, existentials) => existentials
+    | t-ref(_, _, _, existentials) => existentials
+    | t-data-refinement(_, _, _, _, existentials) => existentials
+    | t-var(_, _, _) => empty-tree-set
+    | t-existential(_, _, _) => empty-tree-set
+  end
+end
+
+fun existentials-from-list(lst :: List<Type>) -> Set<Type % (is-t-existential)>:
+  lst.fold(lam(acc :: Set<Type % (is-t-existential)>, x :: Type):
+      acc.union(existentials-from-type(x))
+    end,
+    empty-tree-set)
+end
+
+fun existentials-from-string-dict(sd :: TypeMembers) -> Set<Type % (is-t-existential)>:
+  sd.fold-keys(lam(key :: String, acc :: Set<Type % (is-t-existential)>):
+      acc.union(existentials-from-type(sd.get(key)))
+    end,
+    empty-tree-set)
+end
+
 check:
   a-name = t-name(local, A.s-name(A.dummy-loc, "a"), A.dummy-loc, false, [tree-set: ])
   b-name = t-name(local, A.s-name(A.dummy-loc, "b"), A.dummy-loc, false, [tree-set: ])
