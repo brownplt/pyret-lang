@@ -151,16 +151,6 @@ sharing:
   end
 end
 
-fun add-when-existential(
-    maybe-existential :: Type,
-    existentials :: Set<Type % (is-t-existential)>) -> Set<Type % (is-t-existential)>:
-  if is-t-existential(maybe-existential):
-    existentials.add(maybe-existential)
-  else:
-    existentials
-  end
-end
-
 data Type:
   | t-name(module-name :: NameOrigin, id :: Name, l :: Loc, inferred :: Boolean)
   | t-arrow(args :: List<Type>, ret :: Type, l :: Loc, inferred :: Boolean, existentials :: Set<Type % (is-t-existential)>)
@@ -178,36 +168,42 @@ sharing:
   method substitute(self, new-type :: Type, type-var :: Type):
     cases(Type) self:
       | t-name(_, _, _, _) => self
-      | t-arrow(args, ret, l, inferred, existentials) =>
+      | t-arrow(args, ret, l, inferred, _) =>
         new-args = args.map(_.substitute(new-type, type-var))
         new-ret = ret.substitute(new-type, type-var)
-        new-existentials = add-when-existential(new-type, existentials)
+        new-existentials = existentials-from-list(new-args)
+          .union(existentials-from-type(new-ret))
         t-arrow(new-args, new-ret, l, inferred, new-existentials)
-      | t-app(onto, args, l, inferred, existentials) =>
+      | t-app(onto, args, l, inferred, _) =>
         new-onto = onto.substitute(new-type, type-var)
         new-args = args.map(_.substitute(new-type, type-var))
-        new-existentials = add-when-existential(new-type, existentials)
+        new-existentials = existentials-from-type(new-onto)
+          .union(existentials-from-list(new-args))
         t-app(new-onto, new-args, l, inferred, new-existentials)
       | t-top(_, _) => self
       | t-bot(_, _) => self
-      | t-record(fields, l, inferred, existentials) =>
+      | t-record(fields, l, inferred, _) =>
         new-fields = type-member-map(fields, {(_, field-type): field-type.substitute(new-type, type-var)})
-        new-existentials = add-when-existential(new-type, existentials)
+        new-existentials = existentials-from-string-dict(new-fields)
         t-record(new-fields, l, inferred, new-existentials)
-      | t-tuple(elts, l, inferred, existentials) =>
-        new-existentials = add-when-existential(new-type, existentials)
-        t-tuple(elts.map(_.substitute(new-type, type-var)), l, inferred, new-existentials)
-      | t-forall(introduces, onto, l, inferred, existentials) =>
+      | t-tuple(elts, l, inferred, _) =>
+        new-elts = elts.map(_.substitute(new-type, type-var))
+        new-existentials = existentials-from-list(new-elts)
+        t-tuple(new-elts, l, inferred, new-existentials)
+      | t-forall(introduces, onto, l, inferred, _) =>
         # doesn't need to be capture avoiding thanks to resolve-names
-        new-existentials = add-when-existential(new-type, existentials)
         new-onto = onto.substitute(new-type, type-var)
+        new-existentials = existentials-from-list(introduces)
+          .union(existentials-from-type(new-onto))
         t-forall(introduces, new-onto, l, inferred, new-existentials)
-      | t-ref(typ, l, inferred, existentials) =>
-        new-existentials = add-when-existential(new-type, existentials)
-        t-ref(typ.substitute(new-type, type-var), l, inferred, new-existentials)
-      | t-data-refinement(data-type, variant-name, l, inferred, existentials) =>
-        new-existentials = add-when-existential(new-type, existentials)
-        t-data-refinement(data-type.substitute(new-type, type-var),
+      | t-ref(typ, l, inferred, _) =>
+        new-typ = typ.substitute(new-type, type-var)
+        new-existentials = existentials-from-type(new-typ)
+        t-ref(new-typ, l, inferred, new-existentials)
+      | t-data-refinement(data-type, variant-name, l, inferred, _) =>
+        new-data-type = data-type.substitute(new-type, type-var)
+        new-existentials = existentials-from-type(new-data-type)
+        t-data-refinement(new-data-type,
                           variant-name,
                           l,
                           inferred,
