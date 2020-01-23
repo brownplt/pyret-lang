@@ -277,7 +277,7 @@ sharing:
       | t-arrow(args, ret, _, _) =>
         all(_.has-variable-free(var-type), args) and
         ret.has-variable-free(var-type)
-      | t-app(onto, args, _, _) =>
+      | t-app(onto, args, _, _, _) =>
         onto.has-variable-free(var-type) and
         all(_.has-variable-free(var-type), args)
       | t-top(_, _) =>

@@ -1209,7 +1209,7 @@ end
 fun instantiate-object-type(typ :: Type, context :: Context) -> FoldResult<Type>:
   shadow typ = resolve-alias(typ, context)
   cases(Type) typ:
-    | t-name(_, _, _, _, _) =>
+    | t-name(_, _, _, _) =>
       fold-result(typ, context)
     | t-app(a-onto, a-args, a-l, inferred, _) =>
       shadow a-onto = resolve-alias(a-onto, context)
