@@ -219,12 +219,25 @@ data ConstraintSolution:
   | constraint-solution(variables :: Set<Type>, substitutions :: StringDict<{Type; Type}>) # existential => {assigned-type; existential}
 sharing:
   method apply(self, typ :: Type) -> Type:
-    app = lam(x): self.apply(x) end
-    cases(ConstraintSolution) self:
-      | constraint-solution(_, substitutions) =>
-        if substitutions == [string-dict: ]:
-          typ
-        else:
+    fun self-has-valid-substitution(keys :: List<String>) -> Boolean:
+      cases(List) keys:
+        | link(a, d) =>
+          cases(Option) self.substitutions.get(a):
+            | some({assigned-type; exists}) =>
+              (typ == exists) or self-has-valid-substitution(d)
+            | none => raise("No type for key")
+          end
+        | empty =>
+          false
+      end
+    end
+    if self.substitutions == [string-dict: ]:
+      # return early when we have no substitutions whatsoever.
+      typ
+    else if self-has-valid-substitution(self.substitutions.keys().to-list()):
+      app = lam(x): self.apply(x) end
+      cases(ConstraintSolution) self:
+        | constraint-solution(_, substitutions) =>
           cases(Type) typ:
             | t-name(_, _, _, _) =>
               typ
@@ -266,7 +279,10 @@ sharing:
                   app(assigned-type.set-loc(l).set-inferred(inferred or assigned-type.inferred))
               end
           end
-        end
+      end
+    else:
+      # return early when we have substitutions, but none of them can be applied
+      typ
     end
   end,
   method apply-data-type(self, data-type :: DataType) -> DataType:
