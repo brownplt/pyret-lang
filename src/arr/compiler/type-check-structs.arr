@@ -595,7 +595,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                 new-existentials = b-introduces.map(lam(variable): new-existential(variable.l, false) end)
                 shadow b-onto = foldr2(lam(shadow b-onto, variable, exists):
                   b-onto.substitute(exists, variable)
-                end, b-onto, b-introduces)
+                end, b-onto, b-introduces, new-existentials)
                 shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
                 solve-helper-constraints(system.add-constraint(subtype, b-onto), solution, context)
               | else =>
@@ -692,7 +692,7 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                     new-existentials = a-introduces.map(lam(variable): new-existential(variable.l, false) end)
                     shadow a-onto = foldr2(lam(shadow a-onto, variable, exists):
                       a-onto.substitute(exists, variable)
-                    end, a-onto, a-introduces)
+                    end, a-onto, a-introduces, new-existentials)
                     shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
                     solve-helper-constraints(system.add-constraint(a-onto, supertype), solution, context)
                   | t-ref(a-typ, a-loc, _, _) =>
@@ -1258,7 +1258,7 @@ fun instantiate-forall(typ :: Type, context :: Context) -> FoldResult<Type>:
         new-existentials = introduces.map(lam(a-var): new-existential(a-var.l, false) end)
         shadow onto = foldr2(lam(shadow onto, a-var, a-exists):
           onto.substitute(a-exists, a-var)
-        end, onto, introduces)
+        end, onto, introduces, new-existentials)
         shadow context = context.add-variable-set(list-to-tree-set(new-existentials))
         fold-result(onto, context)
       end)
