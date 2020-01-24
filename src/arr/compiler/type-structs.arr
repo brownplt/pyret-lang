@@ -270,7 +270,7 @@ sharing:
     cases(Type) self:
       | t-name(module-name, id, _, _) =>
         true
-      | t-arrow(args, ret, _, _) =>
+      | t-arrow(args, ret, _, _, _) =>
         all(_.has-variable-free(var-type), args) and
         ret.has-variable-free(var-type)
       | t-app(onto, args, _, _, _) =>
@@ -688,17 +688,17 @@ shadow t-data-refinement = lam(
 end
 
 check:
-  a-name = t-name(local, A.s-name(A.dummy-loc, "a"), A.dummy-loc, false, [tree-set: ])
-  b-name = t-name(local, A.s-name(A.dummy-loc, "b"), A.dummy-loc, false, [tree-set: ])
+  a-name = t-name(local, A.s-name(A.dummy-loc, "a"), A.dummy-loc, false)
+  b-name = t-name(local, A.s-name(A.dummy-loc, "b"), A.dummy-loc, false)
   a-name.to-string() is "a"
-  t-arrow([list: a-name, b-name], a-name, A.dummy-loc, false, [tree-set: ]).to-string() is "(a, b -> a)"
+  t-arrow([list: a-name, b-name], a-name, A.dummy-loc, false).to-string() is "(a, b -> a)"
   t-top(A.dummy-loc, false).to-string() is "Any"
   t-bot(A.dummy-loc, false).to-string() is "Bot"
-  t-record([string-dict: "a", a-name, "b", a-name], A.dummy-loc, false, [tree-set: ]).to-string() is "{a :: a, b :: a}"
-  t-tuple([list: a-name, b-name], A.dummy-loc, false, [tree-set: ]).to-string() is "{a; b}"
-  t-forall([list: a-name, b-name], b-name, A.dummy-loc, false, [tree-set: ]).to-string() is "forall a, b . b"
-  t-ref(a-name, A.dummy-loc, false, [tree-set: ]).to-string() is "ref a"
-  t-data-refinement(a-name, "a", A.dummy-loc, false, [tree-set: ]).to-string() is "(a % is-a)"
+  t-record([string-dict: "a", a-name, "b", a-name], A.dummy-loc, false).to-string() is "{a :: a, b :: a}"
+  t-tuple([list: a-name, b-name], A.dummy-loc, false).to-string() is "{a; b}"
+  t-forall([list: a-name, b-name], b-name, A.dummy-loc, false).to-string() is "forall a, b . b"
+  t-ref(a-name, A.dummy-loc, false).to-string() is "ref a"
+  t-data-refinement(a-name, "a", A.dummy-loc, false).to-string() is "(a % is-a)"
   t-var(A.s-atom("%tyvar", 0), A.dummy-loc, false).to-string() is "A"
   t-var(A.s-name(A.dummy-loc, "a"), A.dummy-loc, false).to-string() is "a"
   t-existential(A.s-name(A.dummy-loc, "a"), A.dummy-loc, false).to-string() is "?-1"
