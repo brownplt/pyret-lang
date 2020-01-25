@@ -936,7 +936,12 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     end
   end
 
-  fun star-names(shadow names, hidings):
+  fun star-names(l, shadow names, hidings) block:
+    for each(h from hidings):
+      when not(lists.member(names, h.toname())):
+        name-errors := link(C.wf-err-split("The name " + h.toname() + " is listed as hidden but was not included.", [list: l]), name-errors)
+      end
+    end
     for filter(n from names):
       not(lists.member(hidings.map(_.toname()), n))
     end
@@ -951,8 +956,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       cases(A.NameSpec) name-spec block:
         | s-star(l, hidings) =>          
           all-names = dict.keys-list()
-          for each(name from all-names): shared-data-hidings.remove-now(name) end
-          imported-names = star-names(all-names, hidings)
+          imported-names = star-names(l, all-names, hidings)
           for fold(shadow which-env from which-env, n from imported-names):
             adder(l, imp-loc, which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
           end
