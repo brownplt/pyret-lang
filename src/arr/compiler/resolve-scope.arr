@@ -943,10 +943,16 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
   end
 
   fun add-spec(imp-loc, {imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
+
+    # data will spread across many 
+    shared-data-hidings = [SD.mutable-string-dict:]
+
     fun add-name-spec(name-spec, dict, which-env, adder):
       cases(A.NameSpec) name-spec block:
         | s-star(l, hidings) =>          
-          imported-names = star-names(dict.keys-list(), hidings)
+          all-names = dict.keys-list()
+          for each(name from all-names): shared-data-hidings.remove-now(name) end
+          imported-names = star-names(all-names, hidings)
           for fold(shadow which-env from which-env, n from imported-names):
             adder(l, imp-loc, which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
           end
@@ -964,12 +970,21 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       end
     end
 
-    fun add-data-spec(envs, name-spec):
+    fun maybe-add-name-spec(name-spec, dict, which-env, adder, name, hidings):
+      if is-some(hidings.find(lam(h): h.toname() == name end)) block:
+        shared-data-hidings.remove-now(name)
+        which-env
+      else:
+        add-name-spec(name-spec, dict, which-env, adder) 
+      end
+    end
+
+    fun add-data-spec(envs, name-spec, hidings):
       cases(A.NameSpec) name-spec block:
-        | s-star(l, _) =>
+        | s-star(l, _) => # NOTE(joe): s-star on data-spec never has hidings, they are on the include-data-spec
           datatype-names = mod-info.data-definitions.keys-list()
           for fold(shadow envs from envs, dname from datatype-names):
-            add-data-spec(envs, A.s-module-ref(l, [list: A.s-name(l, dname)], none))
+            add-data-spec(envs, A.s-module-ref(l, [list: A.s-name(l, dname)], none), hidings)
           end
         | s-module-ref(l, path, as-name) =>
           maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
@@ -993,17 +1008,17 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
               shadow imp-e-dts = for fold(shadow imp-e-dts from imp-e-dts, v from typ.variants):
                 constructor-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, v.name)], none)
                 checker-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, A.make-checker-name(v.name))], none)
-                env1 = add-name-spec(constructor-ref, mod-info.values, imp-e-dts, add-value-name)
-                add-name-spec(checker-ref, mod-info.values, env1, add-value-name)
+                env1 = maybe-add-name-spec(constructor-ref, mod-info.values, imp-e-dts, add-value-name, v.name, hidings)
+                maybe-add-name-spec(checker-ref, mod-info.values, env1, add-value-name, A.make-checker-name(v.name), hidings)
               end
               typ-alias-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, dname)], none)
-              shadow imp-te-dts = add-name-spec(typ-alias-ref, mod-info.aliases, imp-te-dts, add-type-name)
+              shadow imp-te-dts = maybe-add-name-spec(typ-alias-ref, mod-info.aliases, imp-te-dts, add-type-name, dname, hidings)
               { imp-e-dts; imp-te-dts}
           end
       end
     end
 
-    cases(A.IncludeSpec) spec:
+    cases(A.IncludeSpec) spec block:
       | s-include-name(l, name-spec) =>
         new-env = add-name-spec(name-spec, mod-info.values, imp-e, add-value-name)
         { new-env; imp-te; imp-me; imp-imps }
@@ -1014,7 +1029,13 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         new-module-env = add-name-spec(name-spec, mod-info.modules, imp-me, add-module-name)
         { imp-e; imp-te; new-module-env; imp-imps }
       | s-include-data(l, name-spec, hidings) =>
-        { imp-e-dts; imp-te-dts } = add-data-spec({imp-e; imp-te}, name-spec)
+        for each(h from hidings):
+          shared-data-hidings.set-now(h.toname(), true)
+        end
+        { imp-e-dts; imp-te-dts } = add-data-spec({imp-e; imp-te}, name-spec, hidings)
+        for each(extraneous-hiding from shared-data-hidings.keys-list-now()):
+          name-errors := link(C.wf-err-split("The name " + extraneous-hiding + " is listed as hidden but was not included.", [list: l]), name-errors)
+        end
         { imp-e-dts; imp-te-dts; imp-me; imp-imps }
     end
   end
