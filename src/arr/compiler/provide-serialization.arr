@@ -152,25 +152,25 @@ fun compile-provided-type(typ):
           raise("Dependency-origin names in provided-types shouldn't be possible")
       end
     | t-var(name, l, _) => j-list(true, [clist: j-str("tid"), j-str(name.key())]) # NOTE(joe): changed to .key()
-    | t-arrow(args, ret, l, _) =>
+    | t-arrow(args, ret, l, _, _) =>
       j-list(true,
         [clist: j-str("arrow"),
           j-list(true, CL.map_list(compile-provided-type, args)), compile-provided-type(ret)])
-    | t-app(base, args, l, _) =>
+    | t-app(base, args, l, _, _) =>
       j-list(false,
         [clist: j-str("tyapp"), compile-provided-type(base),
           j-list(true, CL.map_list(compile-provided-type, args))])
     | t-top(_, _) => j-str("tany")
     | t-bot(_, _) => j-str("tbot")
-    | t-record(fields, l, _) =>
+    | t-record(fields, l, _, _) =>
       j-list(false,
         [clist: j-str("record"), j-obj(for cl-map-sd(key from fields):
               compile-type-member(key, fields.get-value(key))
             end)])
-    | t-tuple(elts, l, _) =>
+    | t-tuple(elts, l, _, _) =>
       j-list(false,
         [clist: j-str("tuple"), j-list(false, CL.map_list(compile-provided-type, elts))])
-    | t-forall(params, body, l, _) =>
+    | t-forall(params, body, l, _, _) =>
       j-list(true,
         [clist: j-str("forall"),
           j-list(false, for CL.map_list(p from params):
@@ -178,7 +178,7 @@ fun compile-provided-type(typ):
           end), compile-provided-type(body)])
       # | t-ref(_, _) =>
       # | t-existential(_, _) =>
-    | t-data-refinement(base-typ, variant-name, l, _) =>
+    | t-data-refinement(base-typ, variant-name, l, _, _) =>
       j-list(true,
         [clist: j-str("data%"), compile-provided-type(base-typ), j-str(variant-name)])
     | else => j-ternary(j-false, j-str(tostring(typ)), j-str("tany"))
