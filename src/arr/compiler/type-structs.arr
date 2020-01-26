@@ -597,6 +597,7 @@ sharing:
 end
 
 # Returns the `Type`'s `.existentials` field if it has one. Otherwise, returns the empty set.
+# if `typ` is a `t-existential`, a singleton set is returned containing `typ`.
 fun existentials-from-type(typ :: Type) -> Set<Type % (is-t-existential)>:
   cases(Type) typ:
     | t-name(_, _, _, _) => empty-tree-set
@@ -610,7 +611,7 @@ fun existentials-from-type(typ :: Type) -> Set<Type % (is-t-existential)>:
     | t-ref(_, _, _, existentials) => existentials
     | t-data-refinement(_, _, _, _, existentials) => existentials
     | t-var(_, _, _) => empty-tree-set
-    | t-existential(_, _, _) => empty-tree-set
+    | t-existential(_, _, _) => [tree-set: typ]
   end
 end
 
