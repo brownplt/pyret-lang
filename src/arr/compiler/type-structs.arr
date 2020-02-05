@@ -239,32 +239,33 @@ sharing:
     end
   end,
   method free-variables(self) -> Set<Type>:
-    cases(Type) self:
-      | t-name(module-name, id, _, _) =>
-        empty-list-set
-      | t-arrow(args, ret, _, _, _) =>
-        args.foldl(lam(arg, free): free.union(arg.free-variables()) end, ret.free-variables())
-      | t-app(onto, args, _, _, _) =>
-        args.foldl(lam(arg, free): free.union(arg.free-variables()) end, onto.free-variables())
-      | t-top(_, _) =>
-        empty-list-set
-      | t-bot(_, _) =>
-        empty-list-set
-      | t-record(fields, _, _, _) =>
-        fields.fold-keys(lam(key, free): free.union(fields.get-value(key).free-variables()) end, empty-list-set)
-      | t-tuple(elts, _, _, _) =>
-        elts.foldl(lam(elt, free): free.union(elt.free-variables()) end, empty-list-set)
-      | t-forall(_, onto, _, _, _) =>
-        onto.free-variables()
-      | t-ref(typ, _, _, _) =>
-        typ.free-variables()
-      | t-data-refinement(data-type, _, _, _, _) =>
-        data-type.free-variables()
-      | t-var(a-id, _, _) =>
-        empty-list-set
-      | t-existential(a-id, _, _) =>
-        [list-set: self]
-    end
+    existentials-from-type(self)
+    #cases(Type) self:
+    #  | t-name(module-name, id, _, _) =>
+    #    empty-list-set
+    #  | t-arrow(args, ret, _, _, _) =>
+    #    args.foldl(lam(arg, free): free.union(arg.free-variables()) end, ret.free-variables())
+    #  | t-app(onto, args, _, _, _) =>
+    #    args.foldl(lam(arg, free): free.union(arg.free-variables()) end, onto.free-variables())
+    #  | t-top(_, _) =>
+    #    empty-list-set
+    #  | t-bot(_, _) =>
+    #    empty-list-set
+    #  | t-record(fields, _, _, _) =>
+    #    fields.fold-keys(lam(key, free): free.union(fields.get-value(key).free-variables()) end, empty-list-set)
+    #  | t-tuple(elts, _, _, _) =>
+    #    elts.foldl(lam(elt, free): free.union(elt.free-variables()) end, empty-list-set)
+    #  | t-forall(_, onto, _, _, _) =>
+    #    onto.free-variables()
+    #  | t-ref(typ, _, _, _) =>
+    #    typ.free-variables()
+    #  | t-data-refinement(data-type, _, _, _, _) =>
+    #    data-type.free-variables()
+    #  | t-var(a-id, _, _) =>
+    #    empty-list-set
+    #  | t-existential(a-id, _, _) =>
+    #    [list-set: self]
+    #end
   end,
   method has-variable-free(self, var-type :: Type) -> Boolean:
     cases(Type) self:
