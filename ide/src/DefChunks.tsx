@@ -129,7 +129,7 @@ type DefChunksState = {
   chunkIndexCounter: number
 };
 
-const CHUNKSEP = "#.CHUNK#\n";
+export const CHUNKSEP = "#.CHUNK#\n";
 
 export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
   constructor(props: DefChunksProps) {

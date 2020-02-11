@@ -2,7 +2,7 @@ import React from 'react';
 import './App.css';
 import { Interaction } from './Interaction';
 import { Check, TestResult } from './Check';
-import { DefChunks } from './DefChunks';
+import { DefChunks, CHUNKSEP } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
@@ -461,6 +461,16 @@ class Editor extends React.Component<EditorProps, EditorState> {
         control.fs.writeFileSync(
             this.currentFile,
             this.state.currentFileContents);
+
+        if (this.state.editorMode === EEditor.Chunks) {
+            const chunkstrs = this.state.currentFileContents.split(CHUNKSEP);
+            for (let i = 0; i < chunkstrs.length; i++) {
+                control.fs.writeFileSync(
+                    `${this.currentFile}.chunk.${i}`,
+                    chunkstrs[i]);
+            }
+        }
+
         this.run(false);
     }
 
