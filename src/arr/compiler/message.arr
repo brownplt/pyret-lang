@@ -122,7 +122,7 @@ fun parse-lint-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-lint-p
       bind-option(
         dict.get("program-source"),
         lam(program-source):
-          lint-program(program, program-source)
+          some(lint-program(program, program-source))
         end)
     end)
 end
