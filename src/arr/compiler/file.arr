@@ -1,13 +1,14 @@
 #lang pyret
 
 provide {
-  input-file : input-file,
-  output-file : output-file,
-  file-exists: file-exists,
-  file-times: file-times,
-  mtimes: mtimes,
-  file-to-string: file-to-string,
-  real-path: F.real-path
+    input-file : input-file,
+    output-file : output-file,
+    file-exists : file-exists,
+    file-times : file-times,
+    mtimes : mtimes,
+    file-to-string : file-to-string,
+    real-path : F.real-path,
+    list-files : F.list-files
 } end
 provide-types *
 
@@ -52,7 +53,6 @@ fun file-to-string(path) block:
   s
 end
   
-
 fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))
 end
