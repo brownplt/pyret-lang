@@ -41,12 +41,10 @@ compile-handler = lam(msg, send-message) block:
       | some(n) =>
         M.clear-number(n)
     end
-    response = M.echo-log(s, clear-first)
-    response.send-using(send-message)
+    M.echo-log(s, clear-first).send-using(send-message)
   end
   fun err(s):
-    d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
-    send-message(J.j-obj(d).serialize())
+    M.err(s).send-using(send-message)
   end
   # enable-spies = not(opts.has-key("no-spies"))
   with-logger = opts.set("log", log)

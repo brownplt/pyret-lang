@@ -26,6 +26,7 @@ data Request:
       recompile-builtins :: Boolean)
 end
 
+# Represents the union type `Number U False'
 data ClearFirst:
   | clear-number(n :: Number)
   | clear-false
