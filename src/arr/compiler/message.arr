@@ -66,6 +66,8 @@ end
 data Response:
   | echo-log(contents :: String, clear-first :: ClearFirst)
   | err(contents :: String)
+  | lint-failure(program-source, err-list)
+  | lint-success(program-source)
 sharing:
   method to-json(self :: Response) -> J.JSON:
     cases(Response) self:
@@ -78,6 +80,17 @@ sharing:
         J.j-obj([SD.string-dict:
             "type", J.j-str("echo-err"),
             "contents", J.j-str(contents)])
+      | lint-failure(program-source, err-list) =>
+        J.j-obj([SD.string-dict:
+            "type", J.j-str("lint-failure"),
+            "data", J.j-obj([SD.string-dict:
+                "name", J.j-str(program-source),
+                "errors", J.j-arr(err-list)])])
+      | lint-success(program-source) =>
+        J.j-obj([SD.string-dict:
+            "type", J.j-str("lint-success"),
+            "data", J.j-obj([SD.string-dict:
+                "name", J.j-str(program-source)])])
     end
   end,
   method send-using(self :: Response, sender :: (String -> Nothing)) -> Nothing:
