@@ -76,34 +76,34 @@ sharing:
     cases(Response) self:
       | echo-log(contents, clear-first) =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("echo-log"),
+            "response", J.j-str("echo-log"),
             "contents", J.j-str(contents),
             "clear-first", clear-first.to-json()])
       | err(contents) =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("echo-err"),
+            "response", J.j-str("echo-err"),
             "contents", J.j-str(contents)])
       | lint-failure(program-source, err-list) =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("lint-failure"),
+            "response", J.j-str("lint-failure"),
             "data", J.j-obj([SD.string-dict:
                 "name", J.j-str(program-source),
                 "errors", J.j-arr(err-list)])])
       | lint-success(program-source) =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("lint-success"),
+            "response", J.j-str("lint-success"),
             "data", J.j-obj([SD.string-dict:
                 "name", J.j-str(program-source)])])
       | create-repl-success =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("create-repl-success")])
+            "response", J.j-str("create-repl-success")])
       | compile-failure(err-list) =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("compile-failure"),
+            "response", J.j-str("compile-failure"),
             "data", J.j-arr(err-list)])
       | compile-success =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("compile-success")])
+            "response", J.j-str("compile-success")])
     end
   end,
   method send-using(self :: Response, sender :: (String -> Nothing)) -> Nothing:
