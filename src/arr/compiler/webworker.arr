@@ -40,7 +40,7 @@ compile-handler = lam(msg, send-message) block:
   
   spy: msg end
   
-  cases(M.Request) request:
+  cases(M.Request) request block:
     | lint-program(program, program-source) =>
       opts = request.get-options()
       spy: opts end
@@ -169,6 +169,7 @@ compile-handler = lam(msg, send-message) block:
       compile-context = "anchor-context-currently-unused"
       make-finder = make-find-module()
       repl := R.make-chunky-repl(modules, compile-context, make-finder)
+      M.make-repl-success.send-using(send-message)
   end
 end
 
