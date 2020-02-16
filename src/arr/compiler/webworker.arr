@@ -29,7 +29,7 @@ end
 
 compile-handler = lam(msg, send-message) block:
   # print("Got message in pyret-land: " + msg)
-  request = M.parse-message(msg)
+  request = M.parse-request(msg)
   opts = J.read-json(msg).native() 
 
   spy: opts, msg end

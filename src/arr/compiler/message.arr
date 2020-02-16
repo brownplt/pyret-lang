@@ -122,7 +122,7 @@ fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
 end
 
 # Creates a Request out of a String, throwing an error if the string could not be parsed.
-fun parse-message(message :: String) -> Request:
+fun parse-request(message :: String) -> Request:
   dict :: SD.StringDict<Any> = J.read-json(message).native()
   result :: O.Option<Request> = parse-dict(dict)
   cases(O.Option) result:
