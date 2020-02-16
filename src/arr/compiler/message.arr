@@ -1,3 +1,7 @@
+# message.arr
+#
+# Provides data types and functions for passing messages between the webworker and the page.
+
 provide *
 provide-types *
 
@@ -5,6 +9,7 @@ import json as J
 import option as O
 import string-dict as SD
 
+# A parsed message from the page.
 data Request:
   | lint-program(
       program :: String,
@@ -16,6 +21,29 @@ data Request:
       checks :: String,
       type-check :: Boolean,
       recompile-builtins :: Boolean)
+end
+
+# A response from the webworker which can be serialized and sent as message to the page.
+data Response:
+  | echo-log(contents :: String, clear-first :: Number)
+  | err(contents :: String)
+sharing:
+  method to-json(self :: Response) -> J.JSON:
+    cases(Response) self:
+      | echo-log(contents, clear-first) =>
+        J.j-obj([SD.string-dict:
+            "type", J.j-str("echo-log"),
+            "contents", J.j-str(contents),
+            "clear-first", J.j-num(clear-first)])
+      | err(contents) =>
+        J.j-obj([SD.string-dict:
+            "type", J.j-str("echo-err"),
+            "contents", J.j-str(contents)])
+    end
+  end,
+  method send(self :: Response, sender :: (String -> nothing)) -> nothing:
+    sender(self.to-json().serialize())
+  end
 end
 
 fun bind-option<AA, BB>(a :: O.Option<AA>, f :: (AA -> O.Option<BB>)) -> O.Option<BB>:
@@ -80,7 +108,7 @@ end
 # Creates a Request out of a string dict, returning none when the dict could not be parsed.
 fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
   should-be-lint :: Boolean = dict.get("lint").or-else(false)
-
+  
   if should-be-lint:
     parse-lint-dict(dict)
   else:
