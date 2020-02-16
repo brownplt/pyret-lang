@@ -58,7 +58,7 @@ sharing:
             "contents", J.j-str(contents)])
     end
   end,
-  method send(self :: Response, sender :: (String -> nothing)) -> nothing:
+  method send-using(self :: Response, sender :: (String -> nothing)) -> nothing:
     sender(self.to-json().serialize())
   end
 end

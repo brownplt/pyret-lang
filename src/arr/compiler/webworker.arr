@@ -42,7 +42,7 @@ compile-handler = lam(msg, send-message) block:
         M.clear-number(n)
     end
     response = M.echo-log(s, clear-first)
-    response.send(send-message)
+    response.send-using(send-message)
   end
   fun err(s):
     d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
