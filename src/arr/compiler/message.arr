@@ -165,23 +165,21 @@ end
 
 # Creates a Request out of a string dict, returning none when the dict could not be parsed.
 fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
-  should-be-lint :: Boolean = dict.get("lint").or-else(false)
-  
-  if should-be-lint:
-    parse-lint-dict(dict)
-  else:
-    parse-compile-dict(dict)
+  cases(Option) dict.get("request"):
+    | none => none
+    | some(request) =>
+      if request == "lint-program":
+        parse-lint-dict(dict)
+      else if request == "compile-program":
+        parse-compile-dict(dict)
+      else:
+        none
+      end
   end
 end
 
-# Creates a Request out of a String, throwing an error if the string could not be parsed.
-fun parse-request(message :: String) -> Request:
+# Creates a Request out of a String, returning none when the string could not be parsed.
+fun parse-request(message :: String) -> O.Option<Request>:
   dict :: SD.StringDict<Any> = J.read-json(message).native()
-  result :: O.Option<Request> = parse-dict(dict)
-  cases(O.Option) result:
-    | some(request) =>
-      request
-    | none =>
-      raise("Couldn't parse message from webworker: " + message)
-  end
+  parse-dict(dict)
 end

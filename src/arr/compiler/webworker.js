@@ -16,21 +16,17 @@
 
     function setupHandlers(onCompile) {
       onmessage = function(e) {
-        // Data pre-processing
-        console.log(e.data);
-        if(!e.data || !e.data._parley) {
+        if (!e.data.request) {
           return;
         }
-        var parsed = e.data;
-        var options = JSON.stringify(parsed.options);
-        // NOTE(alex): Assume the webworker gets messages in the appropriate shape
-        
+
+        var message = JSON.stringify(e.data);
+
         RUNTIME.runThunk(function() {
-          return onCompile.app(options, respondForPy);
+          return onCompile.app(message, respondForPy);
         }, function(result) {
           if(RUNTIME.isFailureResult(result)) {
             console.error("Error from compile:", result);
-            
           }
           else {
             console.log("Success:", result);

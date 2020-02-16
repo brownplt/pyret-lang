@@ -35,141 +35,142 @@ end
 var repl :: Option<R.ChunkyRepl> = none
 
 compile-handler = lam(msg, send-message) block:
-  # print("Got message in pyret-land: " + msg)
-  request = M.parse-request(msg)
-  
   spy: msg end
-  
-  cases(M.Request) request block:
-    | lint-program(program, program-source) =>
-      opts = request.get-options()
-      spy: opts end
-      cases(E.Either) CLI.lint(program-source, program) block:
-        | left(errors) =>
-          err-list = for map(e from errors):
-            J.j-str(RED.display-to-string(e.render-reason(), tostring, empty))
-          end
-          M.lint-failure(program-source, err-list).send-using(send-message)
-        | right(_) =>
-          M.lint-success(program-source).send-using(send-message)
-          nothing
-      end
-    | compile-program(
-        program,
-        base-dir,
-        builtin-js-dir,
-        checks,
-        type-check,
-        recompile-builtins) =>
-      opts = request.get-options()
-      spy: opts end
-      fun log(s, to-clear):
-        clear-first = cases(Option) to-clear:
-          | none =>
-            M.clear-false
-          | some(n) =>
-            M.clear-number(n)
-        end
-        M.echo-log(s, clear-first).send-using(send-message)
-      end
-      fun err(s):
-        M.err(s).send-using(send-message)
-      end
-      # enable-spies = not(opts.has-key("no-spies"))
-      with-logger = opts.set("log", log)
-      with-error = with-logger.set("log-error", err)
-      # compile-opts = CO.populate-options(with-error, pyret-dir)
-      
-      cases(E.Either) run-task(lam(): compile(with-error, pyret-dir) end):
-        | right(exn) =>
-          err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
-          err-list = [list: J.j-str(err-str)]
-          d = [SD.string-dict:
-            "type", J.j-str("compile-failure"),
-            "data", J.j-arr(err-list)]
-          send-message(J.j-obj(d).serialize())
-        | left(val) =>
-          cases(E.Either) val block:
+  cases(O.Option) M.parse-request(msg):
+    | none =>
+      nothing
+    | some(request) =>
+      cases(M.Request) request block:
+        | lint-program(program, program-source) =>
+          opts = request.get-options()
+          spy: opts end
+          cases(E.Either) CLI.lint(program-source, program) block:
             | left(errors) =>
               err-list = for map(e from errors):
                 J.j-str(RED.display-to-string(e.render-reason(), tostring, empty))
               end
+              M.lint-failure(program-source, err-list).send-using(send-message)
+            | right(_) =>
+              M.lint-success(program-source).send-using(send-message)
+              nothing
+          end
+        | compile-program(
+            program,
+            base-dir,
+            builtin-js-dir,
+            checks,
+            type-check,
+            recompile-builtins) =>
+          opts = request.get-options()
+          spy: opts end
+          fun log(s, to-clear):
+            clear-first = cases(Option) to-clear:
+              | none =>
+                M.clear-false
+              | some(n) =>
+                M.clear-number(n)
+            end
+            M.echo-log(s, clear-first).send-using(send-message)
+          end
+          fun err(s):
+            M.err(s).send-using(send-message)
+          end
+          # enable-spies = not(opts.has-key("no-spies"))
+          with-logger = opts.set("log", log)
+          with-error = with-logger.set("log-error", err)
+          # compile-opts = CO.populate-options(with-error, pyret-dir)
+          
+          cases(E.Either) run-task(lam(): compile(with-error, pyret-dir) end):
+            | right(exn) =>
+              err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
+              err-list = [list: J.j-str(err-str)]
               d = [SD.string-dict:
                 "type", J.j-str("compile-failure"),
                 "data", J.j-arr(err-list)]
               send-message(J.j-obj(d).serialize())
-            | right(value) =>
-              d = [SD.string-dict:
-                "type", J.j-str("compile-success")]
-              send-message(J.j-obj(d).serialize())
-              nothing
+            | left(val) =>
+              cases(E.Either) val block:
+                | left(errors) =>
+                  err-list = for map(e from errors):
+                    J.j-str(RED.display-to-string(e.render-reason(), tostring, empty))
+                  end
+                  d = [SD.string-dict:
+                    "type", J.j-str("compile-failure"),
+                    "data", J.j-arr(err-list)]
+                  send-message(J.j-obj(d).serialize())
+                | right(value) =>
+                  d = [SD.string-dict:
+                    "type", J.j-str("compile-success")]
+                  send-message(J.j-obj(d).serialize())
+                  nothing
+              end
           end
-      end
-    | create-repl =>
-      builtin-js-dir = "/compiled/builtin"
-
-      fun get-builtin-loadable(raw, uri) -> CL.Loadable:
-        provs = CS.provides-from-raw-provides(uri, {
-            uri: uri,
-            values: raw-array-to-list(raw.get-raw-value-provides()),
-            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-          })
-        CL.module-as-string(
-          AU.canonicalize-provides(provs, CS.no-builtins),
-          CS.no-builtins,
-          CS.ok(JSP.ccp-string(raw.get-raw-compiled())))
-      end
-
-      fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
-        modules = [SD.mutable-string-dict: ]
-        for each(b from F.list-files(builtin-js-dir)):
-          modules.set-now(b.uri, get-builtin-loadable(b.raw, b.uri))
-        end
-        modules
-      end
-
-      fun make-find-module() -> (String, CS.Dependency -> CL.Located<String>):
-        locator-cache = [SD.mutable-string-dict: ]
-        fun find-module(dependency):
-          uri :: String = cases(CS.Dependency) dependency:
-            | builtin(modname) =>
-              "builtin://" + modname
-            | dependency(protocol, arguments) =>
-              raise("non-builtin dependencies not yet implemented")
-              #arr = array-from-list(arguments)
-              #if protocol == "my-gdrive":
-              #  "my-gdrive://" + arr.get-now(0)
-              #else if protocol == "shared-gdrive":
-              #  "shared-gdrive://" + arr.get-now(0) + ":" + arr.get-now(1)
-              #else if protocol == "gdrive-js":
-              #  "gdrive-js://" + arr.get-now(1)
-              #else:
-              #  print("Unknown import: " + dependency + "\n")
-              #  protocol + "://" + arguments.join-str(":")
-              #end
+        | create-repl =>
+          builtin-js-dir = "/compiled/builtin"
+          
+          fun get-builtin-loadable(raw, uri) -> CL.Loadable:
+            provs = CS.provides-from-raw-provides(uri, {
+                uri: uri,
+                values: raw-array-to-list(raw.get-raw-value-provides()),
+                aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+                datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+              })
+            CL.module-as-string(
+              AU.canonicalize-provides(provs, CS.no-builtins),
+              CS.no-builtins,
+              CS.ok(JSP.ccp-string(raw.get-raw-compiled())))
           end
-          if locator-cache.has-key(uri) block:
-            CL.located(locator-cache.get-now(uri), nothing)
-          else:
-            l = cases(CS.Dependency) dependency:
-              | builtin(name) =>
-                B.make-builtin-js-locator(builtin-js-dir, name)
-              | dependency(protocol, args) =>
-                raise("non-builtin dependencies not yet implemented")
+          
+          fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
+            modules = [SD.mutable-string-dict: ]
+            for each(b from F.list-files(builtin-js-dir)):
+              modules.set-now(b.uri, get-builtin-loadable(b.raw, b.uri))
             end
-            locator-cache.set-now(uri, l)
-            CL.located(l, nothing)
+            modules
           end
-        end
-        find-module
+          
+          fun make-find-module() -> (String, CS.Dependency -> CL.Located<String>):
+            locator-cache = [SD.mutable-string-dict: ]
+            fun find-module(dependency):
+              uri :: String = cases(CS.Dependency) dependency:
+                | builtin(modname) =>
+                  "builtin://" + modname
+                | dependency(protocol, arguments) =>
+                  raise("non-builtin dependencies not yet implemented")
+                  #arr = array-from-list(arguments)
+                  #if protocol == "my-gdrive":
+                  #  "my-gdrive://" + arr.get-now(0)
+                  #else if protocol == "shared-gdrive":
+                  #  "shared-gdrive://" + arr.get-now(0) + ":" + arr.get-now(1)
+                  #else if protocol == "gdrive-js":
+                  #  "gdrive-js://" + arr.get-now(1)
+                  #else:
+                  #  print("Unknown import: " + dependency + "\n")
+                  #  protocol + "://" + arguments.join-str(":")
+                  #end
+              end
+              if locator-cache.has-key(uri) block:
+                CL.located(locator-cache.get-now(uri), nothing)
+              else:
+                l = cases(CS.Dependency) dependency:
+                  | builtin(name) =>
+                    B.make-builtin-js-locator(builtin-js-dir, name)
+                  | dependency(protocol, args) =>
+                    raise("non-builtin dependencies not yet implemented")
+                end
+                locator-cache.set-now(uri, l)
+                CL.located(l, nothing)
+              end
+            end
+            find-module
+          end
+          
+          modules = get-builtin-modules()
+          compile-context = "anchor-context-currently-unused"
+          make-finder = make-find-module()
+          repl := R.make-chunky-repl(modules, compile-context, make-finder)
+          M.make-repl-success.send-using(send-message)
       end
-
-      modules = get-builtin-modules()
-      compile-context = "anchor-context-currently-unused"
-      make-finder = make-find-module()
-      repl := R.make-chunky-repl(modules, compile-context, make-finder)
-      M.make-repl-success.send-using(send-message)
   end
 end
 

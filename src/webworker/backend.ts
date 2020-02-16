@@ -78,12 +78,10 @@ export const lintProgram = (
   compilerWorker: Worker,
   options: LintOptions): void => {
   const message = {
-    _parley: true,
-    options: {
-      program: options.program,
-      "program-source": options.programSource,
-      "lint": true
-    }
+    "request": 'lint-program',
+    program: options.program,
+    "program-source": options.programSource,
+    "lint": true
   };
 
   compilerWorker.postMessage(message);
@@ -94,15 +92,13 @@ export const compileProgram = (
   options: CompileOptions): void => {
   compileStart = window.performance.now();
   const message = {
-    _parley: true,
-    options: {
-      program: options.program,
-      "base-dir": options.baseDir,
-      "builtin-js-dir": options.builtinJSDir,
-      checks: options.checks,
-      'type-check': options.typeCheck,
-      'recompile-builtins': options.recompileBuiltins,
-    }
+    "request": 'compile-program',
+    program: options.program,
+    "base-dir": options.baseDir,
+    "builtin-js-dir": options.builtinJSDir,
+    checks: options.checks,
+    'type-check': options.typeCheck,
+    'recompile-builtins': options.recompileBuiltins,
   };
 
   compilerWorker.postMessage(message);
