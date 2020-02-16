@@ -4,13 +4,17 @@ import option as O
 import pathlib as P
 import string-dict as SD
 import render-error-display as RED
+import file("./ast-util.arr") as AU
 import file("./cli-module-loader.arr") as CLI
 import file("./compile-structs.arr") as CS
-import file("locators/builtin.arr") as B
-import js-file("webworker") as W
-import file("compile-options.arr") as CO
+import file("./compile-lib.arr") as CL
+import file("./compile-options.arr") as CO
+import file("./file.arr") as F
+import file("./js-of-pyret.arr") as JSP
+import file("./locators/builtin.arr") as B
 import file("./message.arr") as M
 import file("./repl.arr") as R
+import js-file("webworker") as W
 
 pyret-dir = "."
 
@@ -111,7 +115,69 @@ compile-handler = lam(msg, send-message) block:
           end
       end
     | create-repl =>
-      raise("create repl not implemented yet")
+      builtin-js-dir = "/compiled/builtin"
+
+      fun get-builtin-loadable(raw, uri) -> CL.Loadable:
+        provs = CS.provides-from-raw-provides(uri, {
+            uri: uri,
+            values: raw-array-to-list(raw.get-raw-value-provides()),
+            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          })
+        CL.module-as-string(
+          AU.canonicalize-provides(provs, CS.no-builtins),
+          CS.no-builtins,
+          CS.ok(JSP.ccp-string(raw.get-raw-compiled())))
+      end
+
+      fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
+        modules = [SD.mutable-string-dict: ]
+        for each(b from F.list-files(builtin-js-dir)):
+          modules.set-now(b.uri, get-builtin-loadable(b.raw, b.uri))
+        end
+        modules
+      end
+
+      fun make-find-module() -> (String, CS.Dependency -> CL.Located<String>):
+        locator-cache = [SD.mutable-string-dict: ]
+        fun find-module(dependency):
+          uri :: String = cases(CS.Dependency) dependency:
+            | builtin(modname) =>
+              "builtin://" + modname
+            | dependency(protocol, arguments) =>
+              raise("non-builtin dependencies not yet implemented")
+              #arr = array-from-list(arguments)
+              #if protocol == "my-gdrive":
+              #  "my-gdrive://" + arr.get-now(0)
+              #else if protocol == "shared-gdrive":
+              #  "shared-gdrive://" + arr.get-now(0) + ":" + arr.get-now(1)
+              #else if protocol == "gdrive-js":
+              #  "gdrive-js://" + arr.get-now(1)
+              #else:
+              #  print("Unknown import: " + dependency + "\n")
+              #  protocol + "://" + arguments.join-str(":")
+              #end
+          end
+          if locator-cache.has-key(uri) block:
+            CL.located(locator-cache.get-now(uri), nothing)
+          else:
+            l = cases(CS.Dependency) dependency:
+              | builtin(name) =>
+                B.make-builtin-js-locator(builtin-js-dir, name)
+              | dependency(protocol, args) =>
+                raise("non-builtin dependencies not yet implemented")
+            end
+            locator-cache.set-now(uri, l)
+            CL.located(l, nothing)
+          end
+        end
+        find-module
+      end
+
+      modules = get-builtin-modules()
+      compile-context = "anchor-context-currently-unused"
+      make-finder = make-find-module()
+      repl := R.make-chunky-repl(modules, compile-context, make-finder)
   end
 end
 
