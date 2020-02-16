@@ -26,9 +26,23 @@ data Request:
       recompile-builtins :: Boolean)
 end
 
+data ClearFirst:
+  | clear-number(n :: Number)
+  | clear-false
+sharing:
+  method to-json(self :: ClearFirst) -> J.JSON:
+    cases(ClearFirst) self:
+      | clear-number(n) =>
+        J.j-num(n)
+      | clear-false =>
+        J.jbool(false)
+    end
+  end
+end
+
 # A response from the webworker which can be serialized and sent as a message to the page.
 data Response:
-  | echo-log(contents :: String, clear-first :: Number)
+  | echo-log(contents :: String, clear-first :: ClearFirst)
   | err(contents :: String)
 sharing:
   method to-json(self :: Response) -> J.JSON:
@@ -37,7 +51,7 @@ sharing:
         J.j-obj([SD.string-dict:
             "type", J.j-str("echo-log"),
             "contents", J.j-str(contents),
-            "clear-first", J.j-num(clear-first)])
+            "clear-first", clear-first.to-json()])
       | err(contents) =>
         J.j-obj([SD.string-dict:
             "type", J.j-str("echo-err"),
