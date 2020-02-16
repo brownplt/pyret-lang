@@ -24,6 +24,24 @@ data Request:
       checks :: String,
       type-check :: Boolean,
       recompile-builtins :: Boolean)
+sharing:
+  method get-options(self :: Request) -> SD.StringDict<Any>:
+    cases(Request) self:
+      | lint-program(program, program-source) =>
+        [SD.string-dict:
+          "program", program,
+          "program-source", program-source]
+      | compile-program(
+          program, base-dir, builtin-js-dir, checks, type-check, recompile-builtins) =>
+        [SD.string-dict:
+          "program", program,
+          "base-dir", base-dir,
+          "builtin-js-dir", builtin-js-dir,
+          "checks", checks,
+          "type-check", type-check,
+          "recompile-builtins", recompile-builtins]
+    end
+  end
 end
 
 # Represents the union type `Number U False'
