@@ -24,6 +24,7 @@ data Request:
       checks :: String,
       type-check :: Boolean,
       recompile-builtins :: Boolean)
+  | create-repl
 sharing:
   method get-options(self :: Request) -> SD.StringDict<Any>:
     cases(Request) self:
@@ -40,6 +41,8 @@ sharing:
           "checks", checks,
           "type-check", type-check,
           "recompile-builtins", recompile-builtins]
+      | create-repl =>
+        raise(".get-options not implemented for create-repl")
     end
   end
 end

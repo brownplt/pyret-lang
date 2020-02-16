@@ -31,12 +31,12 @@ compile-handler = lam(msg, send-message) block:
   # print("Got message in pyret-land: " + msg)
   request = M.parse-request(msg)
   
-  opts = request.get-options()
-
-  spy: opts, msg end
+  spy: msg end
   
   cases(M.Request) request:
     | lint-program(program, program-source) =>
+      opts = request.get-options()
+      spy: opts end
       cases(E.Either) CLI.lint(program-source, program) block:
         | left(errors) =>
           err-list = for map(e from errors):
@@ -63,6 +63,8 @@ compile-handler = lam(msg, send-message) block:
         checks,
         type-check,
         recompile-builtins) =>
+      opts = request.get-options()
+      spy: opts end
       fun log(s, to-clear):
         clear-first = cases(Option) to-clear:
           | none =>
@@ -105,6 +107,8 @@ compile-handler = lam(msg, send-message) block:
               nothing
           end
       end
+    | create-repl =>
+      raise("create repl not implemented yet")
   end
 end
 
