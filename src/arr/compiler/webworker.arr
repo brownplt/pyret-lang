@@ -9,101 +9,9 @@ import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
 import js-file("webworker") as W
 import file("compile-options.arr") as CO
+import file("./message.arr") as M
 
 pyret-dir = "."
-
-data Request:
-  | lint-program(
-      program :: String,
-      program-source :: String)
-  | compile-program(
-      program :: String,
-      base-dir :: String,
-      builtin-js-dir :: String,
-      checks :: Boolean,
-      type-check :: Boolean,
-      recompile-builtins :: Boolean)
-end
-
-fun bind-option<AA, BB>(a :: O.Option<AA>, f :: (AA -> O.Option<BB>)) -> O.Option<BB>:
-  cases(O.Option) a:
-    | none =>
-      none
-    | some(a-value) =>
-      f(a-value)
-  end
-end
-
-# Creates a lint-program Request out of a dict, returning none when the dict could not be
-# parsed as a lint-program Request.
-fun parse-lint-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-lint-program)>:
-  dict.get("program").and-then(
-    lam(program):
-      dict.get("program-source").and-then(
-        lam(program-source):
-          lint-program(program, program-source)
-        end)
-    end)
-end
-
-# Creates a compile-program Request out of a dict, returning none when the dict could not be
-# parsed as a compile Request.
-fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-compile-program)>:
-  bind-option(
-    dict.get("program"),
-    lam(program):
-      bind-option(
-        dict.get("base-dir"),
-        lam(base-dir):
-          bind-option(
-            dict.get("builtin-js-dir"),
-            lam(builtin-js-dir):
-              bind-option(
-                dict.get("checks"),
-                lam(checks):
-                  bind-option(
-                    dict.get("type-check"),
-                    lam(type-check):
-                      bind-option(
-                        dict.get("recompile-builtins"),
-                        lam(recompile-builtins):
-                          some(compile-program(
-                              program,
-                              base-dir,
-                              builtin-js-dir,
-                              not(checks == "none"),
-                              type-check,
-                              recompile-builtins))
-                        end)
-                    end)
-                end)
-            end)
-        end)
-    end)
-end
-
-# Creates a Request out of a string dict, returning none when the dict could not be parsed.
-fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
-  should-be-lint :: Boolean = dict.get("lint").or-else(false)
-
-  if should-be-lint:
-    parse-lint-dict(dict)
-  else:
-    parse-compile-dict(dict)
-  end
-end
-
-# Creates a Request out of a String, throwing an error if the string could not be parsed.
-fun parse-message(message :: String) -> Request block:
-  dict :: SD.StringDict<Any> = J.read-json(message).native()
-  result :: O.Option<Request> = parse-dict(dict)
-  cases(O.Option) result:
-    | some(request) =>
-      request
-    | none =>
-      raise("Couldn't parse message from webworker: " + message)
-  end
-end
 
 fun compile(options, this-pyret-dir):
   outfile = cases(Option) options.get("outfile"):
@@ -121,7 +29,7 @@ end
 
 compile-handler = lam(msg, send-message) block:
   # print("Got message in pyret-land: " + msg)
-  request = parse-message(msg)
+  request = M.parse-message(msg)
   opts = J.read-json(msg).native() 
 
   spy: opts, msg end
@@ -143,7 +51,7 @@ compile-handler = lam(msg, send-message) block:
   with-error = with-logger.set("log-error", err)
   compile-opts = CO.populate-options(with-error, pyret-dir)
 
-  cases(Request) request:
+  cases(M.Request) request:
     | lint-program(program, program-source) =>
       cases(E.Either) CLI.lint(program-source, program) block:
         | left(errors) =>
