@@ -93,9 +93,7 @@ compile-handler = lam(msg, send-message) block:
                   end
                   M.compile-failure(err-list).send-using(send-message)
                 | right(value) =>
-                  d = [SD.string-dict:
-                    "type", J.j-str("compile-success")]
-                  send-message(J.j-obj(d).serialize())
+                  M.compile-success.send-using(send-message)
                   nothing
               end
           end
