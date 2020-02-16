@@ -35,7 +35,7 @@ sharing:
       | clear-number(n) =>
         J.j-num(n)
       | clear-false =>
-        J.jbool(false)
+        J.j-bool(false)
     end
   end
 end
