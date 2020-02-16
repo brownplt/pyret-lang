@@ -13,7 +13,7 @@ data Request:
       program :: String,
       base-dir :: String,
       builtin-js-dir :: String,
-      checks :: Boolean,
+      checks :: String,
       type-check :: Boolean,
       recompile-builtins :: Boolean)
 end
@@ -66,7 +66,7 @@ fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-com
                               program,
                               base-dir,
                               builtin-js-dir,
-                              not(checks == "none"),
+                              checks,
                               type-check,
                               recompile-builtins))
                         end)
