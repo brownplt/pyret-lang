@@ -10,11 +10,6 @@ import file("locators/builtin.arr") as B
 import js-file("webworker") as W
 import file("compile-options.arr") as CO
 
-# this value is the limit of number of steps that could be inlined in case body
-DEFAULT-INLINE-CASE-LIMIT = 5
-
-success-code = 0
-failure-code = 1
 pyret-dir = "."
 
 data Request:
