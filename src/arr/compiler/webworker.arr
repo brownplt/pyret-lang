@@ -49,18 +49,9 @@ compile-handler = lam(msg, send-message) block:
           err-list = for map(e from errors):
             J.j-str(RED.display-to-string(e.render-reason(), tostring, empty))
           end
-          d = [SD.string-dict:
-            "type", J.j-str("lint-failure"),
-            "data", J.j-obj([SD.string-dict:
-                "name", J.j-str(program-source),
-                "errors", J.j-arr(err-list)])]
-          send-message(J.j-obj(d).serialize())
+          M.lint-failure(program-source, err-list).send-using(send-message)
         | right(_) =>
-          d = [SD.string-dict:
-            "type", J.j-str("lint-success"),
-            "data", J.j-obj([SD.string-dict:
-                "name", J.j-str(program-source)])]
-          send-message(J.j-obj(d).serialize())
+          M.lint-success(program-source).send-using(send-message)
           nothing
       end
     | compile-program(
