@@ -30,27 +30,11 @@ end
 compile-handler = lam(msg, send-message) block:
   # print("Got message in pyret-land: " + msg)
   request = M.parse-request(msg)
+  
   opts = request.get-options()
 
   spy: opts, msg end
   
-  fun log(s, to-clear):
-    clear-first = cases(Option) to-clear:
-      | none =>
-        M.clear-false
-      | some(n) =>
-        M.clear-number(n)
-    end
-    M.echo-log(s, clear-first).send-using(send-message)
-  end
-  fun err(s):
-    M.err(s).send-using(send-message)
-  end
-  # enable-spies = not(opts.has-key("no-spies"))
-  with-logger = opts.set("log", log)
-  with-error = with-logger.set("log-error", err)
-  # compile-opts = CO.populate-options(with-error, pyret-dir)
-
   cases(M.Request) request:
     | lint-program(program, program-source) =>
       cases(E.Either) CLI.lint(program-source, program) block:
@@ -79,6 +63,23 @@ compile-handler = lam(msg, send-message) block:
         checks,
         type-check,
         recompile-builtins) =>
+      fun log(s, to-clear):
+        clear-first = cases(Option) to-clear:
+          | none =>
+            M.clear-false
+          | some(n) =>
+            M.clear-number(n)
+        end
+        M.echo-log(s, clear-first).send-using(send-message)
+      end
+      fun err(s):
+        M.err(s).send-using(send-message)
+      end
+      # enable-spies = not(opts.has-key("no-spies"))
+      with-logger = opts.set("log", log)
+      with-error = with-logger.set("log-error", err)
+      # compile-opts = CO.populate-options(with-error, pyret-dir)
+      
       cases(E.Either) run-task(lam(): compile(with-error, pyret-dir) end):
         | right(exn) =>
           err-str = RED.display-to-string(exn-unwrap(exn).render-reason(), tostring, empty)
