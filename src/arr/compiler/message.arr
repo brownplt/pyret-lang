@@ -9,6 +9,9 @@ import json as J
 import option as O
 import string-dict as SD
 
+### messages: These data types encapsulate information sent between the page and the
+###   webworker.
+
 # A parsed message from the page.
 data Request:
   | lint-program(
@@ -23,7 +26,7 @@ data Request:
       recompile-builtins :: Boolean)
 end
 
-# A response from the webworker which can be serialized and sent as message to the page.
+# A response from the webworker which can be serialized and sent as a message to the page.
 data Response:
   | echo-log(contents :: String, clear-first :: Number)
   | err(contents :: String)
@@ -54,6 +57,8 @@ fun bind-option<AA, BB>(a :: O.Option<AA>, f :: (AA -> O.Option<BB>)) -> O.Optio
       f(a-value)
   end
 end
+
+### parsing: These functions parse strings to messages.
 
 # Creates a lint-program Request out of a dict, returning none when the dict could not be
 # parsed as a lint-program Request.
