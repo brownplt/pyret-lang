@@ -68,6 +68,7 @@ data Response:
   | err(contents :: String)
   | lint-failure(program-source, err-list)
   | lint-success(program-source)
+  | make-repl-success
 sharing:
   method to-json(self :: Response) -> J.JSON:
     cases(Response) self:
@@ -91,6 +92,9 @@ sharing:
             "type", J.j-str("lint-success"),
             "data", J.j-obj([SD.string-dict:
                 "name", J.j-str(program-source)])])
+      | make-repl-success =>
+        J.j-obj([SD.string-dict:
+            "type", J.j-str("make-repl-success")])
     end
   end,
   method send-using(self :: Response, sender :: (String -> Nothing)) -> Nothing:
