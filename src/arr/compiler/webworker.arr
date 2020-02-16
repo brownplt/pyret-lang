@@ -10,6 +10,7 @@ import file("locators/builtin.arr") as B
 import js-file("webworker") as W
 import file("compile-options.arr") as CO
 import file("./message.arr") as M
+import file("./repl.arr") as R
 
 pyret-dir = "."
 
@@ -26,6 +27,8 @@ fun compile(options, this-pyret-dir):
     compile-opts
     )
 end
+
+var repl :: Option<R.ChunkyRepl> = none
 
 compile-handler = lam(msg, send-message) block:
   # print("Got message in pyret-land: " + msg)

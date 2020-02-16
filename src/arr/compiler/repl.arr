@@ -307,3 +307,149 @@ fun make-repl<a>(
     runtime: runtime
   }
 end
+
+data ChunkyRepl:
+  | chunky-repl(compile-interaction :: (CL.Locator -> Nothing))
+end
+
+fun make-chunky-repl<a>(
+    modules :: SD.MutableStringDict<CS.Loadable>,
+    compile-context :: a,
+    make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
+
+  var globals = CS.standard-globals
+  var current-compile-options = CS.default-compile-options
+  var extra-imports = CS.standard-imports
+  var current-modules = modules
+  var locator-cache = SD.make-mutable-string-dict()
+  var current-interaction = 0
+  var current-finder = make-finder()
+
+  finder = lam(context, dep):
+    if CS.is-dependency(dep):
+      cases(Option) locator-cache.get-now(dep.arguments.first):
+        | some(l) => CL.located(l, context)
+        | none => current-finder(context, dep)
+      end
+    else:
+      current-finder(context, dep)
+    end
+  end
+
+  fun update-env(result, loc, cr) block:
+    dep = CS.dependency("repl", [list: loc.uri()])
+
+    new-globals = filter-env-by-imports(cr.post-compile-env, globals)
+    globals := new-globals
+
+    locator-cache.set-now(loc.uri(), loc)
+
+  end
+  fun restart-interactions(defs-locator :: CL.Locator, options :: CS.CompileOptions) block:
+    current-interaction := 0
+    current-compile-options := options
+    locator-cache := SD.make-mutable-string-dict()
+    current-modules := modules.freeze().unfreeze() # Make a copy
+    extra-imports := CS.standard-imports
+    current-finder := make-finder()
+    globals := defs-locator.get-globals()
+    worklist = CL.compile-worklist-known-modules(finder, defs-locator, compile-context, current-modules)
+    compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
+    for SD.each-key-now(k from compiled.modules):
+      current-modules.set-now(k, compiled.modules.get-value-now(k))
+    end
+  end
+
+  fun compile-interaction(repl-locator :: CL.Locator) block:
+    worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
+    compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
+    for SD.each-key-now(k from compiled.modules) block:
+      m = compiled.modules.get-value-now(k)
+      current-modules.set-now(k, compiled.modules.get-value-now(k))
+    end
+    nothing
+  end
+
+  fun make-interaction-locator(get-interactions) block:
+    current-interaction := current-interaction + 1
+    this-interaction = current-interaction
+    uri = "interactions://" + num-to-string(this-interaction)
+    var ast = nothing
+    fun get-ast() block:
+      when ast == nothing block:
+        interactions = get-interactions()
+        parsed = P.surface-parse(interactions, uri)
+        ast := make-provide-for-repl(parsed, extra-imports)
+      end
+      ast
+    end
+    # Strip names from these, since they will be provided
+    extras-now = CS.extra-imports(for lists.map(ei from extra-imports.imports):
+      if is-standard-import(ei):
+        ei
+      else:
+        CS.extra-import(ei.dependency, "_", ei.values, ei.types)
+      end
+    end)
+    globals-now = globals
+    {
+      method needs-compile(self, provs): true end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): [list:] end,
+      method get-module(self): CL.pyret-ast(get-ast()) end,
+      method get-extra-imports(self): CS.extra-imports(empty) end,
+      method get-dependencies(self):
+        mod-deps = CL.get-dependencies(self.get-module(), self.uri())
+        mod-deps + self.get-extra-imports().imports.map(_.dependency)
+      end,
+      method get-globals(self): globals-now end,
+      method update-compile-context(self, ctxt): ctxt end,
+      method uri(self): uri end,
+      method name(self): "interactions" + num-to-string(this-interaction) end,
+      method set-compiled(self, env, result): nothing end,
+      method get-compiled(self, options): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    }
+  end
+
+  fun make-definitions-locator(get-defs, shadow globals):
+    var ast = nothing
+    fun get-ast() block:
+      when ast == nothing block:
+        initial-definitions = get-defs()
+        parsed = P.surface-parse(initial-definitions, "definitions://")
+        provided = make-provide-for-repl-main(parsed, globals, extra-imports)
+        ast := provided
+      end
+      ast
+    end
+    {
+      method needs-compile(self, provs): true end,
+      method get-modified-time(self): 0 end,
+      method get-options(self, options): options end,
+      method get-native-modules(self): [list:] end,
+      method get-module(self): CL.pyret-ast(get-ast()) end,
+      method get-extra-imports(self):
+        CS.standard-imports
+      end,
+      method get-dependencies(self):
+        CL.get-standard-dependencies(self.get-module(), self.uri())
+      end,
+      method get-globals(self): globals end,
+      method uri(self): "definitions://" end,
+      method name(self): "definitions" end,
+      method set-compiled(self, env, result): nothing end,
+      method get-compiled(self, options): none end,
+      method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
+    }
+  end
+
+  #{
+  #  compile-interaction: compile-interaction,
+  #  make-interaction-locator: make-interaction-locator,
+  #  make-definitions-locator: make-definitions-locator,
+  #}
+
+  chunky-repl(compile-interaction)
+end
