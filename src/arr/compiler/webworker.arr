@@ -35,12 +35,14 @@ compile-handler = lam(msg, send-message) block:
   spy: opts, msg end
   
   fun log(s, to-clear):
-    d = [SD.string-dict: "type", J.j-str("echo-log"), "contents", J.j-str(s)]
-    with-clear = cases(Option) to-clear:
-      | none => d.set("clear-first", J.j-bool(false))
-      | some(n) => d.set("clear-first", J.j-num(n))
+    clear-first = cases(Option) to-clear:
+      | none =>
+        M.clear-false
+      | some(n) =>
+        M.clear-number(n)
     end
-    send-message(J.j-obj(with-clear).serialize())
+    response = M.echo-log(s, clear-first)
+    response.send(send-message)
   end
   fun err(s):
     d = [SD.string-dict: "type", J.j-str("echo-err"), "contents", J.j-str(s)]
