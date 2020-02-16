@@ -68,7 +68,7 @@ data Response:
   | err(contents :: String)
   | lint-failure(program-source, err-list)
   | lint-success(program-source)
-  | make-repl-success
+  | create-repl-success
 sharing:
   method to-json(self :: Response) -> J.JSON:
     cases(Response) self:
@@ -92,9 +92,9 @@ sharing:
             "type", J.j-str("lint-success"),
             "data", J.j-obj([SD.string-dict:
                 "name", J.j-str(program-source)])])
-      | make-repl-success =>
+      | create-repl-success =>
         J.j-obj([SD.string-dict:
-            "type", J.j-str("make-repl-success")])
+            "type", J.j-str("create-repl-success")])
     end
   end,
   method send-using(self :: Response, sender :: (String -> Nothing)) -> Nothing:
@@ -163,6 +163,10 @@ fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-com
     end)
 end
 
+fun parse-create-repl-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-create-repl)>:
+  create-repl
+end
+
 # Creates a Request out of a string dict, returning none when the dict could not be parsed.
 fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
   cases(Option) dict.get("request"):
@@ -172,6 +176,8 @@ fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
         parse-lint-dict(dict)
       else if request == "compile-program":
         parse-compile-dict(dict)
+      else if request == "create-repl":
+        parse-create-repl-dict(dict)
       else:
         none
       end
