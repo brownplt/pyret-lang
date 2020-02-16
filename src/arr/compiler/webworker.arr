@@ -49,7 +49,7 @@ compile-handler = lam(msg, send-message) block:
   # enable-spies = not(opts.has-key("no-spies"))
   with-logger = opts.set("log", log)
   with-error = with-logger.set("log-error", err)
-  compile-opts = CO.populate-options(with-error, pyret-dir)
+  # compile-opts = CO.populate-options(with-error, pyret-dir)
 
   cases(M.Request) request:
     | lint-program(program, program-source) =>
