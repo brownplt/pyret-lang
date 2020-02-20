@@ -613,6 +613,8 @@ class Editor extends React.Component<EditorProps, EditorState> {
             </SingleCodeMirrorDefinitions>;
         }
         else if (this.state.editorMode === EEditor.Chunks) {
+            control.createRepl();
+
             return (<DefChunks
                 lintFailures={this.state.lintFailures}
                 name={this.state.currentFileName}

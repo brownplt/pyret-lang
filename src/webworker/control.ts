@@ -143,6 +143,10 @@ export const run = (
     });
 };
 
+export const createRepl = () => {
+  backend.createRepl(worker);
+};
+
 export const setupWorkerMessageHandler = (
   onLog: (l: string) => void,
   setupFinished: () => void,
