@@ -173,7 +173,7 @@ fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-com
 end
 
 fun parse-create-repl-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-create-repl)>:
-  create-repl
+  some(create-repl)
 end
 
 # Creates a Request out of a string dict, returning none when the dict could not be parsed.
