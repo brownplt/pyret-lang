@@ -207,7 +207,7 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
   function onComplete(result) {
     // This function is *not* on the Pyret stack, so no need to pause
     if(runtime.isSuccessResult(result)) {
-      postMessage(JSON.stringify({response: "setup-finished"}));
+      postMessage(JSON.stringify({type: "setup-finished"}));
       console.log("Worker setup done, ready to receive compilation requests");
     }
     else if (runtime.isFailureResult(result)) {

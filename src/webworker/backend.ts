@@ -44,9 +44,8 @@ export const makeBackendMessageHandler = (
     try {
       var msgObject: any = JSON.parse(e.data);
 
-      var msgType = msgObject["response"];
+      var msgType = msgObject["type"];
       if (msgType === undefined) {
-        echoLog("OH NO!" + JSON.stringify(msgObject));
         return null;
       } else if (msgType === "echo-log") {
         echoLog(msgObject.contents);
