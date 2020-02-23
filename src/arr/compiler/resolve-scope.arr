@@ -1234,28 +1234,38 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         end
       end
 
-
-
       fun expand-name-spec(which-dict, which-bindings, which-env, get-provided-bindings, spec, pre-path):
         cases(A.NameSpec) spec:
           | s-star(shadow l, hidden) =>
             remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
-            cases(Option) remote-reference-uri:
+            cases(Option) remote-reference-uri block:
               | none =>
-                for each(shadow k from which-env.keys-list()):
+                keys = which-env.keys-list()
+                for each(h from hidden):
+                  when not(lists.member(keys, h.toname())):
+                    name-errors := link(C.wf-err-split("The name " + h.toname() + " is listed as hidden but was not provided.", [list: l]), name-errors)
+                  end
+                end
+                for each(shadow k from keys):
                   bind = which-env.get-value(k)
-                  when(bind.origin.new-definition and not(is-hidden(hidden, bind.atom.toname()))):
+                  when(bind.origin.new-definition):
                     maybe-add(hidden, which-dict, bind.atom.toname(), {l; none; bind.atom})
                   end
                 end
               | some(uri) =>
                 bindings-from-module = get-provided-bindings(initial-env.provides-by-uri-value(uri))
-                for each(shadow k from bindings-from-module.keys-list()):
+                keys = bindings-from-module.keys-list()
+                for each(h from hidden):
+                  when not(lists.member(keys, h.toname())):
+                    name-errors := link(C.wf-err-split("The name " + h.toname() + " is listed as hidden but was not provided.", [list: l]), name-errors)
+                  end
+                end
+                for each(shadow k from keys):
                   # NOTE(joe): This is where we would do something like
                   # "prefix-out" by doing `prefix + k` below. The k that's the
                   # key in set-now is the name it's provided as, and the k in
                   # the s-name is the name to look for in the original module
-                  which-dict.set-now(k, {l; remote-reference-uri; A.s-name(l, k) })
+                  maybe-add(hidden, which-dict, k, {l; none; A.s-name(l, k)})
                 end
             end
           | s-module-ref(shadow l, path, as-name) =>
@@ -1287,8 +1297,6 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         cases(A.NameSpec) spec:
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
             remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
-            # TODO(joe): need to condition on pre-path being empty/referring to
-            # another module as above in expand-name-spec
             cases(Option) remote-reference-uri:
               | none => 
                 for each(k from datatypes.keys-list-now()):

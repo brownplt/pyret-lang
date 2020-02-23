@@ -9,6 +9,7 @@ import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 
+
 fun string-to-named-locator(program :: String, name :: String):
   {
     method needs-compile(self, provs): true end,
