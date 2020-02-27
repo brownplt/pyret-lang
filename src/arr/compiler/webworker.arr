@@ -110,42 +110,6 @@ compile-handler = lam(msg, send-message) block:
           end
         | create-repl =>
           builtin-js-dir = "/compiled/builtin"
-          
-          #fun get-builtin-loadable(raw, uri) -> CL.Loadable:
-          #  provs = CS.provides-from-raw-provides(uri, {
-          #      uri: uri,
-          #      values: raw-array-to-list(raw.get-raw-value-provides()),
-          #      aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-          #      datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-          #    })
-          #  CL.module-as-string(
-          #    AU.canonicalize-provides(provs, CS.no-builtins),
-          #    CS.no-builtins,
-          #    CS.ok(JSP.ccp-string(raw.get-raw-compiled())))
-          #end
-
-          ## TODO (michael): there's got to be a better way
-          #builtin-files :: List<String> =
-          #  [list: "option", "runtime", "global", "list-immutable", "list", "chart-lib", "data-source", "image", "unified", "string-dict-immutable", "tables", "file", "chart", "either", "string", "array", "string-dict", "js-numbers"]
-          #fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
-          #  modules = [SD.mutable-string-dict: ]
-          #  for each(b from builtin-files):
-          #    #modules.set-now(b.uri, get-builtin-loadable(b.raw, b.uri))
-          #    builtin-locator = CLI.get-builtin-locator(builtin-js-dir, [list: ], b, {builtin-js-dirs: [list: builtin-js-dir]})
-          #    modules.set-now(b,
-          #      CLI.get-loadable(builtin-js-dir, [list: ], builtin-locator).value)
-          #  end
-          #  modules
-          #end
-
-          #fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
-          #  dict = [SD.mutable-string-dict: ]
-          #  the-locator = B.maybe-make-builtin-locator("global", { builtin-js-dirs: [list: builtin-js-dir ] }).value
-          #  the-located = CL.located(the-locator, "")
-          #  dict.set-now(
-          #    "global", CLI.get-loadable(builtin-js-dir, [list: ], the-located).value)
-          #  dict
-          #end
 
           fun make-find-module() -> (String, CS.Dependency -> CL.Located<String>):
             locator-cache = [SD.mutable-string-dict: ]
