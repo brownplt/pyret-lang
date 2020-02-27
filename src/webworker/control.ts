@@ -154,7 +154,10 @@ export const setupWorkerMessageHandler = (
   onRuntimeFailure: (e: string[]) => void,
   lintFailure: (data: { name: string, errors: string[]}) => void,
   lintSuccess: (data: { name: string }) => void,
-  onCompileSuccess: () => void): void => {
+  onCompileSuccess: () => void,
+  onCreateReplSuccess: () => void,
+  onCompileInteractionSuccess: (data: { program: string }) => void,
+  onCompileInteractionFailure: (data: { program: string }) => void): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
     setupFinished,
@@ -162,7 +165,10 @@ export const setupWorkerMessageHandler = (
     onRuntimeFailure,
     lintFailure,
     lintSuccess,
-    onCompileSuccess);
+    onCompileSuccess,
+    onCreateReplSuccess,
+    onCompileInteractionSuccess,
+    onCompileInteractionFailure);
 };
 
 export const openOrCreateFile = (path: string): string => {

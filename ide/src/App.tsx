@@ -343,6 +343,21 @@ class Editor extends React.Component<EditorProps, EditorState> {
                 } else {
                     invalidCompileState(this.state.compileState);
                 }
+            },
+            () => {
+                // onCreateReplSuccess
+                console.log("REPL successfully created");
+                return;
+            },
+            (response) => {
+                // onCompileInteractionSuccess
+                console.log(`Chunk ${response.program} successfully compiled.`);
+                return;
+            },
+            (response) => {
+                // onCompileInteractionFailure
+                console.error(`Failed to compile ${response.program}.`);
+                return;
             });
 
         this.state = {

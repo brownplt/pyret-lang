@@ -35,7 +35,10 @@ export const makeBackendMessageHandler = (
   runtimeFailure: (e: string[]) => void,
   lintFailure: (data: { name: string, errors: string[]}) => void,
   lintSuccess: (data: { name: string }) => void,
-  compileSuccess: () => void): ((e: MessageEvent) => null | void) => {
+  compileSuccess: () => void,
+  createReplSuccess: () => void,
+  compileInteractionSuccess: (data: { program: string }) => void,
+  compileInteractionFailure: (data: { program: string }) => void): ((e: MessageEvent) => null | void) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
       return null;
@@ -66,11 +69,11 @@ export const makeBackendMessageHandler = (
         console.log("compile-time: ", window.performance.now() - compileStart);
         compileSuccess();
       } else if (msgType === "create-repl-success") {
-        console.log("REPL successfully created");
+        createReplSuccess();
       } else if (msgType === "compile-interaction-success") {
-        console.log(`Chunk ${msgObject.program} successfully compiled.`)
+        compileInteractionSuccess({program: msgObject.program});
       } else if (msgType === "compile-interaction-failure") {
-        console.error(`Failed to compile ${msgObject.program}.`)
+        compileInteractionFailure({program: msgObject.program});
       } else {
         return null;
       }
