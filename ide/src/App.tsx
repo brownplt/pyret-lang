@@ -469,9 +469,15 @@ class Editor extends React.Component<EditorProps, EditorState> {
                     `${this.currentFile}.chunk.${i}`,
                     chunkstrs[i]);
             }
-        }
 
-        this.run(false);
+            for (let i = 0; i < chunkstrs.length; i++) {
+                console.log(`Sending message to webworker to compile: ${this.currentFile}.chunk.${i}`)
+                control.backend.compileInteraction(control.worker, `${this.currentFile}.chunk.${i}`);
+                // todo: wait for response before compiling more chunks
+            }
+        } else {
+            this.run(false);
+        }
     }
 
     onEdit = (value: string): void => {

@@ -26,7 +26,7 @@
           return onCompile.app(message, respondForPy);
         }, function(result) {
           if(RUNTIME.isFailureResult(result)) {
-            console.error("Error from compile:", result);
+            console.error(result);
           }
           else {
             console.log("Success:", result);

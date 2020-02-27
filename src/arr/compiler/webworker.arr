@@ -12,6 +12,7 @@ import file("./compile-options.arr") as CO
 import file("./file.arr") as F
 import file("./js-of-pyret.arr") as JSP
 import file("./locators/builtin.arr") as B
+import file("locators/file.arr") as FL
 import file("./message.arr") as M
 import file("./repl.arr") as R
 import js-file("webworker") as W
@@ -97,38 +98,63 @@ compile-handler = lam(msg, send-message) block:
                   nothing
               end
           end
+        | compile-interaction(program) =>
+          cases(O.Option) repl block:
+            | none =>
+              M.compile-interaction-failure(program).send-using(send-message)
+              nothing
+            | some(the-repl) =>
+              the-locator = FL.file-locator(program, CS.standard-globals)
+              the-repl.compile-interaction(the-locator)
+              M.compile-interaction-success(program).send-using(send-message)
+          end
         | create-repl =>
           builtin-js-dir = "/compiled/builtin"
           
-          fun get-builtin-loadable(raw, uri) -> CL.Loadable:
-            provs = CS.provides-from-raw-provides(uri, {
-                uri: uri,
-                values: raw-array-to-list(raw.get-raw-value-provides()),
-                aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-                datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-              })
-            CL.module-as-string(
-              AU.canonicalize-provides(provs, CS.no-builtins),
-              CS.no-builtins,
-              CS.ok(JSP.ccp-string(raw.get-raw-compiled())))
-          end
-          
-          fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
-            modules = [SD.mutable-string-dict: ]
-            for each(b from F.list-files(builtin-js-dir)):
-              modules.set-now(b.uri, get-builtin-loadable(b.raw, b.uri))
-            end
-            modules
-          end
-          
+          #fun get-builtin-loadable(raw, uri) -> CL.Loadable:
+          #  provs = CS.provides-from-raw-provides(uri, {
+          #      uri: uri,
+          #      values: raw-array-to-list(raw.get-raw-value-provides()),
+          #      aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+          #      datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          #    })
+          #  CL.module-as-string(
+          #    AU.canonicalize-provides(provs, CS.no-builtins),
+          #    CS.no-builtins,
+          #    CS.ok(JSP.ccp-string(raw.get-raw-compiled())))
+          #end
+
+          ## TODO (michael): there's got to be a better way
+          #builtin-files :: List<String> =
+          #  [list: "option", "runtime", "global", "list-immutable", "list", "chart-lib", "data-source", "image", "unified", "string-dict-immutable", "tables", "file", "chart", "either", "string", "array", "string-dict", "js-numbers"]
+          #fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
+          #  modules = [SD.mutable-string-dict: ]
+          #  for each(b from builtin-files):
+          #    #modules.set-now(b.uri, get-builtin-loadable(b.raw, b.uri))
+          #    builtin-locator = CLI.get-builtin-locator(builtin-js-dir, [list: ], b, {builtin-js-dirs: [list: builtin-js-dir]})
+          #    modules.set-now(b,
+          #      CLI.get-loadable(builtin-js-dir, [list: ], builtin-locator).value)
+          #  end
+          #  modules
+          #end
+
+          #fun get-builtin-modules() -> SD.MutableStringDict<CS.Loadable> block:
+          #  dict = [SD.mutable-string-dict: ]
+          #  the-locator = B.maybe-make-builtin-locator("global", { builtin-js-dirs: [list: builtin-js-dir ] }).value
+          #  the-located = CL.located(the-locator, "")
+          #  dict.set-now(
+          #    "global", CLI.get-loadable(builtin-js-dir, [list: ], the-located).value)
+          #  dict
+          #end
+
           fun make-find-module() -> (String, CS.Dependency -> CL.Located<String>):
             locator-cache = [SD.mutable-string-dict: ]
-            fun find-module(dependency):
+            fun find-module(unused-context, dependency):
               uri :: String = cases(CS.Dependency) dependency:
                 | builtin(modname) =>
                   "builtin://" + modname
                 | dependency(protocol, arguments) =>
-                  raise("non-builtin dependencies not yet implemented")
+                  #raise("non-builtin dependencies not yet implemented")
                   #arr = array-from-list(arguments)
                   #if protocol == "my-gdrive":
                   #  "my-gdrive://" + arr.get-now(0)
@@ -138,17 +164,19 @@ compile-handler = lam(msg, send-message) block:
                   #  "gdrive-js://" + arr.get-now(1)
                   #else:
                   #  print("Unknown import: " + dependency + "\n")
-                  #  protocol + "://" + arguments.join-str(":")
+                  protocol + "://" + arguments.join-str(":")
                   #end
               end
-              if locator-cache.has-key(uri) block:
+              if locator-cache.has-key-now(uri) block:
                 CL.located(locator-cache.get-now(uri), nothing)
               else:
                 l = cases(CS.Dependency) dependency:
                   | builtin(name) =>
                     B.make-builtin-js-locator(builtin-js-dir, name)
                   | dependency(protocol, args) =>
-                    raise("non-builtin dependencies not yet implemented")
+                    # TODO(michael): don't assume that this is a file locator
+                    FL.file-locator(args.join-str("/"), CS.standard-globals)
+                    #raise("non-builtin dependencies not yet implemented")
                 end
                 locator-cache.set-now(uri, l)
                 CL.located(l, nothing)
@@ -157,10 +185,11 @@ compile-handler = lam(msg, send-message) block:
             find-module
           end
           
-          modules = get-builtin-modules()
+          #modules = get-builtin-modules()
+          modules = [SD.mutable-string-dict: ]
           compile-context = "anchor-context-currently-unused"
-          make-finder = make-find-module()
-          repl := R.make-chunky-repl(modules, compile-context, make-finder)
+          make-finder = make-find-module
+          repl := some(R.make-chunky-repl(modules, compile-context, make-finder))
           M.create-repl-success.send-using(send-message)
       end
   end

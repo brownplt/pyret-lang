@@ -45,6 +45,11 @@ export const makeBackendMessageHandler = (
       var msgObject: any = JSON.parse(e.data);
 
       var msgType = msgObject["type"];
+
+      if (msgObject.tag === "error") {
+        console.error(JSON.parse(msgObject.data));
+      }
+
       if (msgType === undefined) {
         return null;
       } else if (msgType === "echo-log") {
@@ -60,6 +65,12 @@ export const makeBackendMessageHandler = (
       } else if (msgType === "compile-success") {
         console.log("compile-time: ", window.performance.now() - compileStart);
         compileSuccess();
+      } else if (msgType === "create-repl-success") {
+        console.log("REPL successfully created");
+      } else if (msgType === "compile-interaction-success") {
+        console.log(`Chunk ${msgObject.program} successfully compiled.`)
+      } else if (msgType === "compile-interaction-failure") {
+        console.error(`Failed to compile ${msgObject.program}.`)
       } else {
         return null;
       }
@@ -103,6 +114,26 @@ export const compileProgram = (
 
   compilerWorker.postMessage(message);
 };
+
+export const createRepl = (
+  compilerWorker: Worker): void => {
+  const message = {
+    "request": "create-repl"
+  }
+
+  compilerWorker.postMessage(message);
+};
+
+export const compileInteraction = (
+  compilerWorker: Worker,
+  interactionFullPath: string): void => {
+  const message = {
+    "request": "compile-interaction",
+    "program": interactionFullPath
+  };
+
+  compilerWorker.postMessage(message);
+}
 
 const assertNever = (_arg: never): never => {
   throw new Error('assertNever');

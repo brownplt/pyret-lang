@@ -25,6 +25,8 @@ data Request:
       type-check :: Boolean,
       recompile-builtins :: Boolean)
   | create-repl
+  | compile-interaction(
+      program :: String)
 sharing:
   method get-options(self :: Request) -> SD.StringDict<Any>:
     cases(Request) self:
@@ -43,6 +45,8 @@ sharing:
           "recompile-builtins", recompile-builtins]
       | create-repl =>
         raise(".get-options not implemented for create-repl")
+      | compile-interaction(_) =>
+        raise(".get-options not implemented for compile-interaction")
     end
   end
 end
@@ -71,6 +75,8 @@ data Response:
   | create-repl-success
   | compile-failure(err-list)
   | compile-success
+  | compile-interaction-success(program)
+  | compile-interaction-failure(program)
 sharing:
   method to-json(self :: Response) -> J.JSON:
     cases(Response) self:
@@ -104,6 +110,10 @@ sharing:
       | compile-success =>
         J.j-obj([SD.string-dict:
             "type", J.j-str("compile-success")])
+      | compile-interaction-success(program) =>
+        J.j-obj([SD.string-dict:
+            "type", J.j-str("compile-interaction-success"),
+            "program", J.j-str(program)])
     end
   end,
   method send-using(self :: Response, sender :: (String -> Nothing)) -> Nothing:
@@ -176,6 +186,15 @@ fun parse-create-repl-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is
   some(create-repl)
 end
 
+fun parse-compile-interaction-dict(dict :: SD.StringDict<Any>)
+  -> O.Option<Request % (is-compile-interaction)>:
+  bind-option(
+    dict.get("program"),
+    lam(program):
+      some(compile-interaction(program))
+    end)
+end
+
 # Creates a Request out of a string dict, returning none when the dict could not be parsed.
 fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
   cases(Option) dict.get("request"):
@@ -187,6 +206,8 @@ fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
         parse-compile-dict(dict)
       else if request == "create-repl":
         parse-create-repl-dict(dict)
+      else if request == "compile-interaction":
+        parse-compile-interaction-dict(dict)
       else:
         none
       end

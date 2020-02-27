@@ -14,6 +14,7 @@ import file("./compile-structs.arr") as CS
 import file("./compile-lib.arr") as CL
 import file("./type-structs.arr") as TS
 import file("./ast-util.arr") as AU
+import file("./file.arr") as F
 
 type Either = E.Either
 
@@ -318,7 +319,7 @@ fun make-chunky-repl<a>(
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
 
   var globals = CS.standard-globals
-  var current-compile-options = CS.default-compile-options
+  var current-compile-options = CS.default-compile-options.{ runtime-builtin-relative-path: none }
   var extra-imports = CS.standard-imports
   var current-modules = modules
   var locator-cache = SD.make-mutable-string-dict()
@@ -362,14 +363,54 @@ fun make-chunky-repl<a>(
 
   fun compile-interaction(repl-locator :: CL.Locator) block:
     worklist = CL.compile-worklist-known-modules(finder, repl-locator, compile-context, current-modules)
+    #raise(to-string(map(lam(x): x.locator.uri() end, worklist)))
     compiled = CL.compile-program-with(worklist, current-modules, current-compile-options)
     for SD.each-key-now(k from compiled.modules) block:
       m = compiled.modules.get-value-now(k)
       current-modules.set-now(k, compiled.modules.get-value-now(k))
     end
+
+    # compiled.modules.keys-now()
+    #  = [tree-set: builtin://global, file:///projects/program.arr.chunk.0]
+
+    # repl-locator.name() = "program.arr.chunk.0"
+    # repl-locator.uri() = "file:///projects/program.arr.chunk.0"
+
+    cases(Option) compiled.modules.get-now(repl-locator.uri()):
+      | none =>
+        nothing
+      | some(interaction-loadable) =>
+        cases(CS.CompileResult) interaction-loadable.result-printer block:
+          | ok(interaction-code) =>
+            interaction-js = interaction-code.pyret-to-js-runnable()
+            interaction-json = interaction-code.pyret-to-js-static()
+            
+            compiled-interaction-base-path = "/compiled/project/" + repl-locator.name()
+            compiled-interaction-js-path =  compiled-interaction-base-path + ".js"
+            compiled-interaction-json-path = compiled-interaction-base-path + ".json"
+            
+            js-out = F.output-file(compiled-interaction-js-path, false)
+            json-out = F.output-file(compiled-interaction-json-path, false)
+
+            js-out.display(interaction-js)
+            json-out.display(interaction-json)
+
+            # todo(michael): are these lines necessary?
+            js-out.flush()
+            json-out.flush()
+            js-out.close-file()
+            json-out.close-file()
+            
+            nothing
+          | err(e) =>
+            raise(e)
+            nothing
+        end
+    end
+
     nothing
   end
-
+  
   fun make-interaction-locator(get-interactions) block:
     current-interaction := current-interaction + 1
     this-interaction = current-interaction
@@ -385,12 +426,12 @@ fun make-chunky-repl<a>(
     end
     # Strip names from these, since they will be provided
     extras-now = CS.extra-imports(for lists.map(ei from extra-imports.imports):
-      if is-standard-import(ei):
-        ei
-      else:
-        CS.extra-import(ei.dependency, "_", ei.values, ei.types)
-      end
-    end)
+        if is-standard-import(ei):
+          ei
+        else:
+          CS.extra-import(ei.dependency, "_", ei.values, ei.types)
+        end
+      end)
     globals-now = globals
     {
       method needs-compile(self, provs): true end,
@@ -412,7 +453,7 @@ fun make-chunky-repl<a>(
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
-
+  
   fun make-definitions-locator(get-defs, shadow globals):
     var ast = nothing
     fun get-ast() block:
@@ -444,12 +485,12 @@ fun make-chunky-repl<a>(
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
-
+  
   #{
   #  compile-interaction: compile-interaction,
   #  make-interaction-locator: make-interaction-locator,
   #  make-definitions-locator: make-definitions-locator,
   #}
-
+  
   chunky-repl(compile-interaction)
 end
