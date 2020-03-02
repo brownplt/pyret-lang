@@ -1234,6 +1234,15 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         end
       end
 
+      fun maybe-add-remove-if-hidden(hidden, hidden-todo, which-dict, maybe-add-name :: String, to-add) block:
+        when not(is-hidden(hidden, maybe-add-name)):
+          which-dict.set-now(maybe-add-name, to-add)
+        end
+        when hidden-todo.has-key-now(maybe-add-name):
+          hidden-todo.set-now(maybe-add-name, none)
+        end
+      end
+
       fun expand-name-spec(which-dict, which-bindings, which-env, get-provided-bindings, spec, pre-path):
         cases(A.NameSpec) spec:
           | s-star(shadow l, hidden) =>
@@ -1293,7 +1302,9 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             end
         end
       end
-      fun expand-data-spec(val-env, type-env, spec, pre-path, hidden):
+
+      fun expand-data-spec(val-env, type-env, spec, pre-path, hidden, hidden-todo) block:
+        shadow maybe-add = maybe-add-remove-if-hidden(hidden, hidden-todo, _, _, _)
         cases(A.NameSpec) spec:
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
             remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
@@ -1301,7 +1312,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
               | none => 
                 for each(k from datatypes.keys-list-now()):
                   data-expr = datatypes.get-value-now(k)
-                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
+                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden, hidden-todo)
                 end
               | some(remote-uri) =>
                 datatyps-from-module = initial-env.provides-by-uri-value(remote-uri).data-definitions
@@ -1310,7 +1321,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
                     | d-alias(_, name) => name
                     | d-type(_, typ) => typ.name
                   end
-                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-name)], none), pre-path, hidden)
+                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-name)], none), pre-path, hidden, hidden-todo)
                 end
             end
           | s-module-ref(shadow l, path, as-name) =>
@@ -1319,18 +1330,18 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
               | none => # path must be a single element if there's no URI of a remote module
                         # e.g. provide: D end   NOT    provide: M.D end
                 data-expr = datatypes.get-value-now(path.first.toname())
-                maybe-add(hidden, provided-datatypes, data-expr.name, {l; none; data-expr.namet})
+                maybe-add(provided-datatypes, data-expr.name, {l; none; data-expr.namet})
                 data-checker-name = A.make-checker-name(data-expr.name)
                 data-checker-vb = val-env.get-value(data-checker-name)
-                maybe-add(hidden, provided-values, data-checker-name, {l; none; data-checker-vb.atom})
+                maybe-add(provided-values, data-checker-name, {l; none; data-checker-vb.atom})
                 data-alias-tb = type-env.get-value(data-expr.name)
-                maybe-add(hidden, provided-types, data-expr.name, {l; none; data-alias-tb.atom})
+                maybe-add(provided-types, data-expr.name, {l; none; data-alias-tb.atom})
                 for each(v from data-expr.variants) block:
                   variant-vb = val-env.get-value(v.name)
                   checker-name = A.make-checker-name(v.name)
                   variant-checker-vb = val-env.get-value(checker-name)
-                  maybe-add(hidden, provided-values, v.name, {l; none; variant-vb.atom})
-                  maybe-add(hidden, provided-values, checker-name, {l; none; variant-checker-vb.atom})
+                  maybe-add(provided-values, v.name, {l; none; variant-vb.atom})
+                  maybe-add(provided-values, checker-name, {l; none; variant-checker-vb.atom})
                 end
                 
               | some(uri) =>
@@ -1358,13 +1369,13 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
                 end
                 fun add-value-if-defined(name):
                   when(providing-module.values.has-key(name)):
-                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
+                    maybe-add(provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
                   end
                 end
-                maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
+                maybe-add(provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
                 add-value-if-defined(A.make-checker-name(datatype-name))
                 when(providing-module.aliases.has-key(datatype-name)):
-                  maybe-add(hidden, provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})
+                  maybe-add(provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})
                 end
                 for each(v from datatype.variants) block:
                   add-value-if-defined(v.name)
@@ -1373,8 +1384,9 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             end
         end
       end
+
       fun expand(provide-spec, path):
-        cases(A.ProvideSpec) provide-spec:
+        cases(A.ProvideSpec) provide-spec block:
           | s-provide-name(shadow l, name-spec) =>
             expand-name-spec(provided-values, bindings, final-visitor.env, _.values, name-spec, path)
           | s-provide-type(shadow l, name-spec) =>
@@ -1382,7 +1394,18 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
           | s-provide-module(shadow l, name-spec) =>
             expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, _.modules, name-spec, path)
           | s-provide-data(shadow l, name-spec, hidden) =>
-            expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden)
+            hidden-todo = [SD.mutable-string-dict:]
+            for each(h from hidden):
+              hidden-todo.set-now(h.toname(), some(h.l))
+            end
+            expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden, hidden-todo)
+            for SD.each-key-now(key from hidden-todo):
+              cases(Option) hidden-todo.get-value-now(key):
+                | none => nothing
+                | some(shadow l) =>
+                  name-errors := link(C.wf-err-split("The name " + key + " is listed as hidden but was not provided.", [list: l]), name-errors)
+              end
+            end
           | else => nothing
         end
       end

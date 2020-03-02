@@ -38,11 +38,9 @@ fun make-fresh-module-testing-context():
     end
   end
 
-
   fun compile-mod(name):
     loc = name-to-locator(name)
     wlist = CL.compile-worklist(dfind, loc, CLI.default-test-context)
-    spy: wlist: wlist.map(lam(x): x.locator.uri() end) end
     result = CL.compile-program(wlist, CS.default-compile-options)
     errors = result.loadables.filter(CL.is-error-compilation)
     cases(List) errors:
@@ -98,4 +96,80 @@ end
   errs is%(error-with) "j"
 end
 
+check:
+  m = make-fresh-module-testing-context()
+  m.add-module("a", ```
+provide:
+  data MyPosn hiding (j, pos2d),
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+  ```)
+
+  errs = m.compile-error-messages("a")   
+  errs is%(error-with) "j"
+end
+
+check:
+  m = make-fresh-module-testing-context()
+  m.add-module("a", ```
+provide:
+  data * hiding (pos2d, MyPosn, YourPosn),
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+data YourPosn:
+  | y-pos2d(x, y)
+  | y-pos3d(x, y, z)
+end
+  ```)
+
+  errs = m.compile-error-messages("a")   
+  errs is empty
+end
+
+check:
+  m = make-fresh-module-testing-context()
+  m.add-module("a", ```
+provide:
+  data * hiding (not-a-pos2d),
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+data YourPosn:
+  | y-pos2d(x, y)
+  | y-pos3d(x, y, z)
+end
+  ```)
+
+  errs = m.compile-error-messages("a")   
+  errs is%(error-with) "not-a-pos2d"
+end
+
+
+check:
+  m = make-fresh-module-testing-context()
+  m.add-module("a", ```
+provide:
+  data MyPosn hiding (is-pos2d),
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+data YourPosn:
+  | y-pos2d(x, y)
+  | y-pos3d(x, y, z)
+end
+  ```)
+
+  errs = m.compile-error-messages("a")   
+  errs is empty
+end
 
