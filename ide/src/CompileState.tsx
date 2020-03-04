@@ -1,6 +1,6 @@
 // This file is used to track the state of the editor.
 
-import { Editor, EditorState } from './Editor';
+import { Editor } from './Editor';
 
 // Possible states for the editor.
 export enum CompileState {
@@ -134,4 +134,36 @@ export const handleSetupFinished = (editor: Editor) => {
     } else {
         invalidCompileState(editor.state.compileState);
     }
+};
+
+export const handleCompileFailure = (editor: Editor) => {
+    return (errors: string[]) => {
+        console.log("COMPILE FAILURE");
+        if (editor.state.compileState === CompileState.Compile
+            || editor.state.compileState === CompileState.CompileRun) {
+            editor.setState({compileState: CompileState.Ready});
+
+            const places: any = [];
+            for (let i = 0; i < errors.length; i++) {
+                const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
+                if (matches !== null) {
+                    matches.forEach((m) => {
+                        places.push(m.match(/\d+/g)!.map(Number));
+                    });
+                }
+            }
+            editor.setState(
+                {
+                    interactionErrors: errors,
+                    definitionsHighlights: places
+                }
+            );
+        } else if (editor.state.compileState === CompileState.CompileQueue
+                   || editor.state.compileState === CompileState.CompileRunQueue) {
+            editor.setState({compileState: CompileState.Ready});
+            editor.update();
+        } else {
+            invalidCompileState(editor.state.compileState);
+        }
+    };
 };

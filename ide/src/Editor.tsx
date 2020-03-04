@@ -1,6 +1,14 @@
 import React from 'react';
 import './App.css';
-import { CompileState, compileStateToString, invalidCompileState, handleSetupFinished } from './CompileState';
+
+import {
+    CompileState,
+    compileStateToString,
+    invalidCompileState,
+    handleSetupFinished,
+    handleCompileFailure,
+} from './CompileState';
+
 import { Interaction } from './Interaction';
 import { Check, TestResult } from './Check';
 import { DefChunks, CHUNKSEP } from './DefChunks';
@@ -113,35 +121,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         control.setupWorkerMessageHandler(
             console.log,
             () => handleSetupFinished(this),
-            (errors: string[]) => {
-                console.log("COMPILE FAILURE");
-                if (this.state.compileState === CompileState.Compile
-                    || this.state.compileState === CompileState.CompileRun) {
-                    this.setState({compileState: CompileState.Ready});
-
-                    const places: any = [];
-                    for (let i = 0; i < errors.length; i++) {
-                        const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
-                        if (matches !== null) {
-                            matches.forEach((m) => {
-                                places.push(m.match(/\d+/g)!.map(Number));
-                            });
-                        }
-                    }
-                    this.setState(
-                        {
-                            interactionErrors: errors,
-                            definitionsHighlights: places
-                        }
-                    );
-                } else if (this.state.compileState === CompileState.CompileQueue
-                           || this.state.compileState === CompileState.CompileRunQueue) {
-                    this.setState({compileState: CompileState.Ready});
-                    this.update();
-                } else {
-                    invalidCompileState(this.state.compileState);
-                }
-            },
+            handleCompileFailure(this),
             (errors: string[]) => {
                 this.setState(
                     {
