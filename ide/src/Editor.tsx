@@ -131,40 +131,22 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     }
 
     run = State.handleRun(this)
-
     update = State.handleUpdate(this)
-
     onEdit = State.handleEdit(this)
-
-    onTraverseDown = (path: string[]) => {
-        this.setState({
-            browsePath: path,
-        });
-    };
-
-    onTraverseUp = (path: string[]) => {
-        this.setState({
-            browsePath: path,
-        });
-    };
-
-    onExpandChild = (child: string, fullChildPath: string): void => {
-        this.setState({
-            interactions: [{
-                key: "Note",
-                name: "Note",
-                value: "Press Run to compile and run"
-            }],
-            currentFileDirectory: this.state.browsePath,
-            currentFileName: child,
-            currentFileContents: control.fs
-                                        .readFileSync(fullChildPath, "utf-8"),
-        });
-    };
-
-    setEditorMode = (editorMode: EditorMode) => {
-        this.setState({ editorMode });
-    }
+    onTraverseDown = State.handleTraverseDown(this)
+    onTraverseUp = State.handleTraverseUp(this)
+    onExpandChild = State.handleExpandChild(this)
+    setEditorMode = State.handleSetEditorMode(this)
+    toggleDropdownVisibility = State.handleToggleDropdownVisibility(this)
+    toggleAutoRun = State.handleToggleAutoRun(this)
+    toggleStopify = State.handleToggleStopify(this)
+    toggleTypeCheck = State.handleToggleTypeCheck(this)
+    onDecreaseFontSize = State.handleDecreaseFontSize(this)
+    onIncreaseFontSize = State.handleIncreaseFontSize(this)
+    onResetFontSize = State.handleResetFontSize(this)
+    removeDropdown = State.handleRemoveDropdown(this)
+    setMessage = State.handleSetMessage(this)
+    stop = State.handleStop(this)
 
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
         control.loadBuiltins();
@@ -181,78 +163,6 @@ export class Editor extends React.Component<EditorProps, EditorState> {
                 {text}
             </button>
         );
-    };
-
-    toggleDropdownVisibility = (e: any) => {
-        this.setState({
-            dropdownVisible: !this.state.dropdownVisible
-        });
-    };
-
-    toggleAutoRun = () => {
-        this.setState({
-            autoRun: !this.state.autoRun
-        });
-    };
-
-    toggleStopify = () => {
-        if (this.stopify) {
-            this.setState({
-                runKind: control.backend.RunKind.Sync
-            });
-        } else {
-            this.setState({
-                runKind: control.backend.RunKind.Async
-            })
-        }
-    };
-
-    toggleTypeCheck = () => {
-        this.setState({
-            typeCheck: !this.state.typeCheck
-        });
-    };
-
-    onDecreaseFontSize = () => {
-        if (this.state.fontSize > 1) {
-            this.setState({
-                fontSize: this.state.fontSize - 1
-            });
-        }
-    };
-
-    onIncreaseFontSize = () => {
-        this.setState({
-            fontSize: this.state.fontSize + 1
-        });
-    };
-
-    onResetFontSize = () => {
-        this.setState({
-            fontSize: 12
-        });
-    };
-
-    removeDropdown = () => {
-        this.setState({
-            dropdownVisible: false
-        });
-    };
-
-    setMessage = (newMessage: string) => {
-        this.setState({
-            message: newMessage
-        });
-    };
-
-    stop = () => {
-        if (this.state.currentRunner !== undefined) {
-            this.state.currentRunner.pause((line: number) => console.log("paused on line", line))
-            this.setState({
-                currentRunner: undefined,
-                compileState: State.CompileState.Stopped
-            });
-        }
     };
 
     makeDefinitions() {

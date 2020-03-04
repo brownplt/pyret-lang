@@ -1,4 +1,5 @@
-// This file is used to track the state of the editor.
+// This file is used to track the state of the editor. Any function that calls
+// .setState on an Editor should be written here
 
 import { Editor, EditorMode } from './Editor';
 import { CHUNKSEP } from './DefChunks';
@@ -419,5 +420,136 @@ export const handleEdit = (editor: Editor) => {
                 editor.update();
             }, 250),
         });
+    };
+};
+
+export const handleTraverseDown = (editor: Editor): any => {
+    return (path: string[]) => {
+        editor.setState({
+            browsePath: path,
+        });
+    };
+};
+
+export const handleTraverseUp = (editor: Editor): any => {
+    return (path: string[]) => {
+        editor.setState({
+            browsePath: path,
+        });
+    };
+};
+
+export const handleExpandChild = (editor: Editor): any => {
+    return (child: string, fullChildPath: string): void => {
+        editor.setState({
+            interactions: [{
+                key: "Note",
+                name: "Note",
+                value: "Press Run to compile and run"
+            }],
+            currentFileDirectory: editor.state.browsePath,
+            currentFileName: child,
+            currentFileContents: control.fs
+                                        .readFileSync(fullChildPath, "utf-8"),
+        });
+    };
+};
+
+export const handleSetEditorMode = (editor: Editor) => {
+    return (editorMode: EditorMode) => {
+        editor.setState({ editorMode });
+    };
+};
+
+export const handleToggleDropdownVisibility = (editor: Editor) => {
+    return (e: any) => {
+        editor.setState({
+            dropdownVisible: !editor.state.dropdownVisible
+        });
+    };
+};
+
+export const handleToggleAutoRun = (editor: Editor) => {
+    return () => {
+        editor.setState({
+            autoRun: !editor.state.autoRun
+        });
+    };
+};
+
+export const handleToggleStopify = (editor: Editor) => {
+    return () => {
+        if (editor.stopify) {
+            editor.setState({
+                runKind: control.backend.RunKind.Sync
+            });
+        } else {
+            editor.setState({
+                runKind: control.backend.RunKind.Async
+            })
+        }
+    };
+};
+
+export const handleToggleTypeCheck = (editor: Editor) => {
+    return () => {
+        editor.setState({
+            typeCheck: !editor.state.typeCheck
+        });
+    };
+};
+
+export const handleDecreaseFontSize = (editor: Editor) => {
+    return () => {
+        if (editor.state.fontSize > 1) {
+            editor.setState({
+                fontSize: editor.state.fontSize - 1
+            });
+        }
+    };
+};
+
+export const handleIncreaseFontSize = (editor: Editor) => {
+    return () => {
+        editor.setState({
+            fontSize: editor.state.fontSize + 1
+        });
+    };
+};
+
+export const handleResetFontSize = (editor: Editor) => {
+    return () => {
+        editor.setState({
+            fontSize: 12
+        });
+    };
+};
+
+export const handleRemoveDropdown = (editor: Editor) => {
+    return () => {
+        editor.setState({
+            dropdownVisible: false
+        });
+    };
+};
+
+export const handleSetMessage = (editor: Editor) => {
+    return (newMessage: string) => {
+        editor.setState({
+            message: newMessage
+        });
+    };
+};
+
+export const handleStop = (editor: Editor) => {
+    return () => {
+        if (editor.state.currentRunner !== undefined) {
+            editor.state.currentRunner.pause(
+                (line: number) => console.log("paused on line", line))
+            editor.setState({
+                currentRunner: undefined,
+                compileState: CompileState.Stopped
+            });
+        }
     };
 };
