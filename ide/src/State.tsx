@@ -8,96 +8,178 @@ import * as control from './control';
 
 // Possible states for the editor.
 export enum CompileState {
-    // Starting state for the application. We are waiting for the webworker to
-    // give us confirmation that it has finished its setup phase and is ready
-    // to receive compilation requests.
+    // Starting state for the application.
     //
-    // Startup -> StartupQueue
-    //   The user edits the definitions area or clicks "run".
+    // Text Mode - We are able to handle compilation requests as soon as the
+    // webworker finishes its setup.
     //
-    // Startup -> Ready
-    //   The webworker finishes its setup.
+    //   Startup -> StartupQueue
+    //     The user edits the definitions area or clicks "run".
+    //
+    //   Startup -> Ready
+    //     The webworker finishes its setup.
+    //
+    // Chunk Mode - We must initialize a REPL after the webworker finishes its
+    // setup before we can compile anything.
+    //
+    //   Startup -> StartupQueue
+    //     The user edits a chunk or clicks "run".
+    //
+    //   Startup -> StartupRepl
+    //     The webworker finishes its setup
     Startup,
 
+    // Text Mode - we should never enter this state
+    //
+    // Chunk Mode - We are waiting for the webworker to respond about our
+    // request to initialize a REPL.
+    //
+    //   StartupRepl -> StartupReplQueue
+    //     The user edits a chunk or clicks "run".
+    //
+    //   StartupRepl -> Ready
+    //     The webworker successfully creates a Repl.
+    StartupRepl,
+
     // We are waiting for the webworker to give us confirmation that it has
-    // finished its setup phase so that we can satisfy a queued compilation
-    // request.
+    // finished its setup phase.
     //
-    // StartupQueue -> StartupQueue
-    //   The user edits the definitions area or clicks "run".
+    // Text Mode - we are waiting to satisfy a queued compilation request.
     //
-    // StartupQueue -> Compile
-    //   The webworker finishes its setup
+    //   StartupQueue -> StartupQueue
+    //     The user edits the definitions area or clicks "run".
+    //
+    //   StartupQueue -> Compile
+    //     The webworker finishes its setup.
+    //
+    // Chunk Mode - we are waiting for setup to finish so we can create a REPL
+    // which we will use to satisfy a queued compilation request.
+    //
+    //   StartupQueue -> StartupQueue
+    //     The user edits a chunk or clicks "run".
+    //
+    //   StartupQueue -> StartupReplQueue
+    //     The webworker finishes its setup.
     StartupQueue,
 
-    // We are able to immediately satisfy any compilation requests.
+    // Text Mode - we should never enter this state.
     //
-    // Ready -> Compile
-    //   The user edits the definitions area or clicks "run".
+    // Chunk Mode - we are waiting for a REPL to be created which we will use to
+    // satisfy a queued compilation request.
+    //
+    //    StartupReplQueue -> StartupReplQueue
+    //      The user edits a chunk or clicks "run".
+    //
+    //    StartupReplQueue -> Compile
+    //      The webworker creates a REPL.
+    StartupReplQueue,
+
+    // Text Mode & Chunk Mode - We are able to immediately satisfy any
+    // compilation requests.
+    //
+    //   Ready -> Compile
+    //     The user edits the definitions area or clicks "run".
     Ready,
 
-    // We are compiling the program. Any compilation request generated during
-    // this state will queue it for later.
+    // Text Mode & Chunk Mode - We are compiling a program. Any
+    // compilation request generated during this state will queue it for later.
     //
-    // Compile -> CompileQueue
-    //   The user edits the definitions area or clicks "run".
+    //   Compile -> CompileQueue
+    //     The user edits the definitions area / chunk, or clicks "run".
     //
-    // Compile -> RunningWithStops
-    //   Compilation (with stopify) succeeded and autoRun is enabled. The
-    //   program is run.
+    //   Compile -> RunningWithStops
+    //     Compilation (with stopify) succeeded and autoRun is enabled. The
+    //     program is run.
     //
-    // Compile -> RunningWithoutStops
-    //   Compilation (without stopify) succeeded and autoRun is enabled. The
-    //   program is run.
+    //   Compile -> RunningWithoutStops
+    //     Compilation (without stopify) succeeded and autoRun is enabled. The
+    //     program is run.
     //
-    // Compile -> Ready
-    //   Compilation failed.
+    //   Compile -> Ready
+    //     Compilation failed.
     Compile,
 
-    // We have received a compilation request during a compilation.
+    // Text Mode & Chunk Mode - We have received a compilation request during a
+    // compilation.
     //
-    // CompileQueue -> CompileQueue
-    //   The user edits the definitions area or clicks "run".
+    //   CompileQueue -> CompileQueue
+    //     The user edits the definitions area or clicks "run".
     //
-    // CompileQueue -> Compile
-    //   Compilation either succeeded or failed. Either way, the program is not
-    //   run.
+    //   CompileQueue -> Compile
+    //     Compilation either succeeded or failed. Either way, the program is not
+    //     run.
     CompileQueue,
 
     CompileRun,
     CompileRunQueue,
 
-    // The program (which has been compiled with Stopify) is running. It can be
-    // stopped by the user when the press the "stop" button.
+    // Text Mode - The program (which has been compiled with Stopify) is running.
+    // It can be stopped by the user when they press the "stop" button.
     //
-    // RunningWithStops -> Stopped
-    //   The user presses the "stop" button. The program is stopped.
+    //   RunningWithStops -> Stopped
+    //     The user presses the "stop" button. The program is stopped.
     //
-    // RunningWithStops -> Ready
-    //   The program finishes its execution.
+    //   RunningWithStops -> Ready
+    //     The program finishes its execution.
     //
-    // RunningWithStops -> Compile
-    //   The user edits the definitions area or hits "run".
+    //   RunningWithStops -> Compile
+    //     The user edits the definitions area or hits "run".
+    //
+    // Chunk Mode - A chunk (which has been compiled with Stopify) is running. It
+    // can be stopped by the user when they press the "stop" button. Once the chunk
+    // terminates, the next chunk (the one below it) is compiled.
+    //
+    //   RunningWithStops -> Stopped
+    //     The user presses the "stop" button. The chunk is stopped.
+    //
+    //   RunningWithStops -> Ready
+    //     The chunk finishes its execution and it was the last chunk (i.e., there
+    //     are no chunks below it on the page to compile and run).
+    //
+    //   RunningWithStops -> Compile
+    //     The chunk finishes its execution and is not the last chunk on the page.
+    //     The next chunk will now be compiled.
+    //
+    //   RunningWithStops -> Compile
+    //     The user edits a chunk or hits "run".
     RunningWithStops,
 
-    // The program is running. It has not been compiled with Stopify, so it
-    // cannot be interrupted.
+    // Text Mode - The program is running. It has not been compiled with Stopify,
+    // so it cannot be interrupted.
     //
-    // RunningWithoutStops -> Ready
-    //   The program finishes its execution
+    //   RunningWithoutStops -> Ready
+    //     The program finishes its execution
+    //
+    // Chunk Mode - The chunk is running. It has not been compiled with Stopify, so
+    // it cannot be interrupted.
+    //
+    //   RunningWithoutStops -> Ready
+    //     The chunk finishes its execution and it was the last chunk on the page.
+    //
+    //   RunningWithoutStops => Compile
+    //     The chunk finishes its execution and it was not the last chunk on the page.
+    //     The next chunk will now be compiled.
     RunningWithoutStops,
 
-    // Stopped -> Compile
-    //   The user edits the definitions area or hits  the "run" button.
+    // Text Mode & Chunk Mode - The running of a program or chunk has been stopped
+    // with the "stop" button.
+    //
+    //   Stopped -> Compile
+    //     The user edits the definitions area or hits the "run" button.
     Stopped,
 }
 
-export const compileStateToString = (state: CompileState): string => {
+export const editorStateToString = (editor: Editor): string => {
     // TODO(michael): these could be more pirate-themed
+    const state = editor.state.compileState;
     if (state === CompileState.Startup) {
         return "Finishing setup";
+    } else if (state === CompileState.StartupRepl) {
+        return "initializing REPL";
     } else if (state === CompileState.StartupQueue) {
         return "Compile request on hold: finishing setup";
+    } else if (state === CompileState.StartupReplQueue) {
+        return "Compile request on hold: initializing REPL"
     } else if (state === CompileState.Ready) {
         return "Ready";
     } else if (state === CompileState.Compile) {
@@ -199,13 +281,23 @@ export const handleSetupFinished = (editor: Editor) => {
     return () => {
         console.log("setup finished");
 
-        if (editor.state.compileState === CompileState.Startup) {
-            editor.setState({compileState: CompileState.Ready});
-        } else if (editor.state.compileState === CompileState.StartupQueue) {
-            editor.setState({compileState: CompileState.Ready});
-            editor.update();
-        } else {
-            invalidCompileState(editor.state.compileState);
+        if (editor.state.editorMode === EditorMode.Text) {
+            if (editor.state.compileState === CompileState.Startup) {
+                editor.setState({compileState: CompileState.Ready});
+            } else if (editor.state.compileState === CompileState.StartupQueue) {
+                editor.setState({compileState: CompileState.Ready});
+                editor.update();
+            } else {
+                invalidCompileState(editor.state.compileState);
+            }
+        } else if (editor.state.editorMode === EditorMode.Chunks) {
+            if (editor.state.compileState === CompileState.Startup) {
+                editor.setState({compileState: CompileState.StartupRepl});
+            } else if (editor.state.compileState === CompileState.StartupQueue) {
+                editor.setState({compileState: CompileState.StartupReplQueue});
+            } else {
+                invalidCompileState(editor.state.compileState);
+            }
         }
     };
 };

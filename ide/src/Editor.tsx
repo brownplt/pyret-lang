@@ -116,8 +116,6 @@ export class Editor extends React.Component<EditorProps, State.EditorState> {
             </SingleCodeMirrorDefinitions>;
         }
         else if (this.state.editorMode === EditorMode.Chunks) {
-            control.createRepl();
-
             return (<DefChunks
                 lintFailures={this.state.lintFailures}
                 name={this.state.currentFileName}
@@ -260,7 +258,7 @@ export class Editor extends React.Component<EditorProps, State.EditorState> {
                         {rightHandSide}
                     </SplitterLayout>
                 </div>
-                <Footer message={State.compileStateToString(this.state.compileState)}></Footer>
+                <Footer message={State.editorStateToString(this)}></Footer>
             </div>
         );
     }
