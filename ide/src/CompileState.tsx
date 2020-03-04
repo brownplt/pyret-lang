@@ -124,16 +124,18 @@ export const invalidCompileState = (state: CompileState): void => {
 };
 
 export const handleSetupFinished = (editor: Editor) => {
-    console.log("setup finished");
+    return () => {
+        console.log("setup finished");
 
-    if (editor.state.compileState === CompileState.Startup) {
-        editor.setState({compileState: CompileState.Ready});
-    } else if (editor.state.compileState === CompileState.StartupQueue) {
-        editor.setState({compileState: CompileState.Ready});
-        editor.update();
-    } else {
-        invalidCompileState(editor.state.compileState);
-    }
+        if (editor.state.compileState === CompileState.Startup) {
+            editor.setState({compileState: CompileState.Ready});
+        } else if (editor.state.compileState === CompileState.StartupQueue) {
+            editor.setState({compileState: CompileState.Ready});
+            editor.update();
+        } else {
+            invalidCompileState(editor.state.compileState);
+        }
+    };
 };
 
 export const handleCompileFailure = (editor: Editor) => {

@@ -120,7 +120,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
 
         control.setupWorkerMessageHandler(
             console.log,
-            () => handleSetupFinished(this),
+            handleSetupFinished(this),
             handleCompileFailure(this),
             (errors: string[]) => {
                 this.setState(
