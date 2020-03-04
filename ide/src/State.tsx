@@ -3,6 +3,7 @@
 
 import { Editor, EditorMode } from './Editor';
 import { CHUNKSEP } from './DefChunks';
+import { Check } from './Check';
 import * as control from './control';
 
 // Possible states for the editor.
@@ -124,6 +125,68 @@ export const compileStateToString = (state: CompileState): string => {
 
 const invalidCompileState = (state: CompileState): void => {
     throw new Error(`illegal CompileState reached: ${state}`);
+};
+
+type LintFailure = {
+    name: string,
+    errors: string[]
+}
+
+export type EditorState = {
+    browseRoot: string;
+    browsePath: string[];
+    currentFileDirectory: string[];
+    currentFileName: string;
+    currentFileContents: string;
+    typeCheck: boolean;
+    checks: Check[],
+    interactions: { key: string, name: string, value: any }[];
+    interactionErrors: string[];
+    lintFailures: {[name : string]: LintFailure};
+    runKind: control.backend.RunKind;
+    autoRun: boolean;
+    updateTimer: NodeJS.Timer;
+    dropdownVisible: boolean;
+    fontSize: number;
+    editorMode: EditorMode,
+    message: string;
+    definitionsHighlights: number[][];
+    fsBrowserVisible: boolean;
+    compileState: CompileState;
+    currentRunner: any;
+};
+
+export const makeDefaultEditorState = (props: any) => {
+    return {
+        browseRoot: props.browseRoot,
+        browsePath: props.browsePath,
+        currentFileDirectory: props.currentFileDirectory,
+        currentFileName: props.currentFileName,
+        currentFileContents: control.openOrCreateFile(
+            control.bfsSetup.path.join(
+                ...props.currentFileDirectory,
+                props.currentFileName)),
+        typeCheck: true,
+        checks: [],
+        interactions: [{
+            key: "Note",
+            name: "Note",
+            value: "Press Run to compile and run"
+        }],
+        interactionErrors: [],
+        lintFailures: {},
+        runKind: control.backend.RunKind.Async,
+        autoRun: true,
+        updateTimer: setTimeout(() => { return; }, 0),
+        dropdownVisible: false,
+        editorMode: EditorMode.Chunks,
+        fontSize: 12,
+        message: "Ready to rock",
+        definitionsHighlights: [],
+        fsBrowserVisible: false,
+        compileState: CompileState.Startup,
+        currentRunner: undefined,
+    };
 };
 
 export const handleLog = (editor: Editor) => {

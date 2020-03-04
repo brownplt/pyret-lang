@@ -2,7 +2,7 @@ import React from 'react';
 import './App.css';
 import * as State from './State';
 import { Interaction } from './Interaction';
-import { Check, TestResult } from './Check';
+import { TestResult } from './Check';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
@@ -24,11 +24,6 @@ export enum EditorMode {
     Text,
 }
 
-type LintFailure = {
-    name: string,
-    errors: string[]
-}
-
 type EditorProps = {
     browseRoot: string;
     browsePath: string[];
@@ -36,31 +31,7 @@ type EditorProps = {
     currentFileName: string;
 };
 
-export type EditorState = {
-    browseRoot: string;
-    browsePath: string[];
-    currentFileDirectory: string[];
-    currentFileName: string;
-    currentFileContents: string;
-    typeCheck: boolean;
-    checks: Check[],
-    interactions: { key: string, name: string, value: any }[];
-    interactionErrors: string[];
-    lintFailures: {[name : string]: LintFailure};
-    runKind: control.backend.RunKind;
-    autoRun: boolean;
-    updateTimer: NodeJS.Timer;
-    dropdownVisible: boolean;
-    fontSize: number;
-    editorMode: EditorMode,
-    message: string;
-    definitionsHighlights: number[][];
-    fsBrowserVisible: boolean;
-    compileState: State.CompileState;
-    currentRunner: any;
-};
-
-export class Editor extends React.Component<EditorProps, EditorState> {
+export class Editor extends React.Component<EditorProps, State.EditorState> {
     constructor(props: EditorProps) {
         super(props);
 
@@ -76,37 +47,26 @@ export class Editor extends React.Component<EditorProps, EditorState> {
             State.handleCompileInteractionSuccess(this),
             State.handleCompileInteractionFailure(this));
 
-        this.state = {
-            browseRoot: this.props.browseRoot,
-            browsePath: this.props.browsePath,
-            currentFileDirectory: this.props.currentFileDirectory,
-            currentFileName: this.props.currentFileName,
-            currentFileContents: control.openOrCreateFile(
-                control.bfsSetup.path.join(
-                    ...this.props.currentFileDirectory,
-                    this.props.currentFileName)),
-            typeCheck: true,
-            checks: [],
-            interactions: [{
-                key: "Note",
-                name: "Note",
-                value: "Press Run to compile and run"
-            }],
-            interactionErrors: [],
-            lintFailures: {},
-            runKind: control.backend.RunKind.Async,
-            autoRun: true,
-            updateTimer: setTimeout(() => { return; }, 0),
-            dropdownVisible: false,
-            editorMode: EditorMode.Chunks,
-            fontSize: 12,
-            message: "Ready to rock",
-            definitionsHighlights: [],
-            fsBrowserVisible: false,
-            compileState: State.CompileState.Startup,
-            currentRunner: undefined,
-        };
+        this.state = State.makeDefaultEditorState(this.props);
     };
+
+    run = State.handleRun(this)
+    update = State.handleUpdate(this)
+    onEdit = State.handleEdit(this)
+    onTraverseDown = State.handleTraverseDown(this)
+    onTraverseUp = State.handleTraverseUp(this)
+    onExpandChild = State.handleExpandChild(this)
+    setEditorMode = State.handleSetEditorMode(this)
+    toggleDropdownVisibility = State.handleToggleDropdownVisibility(this)
+    toggleAutoRun = State.handleToggleAutoRun(this)
+    toggleStopify = State.handleToggleStopify(this)
+    toggleTypeCheck = State.handleToggleTypeCheck(this)
+    onDecreaseFontSize = State.handleDecreaseFontSize(this)
+    onIncreaseFontSize = State.handleIncreaseFontSize(this)
+    onResetFontSize = State.handleResetFontSize(this)
+    removeDropdown = State.handleRemoveDropdown(this)
+    setMessage = State.handleSetMessage(this)
+    stop = State.handleStop(this)
 
     get isPyretFile() {
         return /\.arr$/.test(this.currentFile);
@@ -129,24 +89,6 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     get stopify() {
         return this.state.runKind === control.backend.RunKind.Async;
     }
-
-    run = State.handleRun(this)
-    update = State.handleUpdate(this)
-    onEdit = State.handleEdit(this)
-    onTraverseDown = State.handleTraverseDown(this)
-    onTraverseUp = State.handleTraverseUp(this)
-    onExpandChild = State.handleExpandChild(this)
-    setEditorMode = State.handleSetEditorMode(this)
-    toggleDropdownVisibility = State.handleToggleDropdownVisibility(this)
-    toggleAutoRun = State.handleToggleAutoRun(this)
-    toggleStopify = State.handleToggleStopify(this)
-    toggleTypeCheck = State.handleToggleTypeCheck(this)
-    onDecreaseFontSize = State.handleDecreaseFontSize(this)
-    onIncreaseFontSize = State.handleIncreaseFontSize(this)
-    onResetFontSize = State.handleResetFontSize(this)
-    removeDropdown = State.handleRemoveDropdown(this)
-    setMessage = State.handleSetMessage(this)
-    stop = State.handleStop(this)
 
     loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
         control.loadBuiltins();
