@@ -120,7 +120,7 @@ export const compileStateToString = (state: CompileState): string => {
     }
 };
 
-export const invalidCompileState = (state: CompileState): void => {
+const invalidCompileState = (state: CompileState): void => {
     throw new Error(`illegal CompileState reached: ${state}`);
 };
 
@@ -320,5 +320,65 @@ export const handleCompileInteractionFailure = (editor: Editor) => {
     return (response: { program: string }) => {
         console.error(`Failed to compile ${response.program}.`);
         return;
+    };
+};
+
+export const handleRun = (editor: Editor) => {
+    return (runAfterwards: boolean) => {
+        editor.setState(
+            {
+                interactionErrors: [],
+                definitionsHighlights: []
+            }
+        );
+        if (editor.isPyretFile) {
+            if (editor.state.compileState === CompileState.Startup) {
+                editor.setState({compileState: CompileState.StartupQueue});
+            } else if (editor.state.compileState === CompileState.StartupQueue) {
+                // state remains as StartupQueue
+            } else if (editor.state.compileState === CompileState.Ready
+                       || editor.state.compileState === CompileState.Stopped) {
+                if (runAfterwards || editor.state.autoRun) {
+                    editor.setState({compileState: CompileState.CompileRun});
+                } else {
+                    editor.setState({compileState: CompileState.Compile});
+                }
+                control.compile(
+                    editor.currentFileDirectory,
+                    editor.currentFileName,
+                    editor.state.typeCheck);
+            } else if (editor.state.compileState === CompileState.Compile) {
+                editor.setState({compileState: CompileState.CompileQueue});
+            } else if (editor.state.compileState === CompileState.CompileRun) {
+                editor.setState({compileState: CompileState.CompileRunQueue});
+            } else if (editor.state.compileState === CompileState.CompileQueue) {
+                // state remains as CompileQueue
+            } else if (editor.state.compileState === CompileState.CompileRunQueue) {
+                // state remains as CompileRunQueue
+            } else if (editor.state.compileState === CompileState.RunningWithStops) {
+                editor.stop();
+                editor.update();
+                // state remains as RunningWithStops
+            } else if (editor.state.compileState === CompileState.RunningWithoutStops) {
+                // state remains as RunningWithoutStops
+            } else {
+                invalidCompileState(editor.state.compileState);
+            }
+        } else {
+            editor.setState({
+                interactions: [
+                    {
+                        key: "Error",
+                        name: "Error",
+                        value: "Run is not supported on editor file type"
+                    },
+                    {
+                        key: "File",
+                        name: "File",
+                        value: editor.currentFile
+                    }],
+                interactionErrors: ["Error: Run is not supported on editor file type"],
+            });
+        }
     };
 };

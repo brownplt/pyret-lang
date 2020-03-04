@@ -4,7 +4,6 @@ import './App.css';
 import {
     CompileState,
     compileStateToString,
-    invalidCompileState,
     handleLog,
     handleSetupFinished,
     handleCompileFailure,
@@ -15,6 +14,7 @@ import {
     handleCreateReplSuccess,
     handleCompileInteractionSuccess,
     handleCompileInteractionFailure,
+    handleRun,
 } from './CompileState';
 
 import { Interaction } from './Interaction';
@@ -146,63 +146,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         return this.state.runKind === control.backend.RunKind.Async;
     }
 
-    run = (runAfterwards: boolean) => {
-        this.setState(
-            {
-                interactionErrors: [],
-                definitionsHighlights: []
-            }
-        );
-        if (this.isPyretFile) {
-            if (this.state.compileState === CompileState.Startup) {
-                this.setState({compileState: CompileState.StartupQueue});
-            } else if (this.state.compileState === CompileState.StartupQueue) {
-                // state remains as StartupQueue
-            } else if (this.state.compileState === CompileState.Ready
-                       || this.state.compileState === CompileState.Stopped) {
-                if (runAfterwards || this.state.autoRun) {
-                    this.setState({compileState: CompileState.CompileRun});
-                } else {
-                    this.setState({compileState: CompileState.Compile});
-                }
-                control.compile(
-                    this.currentFileDirectory,
-                    this.currentFileName,
-                    this.state.typeCheck);
-            } else if (this.state.compileState === CompileState.Compile) {
-                this.setState({compileState: CompileState.CompileQueue});
-            } else if (this.state.compileState === CompileState.CompileRun) {
-                this.setState({compileState: CompileState.CompileRunQueue});
-            } else if (this.state.compileState === CompileState.CompileQueue) {
-                // state remains as CompileQueue
-            } else if (this.state.compileState === CompileState.CompileRunQueue) {
-                // state remains as CompileRunQueue
-            } else if (this.state.compileState === CompileState.RunningWithStops) {
-                this.stop();
-                this.update();
-                // state remains as RunningWithStops
-            } else if (this.state.compileState === CompileState.RunningWithoutStops) {
-                // state remains as RunningWithoutStops
-            } else {
-                invalidCompileState(this.state.compileState);
-            }
-        } else {
-            this.setState({
-                interactions: [
-                    {
-                        key: "Error",
-                        name: "Error",
-                        value: "Run is not supported on this file type"
-                    },
-                    {
-                        key: "File",
-                        name: "File",
-                        value: this.currentFile
-                    }],
-                interactionErrors: ["Error: Run is not supported on this file type"],
-            });
-        }
-    };
+    run = handleRun(this)
 
     update = (): void => {
         control.fs.writeFileSync(
