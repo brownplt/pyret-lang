@@ -199,7 +199,9 @@ export const handleLintSuccess = (editor: Editor) => {
     };
 };
 
-function makeResult(result: any, moduleUri: string): { key: string, name: string, value: any }[] {
+const makeResult = (
+    result: any,
+    moduleUri: string): { key: string, name: string, value: any }[] => {
     const compareLocations = (a: any, b: any): number => {
         return a.srcloc[1] - b.srcloc[1];
     };
@@ -230,7 +232,7 @@ function makeResult(result: any, moduleUri: string): { key: string, name: string
             };
         }
     });
-}
+};
 
 export const handleCompileSuccess = (editor: Editor) => {
     return () => {
