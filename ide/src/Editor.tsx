@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import { CompileState, compileStateToString, invalidCompileState } from './CompileState';
+import { CompileState, compileStateToString, invalidCompileState, handleSetupFinished } from './CompileState';
 import { Interaction } from './Interaction';
 import { Check, TestResult } from './Check';
 import { DefChunks, CHUNKSEP } from './DefChunks';
@@ -112,18 +112,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
 
         control.setupWorkerMessageHandler(
             console.log,
-            () => {
-                console.log("setup finished");
-
-                if (this.state.compileState === CompileState.Startup) {
-                    this.setState({compileState: CompileState.Ready});
-                } else if (this.state.compileState === CompileState.StartupQueue) {
-                    this.setState({compileState: CompileState.Ready});
-                    this.update();
-                } else {
-                    invalidCompileState(this.state.compileState);
-                }
-            },
+            () => handleSetupFinished(this),
             (errors: string[]) => {
                 console.log("COMPILE FAILURE");
                 if (this.state.compileState === CompileState.Compile

@@ -1,5 +1,7 @@
 // This file is used to track the state of the editor.
 
+import { Editor, EditorState } from './Editor';
+
 // Possible states for the editor.
 export enum CompileState {
     // Starting state for the application. We are waiting for the webworker to
@@ -119,4 +121,17 @@ export const compileStateToString = (state: CompileState): string => {
 
 export const invalidCompileState = (state: CompileState): void => {
     throw new Error(`illegal CompileState reached: ${state}`);
+};
+
+export const handleSetupFinished = (editor: Editor) => {
+    console.log("setup finished");
+
+    if (editor.state.compileState === CompileState.Startup) {
+        editor.setState({compileState: CompileState.Ready});
+    } else if (editor.state.compileState === CompileState.StartupQueue) {
+        editor.setState({compileState: CompileState.Ready});
+        editor.update();
+    } else {
+        invalidCompileState(editor.state.compileState);
+    }
 };
