@@ -124,6 +124,12 @@ export const invalidCompileState = (state: CompileState): void => {
     throw new Error(`illegal CompileState reached: ${state}`);
 };
 
+export const handleLog = (editor: Editor) => {
+    return (message: string) => {
+        console.log(message);
+    };
+};
+
 export const handleSetupFinished = (editor: Editor) => {
     return () => {
         console.log("setup finished");
@@ -294,5 +300,25 @@ export const handleCompileSuccess = (editor: Editor) => {
         } else {
             invalidCompileState(editor.state.compileState);
         }
+    };
+};
+
+export const handleCreateReplSuccess = (editor: Editor) => {
+    return () => {
+        console.log("REPL successfully created");
+    };
+};
+
+export const handleCompileInteractionSuccess = (editor: Editor) => {
+    return (response: { program: string }) => {
+        console.log(`Chunk ${response.program} successfully compiled.`);
+        return;
+    };
+};
+
+export const handleCompileInteractionFailure = (editor: Editor) => {
+    return (response: { program: string }) => {
+        console.error(`Failed to compile ${response.program}.`);
+        return;
     };
 };

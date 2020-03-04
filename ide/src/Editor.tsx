@@ -5,12 +5,16 @@ import {
     CompileState,
     compileStateToString,
     invalidCompileState,
+    handleLog,
     handleSetupFinished,
     handleCompileFailure,
     handleRuntimeFailure,
     handleLintFailure,
     handleLintSuccess,
     handleCompileSuccess,
+    handleCreateReplSuccess,
+    handleCompileInteractionSuccess,
+    handleCompileInteractionFailure,
 } from './CompileState';
 
 import { Interaction } from './Interaction';
@@ -77,28 +81,16 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         control.setupWorkerMessageHandler(
-            console.log,
+            handleLog(this),
             handleSetupFinished(this),
             handleCompileFailure(this),
             handleRuntimeFailure(this),
             handleLintFailure(this),
             handleLintSuccess(this),
             handleCompileSuccess(this),
-            () => {
-                // onCreateReplSuccess
-                console.log("REPL successfully created");
-                return;
-            },
-            (response) => {
-                // onCompileInteractionSuccess
-                console.log(`Chunk ${response.program} successfully compiled.`);
-                return;
-            },
-            (response) => {
-                // onCompileInteractionFailure
-                console.error(`Failed to compile ${response.program}.`);
-                return;
-            });
+            handleCreateReplSuccess(this),
+            handleCompileInteractionSuccess(this),
+            handleCompileInteractionFailure(this));
 
         this.state = {
             browseRoot: this.props.browseRoot,
