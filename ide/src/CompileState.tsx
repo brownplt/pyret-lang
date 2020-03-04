@@ -1,6 +1,7 @@
 // This file is used to track the state of the editor.
 
-import { Editor } from './Editor';
+import { Editor, EditorMode } from './Editor';
+import { CHUNKSEP } from './DefChunks';
 import * as control from './control';
 
 // Possible states for the editor.
@@ -379,6 +380,31 @@ export const handleRun = (editor: Editor) => {
                     }],
                 interactionErrors: ["Error: Run is not supported on editor file type"],
             });
+        }
+    };
+};
+
+export const handleUpdate = (editor: Editor) => {
+    return (): void => {
+        control.fs.writeFileSync(
+            editor.currentFile,
+            editor.state.currentFileContents);
+
+        if (editor.state.editorMode === EditorMode.Chunks) {
+            const chunkstrs = editor.state.currentFileContents.split(CHUNKSEP);
+            for (let i = 0; i < chunkstrs.length; i++) {
+                control.fs.writeFileSync(
+                    `${editor.currentFile}.chunk.${i}`,
+                    chunkstrs[i]);
+            }
+
+            for (let i = 0; i < chunkstrs.length; i++) {
+                console.log(`Sending message to webworker to compile: ${editor.currentFile}.chunk.${i}`)
+                control.backend.compileInteraction(control.worker, `${editor.currentFile}.chunk.${i}`);
+                // todo: wait for response before compiling more chunks
+            }
+        } else {
+            editor.run(false);
         }
     };
 };

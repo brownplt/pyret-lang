@@ -15,11 +15,12 @@ import {
     handleCompileInteractionSuccess,
     handleCompileInteractionFailure,
     handleRun,
+    handleUpdate,
 } from './CompileState';
 
 import { Interaction } from './Interaction';
 import { Check, TestResult } from './Check';
-import { DefChunks, CHUNKSEP } from './DefChunks';
+import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
@@ -148,28 +149,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
 
     run = handleRun(this)
 
-    update = (): void => {
-        control.fs.writeFileSync(
-            this.currentFile,
-            this.state.currentFileContents);
-
-        if (this.state.editorMode === EditorMode.Chunks) {
-            const chunkstrs = this.state.currentFileContents.split(CHUNKSEP);
-            for (let i = 0; i < chunkstrs.length; i++) {
-                control.fs.writeFileSync(
-                    `${this.currentFile}.chunk.${i}`,
-                    chunkstrs[i]);
-            }
-
-            for (let i = 0; i < chunkstrs.length; i++) {
-                console.log(`Sending message to webworker to compile: ${this.currentFile}.chunk.${i}`)
-                control.backend.compileInteraction(control.worker, `${this.currentFile}.chunk.${i}`);
-                // todo: wait for response before compiling more chunks
-            }
-        } else {
-            this.run(false);
-        }
-    }
+    update = handleUpdate(this)
 
     onEdit = (value: string): void => {
         clearTimeout(this.state.updateTimer);
