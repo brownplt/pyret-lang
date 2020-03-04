@@ -1,7 +1,7 @@
 // This file is used to track the state of the editor.
 
 // Possible states for the editor.
-export enum TextCompileState {
+export enum CompileState {
     // Starting state for the application. We are waiting for the webworker to
     // give us confirmation that it has finished its setup phase and is ready
     // to receive compilation requests.
@@ -86,27 +86,27 @@ export enum TextCompileState {
     Stopped,
 }
 
-export const compileStateToString = (state: TextCompileState): string => {
+export const compileStateToString = (state: CompileState): string => {
     // TODO(michael): these could be more pirate-themed
-    if (state === TextCompileState.Startup) {
+    if (state === CompileState.Startup) {
         return "Finishing setup";
-    } else if (state === TextCompileState.StartupQueue) {
+    } else if (state === CompileState.StartupQueue) {
         return "Compile request on hold: finishing setup";
-    } else if (state === TextCompileState.Ready) {
+    } else if (state === CompileState.Ready) {
         return "Ready";
-    } else if (state === TextCompileState.Compile) {
+    } else if (state === CompileState.Compile) {
         return "Compiling";
-    } else if (state === TextCompileState.CompileQueue) {
+    } else if (state === CompileState.CompileQueue) {
         return "Compile request on hold: already compiling";
-    } else if (state === TextCompileState.CompileRun) {
+    } else if (state === CompileState.CompileRun) {
         return "Waiting to run: compiling";
-    } else if (state === TextCompileState.CompileRunQueue) {
+    } else if (state === CompileState.CompileRunQueue) {
         return "Compile and run requests on hold: already compiling"
-    } else if (state === TextCompileState.RunningWithStops) {
+    } else if (state === CompileState.RunningWithStops) {
         return "Running (stop button enabled)";
-    } else if (state === TextCompileState.RunningWithoutStops) {
+    } else if (state === CompileState.RunningWithoutStops) {
         return "Running (stop button disabled)";
-    } else if (state === TextCompileState.Stopped) {
+    } else if (state === CompileState.Stopped) {
         return "Program execution stopped"
     } else {
         const assertNever = (_arg: never): never => {
@@ -117,6 +117,6 @@ export const compileStateToString = (state: TextCompileState): string => {
     }
 };
 
-export const invalidTextCompileState = (state: TextCompileState): void => {
-    throw new Error(`illegal TextCompileState reached: ${state}`);
+export const invalidCompileState = (state: CompileState): void => {
+    throw new Error(`illegal CompileState reached: ${state}`);
 };

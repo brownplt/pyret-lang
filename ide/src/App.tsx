@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import { TextCompileState, compileStateToString, invalidTextCompileState } from './CompileState';
+import { CompileState, compileStateToString, invalidCompileState } from './CompileState';
 import { Interaction } from './Interaction';
 import { Check, TestResult } from './Check';
 import { DefChunks, CHUNKSEP } from './DefChunks';
@@ -92,7 +92,7 @@ type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
-    compileState: TextCompileState;
+    compileState: CompileState;
     currentRunner: any;
 };
 
@@ -118,20 +118,20 @@ class Editor extends React.Component<EditorProps, EditorState> {
             () => {
                 console.log("setup finished");
 
-                if (this.state.compileState === TextCompileState.Startup) {
-                    this.setState({compileState: TextCompileState.Ready});
-                } else if (this.state.compileState === TextCompileState.StartupQueue) {
-                    this.setState({compileState: TextCompileState.Ready});
+                if (this.state.compileState === CompileState.Startup) {
+                    this.setState({compileState: CompileState.Ready});
+                } else if (this.state.compileState === CompileState.StartupQueue) {
+                    this.setState({compileState: CompileState.Ready});
                     this.update();
                 } else {
-                    invalidTextCompileState(this.state.compileState);
+                    invalidCompileState(this.state.compileState);
                 }
             },
             (errors: string[]) => {
                 console.log("COMPILE FAILURE");
-                if (this.state.compileState === TextCompileState.Compile
-                    || this.state.compileState === TextCompileState.CompileRun) {
-                    this.setState({compileState: TextCompileState.Ready});
+                if (this.state.compileState === CompileState.Compile
+                    || this.state.compileState === CompileState.CompileRun) {
+                    this.setState({compileState: CompileState.Ready});
 
                     const places: any = [];
                     for (let i = 0; i < errors.length; i++) {
@@ -148,12 +148,12 @@ class Editor extends React.Component<EditorProps, EditorState> {
                             definitionsHighlights: places
                         }
                     );
-                } else if (this.state.compileState === TextCompileState.CompileQueue
-                           || this.state.compileState === TextCompileState.CompileRunQueue) {
-                    this.setState({compileState: TextCompileState.Ready});
+                } else if (this.state.compileState === CompileState.CompileQueue
+                           || this.state.compileState === CompileState.CompileRunQueue) {
+                    this.setState({compileState: CompileState.Ready});
                     this.update();
                 } else {
-                    invalidTextCompileState(this.state.compileState);
+                    invalidCompileState(this.state.compileState);
                 }
             },
             (errors: string[]) => {
@@ -167,17 +167,17 @@ class Editor extends React.Component<EditorProps, EditorState> {
             onLintSuccess,
             () => {
                 console.log("COMPILE SUCCESS");
-                if (this.state.compileState === TextCompileState.Compile) {
-                    this.setState({compileState: TextCompileState.Ready});
-                } else if (this.state.compileState === TextCompileState.CompileQueue
-                           || this.state.compileState === TextCompileState.CompileRunQueue) {
-                    this.setState({compileState: TextCompileState.Ready});
+                if (this.state.compileState === CompileState.Compile) {
+                    this.setState({compileState: CompileState.Ready});
+                } else if (this.state.compileState === CompileState.CompileQueue
+                           || this.state.compileState === CompileState.CompileRunQueue) {
+                    this.setState({compileState: CompileState.Ready});
                     this.update();
-                } else if (this.state.compileState === TextCompileState.CompileRun) {
+                } else if (this.state.compileState === CompileState.CompileRun) {
                     if (this.stopify) {
-                        this.setState({compileState: TextCompileState.RunningWithStops});
+                        this.setState({compileState: CompileState.RunningWithStops});
                     } else {
-                        this.setState({compileState: TextCompileState.RunningWithoutStops});
+                        this.setState({compileState: CompileState.RunningWithoutStops});
                     }
                     const x = new Date();
                     console.log(`Run ${x} started`);
@@ -185,7 +185,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         control.path.runBase,
                         control.path.runProgram,
                         (runResult: any) => {
-                            this.setState({compileState: TextCompileState.Ready});
+                            this.setState({compileState: CompileState.Ready});
                             console.log(`Run ${x} finished`);
                             console.log(runResult);
                             if (runResult.result !== undefined) {
@@ -222,7 +222,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
                         },
                         this.state.runKind);
                 } else {
-                    invalidTextCompileState(this.state.compileState);
+                    invalidCompileState(this.state.compileState);
                 }
             },
             () => {
@@ -268,7 +268,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
-            compileState: TextCompileState.Startup,
+            compileState: CompileState.Startup,
             currentRunner: undefined,
         };
     };
@@ -303,37 +303,37 @@ class Editor extends React.Component<EditorProps, EditorState> {
             }
         );
         if (this.isPyretFile) {
-            if (this.state.compileState === TextCompileState.Startup) {
-                this.setState({compileState: TextCompileState.StartupQueue});
-            } else if (this.state.compileState === TextCompileState.StartupQueue) {
+            if (this.state.compileState === CompileState.Startup) {
+                this.setState({compileState: CompileState.StartupQueue});
+            } else if (this.state.compileState === CompileState.StartupQueue) {
                 // state remains as StartupQueue
-            } else if (this.state.compileState === TextCompileState.Ready
-                       || this.state.compileState === TextCompileState.Stopped) {
+            } else if (this.state.compileState === CompileState.Ready
+                       || this.state.compileState === CompileState.Stopped) {
                 if (runAfterwards || this.state.autoRun) {
-                    this.setState({compileState: TextCompileState.CompileRun});
+                    this.setState({compileState: CompileState.CompileRun});
                 } else {
-                    this.setState({compileState: TextCompileState.Compile});
+                    this.setState({compileState: CompileState.Compile});
                 }
                 control.compile(
                     this.currentFileDirectory,
                     this.currentFileName,
                     this.state.typeCheck);
-            } else if (this.state.compileState === TextCompileState.Compile) {
-                this.setState({compileState: TextCompileState.CompileQueue});
-            } else if (this.state.compileState === TextCompileState.CompileRun) {
-                this.setState({compileState: TextCompileState.CompileRunQueue});
-            } else if (this.state.compileState === TextCompileState.CompileQueue) {
+            } else if (this.state.compileState === CompileState.Compile) {
+                this.setState({compileState: CompileState.CompileQueue});
+            } else if (this.state.compileState === CompileState.CompileRun) {
+                this.setState({compileState: CompileState.CompileRunQueue});
+            } else if (this.state.compileState === CompileState.CompileQueue) {
                 // state remains as CompileQueue
-            } else if (this.state.compileState === TextCompileState.CompileRunQueue) {
+            } else if (this.state.compileState === CompileState.CompileRunQueue) {
                 // state remains as CompileRunQueue
-            } else if (this.state.compileState === TextCompileState.RunningWithStops) {
+            } else if (this.state.compileState === CompileState.RunningWithStops) {
                 this.stop();
                 this.update();
                 // state remains as RunningWithStops
-            } else if (this.state.compileState === TextCompileState.RunningWithoutStops) {
+            } else if (this.state.compileState === CompileState.RunningWithoutStops) {
                 // state remains as RunningWithoutStops
             } else {
-                invalidTextCompileState(this.state.compileState);
+                invalidCompileState(this.state.compileState);
             }
         } else {
             this.setState({
@@ -501,7 +501,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             this.state.currentRunner.pause((line: number) => console.log("paused on line", line))
             this.setState({
                 currentRunner: undefined,
-                compileState: TextCompileState.Stopped
+                compileState: CompileState.Stopped
             });
         }
     };
@@ -627,7 +627,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    {this.stopify && this.state.compileState === TextCompileState.RunningWithStops ? (
+                    {this.stopify && this.state.compileState === CompileState.RunningWithStops ? (
                         <button className="stop-available"
                                 onClick={this.stop}>
                             Stop
