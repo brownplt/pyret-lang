@@ -169,3 +169,31 @@ export const handleCompileFailure = (editor: Editor) => {
         }
     };
 };
+
+export const handleRuntimeFailure = (editor: Editor) => {
+    return (errors: string[]) => {
+        editor.setState(
+            {
+                interactionErrors: [errors.toString()],
+            }
+        );
+    };
+};
+
+export const handleLintFailure = (editor: Editor) => {
+    return (lintFailure : { name: string, errors: string[]}) => {
+        let newFailures = editor.state.lintFailures;
+        const name = lintFailure.name;
+        newFailures[name] = lintFailure;
+        editor.setState({ lintFailures: newFailures });
+    };
+};
+
+export const handleLintSuccess = (editor: Editor) => {
+    return (lintSuccess : { name: string}) => {
+        let newFailures = editor.state.lintFailures;
+        const name = lintSuccess.name;
+        if(name in newFailures) { delete newFailures[name]; }
+        editor.setState({ lintFailures: newFailures });
+    };
+};

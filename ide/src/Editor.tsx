@@ -7,6 +7,9 @@ import {
     invalidCompileState,
     handleSetupFinished,
     handleCompileFailure,
+    handleRuntimeFailure,
+    handleLintFailure,
+    handleLintSuccess,
 } from './CompileState';
 
 import { Interaction } from './Interaction';
@@ -105,32 +108,13 @@ export class Editor extends React.Component<EditorProps, EditorState> {
     constructor(props: EditorProps) {
         super(props);
 
-        const onLintFailure = (lintFailure : { name: string, errors: string[]}) => {
-            let newFailures = this.state.lintFailures;
-            const name = lintFailure.name;
-            newFailures[name] = lintFailure;
-            this.setState({ lintFailures: newFailures });
-        }
-        const onLintSuccess = (lintSuccess : { name: string}) => {
-            let newFailures = this.state.lintFailures;
-            const name = lintSuccess.name;
-            if(name in newFailures) { delete newFailures[name]; }
-            this.setState({ lintFailures: newFailures });
-        }
-
         control.setupWorkerMessageHandler(
             console.log,
             handleSetupFinished(this),
             handleCompileFailure(this),
-            (errors: string[]) => {
-                this.setState(
-                    {
-                        interactionErrors: [errors.toString()],
-                    }
-                );
-            },
-            onLintFailure,
-            onLintSuccess,
+            handleRuntimeFailure(this),
+            handleLintFailure(this),
+            handleLintSuccess(this),
             () => {
                 console.log("COMPILE SUCCESS");
                 if (this.state.compileState === CompileState.Compile) {
