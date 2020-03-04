@@ -408,3 +408,16 @@ export const handleUpdate = (editor: Editor) => {
         }
     };
 };
+
+export const handleEdit = (editor: Editor) => {
+    return (value: string): void => {
+        clearTimeout(editor.state.updateTimer);
+        editor.setState({
+            //        currentFileContents: value,
+            updateTimer: setTimeout(() => {
+                editor.setState({currentFileContents: value});
+                editor.update();
+            }, 250),
+        });
+    };
+};

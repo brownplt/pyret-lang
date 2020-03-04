@@ -1,23 +1,6 @@
 import React from 'react';
 import './App.css';
-
-import {
-    CompileState,
-    compileStateToString,
-    handleLog,
-    handleSetupFinished,
-    handleCompileFailure,
-    handleRuntimeFailure,
-    handleLintFailure,
-    handleLintSuccess,
-    handleCompileSuccess,
-    handleCreateReplSuccess,
-    handleCompileInteractionSuccess,
-    handleCompileInteractionFailure,
-    handleRun,
-    handleUpdate,
-} from './CompileState';
-
+import * as State from './State';
 import { Interaction } from './Interaction';
 import { Check, TestResult } from './Check';
 import { DefChunks } from './DefChunks';
@@ -73,7 +56,7 @@ export type EditorState = {
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
-    compileState: CompileState;
+    compileState: State.CompileState;
     currentRunner: any;
 };
 
@@ -82,16 +65,16 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         super(props);
 
         control.setupWorkerMessageHandler(
-            handleLog(this),
-            handleSetupFinished(this),
-            handleCompileFailure(this),
-            handleRuntimeFailure(this),
-            handleLintFailure(this),
-            handleLintSuccess(this),
-            handleCompileSuccess(this),
-            handleCreateReplSuccess(this),
-            handleCompileInteractionSuccess(this),
-            handleCompileInteractionFailure(this));
+            State.handleLog(this),
+            State.handleSetupFinished(this),
+            State.handleCompileFailure(this),
+            State.handleRuntimeFailure(this),
+            State.handleLintFailure(this),
+            State.handleLintSuccess(this),
+            State.handleCompileSuccess(this),
+            State.handleCreateReplSuccess(this),
+            State.handleCompileInteractionSuccess(this),
+            State.handleCompileInteractionFailure(this));
 
         this.state = {
             browseRoot: this.props.browseRoot,
@@ -120,7 +103,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
             message: "Ready to rock",
             definitionsHighlights: [],
             fsBrowserVisible: false,
-            compileState: CompileState.Startup,
+            compileState: State.CompileState.Startup,
             currentRunner: undefined,
         };
     };
@@ -147,20 +130,11 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         return this.state.runKind === control.backend.RunKind.Async;
     }
 
-    run = handleRun(this)
+    run = State.handleRun(this)
 
-    update = handleUpdate(this)
+    update = State.handleUpdate(this)
 
-    onEdit = (value: string): void => {
-        clearTimeout(this.state.updateTimer);
-        this.setState({
-    //        currentFileContents: value,
-            updateTimer: setTimeout(() => {
-                this.setState({currentFileContents: value});
-                this.update();
-            }, 250),
-        });
-    }
+    onEdit = State.handleEdit(this)
 
     onTraverseDown = (path: string[]) => {
         this.setState({
@@ -276,7 +250,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
             this.state.currentRunner.pause((line: number) => console.log("paused on line", line))
             this.setState({
                 currentRunner: undefined,
-                compileState: CompileState.Stopped
+                compileState: State.CompileState.Stopped
             });
         }
     };
@@ -402,7 +376,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
         return (
             <div className="page-container">
                 <Header>
-                    {this.stopify && this.state.compileState === CompileState.RunningWithStops ? (
+                    {this.stopify && this.state.compileState === State.CompileState.RunningWithStops ? (
                         <button className="stop-available"
                                 onClick={this.stop}>
                             Stop
@@ -434,7 +408,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
                         {rightHandSide}
                     </SplitterLayout>
                 </div>
-                <Footer message={compileStateToString(this.state.compileState)}></Footer>
+                <Footer message={State.compileStateToString(this.state.compileState)}></Footer>
             </div>
         );
     }
