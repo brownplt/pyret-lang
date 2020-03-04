@@ -19,7 +19,7 @@ import 'react-splitter-layout/lib/index.css';
 control.installFileSystem();
 control.loadBuiltins();
 
-enum EditorMode {
+export enum EditorMode {
     Chunks,
     Text,
 }
@@ -69,7 +69,7 @@ type EditorProps = {
     currentFileName: string;
 };
 
-type EditorState = {
+export type EditorState = {
     browseRoot: string;
     browsePath: string[];
     currentFileDirectory: string[];
