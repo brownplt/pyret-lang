@@ -1,6 +1,7 @@
 // This file is used to track the state of the editor.
 
 import { Editor } from './Editor';
+import * as control from './control';
 
 // Possible states for the editor.
 export enum CompileState {
@@ -195,5 +196,101 @@ export const handleLintSuccess = (editor: Editor) => {
         const name = lintSuccess.name;
         if(name in newFailures) { delete newFailures[name]; }
         editor.setState({ lintFailures: newFailures });
+    };
+};
+
+function makeResult(result: any, moduleUri: string): { key: string, name: string, value: any }[] {
+    const compareLocations = (a: any, b: any): number => {
+        return a.srcloc[1] - b.srcloc[1];
+    };
+
+    // There may be toplevel expressions in many modules, but we only want to
+    // show the ones from the main module we're working on
+    const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
+
+    const allWithLocs = result.$locations.concat(mainTraces);
+
+    // We combine and then sort to get the traces interleaved correctly with named values
+    const allSorted = allWithLocs.sort(compareLocations);
+    return allSorted.map((key: any) => {
+        if('name' in key) {
+            return {
+                name: key.name,
+                key: key.name,
+                line: key.srcloc[1],
+                value: result[key.name]
+            };
+        }
+        else {
+            return {
+                name: "",
+                key: String(key.srcloc[1]),
+                line: key.srcloc[1],
+                value: key.value
+            };
+        }
+    });
+}
+
+export const handleCompileSuccess = (editor: Editor) => {
+    return () => {
+        console.log("COMPILE SUCCESS");
+        if (editor.state.compileState === CompileState.Compile) {
+            editor.setState({compileState: CompileState.Ready});
+        } else if (editor.state.compileState === CompileState.CompileQueue
+                   || editor.state.compileState === CompileState.CompileRunQueue) {
+            editor.setState({compileState: CompileState.Ready});
+            editor.update();
+        } else if (editor.state.compileState === CompileState.CompileRun) {
+            if (editor.stopify) {
+                editor.setState({compileState: CompileState.RunningWithStops});
+            } else {
+                editor.setState({compileState: CompileState.RunningWithoutStops});
+            }
+            const x = new Date();
+            console.log(`Run ${x} started`);
+            control.run(
+                control.path.runBase,
+                control.path.runProgram,
+                (runResult: any) => {
+                    editor.setState({compileState: CompileState.Ready});
+                    console.log(`Run ${x} finished`);
+                    console.log(runResult);
+                    if (runResult.result !== undefined) {
+                        if (runResult.result.error === undefined) {
+                            const results =
+                                makeResult(
+                                    runResult.result,
+                                    'file://' +
+                                    control.bfsSetup.path.join(
+                                        control.path.compileBase,
+                                        editor.state.currentFileName));
+                            const checks = runResult.result.$checks;
+                            editor.setState({
+                                interactions: results,
+                                checks: checks
+                            });
+
+                            if (results[0] !== undefined && results[0].name === "error") {
+                                editor.setState(
+                                    {
+                                        interactionErrors: runResult.result.error,
+                                    }
+                                );
+                            }
+                        } else {
+                            editor.setState({
+                                interactionErrors: [runResult.result.error],
+                            });
+                        }
+                    }
+                },
+                (runner: any) => {
+                    editor.setState({currentRunner: runner});
+                },
+                editor.state.runKind);
+        } else {
+            invalidCompileState(editor.state.compileState);
+        }
     };
 };

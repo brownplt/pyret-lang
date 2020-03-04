@@ -10,6 +10,7 @@ import {
     handleRuntimeFailure,
     handleLintFailure,
     handleLintSuccess,
+    handleCompileSuccess,
 } from './CompileState';
 
 import { Interaction } from './Interaction';
@@ -33,39 +34,6 @@ control.loadBuiltins();
 export enum EditorMode {
     Chunks,
     Text,
-}
-
-function makeResult(result: any, moduleUri: string): { key: string, name: string, value: any }[] {
-    const compareLocations = (a: any, b: any): number => {
-        return a.srcloc[1] - b.srcloc[1];
-    };
-
-    // There may be toplevel expressions in many modules, but we only want to
-    // show the ones from the main module we're working on
-    const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
-
-    const allWithLocs = result.$locations.concat(mainTraces);
-
-    // We combine and then sort to get the traces interleaved correctly with named values
-    const allSorted = allWithLocs.sort(compareLocations);
-    return allSorted.map((key: any) => {
-        if('name' in key) {
-            return {
-                name: key.name,
-                key: key.name,
-                line: key.srcloc[1],
-                value: result[key.name]
-            };
-        }
-        else {
-            return {
-                name: "",
-                key: String(key.srcloc[1]),
-                line: key.srcloc[1],
-                value: key.value
-            };
-        }
-    });
 }
 
 type LintFailure = {
@@ -115,66 +83,7 @@ export class Editor extends React.Component<EditorProps, EditorState> {
             handleRuntimeFailure(this),
             handleLintFailure(this),
             handleLintSuccess(this),
-            () => {
-                console.log("COMPILE SUCCESS");
-                if (this.state.compileState === CompileState.Compile) {
-                    this.setState({compileState: CompileState.Ready});
-                } else if (this.state.compileState === CompileState.CompileQueue
-                           || this.state.compileState === CompileState.CompileRunQueue) {
-                    this.setState({compileState: CompileState.Ready});
-                    this.update();
-                } else if (this.state.compileState === CompileState.CompileRun) {
-                    if (this.stopify) {
-                        this.setState({compileState: CompileState.RunningWithStops});
-                    } else {
-                        this.setState({compileState: CompileState.RunningWithoutStops});
-                    }
-                    const x = new Date();
-                    console.log(`Run ${x} started`);
-                    control.run(
-                        control.path.runBase,
-                        control.path.runProgram,
-                        (runResult: any) => {
-                            this.setState({compileState: CompileState.Ready});
-                            console.log(`Run ${x} finished`);
-                            console.log(runResult);
-                            if (runResult.result !== undefined) {
-                                if (runResult.result.error === undefined) {
-                                    const results =
-                                        makeResult(
-                                            runResult.result,
-                                            'file://' + 
-                                            control.bfsSetup.path.join(
-                                                control.path.compileBase,
-                                                this.state.currentFileName));
-                                    const checks = runResult.result.$checks;
-                                    this.setState({
-                                        interactions: results,
-                                        checks: checks
-                                    });
-
-                                    if (results[0] !== undefined && results[0].name === "error") {
-                                        this.setState(
-                                            {
-                                                interactionErrors: runResult.result.error,
-                                            }
-                                        );
-                                    }
-                                } else {
-                                    this.setState({
-                                        interactionErrors: [runResult.result.error],
-                                    });
-                                }
-                            }
-                        },
-                        (runner: any) => {
-                            this.setState({currentRunner: runner});
-                        },
-                        this.state.runKind);
-                } else {
-                    invalidCompileState(this.state.compileState);
-                }
-            },
+            handleCompileSuccess(this),
             () => {
                 // onCreateReplSuccess
                 console.log("REPL successfully created");
