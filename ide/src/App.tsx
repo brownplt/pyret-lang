@@ -19,7 +19,7 @@ import 'react-splitter-layout/lib/index.css';
 control.installFileSystem();
 control.loadBuiltins();
 
-enum EEditor {
+enum EditorMode {
     Chunks,
     Text,
 }
@@ -88,7 +88,7 @@ type EditorState = {
     updateTimer: NodeJS.Timer;
     dropdownVisible: boolean;
     fontSize: number;
-    editorMode: EEditor,
+    editorMode: EditorMode,
     message: string;
     definitionsHighlights: number[][];
     fsBrowserVisible: boolean;
@@ -263,7 +263,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             autoRun: true,
             updateTimer: setTimeout(() => { return; }, 0),
             dropdownVisible: false,
-            editorMode: EEditor.Chunks,
+            editorMode: EditorMode.Chunks,
             fontSize: 12,
             message: "Ready to rock",
             definitionsHighlights: [],
@@ -358,7 +358,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
             this.currentFile,
             this.state.currentFileContents);
 
-        if (this.state.editorMode === EEditor.Chunks) {
+        if (this.state.editorMode === EditorMode.Chunks) {
             const chunkstrs = this.state.currentFileContents.split(CHUNKSEP);
             for (let i = 0; i < chunkstrs.length; i++) {
                 control.fs.writeFileSync(
@@ -413,7 +413,7 @@ class Editor extends React.Component<EditorProps, EditorState> {
         });
     };
 
-    setEditorMode = (editorMode: EEditor) => {
+    setEditorMode = (editorMode: EditorMode) => {
         this.setState({ editorMode });
     }
 
@@ -507,14 +507,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
     };
 
     makeDefinitions() {
-        if (this.state.editorMode === EEditor.Text) {
+        if (this.state.editorMode === EditorMode.Text) {
             return <SingleCodeMirrorDefinitions
                 text={this.state.currentFileContents}
                 onEdit={this.onEdit}
                 highlights={this.state.definitionsHighlights}>
             </SingleCodeMirrorDefinitions>;
         }
-        else if (this.state.editorMode === EEditor.Chunks) {
+        else if (this.state.editorMode === EditorMode.Chunks) {
             control.createRepl();
 
             return (<DefChunks
@@ -579,14 +579,14 @@ class Editor extends React.Component<EditorProps, EditorState> {
 
         const textEditor =
             <button className="text-editor"
-                    onClick={() => this.setEditorMode(EEditor.Text)}
+                    onClick={() => this.setEditorMode(EditorMode.Text)}
                     key="TextEditor">
                 Text
             </button>;
 
         const chunkEditor =
             <button className="chunk-editor"
-                    onClick={() => this.setEditorMode(EEditor.Chunks)}
+                    onClick={() => this.setEditorMode(EditorMode.Chunks)}
                     key="ChunkEditor">
                 Chunks
             </button>;
