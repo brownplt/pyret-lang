@@ -234,31 +234,6 @@ fun set-loadable(basedir, locator, loadable) -> String block:
   end
 end
 
-fun get-cli-module-storage(storage-dir :: String):
-  {
-    method load-modules(self, to-compile, max-dep-times) block:
-      maybe-modules = for map(t from to-compile):
-        get-loadable(storage-dir, t, max-dep-times)
-      end
-      modules = [SD.mutable-string-dict:]
-      for each2(m from maybe-modules, t from to-compile):
-        cases(Option<Loadable>) m:
-          | none => nothing
-          | some(shadow m) =>
-            # NOTE(joe):
-            # With re-providing, this is unsafe, because modules can alias values in others
-            # Therefore, we need to wait to add modules until after all their dependencies
-            # have been processed, otherwise the type-checker will not be able
-            # to compute the type environment
-            #
-            modules.set-now(t.locator.uri(), m)
-        end
-      end
-      modules
-    end
-  }
-end
-
 type CLIContext = {
   current-load-path :: String,
   cache-base-dir :: String
@@ -398,24 +373,15 @@ fun build-program(path, options, stats) block:
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
-  max-dep-times = for fold(sd from [SD.string-dict:], located from wl):
-    cur-mod-time = located.locator.get-modified-time()
-    dm = located.dependency-map
-    max-dep-time = for SD.fold-keys-now(mdt from cur-mod-time, dep-key from dm):
-      dep-loc = dm.get-value-now(dep-key)
-      num-max(sd.get-value(dep-loc.uri()), mdt)
-    end
-    sd.set(located.locator.uri(), max-dep-time)
-  end
+  max-dep-times = CL.dep-times-from-worklist(wl)
 
   shadow wl = for map(located from wl):
     located.{ locator: get-cached-if-available-known-mtimes(options.compiled-cache, located.locator, max-dep-times) }
   end
 
   clear-and-print("Loading existing compiled modules...")
-  storage = get-cli-module-storage(options.compiled-cache)
-  starter-modules = storage.load-modules(wl, max-dep-times)
 
+  starter-modules = CL.modules-from-worklist(wl, get-loadable(options.compiled-cache, _, _))
 
   total-modules = wl.length()
   cached-modules = starter-modules.count-now()
