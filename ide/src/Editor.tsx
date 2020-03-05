@@ -52,7 +52,8 @@ export class Editor extends React.Component<EditorProps, State.EditorState> {
 
     run = State.handleRun(this)
     update = State.handleUpdate(this)
-    onEdit = State.handleEdit(this)
+    onTextEdit = State.handleTextEdit(this)
+    onChunkEdit = State.handleChunkEdit(this)
     onTraverseDown = State.handleTraverseDown(this)
     onTraverseUp = State.handleTraverseUp(this)
     onExpandChild = State.handleExpandChild(this)
@@ -111,7 +112,7 @@ export class Editor extends React.Component<EditorProps, State.EditorState> {
         if (this.state.editorMode === EditorMode.Text) {
             return <SingleCodeMirrorDefinitions
                 text={this.state.currentFileContents}
-                onEdit={this.onEdit}
+                onEdit={this.onTextEdit}
                 highlights={this.state.definitionsHighlights}>
             </SingleCodeMirrorDefinitions>;
         }
@@ -121,7 +122,7 @@ export class Editor extends React.Component<EditorProps, State.EditorState> {
                 name={this.state.currentFileName}
                 highlights={this.state.definitionsHighlights}
                 program={this.state.currentFileContents}
-                onEdit={this.onEdit}></DefChunks>);
+                onEdit={this.onChunkEdit}></DefChunks>);
         }
     }
 

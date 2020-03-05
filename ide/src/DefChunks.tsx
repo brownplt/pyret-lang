@@ -122,7 +122,7 @@ type DefChunksProps = {
   highlights: number[][],
   program: string,
   name: string,
-  onEdit: (s: string) => void
+  onEdit: (index: number, s: string) => void
 };
 type DefChunksState = {
   chunks: Chunk[],
@@ -174,7 +174,7 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
         });
       }
       this.setState({chunks: newChunks});
-      this.props.onEdit(this.chunksToString(newChunks));
+      this.props.onEdit(index, this.chunksToString(newChunks));
     }
     const onDragEnd = (result: DropResult) => {
       if(result.destination === null || result.source!.index === result.destination!.index) {
@@ -195,7 +195,8 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
           newChunks[i] = {text: p.text, id: p.id, startLine: this.getStartLineForIndex(newChunks, i)};
         }
         this.setState({ chunks: newChunks });
-        this.props.onEdit(this.chunksToString(newChunks));
+        const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
+        this.props.onEdit(firstAffectedChunk, this.chunksToString(newChunks));
       }
     };
     const endBlankChunk = {text: "", id: String(this.state.chunkIndexCounter), startLine: this.getStartLineForIndex(this.state.chunks, this.state.chunks.length)};

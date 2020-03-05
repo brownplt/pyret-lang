@@ -236,6 +236,7 @@ export type EditorState = {
     fsBrowserVisible: boolean;
     compileState: CompileState;
     currentRunner: any;
+    currentChunk: number;
 };
 
 export const makeDefaultEditorState = (props: any) => {
@@ -268,6 +269,7 @@ export const makeDefaultEditorState = (props: any) => {
         fsBrowserVisible: false,
         compileState: CompileState.Startup,
         currentRunner: undefined,
+        currentChunk: 0,
     };
 };
 
@@ -293,8 +295,10 @@ export const handleSetupFinished = (editor: Editor) => {
         } else if (editor.state.editorMode === EditorMode.Chunks) {
             if (editor.state.compileState === CompileState.Startup) {
                 editor.setState({compileState: CompileState.StartupRepl});
+                control.createRepl();
             } else if (editor.state.compileState === CompileState.StartupQueue) {
                 editor.setState({compileState: CompileState.StartupReplQueue});
+                control.createRepl();
             } else {
                 invalidCompileState(editor.state.compileState);
             }
@@ -397,63 +401,93 @@ const makeResult = (
     });
 };
 
+const getChunks = (editor: Editor) => {
+    return editor.state.currentFileContents.split(CHUNKSEP);
+};
+
 export const handleCompileSuccess = (editor: Editor) => {
     return () => {
-        console.log("COMPILE SUCCESS");
+        if (editor.state.editorMode === EditorMode.Text) {
+            console.log("COMPILE SUCCESS");
+        } else if (editor.state.editorMode === EditorMode.Chunks) {
+            console.log(`COMPILE SUCCESS (chunk #${editor.state.currentChunk})`);
+        }
+
         if (editor.state.compileState === CompileState.Compile) {
             editor.setState({compileState: CompileState.Ready});
+
+            if (editor.state.editorMode === EditorMode.Chunks) {
+                const numberOfChunks = getChunks(editor).length;
+                if (editor.state.currentChunk < numberOfChunks) {
+                    editor.setState(
+                        {currentChunk: editor.state.currentChunk + 1},
+                        () => editor.update());
+                }
+            }
         } else if (editor.state.compileState === CompileState.CompileQueue
                    || editor.state.compileState === CompileState.CompileRunQueue) {
             editor.setState({compileState: CompileState.Ready});
             editor.update();
         } else if (editor.state.compileState === CompileState.CompileRun) {
-            if (editor.stopify) {
-                editor.setState({compileState: CompileState.RunningWithStops});
-            } else {
-                editor.setState({compileState: CompileState.RunningWithoutStops});
-            }
-            const x = new Date();
-            console.log(`Run ${x} started`);
-            control.run(
-                control.path.runBase,
-                control.path.runProgram,
-                (runResult: any) => {
-                    editor.setState({compileState: CompileState.Ready});
-                    console.log(`Run ${x} finished`);
-                    console.log(runResult);
-                    if (runResult.result !== undefined) {
-                        if (runResult.result.error === undefined) {
-                            const results =
-                                makeResult(
-                                    runResult.result,
-                                    'file://' +
-                                    control.bfsSetup.path.join(
-                                        control.path.compileBase,
-                                        editor.state.currentFileName));
-                            const checks = runResult.result.$checks;
-                            editor.setState({
-                                interactions: results,
-                                checks: checks
-                            });
+            if (editor.state.editorMode === EditorMode.Text) {
+                if (editor.stopify) {
+                    editor.setState({compileState: CompileState.RunningWithStops});
+                } else {
+                    editor.setState({compileState: CompileState.RunningWithoutStops});
+                }
+                const x = new Date();
+                console.log(`Run ${x} started`);
+                control.run(
+                    control.path.runBase,
+                    control.path.runProgram,
+                    (runResult: any) => {
+                        editor.setState({compileState: CompileState.Ready});
+                        console.log(`Run ${x} finished`);
+                        console.log(runResult);
+                        if (runResult.result !== undefined) {
+                            if (runResult.result.error === undefined) {
+                                const results =
+                                    makeResult(
+                                        runResult.result,
+                                        'file://' +
+                                        control.bfsSetup.path.join(
+                                            control.path.compileBase,
+                                            editor.state.currentFileName));
+                                const checks = runResult.result.$checks;
+                                editor.setState({
+                                    interactions: results,
+                                    checks: checks
+                                });
 
-                            if (results[0] !== undefined && results[0].name === "error") {
-                                editor.setState(
-                                    {
-                                        interactionErrors: runResult.result.error,
-                                    }
-                                );
+                                if (results[0] !== undefined && results[0].name === "error") {
+                                    editor.setState(
+                                        {
+                                            interactionErrors: runResult.result.error,
+                                        }
+                                    );
+                                }
+                            } else {
+                                editor.setState({
+                                    interactionErrors: [runResult.result.error],
+                                });
                             }
-                        } else {
-                            editor.setState({
-                                interactionErrors: [runResult.result.error],
-                            });
                         }
-                    }
-                },
-                (runner: any) => {
-                    editor.setState({currentRunner: runner});
-                },
-                editor.state.runKind);
+                    },
+                    (runner: any) => {
+                        editor.setState({currentRunner: runner});
+                    },
+                    editor.state.runKind);
+            } else if (editor.state.editorMode === EditorMode.Chunks) {
+                console.log("Skipping run (not yet implemented for chunks)");
+                const numberOfChunks = getChunks(editor).length;
+                if (editor.state.currentChunk < numberOfChunks) {
+                    editor.setState({
+                        currentChunk: editor.state.currentChunk + 1,
+                        compileState: CompileState.Ready
+                    });
+                    editor.update();
+                }
+            }
         } else {
             invalidCompileState(editor.state.compileState);
         }
@@ -463,6 +497,12 @@ export const handleCompileSuccess = (editor: Editor) => {
 export const handleCreateReplSuccess = (editor: Editor) => {
     return () => {
         console.log("REPL successfully created");
+        if (editor.state.compileState === CompileState.StartupRepl) {
+            editor.setState({compileState: CompileState.Ready});
+        } else if (editor.state.compileState === CompileState.StartupReplQueue) {
+            editor.setState({compileState: CompileState.Ready});
+            editor.update();
+        }
     };
 };
 
@@ -547,29 +587,40 @@ export const handleUpdate = (editor: Editor) => {
             editor.state.currentFileContents);
 
         if (editor.state.editorMode === EditorMode.Chunks) {
-            const chunkstrs = editor.state.currentFileContents.split(CHUNKSEP);
+            const chunkstrs = getChunks(editor);
             for (let i = 0; i < chunkstrs.length; i++) {
                 control.fs.writeFileSync(
                     `${editor.currentFile}.chunk.${i}`,
                     chunkstrs[i]);
             }
 
-            for (let i = 0; i < chunkstrs.length; i++) {
-                console.log(`Sending message to webworker to compile: ${editor.currentFile}.chunk.${i}`)
-                control.backend.compileInteraction(control.worker, `${editor.currentFile}.chunk.${i}`);
-                // todo: wait for response before compiling more chunks
-            }
+            console.log(`Sending message to webworker to compile: ${editor.currentFile}.chunk.${editor.state.currentChunk}`)
+            control.backend.compileInteraction(
+                control.worker,
+                `${editor.currentFile}.chunk.${editor.state.currentChunk}`)
         } else {
             editor.run(false);
         }
     };
 };
 
-export const handleEdit = (editor: Editor) => {
+export const handleTextEdit = (editor: Editor) => {
     return (value: string): void => {
         clearTimeout(editor.state.updateTimer);
         editor.setState({
-            //        currentFileContents: value,
+            updateTimer: setTimeout(() => {
+                editor.setState({currentFileContents: value});
+                editor.update();
+            }, 250),
+        });
+    };
+};
+
+export const handleChunkEdit = (editor: Editor) => {
+    return (index: number, value: string): void => {
+        clearTimeout(editor.state.updateTimer);
+        editor.setState({
+            currentChunk: index,
             updateTimer: setTimeout(() => {
                 editor.setState({currentFileContents: value});
                 editor.update();
