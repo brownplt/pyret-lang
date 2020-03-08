@@ -3,7 +3,10 @@ import { ideApp } from './reducers';
 import { CompileState } from './State';
 import * as control from './control';
 
-export const store = createStore(ideApp);
+export const store = createStore(
+  ideApp,
+  (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__()
+);
 
 function handleLog(message: string): void {
   console.log("log");
@@ -68,6 +71,7 @@ function handleCompileInteractionFailure(): void {
 
 store.subscribe(() => {
   const state = store.getState();
+  console.log(`subscription called, current state is ${CompileState[state.compileState]}`);
 
   switch (state.compileState) {
     case CompileState.TextNeedsStartup:
@@ -83,6 +87,7 @@ store.subscribe(() => {
         handleCompileInteractionSuccess,
         handleCompileInteractionFailure,
       );
+      store.dispatch({ type: "startupCompleted" });
       return;
     case CompileState.TextReadyQueue:
       control.fs.writeFileSync(
@@ -96,6 +101,18 @@ store.subscribe(() => {
         state.typeCheck);
       store.dispatch({ type: "textCompileQueue" });
       return;
+    case CompileState.TextNeedsRun:
+      store.dispatch({ type: "textRunStarted" });
+      control.run(
+        control.path.runBase,
+        control.path.runProgram,
+        (runResult: any) => {
+          store.dispatch({ type: "textRunFinished", result: runResult });
+        },
+        (runner: any) => {
+          store.dispatch({ type: "updateRunner", runner });
+        },
+        control.backend.RunKind.Async);
     default:
       return;
   }

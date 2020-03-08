@@ -29,7 +29,7 @@ const initialState = {
   message: "Ready to rock",
   definitionsHighlights: [],
   fsBrowserVisible: false,
-  compileState: CompileState.TextStartup,
+  compileState: CompileState.Uninitialized,
   currentRunner: undefined,
   currentChunk: 0,
 };
@@ -38,16 +38,35 @@ function dispatchCompileState<a>(compileState: CompileState,
                                  actions: {state: CompileState, action: () => a}[]) {
   for (let i = 0; i < actions.length; i++) {
     if (actions[i].state === compileState) {
+      console.log(`dispatching state ${CompileState[compileState]}`);
       return actions[i].action();
     }
   }
 
-  throw new Error(`dispatchCompileState: no action for state ${compileState}`);
+  throw new Error(`dispatchCompileState: no action for state ${CompileState[compileState]}`);
 }
 
 export function ideApp(state = initialState, action: action.ideAction) {
   const changes = (() => {
     switch (action.type) {
+      case "beginStartup":
+        return dispatchCompileState(state.compileState, [
+          {
+            state: CompileState.Uninitialized,
+            action: () => {
+              return { compileState: CompileState.TextNeedsStartup };
+            }
+          }
+        ]);
+      case "startupCompleted":
+        return dispatchCompileState(state.compileState, [
+          {
+            state: CompileState.TextNeedsStartup,
+            action: () => {
+              return { compileState: CompileState.TextStartup };
+            }
+          }
+        ]);
       case "finishSetup":
         return dispatchCompileState(state.compileState, [
           {
@@ -253,21 +272,11 @@ export function ideApp(state = initialState, action: action.ideAction) {
         console.log("textLintSuccess not yet implemented");
         return;
       case "textCompileSuccess":
-        control.run(
-          control.path.runBase,
-          control.path.runProgram,
-          (runResult: any) => {
-            store.dispatch({ type: "textRunFinished", result: runResult });
-          },
-          (runner: any) => {
-            store.dispatch({ type: "updateRunner", runner });
-          },
-          control.backend.RunKind.Async);
         return dispatchCompileState(state.compileState, [
           {
             state: CompileState.TextCompileQueue,
             action: () => {
-              return { state: CompileState.TextRunningWithStops };
+              return { compileState: CompileState.TextNeedsRun };
             }
           }
         ]);
@@ -307,7 +316,7 @@ export function ideApp(state = initialState, action: action.ideAction) {
 
 
         const makeAction = (newState: CompileState) => () => {
-          return Object.assign({}, {state: newState}, data);
+          return Object.assign({}, {compileState: newState}, data);
         }
 
         return dispatchCompileState(state.compileState, [
@@ -334,6 +343,15 @@ export function ideApp(state = initialState, action: action.ideAction) {
         ]);
       case "updateRunner":
         return { currentRunner: action.runner };
+      case "textRunStarted":
+        return dispatchCompileState(state.compileState, [
+          {
+            state: CompileState.TextNeedsRun,
+            action: () => {
+              return { compileState: CompileState.TextRunningWithStops };
+            }
+          }
+        ]);
       default:
         return {};
     }
