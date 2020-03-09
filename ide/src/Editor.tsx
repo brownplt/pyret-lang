@@ -23,7 +23,14 @@ type stateProps = {
     browsePath: string[],
     currentFileDirectory: string[],
     currentFileName: string,
-    currentFileContents: string
+    currentFileContents: string,
+    definitionsHighlights: number[][],
+    fontSize: number,
+    stopify: boolean,
+    compileState: State.CompileState,
+    checks: any[],
+    interactions: { key: any, name: any, value: any }[],
+    interactionErrors: any[]
 }
 
 function mapStateToProps(state: any): stateProps {
@@ -32,19 +39,32 @@ function mapStateToProps(state: any): stateProps {
         browsePath: state.browsePath,
         currentFileDirectory: state.currentFileDirectory,
         currentFileName: state.currentFileName,
-        currentFileContents: state.currentFileContents
+        currentFileContents: state.currentFileContents,
+        definitionsHighlights: state.definitionsHighlights,
+        fontSize: state.fontSize,
+        stopify: state.runKind === control.backend.RunKind.Async,
+        compileState: state.compileState,
+        checks: state.checks,
+        interactions: state.interactions,
+        interactionErrors: state.interactionErrors
     };
 }
 
 type dispatchProps = {
     beginStartup: () => void,
-    queueRun: () => void
+    queueRun: () => void,
+    stop: () => void,
+    run: () => void,
+    updateContents: (contents: string) => void
 }
 
 function mapDispatchToProps(dispatch: any): dispatchProps {
     return {
         beginStartup: () => dispatch({ type: "beginStartup" }),
-        queueRun: () => dispatch({ type: "queueRun" })
+        queueRun: () => dispatch({ type: "queueRun" }),
+        stop: () => dispatch({ type: "stopText" }),
+        run: () => dispatch({ type: "runText" }),
+        updateContents: (contents: string) => dispatch({ type: "textUpdateContents", contents })
     };
 }
 
@@ -68,10 +88,8 @@ export class Editor extends React.Component<EditorProps, any> {
     constructor(props: EditorProps) {
         super(props);
 
-        console.log("the props", props);
-
         props.beginStartup();
-        props.queueRun();
+        //props.queueRun();
     };
 
     //run = State.handleRun(this)
@@ -132,43 +150,44 @@ export class Editor extends React.Component<EditorProps, any> {
         );
     };
 
-    /* makeDefinitions() {
-     *     if (this.state.editorMode === EditorMode.Text) {
-     *         return <SingleCodeMirrorDefinitions
-     *             text={this.props.currentFileContents}
-     *             onEdit={this.onTextEdit}
-     *             highlights={this.state.definitionsHighlights}>
-     *         </SingleCodeMirrorDefinitions>;
-     *     }
-     *     //else if (this.state.editorMode === EditorMode.Chunks) {
-     *     //    return (<DefChunks
-     *     //        lintFailures={this.state.lintFailures}
-     *     //        name={this.state.currentFileName}
-     *     //        highlights={this.state.definitionsHighlights}
-     *     //        program={this.state.currentFileContents}
-     *     //        onEdit={this.onChunkEdit}></DefChunks>);
-     *     //}
-     * } */
+    makeDefinitions() {
+        //if (this.state.editorMode === EditorMode.Text) {
+        return (
+            <SingleCodeMirrorDefinitions
+                text={this.props.currentFileContents}
+                onEdit={(contents: string) => this.props.updateContents(contents) }
+                highlights={this.props.definitionsHighlights}>
+            </SingleCodeMirrorDefinitions>);
+        //}
+        //else if (this.state.editorMode === EditorMode.Chunks) {
+        //    return (<DefChunks
+        //        lintFailures={this.state.lintFailures}
+        //        name={this.state.currentFileName}
+        //        highlights={this.state.definitionsHighlights}
+        //        program={this.state.currentFileContents}
+        //        onEdit={this.onChunkEdit}></DefChunks>);
+        //}
+    }
 
     render() {
-        /* const interactionValues =
-         *     <div style={{ fontSize: this.state.fontSize }}>
-         *         <pre className="checks-area">
-         *             { this.state.checks && this.state.checks.map(c => <TestResult check={c}></TestResult>)}
-         *         </pre>
-         *         <pre className="interactions-area">
-         *             {
-         *                 this.state.interactions.map(
-         *                     (i) => {
-         *                         return <Interaction key={i.key}
-         *                                             name={i.name}
-         *                                             value={i.value}/>
-         *                     })
-         *             }
-         *         </pre>
-         *     </div>;
+        const interactionValues =
+            <div style={{ fontSize: this.props.fontSize }}>
+                <pre className="checks-area">
+                    { this.props.checks && this.props.checks.map((c: any) => <TestResult check={c}></TestResult>)}
+                </pre>
+                <pre className="interactions-area">
+                    {
+                        this.props.interactions.map(
+                            (i: any) => {
+                                return <Interaction key={i.key}
+                                                    name={i.name}
+                                                    value={i.value}/>
+                        })
+                    }
+                </pre>
+            </div>;
 
-         * const dropdown = this.state.dropdownVisible && (
+        /* const dropdown = this.state.dropdownVisible && (
          *     <Dropdown>
          *         <DropdownOption enabled={this.state.autoRun}
          *                         onClick={this.toggleAutoRun}>
@@ -218,8 +237,8 @@ export class Editor extends React.Component<EditorProps, any> {
          * const builtinsLoader =
          *     <button onClick={control.loadBuiltins}>
          *         Load Builtins
-         *     </button>;
-         */
+         *     </button>; */
+        
         /* const menu =
          *     <Menu>
          *         <Tab name="📁">
@@ -232,58 +251,58 @@ export class Editor extends React.Component<EditorProps, any> {
          *             {fontSize}
          *         </Tab>
          *     </Menu>;
-
-         * const rightHandSide =
-         *     <div className="interactions-area-container">
-         *         {this.state.interactionErrors.length > 0 ? (
-         *             <SplitterLayout vertical={true}
-         *                             percentage={true}>
-         *                 {interactionValues}
-         *                 <InteractionError fontSize={this.state.fontSize}>
-         *                     {this.state.interactionErrors}
-         *                 </InteractionError>
-         *             </SplitterLayout>
-         *         ) : interactionValues}
-         *     </div>;
-
-         * const definitions = this.makeDefinitions();
          */
+        const rightHandSide =
+            <div className="interactions-area-container">
+                {this.props.interactionErrors.length > 0 ? (
+                    <SplitterLayout vertical={true}
+                                    percentage={true}>
+                        {interactionValues}
+                        <InteractionError fontSize={this.props.fontSize}>
+                            {this.props.interactionErrors}
+                        </InteractionError>
+                    </SplitterLayout>
+                ) : interactionValues}
+            </div>;
+
+        const definitions = this.makeDefinitions();
+
         return (
             <div className="page-container">
-                {/* <Header>
-                    {this.stopify && this.state.compileState === State.CompileState.RunningWithStops ? (
-                    <button className="stop-available"
-                    onClick={this.stop}>
-                    Stop
-                    </button>
+                <Header>
+                    {this.props.stopify && this.props.compileState === State.CompileState.TextRunningWithStops ? (
+                        <button className="stop-available"
+                                onClick={this.props.stop}>
+                            Stop
+                        </button>
                     ) : (
-                    <button className="stop-unavailable">
-                    Stop
-                    </button>
+                        <button className="stop-unavailable">
+                            Stop
+                        </button>
                     )}
                     <div className="run-container">
-                    <button className="run-ready"
-                    onClick={() => this.run(true)}>
-                    Run
-                    </button>
-                    <button className="run-options"
-                    onClick={this.toggleDropdownVisibility}
-                    onBlur={this.removeDropdown}>&#8628;{dropdown}
-                    </button>
+                        <button className="run-ready"
+                                onClick={this.props.run}>
+                            Run
+                        </button>
+                        {/* <button className="run-options"
+                            onClick={this.props.toggleDropdownVisibility}
+                            onBlur={this.props.removeDropdown}>&#8628;{dropdown}
+                            </button> */}
                     </div>
-                    </Header>
-                    <div className="code-container">
-                    {menu}
+                </Header>
+                <div className="code-container">
+                    {/* {menu} */}
                     <SplitterLayout vertical={false}
-                    percentage={true}>
-                    <div className="edit-area-container"
-                    style={{ fontSize: this.state.fontSize }}>
-                    {definitions}
-                    </div>
-                    {rightHandSide}
+                                    percentage={true}>
+                        <div className="edit-area-container"
+                             style={{ fontSize: this.props.fontSize }}>
+                            {definitions}
+                        </div>
+                        {rightHandSide}
                     </SplitterLayout>
-                    </div>
-                    <Footer message={State.editorStateToString(this)}></Footer> */}
+                </div>
+                {/* <Footer message={State.editorStateToString(this)}></Footer> */}
             </div>
         );
     }

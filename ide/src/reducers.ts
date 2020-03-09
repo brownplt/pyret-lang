@@ -47,6 +47,7 @@ function dispatchCompileState<a>(compileState: CompileState,
 }
 
 export function ideApp(state = initialState, action: action.ideAction) {
+  console.log(action);
   const changes = (() => {
     switch (action.type) {
       case "beginStartup":
@@ -292,6 +293,8 @@ export function ideApp(state = initialState, action: action.ideAction) {
                       control.path.compileBase,
                       state.currentFileName));
 
+              console.log(results);
+
               if (results[0] !== undefined && results[0].name === "error") {
                 return {
                   interactions: results,
@@ -314,6 +317,7 @@ export function ideApp(state = initialState, action: action.ideAction) {
           return {};
         })();
 
+        console.log("data", data);
 
         const makeAction = (newState: CompileState) => () => {
           return Object.assign({}, {compileState: newState}, data);
@@ -352,6 +356,9 @@ export function ideApp(state = initialState, action: action.ideAction) {
             }
           }
         ]);
+      case "textUpdateContents":
+        console.log("changing contents ...");
+        return { currentFileContents: action.contents };
       default:
         return {};
     }

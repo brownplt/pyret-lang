@@ -90,6 +90,7 @@ store.subscribe(() => {
       store.dispatch({ type: "startupCompleted" });
       return;
     case CompileState.TextReadyQueue:
+      console.log("current contents", state.currentFileContents);
       control.fs.writeFileSync(
         control.bfsSetup.path.join(
           ...state.currentFileDirectory,
