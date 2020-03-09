@@ -9,14 +9,13 @@ import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
 import { FontSize } from './FontSize';
-import { FSBrowser } from './FSBrowser';
+import FSBrowser from './FSBrowser';
 import { Dropdown, DropdownOption } from './Dropdown';
 import { Header } from './Header';
 import { InteractionError } from './InteractionError';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
-import { store } from './store';
 
 type stateProps = {
     browseRoot: string,
@@ -238,20 +237,20 @@ export class Editor extends React.Component<EditorProps, any> {
          *     <button onClick={control.loadBuiltins}>
          *         Load Builtins
          *     </button>; */
-        
-        /* const menu =
-         *     <Menu>
-         *         <Tab name="📁">
-         *             {fsBrowser}
-         *         </Tab>
-         *         <Tab name="⚙">
-         *             {textEditor}
-         *             {chunkEditor}
-         *             {builtinsLoader}
-         *             {fontSize}
-         *         </Tab>
-         *     </Menu>;
-         */
+
+        const menu =
+            <Menu>
+                <Tab name="📁">
+                    {/* {fsBrowser} */}
+                    <FSBrowser/>
+                </Tab>
+                {/* <Tab name="⚙">
+                    {textEditor}
+                    {chunkEditor}
+                    {builtinsLoader}
+                    {fontSize}
+                    </Tab> */}
+            </Menu>;
         const rightHandSide =
             <div className="interactions-area-container">
                 {this.props.interactionErrors.length > 0 ? (
@@ -292,7 +291,7 @@ export class Editor extends React.Component<EditorProps, any> {
                     </div>
                 </Header>
                 <div className="code-container">
-                    {/* {menu} */}
+                    {menu}
                     <SplitterLayout vertical={false}
                                     percentage={true}>
                         <div className="edit-area-container"

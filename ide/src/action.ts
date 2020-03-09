@@ -1,7 +1,7 @@
 import { EditorMode } from "./Editor";
 import { CompileState } from './State';
 
-export type ideAction = setEditorMode | finishSetup | finishCreateRepl | queueRun | runText | finishRunText | stopText | compileText | textRunQueued | textCompileQueue | textCompileFailure | textRunFailure | textLintFailure | textLintSuccess | textCompileSuccess | textRunFinished | updateRunner | beginStartup | startupCompleted | textRunStarted | textUpdateContents;
+export type ideAction = setEditorMode | finishSetup | finishCreateRepl | queueRun | runText | finishRunText | stopText | compileText | textRunQueued | textCompileQueue | textCompileFailure | textRunFailure | textLintFailure | textLintSuccess | textCompileSuccess | textRunFinished | updateRunner | beginStartup | startupCompleted | textRunStarted | textUpdateContents | traverseUp | traverseDown | expandChild;
 
 export type setEditorMode = {
   type: "setEditorMode",
@@ -93,6 +93,22 @@ export type textRunStarted = {
 export type textUpdateContents = {
   type: "textUpdateContents",
   contents: string
+}
+
+export type traverseUp = {
+  type: "traverseUp",
+  path: string[]
+}
+
+export type traverseDown = {
+  type: "traverseDown",
+  path: string[]
+}
+
+export type expandChild = {
+  type: "expandChild",
+  child: string,
+  fullChildPath: string
 }
 
 //export function setEditorMode(mode: EditorMode): setEditorMode {

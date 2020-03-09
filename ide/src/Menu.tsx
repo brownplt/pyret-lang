@@ -24,7 +24,7 @@ export class Menu extends React.Component<MenuProps, MenuState> {
         super(props);
 
         this.state = {
-            visible: false,
+            visible: true,
             tab: 0,
         };
     }
@@ -43,8 +43,15 @@ export class Menu extends React.Component<MenuProps, MenuState> {
     };
 
     render() {
-        const childNodes = Array.isArray(this.props.children) &&
-                           this.props.children.map((tab: any, index: number) => {
+        const children = (() => {
+            if (Array.isArray(this.props.children)) {
+                return this.props.children;
+            } else {
+                return [this.props.children];
+            }
+        })();
+
+        const childNodes = children.map((tab: any, index: number) => {
                                return (
                                    <div className={(
                                        this.state.visible && this.state.tab === index) ? (
@@ -58,8 +65,9 @@ export class Menu extends React.Component<MenuProps, MenuState> {
                                    </div>
                                );
                            });
-        const content = Array.isArray(this.props.children) &&
-                        this.props.children[this.state.tab];
+
+        const content = children[this.state.tab];
+
         return (
             <div className="menu-container">
                 <div className="menu-tabbar">

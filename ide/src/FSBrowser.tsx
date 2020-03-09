@@ -1,5 +1,6 @@
 import React from 'react';
 import * as control from './control';
+import { connect, ConnectedProps } from 'react-redux';
 
 type FSItemProps = {
     onClick: () => void;
@@ -56,13 +57,40 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
     }
 }
 
-type FSBrowserProps = {
+type stateProps = {
     root: string,
+    browsePath: string[],
+};
+
+function mapStateToProps(state: any): stateProps {
+    return {
+        root: state.browseRoot,
+        browsePath: state.browsePath
+    };
+}
+
+type dispatchProps = {
     onTraverseUp: (path: string[]) => void,
     onTraverseDown: (path: string[]) => void,
     onExpandChild: (child: string, fullChildPath: string) => void,
-    browsePath: string[],
-};
+}
+
+function mapDispatchToProps(state: any): dispatchProps {
+    return {
+        onTraverseUp: (path: string[]) => state.dispatch({type: "traverseUp", path}),
+        onTraverseDown: (path: string[]) => state.dispatch({type: "traverseDown", path}),
+        onExpandChild: (child: string, fullChildPath: string) => state.dispatch({
+            type: "expandChild",
+            child,
+            fullChildPath
+        })
+    }
+}
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type PropsFromRedux = ConnectedProps<typeof connector>;
+type FSBrowserProps = PropsFromRedux & dispatchProps & stateProps;
 
 enum EditType {
     CreateFile,
@@ -75,7 +103,7 @@ type FSBrowserState = {
     selected: string | undefined,
 };
 
-export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
+class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     constructor(props: FSBrowserProps) {
         super(props);
 
@@ -358,3 +386,5 @@ export class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         );
     }
 }
+
+export default connector(FSBrowser);
