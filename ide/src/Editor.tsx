@@ -302,7 +302,7 @@ export class Editor extends React.Component<EditorProps, any> {
                         {rightHandSide}
                     </SplitterLayout>
                 </div>
-                {/* <Footer message={State.editorStateToString(this)}></Footer> */}
+                {<Footer message={State.compileStateToString(this.props.compileState)}></Footer>}
             </div>
         );
     }
