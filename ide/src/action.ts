@@ -110,7 +110,3 @@ export type expandChild = {
   child: string,
   fullChildPath: string
 }
-
-//export function setEditorMode(mode: EditorMode): setEditorMode {
-//  return { type: "setEditorMode", mode };
-//}

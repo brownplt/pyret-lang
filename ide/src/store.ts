@@ -73,6 +73,17 @@ store.subscribe(() => {
   const state = store.getState();
   console.log(`subscription called, current state is ${CompileState[state.compileState]}`);
 
+  if (state.needLoadFile) {
+    const path = control.bfsSetup.path.join(
+      ...state.currentFileDirectory,
+      state.currentFileName);
+    console.log(path);
+    store.dispatch({
+      type: "textUpdateContents",
+      contents: control.openOrCreateFile(path)
+    });
+  }
+
   switch (state.compileState) {
     case CompileState.TextNeedsStartup:
       control.setupWorkerMessageHandler(

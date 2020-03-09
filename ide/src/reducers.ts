@@ -32,6 +32,7 @@ const initialState = {
   compileState: CompileState.Uninitialized,
   currentRunner: undefined,
   currentChunk: 0,
+  needLoadFile: false,
 };
 
 function dispatchCompileState<a>(compileState: CompileState,
@@ -358,7 +359,19 @@ export function ideApp(state = initialState, action: action.ideAction) {
         ]);
       case "textUpdateContents":
         console.log("changing contents ...");
-        return { currentFileContents: action.contents };
+        return {
+          currentFileContents: action.contents,
+          needLoadFile: false
+        };
+      case "traverseUp":
+        return { browsePath: action.path };
+      case "traverseDown":
+        return { browsePath: action.path };
+      case "expandChild":
+        return {
+          currentFileName: action.child,
+          needLoadFile: true
+        };
       default:
         return {};
     }
