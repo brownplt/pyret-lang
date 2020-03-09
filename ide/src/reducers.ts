@@ -369,6 +369,7 @@ export function ideApp(state = initialState, action: action.ideAction) {
         return { browsePath: action.path };
       case "expandChild":
         return {
+          currentFileDirectory: state.browsePath,
           currentFileName: action.child,
           needLoadFile: true
         };
