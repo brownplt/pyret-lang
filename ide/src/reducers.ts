@@ -1,10 +1,8 @@
-import { combineReducers } from 'redux';
 import * as control from './control';
 import { EditorMode } from './Editor';
-import { CompileState, makeResult } from './State';
+import { CompileState } from './State';
 import * as action from './action';
-import { store } from './store';
-import * as reducers from './reducersImpl'
+import { reducers } from './reducersImpl'
 
 const initialState = {
   browseRoot: "/",
@@ -36,24 +34,8 @@ const initialState = {
   needLoadFile: false,
 };
 
-function dispatchCompileState<a>(compileState: CompileState,
-                                 actions: {state: CompileState, action: () => a}[]) {
-  for (let i = 0; i < actions.length; i++) {
-    if (actions[i].state === compileState) {
-      console.log(`dispatching state ${CompileState[compileState]}`);
-      return actions[i].action();
-    }
-  }
-
-  throw new Error(`dispatchCompileState: no action for state ${CompileState[compileState]}`);
-}
-
-const reducersArray = Object.getOwnPropertyNames(reducers)
-  .filter((key) => key.indexOf("__") !== 0)
-  .map((key) => (reducers as any)[key]);
-
 export function ideApp(state = initialState, action: action.ideAction) {
-  const newState = reducersArray
+  const newState = reducers
     .reduce(
       (state, r) => {
         return Object.assign({}, state, r(state, action));
