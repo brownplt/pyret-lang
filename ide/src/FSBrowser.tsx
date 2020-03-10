@@ -324,7 +324,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                                  paddingRight: "1em",
                                  background: this.state.selected ? "none" : "darkgray",
                              }}>
-                            {control.bfsSetup.path.parse(this.props.browsePath).base}
+                            {control.bfsSetup.path.parse(this.props.browsePath).base || "/"}
                         </div>
                         <div style={{
                             flexGrow: 1,
