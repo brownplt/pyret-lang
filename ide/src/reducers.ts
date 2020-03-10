@@ -252,7 +252,11 @@ const reducers = [
   onDispatch("textCompileSuccess", [
     {
       state: CompileState.TextCompileQueue,
-      action: { compileState: CompileState.TextNeedsRun }
+      action: {
+        compileState: CompileState.TextNeedsRun,
+        interactionErrors: [],
+        definitionsHighlights: []
+      }
     }
   ]),
   on("textRunFinished", (state: any, action: any) => {
