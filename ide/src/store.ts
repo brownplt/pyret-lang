@@ -74,9 +74,7 @@ store.subscribe(() => {
   console.log(`subscription called, current state is ${CompileState[state.compileState]}`);
 
   if (state.needLoadFile) {
-    const path = control.bfsSetup.path.join(
-      ...state.currentFileDirectory,
-      state.currentFileName);
+    const path = state.currentFile;
     console.log(path);
     store.dispatch({
       type: "textUpdateContents",
@@ -102,14 +100,13 @@ store.subscribe(() => {
       return;
     case CompileState.TextReadyQueue:
       console.log("current contents", state.currentFileContents);
+      const parsed = control.bfsSetup.path.parse(state.currentFile);
       control.fs.writeFileSync(
-        control.bfsSetup.path.join(
-          ...state.currentFileDirectory,
-          state.currentFileName),
+        state.currentFile,
         state.currentFileContents);
       control.compile(
-        control.bfsSetup.path.join(...state.currentFileDirectory),
-        state.currentFileName,
+        parsed.dir,
+        parsed.base,
         state.typeCheck);
       store.dispatch({ type: "textCompileQueue" });
       return;

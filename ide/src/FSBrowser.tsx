@@ -4,7 +4,7 @@ import { connect, ConnectedProps } from 'react-redux';
 
 type FSItemProps = {
     onClick: () => void;
-    path: string[];
+    path: string;
     selected: boolean;
 };
 
@@ -12,7 +12,7 @@ type FSItemState = {};
 
 class FSItem extends React.Component<FSItemProps, FSItemState> {
     render() {
-        const path = control.bfsSetup.path.join(...this.props.path);
+        const path = this.props.path;
 
         const stats = control.fs.statSync(path);
 
@@ -49,7 +49,7 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
                         {label}
                     </div>
                     <div>
-                        {this.props.path[this.props.path.length - 1]}
+                        {control.bfsSetup.path.parse(this.props.path).base}
                     </div>
                 </div>
             </button>
@@ -58,33 +58,32 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
 }
 
 type stateProps = {
-    root: string,
-    browsePath: string[],
+    browseRoot: string,
+    browsePath: string
 };
 
 function mapStateToProps(state: any): stateProps {
     return {
-        root: state.browseRoot,
+        browseRoot: state.browseRoot,
         browsePath: state.browsePath
     };
 }
 
 type dispatchProps = {
-    onTraverseUp: (path: string[]) => void,
-    onTraverseDown: (path: string[]) => void,
-    onExpandChild: (child: string, fullChildPath: string) => void,
+    onTraverseUp: (path: string) => void,
+    onTraverseDown: (path: string) => void,
+    onExpandChild: (path: string) => void,
 }
 
 function mapDispatchToProps(dispatch: any): dispatchProps {
     return {
-        onTraverseUp: (path: string[]) => dispatch({type: "traverseUp", path}),
-        onTraverseDown: (path: string[]) => dispatch({type: "traverseDown", path}),
-        onExpandChild: (child: string, fullChildPath: string) => dispatch({
+        onTraverseUp: (path: string) => dispatch({type: "traverseUp", path}),
+        onTraverseDown: (path: string) => dispatch({type: "traverseDown", path}),
+        onExpandChild: (path: string) => dispatch({
             type: "expandChild",
-            child,
-            fullChildPath
+            path
         })
-    }
+    };
 }
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
@@ -115,12 +114,11 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
 
     get browsePathString() {
-        return control.bfsSetup.path.join(...this.props.browsePath);
+        return this.props.browsePath;
     }
 
     get browsingRoot() {
-        return control.bfsSetup.path.join(...this.props.browsePath) ===
-            this.props.root;
+        return this.props.browsePath === this.props.browseRoot;
     }
 
     static compareFSItemPair =
@@ -136,8 +134,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
          };
 
     traverseUp = (): void => {
-        const newPath = this.props.browsePath.slice();
-        newPath.pop();
+        const newPath = control.bfsSetup.path.join(this.props.browsePath, "..");
 
         this.setState({
             selected: undefined,
@@ -147,8 +144,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     };
 
     traverseDown = (childDirectory: string): void => {
-        const newPath = this.props.browsePath.slice();
-        newPath.push(childDirectory);
+        const newPath = control.bfsSetup.path.join(this.props.browsePath, childDirectory);
 
         this.setState({
             selected: undefined,
@@ -169,7 +165,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 selected: child,
             });
 
-            this.props.onExpandChild(child, fullChildPath);
+            this.props.onExpandChild(fullChildPath);
         }
     }
 
@@ -178,7 +174,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             filePath,
             <FSItem key={filePath}
                     onClick={() => this.expandChild(filePath)}
-                    path={[...this.props.browsePath, filePath]}
+                    path={control.bfsSetup.path.join(this.props.browsePath, filePath)}
                     selected={filePath === this.state.selected}/>
         ];
     };
@@ -211,7 +207,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         value.preventDefault();
 
         const name = this.state.editValue;
-        const path = control.bfsSetup.path.join(...this.props.browsePath, name);
+        const path = control.bfsSetup.path.join(this.props.browsePath, name);
 
         if (this.state.editType === EditType.CreateFile) {
             control.createFile(path);
@@ -238,7 +234,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             this.traverseUp();
         } else {
             control.removeFile(
-                control.bfsSetup.path.join(...this.props.browsePath, this.state.selected))
+                control.bfsSetup.path.join(this.props.browsePath, this.state.selected))
 
             this.setState({
                 selected: undefined,
@@ -264,7 +260,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 const name = file.name;
 
                 control.bfsSetup.fs.writeFileSync(
-                    control.bfsSetup.path.join(...currentDirectory, name),
+                    control.bfsSetup.path.join(currentDirectory, name),
                     data);
 
                 this.setState(this.state);
@@ -328,7 +324,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                                  paddingRight: "1em",
                                  background: this.state.selected ? "none" : "darkgray",
                              }}>
-                            {this.props.browsePath[this.props.browsePath.length - 1]}
+                            {control.bfsSetup.path.parse(this.props.browsePath).base}
                         </div>
                         <div style={{
                             flexGrow: 1,
@@ -360,7 +356,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                                     onClick={this.toggleEditDirectory}>
                                 +&#x1f4c2;
                             </button>
-                            {this.browsePathString !== this.props.root &&
+                            {!this.browsingRoot &&
                              <button className="fs-browser-item"
                                      onClick={this.deleteSelected}>
                             &#10060;
@@ -370,7 +366,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                     {editor}
                     {!this.browsingRoot && (
                         <FSItem onClick={this.traverseUp}
-                                path={[".."]}
+                                path={".."}
                                 selected={false}>
                         </FSItem>
                     )}

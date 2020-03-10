@@ -97,16 +97,15 @@ export type textUpdateContents = {
 
 export type traverseUp = {
   type: "traverseUp",
-  path: string[]
+  path: string
 }
 
 export type traverseDown = {
   type: "traverseDown",
-  path: string[]
+  path: string
 }
 
 export type expandChild = {
   type: "expandChild",
-  child: string,
-  fullChildPath: string
+  path: string
 }

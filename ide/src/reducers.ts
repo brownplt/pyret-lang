@@ -6,9 +6,8 @@ import { EditorMode } from './Editor';
 
 const initialState = {
   browseRoot: "/",
-  browsePath: ["/", "projects"],
-  currentFileDirectory: ["/", "projects"],
-  currentFileName: "program.arr",
+  browsePath: "/projects",
+  currentFile: "/projects/program.arr",
   currentFileContents: control.openOrCreateFile("/projects/program.arr"),
   typeCheck: true,
   checks: [],
@@ -314,8 +313,7 @@ const reducers = [
   }),
   on("expandChild", (state: any, action: any) => {
     return {
-      currentFileDirectory: state.browsePath,
-      currentFileName: action.child,
+      currentFile: action.path,
       needLoadFile: true
     };
   })
