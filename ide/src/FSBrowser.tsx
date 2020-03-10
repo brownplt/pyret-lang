@@ -23,7 +23,7 @@ class FSItem extends React.Component<FSItemProps, FSItemState> {
                 return <div>&#128441;</div>;
             } else {
                 return "?";
-            }})();
+        }})();
 
         const background = this.props.selected ? "darkgray": "rgba(0, 0, 0, 0.3)";
 
@@ -126,14 +126,14 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     static compareFSItemPair =
         (a: [string, FSItem],
          b: [string, FSItem]): any => {
-        if (a[0] < b[0]) {
-            return -1;
-        } else if (a[0] > b[0]) {
-            return 1;
-        } else {
-            return 0;
-        }
-    };
+             if (a[0] < b[0]) {
+                 return -1;
+             } else if (a[0] > b[0]) {
+                 return 1;
+             } else {
+                 return 0;
+             }
+         };
 
     traverseUp = (): void => {
         const newPath = this.props.browsePath.slice();
@@ -276,38 +276,38 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     render() {
         const editor = this.state.editType !== undefined &&
-                    <div style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                    }}>
-                        <pre style={{
-                            paddingLeft: "1em",
-                            paddingRight: "1em",
-                        }}>
-                            {this.state.editType === EditType.CreateFile ? (
-                                <div>&#128441; Name</div>
-                            ) : (
-                                <div>&#x1f4c2; Name</div>
-                            )}
-                        </pre>
-                        <form onSubmit={this.handleSubmit}
-                              style={{
-                                  height: "100%",
-                                  flexGrow: 1,
-                              }}>
-                            <input type="text"
-                                   value={this.state.editValue}
-                                   onChange={this.onChange}
-                                   style={{
-                                       border: 0,
-                                       padding: 0,
-                                       width: "100%",
-                                       height: "100%",
-                                   }}>
-                            </input>
-                        </form>
-                    </div>;
+                       <div style={{
+                           display: "flex",
+                           flexDirection: "row",
+                           alignItems: "center",
+                       }}>
+                           <pre style={{
+                               paddingLeft: "1em",
+                               paddingRight: "1em",
+                           }}>
+                               {this.state.editType === EditType.CreateFile ? (
+                                   <div>&#128441; Name</div>
+                               ) : (
+                                   <div>&#x1f4c2; Name</div>
+                               )}
+                           </pre>
+                           <form onSubmit={this.handleSubmit}
+                                 style={{
+                                     height: "100%",
+                                     flexGrow: 1,
+                                 }}>
+                               <input type="text"
+                                      value={this.state.editValue}
+                                      onChange={this.onChange}
+                                      style={{
+                                          border: 0,
+                                          padding: 0,
+                                          width: "100%",
+                                          height: "100%",
+                                      }}>
+                               </input>
+                           </form>
+                       </div>;
 
         return (
             <div style={{display: "flex", flexDirection: "column"}}>
