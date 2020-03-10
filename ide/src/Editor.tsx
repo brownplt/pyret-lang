@@ -88,7 +88,7 @@ export class Editor extends React.Component<EditorProps, any> {
         super(props);
 
         props.beginStartup();
-        //props.queueRun();
+        props.queueRun();
     };
 
     //run = State.handleRun(this)
