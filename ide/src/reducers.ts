@@ -110,12 +110,24 @@ const reducers = [
   ]),
   onDispatch("runText", [
     {
+      state: CompileState.TextStartup,
+      action: { compileState: CompileState.TextStartupQueue }
+    },
+    {
+      state: CompileState.TextStartupQueue,
+      action: { compileState: CompileState.TextStartupQueue }
+    },
+    {
       state: CompileState.TextReady,
       action: { compileState: CompileState.TextReadyQueue }
     },
     {
       state: CompileState.TextReadyQueue,
       action: { compileState: CompileState.TextReadyQueue }
+    },
+    {
+      state: CompileState.TextCompileQueue,
+      action: { compileState: CompileState.TextCompileQueue }
     }
   ]),
   onDispatch("finishRunText", [
@@ -259,7 +271,7 @@ const reducers = [
       return Object.assign({}, {compileState: newState}, data);
     }
 
-    return dispatchCompileState(state, action, [
+    return dispatchCompileState("textRunFinished", state, action, [
       {
         state: CompileState.TextRunningWithStops,
         action: makeAction(CompileState.TextReady)
