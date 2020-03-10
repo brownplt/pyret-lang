@@ -3,12 +3,39 @@ import { CompileState, makeResult } from './State';
 import { dispatchCompileState, on, onDispatch } from './dispatch';
 import * as control from './control';
 import { EditorMode } from './Editor';
+import { Check } from './Check';
+import { LintFailure } from './DefChunks';
 
-const initialState = {
+export type ideAppState = {
+  browseRoot: string,
+  browsePath: string,
+  currentFile: string | undefined,
+  currentFileContents: string | undefined,
+  typeCheck: boolean,
+  checks: Check[],
+  interactions: { key: any, name: any, value: any }[],
+  interactionErrors: string[],
+  lintFailures: {[name : string]: LintFailure},
+  runKind: control.backend.RunKind,
+  autoRun: boolean,
+  updateTimer: NodeJS.Timer,
+  dropdownVisible: boolean,
+  editorMode: EditorMode,
+  fontSize: number,
+  message: string,
+  definitionsHighlights: number[][],
+  fsBrowserVisible: boolean,
+  compileState: CompileState,
+  currentRunner: any,
+  currentChunk: number,
+  needLoadFile: boolean
+}
+
+const initialState: ideAppState = {
   browseRoot: "/",
   browsePath: "/projects",
-  currentFile: "/projects/program.arr",
-  currentFileContents: control.openOrCreateFile("/projects/program.arr"),
+  currentFile: undefined,
+  currentFileContents: undefined,
   typeCheck: true,
   checks: [],
   interactions: [{
@@ -33,7 +60,7 @@ const initialState = {
   needLoadFile: false,
 };
 
-export function ideApp(state = initialState, action: action.ideAction) {
+export function ideApp(state = initialState, action: action.ideAction): ideAppState {
   const newState = reducers
     .reduce(
       (state, r) => {
@@ -232,6 +259,10 @@ const reducers = [
     const data = (() => {
       if (action.result !== undefined) {
         if (action.result.result.error === undefined) {
+          if (state.currentFile === undefined) {
+            throw new Error("state.currentFile should not be undefined");
+          }
+
           const results =
             makeResult(action.result.result, "file:// " + state.currentFile);
 

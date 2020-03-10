@@ -112,7 +112,7 @@ type Chunk = {
   text: string
 }
 
-type LintFailure = {
+export type LintFailure = {
     name: string,
     errors: string[]
 }

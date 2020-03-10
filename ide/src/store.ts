@@ -73,12 +73,10 @@ store.subscribe(() => {
   const state = store.getState();
   console.log(`subscription called, current state is ${CompileState[state.compileState]}`);
 
-  if (state.needLoadFile) {
-    const path = state.currentFile;
-    console.log(path);
+  if (state.needLoadFile && state.currentFile !== undefined) {
     store.dispatch({
       type: "textUpdateContents",
-      contents: control.openOrCreateFile(path)
+      contents: control.openOrCreateFile(state.currentFile)
     });
   }
 
@@ -126,3 +124,5 @@ store.subscribe(() => {
       return;
   }
 });
+
+store.dispatch({ type: "expandChild", path: "/projects/program.arr" });
