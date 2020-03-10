@@ -20,7 +20,6 @@ import 'react-splitter-layout/lib/index.css';
 type stateProps = {
     browseRoot: string,
     browsePath: string[],
-    currentFileName: string,
     currentFileContents: string,
     definitionsHighlights: number[][],
     fontSize: number,
@@ -35,7 +34,6 @@ function mapStateToProps(state: any): stateProps {
     return {
         browseRoot: state.browseRoot,
         browsePath: state.browsePath,
-        currentFileName: state.currentFileName,
         currentFileContents: state.currentFileContents,
         definitionsHighlights: state.definitionsHighlights,
         fontSize: state.fontSize,

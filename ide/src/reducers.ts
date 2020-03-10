@@ -233,12 +233,7 @@ const reducers = [
       if (action.result !== undefined) {
         if (action.result.result.error === undefined) {
           const results =
-            makeResult(
-              action.result.result,
-              "file:// " +
-                control.bfsSetup.path.join(
-                  control.path.compileBase,
-                  state.currentFileName));
+            makeResult(action.result.result, "file:// " + state.currentFile);
 
           console.log(results);
 
