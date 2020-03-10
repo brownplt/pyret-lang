@@ -238,6 +238,10 @@ const reducers = [
       {
         state: CompileState.TextRunningWithStopsNeedsStop,
         action: makeResult(CompileState.TextReady)
+      },
+      {
+        state: CompileState.TextCompileQueue, // TODO how does this happen?
+        action: makeResult(CompileState.TextCompileQueue)
       }
     ];
   })()),
@@ -330,10 +334,30 @@ const reducers = [
     }
   ]),
   on("textUpdateContents", (state: any, action: any) => {
-    return {
-      currentFileContents: action.contents,
-      needLoadFile: false
-    };
+    function findNextCompileState(compileState: CompileState) {
+      switch (compileState) {
+        case CompileState.TextStartup:
+          return CompileState.TextStartupQueue;
+        case CompileState.TextReady:
+          return CompileState.TextReadyQueue;
+        case CompileState.TextRunningWithStops:
+          return CompileState.TextRunningWithStopsQueue; // TODO
+        default:
+          return compileState;
+      }
+    }
+    if (state.autoRun) {
+      return {
+        currentFileContents: action.contents,
+        needLoadFile: false,
+        compileState: findNextCompileState(state.compileState)
+      };
+    } else {
+      return {
+        currentFileContents: action.contents,
+        needLoadFile: false
+      };
+    }
   }),
   on("traverseUp", (state: any, action: any) => {
     return { browsePath: action.path };
