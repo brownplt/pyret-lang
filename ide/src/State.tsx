@@ -14,7 +14,7 @@ export enum CompileState {
     TextStartupQueue,
     TextReady,
     TextReadyQueue,
-    TextCompileQueue,
+    TextCompile,
     TextNeedsCompile,
     TextNeedsRun,
     TextRunning,

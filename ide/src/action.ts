@@ -1,7 +1,7 @@
 import { EditorMode } from "./Editor";
 import { CompileState } from './State';
 
-export type ideAction = setEditorMode | finishSetup | finishCreateRepl | queueRun | runText | finishRunText | stopText | compileText | textRunQueued | textCompileQueue | textCompileFailure | textRunFailure | textLintFailure | textLintSuccess | textCompileSuccess | textRunFinished | updateRunner | beginStartup | startupCompleted | textRunStarted | textUpdateContents | traverseUp | traverseDown | expandChild;
+export type ideAction = setEditorMode | finishSetup | finishCreateRepl | queueRun | runText | finishRunText | stopText | compileText | textRunQueued | textCompile | textCompileFailure | textRunFailure | textLintFailure | textLintSuccess | textCompileSuccess | textRunFinished | updateRunner | beginStartup | startupCompleted | textRunStarted | textUpdateContents | traverseUp | traverseDown | expandChild;
 
 export type setEditorMode = {
   type: "setEditorMode",
@@ -40,8 +40,8 @@ export type textRunQueued = {
   type: "textRunQueued"
 }
 
-export type textCompileQueue = {
-  type: "textCompileQueue"
+export type textCompile= {
+  type: "textCompile"
 }
 
 export type textCompileFailure = {

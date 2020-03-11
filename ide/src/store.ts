@@ -106,7 +106,7 @@ store.subscribe(() => {
         parsed.dir,
         parsed.base,
         state.typeCheck);
-      store.dispatch({ type: "textCompileQueue" });
+      store.dispatch({ type: "textCompile" });
       return;
     case CompileState.TextNeedsRun:
       store.dispatch({ type: "textRunStarted" });

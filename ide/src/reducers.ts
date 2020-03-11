@@ -152,8 +152,8 @@ const reducers = [
       action: { compileState: CompileState.TextReadyQueue }
     },
     {
-      state: CompileState.TextCompileQueue,
-      action: { compileState: CompileState.TextCompileQueue }
+      state: CompileState.TextCompile,
+      action: { compileState: CompileState.TextCompile }
     }
   ]),
   onDispatch("finishRunText", [
@@ -184,15 +184,15 @@ const reducers = [
       action: { compileState: CompileState.TextRunningWithStopsNeedsStop }
     }
   ]),
-  onDispatch("textCompileQueue", [
+  onDispatch("textCompile", [
     {
       state: CompileState.TextReadyQueue,
-      action: { compileState: CompileState.TextCompileQueue }
+      action: { compileState: CompileState.TextCompile }
     }
   ]),
   onDispatch("textCompileFailure", [
     {
-      state: CompileState.TextCompileQueue,
+      state: CompileState.TextCompile,
       action: (state: any, action: action.textCompileFailure) => {
         const places: any = [];
         for (let i = 0; i < action.errors.length; i++) {
@@ -240,8 +240,8 @@ const reducers = [
         action: makeResult(CompileState.TextReady)
       },
       {
-        state: CompileState.TextCompileQueue, // TODO how does this happen?
-        action: makeResult(CompileState.TextCompileQueue)
+        state: CompileState.TextCompile, // TODO how does this happen?
+        action: makeResult(CompileState.TextCompile)
       }
     ];
   })()),
@@ -255,7 +255,7 @@ const reducers = [
   }),
   onDispatch("textCompileSuccess", [
     {
-      state: CompileState.TextCompileQueue,
+      state: CompileState.TextCompile,
       action: {
         compileState: CompileState.TextNeedsRun,
         interactionErrors: [],
