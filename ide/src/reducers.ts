@@ -77,7 +77,6 @@ export function ideApp(state = initialState, action: action.ideAction): ideAppSt
 
 const reducers = [
   onDispatch("beginStartup", () => {
-    console.error("BEGIN STARTUP");
     return [{
       state: CompileState.Uninitialized,
       action: { compileState: CompileState.NeedsStartup }
@@ -208,8 +207,6 @@ const reducers = [
           const results =
             makeResult(action.result.result, "file:// " + state.currentFile);
 
-          console.log(results);
-
           if (results[0] !== undefined && results[0].name === "error") {
             return {
               interactions: results,
@@ -231,8 +228,6 @@ const reducers = [
 
       return {};
     })();
-
-    console.log("data", data);
 
     const makeAction = (newState: CompileState) => () => {
       return Object.assign({}, {compileState: newState}, data);

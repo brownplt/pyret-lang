@@ -9,7 +9,6 @@ export function dispatchCompileState<a>(name: action.ideActionType,
   for (let i = 0; i < actions.length; i++) {
     const action = actions[i];
     if (action.state === compileState) {
-      console.log(`${name}: dispatching state ${CompileState[compileState]}`);
       if (typeof action.action === "function") {
         return action.action(state, theAction);
       } else {

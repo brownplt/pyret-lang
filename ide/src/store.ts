@@ -9,17 +9,14 @@ export const store = createStore(
 );
 
 function handleLog(message: string): void {
-  console.log("log");
   console.log(message);
 }
 
 function handleSetupFinished(): void {
-  console.log("setup finished");
   store.dispatch({ type: "finishSetup"} )
 }
 
 function handleCompileFailure(errors: string[]): void {
-  console.log("compile failure");
   store.dispatch({
     type: "compileFailure",
     errors
@@ -27,7 +24,6 @@ function handleCompileFailure(errors: string[]): void {
 }
 
 function handleRuntimeFailure(errors: string[]): void {
-  console.log("runtime failure");
   store.dispatch({
     type: "runFailure",
     errors
@@ -35,7 +31,6 @@ function handleRuntimeFailure(errors: string[]): void {
 }
 
 function handleLintFailure(lintFailure: { name: string, errors: string[] }): void {
-  console.log("lint failure");
   store.dispatch({
     type: "lintFailure",
     lintFailure
@@ -43,7 +38,6 @@ function handleLintFailure(lintFailure: { name: string, errors: string[] }): voi
 }
 
 function handleLintSuccess(lintSuccess: { name: string }): void {
-  console.log("lint success");
   store.dispatch({
     type: "lintSuccess",
     lintSuccess
@@ -51,7 +45,6 @@ function handleLintSuccess(lintSuccess: { name: string }): void {
 }
 
 function handleCompileSuccess(): void {
-  console.log("compile success");
   store.dispatch({
     type: "compileSuccess"
   });
@@ -71,7 +64,6 @@ function handleCompileInteractionFailure(): void {
 
 store.subscribe(() => {
   const state = store.getState();
-  console.log(`subscription called, current state is ${CompileState[state.compileState]}`);
 
   if (state.needLoadFile && state.currentFile !== undefined) {
     store.dispatch({
@@ -98,7 +90,6 @@ store.subscribe(() => {
       return;
     case CompileState.Ready:
       if (state.updateQueued) {
-        console.log("current contents", state.currentFileContents);
         const parsed = control.bfsSetup.path.parse(state.currentFile);
         control.fs.writeFileSync(
           state.currentFile,
