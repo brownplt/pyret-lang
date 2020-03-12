@@ -57,9 +57,9 @@ function mapDispatchToProps(dispatch: any): dispatchProps {
     return {
         beginStartup: () => dispatch({ type: "beginStartup" }),
         queueRun: () => dispatch({ type: "queueRun" }),
-        stop: () => dispatch({ type: "stopText" }),
-        run: () => dispatch({ type: "runText" }),
-        updateContents: (contents: string) => dispatch({ type: "textUpdateContents", contents })
+        stop: () => dispatch({ type: "stop" }),
+        run: () => dispatch({ type: "run" }),
+        updateContents: (contents: string) => dispatch({ type: "updateContents", contents })
     };
 }
 

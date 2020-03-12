@@ -97,7 +97,7 @@ const reducers = [
       action: { compileState: CompileState.Ready }
     }
   ]),
-  onDispatch("finishRunText", [
+  onDispatch("finishRun", [
     {
       state: CompileState.Running,
       action: { compileState: CompileState.Ready }
@@ -111,19 +111,19 @@ const reducers = [
       action: { compileState: CompileState.Ready }
     }
   ]),
-  onDispatch("stopText", [
+  onDispatch("stop", [
     {
       state: CompileState.RunningWithStops,
       action: { compileState: CompileState.RunningWithStopsNeedsStop }
     }
   ]),
-  onDispatch("textCompile", [
+  onDispatch("compile", [
     {
       state: CompileState.Ready,
       action: { compileState: CompileState.Compile, updateQueued: false }
     }
   ]),
-  onDispatch("textCompileFailure", [
+  onDispatch("compileFailure", [
     {
       state: CompileState.Compile,
       action: (state: any, action: any) => {
@@ -144,7 +144,7 @@ const reducers = [
       }
     }
   ]),
-  onDispatch("textRunFailure", (() => {
+  onDispatch("runFailure", (() => {
     function makeResult(newState: CompileState) {
       return (state: any, action: any) => ({
         compileState: newState,
@@ -170,15 +170,15 @@ const reducers = [
       },
     ];
   })()),
-  on("textLintFailure", () => {
-    console.log("textLintFailure not yet implemented");
+  on("lintFailure", () => {
+    console.log("lintFailure not yet implemented");
     return {};
   }),
-  on("textLintSuccess", () => {
-    console.log("textLintSucccess not yet implemented");
+  on("lintSuccess", () => {
+    console.log("lintSucccess not yet implemented");
     return {};
   }),
-  onDispatch("textCompileSuccess", [
+  onDispatch("compileSuccess", [
     {
       state: CompileState.Compile,
       action: (state: any, action: any) => {
@@ -192,7 +192,7 @@ const reducers = [
       }
     }
   ]),
-  on("textRunFinished", (state: any, action: any) => {
+  on("runFinished", (state: any, action: any) => {
     const data = (() => {
       if (action.result !== undefined) {
         if (action.result.result.error === undefined) {
@@ -233,7 +233,7 @@ const reducers = [
       return Object.assign({}, {compileState: newState}, data);
     }
 
-    return dispatchCompileState("textRunFinished", state, action, [
+    return dispatchCompileState("runFinished", state, action, [
       {
         state: CompileState.RunningWithStops,
         action: makeAction(CompileState.Ready)
@@ -248,13 +248,13 @@ const reducers = [
       },
     ]);
   }),
-  onDispatch("textRunStarted", [
+  onDispatch("runStarted", [
     {
       state: CompileState.NeedsRun,
       action: { compileState: CompileState.RunningWithStops }
     }
   ]),
-  on("textUpdateContents", (state: any, action: any) => ({
+  on("updateContents", (state: any, action: any) => ({
     currentFileContents: action.contents,
     needLoadFile: false,
     updateQueued: state.autoRun

@@ -7,22 +7,22 @@ export type ideAction =
   | { type: "finishCreateRepl" }
   | { type: "queueRun" }
   | { type: "compile" }
-  | { type: "runText" }
-  | { type: "finishRunText" }
-  | { type: "stopText" }
-  | { type: "textRunQueued" }
-  | { type: "textCompile" }
-  | { type: "textCompileFailure", errors: string[] }
-  | { type: "textRunFailure", errors: string[] }
-  | { type: "textLintFailure", lintFailure: LintFailure }
-  | { type: "textLintSuccess", lintSuccess: { name: string }}
-  | { type: "textCompileSuccess" }
-  | { type: "textRunFinished", result: any }
+  | { type: "run" }
+  | { type: "finishRun" }
+  | { type: "stop" }
+  | { type: "runQueued" }
+  | { type: "compile" }
+  | { type: "compileFailure", errors: string[] }
+  | { type: "runFailure", errors: string[] }
+  | { type: "lintFailure", lintFailure: LintFailure }
+  | { type: "lintSuccess", lintSuccess: { name: string }}
+  | { type: "compileSuccess" }
+  | { type: "runFinished", result: any }
   | { type: "updateRunner", runner: any }
   | { type: "beginStartup" }
   | { type: "startupCompleted" }
-  | { type: "textRunStarted" }
-  | { type: "textUpdateContents", contents: string }
+  | { type: "runStarted" }
+  | { type: "updateContents", contents: string }
   | { type: "traverseUp", path: string }
   | { type: "traverseDown", path: string }
   | { type: "expandChild", path: string };

@@ -21,7 +21,7 @@ function handleSetupFinished(): void {
 function handleCompileFailure(errors: string[]): void {
   console.log("compile failure");
   store.dispatch({
-    type: "textCompileFailure",
+    type: "compileFailure",
     errors
   });
 }
@@ -29,7 +29,7 @@ function handleCompileFailure(errors: string[]): void {
 function handleRuntimeFailure(errors: string[]): void {
   console.log("runtime failure");
   store.dispatch({
-    type: "textRunFailure",
+    type: "runFailure",
     errors
   })
 }
@@ -37,7 +37,7 @@ function handleRuntimeFailure(errors: string[]): void {
 function handleLintFailure(lintFailure: { name: string, errors: string[] }): void {
   console.log("lint failure");
   store.dispatch({
-    type: "textLintFailure",
+    type: "lintFailure",
     lintFailure
   })
 }
@@ -45,7 +45,7 @@ function handleLintFailure(lintFailure: { name: string, errors: string[] }): voi
 function handleLintSuccess(lintSuccess: { name: string }): void {
   console.log("lint success");
   store.dispatch({
-    type: "textLintSuccess",
+    type: "lintSuccess",
     lintSuccess
   })
 }
@@ -53,7 +53,7 @@ function handleLintSuccess(lintSuccess: { name: string }): void {
 function handleCompileSuccess(): void {
   console.log("compile success");
   store.dispatch({
-    type: "textCompileSuccess"
+    type: "compileSuccess"
   });
 }
 
@@ -75,7 +75,7 @@ store.subscribe(() => {
 
   if (state.needLoadFile && state.currentFile !== undefined) {
     store.dispatch({
-      type: "textUpdateContents",
+      type: "updateContents",
       contents: control.openOrCreateFile(state.currentFile)
     });
   }
@@ -107,16 +107,16 @@ store.subscribe(() => {
           parsed.dir,
           parsed.base,
           state.typeCheck);
-        store.dispatch({ type: "textCompile" });
+        store.dispatch({ type: "compile" });
       }
       return;
     case CompileState.NeedsRun:
-      store.dispatch({ type: "textRunStarted" });
+      store.dispatch({ type: "runStarted" });
       control.run(
         control.path.runBase,
         control.path.runProgram,
         (runResult: any) => {
-          store.dispatch({ type: "textRunFinished", result: runResult });
+          store.dispatch({ type: "runFinished", result: runResult });
         },
         (runner: any) => {
           store.dispatch({ type: "updateRunner", runner });
