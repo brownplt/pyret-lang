@@ -9,6 +9,7 @@ import * as control from './control';
 // Possible states for the editor.
 export enum CompileState {
     Uninitialized,
+
     TextNeedsStartup,
     TextStartup,
     TextStartupQueue,

@@ -32,8 +32,13 @@ export function on(actionType: string, makeResult: (state: any, action: action.i
   };
 }
 
-export function onDispatch(actionType: string, results: { state: CompileState, action: any }[]) {
+export function onDispatch(actionType: string,
+                           results: { state: CompileState, action: any }[] | (() => { state: CompileState, action: any }[])) {
   return on(actionType, (state, action) => {
-    return dispatchCompileState(actionType, state, action, results);
+    if (typeof results === "function") {
+      return dispatchCompileState(actionType, state, action, results());
+    } else {
+      return dispatchCompileState(actionType, state, action, results);
+    }
   });
 }
