@@ -76,16 +76,16 @@ export function ideApp(state = initialState, action: action.ideAction): ideAppSt
 const reducers = [
   onDispatch("beginStartup", [{
     state: CompileState.Uninitialized,
-    action: { compileState: CompileState.TextNeedsStartup }
+    action: { compileState: CompileState.NeedsStartup }
   }]),
   onDispatch("startupCompleted", [{
-    state: CompileState.TextNeedsStartup,
-    action: { compileState: CompileState.TextStartup }
+    state: CompileState.NeedsStartup,
+    action: { compileState: CompileState.Startup }
   }]),
   onDispatch("finishSetup", [
     {
-      state: CompileState.TextStartup,
-      action: { compileState: CompileState.TextReady }
+      state: CompileState.Startup,
+      action: { compileState: CompileState.Ready }
     }
   ]),
   on("queueRun", (state: any, action: any) => {
@@ -94,38 +94,38 @@ const reducers = [
   onDispatch("finishCreateRepl", [
     {
       state: CompileState.ChunkNeedsRepl,
-      action: { compileState: CompileState.TextReady }
+      action: { compileState: CompileState.Ready }
     }
   ]),
   onDispatch("finishRunText", [
     {
-      state: CompileState.TextRunning,
-      action: { compileState: CompileState.TextReady }
+      state: CompileState.Running,
+      action: { compileState: CompileState.Ready }
     },
     {
-      state: CompileState.TextRunningWithStops,
-      action: { compileState: CompileState.TextReady }
+      state: CompileState.RunningWithStops,
+      action: { compileState: CompileState.Ready }
     },
     {
-      state: CompileState.TextRunningWithStopsNeedsStop,
-      action: { compileState: CompileState.TextReady }
+      state: CompileState.RunningWithStopsNeedsStop,
+      action: { compileState: CompileState.Ready }
     }
   ]),
   onDispatch("stopText", [
     {
-      state: CompileState.TextRunningWithStops,
-      action: { compileState: CompileState.TextRunningWithStopsNeedsStop }
+      state: CompileState.RunningWithStops,
+      action: { compileState: CompileState.RunningWithStopsNeedsStop }
     }
   ]),
   onDispatch("textCompile", [
     {
-      state: CompileState.TextReady,
-      action: { compileState: CompileState.TextCompile, updateQueued: false }
+      state: CompileState.Ready,
+      action: { compileState: CompileState.Compile, updateQueued: false }
     }
   ]),
   onDispatch("textCompileFailure", [
     {
-      state: CompileState.TextCompile,
+      state: CompileState.Compile,
       action: (state: any, action: action.textCompileFailure) => {
         const places: any = [];
         for (let i = 0; i < action.errors.length; i++) {
@@ -137,7 +137,7 @@ const reducers = [
           }
         }
         return {
-          compileState: CompileState.TextReady,
+          compileState: CompileState.Ready,
           interactionErrors: action.errors,
           definitionsHighlights: places
         };
@@ -153,20 +153,20 @@ const reducers = [
     }
     return [
       {
-        state: CompileState.TextRunning,
-        action: makeResult(CompileState.TextReady)
+        state: CompileState.Running,
+        action: makeResult(CompileState.Ready)
       },
       {
-        state: CompileState.TextRunningWithStops,
-        action: makeResult(CompileState.TextReady)
+        state: CompileState.RunningWithStops,
+        action: makeResult(CompileState.Ready)
       },
       {
-        state: CompileState.TextRunningWithStopsNeedsStop,
-        action: makeResult(CompileState.TextReady)
+        state: CompileState.RunningWithStopsNeedsStop,
+        action: makeResult(CompileState.Ready)
       },
       {
-        state: CompileState.TextCompile, // TODO how does this happen?
-        action: makeResult(CompileState.TextCompile)
+        state: CompileState.Compile, // TODO how does this happen?
+        action: makeResult(CompileState.Compile)
       },
     ];
   })()),
@@ -180,10 +180,10 @@ const reducers = [
   }),
   onDispatch("textCompileSuccess", [
     {
-      state: CompileState.TextCompile,
+      state: CompileState.Compile,
       action: (state: any, action: any) => {
         const newCompileState = state.updateQueued ?
-          CompileState.TextReady : CompileState.TextNeedsRun;
+          CompileState.Ready : CompileState.NeedsRun;
         return {
           compileState: newCompileState,
           interactionErrors: [],
@@ -235,23 +235,23 @@ const reducers = [
 
     return dispatchCompileState("textRunFinished", state, action, [
       {
-        state: CompileState.TextRunningWithStops,
-        action: makeAction(CompileState.TextReady)
+        state: CompileState.RunningWithStops,
+        action: makeAction(CompileState.Ready)
       },
       {
-        state: CompileState.TextRunningWithStopsNeedsStop,
-        action: makeAction(CompileState.TextReady)
+        state: CompileState.RunningWithStopsNeedsStop,
+        action: makeAction(CompileState.Ready)
       },
       {
-        state: CompileState.TextRunning,
-        action: makeAction(CompileState.TextReady)
+        state: CompileState.Running,
+        action: makeAction(CompileState.Ready)
       },
     ]);
   }),
   onDispatch("textRunStarted", [
     {
-      state: CompileState.TextNeedsRun,
-      action: { compileState: CompileState.TextRunningWithStops }
+      state: CompileState.NeedsRun,
+      action: { compileState: CompileState.RunningWithStops }
     }
   ]),
   on("textUpdateContents", (state: any, action: any) => ({

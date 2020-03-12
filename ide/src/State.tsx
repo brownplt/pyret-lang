@@ -10,15 +10,15 @@ import * as control from './control';
 export enum CompileState {
     Uninitialized,
 
-    TextNeedsStartup,
-    TextStartup,
-    TextReady,
-    TextCompile,
-    TextNeedsCompile,
-    TextNeedsRun,
-    TextRunning,
-    TextRunningWithStops,
-    TextRunningWithStopsNeedsStop,
+    NeedsStartup,
+    Startup,
+    Ready,
+    Compile,
+    NeedsCompile,
+    NeedsRun,
+    Running,
+    RunningWithStops,
+    RunningWithStopsNeedsStop,
 
     ChunkNeedsRepl,
 }

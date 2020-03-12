@@ -81,7 +81,7 @@ store.subscribe(() => {
   }
 
   switch (state.compileState) {
-    case CompileState.TextNeedsStartup:
+    case CompileState.NeedsStartup:
       control.setupWorkerMessageHandler(
         handleLog,
         handleSetupFinished,
@@ -96,7 +96,7 @@ store.subscribe(() => {
       );
       store.dispatch({ type: "startupCompleted" });
       return;
-    case CompileState.TextReady:
+    case CompileState.Ready:
       if (state.updateQueued) {
         console.log("current contents", state.currentFileContents);
         const parsed = control.bfsSetup.path.parse(state.currentFile);
@@ -110,7 +110,7 @@ store.subscribe(() => {
         store.dispatch({ type: "textCompile" });
       }
       return;
-    case CompileState.TextNeedsRun:
+    case CompileState.NeedsRun:
       store.dispatch({ type: "textRunStarted" });
       control.run(
         control.path.runBase,

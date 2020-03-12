@@ -265,7 +265,7 @@ export class Editor extends React.Component<EditorProps, any> {
         return (
             <div className="page-container">
                 <Header>
-                    {this.props.stopify && this.props.compileState === State.CompileState.TextRunningWithStops ? (
+                    {this.props.stopify && this.props.compileState === State.CompileState.RunningWithStops ? (
                         <button className="stop-available"
                                 onClick={this.props.stop}>
                             Stop
