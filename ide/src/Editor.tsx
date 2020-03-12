@@ -59,6 +59,7 @@ type dispatchProps = {
     run: () => void,
     updateContents: (contents: string) => void,
     updateChunkContents: (index: number, contents: string) => void,
+    setEditorMode: (mode: EditorMode) => void,
 }
 
 function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispatchProps {
@@ -70,6 +71,9 @@ function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispat
         updateContents: (contents: string) => dispatch({ type: "updateContents", contents }),
         updateChunkContents: (index: number, contents: string) => {
             dispatch({ type: "updateChunkContents", index, contents });
+        },
+        setEditorMode: (mode: EditorMode) => {
+            dispatch({ type: "setEditorMode", mode });
         }
     };
 }
@@ -204,55 +208,45 @@ export class Editor extends React.Component<EditorProps, any> {
          *             Type Check
          *         </DropdownOption>
          *     </Dropdown>);
-
-         * const fsBrowser =
-         *     <FSBrowser root={this.state.browseRoot}
-         *                onTraverseUp={this.onTraverseUp}
-         *                onTraverseDown={this.onTraverseDown}
-         *                onExpandChild={this.onExpandChild}
-         *                browsePath={this.state.browsePath}
-         *                key="FSBrowser">
-         *     </FSBrowser>;
-
-         * const fontSize =
+         */
+        /* const fontSize =
          *     <FontSize onIncrease={this.onIncreaseFontSize}
          *               onDecrease={this.onDecreaseFontSize}
          *               onReset={this.onResetFontSize}
          *               size={this.state.fontSize}
          *               key="FontSize">
          *     </FontSize>;
+         */
+        const textEditor =
+            <button className="text-editor"
+                    onClick={() => this.props.setEditorMode(EditorMode.Text)}
+                    key="TextEditor">
+                Text
+            </button>;
 
-         * const textEditor =
-         *     <button className="text-editor"
-         *             onClick={() => this.setEditorMode(EditorMode.Text)}
-         *             key="TextEditor">
-         *         Text
-         *     </button>;
+        const chunkEditor =
+            <button className="chunk-editor"
+                    onClick={() => this.props.setEditorMode(EditorMode.Chunks)}
+                    key="ChunkEditor">
+                Chunks
+            </button>;
 
-         * const chunkEditor =
-         *     <button className="chunk-editor"
-         *             onClick={() => this.setEditorMode(EditorMode.Chunks)}
-         *             key="ChunkEditor">
-         *         Chunks
-         *     </button>;
-
-         * const builtinsLoader =
+        /* const builtinsLoader =
          *     <button onClick={control.loadBuiltins}>
          *         Load Builtins
-         *     </button>; */
-
+         *     </button>;
+         */
         const menu =
             <Menu>
                 <Tab name="📁">
-                    {/* {fsBrowser} */}
                     <FSBrowser/>
                 </Tab>
-                {/* <Tab name="⚙">
+                <Tab name="⚙">
                     {textEditor}
                     {chunkEditor}
-                    {builtinsLoader}
-                    {fontSize}
-                    </Tab> */}
+                    {/* {builtinsLoader}
+                        {fontSize} */}
+                </Tab>
             </Menu>;
         const rightHandSide =
             <div className="interactions-area-container">

@@ -282,5 +282,10 @@ const reducers = [
       currentFile: action.path,
       needLoadFile: true
     };
+  }),
+  on("setEditorMode", (state: any, action: any) => {
+    return {
+      editorMode: action.mode,
+    }
   })
 ];
