@@ -1,6 +1,7 @@
 import React from 'react';
 import * as control from './control';
 import { connect, ConnectedProps } from 'react-redux';
+import * as action from './action';
 
 type FSItemProps = {
     onClick: () => void;
@@ -75,7 +76,7 @@ type dispatchProps = {
     onExpandChild: (path: string) => void,
 }
 
-function mapDispatchToProps(dispatch: any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispatchProps {
     return {
         onTraverseUp: (path: string) => dispatch({type: "traverseUp", path}),
         onTraverseDown: (path: string) => dispatch({type: "traverseDown", path}),

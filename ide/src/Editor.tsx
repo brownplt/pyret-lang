@@ -16,6 +16,7 @@ import { InteractionError } from './InteractionError';
 import * as control from './control';
 import SplitterLayout from 'react-splitter-layout';
 import 'react-splitter-layout/lib/index.css';
+import * as action from './action';
 
 type stateProps = {
     browseRoot: string,
@@ -53,7 +54,7 @@ type dispatchProps = {
     updateContents: (contents: string) => void
 }
 
-function mapDispatchToProps(dispatch: any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispatchProps {
     return {
         beginStartup: () => dispatch({ type: "beginStartup" }),
         queueRun: () => dispatch({ type: "queueRun" }),
