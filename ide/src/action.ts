@@ -23,6 +23,7 @@ export type ideAction =
   | { type: "startupCompleted" }
   | { type: "runStarted" }
   | { type: "updateContents", contents: string }
+  | { type: "updateChunkContents", index: number, contents: string }
   | { type: "traverseUp", path: string }
   | { type: "traverseDown", path: string }
   | { type: "expandChild", path: string };

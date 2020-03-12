@@ -4,7 +4,7 @@ import { connect, ConnectedProps } from 'react-redux';
 import * as State from './State';
 import { Interaction } from './Interaction';
 import { TestResult } from './Check';
-import { DefChunks } from './DefChunks';
+import { DefChunks, LintFailure } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';
 import { Menu, Tab } from './Menu';
 import { Footer } from './Footer';
@@ -28,7 +28,10 @@ type stateProps = {
     compileState: State.CompileState,
     checks: any[],
     interactions: { key: any, name: any, value: any }[],
-    interactionErrors: any[]
+    interactionErrors: any[],
+    editorMode: EditorMode,
+    lintFailures: {[name : string]: LintFailure},
+    currentFile: string
 }
 
 function mapStateToProps(state: any): stateProps {
@@ -42,7 +45,10 @@ function mapStateToProps(state: any): stateProps {
         compileState: state.compileState,
         checks: state.checks,
         interactions: state.interactions,
-        interactionErrors: state.interactionErrors
+        interactionErrors: state.interactionErrors,
+        editorMode: state.editorMode,
+        lintFailures: state.lintFailures,
+        currentFile: state.currentFile
     };
 }
 
@@ -51,7 +57,8 @@ type dispatchProps = {
     queueRun: () => void,
     stop: () => void,
     run: () => void,
-    updateContents: (contents: string) => void
+    updateContents: (contents: string) => void,
+    updateChunkContents: (index: number, contents: string) => void,
 }
 
 function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispatchProps {
@@ -60,7 +67,10 @@ function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispat
         queueRun: () => dispatch({ type: "queueRun" }),
         stop: () => dispatch({ type: "stop" }),
         run: () => dispatch({ type: "run" }),
-        updateContents: (contents: string) => dispatch({ type: "updateContents", contents })
+        updateContents: (contents: string) => dispatch({ type: "updateContents", contents }),
+        updateChunkContents: (index: number, contents: string) => {
+            dispatch({ type: "updateChunkContents", index, contents });
+        }
     };
 }
 
@@ -81,13 +91,6 @@ export enum EditorMode {
 type EditorProps = PropsFromRedux & dispatchProps & stateProps;
 
 export class Editor extends React.Component<EditorProps, any> {
-    constructor(props: EditorProps) {
-        super(props);
-
-        props.beginStartup();
-        props.queueRun();
-    };
-
     //run = State.handleRun(this)
     //update = State.handleUpdate(this)
     //onTextEdit = State.handleTextEdit(this)
@@ -147,22 +150,25 @@ export class Editor extends React.Component<EditorProps, any> {
     };
 
     makeDefinitions() {
-        //if (this.state.editorMode === EditorMode.Text) {
-        return (
-            <SingleCodeMirrorDefinitions
-                text={this.props.currentFileContents}
-                onEdit={(contents: string) => this.props.updateContents(contents) }
-                highlights={this.props.definitionsHighlights}>
-            </SingleCodeMirrorDefinitions>);
-        //}
-        //else if (this.state.editorMode === EditorMode.Chunks) {
-        //    return (<DefChunks
-        //        lintFailures={this.state.lintFailures}
-        //        name={this.state.currentFileName}
-        //        highlights={this.state.definitionsHighlights}
-        //        program={this.state.currentFileContents}
-        //        onEdit={this.onChunkEdit}></DefChunks>);
-        //}
+        if (this.props.editorMode === EditorMode.Text) {
+            return (
+                <SingleCodeMirrorDefinitions
+                    text={this.props.currentFileContents}
+                    onEdit={(contents: string) => this.props.updateContents(contents) }
+                    highlights={this.props.definitionsHighlights}>
+                </SingleCodeMirrorDefinitions>);
+        } else if (this.props.editorMode === EditorMode.Chunks) {
+            return (
+                <DefChunks
+                    lintFailures={this.props.lintFailures}
+                    name={this.props.currentFile}
+                    highlights={this.props.definitionsHighlights}
+                    program={this.props.currentFileContents}
+                    onEdit={(index: number, contents: string) => {
+                        this.props.updateChunkContents(index, contents);
+                    }}>
+                </DefChunks>);
+        }
     }
 
     render() {

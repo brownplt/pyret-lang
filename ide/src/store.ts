@@ -127,4 +127,5 @@ store.subscribe(() => {
   }
 });
 
+store.dispatch({ type: "beginStartup" });
 store.dispatch({ type: "expandChild", path: "/projects/program.arr" });

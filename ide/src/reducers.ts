@@ -29,7 +29,8 @@ export type ideAppState = {
   currentRunner: any,
   currentChunk: number,
   needLoadFile: boolean,
-  updateQueued: boolean
+  updateQueued: boolean,
+  firstUpdatableChunk: undefined | number,
 }
 
 const initialState: ideAppState = {
@@ -50,7 +51,7 @@ const initialState: ideAppState = {
   autoRun: true,
   updateTimer: setTimeout(() => { return; }, 0),
   dropdownVisible: false,
-  editorMode: EditorMode.Text,
+  editorMode: EditorMode.Chunks,
   fontSize: 12,
   message: "Ready to rock",
   definitionsHighlights: [],
@@ -59,7 +60,8 @@ const initialState: ideAppState = {
   currentRunner: undefined,
   currentChunk: 0,
   needLoadFile: false,
-  updateQueued: false
+  updateQueued: false,
+  firstUpdatableChunk: 0,
 };
 
 export function ideApp(state = initialState, action: action.ideAction): ideAppState {
@@ -74,10 +76,13 @@ export function ideApp(state = initialState, action: action.ideAction): ideAppSt
 }
 
 const reducers = [
-  onDispatch("beginStartup", [{
-    state: CompileState.Uninitialized,
-    action: { compileState: CompileState.NeedsStartup }
-  }]),
+  onDispatch("beginStartup", () => {
+    console.error("BEGIN STARTUP");
+    return [{
+      state: CompileState.Uninitialized,
+      action: { compileState: CompileState.NeedsStartup }
+    }];
+  }),
   onDispatch("startupCompleted", [{
     state: CompileState.NeedsStartup,
     action: { compileState: CompileState.Startup }
@@ -258,6 +263,12 @@ const reducers = [
     currentFileContents: action.contents,
     needLoadFile: false,
     updateQueued: state.autoRun
+  })),
+  on("updateChunkContents", (state: any, action: any) => ({
+    currentFileContents: action.contents,
+    needLoadFile: false,
+    updateQueued: state.autoRun,
+    firstUpdatableChunk: action.index
   })),
   on("traverseUp", (state: any, action: any) => {
     return { browsePath: action.path };
