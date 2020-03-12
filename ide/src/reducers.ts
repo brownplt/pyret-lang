@@ -209,6 +209,10 @@ const reducers = [
           definitionsHighlights: places
         };
       }
+    },
+    {
+      state: CompileState.TextCompileQueue,
+      action: { compileState: CompileState.TextReadyQueue }
     }
   ]),
   onDispatch("textRunFailure", (() => {
@@ -242,6 +246,10 @@ const reducers = [
       {
         state: CompileState.TextCompile, // TODO how does this happen?
         action: makeResult(CompileState.TextCompile)
+      },
+      {
+        state: CompileState.TextCompileQueue, // TODO also, how does this happen?
+        action: makeResult(CompileState.TextCompileQueue)
       }
     ];
   })()),
@@ -258,6 +266,14 @@ const reducers = [
       state: CompileState.TextCompile,
       action: {
         compileState: CompileState.TextNeedsRun,
+        interactionErrors: [],
+        definitionsHighlights: []
+      }
+    },
+    {
+      state: CompileState.TextCompileQueue,
+      action: {
+        compileState: CompileState.TextReadyQueue,
         interactionErrors: [],
         definitionsHighlights: []
       }
@@ -342,6 +358,8 @@ const reducers = [
           return CompileState.TextReadyQueue;
         case CompileState.TextRunningWithStops:
           return CompileState.TextRunningWithStopsQueue; // TODO
+        case CompileState.TextCompile:
+          return CompileState.TextCompileQueue;
         default:
           return compileState;
       }
