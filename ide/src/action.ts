@@ -6,7 +6,7 @@ export type ideAction =
   | { type: "finishSetup" }
   | { type: "finishCreateRepl" }
   | { type: "queueRun" }
-  | { type: "compileText" }
+  | { type: "compile" }
   | { type: "runText" }
   | { type: "finishRunText" }
   | { type: "stopText" }
@@ -26,3 +26,5 @@ export type ideAction =
   | { type: "traverseUp", path: string }
   | { type: "traverseDown", path: string }
   | { type: "expandChild", path: string };
+
+export type ideActionType = ideAction["type"];

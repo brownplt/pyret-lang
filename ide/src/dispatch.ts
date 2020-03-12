@@ -1,7 +1,7 @@
 import { CompileState } from './State';
 import * as action from './action';
 
-export function dispatchCompileState<a>(name: string,
+export function dispatchCompileState<a>(name: action.ideActionType,
                                         state: any,
                                         theAction: action.ideAction,
                                         actions: {state: CompileState, action: (state: any, action: action.ideAction) => a | a}[]) {
@@ -21,8 +21,8 @@ export function dispatchCompileState<a>(name: string,
   throw new Error(`dispatchCompileState: ${name}: no action for state ${CompileState[compileState]}`);
 }
 
-export function on(actionType: string, makeResult: (state: any, action: action.ideAction) => any) {
-  return (state: any, theAction: any) => {
+export function on(actionType: action.ideActionType, makeResult: (state: any, action: action.ideAction) => any) {
+  return (state: any, theAction: action.ideAction) => {
     switch (theAction.type) {
       case actionType:
         return makeResult(state, theAction);
@@ -32,7 +32,7 @@ export function on(actionType: string, makeResult: (state: any, action: action.i
   };
 }
 
-export function onDispatch(actionType: string,
+export function onDispatch(actionType: action.ideActionType,
                            results: { state: CompileState, action: any }[] | (() => { state: CompileState, action: any }[])) {
   return on(actionType, (state, action) => {
     if (typeof results === "function") {
