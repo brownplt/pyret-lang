@@ -96,17 +96,19 @@ store.subscribe(() => {
       );
       store.dispatch({ type: "startupCompleted" });
       return;
-    case CompileState.TextReadyQueue:
-      console.log("current contents", state.currentFileContents);
-      const parsed = control.bfsSetup.path.parse(state.currentFile);
-      control.fs.writeFileSync(
-        state.currentFile,
-        state.currentFileContents);
-      control.compile(
-        parsed.dir,
-        parsed.base,
-        state.typeCheck);
-      store.dispatch({ type: "textCompile" });
+    case CompileState.TextReady:
+      if (state.updateQueued) {
+        console.log("current contents", state.currentFileContents);
+        const parsed = control.bfsSetup.path.parse(state.currentFile);
+        control.fs.writeFileSync(
+          state.currentFile,
+          state.currentFileContents);
+        control.compile(
+          parsed.dir,
+          parsed.base,
+          state.typeCheck);
+        store.dispatch({ type: "textCompile" });
+      }
       return;
     case CompileState.TextNeedsRun:
       store.dispatch({ type: "textRunStarted" });

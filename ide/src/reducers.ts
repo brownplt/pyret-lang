@@ -28,7 +28,8 @@ export type ideAppState = {
   compileState: CompileState,
   currentRunner: any,
   currentChunk: number,
-  needLoadFile: boolean
+  needLoadFile: boolean,
+  updateQueued: boolean
 }
 
 const initialState: ideAppState = {
@@ -58,6 +59,7 @@ const initialState: ideAppState = {
   currentRunner: undefined,
   currentChunk: 0,
   needLoadFile: false,
+  updateQueued: false
 };
 
 export function ideApp(state = initialState, action: action.ideAction): ideAppState {
@@ -84,76 +86,15 @@ const reducers = [
     {
       state: CompileState.TextStartup,
       action: { compileState: CompileState.TextReady }
-    },
-    {
-      state: CompileState.TextStartupQueue,
-      action: { compileState: CompileState.TextReadyQueue }
-    },
-    {
-      state: CompileState.ChunkStartup,
-      action: { compileState: CompileState.ChunkNeedsRepl }
-    },
-    {
-      state: CompileState.ChunkStartupQueue,
-      action: { compileState: CompileState.ChunkNeedsReplQueue }
     }
   ]),
-  onDispatch("queueRun", [
-    {
-      state: CompileState.TextStartup,
-      action: { compileState: CompileState.TextStartupQueue }
-    },
-    {
-      state: CompileState.TextStartupQueue,
-      action: { compileState: CompileState.TextStartupQueue }
-    },
-    {
-      state: CompileState.ChunkStartup,
-      action: { compileState: CompileState.ChunkStartupQueue }
-    },
-    {
-      state: CompileState.ChunkNeedsRepl,
-      action: { compileState: CompileState.ChunkNeedsReplQueue }
-    },
-    {
-      state: CompileState.ChunkStartupQueue,
-      action: { compileState: CompileState.ChunkStartupQueue }
-    },
-    {
-      state: CompileState.ChunkNeedsReplQueue,
-      action: { compileState: CompileState.ChunkNeedsReplQueue }
-    }
-  ]),
+  on("queueRun", (state: any, action: any) => {
+    return { updateQueued: true };
+  }),
   onDispatch("finishCreateRepl", [
     {
       state: CompileState.ChunkNeedsRepl,
-      action: { compileState: CompileState.ChunkReady }
-    },
-    {
-      state: CompileState.ChunkNeedsReplQueue,
-      action: { compileState: CompileState.ChunkReadyQueue }
-    }
-  ]),
-  onDispatch("runText", [
-    {
-      state: CompileState.TextStartup,
-      action: { compileState: CompileState.TextStartupQueue }
-    },
-    {
-      state: CompileState.TextStartupQueue,
-      action: { compileState: CompileState.TextStartupQueue }
-    },
-    {
-      state: CompileState.TextReady,
-      action: { compileState: CompileState.TextReadyQueue }
-    },
-    {
-      state: CompileState.TextReadyQueue,
-      action: { compileState: CompileState.TextReadyQueue }
-    },
-    {
-      state: CompileState.TextCompile,
-      action: { compileState: CompileState.TextCompile }
+      action: { compileState: CompileState.TextReady }
     }
   ]),
   onDispatch("finishRunText", [
@@ -164,14 +105,6 @@ const reducers = [
     {
       state: CompileState.TextRunningWithStops,
       action: { compileState: CompileState.TextReady }
-    },
-    {
-      state: CompileState.TextRunningQueue,
-      action: { compileState: CompileState.TextReadyQueue }
-    },
-    {
-      state: CompileState.TextRunningWithStopsQueue,
-      action: { compileState: CompileState.TextReadyQueue }
     },
     {
       state: CompileState.TextRunningWithStopsNeedsStop,
@@ -186,7 +119,7 @@ const reducers = [
   ]),
   onDispatch("textCompile", [
     {
-      state: CompileState.TextReadyQueue,
+      state: CompileState.TextReady,
       action: { compileState: CompileState.TextCompile }
     }
   ]),
@@ -209,10 +142,6 @@ const reducers = [
           definitionsHighlights: places
         };
       }
-    },
-    {
-      state: CompileState.TextCompileQueue,
-      action: { compileState: CompileState.TextReadyQueue }
     }
   ]),
   onDispatch("textRunFailure", (() => {
@@ -232,14 +161,6 @@ const reducers = [
         action: makeResult(CompileState.TextReady)
       },
       {
-        state: CompileState.TextRunningQueue,
-        action: makeResult(CompileState.TextReadyQueue)
-      },
-      {
-        state: CompileState.TextRunningWithStopsQueue,
-        action: makeResult(CompileState.TextReadyQueue)
-      },
-      {
         state: CompileState.TextRunningWithStopsNeedsStop,
         action: makeResult(CompileState.TextReady)
       },
@@ -247,10 +168,6 @@ const reducers = [
         state: CompileState.TextCompile, // TODO how does this happen?
         action: makeResult(CompileState.TextCompile)
       },
-      {
-        state: CompileState.TextCompileQueue, // TODO also, how does this happen?
-        action: makeResult(CompileState.TextCompileQueue)
-      }
     ];
   })()),
   on("textLintFailure", () => {
@@ -264,18 +181,14 @@ const reducers = [
   onDispatch("textCompileSuccess", [
     {
       state: CompileState.TextCompile,
-      action: {
-        compileState: CompileState.TextNeedsRun,
-        interactionErrors: [],
-        definitionsHighlights: []
-      }
-    },
-    {
-      state: CompileState.TextCompileQueue,
-      action: {
-        compileState: CompileState.TextReadyQueue,
-        interactionErrors: [],
-        definitionsHighlights: []
+      action: (state: any, action: any) => {
+        const newCompileState = state.updateQueued ?
+          CompileState.TextReady : CompileState.TextNeedsRun;
+        return {
+          compileState: newCompileState,
+          interactionErrors: [],
+          definitionsHighlights: []
+        }
       }
     }
   ]),
@@ -326,10 +239,6 @@ const reducers = [
         action: makeAction(CompileState.TextReady)
       },
       {
-        state: CompileState.TextRunningWithStopsQueue,
-        action: makeAction(CompileState.TextReadyQueue)
-      },
-      {
         state: CompileState.TextRunningWithStopsNeedsStop,
         action: makeAction(CompileState.TextReady)
       },
@@ -337,10 +246,6 @@ const reducers = [
         state: CompileState.TextRunning,
         action: makeAction(CompileState.TextReady)
       },
-      {
-        state: CompileState.TextRunningQueue,
-        action: makeAction(CompileState.TextReadyQueue)
-      }
     ]);
   }),
   onDispatch("textRunStarted", [
@@ -349,34 +254,11 @@ const reducers = [
       action: { compileState: CompileState.TextRunningWithStops }
     }
   ]),
-  on("textUpdateContents", (state: any, action: any) => {
-    function findNextCompileState(compileState: CompileState) {
-      switch (compileState) {
-        case CompileState.TextStartup:
-          return CompileState.TextStartupQueue;
-        case CompileState.TextReady:
-          return CompileState.TextReadyQueue;
-        case CompileState.TextRunningWithStops:
-          return CompileState.TextRunningWithStopsQueue; // TODO
-        case CompileState.TextCompile:
-          return CompileState.TextCompileQueue;
-        default:
-          return compileState;
-      }
-    }
-    if (state.autoRun) {
-      return {
-        currentFileContents: action.contents,
-        needLoadFile: false,
-        compileState: findNextCompileState(state.compileState)
-      };
-    } else {
-      return {
-        currentFileContents: action.contents,
-        needLoadFile: false
-      };
-    }
-  }),
+  on("textUpdateContents", (state: any, action: any) => ({
+    currentFileContents: action.contents,
+    needLoadFile: false,
+    updateQueued: state.autoRun
+  })),
   on("traverseUp", (state: any, action: any) => {
     return { browsePath: action.path };
   }),

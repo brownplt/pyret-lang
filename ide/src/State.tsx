@@ -12,25 +12,15 @@ export enum CompileState {
 
     TextNeedsStartup,
     TextStartup,
-    TextStartupQueue,
     TextReady,
-    TextReadyQueue,
     TextCompile,
-    TextCompileQueue,
     TextNeedsCompile,
     TextNeedsRun,
     TextRunning,
     TextRunningWithStops,
-    TextRunningQueue,
-    TextRunningWithStopsQueue,
     TextRunningWithStopsNeedsStop,
 
-    ChunkStartup,
-    ChunkStartupQueue,
     ChunkNeedsRepl,
-    ChunkNeedsReplQueue,
-    ChunkReady,
-    ChunkReadyQueue,
 }
 
 export function compileStateToString(state: CompileState): string {
