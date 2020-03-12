@@ -120,7 +120,7 @@ const reducers = [
   onDispatch("textCompile", [
     {
       state: CompileState.TextReady,
-      action: { compileState: CompileState.TextCompile }
+      action: { compileState: CompileState.TextCompile, updateQueued: false }
     }
   ]),
   onDispatch("textCompileFailure", [
