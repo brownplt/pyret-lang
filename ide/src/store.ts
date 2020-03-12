@@ -51,7 +51,9 @@ function handleCompileSuccess(): void {
 }
 
 function handleCreateReplSuccess(): void {
-  console.log("create repl succes (nyi)");
+  store.dispatch({
+    type: "finishCreateRepl"
+  })
 }
 
 function handleCompileInteractionSuccess(): void {
@@ -87,6 +89,9 @@ store.subscribe(() => {
         handleCompileInteractionFailure,
       );
       store.dispatch({ type: "startupCompleted" });
+      return;
+    case CompileState.ChunkNeedsRepl:
+      control.createRepl();
       return;
     case CompileState.Ready:
       if (state.updateQueued) {

@@ -89,7 +89,13 @@ const reducers = [
   onDispatch("finishSetup", [
     {
       state: CompileState.Startup,
-      action: { compileState: CompileState.Ready }
+      action: (state: any, action: any) => {
+        if (state.editorMode === EditorMode.Chunks) {
+          return { compileState: CompileState.ChunkNeedsRepl };
+        } else {
+          return { compileState: CompileState.Ready };
+        }
+      }
     }
   ]),
   on("queueRun", (state: any, action: any) => {
