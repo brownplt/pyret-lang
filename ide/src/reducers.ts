@@ -126,12 +126,12 @@ const reducers = [
   onDispatch("textCompileFailure", [
     {
       state: CompileState.Compile,
-      action: (state: any, action: action.textCompileFailure) => {
+      action: (state: any, action: any) => {
         const places: any = [];
         for (let i = 0; i < action.errors.length; i++) {
           const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
           if (matches !== null) {
-            matches.forEach((m) => {
+            matches.forEach((m: any) => {
               places.push(m.match(/\d+/g)!.map(Number));
             });
           }
@@ -146,9 +146,9 @@ const reducers = [
   ]),
   onDispatch("textRunFailure", (() => {
     function makeResult(newState: CompileState) {
-      return (state: any, action: action.ideAction) => ({
+      return (state: any, action: any) => ({
         compileState: newState,
-        interactionErrors: [(action as action.textRunFailure).errors.toString()]
+        interactionErrors: [action.errors.toString()]
       })
     }
     return [
