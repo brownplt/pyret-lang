@@ -1,28 +1,28 @@
-import { CompileState } from './state';
+import { CompileState, ideAppState } from './state';
 import * as A from './action';
 
 // A semiReducer is like a reducer, except that its return value is meant to represent an
 // update to an existing state, not an entirely new state.
-type semiReducer<a> = (state: any, action: A.ideAction) => a;
+export type semiReducer = (state: ideAppState, action: A.ideAction) => Partial<ideAppState>;
 
-type change<a> = a | semiReducer<a>;
+type change = Partial<ideAppState> | semiReducer;
 
-function isSemiReducer<a>(change: change<a>): change is semiReducer<a> {
+function isSemiReducer<a>(change: change): change is semiReducer {
   return typeof change === "function";
 }
 
 // A stateUpdate<a> represents a change that may be applied to a certain state.
-type stateUpdate<a> = {
+type stateUpdate = {
   state: CompileState,
-  change: change<a>;
+  change: change;
 };
 
 // A list of updates that may be applied to a state.
-type stateUpdates<a> = Array<stateUpdate<a>>;
+type stateUpdates = Array<stateUpdate>;
 
-function findMatchingChange<a>(
+function findMatchingChange(
   state: any,
-  stateUpdates: stateUpdates<a>): change<a> | undefined
+  stateUpdates: stateUpdates): change | undefined
 {
   const matchingStateUpdate = stateUpdates
     .find(update => update.state === state.compileState);
@@ -34,11 +34,11 @@ function findMatchingChange<a>(
   }
 }
 
-export function applyMatchingStateUpdate<a>(
+export function applyMatchingStateUpdate(
   name: A.ideActionType, // to improve error messages
   state: any,
   action: A.ideAction,
-  stateUpdates: stateUpdates<a>): a
+  stateUpdates: stateUpdates): Partial<ideAppState>
 {
   const matchingChange = findMatchingChange(state, stateUpdates);
 
@@ -55,9 +55,9 @@ export function applyMatchingStateUpdate<a>(
 
 // Creates a semiReducer that returns {} when the action passed to it is not the same as
 // actionType, functioning like semiReducer otherwise.
-export function guard<a>(
+export function guard(
   actionType: A.ideActionType,
-  semiReducer: semiReducer<a>): semiReducer<a | {}>
+  semiReducer: semiReducer): semiReducer
 {
   return (state: any, action: A.ideAction) => {
     switch (action.type) {
@@ -73,9 +73,9 @@ export function guard<a>(
 // {} if the action it receives is not equal to actionType.
 // For convenience, stateUpdates can be a thunk to allow for internal definitions. It is
 // immediately applied.
-export function guardUpdates<a>(
+export function guardUpdates(
   actionType: A.ideActionType,
-  stateUpdates: stateUpdates<a> | (() => stateUpdates<a>)): semiReducer<a | {}>
+  stateUpdates: stateUpdates | (() => stateUpdates)): semiReducer
 {
   if (typeof stateUpdates === "function") {
     const stateUpdatesDethunk = stateUpdates();

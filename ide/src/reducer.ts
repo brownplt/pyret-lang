@@ -1,9 +1,9 @@
 import * as action from './action';
 import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './state';
-import { applyMatchingStateUpdate, guard, guardUpdates } from './dispatch';
+import { applyMatchingStateUpdate, guard, guardUpdates, semiReducer } from './dispatch';
 
 export function ideApp(state = initialState, action: action.ideAction): ideAppState {
-  const newState = reducers
+  const newState = semiReducers
     .reduce(
       (state, r) => {
         return Object.assign({}, state, r(state, action));
@@ -13,7 +13,7 @@ export function ideApp(state = initialState, action: action.ideAction): ideAppSt
   return Object.assign({}, newState);
 }
 
-const reducers = [
+const semiReducers: Array<semiReducer> = [
   guardUpdates("beginStartup", [{
     state: CompileState.Uninitialized,
     change: { compileState: CompileState.NeedsStartup }
@@ -25,9 +25,9 @@ const reducers = [
   guardUpdates("finishSetup", [
     {
       state: CompileState.Startup,
-      change: (state: any, action: any) => {
+      change: (state: ideAppState, action: action.ideAction) => {
         if (state.editorMode === EditorMode.Chunks) {
-          return { compileState: CompileState.ChunkNeedsRepl };
+          return { compileState: CompileState.ChunkNeedsRepl, hah: false };
         } else {
           return { compileState: CompileState.Ready };
         }
@@ -139,13 +139,13 @@ const reducers = [
     }
   ]),
   guard("runFinished", (state: any, action: any) => {
-    const data = (() => {
+    function makeData() {
       if (action.result !== undefined
           && action.result.result.error === undefined
           && state.currentFile === undefined) {
         throw new Error("state.currentFile should not be undefined");
       } else if (action.result !== undefined
-          && action.result.result.error === undefined) {
+                 && action.result.result.error === undefined) {
 
         const results =
           makeResult(action.result.result, "file:// " + state.currentFile);
@@ -170,24 +170,28 @@ const reducers = [
       } else {
         return {};
       }
-    })();
+    }
+
+    const data = makeData();
 
     const makeAction = (newState: CompileState) => () => {
       return Object.assign({}, {compileState: newState}, data);
     }
 
+    const readyAction = makeAction(CompileState.Ready);
+
     return applyMatchingStateUpdate("runFinished", state, action, [
       {
         state: CompileState.RunningWithStops,
-        change: makeAction(CompileState.Ready)
+        change: readyAction
       },
       {
         state: CompileState.RunningWithStopsNeedsStop,
-        change: makeAction(CompileState.Ready)
+        change: readyAction
       },
       {
         state: CompileState.Running,
-        change: makeAction(CompileState.Ready)
+        change: readyAction
       },
     ]);
   }),
