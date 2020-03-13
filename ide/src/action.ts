@@ -1,4 +1,4 @@
-import { EditorMode } from "./State";
+import { EditorMode } from "./state";
 import { LintFailure } from "./DefChunks";
 
 export type ideAction =

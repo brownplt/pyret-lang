@@ -1,4 +1,4 @@
-import { CompileState } from './State';
+import { CompileState } from './state';
 import * as A from './action';
 
 // A semiReducer is like a reducer, except that its return value is meant to represent an

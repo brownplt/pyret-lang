@@ -1,5 +1,5 @@
 import * as action from './action';
-import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './State';
+import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './state';
 import { applyMatchingStateUpdate, guard, guardUpdates } from './dispatch';
 import * as control from './control';
 import { Check } from './Check';

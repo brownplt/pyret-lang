@@ -1,8 +1,8 @@
 import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
-import * as State from './State';
-import { EditorMode } from './State';
+import * as State from './state';
+import { EditorMode } from './state';
 import { Interaction } from './Interaction';
 import { TestResult } from './Check';
 import { DefChunks, LintFailure } from './DefChunks';

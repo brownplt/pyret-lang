@@ -1,6 +1,6 @@
 import { createStore } from 'redux';
 import { ideApp } from './reducers';
-import { CompileState } from './State';
+import { CompileState } from './state';
 import * as control from './control';
 
 export const store = createStore(
