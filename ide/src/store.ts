@@ -1,5 +1,5 @@
 import { createStore } from 'redux';
-import { ideApp } from './reducers';
+import { ideApp } from './reducer';
 import { CompileState } from './state';
 import * as control from './control';
 
