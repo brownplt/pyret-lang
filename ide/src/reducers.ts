@@ -204,35 +204,36 @@ const reducers = [
   ]),
   on("runFinished", (state: any, action: any) => {
     const data = (() => {
-      if (action.result !== undefined) {
-        if (action.result.result.error === undefined) {
-          if (state.currentFile === undefined) {
-            throw new Error("state.currentFile should not be undefined");
-          }
+      if (action.result !== undefined
+          && action.result.result.error === undefined
+          && state.currentFile === undefined) {
+        throw new Error("state.currentFile should not be undefined");
+      } else if (action.result !== undefined
+          && action.result.result.error === undefined) {
 
-          const results =
-            makeResult(action.result.result, "file:// " + state.currentFile);
+        const results =
+          makeResult(action.result.result, "file:// " + state.currentFile);
 
-          if (results[0] !== undefined && results[0].name === "error") {
-            return {
-              interactions: results,
-              checks: action.result.result.$checks,
-              interactionErrors: action.result.result.error
-            };
-          }
-
+        if (results[0] !== undefined
+            && results[0].name === "error") {
+          return {
+            interactions: results,
+            checks: action.result.result.$checks,
+            interactionErrors: action.result.result.error
+          };
+        } else {
           return {
             interactions: results,
             checks: action.result.result.$checks,
           };
         }
-
+      } else if (action.result !== undefined) {
         return {
           interactionErrors: [action.result.result.error]
         };
+      } else {
+        return {};
       }
-
-      return {};
     })();
 
     const makeAction = (newState: CompileState) => () => {
