@@ -1,9 +1,6 @@
 import * as action from './action';
 import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './state';
 import { applyMatchingStateUpdate, guard, guardUpdates } from './dispatch';
-import * as control from './control';
-import { Check } from './Check';
-import { LintFailure } from './DefChunks';
 
 export function ideApp(state = initialState, action: action.ideAction): ideAppState {
   const newState = reducers
