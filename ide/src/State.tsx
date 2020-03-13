@@ -1,8 +1,7 @@
 // This file is used to track the state of the editor. Any function that calls
 // .setState on an Editor should be written here
 
-import { Editor, EditorMode } from './Editor';
-import { CHUNKSEP } from './DefChunks';
+import { LintFailure } from './DefChunks';
 import { Check } from './Check';
 import * as control from './control';
 
@@ -26,6 +25,69 @@ export enum CompileState {
 export function compileStateToString(state: CompileState): string {
   return CompileState[state];
 }
+
+export enum EditorMode {
+    Chunks,
+    Text,
+}
+
+export type ideAppState = {
+    browseRoot: string,
+    browsePath: string,
+    currentFile: string | undefined,
+    currentFileContents: string | undefined,
+    typeCheck: boolean,
+    checks: Check[],
+    interactions: { key: any, name: any, value: any }[],
+    interactionErrors: string[],
+    lintFailures: {[name : string]: LintFailure},
+    runKind: control.backend.RunKind,
+    autoRun: boolean,
+    updateTimer: NodeJS.Timer,
+    dropdownVisible: boolean,
+    editorMode: EditorMode,
+    fontSize: number,
+    message: string,
+    definitionsHighlights: number[][],
+    fsBrowserVisible: boolean,
+    compileState: CompileState,
+    currentRunner: any,
+    currentChunk: number,
+    needLoadFile: boolean,
+    updateQueued: boolean,
+    firstUpdatableChunk: undefined | number,
+};
+
+export const initialState: ideAppState = {
+    browseRoot: "/",
+    browsePath: "/projects",
+    currentFile: undefined,
+    currentFileContents: undefined,
+    typeCheck: true,
+    checks: [],
+    interactions: [{
+        key: "Note",
+        name: "Note",
+        value: "Press Run to compile and run"
+    }],
+    interactionErrors: [],
+    lintFailures: {},
+    runKind: control.backend.RunKind.Async,
+    autoRun: true,
+    updateTimer: setTimeout(() => { return; }, 0),
+    dropdownVisible: false,
+    editorMode: EditorMode.Chunks,
+    fontSize: 12,
+    message: "Ready to rock",
+    definitionsHighlights: [],
+    fsBrowserVisible: false,
+    compileState: CompileState.Uninitialized,
+    currentRunner: undefined,
+    currentChunk: 0,
+    needLoadFile: false,
+    updateQueued: false,
+    firstUpdatableChunk: 0,
+};
 
 /* export const editorStateToString = (editor: Editor): string => {
  *     // TODO(michael): these could be more pirate-themed

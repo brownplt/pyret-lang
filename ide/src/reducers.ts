@@ -1,68 +1,9 @@
 import * as action from './action';
-import { CompileState, makeResult } from './State';
+import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './State';
 import { applyMatchingStateUpdate, guard, guardUpdates } from './dispatch';
 import * as control from './control';
-import { EditorMode } from './Editor';
 import { Check } from './Check';
 import { LintFailure } from './DefChunks';
-
-export type ideAppState = {
-  browseRoot: string,
-  browsePath: string,
-  currentFile: string | undefined,
-  currentFileContents: string | undefined,
-  typeCheck: boolean,
-  checks: Check[],
-  interactions: { key: any, name: any, value: any }[],
-  interactionErrors: string[],
-  lintFailures: {[name : string]: LintFailure},
-  runKind: control.backend.RunKind,
-  autoRun: boolean,
-  updateTimer: NodeJS.Timer,
-  dropdownVisible: boolean,
-  editorMode: EditorMode,
-  fontSize: number,
-  message: string,
-  definitionsHighlights: number[][],
-  fsBrowserVisible: boolean,
-  compileState: CompileState,
-  currentRunner: any,
-  currentChunk: number,
-  needLoadFile: boolean,
-  updateQueued: boolean,
-  firstUpdatableChunk: undefined | number,
-}
-
-const initialState: ideAppState = {
-  browseRoot: "/",
-  browsePath: "/projects",
-  currentFile: undefined,
-  currentFileContents: undefined,
-  typeCheck: true,
-  checks: [],
-  interactions: [{
-    key: "Note",
-    name: "Note",
-    value: "Press Run to compile and run"
-  }],
-  interactionErrors: [],
-  lintFailures: {},
-  runKind: control.backend.RunKind.Async,
-  autoRun: true,
-  updateTimer: setTimeout(() => { return; }, 0),
-  dropdownVisible: false,
-  editorMode: EditorMode.Chunks,
-  fontSize: 12,
-  message: "Ready to rock",
-  definitionsHighlights: [],
-  fsBrowserVisible: false,
-  compileState: CompileState.Uninitialized,
-  currentRunner: undefined,
-  currentChunk: 0,
-  needLoadFile: false,
-  updateQueued: false,
-  firstUpdatableChunk: 0,
-};
 
 export function ideApp(state = initialState, action: action.ideAction): ideAppState {
   const newState = reducers

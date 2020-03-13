@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import * as State from './State';
+import { EditorMode } from './State';
 import { Interaction } from './Interaction';
 import { TestResult } from './Check';
 import { DefChunks, LintFailure } from './DefChunks';
@@ -84,11 +85,6 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 
 control.installFileSystem();
 control.loadBuiltins();
-
-export enum EditorMode {
-    Chunks,
-    Text,
-}
 
 //type EditorProps = {};
 
