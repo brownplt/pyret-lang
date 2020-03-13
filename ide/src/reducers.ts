@@ -1,6 +1,6 @@
 import * as action from './action';
 import { CompileState, makeResult } from './State';
-import { dispatchCompileState, on, onDispatch } from './dispatch';
+import { applyMatchingStateUpdate, guard, guardUpdates } from './dispatch';
 import * as control from './control';
 import { EditorMode } from './Editor';
 import { Check } from './Check';
@@ -76,20 +76,18 @@ export function ideApp(state = initialState, action: action.ideAction): ideAppSt
 }
 
 const reducers = [
-  onDispatch("beginStartup", () => {
-    return [{
-      state: CompileState.Uninitialized,
-      action: { compileState: CompileState.NeedsStartup }
-    }];
-  }),
-  onDispatch("startupCompleted", [{
-    state: CompileState.NeedsStartup,
-    action: { compileState: CompileState.Startup }
+  guardUpdates("beginStartup", [{
+    state: CompileState.Uninitialized,
+    change: { compileState: CompileState.NeedsStartup }
   }]),
-  onDispatch("finishSetup", [
+  guardUpdates("startupCompleted", [{
+    state: CompileState.NeedsStartup,
+    change: { compileState: CompileState.Startup }
+  }]),
+  guardUpdates("finishSetup", [
     {
       state: CompileState.Startup,
-      action: (state: any, action: any) => {
+      change: (state: any, action: any) => {
         if (state.editorMode === EditorMode.Chunks) {
           return { compileState: CompileState.ChunkNeedsRepl };
         } else {
@@ -98,45 +96,45 @@ const reducers = [
       }
     }
   ]),
-  on("queueRun", (state: any, action: any) => {
+  guard("queueRun", (state: any, action: any) => {
     return { updateQueued: true };
   }),
-  onDispatch("finishCreateRepl", [
+  guardUpdates("finishCreateRepl", [
     {
       state: CompileState.ChunkNeedsRepl,
-      action: { compileState: CompileState.Ready }
+      change: { compileState: CompileState.Ready }
     }
   ]),
-  onDispatch("finishRun", [
+  guardUpdates("finishRun", [
     {
       state: CompileState.Running,
-      action: { compileState: CompileState.Ready }
+      change: { compileState: CompileState.Ready }
     },
     {
       state: CompileState.RunningWithStops,
-      action: { compileState: CompileState.Ready }
+      change: { compileState: CompileState.Ready }
     },
     {
       state: CompileState.RunningWithStopsNeedsStop,
-      action: { compileState: CompileState.Ready }
+      change: { compileState: CompileState.Ready }
     }
   ]),
-  onDispatch("stop", [
+  guardUpdates("stop", [
     {
       state: CompileState.RunningWithStops,
-      action: { compileState: CompileState.RunningWithStopsNeedsStop }
+      change: { compileState: CompileState.RunningWithStopsNeedsStop }
     }
   ]),
-  onDispatch("compile", [
+  guardUpdates("compile", [
     {
       state: CompileState.Ready,
-      action: { compileState: CompileState.Compile, updateQueued: false }
+      change: { compileState: CompileState.Compile, updateQueued: false }
     }
   ]),
-  onDispatch("compileFailure", [
+  guardUpdates("compileFailure", [
     {
       state: CompileState.Compile,
-      action: (state: any, action: any) => {
+      change: (state: any, action: any) => {
         const places: any = [];
         for (let i = 0; i < action.errors.length; i++) {
           const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
@@ -154,7 +152,7 @@ const reducers = [
       }
     }
   ]),
-  onDispatch("runFailure", (() => {
+  guardUpdates("runFailure", (() => {
     function makeResult(newState: CompileState) {
       return (state: any, action: any) => ({
         compileState: newState,
@@ -164,34 +162,34 @@ const reducers = [
     return [
       {
         state: CompileState.Running,
-        action: makeResult(CompileState.Ready)
+        change: makeResult(CompileState.Ready)
       },
       {
         state: CompileState.RunningWithStops,
-        action: makeResult(CompileState.Ready)
+        change: makeResult(CompileState.Ready)
       },
       {
         state: CompileState.RunningWithStopsNeedsStop,
-        action: makeResult(CompileState.Ready)
+        change: makeResult(CompileState.Ready)
       },
       {
         state: CompileState.Compile, // TODO how does this happen?
-        action: makeResult(CompileState.Compile)
+        change: makeResult(CompileState.Compile)
       },
     ];
   })()),
-  on("lintFailure", () => {
+  guard("lintFailure", () => {
     console.log("lintFailure not yet implemented");
     return {};
   }),
-  on("lintSuccess", () => {
+  guard("lintSuccess", () => {
     console.log("lintSucccess not yet implemented");
     return {};
   }),
-  onDispatch("compileSuccess", [
+  guardUpdates("compileSuccess", [
     {
       state: CompileState.Compile,
-      action: (state: any, action: any) => {
+      change: (state: any, action: any) => {
         const newCompileState = state.updateQueued ?
           CompileState.Ready : CompileState.NeedsRun;
         return {
@@ -202,7 +200,7 @@ const reducers = [
       }
     }
   ]),
-  on("runFinished", (state: any, action: any) => {
+  guard("runFinished", (state: any, action: any) => {
     const data = (() => {
       if (action.result !== undefined
           && action.result.result.error === undefined
@@ -240,51 +238,51 @@ const reducers = [
       return Object.assign({}, {compileState: newState}, data);
     }
 
-    return dispatchCompileState("runFinished", state, action, [
+    return applyMatchingStateUpdate("runFinished", state, action, [
       {
         state: CompileState.RunningWithStops,
-        action: makeAction(CompileState.Ready)
+        change: makeAction(CompileState.Ready)
       },
       {
         state: CompileState.RunningWithStopsNeedsStop,
-        action: makeAction(CompileState.Ready)
+        change: makeAction(CompileState.Ready)
       },
       {
         state: CompileState.Running,
-        action: makeAction(CompileState.Ready)
+        change: makeAction(CompileState.Ready)
       },
     ]);
   }),
-  onDispatch("runStarted", [
+  guardUpdates("runStarted", [
     {
       state: CompileState.NeedsRun,
-      action: { compileState: CompileState.RunningWithStops }
+      change: { compileState: CompileState.RunningWithStops }
     }
   ]),
-  on("updateContents", (state: any, action: any) => ({
+  guard("updateContents", (state: any, action: any) => ({
     currentFileContents: action.contents,
     needLoadFile: false,
     updateQueued: state.autoRun
   })),
-  on("updateChunkContents", (state: any, action: any) => ({
+  guard("updateChunkContents", (state: any, action: any) => ({
     currentFileContents: action.contents,
     needLoadFile: false,
     updateQueued: state.autoRun,
     firstUpdatableChunk: action.index
   })),
-  on("traverseUp", (state: any, action: any) => {
+  guard("traverseUp", (state: any, action: any) => {
     return { browsePath: action.path };
   }),
-  on("traverseDown", (state: any, action: any) => {
+  guard("traverseDown", (state: any, action: any) => {
     return { browsePath: action.path };
   }),
-  on("expandChild", (state: any, action: any) => {
+  guard("expandChild", (state: any, action: any) => {
     return {
       currentFile: action.path,
       needLoadFile: true
     };
   }),
-  on("setEditorMode", (state: any, action: any) => {
+  guard("setEditorMode", (state: any, action: any) => {
     return {
       editorMode: action.mode,
     }
