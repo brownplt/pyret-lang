@@ -1,11 +1,16 @@
 import { CompileState, State } from './state';
 import { Action, ActionType, isActionType, ActionOfType } from './action';
 
-// Like ideAppState, but doesn't require every single key.
+// Like State, but doesn't require every single key.
 export type PartialState = Partial<State>;
 
 // A semiReducer is like a reducer, except that its return value is meant to represent an
 // update to a part of an existing state, not an entirely new state.
+// note: When writing a SemiReducer, it's important to (though not required by the Typescript
+//       compiler) to annotate its return type as PartialState. If you do not explicitly
+//       use this annotation, Typescript will allow your reducer to return any object, not
+//       just a partial implementations of State.
+//       [ see https://github.com/microsoft/TypeScript/issues/241 ]
 export type SemiReducer<K extends ActionType> = (state: State, action: ActionOfType<K>) => PartialState;
 
 // Represents a change that can be applied to an IdeAppState. If necessary, the change can
