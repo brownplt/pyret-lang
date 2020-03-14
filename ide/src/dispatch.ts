@@ -88,3 +88,13 @@ export function guardUpdates(
     });
   }
 }
+
+export function combineSemiReducers(semiReducers: Array<semiReducer>): (state: ideAppState, action: A.ideAction) => ideAppState {
+  return (state, action) => {
+    return semiReducers.reduce(
+      (state, r) => {
+        return Object.assign({}, state, r(state, action));
+      },
+      state);
+  }
+}

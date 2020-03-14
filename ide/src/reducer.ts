@@ -1,17 +1,12 @@
 import * as action from './action';
 import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './state';
-import { applyMatchingStateUpdate, guard, guardUpdates, semiReducer } from './dispatch';
-
-export function ideApp(state = initialState, action: action.ideAction): ideAppState {
-  const newState = semiReducers
-    .reduce(
-      (state, r) => {
-        return Object.assign({}, state, r(state, action));
-      },
-      state);
-
-  return Object.assign({}, newState);
-}
+import {
+  applyMatchingStateUpdate,
+  guard,
+  guardUpdates,
+  semiReducer,
+  combineSemiReducers
+} from './dispatch';
 
 const semiReducers: Array<semiReducer> = [
   guardUpdates("beginStartup", [{
@@ -230,3 +225,9 @@ const semiReducers: Array<semiReducer> = [
     }
   })
 ];
+
+const rootReducer = combineSemiReducers(semiReducers);
+
+export function ideApp(state = initialState, action: action.ideAction): ideAppState {
+  return Object.assign({}, rootReducer(state, action));
+}
