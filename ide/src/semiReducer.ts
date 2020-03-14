@@ -1,33 +1,33 @@
 import { CompileState, State } from './state';
-import { Action, ActionType } from './action';
+import { Action, ActionType, isActionType, ActionOfType } from './action';
 
 // Like ideAppState, but doesn't require every single key.
-type PartialState = Partial<State>;
+export type PartialState = Partial<State>;
 
 // A semiReducer is like a reducer, except that its return value is meant to represent an
-// update to an existing state, not an entirely new state.
-export type SemiReducer = (state: State, action: Action) => PartialState;
+// update to a part of an existing state, not an entirely new state.
+export type SemiReducer<K extends ActionType> = (state: State, action: ActionOfType<K>) => PartialState;
 
 // Represents a change that can be applied to an IdeAppState. If necessary, the change can
 // use the values from a particular IdeAppState and IdeAction (in the SemiReducer case).
-type Change = PartialState | SemiReducer;
+type Change<K extends ActionType> = PartialState | SemiReducer<K>;
 
-function isSemiReducer(change: Change): change is SemiReducer {
+function isSemiReducer<K extends ActionType>(change: Change<K>): change is SemiReducer<K> {
   return typeof change === "function";
 }
 
 // Represents a change that may be applied to a certain state.
-type StateUpdate = {
+export type StateUpdate<K extends ActionType> = {
   state: CompileState,
-  change: Change;
+  change: Change<K>;
 };
 
 // A list of updates that may be applied to a state.
-type StateUpdates = Array<StateUpdate>;
+type StateUpdates<K extends ActionType> = Array<StateUpdate<K>>;
 
-function findMatchingChange(
+function findMatchingChange<K extends ActionType>(
   state: State,
-  stateUpdates: StateUpdates): Change | undefined
+  stateUpdates: StateUpdates<K>): Change<K> | undefined
 {
   const matchingStateUpdate = stateUpdates
     .find(update => update.state === state.compileState);
@@ -41,11 +41,11 @@ function findMatchingChange(
 
 // Applies the first stateUpdate with a .state field that matches state.compileState to the state and action.
 // Throws an error if there is no matching stateUpdate.
-export function applyMatchingStateUpdate(
-  name: ActionType, // to improve error messages
+export function applyMatchingStateUpdate<K extends ActionType>(
+  name: K,
   state: State,
-  action: Action,
-  stateUpdates: StateUpdates): PartialState
+  action: ActionOfType<K>,
+  stateUpdates: StateUpdates<K>): PartialState
 {
   const matchingChange = findMatchingChange(state, stateUpdates);
 
@@ -62,16 +62,15 @@ export function applyMatchingStateUpdate(
 
 // Creates a SemiReducer that returns {} when the action passed to it is not the same as
 // actionType, functioning like semiReducer otherwise.
-export function guard(
-  actionType: ActionType,
-  semiReducer: SemiReducer): SemiReducer
+export function guard<K extends ActionType>(
+  actionType: K,
+  semiReducer: SemiReducer<K>): SemiReducer<ActionType>
 {
-  return (state: State, action: Action) => {
-    switch (action.type) {
-      case actionType:
-        return semiReducer(state, action);
-      default:
-        return {};
+  return (state: State, action: Action): PartialState => {
+    if (isActionType(actionType, action)) {
+      return semiReducer(state, action);
+    } else {
+      return {};
     }
   };
 }
@@ -80,18 +79,26 @@ export function guard(
 // {} if the action it receives is not equal to actionType.
 // For convenience, stateUpdates can be a thunk to allow for internal definitions. It is
 // immediately applied.
-export function guardUpdates(
-  actionType: ActionType,
-  stateUpdates: StateUpdates | (() => StateUpdates)): SemiReducer
+export function guardUpdates<K extends ActionType>(
+  actionType: K,
+  stateUpdates: StateUpdates<K> | (() => StateUpdates<K>)): SemiReducer<ActionType>
 {
   if (typeof stateUpdates === "function") {
     const stateUpdatesDethunk = stateUpdates();
-    return guard(actionType, (state, action) => {
-      return applyMatchingStateUpdate(actionType, state, action, stateUpdatesDethunk);
+    return guard(actionType, (state: State, action: ActionOfType<K>) => {
+      if (isActionType(actionType, action)) {
+        return applyMatchingStateUpdate(actionType, state, action, stateUpdatesDethunk);
+      } else {
+        throw new Error();
+      }
     });
   } else {
-    return guard(actionType, (state, action) => {
-      return applyMatchingStateUpdate(actionType, state, action, stateUpdates);
+    return guard(actionType, (state: State, action: ActionOfType<K>) => {
+      if (isActionType(actionType, action)) {
+        return applyMatchingStateUpdate(actionType, state, action, stateUpdates);
+      } else {
+        throw new Error();
+      }
     });
   }
 }
@@ -100,7 +107,7 @@ export function guardUpdates(
 type Reducer = (state: State, action: Action) => State;
 
 // Creates a reducer out of an array of SemiReducers.
-export function combineSemiReducers(semiReducers: Array<SemiReducer>): Reducer {
+export function combineSemiReducers(semiReducers: Array<SemiReducer<ActionType>>): Reducer {
   return (state, action) => {
     return semiReducers.reduce(
       (state, r) => {

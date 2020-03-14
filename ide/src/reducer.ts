@@ -1,14 +1,15 @@
-import * as action from './action';
+import { Action, isActionType, ActionOfType } from './action';
 import { CompileState, EditorMode, makeResult, State, initialState } from './state';
 import {
   applyMatchingStateUpdate,
   guard,
   guardUpdates,
   SemiReducer,
-  combineSemiReducers
-} from './dispatch';
+  combineSemiReducers,
+  PartialState
+} from './semiReducer';
 
-const semiReducers: Array<SemiReducer> = [
+const semiReducers = [
   guardUpdates("beginStartup", [{
     state: CompileState.Uninitialized,
     change: { compileState: CompileState.NeedsStartup }
@@ -20,16 +21,16 @@ const semiReducers: Array<SemiReducer> = [
   guardUpdates("finishSetup", [
     {
       state: CompileState.Startup,
-      change: (state: State, action: action.Action) => {
+      change: (state, action): PartialState => {
         if (state.editorMode === EditorMode.Chunks) {
-          return { compileState: CompileState.ChunkNeedsRepl, hah: false };
+          return { compileState: CompileState.ChunkNeedsRepl };
         } else {
           return { compileState: CompileState.Ready };
         }
       }
     }
   ]),
-  guard("queueRun", (state: any, action: any) => {
+  guard("queueRun", (state, action) => {
     return { updateQueued: true };
   }),
   guardUpdates("finishCreateRepl", [
@@ -67,7 +68,7 @@ const semiReducers: Array<SemiReducer> = [
   guardUpdates("compileFailure", [
     {
       state: CompileState.Compile,
-      change: (state: any, action: any) => {
+      change: (state, action): PartialState => {
         const places: any = [];
         for (let i = 0; i < action.errors.length; i++) {
           const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
@@ -87,7 +88,7 @@ const semiReducers: Array<SemiReducer> = [
   ]),
   guardUpdates("runFailure", (() => {
     function makeResult(newState: CompileState) {
-      return (state: any, action: any) => ({
+      return (state: State, action: ActionOfType<"runFailure">): PartialState => ({
         compileState: newState,
         interactionErrors: [action.errors.toString()]
       })
@@ -122,7 +123,7 @@ const semiReducers: Array<SemiReducer> = [
   guardUpdates("compileSuccess", [
     {
       state: CompileState.Compile,
-      change: (state: any, action: any) => {
+      change: (state, action): PartialState => {
         const newCompileState = state.updateQueued ?
           CompileState.Ready : CompileState.NeedsRun;
         return {
@@ -133,8 +134,8 @@ const semiReducers: Array<SemiReducer> = [
       }
     }
   ]),
-  guard("runFinished", (state: any, action: any) => {
-    function makeData() {
+  guard("runFinished", (state, action) => {
+    function makeData(): PartialState {
       if (action.result !== undefined
           && action.result.result.error === undefined
           && state.currentFile === undefined) {
@@ -196,30 +197,30 @@ const semiReducers: Array<SemiReducer> = [
       change: { compileState: CompileState.RunningWithStops }
     }
   ]),
-  guard("updateContents", (state: any, action: any) => ({
+  guard("updateContents", (state, action): PartialState => ({
     currentFileContents: action.contents,
     needLoadFile: false,
-    updateQueued: state.autoRun
+    updateQueued: state.autoRun,
   })),
-  guard("updateChunkContents", (state: any, action: any) => ({
+  guard("updateChunkContents", (state, action): PartialState => ({
     currentFileContents: action.contents,
     needLoadFile: false,
     updateQueued: state.autoRun,
     firstUpdatableChunk: action.index
   })),
-  guard("traverseUp", (state: any, action: any) => {
+  guard("traverseUp", (state, action): PartialState => {
     return { browsePath: action.path };
   }),
-  guard("traverseDown", (state: any, action: any) => {
+  guard("traverseDown", (state, action): PartialState => {
     return { browsePath: action.path };
   }),
-  guard("expandChild", (state: any, action: any) => {
+  guard("expandChild", (state, action): PartialState => {
     return {
       currentFile: action.path,
       needLoadFile: true
     };
   }),
-  guard("setEditorMode", (state: any, action: any) => {
+  guard("setEditorMode", (state, action): PartialState => {
     return {
       editorMode: action.mode,
     }
@@ -228,6 +229,6 @@ const semiReducers: Array<SemiReducer> = [
 
 const rootReducer = combineSemiReducers(semiReducers);
 
-export function ideApp(state = initialState, action: action.Action): State {
+export function ideApp(state = initialState, action: Action): State {
   return Object.assign({}, rootReducer(state, action));
 }
