@@ -26,7 +26,7 @@ type StateUpdate = {
 type StateUpdates = Array<StateUpdate>;
 
 function findMatchingChange(
-  state: any,
+  state: State,
   stateUpdates: StateUpdates): Change | undefined
 {
   const matchingStateUpdate = stateUpdates
@@ -66,7 +66,7 @@ export function guard(
   actionType: ActionType,
   semiReducer: SemiReducer): SemiReducer
 {
-  return (state: any, action: Action) => {
+  return (state: State, action: Action) => {
     switch (action.type) {
       case actionType:
         return semiReducer(state, action);
