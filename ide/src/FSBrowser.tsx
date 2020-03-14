@@ -76,7 +76,7 @@ type dispatchProps = {
     onExpandChild: (path: string) => void,
 }
 
-function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
     return {
         onTraverseUp: (path: string) => dispatch({type: "traverseUp", path}),
         onTraverseDown: (path: string) => dispatch({type: "traverseDown", path}),

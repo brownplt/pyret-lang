@@ -1,28 +1,33 @@
-import { CompileState, ideAppState } from './state';
-import * as A from './action';
+import { CompileState, State } from './state';
+import { Action, ActionType } from './action';
+
+// Like ideAppState, but doesn't require every single key.
+type PartialIdeAppState = Partial<State>;
 
 // A semiReducer is like a reducer, except that its return value is meant to represent an
 // update to an existing state, not an entirely new state.
-export type semiReducer = (state: ideAppState, action: A.ideAction) => Partial<ideAppState>;
+export type SemiReducer = (state: State, action: Action) => PartialIdeAppState;
 
-type change = Partial<ideAppState> | semiReducer;
+// Represents a change that can be applied to an IdeAppState. If necessary, the change can
+// use the values from a particular IdeAppState and IdeAction (in the SemiReducer case).
+type Change = PartialIdeAppState | SemiReducer;
 
-function isSemiReducer<a>(change: change): change is semiReducer {
+function isSemiReducer(change: Change): change is SemiReducer {
   return typeof change === "function";
 }
 
-// A stateUpdate<a> represents a change that may be applied to a certain state.
-type stateUpdate = {
+// Represents a change that may be applied to a certain state.
+type StateUpdate = {
   state: CompileState,
-  change: change;
+  change: Change;
 };
 
 // A list of updates that may be applied to a state.
-type stateUpdates = Array<stateUpdate>;
+type StateUpdates = Array<StateUpdate>;
 
 function findMatchingChange(
   state: any,
-  stateUpdates: stateUpdates): change | undefined
+  stateUpdates: StateUpdates): Change | undefined
 {
   const matchingStateUpdate = stateUpdates
     .find(update => update.state === state.compileState);
@@ -34,11 +39,13 @@ function findMatchingChange(
   }
 }
 
+// Applies the first stateUpdate with a .state field that matches state.compileState to the state and action.
+// Throws an error if there is no matching stateUpdate.
 export function applyMatchingStateUpdate(
-  name: A.ideActionType, // to improve error messages
-  state: any,
-  action: A.ideAction,
-  stateUpdates: stateUpdates): Partial<ideAppState>
+  name: ActionType, // to improve error messages
+  state: State,
+  action: Action,
+  stateUpdates: StateUpdates): PartialIdeAppState
 {
   const matchingChange = findMatchingChange(state, stateUpdates);
 
@@ -53,13 +60,13 @@ export function applyMatchingStateUpdate(
   }
 }
 
-// Creates a semiReducer that returns {} when the action passed to it is not the same as
+// Creates a SemiReducer that returns {} when the action passed to it is not the same as
 // actionType, functioning like semiReducer otherwise.
 export function guard(
-  actionType: A.ideActionType,
-  semiReducer: semiReducer): semiReducer
+  actionType: ActionType,
+  semiReducer: SemiReducer): SemiReducer
 {
-  return (state: any, action: A.ideAction) => {
+  return (state: any, action: Action) => {
     switch (action.type) {
       case actionType:
         return semiReducer(state, action);
@@ -69,13 +76,13 @@ export function guard(
   };
 }
 
-// Creates a semiReducer that applies the correct state update from stateUpdates, or returns
+// Creates a SemiReducer that applies the correct state update from stateUpdates, or returns
 // {} if the action it receives is not equal to actionType.
 // For convenience, stateUpdates can be a thunk to allow for internal definitions. It is
 // immediately applied.
 export function guardUpdates(
-  actionType: A.ideActionType,
-  stateUpdates: stateUpdates | (() => stateUpdates)): semiReducer
+  actionType: ActionType,
+  stateUpdates: StateUpdates | (() => StateUpdates)): SemiReducer
 {
   if (typeof stateUpdates === "function") {
     const stateUpdatesDethunk = stateUpdates();
@@ -89,7 +96,11 @@ export function guardUpdates(
   }
 }
 
-export function combineSemiReducers(semiReducers: Array<semiReducer>): (state: ideAppState, action: A.ideAction) => ideAppState {
+// A full Redux reducer (as opposed to a SemiReducer which is defined in this file).
+type Reducer = (state: State, action: Action) => State;
+
+// Creates a reducer out of an array of SemiReducers.
+export function combineSemiReducers(semiReducers: Array<SemiReducer>): Reducer {
   return (state, action) => {
     return semiReducers.reduce(
       (state, r) => {

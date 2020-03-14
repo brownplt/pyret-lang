@@ -1,14 +1,14 @@
 import * as action from './action';
-import { CompileState, EditorMode, makeResult, ideAppState, initialState } from './state';
+import { CompileState, EditorMode, makeResult, State, initialState } from './state';
 import {
   applyMatchingStateUpdate,
   guard,
   guardUpdates,
-  semiReducer,
+  SemiReducer,
   combineSemiReducers
 } from './dispatch';
 
-const semiReducers: Array<semiReducer> = [
+const semiReducers: Array<SemiReducer> = [
   guardUpdates("beginStartup", [{
     state: CompileState.Uninitialized,
     change: { compileState: CompileState.NeedsStartup }
@@ -20,7 +20,7 @@ const semiReducers: Array<semiReducer> = [
   guardUpdates("finishSetup", [
     {
       state: CompileState.Startup,
-      change: (state: ideAppState, action: action.ideAction) => {
+      change: (state: State, action: action.Action) => {
         if (state.editorMode === EditorMode.Chunks) {
           return { compileState: CompileState.ChunkNeedsRepl, hah: false };
         } else {
@@ -228,6 +228,6 @@ const semiReducers: Array<semiReducer> = [
 
 const rootReducer = combineSemiReducers(semiReducers);
 
-export function ideApp(state = initialState, action: action.ideAction): ideAppState {
+export function ideApp(state = initialState, action: action.Action): State {
   return Object.assign({}, rootReducer(state, action));
 }

@@ -31,7 +31,7 @@ export enum EditorMode {
     Text,
 }
 
-export type ideAppState = {
+export type State = {
     browseRoot: string,
     browsePath: string,
     currentFile: string | undefined,
@@ -58,7 +58,7 @@ export type ideAppState = {
     firstUpdatableChunk: undefined | number,
 };
 
-export const initialState: ideAppState = {
+export const initialState: State = {
     browseRoot: "/",
     browsePath: "/projects",
     currentFile: undefined,

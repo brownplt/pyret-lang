@@ -63,7 +63,7 @@ type dispatchProps = {
     setEditorMode: (mode: EditorMode) => void,
 }
 
-function mapDispatchToProps(dispatch: (action: action.ideAction) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
     return {
         beginStartup: () => dispatch({ type: "beginStartup" }),
         queueRun: () => dispatch({ type: "queueRun" }),

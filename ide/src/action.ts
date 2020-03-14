@@ -1,7 +1,7 @@
 import { EditorMode } from "./state";
 import { LintFailure } from "./DefChunks";
 
-export type ideAction =
+export type Action =
   { type: "setEditorMode", mode: EditorMode }
   | { type: "finishSetup" }
   | { type: "finishCreateRepl" }
@@ -28,4 +28,4 @@ export type ideAction =
   | { type: "traverseDown", path: string }
   | { type: "expandChild", path: string };
 
-export type ideActionType = ideAction["type"];
+export type ActionType = Action["type"];
