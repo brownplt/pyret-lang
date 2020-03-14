@@ -2,15 +2,15 @@ import { CompileState, State } from './state';
 import { Action, ActionType } from './action';
 
 // Like ideAppState, but doesn't require every single key.
-type PartialIdeAppState = Partial<State>;
+type PartialState = Partial<State>;
 
 // A semiReducer is like a reducer, except that its return value is meant to represent an
 // update to an existing state, not an entirely new state.
-export type SemiReducer = (state: State, action: Action) => PartialIdeAppState;
+export type SemiReducer = (state: State, action: Action) => PartialState;
 
 // Represents a change that can be applied to an IdeAppState. If necessary, the change can
 // use the values from a particular IdeAppState and IdeAction (in the SemiReducer case).
-type Change = PartialIdeAppState | SemiReducer;
+type Change = PartialState | SemiReducer;
 
 function isSemiReducer(change: Change): change is SemiReducer {
   return typeof change === "function";
@@ -45,7 +45,7 @@ export function applyMatchingStateUpdate(
   name: ActionType, // to improve error messages
   state: State,
   action: Action,
-  stateUpdates: StateUpdates): PartialIdeAppState
+  stateUpdates: StateUpdates): PartialState
 {
   const matchingChange = findMatchingChange(state, stateUpdates);
 
