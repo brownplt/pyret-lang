@@ -217,7 +217,7 @@ end
 
 check:
   m = make-fresh-module-testing-context()
-  m.save-module("a", ```
+  m.save-module("hides-unknown-name.arr", ```
 provide:
   data * hiding (not-a-pos2d),
 end
@@ -231,7 +231,7 @@ data YourPosn:
 end
   ```)
 
-  errs = m.compile-error-messages("a")   
+  errs = m.compile-error-messages("hides-unknown-name.arr")   
   errs is%(error-with) "not-a-pos2d"
 end
 
@@ -340,5 +340,46 @@ provide from D: type PAPAYA as N end
 
   errs = m.compile-error-messages("bad-re-export.arr")
   errs is%(error-with) "PAPAYA"
+
+end
+
+
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("provide-data.arr", ```
+provide: data Data end
+data Data:
+  | x
+end
+```)
+  m.save-module("data.arr", ```
+import file("provide-data.arr") as D
+provide from D: * hiding(JALAPENO) end
+```)
+
+  errs = m.compile-error-messages("data.arr")
+  errs is%(error-with) "JALAPENO"
+
+end
+
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("provide-data.arr", ```
+provide:
+  data * hiding(MyPosn)
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+```)
+
+  m.save-module("data.arr", ```
+import my-gdrive("provide-data.arr") as D
+include from D: type MyPosn end
+```)
+
+  errs = m.compile-error-messages("data.arr")
+  errs is%(error-with) "MyPosn"
 
 end

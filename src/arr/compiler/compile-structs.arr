@@ -1320,7 +1320,7 @@ data CompileError:
       end
     end,
     method render-reason(self):
-      cases(SL.Srcloc) self.id.l:
+      cases(SL.Srcloc) self.name-loc:
         | builtin(_) =>
           [ED.para:
             ED.text("ERROR: should not be allowed to have a builtin import that's not defined"),
