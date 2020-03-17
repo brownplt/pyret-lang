@@ -383,3 +383,46 @@ include from D: type MyPosn end
   errs is%(error-with) "MyPosn"
 
 end
+
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("provide-partial-data.arr", ```
+provide: data * hiding(pos2d) end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+```)
+
+
+  m.save-module("data.arr", ```
+import my-gdrive("provide-partial-data.arr") as D
+include from D: data MyPosn end
+```)
+
+  errs = m.compile-error-messages("data.arr")
+  errs is%(error-with) "pos2d"
+end
+
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("provide-partial-data.arr", ```
+provide: data * hiding(pos2d), pos3d as pos2d end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+```)
+
+
+  m.save-module("data.arr", ```
+import my-gdrive("provide-partial-data.arr") as D
+include from D: data MyPosn end
+```)
+
+  errs = m.compile-error-messages("data.arr")
+  errs is empty
+end
+
+
+
