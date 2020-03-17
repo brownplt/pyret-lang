@@ -297,3 +297,48 @@ end
   errs is%(error-with) "pos2d"
 
 end
+
+
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("provide-data.arr", ```
+provide:
+  data MyPosn hiding (PAPAYA, MyPosn),
+  type MyPosn as P
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+```)
+
+  m.save-module("re-provide-data.arr", ```
+import file("provide-data.arr") as D
+provide from D: type P as N end
+```)
+
+  m.save-module("test-mod", ```
+import file("re-provide-data.arr") as D
+x :: D.N = 10
+```)
+
+  errs = m.compile-error-messages("test-mod")
+  errs is%(error-with) "PAPAYA"
+
+end
+
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("something.arr", ```
+provide: end
+```)
+
+  m.save-module("bad-re-export.arr", ```
+import file("something.arr") as D
+provide from D: type PAPAYA as N end
+```)
+
+  errs = m.compile-error-messages("bad-re-export.arr")
+  errs is%(error-with) "PAPAYA"
+
+end

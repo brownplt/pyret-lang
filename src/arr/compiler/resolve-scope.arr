@@ -1279,7 +1279,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             end
           | s-module-ref(shadow l, path, as-name) =>
             remote-reference-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
-            {maybe-uri; atom} = cases(Option) remote-reference-uri:
+            {maybe-uri; atom} = cases(Option) remote-reference-uri block:
               | none =>
                 b = which-env.get(path.first.toname())
                 cases(Option) b block:
@@ -1294,7 +1294,12 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
                     { none; A.s-name(l, path.last().toname()) }
                 end
               | some(uri) =>
-                { some(uri); A.s-name(l, path.last().toname()) }
+                bindings-from-module = get-provided-bindings(initial-env.provides-by-uri-value(uri))
+                remote-name = path.last().toname()
+                when not(bindings-from-module.has-key(remote-name)):
+                  name-errors := link(C.unbound-id(A.s-id(l, A.s-name(l, remote-name))), name-errors)
+                end
+                { some(uri); A.s-name(l, remote-name) }
             end
             cases(Option) as-name:
               | none => which-dict.set-now(atom.toname(), {l; maybe-uri; atom})
