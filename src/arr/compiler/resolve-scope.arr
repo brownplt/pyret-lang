@@ -1274,7 +1274,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
                   # "prefix-out" by doing `prefix + k` below. The k that's the
                   # key in set-now is the name it's provided as, and the k in
                   # the s-name is the name to look for in the original module
-                  maybe-add(hidden, which-dict, k, {l; none; A.s-name(l, k)})
+                  maybe-add(hidden, which-dict, k, {l; remote-reference-uri; A.s-name(l, k)})
                 end
             end
           | s-module-ref(shadow l, path, as-name) =>

@@ -110,11 +110,11 @@ fun make-fresh-module-testing-context():
     end
   end
 
-  fun compile-mod(name):
+  fun compile-mod(name, options):
     loc = name-to-locator(name)
     wlist = CL.compile-worklist(dfind, loc, CLI.default-test-context)
     starter-modules = CL.modules-from-worklist(wlist, get-loadable)
-    result = CL.compile-program-with(wlist, starter-modules, CS.default-compile-options.{
+    result = CL.compile-program-with(wlist, starter-modules, options.{
       on-compile: lam(locator, loadable, trace): set-loadable(locator, loadable) end
     })
     errors = result.loadables.filter(CL.is-error-compilation)
@@ -132,8 +132,8 @@ fun make-fresh-module-testing-context():
     end
   end
 
-  fun get-compile-errs(str):
-    cases(E.Either) compile-mod(str):
+  fun get-compile-errs-internal(str, options):
+    cases(E.Either) compile-mod(str, options):
       | right(ans) =>
         empty
       | left(errs) =>
@@ -141,10 +141,18 @@ fun make-fresh-module-testing-context():
     end
   end
 
-  fun compile-error-messages(str):
-    for lists.map(err from get-compile-errs(str)):
+  fun compile-error-messages-internal(str, options):
+    for lists.map(err from get-compile-errs-internal(str, options)):
       RED.display-to-string(err.render-reason(), torepr, empty)
     end
+  end
+
+  fun compile-error-messages(str):
+    compile-error-messages-internal(str, CS.default-compile-options.{type-check: false})
+  end
+
+  fun compile-error-messages-tc(str):
+    compile-error-messages-internal(str, CS.default-compile-options.{type-check: true})
   end
 
   {
@@ -154,8 +162,8 @@ fun make-fresh-module-testing-context():
     dfind: dfind,
     name-to-locator: name-to-locator,
     compile-mod: compile-mod,
-    get-compile-errs: get-compile-errs,
-    compile-error-messages: compile-error-messages
+    compile-error-messages: compile-error-messages,
+    compile-error-messages-tc: compile-error-messages-tc
   }
 end
 
@@ -424,5 +432,35 @@ include from D: data MyPosn end
   errs is empty
 end
 
+check:
+  m = make-fresh-module-testing-context()
 
+  m.save-module("internal-image-shared.arr", ```
+provide *
+red = 10
+```)
+
+  m.save-module("image.arr", ```
+provide from IS: *, end
+import file("internal-image-shared.arr") as IS
+```)
+  errs = m.compile-error-messages("image.arr")
+  errs is empty
+end
+
+check:
+  m = make-fresh-module-testing-context()
+
+  m.save-module("internal-image-shared.arr", ```
+provide-types *
+type ShouldBeFound = Number
+```)
+
+  m.save-module("image.arr", ```
+provide from IS: type *, end
+import file("internal-image-shared.arr") as IS
+```)
+  errs = m.compile-error-messages("image.arr")
+  errs is empty
+end
 
