@@ -1,4 +1,4 @@
-import { Action, isActionType, ActionOfType } from './action';
+import { Action, isActionType, ActionOfType, ActionType } from './action';
 import { CompileState, EditorMode, makeResult, State, initialState } from './state';
 import {
   applyMatchingStateUpdate,
@@ -9,7 +9,7 @@ import {
   PartialState
 } from './semiReducer';
 
-const semiReducers = [
+const semiReducers: Array<SemiReducer<ActionType>> = [
   guardUpdates("beginStartup", [{
     state: CompileState.Uninitialized,
     change: { compileState: CompileState.NeedsStartup }

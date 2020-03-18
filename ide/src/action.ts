@@ -32,6 +32,6 @@ export type ActionType = Action["type"];
 
 export type ActionOfType<T extends ActionType> = Extract<Action, { type: T }>;
 
-export function isActionType<K extends ActionType>(actionType: K, action: Action): action is Extract<Action, { type: K }> {
+export function isActionType<K extends ActionType>(actionType: K, action: Action): action is ActionOfType<K> {
   return actionType === action.type;
 }
