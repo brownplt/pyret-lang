@@ -1,5 +1,5 @@
 import { EditorMode } from "./state";
-import { LintFailure } from "./DefChunks";
+import { LintFailure } from "./state";
 
 export type Action =
   ({ type: "setEditorMode", mode: EditorMode }

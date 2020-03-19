@@ -1,6 +1,7 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { LintFailure } from './state';
 import * as control from './control';
 
 type DefChunkProps = {
@@ -110,11 +111,6 @@ type Chunk = {
   startLine: number,
   id: string,
   text: string
-}
-
-export type LintFailure = {
-    name: string,
-    errors: string[]
 }
 
 type DefChunksProps = {

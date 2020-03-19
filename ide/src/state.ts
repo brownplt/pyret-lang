@@ -1,7 +1,6 @@
 // This file is used to track the state of the editor. Any function that calls
 // .setState on an Editor should be written here
 
-import { LintFailure } from './DefChunks';
 import { Check } from './Check';
 import * as control from './control';
 
@@ -87,6 +86,11 @@ export const initialState: State = {
   needLoadFile: false,
   updateQueued: false,
   firstUpdatableChunk: 0,
+};
+
+export type LintFailure = {
+  name: string,
+  errors: string[]
 };
 
 /* export const editorStateToString = (editor: Editor): string => {
