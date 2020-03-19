@@ -202,12 +202,23 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
     needLoadFile: false,
     updateQueued: state.autoRun,
   })),
-  guard("updateChunkContents", (state, action): PartialState => ({
-    currentFileContents: action.contents,
-    needLoadFile: false,
-    updateQueued: state.autoRun,
-    firstUpdatableChunk: action.index
-  })),
+  guard("updateChunkContents", (state, action): PartialState => {
+    function getChunks() {
+      if (state.chunks === undefined) {
+        return [];
+      } else {
+        return [...state.chunks];
+      }
+    }
+    const chunks = getChunks();
+    chunks[action.index] = action.contents;
+    return {
+      needLoadFile: false,
+      updateQueued: state.autoRun,
+      firstUpdatableChunk: action.index,
+      chunks: chunks
+    };
+  }),
   guard("traverseUp", (state, action): PartialState => {
     return { browsePath: action.path };
   }),

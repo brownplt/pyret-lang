@@ -54,7 +54,8 @@ export type State = {
   currentChunk: number,
   needLoadFile: boolean,
   updateQueued: boolean,
-  firstUpdatableChunk: undefined | number,
+  firstUpdatableChunk: number | undefined,
+  chunks: string[] | undefined;
 };
 
 export const initialState: State = {
@@ -86,12 +87,15 @@ export const initialState: State = {
   needLoadFile: false,
   updateQueued: false,
   firstUpdatableChunk: 0,
+  chunks: undefined,
 };
 
 export type LintFailure = {
   name: string,
   errors: string[]
 };
+
+export const CHUNKSEP = "#.CHUNK#\n";
 
 /* export const editorStateToString = (editor: Editor): string => {
  *     // TODO(michael): these could be more pirate-themed

@@ -1,7 +1,7 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import { LintFailure } from './state';
+import { LintFailure, CHUNKSEP } from './state';
 import * as control from './control';
 
 type DefChunkProps = {
@@ -116,7 +116,7 @@ type Chunk = {
 type DefChunksProps = {
   lintFailures: {[name : string]: LintFailure},
   highlights: number[][],
-  program: string,
+  chunks: string[],
   name: string,
   onEdit: (index: number, s: string) => void
 };
@@ -125,20 +125,17 @@ type DefChunksState = {
   chunkIndexCounter: number
 };
 
-export const CHUNKSEP = "#.CHUNK#\n";
-
 export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
   constructor(props: DefChunksProps) {
     super(props);
-    const chunkstrs = this.props.program.split(CHUNKSEP);
     const chunks : Chunk[] = [];
     var totalLines = 0;
-    for(let i = 0; i < chunkstrs.length; i += 1) {
-      chunks.push({text: chunkstrs[i], id: String(i), startLine: totalLines})
-      totalLines += chunkstrs[i].split("\n").length;
+    for(let i = 0; i < this.props.chunks.length; i += 1) {
+      chunks.push({text: this.props.chunks[i], id: String(i), startLine: totalLines})
+      totalLines += this.props.chunks[i].split("\n").length;
     }
     this.state = {
-      chunkIndexCounter: chunkstrs.length,
+      chunkIndexCounter: this.props.chunks.length,
       chunks
     }
   }
@@ -170,7 +167,7 @@ export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
         });
       }
       this.setState({chunks: newChunks});
-      this.props.onEdit(index, this.chunksToString(newChunks));
+      this.props.onEdit(index, text);
     }
     const onDragEnd = (result: DropResult) => {
       if(result.destination === null || result.source!.index === result.destination!.index) {

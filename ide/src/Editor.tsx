@@ -32,7 +32,8 @@ type stateProps = {
     interactionErrors: any[],
     editorMode: EditorMode,
     lintFailures: {[name : string]: LintFailure},
-    currentFile: string
+    currentFile: string,
+    chunks: string[]
 }
 
 function mapStateToProps(state: any): stateProps {
@@ -49,7 +50,8 @@ function mapStateToProps(state: any): stateProps {
         interactionErrors: state.interactionErrors,
         editorMode: state.editorMode,
         lintFailures: state.lintFailures,
-        currentFile: state.currentFile
+        currentFile: state.currentFile,
+        chunks: state.chunks
     };
 }
 
@@ -158,12 +160,13 @@ export class Editor extends React.Component<EditorProps, any> {
                     highlights={this.props.definitionsHighlights}>
                 </SingleCodeMirrorDefinitions>);
         } else if (this.props.editorMode === EditorMode.Chunks) {
+            console.log(this.props.chunks);
             return (
                 <DefChunks
                     lintFailures={this.props.lintFailures}
                     name={this.props.currentFile}
                     highlights={this.props.definitionsHighlights}
-                    program={this.props.currentFileContents}
+                    chunks={this.props.chunks}
                     onEdit={(index: number, contents: string) => {
                         this.props.updateChunkContents(index, contents);
                     }}>

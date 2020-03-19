@@ -1,6 +1,6 @@
 import { createStore } from 'redux';
 import { ideApp } from './reducer';
-import { CompileState } from './state';
+import { CompileState, EditorMode, CHUNKSEP } from './state';
 import * as control from './control';
 
 export const store = createStore(
@@ -68,10 +68,23 @@ store.subscribe(() => {
   const state = store.getState();
 
   if (state.needLoadFile && state.currentFile !== undefined) {
-    store.dispatch({
-      type: "updateContents",
-      contents: control.openOrCreateFile(state.currentFile)
-    });
+    if (state.editorMode === EditorMode.Text) {
+      store.dispatch({
+        type: "updateContents",
+        contents: control.openOrCreateFile(state.currentFile)
+      });
+    } else if (state.editorMode === EditorMode.Chunks) {
+      const fileContents = control.openOrCreateFile(state.currentFile);
+      const chunks = fileContents.split(CHUNKSEP);
+      console.log("SPLIT CHUNKS", chunks);
+      for (let i = 0; i < chunks.length; i++) {
+        store.dispatch({
+          type: "updateChunkContents",
+          index: i,
+          contents: chunks[i]
+        })
+      }
+    }
   }
 
   switch (state.compileState) {
@@ -96,9 +109,17 @@ store.subscribe(() => {
     case CompileState.Ready:
       if (state.updateQueued) {
         const parsed = control.bfsSetup.path.parse(state.currentFile);
-        control.fs.writeFileSync(
-          state.currentFile,
-          state.currentFileContents);
+        if (state.editorMode === EditorMode.Text) {
+          control.fs.writeFileSync(
+            state.currentFile,
+            state.currentFileContents);
+        } else if (state.editorMode === EditorMode.Chunks) {
+          if (state.chunks !== undefined) {
+            control.fs.writeFileSync(
+              state.currentFile,
+              state.chunks.join(CHUNKSEP));
+          }
+        }
         control.compile(
           parsed.dir,
           parsed.base,
