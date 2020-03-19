@@ -1,5 +1,5 @@
 import { Action, isActionType, ActionOfType, ActionType } from './action';
-import { CompileState, EditorMode, makeResult, State, initialState } from './state';
+import { CompileState, EditorMode, makeResult, State, initialState, CHUNKSEP } from './state';
 import {
   applyMatchingStateUpdate,
   guard,
@@ -232,8 +232,32 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
     };
   }),
   guard("setEditorMode", (state, action): PartialState => {
-    return {
-      editorMode: action.mode,
+    if (action.mode === EditorMode.Text && state.editorMode === EditorMode.Chunks) {
+      if (state.chunks === undefined) {
+        return {
+          editorMode: EditorMode.Text,
+          currentFileContents: ""
+        };
+      } else {
+        return {
+          editorMode: EditorMode.Text,
+          currentFileContents: state.chunks.join(CHUNKSEP)
+        };
+      }
+    } else if (action.mode === EditorMode.Chunks && state.editorMode === EditorMode.Text) {
+      if (state.currentFileContents !== undefined) {
+        return {
+          editorMode: EditorMode.Chunks,
+          chunks: state.currentFileContents.split(CHUNKSEP)
+        };
+      } else {
+        return {
+          editorMode: EditorMode.Chunks,
+          chunks: []
+        };
+      }
+    } else {
+      return {};
     }
   })
 ];
