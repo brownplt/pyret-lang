@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { TableWidget } from './Table';
+import TableWidget from './Table';
 import { ImageWidget } from './Image';
 import ChartWidget from './Chart';
 
