@@ -13,8 +13,8 @@ export interface CompileOptions {
 }
 
 export enum RunKind {
-  Sync = "SYNC",
-  Async = "ASYNC",
+  Sync = 'SYNC',
+  Async = 'ASYNC',
 }
 
 export interface RunResult {
@@ -38,49 +38,51 @@ export const makeBackendMessageHandler = (
   compileSuccess: () => void,
   createReplSuccess: () => void,
   compileInteractionSuccess: (data: { program: string }) => void,
-  compileInteractionFailure: (data: { program: string }) => void): ((e: MessageEvent) => null | void) => {
+  compileInteractionFailure: (data: { program: string }) => void): ((e: MessageEvent) => null | void
+  ) => {
   const backendMessageHandler = (e: MessageEvent) => {
     if (e.data.browserfsMessage === true) {
       return null;
     }
 
     try {
-      var msgObject: any = JSON.parse(e.data);
+      const msgObject: any = JSON.parse(e.data);
 
-      var msgType = msgObject["type"];
+      const msgType = msgObject.type;
 
-      if (msgObject.tag === "error") {
+      if (msgObject.tag === 'error') {
         console.error(JSON.parse(msgObject.data));
       }
 
       if (msgType === undefined) {
         return null;
-      } else if (msgType === "echo-log") {
+      } if (msgType === 'echo-log') {
         echoLog(msgObject.contents);
-      } else if (msgType === "lint-failure") {
+      } else if (msgType === 'lint-failure') {
         lintFailure(msgObject.data);
-      } else if (msgType === "lint-success") {
+      } else if (msgType === 'lint-success') {
         lintSuccess(msgObject.data);
-      } else if (msgType === "setup-finished") {
+      } else if (msgType === 'setup-finished') {
         setupFinished();
-      } else if (msgType === "compile-failure") {
+      } else if (msgType === 'compile-failure') {
         compileFailure(msgObject.data);
-      } else if (msgType === "compile-success") {
-        console.log("compile-time: ", window.performance.now() - compileStart);
+      } else if (msgType === 'compile-success') {
+        console.log('compile-time: ', window.performance.now() - compileStart);
         compileSuccess();
-      } else if (msgType === "create-repl-success") {
+      } else if (msgType === 'create-repl-success') {
         createReplSuccess();
-      } else if (msgType === "compile-interaction-success") {
-        compileInteractionSuccess({program: msgObject.program});
-      } else if (msgType === "compile-interaction-failure") {
-        compileInteractionFailure({program: msgObject.program});
+      } else if (msgType === 'compile-interaction-success') {
+        compileInteractionSuccess({ program: msgObject.program });
+      } else if (msgType === 'compile-interaction-failure') {
+        compileInteractionFailure({ program: msgObject.program });
       } else {
         return null;
       }
 
-    } catch(e) {
-      console.log(e);
-      runtimeFailure(e);
+      return null;
+    } catch (err) {
+      console.log(err);
+      runtimeFailure(err);
       return null;
     }
   };
@@ -90,12 +92,13 @@ export const makeBackendMessageHandler = (
 
 export const lintProgram = (
   compilerWorker: Worker,
-  options: LintOptions): void => {
+  options: LintOptions,
+): void => {
   const message = {
-    "request": 'lint-program',
+    request: 'lint-program',
     program: options.program,
-    "program-source": options.programSource,
-    "lint": true
+    'program-source': options.programSource,
+    lint: true,
   };
 
   compilerWorker.postMessage(message);
@@ -103,13 +106,14 @@ export const lintProgram = (
 
 export const compileProgram = (
   compilerWorker: Worker,
-  options: CompileOptions): void => {
+  options: CompileOptions,
+): void => {
   compileStart = window.performance.now();
   const message = {
-    "request": 'compile-program',
+    request: 'compile-program',
     program: options.program,
-    "base-dir": options.baseDir,
-    "builtin-js-dir": options.builtinJSDir,
+    'base-dir': options.baseDir,
+    'builtin-js-dir': options.builtinJSDir,
     checks: options.checks,
     'type-check': options.typeCheck,
     'recompile-builtins': options.recompileBuiltins,
@@ -119,26 +123,28 @@ export const compileProgram = (
 };
 
 export const createRepl = (
-  compilerWorker: Worker): void => {
+  compilerWorker: Worker,
+): void => {
   const message = {
-    "request": "create-repl"
-  }
+    request: 'create-repl',
+  };
 
   compilerWorker.postMessage(message);
 };
 
 export const compileInteraction = (
   compilerWorker: Worker,
-  interactionFullPath: string): void => {
+  interactionFullPath: string,
+): void => {
   const message = {
-    "request": "compile-interaction",
-    "program": interactionFullPath
+    request: 'compile-interaction',
+    program: interactionFullPath,
   };
 
   compilerWorker.postMessage(message);
-}
+};
 
-const assertNever = (_arg: never): never => {
+const assertNever = (): never => {
   throw new Error('assertNever');
 };
 
@@ -146,37 +152,38 @@ export const runProgram2 = (
   runner: any,
   baseDir: string,
   program: string,
-  runKind: RunKind): Promise<any> => {
+  runKind: RunKind,
+): Promise<any> => {
   if (runKind === RunKind.Sync) {
     const start = window.performance.now();
     const result = runner.makeRequire(baseDir)(program);
     const end = window.performance.now();
     return Promise.resolve({
       time: end - start,
-      result: result
+      result,
     });
-  } else if (runKind === RunKind.Async) {
-    return new Promise<any>((resolve, _reject) => {
+  } if (runKind === RunKind.Async) {
+    return new Promise<any>((resolve) => {
       const startRequire = window.performance.now();
       runner.makeRequireAsync(baseDir)(program).then((asyncRunner: any) => {
         const endRequire = window.performance.now();
-        console.log("require time", endRequire - startRequire);
+        console.log('require time', endRequire - startRequire);
         resolve({
           run: (callback: (result: RunResult) => void): void => {
             const startRun = window.performance.now();
             asyncRunner.run.then((result: any) => {
               const endRun = window.performance.now();
-              console.log("run time", endRun - startRun);
+              console.log('run time', endRun - startRun);
               callback({
                 time: endRun - startRequire,
-                result: result,
+                result,
               });
             }).catch((result: any) => {
               const endRun = window.performance.now();
               callback({
                 time: endRun - startRequire,
-                result: {error: String(result.value), result},
-              })
+                result: { error: String(result.value), result },
+              });
             });
           },
           pause: (callback: (line: number) => void): void => {
@@ -188,16 +195,16 @@ export const runProgram2 = (
         });
       });
     });
-  } else {
-    return assertNever(runKind);
   }
+  return assertNever(runKind);
 };
 
 export const runProgram = (
   runner: any,
   baseDir: string,
   program: string,
-  runKind: RunKind): Promise<RunResult> => {
+  runKind: RunKind,
+): Promise<RunResult> => {
   if (runKind === RunKind.Sync) {
     const start = window.performance.now();
     const result = runner.makeRequire(baseDir)(program);
@@ -205,37 +212,36 @@ export const runProgram = (
 
     return Promise.resolve({
       time: end - start,
-      result: result
+      result,
     });
-  } else if (runKind === RunKind.Async) {
+  } if (runKind === RunKind.Async) {
     const entry = runner.makeRequireAsync(baseDir);
     const resultP = entry(program);
 
-    const wrapper = new Promise<RunResult>((resolve, _reject) => {
+    const wrapper = new Promise<RunResult>((resolve) => {
       const startRequire = window.performance.now();
       resultP.then((asyncRunner: any) => {
-        console.log("asyncRunner", asyncRunner);
+        console.log('asyncRunner', asyncRunner);
         const endRequire = window.performance.now();
 
         const startRun = window.performance.now();
         asyncRunner.run((result: any) => {
           const endRun = window.performance.now();
 
-          console.log("require time", endRequire - startRequire);
-          console.log("run time", endRun - startRun);
-          console.log("total time", endRun - startRequire);
+          console.log('require time', endRequire - startRequire);
+          console.log('run time', endRun - startRun);
+          console.log('total time', endRun - startRequire);
 
           resolve({
             time: endRun - startRequire,
-            result: result,
-          })
+            result,
+          });
         });
       });
     });
 
     return wrapper;
-  } else {
-    // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
-    return assertNever(runKind);
   }
+  // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
+  return assertNever(runKind);
 };
