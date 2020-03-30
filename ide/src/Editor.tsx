@@ -3,7 +3,7 @@ import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import * as State from './state';
 import { EditorMode, LintFailure } from './state';
-import { Interaction } from './Interaction';
+import Interaction from './Interaction';
 import { TestResult } from './Check';
 import { DefChunks } from './DefChunks';
 import { SingleCodeMirrorDefinitions } from './SingleCodeMirrorDefinitions';

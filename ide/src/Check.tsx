@@ -1,12 +1,12 @@
 import React from 'react';
-import {RenderedValue} from './RenderedValue';
+import RenderedValue from './RenderedValue';
 
 export type Check = {
-    lhs: any,
-    rhs: any,
-    path: string,
-    loc: string,
-    success: boolean
+  lhs: any,
+  rhs: any,
+  path: string,
+  loc: string,
+  success: boolean
 };
 
 export type TestResultProps = {
@@ -17,14 +17,28 @@ export type TestResultState = {};
 export class TestResult extends React.Component<TestResultProps, TestResultState> {
   render() {
     let message;
-    const c = this.props.check;
-    if(c.success) {
-      message = <pre className="test-result">Test passed at {c.loc}</pre>;
-    }
-    else {
-      const lhsRendered = <RenderedValue value={c.lhs}></RenderedValue>;
-      const rhsRendered = <RenderedValue value={c.rhs}></RenderedValue>;
-      message = <pre className="test-result">Test failed at {c.loc}: {lhsRendered} was not equal to {rhsRendered}</pre>;
+    const { check } = this.props;
+    if (check.success) {
+      message = (
+        <pre className="test-result">
+          Test passed at
+          {check.loc}
+        </pre>
+      );
+    } else {
+      const lhsRendered = <RenderedValue value={check.lhs} />;
+      const rhsRendered = <RenderedValue value={check.rhs} />;
+      message = (
+        <pre className="test-result">
+          Test failed at
+          {check.loc}
+          :
+          {lhsRendered}
+          {' '}
+          was not equal to
+          {rhsRendered}
+        </pre>
+      );
     }
     return message;
   }
