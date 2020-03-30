@@ -1,80 +1,77 @@
+// TODO (michael): improve accessibilty by enabling these rules
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+
 import React from 'react';
-
-type TabProps = {
-    name: any,
-};
-
-type TabState = {};
-
-export class Tab extends React.Component<TabProps, TabState> {
-    render() {
-        return <div className="menu-content">{this.props.children}</div>
-    }
-}
 
 type MenuProps = {};
 
 type MenuState = {
-    visible: boolean,
-    tab: number,
+  visible: boolean,
+  tab: number,
 };
 
-export class Menu extends React.Component<MenuProps, MenuState> {
-    constructor(props: MenuProps) {
-        super(props);
+export default class Menu extends React.Component<MenuProps, MenuState> {
+  constructor(props: MenuProps) {
+    super(props);
 
-        this.state = {
-            visible: true,
-            tab: 0,
-        };
-    }
-
-    toggleTab = (n: number): void => {
-        if (this.state.tab === n) {
-            this.setState({
-                visible: !this.state.visible,
-            });
-        } else {
-            this.setState({
-                tab: n,
-                visible: true,
-            })
-        }
+    this.state = {
+      visible: true,
+      tab: 0,
     };
+  }
 
-    render() {
-        const children = (() => {
-            if (Array.isArray(this.props.children)) {
-                return this.props.children;
-            } else {
-                return [this.props.children];
-            }
-        })();
-
-        const childNodes = children.map((tab: any, index: number) => {
-                               return (
-                                   <div className={(
-                                       this.state.visible && this.state.tab === index) ? (
-                                           "menu-tab-active"
-                                       ) : (
-                                           "menu-tab-inactive"
-                                       )}
-                                        key={index}
-                                        onClick={() => this.toggleTab(index)}>
-                                       {tab.props.name}
-                                   </div>
-                               );
-                           });
-
-        const content = children[this.state.tab];
-
-        return (
-            <div className="menu-container">
-                <div className="menu-tabbar">
-                    {childNodes}
-                </div>
-                {this.state.visible && content}
-            </div>
-        );
+  toggleTab = (n: number): void => {
+    const { tab, visible } = this.state;
+    if (tab === n) {
+      this.setState({
+        visible: !visible,
+      });
+    } else {
+      this.setState({
+        tab: n,
+        visible: true,
+      });
     }
+  };
+
+  render() {
+    const { children } = this.props;
+    const { visible, tab } = this.state;
+
+    function getChildArray() {
+      if (Array.isArray(children)) {
+        return children;
+      }
+      return [children];
+    }
+
+    const childArray = getChildArray();
+
+    const childNodes = childArray.map((childTab: any, index: number) => (
+      <div
+        className={(
+          visible && tab === index) ? (
+            'menu-tab-active'
+          ) : (
+            'menu-tab-inactive'
+          )}
+        key={childTab.props.name}
+        onClick={() => this.toggleTab(index)}
+      >
+        {childTab.props.name}
+      </div>
+    ));
+
+    const content = childArray[tab];
+
+    return (
+      <div className="menu-container">
+        <div className="menu-tabbar">
+          {childNodes}
+        </div>
+        {visible && content}
+      </div>
+    );
+  }
 }
