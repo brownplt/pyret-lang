@@ -6,7 +6,7 @@ import * as path from './path';
 
 const runtimeFiles = require('./runtime-files.json');
 
-export {backend, path, bfsSetup};
+export { backend, path, bfsSetup };
 
 export const worker = new Worker(path.pyretJarr);
 
@@ -19,20 +19,20 @@ export const loadBuiltins = (): void => {
   runtimeLoader.load(bfsSetup.fs, path.compileBuiltinJS, path.uncompiled, runtimeFiles);
 };
 
-export const runProgram = backend.runProgram;
-export const compileProgram = backend.compileProgram;
-export const fs = bfsSetup.fs;
+export const { runProgram } = backend;
+export const { compileProgram } = backend;
+export const { fs } = bfsSetup;
 
 export const createFile = (file: string): void => {
-  bfsSetup.fs.writeFileSync(file, "");
+  bfsSetup.fs.writeFileSync(file, '');
 };
 
 export const createDirectory = (dir: string): void => {
   bfsSetup.fs.mkdirSync(dir);
 };
 
-export const removeFile = (path: string): void => {
-  bfsSetup.fs.unlinkSync(path);
+export const removeFile = (filePath: string): void => {
+  bfsSetup.fs.unlinkSync(filePath);
 };
 
 // Synchronous deleteDir
@@ -55,25 +55,25 @@ export const removeDirectory = (dir: string): void => {
 };
 
 export const deleteDir = (dir: string): void => {
-  bfsSetup.fs.readdir(dir, function(err: any, files: any) {
+  bfsSetup.fs.readdir(dir, (err: any, files: any) => {
     if (err) {
       throw err;
     }
 
-    files.forEach(function(file: string) {
-      let filePath = bfsSetup.path.join(dir, file);
+    files.forEach((file: string) => {
+      const filePath = bfsSetup.path.join(dir, file);
 
-      bfsSetup.fs.stat(filePath, function(err: any, stats: any) {
+      bfsSetup.fs.stat(filePath, (statErr: any, stats: any) => {
         if (err) {
-          throw err;
+          throw statErr;
         }
 
         if (stats.isDirectory()) {
           deleteDir(filePath);
         } else {
-          bfsSetup.fs.unlink(filePath, function(err: any) {
-            if (err) {
-              throw err;
+          bfsSetup.fs.unlink(filePath, (unlinkErr: any) => {
+            if (unlinkErr) {
+              throw unlinkErr;
             }
           });
         }
@@ -88,30 +88,34 @@ export const removeRootDirectory = (): void => {
 
 export const lint = (
   programFileName: string,
-  programText: string): void => {
+  programText: string,
+): void => {
   backend.lintProgram(
     worker,
     {
-      "program": programFileName,
-      "programSource": programText
-    });
+      program: programFileName,
+      programSource: programText,
+    },
+  );
 };
 
 
 export const compile = (
   baseDirectory: string,
   programFileName: string,
-  typeCheck: boolean): void => {
+  typeCheck: boolean,
+): void => {
   backend.compileProgram(
     worker,
     {
-      "program": programFileName,
-      "baseDir": baseDirectory,
-      "builtinJSDir": path.compileBuiltinJS,
-      "checks": "none",
-      "typeCheck": typeCheck,
-      "recompileBuiltins": false
-    });
+      program: programFileName,
+      baseDir: baseDirectory,
+      builtinJSDir: path.compileBuiltinJS,
+      checks: 'none',
+      typeCheck,
+      recompileBuiltins: false,
+    },
+  );
 };
 
 export const run = (
@@ -119,25 +123,27 @@ export const run = (
   programFileName: string,
   callback: (result: any) => void,
   runnerCallback: (runner: any) => void,
-  runKind: backend.RunKind): void => {
+  runKind: backend.RunKind,
+): void => {
   backend.runProgram2(
     runner,
     baseDirectory,
     programFileName,
-    runKind)
-    .then((runner: any): void => {
+    runKind,
+  )
+    .then((receivedRunner: any): void => {
       // the "runner" here is only a runner if RunKind is equal to Async
       if (runKind === backend.RunKind.Async) {
-        runnerCallback(runner);
+        runnerCallback(receivedRunner);
       }
       try {
         if (runKind === backend.RunKind.Async) {
-          runner.run(callback);
+          receivedRunner.run(callback);
         }
       } catch (x) {
         console.error(x);
         callback({
-          result: {error: String(x.value)}
+          result: { error: String(x.value) },
         });
       }
     });
@@ -157,7 +163,8 @@ export const setupWorkerMessageHandler = (
   onCompileSuccess: () => void,
   onCreateReplSuccess: () => void,
   onCompileInteractionSuccess: (data: { program: string }) => void,
-  onCompileInteractionFailure: (data: { program: string }) => void): void => {
+  onCompileInteractionFailure: (data: { program: string }) => void,
+): void => {
   worker.onmessage = backend.makeBackendMessageHandler(
     onLog,
     setupFinished,
@@ -168,14 +175,14 @@ export const setupWorkerMessageHandler = (
     onCompileSuccess,
     onCreateReplSuccess,
     onCompileInteractionSuccess,
-    onCompileInteractionFailure);
+    onCompileInteractionFailure,
+  );
 };
 
-export const openOrCreateFile = (path: string): string => {
-  if (bfsSetup.fs.existsSync(path)) {
-    return bfsSetup.fs.readFileSync(path, "utf-8");
-  } else {
-    bfsSetup.fs.writeFileSync(path, "");
-    return "";
+export const openOrCreateFile = (filePath: string): string => {
+  if (bfsSetup.fs.existsSync(filePath)) {
+    return bfsSetup.fs.readFileSync(filePath, 'utf-8');
   }
+  bfsSetup.fs.writeFileSync(filePath, '');
+  return '';
 };
