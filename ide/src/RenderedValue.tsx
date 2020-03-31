@@ -1,9 +1,8 @@
 import React from 'react';
 
 import TableWidget from './Table';
-import { ImageWidget } from './Image';
+import ImageWidget from './Image';
 import ChartWidget from './Chart';
-
 
 type RenderedValueProps = {
   value: any;
