@@ -1,5 +1,5 @@
 import * as bfsSetup from './browserfs-setup';
-import * as runtimeLoader from './runtime-loader';
+import load from './runtime-loader';
 import * as runner from './runner';
 import * as backend from './backend';
 import * as path from './path';
@@ -16,7 +16,7 @@ export const installFileSystem = () => {
 };
 
 export const loadBuiltins = (): void => {
-  runtimeLoader.load(bfsSetup.fs, path.compileBuiltinJS, path.uncompiled, runtimeFiles);
+  load(bfsSetup.fs, path.compileBuiltinJS, path.uncompiled, runtimeFiles);
 };
 
 export const { runProgram } = backend;
