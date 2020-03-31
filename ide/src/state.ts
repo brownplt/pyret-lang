@@ -59,26 +59,26 @@ export type State = {
 };
 
 export const initialState: State = {
-  browseRoot: "/",
-  browsePath: "/projects",
+  browseRoot: '/',
+  browsePath: '/projects',
   currentFile: undefined,
   currentFileContents: undefined,
   typeCheck: true,
   checks: [],
   interactions: [{
-    key: "Note",
-    name: "Note",
-    value: "Press Run to compile and run"
+    key: 'Note',
+    name: 'Note',
+    value: 'Press Run to compile and run',
   }],
   interactionErrors: [],
   lintFailures: {},
   runKind: control.backend.RunKind.Async,
   autoRun: true,
-  updateTimer: setTimeout(() => { return; }, 0),
+  updateTimer: setTimeout(() => { }, 0),
   dropdownVisible: false,
   editorMode: EditorMode.Chunks,
   fontSize: 12,
-  message: "Ready to rock",
+  message: 'Ready to rock',
   definitionsHighlights: [],
   fsBrowserVisible: false,
   compileState: CompileState.Uninitialized,
@@ -95,7 +95,7 @@ export type LintFailure = {
   errors: string[]
 };
 
-export const CHUNKSEP = "#.CHUNK#\n";
+export const CHUNKSEP = '#.CHUNK#\n';
 
 /* export const editorStateToString = (editor: Editor): string => {
  *     // TODO(michael): these could be more pirate-themed
@@ -128,20 +128,20 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *         const assertNever = (_arg: never): never => {
  *             throw new Error("assertNever");
  *         };
- *         
+ *
  *         return assertNever(state);
  *     }
  * };
- * 
+ *
  * export const invalidCompileState = (state: CompileState): void => {
  *     throw new Error(`illegal CompileState reached: ${state}`);
  * };
- * 
+ *
  * type LintFailure = {
  *     name: string,
  *     errors: string[]
  * }
- * 
+ *
  * export type EditorState = {
  *     browseRoot: string;
  *     browsePath: string[];
@@ -166,7 +166,7 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *     currentRunner: any;
  *     currentChunk: number;
  * };
- * 
+ *
  * export const makeDefaultEditorState = (props: any) => {
  *     return {
  *         browseRoot: props.browseRoot,
@@ -200,17 +200,17 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *         currentChunk: 0,
  *     };
  * };
- * 
+ *
  * export const handleLog = (editor: Editor) => {
  *     return (message: string) => {
  *         console.log(message);
  *     };
  * };
- * 
+ *
  * export const handleSetupFinished = (editor: Editor) => {
  *     return () => {
  *         console.log("setup finished");
- *         
+ *
  *         if (editor.state.editorMode === EditorMode.Text) {
  *             if (editor.state.compileState === CompileState.Startup) {
  *                 editor.setState({compileState: CompileState.Ready});
@@ -233,14 +233,14 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *         }
  *     };
  * };
- * 
+ *
  * export const handleCompileFailure = (editor: Editor) => {
  *     return (errors: string[]) => {
  *         console.log("COMPILE FAILURE");
  *         if (editor.state.compileState === CompileState.Compile
  *             || editor.state.compileState === CompileState.CompileRun) {
  *             editor.setState({compileState: CompileState.Ready});
- *             
+ *
  *             const places: any = [];
  *             for (let i = 0; i < errors.length; i++) {
  *                 const matches = errors[i].match(/:\d+:\d+-\d+:\d+/g);
@@ -265,7 +265,7 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *         }
  *     };
  * };
- * 
+ *
  * export const handleRuntimeFailure = (editor: Editor) => {
  *     return (errors: string[]) => {
  *         editor.setState(
@@ -275,7 +275,7 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *         );
  *     };
  * };
- * 
+ *
  * export const handleLintFailure = (editor: Editor) => {
  *     return (lintFailure : { name: string, errors: string[]}) => {
  *         let newFailures = editor.state.lintFailures;
@@ -284,7 +284,7 @@ export const CHUNKSEP = "#.CHUNK#\n";
  *         editor.setState({ lintFailures: newFailures });
  *     };
  * };
- * 
+ *
  * export const handleLintSuccess = (editor: Editor) => {
  *     return (lintSuccess : { name: string}) => {
  *         let newFailures = editor.state.lintFailures;
@@ -295,44 +295,42 @@ export const CHUNKSEP = "#.CHUNK#\n";
  * };
  *  */
 export const makeResult = (
-    result: any,
-    moduleUri: string): { key: string, name: string, value: any }[] => {
-        const compareLocations = (a: any, b: any): number => {
-            return a.srcloc[1] - b.srcloc[1];
-        };
-        
-        // There may be toplevel expressions in many modules, but we only want to
-        // show the ones from the main module we're working on
-        const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
-        
-        const allWithLocs = result.$locations.concat(mainTraces);
-        
-        // We combine and then sort to get the traces interleaved correctly with named values
-        const allSorted = allWithLocs.sort(compareLocations);
-        return allSorted.map((key: any) => {
-            if('name' in key) {
-                return {
-                    name: key.name,
-                    key: key.name,
-                    line: key.srcloc[1],
-                    value: result[key.name]
-                };
-            }
-            else {
-                return {
-                    name: "",
-                    key: String(key.srcloc[1]),
-                    line: key.srcloc[1],
-                    value: key.value
-                };
-            }
-        });
+  result: any,
+  moduleUri: string,
+): { key: string, name: string, value: any }[] => {
+  const compareLocations = (a: any, b: any): number => a.srcloc[1] - b.srcloc[1];
+
+  // There may be toplevel expressions in many modules, but we only want to
+  // show the ones from the main module we're working on
+  const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
+
+  const allWithLocs = result.$locations.concat(mainTraces);
+
+  // We combine and then sort to get the traces interleaved correctly with named values
+  const allSorted = allWithLocs.sort(compareLocations);
+  return allSorted.map((key: any) => {
+    if ('name' in key) {
+      return {
+        name: key.name,
+        key: key.name,
+        line: key.srcloc[1],
+        value: result[key.name],
+      };
+    }
+
+    return {
+      name: '',
+      key: String(key.srcloc[1]),
+      line: key.srcloc[1],
+      value: key.value,
     };
-/* 
+  });
+};
+/*
  * const getChunks = (editor: Editor) => {
  *     return editor.state.currentFileContents.split(CHUNKSEP);
  * };
- * 
+ *
  * export const handleCompileSuccess = (editor: Editor) => {
  *     return () => {
  *         if (editor.state.editorMode === EditorMode.Text) {
@@ -340,10 +338,10 @@ export const makeResult = (
  *         } else if (editor.state.editorMode === EditorMode.Chunks) {
  *             console.log(`COMPILE SUCCESS (chunk #${editor.state.currentChunk})`);
  *         }
- *         
+ *
  *         if (editor.state.compileState === CompileState.Compile) {
  *             editor.setState({compileState: CompileState.Ready});
- *             
+ *
  *             if (editor.state.editorMode === EditorMode.Chunks) {
  *                 const numberOfChunks = getChunks(editor).length;
  *                 if (editor.state.currentChunk < numberOfChunks) {
@@ -386,7 +384,7 @@ export const makeResult = (
  *                                     interactions: results,
  *                                     checks: checks
  *                                 });
- *                                 
+ *
  *                                 if (results[0] !== undefined && results[0].name === "error") {
  *                                     editor.setState(
  *                                         {
@@ -421,7 +419,7 @@ export const makeResult = (
  *         }
  *     };
  * };
- * 
+ *
  * export const handleCreateReplSuccess = (editor: Editor) => {
  *     return () => {
  *         console.log("REPL successfully created");
@@ -433,21 +431,21 @@ export const makeResult = (
  *         }
  *     };
  * };
- * 
+ *
  * export const handleCompileInteractionSuccess = (editor: Editor) => {
  *     return (response: { program: string }) => {
  *         console.log(`Chunk ${response.program} successfully compiled.`);
  *         return;
  *     };
  * };
- * 
+ *
  * export const handleCompileInteractionFailure = (editor: Editor) => {
  *     return (response: { program: string }) => {
  *         console.error(`Failed to compile ${response.program}.`);
  *         return;
  *     };
  * };
- * 
+ *
  * export const handleRun = (editor: Editor) => {
  *     return (runAfterwards: boolean) => {
  *         editor.setState(
@@ -507,13 +505,13 @@ export const makeResult = (
  *         }
  *     };
  * };
- * 
+ *
  * export const handleUpdate = (editor: Editor) => {
  *     return (): void => {
  *         control.fs.writeFileSync(
  *             editor.currentFile,
  *             editor.state.currentFileContents);
- *         
+ *
  *         if (editor.state.editorMode === EditorMode.Chunks) {
  *             const chunkstrs = getChunks(editor);
  *             for (let i = 0; i < chunkstrs.length; i++) {
@@ -521,8 +519,7 @@ export const makeResult = (
  *                     `${editor.currentFile}.chunk.${i}`,
  *                     chunkstrs[i]);
  *             }
- *             
- *             console.log(`Sending message to webworker to compile: ${editor.currentFile}.chunk.${editor.state.currentChunk}`)
+ *
  *             control.backend.compileInteraction(
  *                 control.worker,
  *                 `${editor.currentFile}.chunk.${editor.state.currentChunk}`)
@@ -531,7 +528,7 @@ export const makeResult = (
  *         }
  *     };
  * };
- * 
+ *
  * export const handleTextEdit = (editor: Editor) => {
  *     return (value: string): void => {
  *         clearTimeout(editor.state.updateTimer);
@@ -543,7 +540,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleChunkEdit = (editor: Editor) => {
  *     return (index: number, value: string): void => {
  *         clearTimeout(editor.state.updateTimer);
@@ -556,7 +553,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleTraverseDown = (editor: Editor): any => {
  *     return (path: string[]) => {
  *         editor.setState({
@@ -564,7 +561,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleTraverseUp = (editor: Editor): any => {
  *     return (path: string[]) => {
  *         editor.setState({
@@ -572,7 +569,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleExpandChild = (editor: Editor): any => {
  *     return (child: string, fullChildPath: string): void => {
  *         editor.setState({
@@ -588,13 +585,13 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleSetEditorMode = (editor: Editor) => {
  *     return (editorMode: EditorMode) => {
  *         editor.setState({ editorMode });
  *     };
  * };
- * 
+ *
  * export const handleToggleDropdownVisibility = (editor: Editor) => {
  *     return (e: any) => {
  *         editor.setState({
@@ -602,7 +599,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleToggleAutoRun = (editor: Editor) => {
  *     return () => {
  *         editor.setState({
@@ -610,7 +607,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleToggleStopify = (editor: Editor) => {
  *     return () => {
  *         if (editor.stopify) {
@@ -624,7 +621,7 @@ export const makeResult = (
  *         }
  *     };
  * };
- * 
+ *
  * export const handleToggleTypeCheck = (editor: Editor) => {
  *     return () => {
  *         editor.setState({
@@ -632,7 +629,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleDecreaseFontSize = (editor: Editor) => {
  *     return () => {
  *         if (editor.state.fontSize > 1) {
@@ -642,7 +639,7 @@ export const makeResult = (
  *         }
  *     };
  * };
- * 
+ *
  * export const handleIncreaseFontSize = (editor: Editor) => {
  *     return () => {
  *         editor.setState({
@@ -650,7 +647,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleResetFontSize = (editor: Editor) => {
  *     return () => {
  *         editor.setState({
@@ -658,7 +655,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleRemoveDropdown = (editor: Editor) => {
  *     return () => {
  *         editor.setState({
@@ -666,7 +663,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleSetMessage = (editor: Editor) => {
  *     return (newMessage: string) => {
  *         editor.setState({
@@ -674,7 +671,7 @@ export const makeResult = (
  *         });
  *     };
  * };
- * 
+ *
  * export const handleStop = (editor: Editor) => {
  *     return () => {
  *         if (editor.state.currentRunner !== undefined) {
