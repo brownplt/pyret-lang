@@ -7,6 +7,7 @@ import React from 'react';
 export type DropdownOptionProps = {
   enabled: boolean,
   onClick: () => void,
+  children: React.ReactNode,
 };
 
 export default function DropdownOption({ enabled, onClick, children }: DropdownOptionProps) {

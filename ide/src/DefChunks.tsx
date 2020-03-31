@@ -60,7 +60,7 @@ export default class DefChunks extends React.Component<DefChunksProps, DefChunks
         newChunks = chunks.concat([{
           text,
           id,
-          startLine: this.getStartLineForIndex(chunks, chunks.length),
+          startLine: DefChunks.getStartLineForIndex(chunks, chunks.length),
         }]);
       } else {
         newChunks = chunks.map((p, ix) => {
@@ -69,7 +69,11 @@ export default class DefChunks extends React.Component<DefChunksProps, DefChunks
         });
         newChunks = newChunks.map((p, ix) => {
           if (ix <= index) { return p; }
-          return { text: p.text, id: p.id, startLine: this.getStartLineForIndex(newChunks, ix) };
+          return {
+            text: p.text,
+            id: p.id,
+            startLine: DefChunks.getStartLineForIndex(newChunks, ix),
+          };
         });
       }
       this.setState({ chunks: newChunks });
@@ -96,12 +100,12 @@ export default class DefChunks extends React.Component<DefChunksProps, DefChunks
           newChunks[i] = {
             text: p.text,
             id: p.id,
-            startLine: this.getStartLineForIndex(newChunks, i),
+            startLine: DefChunks.getStartLineForIndex(newChunks, i),
           };
         }
         this.setState({ chunks: newChunks });
         const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
-        onEdit(firstAffectedChunk, this.chunksToString(newChunks));
+        onEdit(firstAffectedChunk, DefChunks.chunksToString(newChunks));
       }
     };
 
@@ -110,10 +114,10 @@ export default class DefChunks extends React.Component<DefChunksProps, DefChunks
     const endBlankChunk = {
       text: '',
       id: String(chunkIndexCounter),
-      startLine: this.getStartLineForIndex(chunks, chunks.length),
+      startLine: DefChunks.getStartLineForIndex(chunks, chunks.length),
     };
 
-    function setupChunk(chunk, index) {
+    function setupChunk(chunk: Chunk, index: number) {
       const linesInChunk = chunk.text.split('\n').length;
       let chunkHighlights : number[][];
       const chunkName = `${name}_chunk_${chunk.id}`;
@@ -121,7 +125,7 @@ export default class DefChunks extends React.Component<DefChunksProps, DefChunks
       if (chunkName in lintFailures) {
         failures = lintFailures[chunkName].errors;
       }
-      if (chunkHighlights.length > 0) {
+      if (highlights.length > 0) {
         chunkHighlights = highlights.filter(
           (h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk,
         );

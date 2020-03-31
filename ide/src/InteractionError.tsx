@@ -2,6 +2,7 @@ import React from 'react';
 
 export type InteractionErrorProps = {
   fontSize: number,
+  children: React.ReactNode,
 };
 
 export default function InteractionError({ fontSize, children }: InteractionErrorProps) {

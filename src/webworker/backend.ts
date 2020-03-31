@@ -144,7 +144,8 @@ export const compileInteraction = (
   compilerWorker.postMessage(message);
 };
 
-const assertNever = (): never => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const assertNever = (arg: never): never => {
   throw new Error('assertNever');
 };
 

@@ -248,6 +248,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     const { editType, editValue, selected } = this.state;
     const { browsePath } = this.props;
 
+    const that = this;
+
     function makeEditor() {
       if (editType !== undefined) {
         return (
@@ -269,7 +271,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               )}
             </pre>
             <form
-              onSubmit={this.handleSubmit}
+              onSubmit={that.handleSubmit}
               style={{
                 height: '100%',
                 flexGrow: 1,
@@ -278,7 +280,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               <input
                 type="text"
                 value={editValue}
-                onChange={this.onChange}
+                onChange={that.onChange}
                 style={{
                   border: 0,
                   padding: 0,
