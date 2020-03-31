@@ -19,19 +19,19 @@ export default function load(
   }
 
   runtimeFiles.forEach((item: any) => {
-    const { path, content, timestamp } = item;
+    const { key, content, timestamp } = item;
 
-    const compiledPath = path.replace(/^prewritten/, 'compiled/builtin');
+    const compiledPath = key.replace(/^prewritten/, 'compiled/builtin');
 
-    if (fs.existsSync(path)) {
-      const statResult = fs.statSync(path);
+    if (fs.existsSync(key)) {
+      const statResult = fs.statSync(key);
       const localTimestamp = statResult.mtime.getTime();
       if (localTimestamp < timestamp) {
-        fs.writeFileSync(path, content);
+        fs.writeFileSync(key, content);
         fs.writeFileSync(compiledPath, content);
       }
     } else {
-      fs.writeFileSync(path, content);
+      fs.writeFileSync(key, content);
       fs.writeFileSync(compiledPath, content);
     }
   });
