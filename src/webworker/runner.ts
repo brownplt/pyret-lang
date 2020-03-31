@@ -1,19 +1,21 @@
+/* eslint-disable */
+
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
 const immutable = require('immutable');
 export const stopify = require('@stopify/stopify');
 const browserFS = require('./browserfs-setup.ts');
 
-(window as any)["stopify"] = stopify;
+(window as any).stopify = stopify;
 
-const fs = browserFS.fs;
-const path = browserFS.path;
+const { fs } = browserFS;
+const { path } = browserFS;
 
 const nodeModules = {
-  'assert': assert,
+  assert,
   'csv-parse/lib/sync': csv,
-  'fs': browserFS.fs,
-  'immutable': immutable
+  fs: browserFS.fs,
+  immutable,
 };
 
 function wrapContent(content: string): string {
@@ -21,125 +23,120 @@ function wrapContent(content: string): string {
 }
 
 export const makeRequireAsync = (
-  basePath: string): ((importPath: string) => Promise<any>) => {
+  basePath: string): ((importPath: string) => Promise<any>
+  ) => {
   let cwd = basePath;
   let currentRunner: any = null;
   const cache : {[key:string]: any} = {};
 
-  const requireAsyncMain = (importPath: string) => {
-    return new Promise(function (resolve, reject) {
-      if(importPath in nodeModules) {
-        return (nodeModules as any)[importPath];
-      }
-      const oldWd = cwd;
-      const nextPath = path.join(cwd, importPath);
-      cwd = path.parse(nextPath).dir;
-      if(!fs.existsSync(nextPath)) {
-        throw new Error("Path did not exist in requireSync: " + nextPath);
-      }
-      const stoppedPath = nextPath + ".stopped";
-      // Get the absolute path to uniquely identify modules
-      // Cache modules based upon the absolute path for singleton modules
-      const cachePath = path.resolve(stoppedPath);
-      if(cachePath in cache) { resolve(cache[cachePath]); return; }
-      let runner: any = null;
-      const contents = String(fs.readFileSync(nextPath));
-      const toStopify = wrapContent(contents);
-      runner = stopify.stopifyLocally(toStopify, {newMethod: "direct"});
-      if(runner.kind !== "ok") { reject(runner); }
-      fs.writeFileSync(stoppedPath, runner.code);
-      const stopifyModuleExports = {
-        exports: { 
-          __pyretExports: nextPath,
-        }
-      };
-      runner.g = Object.assign(runner.g, {
-        document,
-        Number,
-        Math,
-        Array,
-        Object,
-        RegExp,
-        stopify,
-        Error,
-        Image,
-        decodeURIComponent,
-        require: requireAsync,
-        "module": stopifyModuleExports,
-        // TS 'export' syntax desugars to 'exports.name = value;'
-        "exports": stopifyModuleExports.exports,  
-        String,
-        $STOPIFY: runner,
-        setTimeout: setTimeout,
-        console: console,
-        parseFloat,
-        isNaN,
-        isFinite
-      });
-      runner.path = nextPath;
-      currentRunner = runner;
-
-      resolve({
-        run: new Promise((resolve, reject) => {
-          return runner.run((result : any) => {
-            cwd = oldWd;
-            if(result.type !== "normal") { reject(result); }
-            else {
-              const toReturn = runner.g.module.exports;
-              cache[cachePath] = toReturn;
-              resolve(toReturn);
-            }
-          })
-        }),
-        pause: (callback: (line: number) => void): void => {
-          runner.pause(callback);
-        },
-        resume: (): void => {
-          runner.resume();
-        },
-      });
-    });
-  };
-
-  const requireAsync = (importPath: string) => {
-    if(importPath in nodeModules) {
+  const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
+    if (importPath in nodeModules) {
       return (nodeModules as any)[importPath];
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
     cwd = path.parse(nextPath).dir;
-    if(!fs.existsSync(nextPath)) {
-      throw new Error("Path did not exist in requireSync: " + nextPath);
+    if (!fs.existsSync(nextPath)) {
+      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
     }
-    const stoppedPath = nextPath + ".stopped";
+    const stoppedPath = `${nextPath}.stopped`;
     // Get the absolute path to uniquely identify modules
     // Cache modules based upon the absolute path for singleton modules
     const cachePath = path.resolve(stoppedPath);
-    if(cachePath in cache) { return cache[cachePath]; }
+    if (cachePath in cache) { resolve(cache[cachePath]); return; }
+    let runner: any = null;
+    const contents = String(fs.readFileSync(nextPath));
+    const toStopify = wrapContent(contents);
+    runner = stopify.stopifyLocally(toStopify, { newMethod: 'direct' });
+    if (runner.kind !== 'ok') { reject(runner); }
+    fs.writeFileSync(stoppedPath, runner.code);
+    const stopifyModuleExports = {
+      exports: {
+        __pyretExports: nextPath,
+      },
+    };
+    runner.g = Object.assign(runner.g, {
+      document,
+      Number,
+      Math,
+      Array,
+      Object,
+      RegExp,
+      stopify,
+      Error,
+      Image,
+      decodeURIComponent,
+      require: requireAsync,
+      module: stopifyModuleExports,
+      // TS 'export' syntax desugars to 'exports.name = value;'
+      exports: stopifyModuleExports.exports,
+      String,
+      $STOPIFY: runner,
+      setTimeout,
+      console,
+      parseFloat,
+      isNaN,
+      isFinite,
+    });
+    runner.path = nextPath;
+    currentRunner = runner;
+
+    resolve({
+      run: new Promise((resolve, reject) => runner.run((result : any) => {
+        cwd = oldWd;
+        if (result.type !== 'normal') { reject(result); } else {
+          const toReturn = runner.g.module.exports;
+          cache[cachePath] = toReturn;
+          resolve(toReturn);
+        }
+      })),
+      pause: (callback: (line: number) => void): void => {
+        runner.pause(callback);
+      },
+      resume: (): void => {
+        runner.resume();
+      },
+    });
+  }));
+
+  const requireAsync = (importPath: string) => {
+    if (importPath in nodeModules) {
+      return (nodeModules as any)[importPath];
+    }
+    const oldWd = cwd;
+    const nextPath = path.join(cwd, importPath);
+    cwd = path.parse(nextPath).dir;
+    if (!fs.existsSync(nextPath)) {
+      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
+    }
+    const stoppedPath = `${nextPath}.stopped`;
+    // Get the absolute path to uniquely identify modules
+    // Cache modules based upon the absolute path for singleton modules
+    const cachePath = path.resolve(stoppedPath);
+    if (cachePath in cache) { return cache[cachePath]; }
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
       const module = {
-        exports: { 
+        exports: {
           __pyretExports: nextPath,
-        }
+        },
       };
       const lastModule = currentRunner.g.module;
       currentRunner.g.module = module;
       // Need to set 'exports' global to work with TS export desugaring
       currentRunner.g.exports = module.exports;
       currentRunner.path = nextPath;
-      let stopifiedCode = "";
-      if(fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
+      let stopifiedCode = '';
+      if (fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
         stopifiedCode = String(fs.readFileSync(stoppedPath));
-      }
-      else {
+      } else {
         const contents = String(fs.readFileSync(nextPath));
         stopifiedCode = currentRunner.compile(wrapContent(contents));
         fs.writeFileSync(stoppedPath, stopifiedCode);
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
         cwd = oldWd;
-        if(result.type !== "normal") {
+        if (result.type !== 'normal') {
           kontinue(result);
           return;
         }
@@ -153,14 +150,14 @@ export const makeRequireAsync = (
         kontinue({ type: 'normal', value: toReturn });
       });
     });
-  }
+  };
 
   return requireAsyncMain;
 };
 
 export const makeRequire = (basePath: string): ((importPath: string) => any) => {
   const cache : {[key:string]: any} = {};
-  var cwd = basePath;
+  let cwd = basePath;
   /*
     Recursively eval (with this definition of require in scope) all of the
     described JavaScript.
@@ -173,15 +170,15 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     could pause the stack while requiring and then resume.
   */
   const requireSync = (importPath: string) => {
-    if(importPath in nodeModules) {
+    if (importPath in nodeModules) {
       return (nodeModules as any)[importPath];
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
-    if(nextPath in cache) { return cache[nextPath]; }
+    if (nextPath in cache) { return cache[nextPath]; }
     cwd = path.parse(nextPath).dir;
-    if(!fs.existsSync(nextPath)) {
-      throw new Error("Path did not exist in requireSync: " + nextPath);
+    if (!fs.existsSync(nextPath)) {
+      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
     }
     const contents = fs.readFileSync(nextPath);
     // TS 'export' syntax desugars to 'exports.name = value;'
@@ -191,9 +188,9 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     // eslint-disable-next-line
     const f = new Function("require", "module", "exports", contents);
     const module = {
-      exports: { 
+      exports: {
         __pyretExports: nextPath,
-      }
+      },
     };
     const result = f(requireSync, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
