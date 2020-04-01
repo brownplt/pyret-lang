@@ -134,12 +134,6 @@ function DefChunks({
     }
   };
 
-  const endBlankChunk = {
-    text: '',
-    id: 'end' /* String(chunkIndexCounter) */,
-    startLine: getStartLineForIndex(chunks, chunks.length),
-  };
-
   function setupChunk(chunk: Chunk, index: number) {
     const linesInChunk = chunk.text.split('\n').length;
     let chunkHighlights : number[][];
@@ -183,6 +177,8 @@ function DefChunks({
     );
   }
 
+  const allChunks = chunks.map(setupChunk);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <Droppable droppableId="droppable">
@@ -192,7 +188,7 @@ function DefChunks({
             {...provided.droppableProps}
             ref={provided.innerRef}
           >
-            {chunks.concat([endBlankChunk]).map(setupChunk)}
+            {allChunks}
           </div>
         )}
       </Droppable>
