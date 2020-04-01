@@ -6,7 +6,6 @@ import {
 import { Action } from './action';
 import {
   LintFailures,
-  CHUNKSEP,
   Chunk,
   State,
 } from './state';
@@ -30,10 +29,6 @@ function getStartLineForIndex(chunks : Chunk[], index : number) {
   if (index === 0) { return 0; }
 
   return chunks[index - 1].startLine + chunks[index - 1].text.split('\n').length;
-}
-
-function chunksToString(chunks : Chunk[]) {
-  return chunks.map((c) => c.text).join(CHUNKSEP);
 }
 
 function mapStateToProps(state: State): stateProps {
@@ -97,7 +92,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     },
     doMagicB(result: DropResult, onEdit: (index: number, s: string) => void, chunks: Chunk[]) {
       // Great examples! https://codesandbox.io/s/k260nyxq9v
-      const reorder = (innerChunks : Chunk[], start : number, end : number) => {
+      const reorder = (innerChunks: Chunk[], start: number, end: number) => {
         const newResult = Array.from(innerChunks);
         const [removed] = newResult.splice(start, 1);
         newResult.splice(end, 0, removed);
@@ -105,19 +100,18 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       };
       if (result.destination === undefined) { return; }
 
-      const newChunks = reorder(chunks, result.source.index, result.destination.index);
-      for (let i = 0; i < newChunks.length; i += 1) {
-        const p = newChunks[i];
-        newChunks[i] = {
-          text: p.text,
-          id: p.id,
-          startLine: getStartLineForIndex(newChunks, i),
-        };
-      }
+      const reorderedChunks = reorder(chunks, result.source.index, result.destination.index);
+      const newChunks: Chunk[] = reorderedChunks
+        .map((newChunk, i) => ({
+          text: newChunk.text,
+          id: newChunk.id,
+          startLine: getStartLineForIndex(reorderedChunks, i),
+        }));
+      console.log('newChunks', newChunks);
 
       dispatch({ type: 'setChunks', chunks: newChunks });
       const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
-      onEdit(firstAffectedChunk, chunksToString(newChunks));
+      onEdit(firstAffectedChunk, newChunks[firstAffectedChunk].text);
     },
   };
 }
