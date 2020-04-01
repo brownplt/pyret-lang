@@ -37,7 +37,7 @@ type stateProps = {
   chunks: string[]
 };
 
-function mapStateToProps(state: any): stateProps {
+function mapStateToProps(state: State): stateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
