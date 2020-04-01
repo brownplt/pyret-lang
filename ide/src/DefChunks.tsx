@@ -189,6 +189,7 @@ function DefChunks({
             ref={provided.innerRef}
           >
             {allChunks}
+            {provided.placeholder}
           </div>
         )}
       </Droppable>
