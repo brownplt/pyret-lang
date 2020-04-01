@@ -142,7 +142,7 @@ function DefChunks({
 
   const endBlankChunk = {
     text: '',
-    id: String(chunkIndexCounter),
+    id: 'end' /* String(chunkIndexCounter) */,
     startLine: getStartLineForIndex(chunks, chunks.length),
   };
 
