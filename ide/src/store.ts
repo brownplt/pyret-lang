@@ -77,15 +77,24 @@ store.subscribe(() => {
       });
     } else if (state.editorMode === EditorMode.Chunks) {
       const fileContents = control.openOrCreateFile(state.currentFile);
-      const chunks = fileContents.split(CHUNKSEP);
-      console.log('SPLIT CHUNKS', chunks);
-      for (let i = 0; i < chunks.length; i += 1) {
-        store.dispatch({
-          type: 'updateChunkContents',
-          index: i,
-          contents: chunks[i],
-        });
-      }
+      const chunkStrings = fileContents.split(CHUNKSEP);
+      let totalLines = 0;
+      const chunks = chunkStrings.map((chunkString, i) => {
+        const chunk = {
+          text: chunkString,
+          id: String(i),
+          startLine: totalLines,
+        };
+
+        totalLines += chunkString.split('\n').length;
+
+        return chunk;
+      });
+      store.dispatch({
+        type: 'updateContents',
+        contents: fileContents,
+      });
+      store.dispatch({ type: 'setChunks', chunks });
     }
   }
 
@@ -117,12 +126,10 @@ store.subscribe(() => {
             state.currentFileContents,
           );
         } else if (state.editorMode === EditorMode.Chunks) {
-          if (state.chunks !== undefined) {
-            control.fs.writeFileSync(
-              state.currentFile,
-              state.chunks.join(CHUNKSEP),
-            );
-          }
+          control.fs.writeFileSync(
+            state.currentFile,
+            state.TMPchunks.map((chunk) => chunk.text).join(CHUNKSEP),
+          );
         }
         control.compile(
           parsed.dir,

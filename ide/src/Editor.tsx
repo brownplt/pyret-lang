@@ -3,7 +3,7 @@ import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import SplitterLayout from 'react-splitter-layout';
 import * as State from './state';
-import { EditorMode, LintFailure } from './state';
+import { EditorMode } from './state';
 import Interaction from './Interaction';
 import { TestResult } from './Check';
 import DefChunks from './DefChunks';
@@ -22,8 +22,7 @@ import * as action from './action';
 
 type stateProps = {
   browseRoot: string,
-  browsePath: string[],
-  currentFileContents: string,
+  currentFileContents: undefined | string,
   definitionsHighlights: number[][],
   fontSize: number,
   stopify: boolean,
@@ -32,15 +31,12 @@ type stateProps = {
   interactions: { key: any, name: any, value: any }[],
   interactionErrors: any[],
   editorMode: EditorMode,
-  lintFailures: {[name : string]: LintFailure},
-  currentFile: string,
-  chunks: string[]
+  chunks: State.Chunk[]
 };
 
-function mapStateToProps(state: State): stateProps {
+function mapStateToProps(state: State.State): stateProps {
   return {
     browseRoot: state.browseRoot,
-    browsePath: state.browsePath,
     currentFileContents: state.currentFileContents,
     definitionsHighlights: state.definitionsHighlights,
     fontSize: state.fontSize,
@@ -50,9 +46,7 @@ function mapStateToProps(state: State): stateProps {
     interactions: state.interactions,
     interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
-    lintFailures: state.lintFailures,
-    currentFile: state.currentFile,
-    chunks: state.chunks,
+    chunks: state.TMPchunks,
   };
 }
 
@@ -62,7 +56,6 @@ type dispatchProps = {
   stop: () => void,
   run: () => void,
   updateContents: (contents: string) => void,
-  updateChunkContents: (index: number, contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
 };
 
@@ -73,9 +66,6 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchP
     stop: () => dispatch({ type: 'stop' }),
     run: () => dispatch({ type: 'run' }),
     updateContents: (contents: string) => dispatch({ type: 'updateContents', contents }),
-    updateChunkContents: (index: number, contents: string) => {
-      dispatch({ type: 'updateChunkContents', index, contents });
-    },
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'setEditorMode', mode });
     },
@@ -160,15 +150,12 @@ export class Editor extends React.Component<EditorProps, any> {
       updateContents,
       definitionsHighlights,
       chunks,
-      lintFailures,
-      currentFile,
-      updateChunkContents,
     } = this.props;
 
     if (editorMode === EditorMode.Text) {
       return (
         <SingleCodeMirrorDefinitions
-          text={currentFileContents}
+          text={currentFileContents || ''}
           onEdit={(contents: string) => updateContents(contents)}
           highlights={definitionsHighlights}
         />
@@ -178,15 +165,7 @@ export class Editor extends React.Component<EditorProps, any> {
     if (editorMode === EditorMode.Chunks) {
       console.log(chunks);
       return (
-        <DefChunks
-          lintFailures={lintFailures}
-          name={currentFile}
-          highlights={definitionsHighlights}
-          chunks={chunks}
-          onEdit={(index: number, contents: string) => {
-            updateChunkContents(index, contents);
-          }}
-        />
+        <DefChunks />
       );
     }
 

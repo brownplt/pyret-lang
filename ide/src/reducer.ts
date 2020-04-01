@@ -2,7 +2,7 @@ import {
   Action, ActionOfType, ActionType,
 } from './action';
 import {
-  CompileState, EditorMode, makeResult, State, initialState, CHUNKSEP,
+  CompileState, EditorMode, makeResult, State, initialState, CHUNKSEP, Chunk,
 } from './state';
 import {
   applyMatchingStateUpdate,
@@ -199,19 +199,17 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
     updateQueued: state.autoRun,
   })),
   guard('updateChunkContents', (state, action): PartialState => {
-    function getChunks() {
-      if (state.chunks === undefined) {
-        return [];
-      }
-      return [...state.chunks];
-    }
-    const chunks = getChunks();
-    chunks[action.index] = action.contents;
+    const TMPchunks = [...state.TMPchunks];
+    TMPchunks[action.index] = {
+      startLine: TMPchunks[action.index].startLine,
+      id: TMPchunks[action.index].id,
+      text: action.contents,
+    };
     return {
       needLoadFile: false,
       updateQueued: state.autoRun,
       firstUpdatableChunk: action.index,
-      chunks,
+      TMPchunks,
     };
   }),
   guard('traverseUp', (state, action): PartialState => ({ browsePath: action.path })),
@@ -222,7 +220,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
   })),
   guard('setEditorMode', (state, action): PartialState => {
     if (action.mode === EditorMode.Text && state.editorMode === EditorMode.Chunks) {
-      if (state.chunks === undefined) {
+      if (state.TMPchunks.length === 0) {
         return {
           editorMode: EditorMode.Text,
           currentFileContents: '',
@@ -230,22 +228,39 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
       }
       return {
         editorMode: EditorMode.Text,
-        currentFileContents: state.chunks.join(CHUNKSEP),
+        currentFileContents: state.TMPchunks.map((chunk) => chunk.text).join(CHUNKSEP),
       };
     } if (action.mode === EditorMode.Chunks && state.editorMode === EditorMode.Text) {
       if (state.currentFileContents !== undefined) {
+        let totalLines = 0;
+        const TMPchunks: Chunk[] = [];
+
+        state.currentFileContents.split(CHUNKSEP).forEach((chunkString, i) => {
+          TMPchunks.push({
+            text: chunkString,
+            id: String(i),
+            startLine: totalLines,
+          });
+
+          totalLines += chunkString.split('\n').length;
+        });
+
         return {
           editorMode: EditorMode.Chunks,
-          chunks: state.currentFileContents.split(CHUNKSEP),
+          TMPchunks,
         };
       }
+
       return {
         editorMode: EditorMode.Chunks,
-        chunks: [],
+        TMPchunks: [],
       };
     }
     return {};
   }),
+  guard('setChunks', (state, action): PartialState => ({
+    TMPchunks: action.chunks,
+  })),
 ];
 
 const rootReducer = combineSemiReducers(semiReducers);

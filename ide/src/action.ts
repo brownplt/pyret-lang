@@ -25,7 +25,9 @@ export type Action =
   | { type: 'updateChunkContents', index: number, contents: string }
   | { type: 'traverseUp', path: string }
   | { type: 'traverseDown', path: string }
-  | { type: 'expandChild', path: string });
+  | { type: 'expandChild', path: string })
+  | { type: 'setChunks', chunks: { startLine: number, id: string, text: string }[] }
+  | { type: 'setChunkIndexCounter', chunkIndexCounter: number };
 
 export type ActionType = Action['type'];
 

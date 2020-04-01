@@ -30,6 +30,21 @@ export enum EditorMode {
   Text,
 }
 
+export type Chunk = {
+  startLine: number,
+  id: string,
+  text: string
+};
+
+export type LintFailure = {
+  name: string,
+  errors: string[]
+};
+
+export type LintFailures = {
+  [name : string]: LintFailure
+};
+
 export type State = {
   browseRoot: string,
   browsePath: string,
@@ -39,7 +54,7 @@ export type State = {
   checks: Check[],
   interactions: { key: any, name: any, value: any }[],
   interactionErrors: string[],
-  lintFailures: {[name : string]: LintFailure},
+  lintFailures: LintFailures,
   runKind: control.backend.RunKind,
   autoRun: boolean,
   updateTimer: NodeJS.Timer,
@@ -55,7 +70,9 @@ export type State = {
   needLoadFile: boolean,
   updateQueued: boolean,
   firstUpdatableChunk: number | undefined,
-  chunks: string[] | undefined;
+
+  TMPchunks: Chunk[],
+  TMPchunkIndexCounter: number
 };
 
 export const initialState: State = {
@@ -87,12 +104,9 @@ export const initialState: State = {
   needLoadFile: false,
   updateQueued: false,
   firstUpdatableChunk: 0,
-  chunks: undefined,
-};
 
-export type LintFailure = {
-  name: string,
-  errors: string[]
+  TMPchunks: [],
+  TMPchunkIndexCounter: 0,
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';
