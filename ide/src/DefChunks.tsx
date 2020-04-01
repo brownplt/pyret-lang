@@ -100,13 +100,12 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       };
       if (result.destination === undefined) { return; }
 
-      const reorderedChunks = reorder(chunks, result.source.index, result.destination.index);
-      const newChunks: Chunk[] = reorderedChunks
-        .map((newChunk, i) => ({
-          text: newChunk.text,
-          id: newChunk.id,
-          startLine: getStartLineForIndex(reorderedChunks, i),
-        }));
+      const newChunks = reorder(chunks, result.source.index, result.destination.index);
+
+      for (let i = 0; i < newChunks.length; i += 1) {
+        newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+      }
+
       console.log('newChunks', newChunks);
 
       dispatch({ type: 'setChunks', chunks: newChunks });
