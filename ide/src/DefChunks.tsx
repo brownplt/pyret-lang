@@ -154,22 +154,45 @@ function DefChunks({
         {(draggableProvided) => (
           <div
             ref={draggableProvided.innerRef}
-          // eslint-disable-next-line react/jsx-props-no-spreading
+            // eslint-disable-next-line react/jsx-props-no-spreading
             {...draggableProvided.draggableProps}
-          // eslint-disable-next-line react/jsx-props-no-spreading
-            {...draggableProvided.dragHandleProps}
           >
-            <DefChunk
-              name={chunkName}
-              isLast={isLast}
-              failures={failures}
-              highlights={chunkHighlights}
-              startLine={chunk.startLine}
-              key={chunk.id}
-              index={index}
-              chunk={chunk.text}
-              onEdit={onChunkEdit}
-            />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                width: '100%',
+              }}
+            >
+              <div
+              // eslint-disable-next-line react/jsx-props-no-spreading
+                {...draggableProvided.dragHandleProps}
+                style={{
+                  minWidth: '1.5em',
+                  height: 'auto',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderLeft: '1px solid lightgray',
+                  background: 'lightgray',
+                  borderRadius: '75% 0% 0% 75%',
+                  marginLeft: '0.5em',
+                }}
+              >
+                ::
+              </div>
+              <DefChunk
+                name={chunkName}
+                isLast={isLast}
+                failures={failures}
+                highlights={chunkHighlights}
+                startLine={chunk.startLine}
+                key={chunk.id}
+                index={index}
+                chunk={chunk.text}
+                onEdit={onChunkEdit}
+              />
+            </div>
           </div>
         )}
       </Draggable>

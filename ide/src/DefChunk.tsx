@@ -79,19 +79,21 @@ export default class DefChunk extends React.Component<DefChunkProps, DefChunkSta
   }
 
   render() {
-    let borderWidth = '1px';
+    const borderWidth = '2px';
     let borderColor = '#eee';
-    let shadow = '';
     const { focused } = this.state;
     const {
       highlights, isLast, onEdit, index, chunk, startLine, failures,
     } = this.props;
-    if (focused) { shadow = '3px 3px 2px #aaa'; borderWidth = '2px'; borderColor = 'black'; }
+    if (focused) {
+      borderColor = 'black';
+    }
     if (highlights.length > 0) { borderColor = 'red'; }
     const border = `${borderWidth} solid ${borderColor}`;
     return (
       <div style={{
-        boxShadow: shadow, border, paddingTop: '0.5em', paddingBottom: '0.5em',
+        borderLeft: border,
+        width: '100%',
       }}
       >
         <CodeMirror
@@ -121,9 +123,11 @@ export default class DefChunk extends React.Component<DefChunkProps, DefChunkSta
           }}
           autoCursor={false}
         />
-        <ul>
-          {failures.map((f, ix) => <li key={String(ix)}>{f}</li>)}
-        </ul>
+        {failures.length !== 0 && (
+          <ul>
+            {failures.map((f, ix) => <li key={String(ix)}>{f}</li>)}
+          </ul>
+        )}
       </div>
     );
   }
