@@ -20,8 +20,8 @@ type stateProps = {
 };
 
 type dispatchProps = {
-  doMagicA: any,
-  doMagicB: any,
+  handleChunkEdit: any,
+  handleReorder: any,
   onEdit: (index: number, s: string) => void,
 };
 
@@ -58,7 +58,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     onEdit(index, contents) {
       dispatch({ type: 'updateChunkContents', index, contents });
     },
-    doMagicA(
+    handleChunkEdit(
       chunks: Chunk[],
       chunkIndexCounter: number,
       index: number,
@@ -90,7 +90,11 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       dispatch({ type: 'setChunks', chunks: newChunks });
       dispatch({ type: 'updateChunkContents', index, contents: text });
     },
-    doMagicB(result: DropResult, onEdit: (index: number, s: string) => void, chunks: Chunk[]) {
+    handleReorder(
+      result: DropResult,
+      onEdit: (index: number, s: string) => void,
+      chunks: Chunk[],
+    ) {
       // Great examples! https://codesandbox.io/s/k260nyxq9v
       const reorder = (innerChunks: Chunk[], start: number, end: number) => {
         const newResult = Array.from(innerChunks);
@@ -121,15 +125,15 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
 
 function DefChunks({
-  doMagicA, doMagicB, chunks, chunkIndexCounter, name, lintFailures, highlights, onEdit,
+  handleChunkEdit, handleReorder, chunks, chunkIndexCounter, name, lintFailures, highlights, onEdit,
 }: DefChunksProps) {
   const onChunkEdit = (index: number, text: string) => {
-    doMagicA(chunks, chunkIndexCounter, index, text);
+    handleChunkEdit(chunks, chunkIndexCounter, index, text);
   };
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
-      doMagicB(result, onEdit, chunks);
+      handleReorder(result, onEdit, chunks);
     }
   };
 
