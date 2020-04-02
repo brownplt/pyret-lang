@@ -33,7 +33,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
       },
     },
   ]),
-  guard('queueRun', () => ({ updateQueued: true })),
+  guard('queueRun', (): PartialState => ({ updateQueued: true })),
   guardUpdates('finishCreateRepl', [
     {
       state: CompileState.ChunkNeedsRepl,
@@ -113,11 +113,11 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
       },
     ];
   })()),
-  guard('lintFailure', () => {
+  guard('lintFailure', (): PartialState => {
     console.log('lintFailure not yet implemented');
     return {};
   }),
-  guard('lintSuccess', () => {
+  guard('lintSuccess', (): PartialState => {
     console.log('lintSucccess not yet implemented');
     return {};
   }),
@@ -135,7 +135,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
       },
     },
   ]),
-  guard('runFinished', (state, action) => {
+  guard('runFinished', (state, action): PartialState => {
     function makeData(): PartialState {
       if (action.result !== undefined
           && action.result.result.error === undefined
