@@ -84,6 +84,7 @@ store.subscribe(() => {
           text: chunkString,
           id: String(i),
           startLine: totalLines,
+          editor: undefined,
         };
 
         totalLines += chunkString.split('\n').length;

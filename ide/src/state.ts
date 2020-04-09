@@ -2,6 +2,7 @@
 // .setState on an Editor should be written here
 
 import { Check } from './Check';
+import { Chunk } from './chunk';
 import * as control from './control';
 
 // Possible states for the editor.
@@ -29,12 +30,6 @@ export enum EditorMode {
   Chunks,
   Text,
 }
-
-export type Chunk = {
-  startLine: number,
-  id: string,
-  text: string
-};
 
 export type LintFailure = {
   name: string,

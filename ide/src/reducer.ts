@@ -2,8 +2,9 @@ import {
   Action, ActionOfType, ActionType,
 } from './action';
 import {
-  CompileState, EditorMode, makeResult, State, initialState, CHUNKSEP, Chunk,
+  CompileState, EditorMode, makeResult, State, initialState, CHUNKSEP,
 } from './state';
+import { Chunk } from './chunk';
 import {
   applyMatchingStateUpdate,
   guard,
@@ -204,6 +205,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
       startLine: chunks[action.index].startLine,
       id: chunks[action.index].id,
       text: action.contents,
+      editor: undefined,
     };
     return {
       needLoadFile: false,
@@ -240,6 +242,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
             text: chunkString,
             id: String(i),
             startLine: totalLines,
+            editor: undefined,
           });
 
           totalLines += chunkString.split('\n').length;

@@ -6,9 +6,9 @@ import {
 import { Action } from './action';
 import {
   LintFailures,
-  Chunk,
   State,
 } from './state';
+import { Chunk } from './chunk';
 import DefChunk from './DefChunk';
 
 type stateProps = {
@@ -69,10 +69,18 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
           text,
           id,
           startLine: getStartLineForIndex(chunks, chunks.length),
+          editor: undefined,
         }]);
       } else {
         newChunks = chunks.map((p, ix) => {
-          if (ix === index) { return { text, id: p.id, startLine: p.startLine }; }
+          if (ix === index) {
+            return {
+              text,
+              id: p.id,
+              startLine: p.startLine,
+              editor: undefined,
+            };
+          }
           return p;
         });
         if (shouldCreateNewChunk) {
@@ -80,6 +88,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
             text: '',
             id: String(index + 1),
             startLine: getStartLineForIndex(newChunks, index) + 1,
+            editor: undefined,
           });
           for (let i = index + 1; i < newChunks.length; i += 1) {
             newChunks[i].id = String(i + 1);

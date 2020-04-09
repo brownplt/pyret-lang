@@ -1,3 +1,4 @@
+import { Chunk } from './chunk';
 import { EditorMode, LintFailure } from './state';
 
 export type Action =
@@ -26,7 +27,7 @@ export type Action =
   | { type: 'traverseUp', path: string }
   | { type: 'traverseDown', path: string }
   | { type: 'expandChild', path: string })
-  | { type: 'setChunks', chunks: { startLine: number, id: string, text: string }[] }
+  | { type: 'setChunks', chunks: Chunk[] }
   | { type: 'setChunkIndexCounter', chunkIndexCounter: number };
 
 export type ActionType = Action['type'];

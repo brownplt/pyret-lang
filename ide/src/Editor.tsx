@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import SplitterLayout from 'react-splitter-layout';
+import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode } from './state';
 import Interaction from './Interaction';
@@ -31,7 +32,7 @@ type stateProps = {
   interactions: { key: any, name: any, value: any }[],
   interactionErrors: any[],
   editorMode: EditorMode,
-  chunks: State.Chunk[]
+  chunks: Chunk[]
 };
 
 function mapStateToProps(state: State.State): stateProps {
