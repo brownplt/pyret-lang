@@ -67,7 +67,8 @@ export type State = {
   firstUpdatableChunk: number | undefined,
 
   chunks: Chunk[],
-  TMPchunkIndexCounter: number
+  TMPchunkIndexCounter: number,
+  focusedChunk: number | undefined,
 };
 
 export const initialState: State = {
@@ -102,6 +103,7 @@ export const initialState: State = {
 
   chunks: [],
   TMPchunkIndexCounter: 0,
+  focusedChunk: undefined,
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';

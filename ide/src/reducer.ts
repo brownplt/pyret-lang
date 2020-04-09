@@ -267,6 +267,18 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
   guard('setChunkIndexCounter', (state, action): PartialState => ({
     TMPchunkIndexCounter: action.chunkIndexCounter,
   })),
+  guard('setFocusedChunk', (state, action): PartialState => ({
+    focusedChunk: action.index,
+  })),
+  guard('unfocusChunk', (state, action): PartialState => {
+    if (state.focusedChunk === action.index) {
+      return {
+        focusedChunk: undefined,
+      };
+    }
+
+    return {};
+  }),
 ];
 
 const rootReducer = combineSemiReducers(semiReducers);

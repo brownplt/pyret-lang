@@ -28,7 +28,9 @@ export type Action =
   | { type: 'traverseDown', path: string }
   | { type: 'expandChild', path: string })
   | { type: 'setChunks', chunks: Chunk[] }
-  | { type: 'setChunkIndexCounter', chunkIndexCounter: number };
+  | { type: 'setChunkIndexCounter', chunkIndexCounter: number }
+  | { type: 'setFocusedChunk', index: number }
+  | { type: 'unfocusChunk', index: number };
 
 export type ActionType = Action['type'];
 

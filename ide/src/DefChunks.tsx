@@ -16,7 +16,8 @@ type stateProps = {
   highlights: number[][],
   name: string,
   chunks: Chunk[],
-  chunkIndexCounter: number
+  chunkIndexCounter: number,
+  focusedChunk: number | undefined,
 };
 
 type dispatchProps = {
@@ -37,6 +38,7 @@ function mapStateToProps(state: State): stateProps {
     currentFile,
     chunks,
     TMPchunkIndexCounter,
+    focusedChunk,
   } = state;
 
   if (currentFile === undefined) {
@@ -49,6 +51,7 @@ function mapStateToProps(state: State): stateProps {
     name: currentFile,
     chunks,
     chunkIndexCounter: TMPchunkIndexCounter,
+    focusedChunk,
   };
 }
 
@@ -139,7 +142,14 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
 
 function DefChunks({
-  handleChunkEdit, handleReorder, chunks, chunkIndexCounter, name, lintFailures, highlights,
+  handleChunkEdit,
+  handleReorder,
+  chunks,
+  chunkIndexCounter,
+  name,
+  lintFailures,
+  highlights,
+  focusedChunk,
 }: DefChunksProps) {
   const onChunkEdit = (index: number, text: string, shouldCreateNewChunk: boolean) => {
     handleChunkEdit(chunks, chunkIndexCounter, index, text, shouldCreateNewChunk);
@@ -166,7 +176,6 @@ function DefChunks({
     } else {
       chunkHighlights = [];
     }
-    const isLast = index === chunks.length;
     return (
       <Draggable key={chunk.id} draggableId={chunk.id} index={index}>
         {(draggableProvided) => (
@@ -201,14 +210,12 @@ function DefChunks({
               </div>
               <DefChunk
                 name={chunkName}
-                isLast={isLast}
                 failures={failures}
                 highlights={chunkHighlights}
-                startLine={chunk.startLine}
                 key={chunk.id}
                 index={index}
-                chunk={chunk.text}
                 onEdit={onChunkEdit}
+                focused={focusedChunk === index}
               />
             </div>
           </div>
