@@ -261,6 +261,9 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
   guard('setChunks', (state, action): PartialState => ({
     chunks: action.chunks,
   })),
+  guard('setChunkIndexCounter', (state, action): PartialState => ({
+    TMPchunkIndexCounter: action.chunkIndexCounter,
+  })),
 ];
 
 const rootReducer = combineSemiReducers(semiReducers);

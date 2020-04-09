@@ -59,6 +59,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       chunkIndexCounter: number,
       index: number,
       text: string,
+      shouldCreateNewChunk: boolean,
     ) {
       let newChunks : Chunk[];
       if (index === chunks.length) {
@@ -74,14 +75,19 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
           if (ix === index) { return { text, id: p.id, startLine: p.startLine }; }
           return p;
         });
-        newChunks = newChunks.map((p, ix) => {
-          if (ix <= index) { return p; }
-          return {
-            text: p.text,
-            id: p.id,
-            startLine: getStartLineForIndex(newChunks, ix),
-          };
-        });
+        if (shouldCreateNewChunk) {
+          newChunks.splice(index + 1, 0, {
+            text: '',
+            id: String(index + 1),
+            startLine: getStartLineForIndex(newChunks, index) + 1,
+          });
+          for (let i = index + 1; i < newChunks.length; i += 1) {
+            newChunks[i].id = String(i + 1);
+          }
+        }
+        for (let i = index + 1; i < newChunks.length; i += 1) {
+          newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+        }
       }
       dispatch({ type: 'setChunks', chunks: newChunks });
       dispatch({ type: 'updateChunkContents', index, contents: text });
@@ -126,8 +132,8 @@ type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
 function DefChunks({
   handleChunkEdit, handleReorder, chunks, chunkIndexCounter, name, lintFailures, highlights,
 }: DefChunksProps) {
-  const onChunkEdit = (index: number, text: string) => {
-    handleChunkEdit(chunks, chunkIndexCounter, index, text);
+  const onChunkEdit = (index: number, text: string, shouldCreateNewChunk: boolean) => {
+    handleChunkEdit(chunks, chunkIndexCounter, index, text, shouldCreateNewChunk);
   };
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null

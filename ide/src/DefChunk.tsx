@@ -9,7 +9,7 @@ type DefChunkProps = {
   index: number,
   startLine: number,
   chunk: string,
-  onEdit: (key: number, chunk: string) => void,
+  onEdit: (key: number, chunk: string, shouldCreateNewChunk: boolean) => void,
   isLast: boolean
 };
 type DefChunkState = {
@@ -61,13 +61,32 @@ export default class DefChunk extends React.Component<DefChunkProps, DefChunkSta
     }
   }
 
-  scheduleUpdate(value : string) {
-    const { updateTimer } = this.state;
-    const { onEdit, index } = this.props;
+  scheduleUpdate(value: string, data: any) {
+    const { editor, updateTimer } = this.state;
+    const { onEdit, index, chunk } = this.props;
+
+    // Returns true if this edit corresponds to a press of the 'enter' key.
+    function getEnterPressed() {
+      return data.removed.length === 1
+          && data.removed[0] === ''
+          && data.text.length === 2
+          && data.text[0] === ''
+          && data.text[1] === '';
+    }
+
     clearTimeout(updateTimer);
     this.setState({
       updateTimer: setTimeout(() => {
-        onEdit(index, value);
+        if (editor !== null) {
+          const token = editor.getTokenAt(data.to);
+          const shouldCreateNewChunk = token.state.lineState.tokens.length === 0
+                                    && getEnterPressed()
+                                    && chunk.trim() !== '';
+          console.log('should create new chunk?', shouldCreateNewChunk, data, value);
+          onEdit(index, value, shouldCreateNewChunk);
+        } else {
+          onEdit(index, value, false);
+        }
         this.lint(value);
       }, 250),
     });
@@ -99,7 +118,7 @@ export default class DefChunk extends React.Component<DefChunkProps, DefChunkSta
         <CodeMirror
           onFocus={() => {
             if (isLast) {
-              onEdit(index, '');
+              onEdit(index, '', false);
             }
             this.setState({ focused: true });
           }}
@@ -118,8 +137,8 @@ export default class DefChunk extends React.Component<DefChunkProps, DefChunkSta
             lineWrapping: true,
             lineNumberFormatter: (l) => String(l + startLine),
           }}
-          onChange={(editor, __, value) => {
-            this.scheduleUpdate(value);
+          onChange={(editor, data, value) => {
+            this.scheduleUpdate(value, data);
           }}
           autoCursor={false}
         />
