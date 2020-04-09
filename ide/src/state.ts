@@ -71,7 +71,7 @@ export type State = {
   updateQueued: boolean,
   firstUpdatableChunk: number | undefined,
 
-  TMPchunks: Chunk[],
+  chunks: Chunk[],
   TMPchunkIndexCounter: number
 };
 
@@ -105,7 +105,7 @@ export const initialState: State = {
   updateQueued: false,
   firstUpdatableChunk: 0,
 
-  TMPchunks: [],
+  chunks: [],
   TMPchunkIndexCounter: 0,
 };
 

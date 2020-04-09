@@ -199,17 +199,17 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
     updateQueued: state.autoRun,
   })),
   guard('updateChunkContents', (state, action): PartialState => {
-    const TMPchunks = [...state.TMPchunks];
-    TMPchunks[action.index] = {
-      startLine: TMPchunks[action.index].startLine,
-      id: TMPchunks[action.index].id,
+    const chunks = [...state.chunks];
+    chunks[action.index] = {
+      startLine: chunks[action.index].startLine,
+      id: chunks[action.index].id,
       text: action.contents,
     };
     return {
       needLoadFile: false,
       updateQueued: state.autoRun,
       firstUpdatableChunk: action.index,
-      TMPchunks,
+      chunks,
     };
   }),
   guard('traverseUp', (state, action): PartialState => ({ browsePath: action.path })),
@@ -220,7 +220,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
   })),
   guard('setEditorMode', (state, action): PartialState => {
     if (action.mode === EditorMode.Text && state.editorMode === EditorMode.Chunks) {
-      if (state.TMPchunks.length === 0) {
+      if (state.chunks.length === 0) {
         return {
           editorMode: EditorMode.Text,
           currentFileContents: '',
@@ -228,15 +228,15 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
       }
       return {
         editorMode: EditorMode.Text,
-        currentFileContents: state.TMPchunks.map((chunk) => chunk.text).join(CHUNKSEP),
+        currentFileContents: state.chunks.map((chunk) => chunk.text).join(CHUNKSEP),
       };
     } if (action.mode === EditorMode.Chunks && state.editorMode === EditorMode.Text) {
       if (state.currentFileContents !== undefined) {
         let totalLines = 0;
-        const TMPchunks: Chunk[] = [];
+        const chunks: Chunk[] = [];
 
         state.currentFileContents.split(CHUNKSEP).forEach((chunkString, i) => {
-          TMPchunks.push({
+          chunks.push({
             text: chunkString,
             id: String(i),
             startLine: totalLines,
@@ -247,19 +247,19 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
 
         return {
           editorMode: EditorMode.Chunks,
-          TMPchunks,
+          chunks,
         };
       }
 
       return {
         editorMode: EditorMode.Chunks,
-        TMPchunks: [],
+        chunks: [],
       };
     }
     return {};
   }),
   guard('setChunks', (state, action): PartialState => ({
-    TMPchunks: action.chunks,
+    chunks: action.chunks,
   })),
 ];
 

@@ -46,7 +46,7 @@ function mapStateToProps(state: State.State): stateProps {
     interactions: state.interactions,
     interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
-    chunks: state.TMPchunks,
+    chunks: state.chunks,
   };
 }
 

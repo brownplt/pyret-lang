@@ -128,7 +128,7 @@ store.subscribe(() => {
         } else if (state.editorMode === EditorMode.Chunks) {
           control.fs.writeFileSync(
             state.currentFile,
-            state.TMPchunks.map((chunk) => chunk.text).join(CHUNKSEP),
+            state.chunks.map((chunk) => chunk.text).join(CHUNKSEP),
           );
         }
         control.compile(

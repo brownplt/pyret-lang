@@ -36,7 +36,7 @@ function mapStateToProps(state: State): stateProps {
     lintFailures,
     definitionsHighlights,
     currentFile,
-    TMPchunks,
+    chunks,
     TMPchunkIndexCounter,
   } = state;
 
@@ -48,7 +48,7 @@ function mapStateToProps(state: State): stateProps {
     lintFailures,
     highlights: definitionsHighlights,
     name: currentFile,
-    chunks: TMPchunks,
+    chunks,
     chunkIndexCounter: TMPchunkIndexCounter,
   };
 }
