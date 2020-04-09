@@ -22,7 +22,6 @@ type stateProps = {
 type dispatchProps = {
   handleChunkEdit: any,
   handleReorder: any,
-  onEdit: (index: number, s: string) => void,
 };
 
 function getStartLineForIndex(chunks : Chunk[], index : number) {
@@ -55,9 +54,6 @@ function mapStateToProps(state: State): stateProps {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
   return {
-    onEdit(index, contents) {
-      dispatch({ type: 'updateChunkContents', index, contents });
-    },
     handleChunkEdit(
       chunks: Chunk[],
       chunkIndexCounter: number,
@@ -92,7 +88,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     },
     handleReorder(
       result: DropResult,
-      onEdit: (index: number, s: string) => void,
       chunks: Chunk[],
     ) {
       // Great examples! https://codesandbox.io/s/k260nyxq9v
@@ -114,7 +109,11 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 
       dispatch({ type: 'setChunks', chunks: newChunks });
       const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
-      onEdit(firstAffectedChunk, newChunks[firstAffectedChunk].text);
+      dispatch({
+        type: 'updateChunkContents',
+        index: firstAffectedChunk,
+        contents: newChunks[firstAffectedChunk].text,
+      });
     },
   };
 }
@@ -125,7 +124,7 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
 
 function DefChunks({
-  handleChunkEdit, handleReorder, chunks, chunkIndexCounter, name, lintFailures, highlights, onEdit,
+  handleChunkEdit, handleReorder, chunks, chunkIndexCounter, name, lintFailures, highlights,
 }: DefChunksProps) {
   const onChunkEdit = (index: number, text: string) => {
     handleChunkEdit(chunks, chunkIndexCounter, index, text);
@@ -133,7 +132,7 @@ function DefChunks({
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
-      handleReorder(result, onEdit, chunks);
+      handleReorder(result, chunks);
     }
   };
 
