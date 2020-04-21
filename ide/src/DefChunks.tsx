@@ -64,43 +64,44 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       text: string,
       shouldCreateNewChunk: boolean,
     ) {
-      let newChunks : Chunk[];
-      if (index === chunks.length) {
-        const id = String(chunkIndexCounter);
-        dispatch({ type: 'setChunkIndexCounter', chunkIndexCounter: chunkIndexCounter + 1 });
-        newChunks = chunks.concat([{
-          text,
-          id,
-          startLine: getStartLineForIndex(chunks, chunks.length),
-          editor: undefined,
-        }]);
-      } else {
-        newChunks = chunks.map((p, ix) => {
-          if (ix === index) {
-            return {
-              text,
-              id: p.id,
-              startLine: p.startLine,
-              editor: undefined,
-            };
-          }
-          return p;
-        });
-        if (shouldCreateNewChunk) {
-          newChunks.splice(index + 1, 0, {
-            text: '',
-            id: String(index + 1),
-            startLine: getStartLineForIndex(newChunks, index) + 1,
+      /* if (index === chunks.length) {
+       *   const id = String(chunkIndexCounter);
+       *   dispatch({ type: 'setChunkIndexCounter', chunkIndexCounter: chunkIndexCounter + 1 });
+       *   newChunks = chunks.concat([{
+       *     text,
+       *     id,
+       *     startLine: getStartLineForIndex(chunks, chunks.length),
+       *     editor: undefined,
+       *   }]);
+       * } else */
+      // {
+      const newChunks: Chunk[] = chunks.map((p, ix) => {
+        if (ix === index) {
+          return {
+            text,
+            id: p.id,
+            startLine: p.startLine,
             editor: undefined,
-          });
-          for (let i = index + 1; i < newChunks.length; i += 1) {
-            newChunks[i].id = String(i + 1);
-          }
+          };
         }
+        return p;
+      });
+      if (shouldCreateNewChunk) {
+        newChunks.splice(index + 1, 0, {
+          text: '',
+          id: String(index),
+          startLine: getStartLineForIndex(newChunks, index),
+          editor: undefined,
+        });
         for (let i = index + 1; i < newChunks.length; i += 1) {
-          newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+          newChunks[i].id = String(i + 1);
         }
       }
+
+      for (let i = index + 1; i < newChunks.length; i += 1) {
+        newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+      }
+      // }
       dispatch({ type: 'setChunks', chunks: newChunks });
       dispatch({ type: 'updateChunkContents', index, contents: text });
     },
