@@ -79,7 +79,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         if (ix === index) {
           return {
             text,
-            id: p.id,
             startLine: p.startLine,
             editor: undefined,
           };
@@ -89,13 +88,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       if (shouldCreateNewChunk) {
         newChunks.splice(index + 1, 0, {
           text: '',
-          id: String(index),
           startLine: getStartLineForIndex(newChunks, index),
           editor: undefined,
         });
-        for (let i = index + 1; i < newChunks.length; i += 1) {
-          newChunks[i].id = String(i + 1);
-        }
       }
 
       for (let i = index + 1; i < newChunks.length; i += 1) {
@@ -165,7 +160,7 @@ function DefChunks({
   function setupChunk(chunk: Chunk, index: number) {
     const linesInChunk = chunk.text.split('\n').length;
     let chunkHighlights : number[][];
-    const chunkName = `${name}_chunk_${chunk.id}`;
+    const chunkName = `${name}_chunk_${index}`;
     let failures : string[] = [];
     if (chunkName in lintFailures) {
       failures = lintFailures[chunkName].errors;
@@ -178,7 +173,7 @@ function DefChunks({
       chunkHighlights = [];
     }
     return (
-      <Draggable key={chunk.id} draggableId={chunk.id} index={index}>
+      <Draggable key={index} draggableId={String(index)} index={index}>
         {(draggableProvided) => (
           <div
             ref={draggableProvided.innerRef}
@@ -213,7 +208,7 @@ function DefChunks({
                 name={chunkName}
                 failures={failures}
                 highlights={chunkHighlights}
-                key={chunk.id}
+                key={index}
                 index={index}
                 onEdit={onChunkEdit}
                 focused={focusedChunk === index}

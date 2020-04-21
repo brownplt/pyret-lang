@@ -203,7 +203,6 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
     const chunks = [...state.chunks];
     chunks[action.index] = {
       startLine: chunks[action.index].startLine,
-      id: chunks[action.index].id,
       text: action.contents,
       editor: undefined,
     };
@@ -237,10 +236,9 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
         let totalLines = 0;
         const chunks: Chunk[] = [];
 
-        state.currentFileContents.split(CHUNKSEP).forEach((chunkString, i) => {
+        state.currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
           chunks.push({
             text: chunkString,
-            id: String(i),
             startLine: totalLines,
             editor: undefined,
           });

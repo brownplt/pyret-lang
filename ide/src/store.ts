@@ -79,10 +79,9 @@ store.subscribe(() => {
       const fileContents = control.openOrCreateFile(state.currentFile);
       const chunkStrings = fileContents.split(CHUNKSEP);
       let totalLines = 0;
-      const chunks = chunkStrings.map((chunkString, i) => {
+      const chunks = chunkStrings.map((chunkString) => {
         const chunk = {
           text: chunkString,
-          id: String(i),
           startLine: totalLines,
           editor: undefined,
         };
