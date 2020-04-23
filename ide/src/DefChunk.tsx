@@ -138,6 +138,24 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     control.lint(value, name);
   }
 
+  handleArrowUp(editor: any, event: Event) {
+    const { index, setFocusedChunk } = this.props;
+    const pos = (editor as any).getCursor();
+    if (pos.line === 0 && index > 0) {
+      setFocusedChunk(index - 1);
+      event.preventDefault();
+    }
+  }
+
+  handleArrowDown(editor: any, event: Event) {
+    const { index, setFocusedChunk, chunks } = this.props;
+    const pos = (editor as any).getCursor();
+    if (pos.line === chunks[index].text.split('\n').length - 1 && index < chunks.length - 1) {
+      setFocusedChunk(index + 1);
+      event.preventDefault();
+    }
+  }
+
   handleEnter(editor: any, event: Event) {
     const {
       chunks, index, setChunks, setFocusedChunk,
@@ -271,6 +289,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 break;
               case 'Backspace':
                 this.handleBackspace(event);
+                break;
+              case 'ArrowUp':
+                this.handleArrowUp(editor, event);
+                break;
+              case 'ArrowDown':
+                this.handleArrowDown(editor, event);
                 break;
               default:
                 console.log((event as any).key);
