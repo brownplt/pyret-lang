@@ -251,20 +251,19 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               const token = editor.getTokenAt(pos);
               if (token.state.lineState.tokens.length === 0) {
                 const newChunks = chunks;
-                console.log('before', JSON.stringify(newChunks));
-                newChunks.splice(index + 1, 0, {
-                  text: '',
-                  startLine: getStartLineForIndex(newChunks, index),
-                  editor: undefined,
-                });
-                for (let i = index + 1; i < newChunks.length; i += 1) {
-                  newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+                if (newChunks[index + 1] === undefined
+                    || newChunks[index + 1].text.trim() !== '') {
+                  newChunks.splice(index + 1, 0, {
+                    text: '',
+                    startLine: getStartLineForIndex(newChunks, index),
+                    editor: undefined,
+                  });
+                  for (let i = index + 1; i < newChunks.length; i += 1) {
+                    newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+                  }
+                  setChunks(newChunks);
                 }
-                console.log('after ', JSON.stringify(newChunks));
-                setChunks(newChunks);
                 setFocusedChunk(index + 1);
-                // dispatch({ type: 'setChunks', chunks: newChunks });
-                // dispatch({ type: 'setFocusedChunk', index: index + 1 });
                 event.preventDefault();
               }
             }
