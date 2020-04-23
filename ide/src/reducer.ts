@@ -204,7 +204,7 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
     chunks[action.index] = {
       startLine: chunks[action.index].startLine,
       text: action.contents,
-      editor: undefined,
+      editor: chunks[action.index].editor,
     };
     return {
       needLoadFile: false,

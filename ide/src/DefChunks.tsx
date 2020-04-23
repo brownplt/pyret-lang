@@ -8,7 +8,7 @@ import {
   LintFailures,
   State,
 } from './state';
-import { Chunk } from './chunk';
+import { Chunk, getStartLineForIndex } from './chunk';
 import DefChunk from './DefChunk';
 
 type stateProps = {
@@ -24,12 +24,6 @@ type dispatchProps = {
   handleChunkEdit: any,
   handleReorder: any,
 };
-
-function getStartLineForIndex(chunks : Chunk[], index : number) {
-  if (index === 0) { return 0; }
-
-  return chunks[index - 1].startLine + chunks[index - 1].text.split('\n').length;
-}
 
 function mapStateToProps(state: State): stateProps {
   const {
@@ -80,22 +74,17 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
           return {
             text,
             startLine: p.startLine,
-            editor: undefined,
+            editor: p.editor,
           };
         }
         return p;
       });
       if (shouldCreateNewChunk) {
-        newChunks.splice(index + 1, 0, {
-          text: '',
-          startLine: getStartLineForIndex(newChunks, index),
-          editor: undefined,
-        });
+        console.log('SHOULD CREATE NEW CHUNK');
+      } else {
+        console.log('SHOULD NOT CREATE NEW CHUNK');
       }
 
-      for (let i = index + 1; i < newChunks.length; i += 1) {
-        newChunks[i].startLine = getStartLineForIndex(newChunks, i);
-      }
       // }
       dispatch({ type: 'setChunks', chunks: newChunks });
       dispatch({ type: 'updateChunkContents', index, contents: text });

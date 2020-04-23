@@ -2,7 +2,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
-import { Chunk } from './chunk';
+import { Chunk, getStartLineForIndex } from './chunk';
 import { Action } from './action';
 import * as control from './control';
 
@@ -18,12 +18,14 @@ import * as control from './control';
 
 type stateProps = {
   chunks: Chunk[],
+  focusedChunk: number | undefined,
 };
 
 function mapStateToProps(state: State): stateProps {
-  const { chunks } = state;
+  const { chunks, focusedChunk } = state;
   return {
     chunks,
+    focusedChunk,
   };
 }
 
@@ -57,6 +59,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       dispatch({ type: 'setChunks', chunks: newChunks });
     },
     setChunks(chunks: Chunk[]) {
+      console.log('setting chunks ...');
       dispatch({ type: 'setChunks', chunks });
     },
   };
@@ -74,6 +77,12 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunkProps = PropsFromRedux & dispatchProps & stateProps & propsFromReact;
 
 class DefChunk extends React.Component<DefChunkProps, any> {
+  private input: React.RefObject<any>;
+
+  constructor(props: DefChunkProps) {
+    super(props);
+    this.input = React.createRef();
+  }
   // constructor(props : DefChunkProps) {
   //   super(props);
   //   const onFirstUpdate = () => {
@@ -115,35 +124,48 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         }
       }
     }
+
+    const { focusedChunk } = this.props;
+    if (index === focusedChunk && this.input.current !== null) {
+      console.log('FOCUSING ...');
+      this.input.current.editor.focus();
+    } else if (index === focusedChunk) {
+      console.log('null errors eek');
+    } else {
+      console.log('total fail');
+    }
   }
 
-  scheduleUpdate(value: string, data: any) {
-    const { chunks, onEdit, index } = this.props;
-    const { editor, text } = chunks[index];
-    const chunk = text;
+  scheduleUpdate(value: string) {
+    const { chunks, index, setChunks } = this.props;
 
-    // const { editor, updateTimer } = this.state;
+    // // const { editor, updateTimer } = this.state;
 
-    // Returns true if this edit corresponds to a press of the 'enter' key.
-    function getEnterPressed() {
-      return data.removed.length === 1
-          && data.removed[0] === ''
-          && data.text.length === 2
-          && data.text[0] === ''
-          && data.text[1] === '';
+    // // Returns true if this edit corresponds to a press of the 'enter' key.
+    // function getEnterPressed() {
+    //   return data.removed.length === 1
+    //       && data.removed[0] === ''
+    //       && data.text.length === 2
+    //       && data.text[0] === ''
+    //       && data.text[1] === '';
+    // }
+
+    // this.lint(value);
+    // if (editor !== undefined) {
+    //   const token = editor.getTokenAt(data.to);
+    //   const shouldCreateNewChunk = token.state.lineState.tokens.length === 0
+    //                             && getEnterPressed()
+    //                             && chunk.trim() !== '';
+    //   console.log('should create new chunk?', shouldCreateNewChunk, data, value);
+    //   onEdit(index, value, shouldCreateNewChunk);
+    // } else {
+    const newChunks = chunks.slice();
+    newChunks[index].text = value;
+    for (let i = index; i < newChunks.length; i += 1) {
+      newChunks[i].startLine = getStartLineForIndex(newChunks, i);
     }
-
-    this.lint(value);
-    if (editor !== undefined) {
-      const token = editor.getTokenAt(data.to);
-      const shouldCreateNewChunk = token.state.lineState.tokens.length === 0
-                                && getEnterPressed()
-                                && chunk.trim() !== '';
-      console.log('should create new chunk?', shouldCreateNewChunk, data, value);
-      onEdit(index, value, shouldCreateNewChunk);
-    } else {
-      onEdit(index, value, false);
-    }
+    setChunks(newChunks);
+    // }
 
     // clearTimeout(updateTimer);
     // this.setState({
@@ -172,9 +194,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const borderWidth = '2px';
     let borderColor = '#eee';
     const {
-      chunks, focused, highlights, index, failures, onEdit,
+      chunks, focused, highlights, index, failures, focusedChunk, setChunks, setFocusedChunk,
     } = this.props;
-    const isLast = index === chunks.length - 1;
     const { text, startLine } = chunks[index];
     const chunk = text;
 
@@ -190,11 +211,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       }}
       >
         <CodeMirror
+          ref={this.input}
           onFocus={() => {
-            if (isLast) {
-              onEdit(index, '', false);
-            }
-            const { setFocusedChunk } = this.props;
+            // if (isLast) {
+            //   onEdit(index, '', false);
+            // }
             setFocusedChunk(index);
           }}
           // onBlur={() => {
@@ -203,8 +224,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           // }}
           editorDidMount={(editor) => {
             console.log(`mounted editor for ${index}`);
-            const { initializeEditor } = this.props;
-            initializeEditor(chunks, index, editor);
             const marks = editor.getDoc().getAllMarks();
             marks.forEach((m) => m.clear());
             editor.setSize(null, 'auto');
@@ -216,16 +235,39 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             lineNumbers: true,
             lineWrapping: true,
             lineNumberFormatter: (l) => String(l + startLine),
+            autofocus: index === focusedChunk,
           }}
           onBeforeChange={(editor, data, value) => {
-            const { setChunks } = this.props;
-
-            const newChunks = chunks.slice();
-            newChunks[index].text = value;
-            setChunks(newChunks);
+            // const newChunks = chunks.slice();
+            // newChunks[index].text = value;
+            // setChunks(newChunks);
+            this.scheduleUpdate(value);
           }}
-          onChange={(editor, data, value) => {
-            this.scheduleUpdate(value, data);
+          // onChange={(editor, data, value) => {
+          // }}
+          onKeyDown={(editor, event) => {
+            if ((event as any).key === 'Enter') {
+              const pos = (editor as any).getCursor();
+              const token = editor.getTokenAt(pos);
+              if (token.state.lineState.tokens.length === 0) {
+                const newChunks = chunks;
+                console.log('before', JSON.stringify(newChunks));
+                newChunks.splice(index + 1, 0, {
+                  text: '',
+                  startLine: getStartLineForIndex(newChunks, index),
+                  editor: undefined,
+                });
+                for (let i = index + 1; i < newChunks.length; i += 1) {
+                  newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+                }
+                console.log('after ', JSON.stringify(newChunks));
+                setChunks(newChunks);
+                setFocusedChunk(index + 1);
+                // dispatch({ type: 'setChunks', chunks: newChunks });
+                // dispatch({ type: 'setFocusedChunk', index: index + 1 });
+                event.preventDefault();
+              }
+            }
           }}
           autoCursor
         />

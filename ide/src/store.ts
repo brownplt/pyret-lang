@@ -69,6 +69,16 @@ function handleCompileInteractionFailure(): void {
 store.subscribe(() => {
   const state = store.getState();
 
+  if (state.focusedChunk !== undefined) {
+    const { chunks } = state;
+    if (chunks[state.focusedChunk] !== undefined) {
+      const { editor } = chunks[state.focusedChunk];
+      if (editor !== undefined) {
+        editor.focus();
+      }
+    }
+  }
+
   if (state.needLoadFile && state.currentFile !== undefined) {
     if (state.editorMode === EditorMode.Text) {
       store.dispatch({

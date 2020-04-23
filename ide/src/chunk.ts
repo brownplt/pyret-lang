@@ -5,3 +5,9 @@ export type Chunk = {
   text: string,
   editor: CodeMirror.Editor | undefined,
 };
+
+export function getStartLineForIndex(chunks : Chunk[], index : number) {
+  if (index === 0) { return 0; }
+
+  return chunks[index - 1].startLine + chunks[index - 1].text.split('\n').length;
+}
