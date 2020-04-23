@@ -6,16 +6,6 @@ import { Chunk, getStartLineForIndex, newId } from './chunk';
 import { Action } from './action';
 import * as control from './control';
 
-// type stateProps = {
-//   name: string,
-//   failures: string[],
-//   highlights: number[][],
-//   index: number,
-//   startLine: number,
-//   chunk: string,
-//   isLast: boolean
-// };
-
 type stateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
@@ -65,12 +55,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
   };
 }
 
-// type DefChunkState = {
-//   editor: CodeMirror.Editor | null,
-//   focused: boolean,
-//   updateTimer: NodeJS.Timeout
-// };
-
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
@@ -83,14 +67,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     super(props);
     this.input = React.createRef();
   }
-  // constructor(props : DefChunkProps) {
-  //   super(props);
-  //   const onFirstUpdate = () => {
-  //     const { chunk } = this.props;
-  //     this.lint(chunk);
-  //   };
-  //   this.state = { editor: null, updateTimer: setTimeout(onFirstUpdate, 0), focused: false };
-  // }
 
   // TODO (michael): investigate alternatives for this method
   UNSAFE_componentWillReceiveProps() {
@@ -254,22 +230,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 
   render() {
-    const borderWidth = '2px';
-    let borderColor = '#eee';
     const {
-      chunks, focused, highlights, index, failures, focusedChunk,
+      chunks, index, failures, focusedChunk,
     } = this.props;
     const { text, startLine } = chunks[index];
     const chunk = text;
 
-    if (focused) {
-      borderColor = 'black';
-    }
-    if (highlights.length > 0) { borderColor = 'red'; }
-    const border = `${borderWidth} solid ${borderColor}`;
     return (
       <div style={{
-        borderLeft: border,
         width: '100%',
       }}
       >

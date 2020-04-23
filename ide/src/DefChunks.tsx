@@ -160,6 +160,27 @@ function DefChunks({
     } else {
       chunkHighlights = [];
     }
+
+    const focused = focusedChunk === index;
+
+    function getBorderColor() {
+      if (focused && chunkHighlights.length > 0) {
+        return 'red';
+      }
+
+      if (!focused && chunkHighlights.length > 0) {
+        return '#ff9999';
+      }
+
+      if (focused) {
+        return 'lightgray';
+      }
+
+      return '#eee';
+    }
+
+    const border = getBorderColor();
+
     return (
       <Draggable key={chunk.id} draggableId={String(chunk.id)} index={index}>
         {(draggableProvided) => (
@@ -185,7 +206,7 @@ function DefChunks({
                   justifyContent: 'center',
                   alignItems: 'center',
                   borderLeft: '1px solid lightgray',
-                  background: 'lightgray',
+                  background: `${border}`,
                   borderRadius: '75% 0% 0% 75%',
                   marginLeft: '0.5em',
                 }}
@@ -199,7 +220,7 @@ function DefChunks({
                 key={chunk.id}
                 index={index}
                 onEdit={onChunkEdit}
-                focused={focusedChunk === index}
+                focused={focused}
               />
             </div>
           </div>
