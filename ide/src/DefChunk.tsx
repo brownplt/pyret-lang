@@ -200,11 +200,102 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     control.lint(value, name);
   }
 
+  handleEnter(editor: any, event: Event) {
+    const {
+      chunks, index, setChunks, setFocusedChunk,
+    } = this.props;
+    const pos = (editor as any).getCursor();
+    const token = editor.getTokenAt(pos);
+    if (token.state.lineState.tokens.length === 0) {
+      if (index + 1 === chunks.length) {
+        const newChunks = [
+          ...chunks.slice(),
+          {
+            text: '',
+            startLine: getStartLineForIndex(chunks, index + 1),
+            editor: undefined,
+            id: newId(),
+          },
+        ];
+        setChunks(newChunks);
+        setFocusedChunk(index + 1);
+        event.preventDefault();
+      } else if (chunks[index + 1].text.trim() !== '') {
+        const newChunks: Chunk[] = [
+          ...chunks.slice(0, index + 1),
+          {
+            text: '',
+            startLine: getStartLineForIndex(chunks, index + 1),
+            editor: undefined,
+            id: newId(),
+          },
+          ...chunks.slice(index + 1),
+        ];
+        for (let i = index + 1; i < newChunks.length; i += 1) {
+          newChunks[i] = {
+            text: newChunks[i].text,
+            startLine: getStartLineForIndex(newChunks, i),
+            editor: undefined,
+            id: newChunks[i].id,
+          };
+        }
+        setChunks(newChunks);
+        setFocusedChunk(index + 1);
+        event.preventDefault();
+      } else if (chunks[index + 1].text.trim() === '') {
+        setFocusedChunk(index + 1);
+        event.preventDefault();
+      }
+    }
+  }
+
+  handleBackspace(event: Event) {
+    const {
+      chunks, index, setChunks, setFocusedChunk,
+    } = this.props;
+    if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+      console.log('CASE ONE');
+      const newChunks = [...chunks.slice(1, chunks.length)];
+      for (let i = 0; i < newChunks.length; i += 1) {
+        newChunks[i] = {
+          startLine: getStartLineForIndex(newChunks, i),
+          text: newChunks[i].text,
+          editor: undefined,
+          id: newChunks[i].id,
+        };
+      }
+      setChunks(newChunks);
+      setFocusedChunk(0);
+      event.preventDefault();
+    } else if (index > 0 && chunks[index].text.trim() === '') {
+      console.log('CASE TWO');
+      const newChunks = [
+        ...chunks.slice(0, index),
+        ...chunks.slice(index + 1, chunks.length)];
+      for (let i = index; i < newChunks.length; i += 1) {
+        newChunks[i] = {
+          startLine: getStartLineForIndex(newChunks, i),
+          text: newChunks[i].text,
+          editor: undefined,
+          id: newChunks[i].id,
+        };
+      }
+      setChunks(newChunks);
+      setFocusedChunk(index - 1);
+      event.preventDefault();
+    }
+  }
+
+  handleMouseDown() {
+    const { index, setFocusedChunk } = this.props;
+    setFocusedChunk(index);
+  }
+
   render() {
     const borderWidth = '2px';
     let borderColor = '#eee';
     const {
-      chunks, focused, highlights, index, failures, focusedChunk, setChunks, setFocusedChunk,
+      chunks, focused, highlights, index, failures, focusedChunk,
     } = this.props;
     const { text, startLine } = chunks[index];
     const chunk = text;
@@ -222,16 +313,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       >
         <CodeMirror
           ref={this.input}
-          onFocus={() => {
+          onMouseDown={() => {
             // if (isLast) {
             //   onEdit(index, '', false);
             // }
-            setFocusedChunk(index);
+            this.handleMouseDown();
           }}
-          // onBlur={() => {
-          //   const { unfocusChunk } = this.props;
-          //   unfocusChunk(index);
-          // }}
           editorDidMount={(editor) => {
             console.log(`mounted editor for ${index}`);
             const marks = editor.getDoc().getAllMarks();
@@ -253,69 +340,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             // setChunks(newChunks);
             this.scheduleUpdate(value);
           }}
-          // onChange={(editor, data, value) => {
-          // }}
           onKeyDown={(editor, event) => {
             switch ((event as any).key) {
-              case 'Enter': {
-                const pos = (editor as any).getCursor();
-                const token = editor.getTokenAt(pos);
-                if (token.state.lineState.tokens.length === 0) {
-                  if (index + 1 === chunks.length) {
-                    const newChunks = [
-                      ...chunks.slice(),
-                      {
-                        text: '',
-                        startLine: getStartLineForIndex(chunks, index + 1),
-                        editor: undefined,
-                        id: newId(),
-                      },
-                    ];
-                    setChunks(newChunks);
-                    setFocusedChunk(index + 1);
-                  } else if (chunks[index + 1].text.trim() !== '') {
-                    const newChunks: Chunk[] = [
-                      ...chunks.slice(0, index + 1),
-                      {
-                        text: '',
-                        startLine: getStartLineForIndex(chunks, index + 1),
-                        editor: undefined,
-                        id: newId(),
-                      },
-                      ...chunks.slice(index + 1),
-                    ];
-                    for (let i = index + 1; i < newChunks.length; i += 1) {
-                      newChunks[i] = {
-                        text: newChunks[i].text,
-                        startLine: getStartLineForIndex(newChunks, i),
-                        editor: undefined,
-                        id: newChunks[i].id,
-                      };
-                    }
-                    setChunks(newChunks);
-                    setFocusedChunk(index + 1);
-                  } else if (chunks[index + 1].text.trim() === '') {
-                    setFocusedChunk(index + 1);
-                  }
-                  event.preventDefault();
-                }
-              }
+              case 'Enter':
+                this.handleEnter(editor, event);
                 break;
               case 'Backspace':
-                if (index > 0 && chunks[index].text.trim() === '') {
-                  const newChunks = [...chunks.slice(0, index), ...chunks.slice(index + 1)];
-                  for (let i = index; i < newChunks.length; i += 1) {
-                    newChunks[i] = {
-                      text: newChunks[i].text,
-                      startLine: getStartLineForIndex(newChunks, i),
-                      editor: undefined,
-                      id: newChunks[i].id,
-                    };
-                  }
-                  setChunks(newChunks);
-                  setFocusedChunk(index - 1);
-                  event.preventDefault();
-                }
+                this.handleBackspace(event);
                 break;
               default:
                 console.log((event as any).key);

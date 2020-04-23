@@ -109,8 +109,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         newChunks[i].startLine = getStartLineForIndex(newChunks, i);
       }
 
-      console.log('newChunks', newChunks);
-
       dispatch({ type: 'setChunks', chunks: newChunks });
       const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
       dispatch({
@@ -148,7 +146,6 @@ function DefChunks({
   };
 
   function setupChunk(chunk: Chunk, index: number) {
-    console.log('setup chunk', index, chunk);
     const linesInChunk = chunk.text.split('\n').length;
     let chunkHighlights : number[][];
     const chunkName = `${name}_chunk_${index}`;
