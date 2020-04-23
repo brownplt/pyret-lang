@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
 import { Chunk } from './chunk';
 import { Action } from './action';
@@ -40,6 +40,7 @@ type dispatchProps = {
   setFocusedChunk: (index: number) => void,
   unfocusChunk: (index: number) => void,
   initializeEditor: (chunks: Chunk[], index: number, editor: CodeMirror.Editor) => void,
+  setChunks: (chunks: Chunk[]) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
@@ -54,6 +55,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       const newChunks = chunks.slice();
       newChunks[index].editor = editor;
       dispatch({ type: 'setChunks', chunks: newChunks });
+    },
+    setChunks(chunks: Chunk[]) {
+      dispatch({ type: 'setChunks', chunks });
     },
   };
 }
@@ -198,6 +202,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           //   unfocusChunk(index);
           // }}
           editorDidMount={(editor) => {
+            console.log(`mounted editor for ${index}`);
             const { initializeEditor } = this.props;
             initializeEditor(chunks, index, editor);
             const marks = editor.getDoc().getAllMarks();
@@ -212,10 +217,17 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             lineWrapping: true,
             lineNumberFormatter: (l) => String(l + startLine),
           }}
+          onBeforeChange={(editor, data, value) => {
+            const { setChunks } = this.props;
+
+            const newChunks = chunks.slice();
+            newChunks[index].text = value;
+            setChunks(newChunks);
+          }}
           onChange={(editor, data, value) => {
             this.scheduleUpdate(value, data);
           }}
-          autoCursor={false}
+          autoCursor
         />
         {failures.length !== 0 && (
           <ul>
