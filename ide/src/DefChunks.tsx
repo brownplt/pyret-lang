@@ -116,6 +116,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         index: firstAffectedChunk,
         contents: newChunks[firstAffectedChunk].text,
       });
+      dispatch({ type: 'setFocusedChunk', index: result.destination.index });
     },
   };
 }
