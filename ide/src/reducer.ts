@@ -263,6 +263,8 @@ const semiReducers: Array<SemiReducer<ActionType>> = [
   }),
   guard('setChunks', (state, action): PartialState => ({
     chunks: action.chunks,
+    needLoadFile: false,
+    updateQueued: state.autoRun,
   })),
   guard('setChunkIndexCounter', (state, action): PartialState => ({
     TMPchunkIndexCounter: action.chunkIndexCounter,

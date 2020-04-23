@@ -139,26 +139,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   scheduleUpdate(value: string) {
     const { chunks, index, setChunks } = this.props;
 
-    // // const { editor, updateTimer } = this.state;
-
-    // // Returns true if this edit corresponds to a press of the 'enter' key.
-    // function getEnterPressed() {
-    //   return data.removed.length === 1
-    //       && data.removed[0] === ''
-    //       && data.text.length === 2
-    //       && data.text[0] === ''
-    //       && data.text[1] === '';
-    // }
-
-    // this.lint(value);
-    // if (editor !== undefined) {
-    //   const token = editor.getTokenAt(data.to);
-    //   const shouldCreateNewChunk = token.state.lineState.tokens.length === 0
-    //                             && getEnterPressed()
-    //                             && chunk.trim() !== '';
-    //   console.log('should create new chunk?', shouldCreateNewChunk, data, value);
-    //   onEdit(index, value, shouldCreateNewChunk);
-    // } else {
     const newChunks = [...chunks];
     newChunks[index] = {
       startLine: newChunks[index].startLine,
@@ -175,24 +155,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       };
     }
     setChunks(newChunks);
-    // }
-
-    // clearTimeout(updateTimer);
-    // this.setState({
-    //   updateTimer: setTimeout(() => {
-    //     if (editor !== null) {
-    //       const token = editor.getTokenAt(data.to);
-    //       const shouldCreateNewChunk = token.state.lineState.tokens.length === 0
-    //                                 && getEnterPressed()
-    //                                 && chunk.trim() !== '';
-    //       console.log('should create new chunk?', shouldCreateNewChunk, data, value);
-    //       onEdit(index, value, shouldCreateNewChunk);
-    //     } else {
-    //       onEdit(index, value, false);
-    //     }
-    //     this.lint(value);
-    //   }, 250),
-    // });
   }
 
   lint(value : string) {
@@ -314,9 +276,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         <CodeMirror
           ref={this.input}
           onMouseDown={() => {
-            // if (isLast) {
-            //   onEdit(index, '', false);
-            // }
             this.handleMouseDown();
           }}
           editorDidMount={(editor) => {
@@ -335,9 +294,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             autofocus: index === focusedChunk,
           }}
           onBeforeChange={(editor, data, value) => {
-            // const newChunks = chunks.slice();
-            // newChunks[index].text = value;
-            // setChunks(newChunks);
             this.scheduleUpdate(value);
           }}
           onKeyDown={(editor, event) => {
