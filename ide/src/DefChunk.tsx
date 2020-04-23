@@ -262,8 +262,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 const token = editor.getTokenAt(pos);
                 if (token.state.lineState.tokens.length === 0) {
                   if (index + 1 === chunks.length) {
-                    console.log('my index', index);
-                    console.log('CASE 1');
                     const newChunks = [
                       ...chunks.slice(),
                       {
@@ -276,7 +274,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                     setChunks(newChunks);
                     setFocusedChunk(index + 1);
                   } else if (chunks[index + 1].text.trim() !== '') {
-                    console.log('CASE 2');
                     const newChunks: Chunk[] = [
                       ...chunks.slice(0, index + 1),
                       {
@@ -298,12 +295,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                     setChunks(newChunks);
                     setFocusedChunk(index + 1);
                   } else if (chunks[index + 1].text.trim() === '') {
-                    console.log('CASE 3');
                     setFocusedChunk(index + 1);
                   }
                   event.preventDefault();
-                } else {
-                  console.log('token fail');
                 }
               }
                 break;
