@@ -2,7 +2,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
-import { Chunk, getStartLineForIndex } from './chunk';
+import { Chunk, getStartLineForIndex, newId } from './chunk';
 import { Action } from './action';
 import * as control from './control';
 
@@ -159,10 +159,20 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     //   console.log('should create new chunk?', shouldCreateNewChunk, data, value);
     //   onEdit(index, value, shouldCreateNewChunk);
     // } else {
-    const newChunks = chunks.slice();
-    newChunks[index].text = value;
+    const newChunks = [...chunks];
+    newChunks[index] = {
+      startLine: newChunks[index].startLine,
+      text: value,
+      editor: undefined,
+      id: newChunks[index].id,
+    };
     for (let i = index; i < newChunks.length; i += 1) {
-      newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+      newChunks[i] = {
+        startLine: getStartLineForIndex(newChunks, i),
+        text: newChunks[i].text,
+        editor: undefined,
+        id: newChunks[i].id,
+      };
     }
     setChunks(newChunks);
     // }
@@ -246,26 +256,75 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           // onChange={(editor, data, value) => {
           // }}
           onKeyDown={(editor, event) => {
-            if ((event as any).key === 'Enter') {
-              const pos = (editor as any).getCursor();
-              const token = editor.getTokenAt(pos);
-              if (token.state.lineState.tokens.length === 0) {
-                const newChunks = chunks;
-                if (newChunks[index + 1] === undefined
-                    || newChunks[index + 1].text.trim() !== '') {
-                  newChunks.splice(index + 1, 0, {
-                    text: '',
-                    startLine: getStartLineForIndex(newChunks, index),
-                    editor: undefined,
-                  });
-                  for (let i = index + 1; i < newChunks.length; i += 1) {
-                    newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+            switch ((event as any).key) {
+              case 'Enter': {
+                const pos = (editor as any).getCursor();
+                const token = editor.getTokenAt(pos);
+                if (token.state.lineState.tokens.length === 0) {
+                  if (index + 1 === chunks.length) {
+                    console.log('my index', index);
+                    console.log('CASE 1');
+                    const newChunks = [
+                      ...chunks.slice(),
+                      {
+                        text: '',
+                        startLine: getStartLineForIndex(chunks, index + 1),
+                        editor: undefined,
+                        id: newId(),
+                      },
+                    ];
+                    setChunks(newChunks);
+                    setFocusedChunk(index + 1);
+                  } else if (chunks[index + 1].text.trim() !== '') {
+                    console.log('CASE 2');
+                    const newChunks: Chunk[] = [
+                      ...chunks.slice(0, index + 1),
+                      {
+                        text: '',
+                        startLine: getStartLineForIndex(chunks, index + 1),
+                        editor: undefined,
+                        id: newId(),
+                      },
+                      ...chunks.slice(index + 1),
+                    ];
+                    for (let i = index + 1; i < newChunks.length; i += 1) {
+                      newChunks[i] = {
+                        text: newChunks[i].text,
+                        startLine: getStartLineForIndex(newChunks, i),
+                        editor: undefined,
+                        id: newChunks[i].id,
+                      };
+                    }
+                    setChunks(newChunks);
+                    setFocusedChunk(index + 1);
+                  } else if (chunks[index + 1].text.trim() === '') {
+                    console.log('CASE 3');
+                    setFocusedChunk(index + 1);
+                  }
+                  event.preventDefault();
+                } else {
+                  console.log('token fail');
+                }
+              }
+                break;
+              case 'Backspace':
+                if (index > 0 && chunks[index].text.trim() === '') {
+                  const newChunks = [...chunks.slice(0, index), ...chunks.slice(index + 1)];
+                  for (let i = index; i < newChunks.length; i += 1) {
+                    newChunks[i] = {
+                      text: newChunks[i].text,
+                      startLine: getStartLineForIndex(newChunks, i),
+                      editor: undefined,
+                      id: newChunks[i].id,
+                    };
                   }
                   setChunks(newChunks);
+                  setFocusedChunk(index - 1);
+                  event.preventDefault();
                 }
-                setFocusedChunk(index + 1);
-                event.preventDefault();
-              }
+                break;
+              default:
+                console.log((event as any).key);
             }
           }}
           autoCursor

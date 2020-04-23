@@ -75,6 +75,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
             text,
             startLine: p.startLine,
             editor: p.editor,
+            id: p.id,
           };
         }
         return p;
@@ -147,6 +148,7 @@ function DefChunks({
   };
 
   function setupChunk(chunk: Chunk, index: number) {
+    console.log('setup chunk', index, chunk);
     const linesInChunk = chunk.text.split('\n').length;
     let chunkHighlights : number[][];
     const chunkName = `${name}_chunk_${index}`;
@@ -162,7 +164,7 @@ function DefChunks({
       chunkHighlights = [];
     }
     return (
-      <Draggable key={index} draggableId={String(index)} index={index}>
+      <Draggable key={chunk.id} draggableId={String(chunk.id)} index={index}>
         {(draggableProvided) => (
           <div
             ref={draggableProvided.innerRef}
@@ -197,7 +199,7 @@ function DefChunks({
                 name={chunkName}
                 failures={failures}
                 highlights={chunkHighlights}
-                key={index}
+                key={chunk.id}
                 index={index}
                 onEdit={onChunkEdit}
                 focused={focusedChunk === index}

@@ -1,6 +1,7 @@
 import { createStore } from 'redux';
 import ideApp from './reducer';
 import { CompileState, EditorMode, CHUNKSEP } from './state';
+import { newId } from './chunk';
 import * as control from './control';
 
 const store = createStore(
@@ -94,6 +95,7 @@ store.subscribe(() => {
           text: chunkString,
           startLine: totalLines,
           editor: undefined,
+          id: newId(),
         };
 
         totalLines += chunkString.split('\n').length;
