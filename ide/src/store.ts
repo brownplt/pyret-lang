@@ -67,18 +67,22 @@ function handleCompileInteractionFailure(): void {
   console.log('compile interaction failure (nyi)');
 }
 
+/* Stuff that can happen at any time ?
+
+   - Load a file
+   - Set up the compile handlers
+   - Send a compile request (with stopify)
+   - Send a compile request (without stopify)
+   - Receive a compile result
+   - Send a run request
+   - Receive a run result
+   - Stop a program compiled with stopify that is currently running
+   - Switch from text mode to chunk mode
+   - Switch from chunk mode to text mode
+
+ */
 store.subscribe(() => {
   const state = store.getState();
-
-  if (state.focusedChunk !== undefined) {
-    const { chunks } = state;
-    if (chunks[state.focusedChunk] !== undefined) {
-      const { editor } = chunks[state.focusedChunk];
-      if (editor !== undefined) {
-        editor.focus();
-      }
-    }
-  }
 
   if (state.needLoadFile && state.currentFile !== undefined) {
     if (state.editorMode === EditorMode.Text) {
