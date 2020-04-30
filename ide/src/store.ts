@@ -12,6 +12,8 @@ import * as control from './control';
 
 type Dispatch = (action: Action) => void;
 
+let currentRunner: any;
+
 function handleLoadFile(
   dispatch: Dispatch,
   currentFile: string,
@@ -219,6 +221,8 @@ function handleRun(dispatch: Dispatch, runKind: RunKind) {
       }
     },
     (runner: any) => {
+      currentRunner = runner;
+      // TODO
       dispatch({
         type: 'update',
         key: 'currentRunner',
@@ -227,6 +231,18 @@ function handleRun(dispatch: Dispatch, runKind: RunKind) {
     },
     runKind,
   );
+}
+
+function handleStop(dispatch: Dispatch) {
+  currentRunner.pause((line: number) => {
+    const action: any = {
+      type: 'setAsyncStatus',
+      status: 'failed',
+      process: 'run',
+      errors: `paused on line ${line}`,
+    };
+    dispatch(action);
+  });
 }
 
 function handleFirstActionableEffect(
@@ -348,13 +364,20 @@ function handleFirstActionableEffect(
         }
         break;
       }
-      case 'stop':
-        // TODO
-        console.log('applyFirstActionableEffect: warning: stop effect ignored (nyi)');
+      case 'stop': {
+        const { running } = state;
+        if (running && currentRunner !== undefined) {
+          return {
+            effectQueue: getNewEffectQueue(i),
+            applyEffect: () => handleStop(dispatch),
+          };
+        }
+
         return {
           effectQueue: getNewEffectQueue(i),
           applyEffect: () => { },
         };
+      }
       default:
         throw new Error('getFirstActionableEffect: unknown effect');
     }
