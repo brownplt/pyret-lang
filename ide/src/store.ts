@@ -12,52 +12,6 @@ import * as control from './control';
 
 type Dispatch = (action: Action) => void;
 
-/* Side effects that can happen - when can they happen?
-
-   - Load a file for the first time
-   -
-   - Load a different file
-   -
-   - Set up the compile handlers
-   -
-   - Send a compile request (with or without stopify)
-   - Compile handlers set up
-   - Received lint success
-   - No edits since lint success
-   - Not currently compiling
-   - Not currently running
-   - Receive a compile result
-   -
-   - Send a run request
-   - Received a compile result
-   - No edits since compile result recieved
-   - Compile handlers set up
-   - Not currently compiling
-   - Not currently running
-   - Receive a run result
-   -
-   - Send a lint request
-   - The contents of the editor have been written to local storage
-   - No edits since write
-   - Compile handlers set up
-   - Receive a lint result
-   -
-   - Stop a program compiled with stopify that is currently running
-   - Compile handlers set up
-   - Program is running
-   - Program was compiled with stopify
-   - Initialize a REPL
-   - worry about this later
-   - Write the contents of the editor to local storage
-   - File loaded
-   - User made an edit, started edit timer
-   - edit timer ran out
-   - Read the contents of local storage to initialize text mode
-   -
-   - Read the contents of local storage to initialize chunk mode
-   -
-*/
-
 function handleLoadFile(
   dispatch: Dispatch,
   currentFile: string,
@@ -144,7 +98,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   function handleLintSuccess(lintSuccess: { name: string }): void {
     const action: any = {
       type: 'setAsyncStatus',
-      status: 'success',
+      status: 'succeeded',
       process: 'lint',
       name: lintSuccess.name,
     };
@@ -154,7 +108,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   function handleCompileSuccess(): void {
     const action: any = {
       type: 'setAsyncStatus',
-      status: 'success',
+      status: 'succeeded',
       process: 'compile',
     };
     dispatch(action);
@@ -163,7 +117,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   function handleCreateReplSuccess(): void {
     const action: any = {
       type: 'setAsyncStatus',
-      status: 'success',
+      status: 'succeeded',
       process: 'createRepl',
     };
     dispatch(action);
@@ -189,6 +143,8 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     handleCompileInteractionSuccess,
     handleCompileInteractionFailure,
   );
+
+  dispatch({ type: 'update', key: 'isMessageHandlerReady', value: true });
 }
 
 function handleCreateRepl(dispatch: Dispatch) {
@@ -243,9 +199,10 @@ function handleRun(dispatch: Dispatch, runKind: RunKind) {
     runBase,
     runProgram,
     (runResult: any) => {
+      console.log('runResult', runResult);
       const action: any = {
         type: 'setAsyncStatus',
-        status: 'success', // TODO: not every run is a success
+        status: 'succeeded', // TODO: not every run is a success
         process: 'run',
         result: runResult,
       };
@@ -348,8 +305,15 @@ function handleFirstActionableEffect(
       case 'compile':
         {
           console.log('compile');
-          const { currentFile, typeCheck } = state;
-          if (currentFile !== undefined) {
+          const {
+            currentFile,
+            typeCheck,
+            isMessageHandlerReady,
+            isSetupFinished,
+            compiling,
+            running,
+          } = state;
+          if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
             return {
               effectQueue: getNewEffectQueue(i),
               applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
@@ -359,11 +323,20 @@ function handleFirstActionableEffect(
         break;
       case 'run': {
         console.log('run');
-        const { runKind } = state;
-        return {
-          effectQueue: getNewEffectQueue(i),
-          applyEffect: () => handleRun(dispatch, runKind),
-        };
+        const {
+          runKind,
+          isMessageHandlerReady,
+          isSetupFinished,
+          compiling,
+          running,
+        } = state;
+        if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
+          return {
+            effectQueue: getNewEffectQueue(i),
+            applyEffect: () => handleRun(dispatch, runKind),
+          };
+        }
+        break;
       }
       case 'stop':
         // TODO
@@ -403,11 +376,12 @@ store.subscribe(() => {
       value: effectQueue,
     });
     applyEffect();
-  } else if (oldEffectQueue.length > 0) {
-    throw new Error('could not apply any effect in queue');
-  }
+  } // else if (oldEffectQueue.length > 0) {
+  //   throw new Error('could not apply any effect in queue');
+  // }
 });
 
+store.dispatch({ type: 'queueEffect', effect: 'setupWorkerMessageHandler' });
 store.dispatch({ type: 'queueEffect', effect: 'loadFile' });
 
 export default store;

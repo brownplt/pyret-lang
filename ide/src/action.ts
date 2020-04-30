@@ -6,6 +6,7 @@ export type AsyncProcess = 'createRepl' | 'lint' | 'compile' | 'run';
 
 export type AsyncFailure =
   ({ process: 'createRepl' }
+  | { process: 'setupWorkerMessageHandler' }
   | { process: 'setup' }
   | { process: 'lint', name: string, errors: string[] } // TODO: check errors type
   | { process: 'compile', errors: string[] }
@@ -13,6 +14,7 @@ export type AsyncFailure =
 
 export type AsyncSuccess =
   ({ process: 'createRepl' }
+  | { process: 'setupWorkerMessageHandler' }
   | { process: 'setup' }
   | { process: 'lint', name: string }
   | { process: 'compile' }
@@ -31,6 +33,7 @@ export type AsyncStatus<P extends AsyncProcess> =
 
 export type Update =
   ({ key: 'editorMode', value: EditorMode }
+  | { key: 'isMessageHandlerReady', value: boolean }
   | { key: 'effectQueue', value: Effect[] }
   | { key: 'currentRunner', value: any }
   | { key: 'currentFileContents', value: string }

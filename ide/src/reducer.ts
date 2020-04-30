@@ -351,11 +351,13 @@ function handleLintSuccess(state: State): State {
 }
 
 function handleCompileSuccess(state: State): State {
+  const { autoRun, effectQueue } = state;
   return {
     ...state,
     compiling: false,
     interactionErrors: [],
     definitionsHighlights: [],
+    effectQueue: autoRun ? [...effectQueue, 'run'] : effectQueue,
   };
 }
 
@@ -368,8 +370,18 @@ function handleRunSuccess(state: State): State {
   };
 }
 
+function handleSetupSuccess(state: State): State {
+  return {
+    ...state,
+    settingUp: false,
+    isSetupFinished: true,
+  };
+}
+
 function handleAsyncSuccess(state: State, status: AsyncSuccess): State {
   switch (status.process) {
+    case 'setup':
+      return handleSetupSuccess(state);
     case 'createRepl':
       return handleCreateReplSuccess(state);
     case 'lint':
@@ -379,7 +391,7 @@ function handleAsyncSuccess(state: State, status: AsyncSuccess): State {
     case 'run':
       return handleRunSuccess(state);
     default:
-      throw new Error('handleAsyncSuccess: unknown process');
+      throw new Error(`handleAsyncSuccess: unknown process ${JSON.stringify(status)}`);
   }
 }
 
@@ -451,7 +463,7 @@ function handleSetAsyncStatus(state: State, status: AsyncStatus<AsyncProcess>): 
     case 'failed':
       return handleAsyncFailure(state, status);
     default:
-      throw new Error('handleSetAsyncStatus: unknown status');
+      throw new Error(`handleSetAsyncStatus: unknown status ${JSON.stringify(status)}`);
   }
 }
 
@@ -547,7 +559,16 @@ function handleSetCurrentFile(state: State, file: string): State {
 }
 
 function handleSetChunks(state: State, chunks: Chunk[]): State {
-  return { ...state, chunks };
+  const contents = chunks.map((chunk) => chunk.text).join(CHUNKSEP);
+
+  const { effectQueue } = state;
+
+  return {
+    ...state,
+    chunks,
+    currentFileContents: contents,
+    effectQueue: [...effectQueue, 'saveFile'],
+  };
 }
 
 function handleSetFocusedChunk(state: State, index: number): State {
@@ -558,6 +579,16 @@ function handleSetEffectQueue(state: State, newEffectQueue: Effect[]): State {
   return { ...state, effectQueue: newEffectQueue };
 }
 
+function handleSetIsMessageHandlerReady(state: State, ready: boolean): State {
+  if (ready) {
+    return {
+      ...state,
+      isMessageHandlerReady: true,
+    };
+  }
+  throw new Error('handleSetEditorMode: attempt to unset message handler readiness');
+}
+
 function handleUpdate(
   state: State,
   key: any, // TODO: fix types
@@ -566,6 +597,8 @@ function handleUpdate(
   switch (key) {
     case 'editorMode':
       return handleSetEditorMode(state, value);
+    case 'isMessageHandlerReady':
+      return handleSetIsMessageHandlerReady(state, value);
     case 'currentRunner':
       return handleSetCurrentRunner(state, value);
     case 'currentFileContents':

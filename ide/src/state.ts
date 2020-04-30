@@ -10,7 +10,7 @@ export type State = {
   effectQueue: Effect[];
   browseRoot: string,
   browsePath: string,
-  currentFile: string | undefined,
+  currentFile: string,
   currentFileContents: string | undefined,
   typeCheck: boolean,
   checks: Check[],
@@ -32,12 +32,15 @@ export type State = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
 
+  isSetupFinished: boolean,
   isMessageHandlerReady: boolean,
   isReplReady: boolean,
+  settingUp: boolean,
   creatingRepl: boolean,
   linting: boolean,
   compiling: boolean,
   running: boolean,
+  compiledSinceLastEdit: boolean,
 };
 
 // Possible states for the editor.
@@ -136,10 +139,13 @@ export const initialState: State = {
   effectQueue: [],
   isMessageHandlerReady: false,
   isReplReady: false,
+  isSetupFinished: false,
+  settingUp: true,
   creatingRepl: false,
   linting: false,
   compiling: false,
   running: false,
+  compiledSinceLastEdit: false,
 
   chunks: [],
   focusedChunk: undefined,
