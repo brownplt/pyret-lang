@@ -3,44 +3,11 @@
 
 import { Check } from './Check';
 import { Chunk } from './chunk';
+import { Effect } from './effect';
 import * as control from './control';
 
-// Possible states for the editor.
-export enum CompileState {
-  Uninitialized,
-
-  NeedsStartup,
-  Startup,
-  Ready,
-  Compile,
-  NeedsCompile,
-  NeedsRun,
-  Running,
-  RunningWithStops,
-  RunningWithStopsNeedsStop,
-
-  ChunkNeedsRepl,
-}
-
-export function compileStateToString(state: CompileState): string {
-  return CompileState[state];
-}
-
-export enum EditorMode {
-  Chunks,
-  Text,
-}
-
-export type LintFailure = {
-  name: string,
-  errors: string[]
-};
-
-export type LintFailures = {
-  [name : string]: LintFailure
-};
-
 export type State = {
+  effectQueue: Effect[];
   browseRoot: string,
   browsePath: string,
   currentFile: string | undefined,
@@ -59,22 +26,90 @@ export type State = {
   message: string,
   definitionsHighlights: number[][],
   fsBrowserVisible: boolean,
-  compileState: CompileState,
   currentRunner: any,
   currentChunk: number,
-  needLoadFile: boolean,
-  updateQueued: boolean,
   firstUpdatableChunk: number | undefined,
-
   chunks: Chunk[],
-  TMPchunkIndexCounter: number,
   focusedChunk: number | undefined,
+
+  isMessageHandlerReady: boolean,
+  isReplReady: boolean,
+  creatingRepl: boolean,
+  linting: boolean,
+  compiling: boolean,
+  running: boolean,
 };
+
+// Possible states for the editor.
+// export enum CompileState {
+//   Uninitialized,
+//
+//   NeedsStartup,
+//   Startup,
+//   Ready,
+//   Compile,
+//   NeedsCompile,
+//   NeedsRun,
+//   Running,
+//   RunningWithStops,
+//   RunningWithStopsNeedsStop,
+//
+//   ChunkNeedsRepl,
+// }
+
+// export function compileStateToString(state: CompileState): string {
+//   return CompileState[state];
+// }
+
+export enum EditorMode {
+  Chunks,
+  Text,
+}
+
+export type LintFailure = {
+  name: string,
+  errors: string[]
+};
+
+export type LintFailures = {
+  [name : string]: LintFailure
+};
+
+// export type State = {
+//   browseRoot: string,
+//   browsePath: string,
+//   currentFile: string | undefined,
+//   currentFileContents: string | undefined,
+//   typeCheck: boolean,
+//   checks: Check[],
+//   interactions: { key: any, name: any, value: any }[],
+//   interactionErrors: string[],
+//   lintFailures: LintFailures,
+//   runKind: control.backend.RunKind,
+//   autoRun: boolean,
+//   updateTimer: NodeJS.Timer,
+//   dropdownVisible: boolean,
+//   editorMode: EditorMode,
+//   fontSize: number,
+//   message: string,
+//   definitionsHighlights: number[][],
+//   fsBrowserVisible: boolean,
+//   compileState: CompileState,
+//   currentRunner: any,
+//   currentChunk: number,
+//   needLoadFile: boolean,
+//   updateQueued: boolean,
+//   firstUpdatableChunk: number | undefined,
+//
+//   chunks: Chunk[],
+//   TMPchunkIndexCounter: number,
+//   focusedChunk: number | undefined,
+// };
 
 export const initialState: State = {
   browseRoot: '/',
   browsePath: '/projects',
-  currentFile: undefined,
+  currentFile: '/projects/program.arr',
   currentFileContents: undefined,
   typeCheck: true,
   checks: [],
@@ -94,15 +129,19 @@ export const initialState: State = {
   message: 'Ready to rock',
   definitionsHighlights: [],
   fsBrowserVisible: false,
-  compileState: CompileState.Uninitialized,
   currentRunner: undefined,
   currentChunk: 0,
-  needLoadFile: false,
-  updateQueued: false,
   firstUpdatableChunk: 0,
 
+  effectQueue: [],
+  isMessageHandlerReady: false,
+  isReplReady: false,
+  creatingRepl: false,
+  linting: false,
+  compiling: false,
+  running: false,
+
   chunks: [],
-  TMPchunkIndexCounter: 0,
   focusedChunk: undefined,
 };
 

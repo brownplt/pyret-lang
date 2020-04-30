@@ -27,12 +27,12 @@ type stateProps = {
   definitionsHighlights: number[][],
   fontSize: number,
   stopify: boolean,
-  compileState: State.CompileState,
   checks: any[],
   interactions: { key: any, name: any, value: any }[],
   interactionErrors: any[],
   editorMode: EditorMode,
-  chunks: Chunk[]
+  chunks: Chunk[],
+  running: boolean,
 };
 
 function mapStateToProps(state: State.State): stateProps {
@@ -42,18 +42,16 @@ function mapStateToProps(state: State.State): stateProps {
     definitionsHighlights: state.definitionsHighlights,
     fontSize: state.fontSize,
     stopify: state.runKind === control.backend.RunKind.Async,
-    compileState: state.compileState,
     checks: state.checks,
     interactions: state.interactions,
     interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
     chunks: state.chunks,
+    running: state.running,
   };
 }
 
 type dispatchProps = {
-  beginStartup: () => void,
-  queueRun: () => void,
   stop: () => void,
   run: () => void,
   updateContents: (contents: string) => void,
@@ -62,13 +60,15 @@ type dispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
   return {
-    beginStartup: () => dispatch({ type: 'beginStartup' }),
-    queueRun: () => dispatch({ type: 'queueRun' }),
-    stop: () => dispatch({ type: 'stop' }),
-    run: () => dispatch({ type: 'run' }),
-    updateContents: (contents: string) => dispatch({ type: 'updateContents', contents }),
+    stop: () => dispatch({ type: 'queueEffect', effect: 'stop' }),
+    run: () => dispatch({ type: 'queueEffect', effect: 'run' }),
+    updateContents: (contents: string) => dispatch({
+      type: 'update',
+      key: 'currentFileContents',
+      value: contents,
+    }),
     setEditorMode: (mode: EditorMode) => {
-      dispatch({ type: 'setEditorMode', mode });
+      dispatch({ type: 'update', key: 'editorMode', value: mode });
     },
   };
 }
@@ -181,9 +181,9 @@ export class Editor extends React.Component<EditorProps, any> {
       setEditorMode,
       interactionErrors,
       stopify,
-      compileState,
       stop,
       run,
+      running,
     } = this.props;
 
     const interactionValues = (
@@ -294,7 +294,7 @@ export class Editor extends React.Component<EditorProps, any> {
     return (
       <div className="page-container">
         <Header>
-          {stopify && compileState === State.CompileState.RunningWithStops ? (
+          {stopify && running ? (
             <button
               className="stop-available"
               onClick={stop}
@@ -339,7 +339,7 @@ export class Editor extends React.Component<EditorProps, any> {
             {rightHandSide}
           </SplitterLayout>
         </div>
-        <Footer message={State.compileStateToString(compileState)} />
+        <Footer message="TODO: update message" />
       </div>
     );
   }

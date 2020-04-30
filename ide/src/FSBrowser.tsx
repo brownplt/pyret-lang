@@ -22,18 +22,21 @@ function mapStateToProps(state: any): stateProps {
 }
 
 type dispatchProps = {
-  onTraverseUp: (path: string) => void,
-  onTraverseDown: (path: string) => void,
+  setBrowsePath: (path: string) => void,
   onExpandChild: (path: string) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
   return {
-    onTraverseUp: (path: string) => dispatch({ type: 'traverseUp', path }),
-    onTraverseDown: (path: string) => dispatch({ type: 'traverseDown', path }),
+    setBrowsePath: (path: string) => dispatch({
+      type: 'update',
+      key: 'browsePath',
+      value: path,
+    }),
     onExpandChild: (path: string) => dispatch({
-      type: 'expandChild',
-      path,
+      type: 'update',
+      key: 'currentFile',
+      value: path,
     }),
   };
 }
@@ -85,7 +88,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
   }
 
   traverseUp = (): void => {
-    const { browsePath, onTraverseUp } = this.props;
+    const { browsePath, setBrowsePath } = this.props;
 
     const newPath = control.bfsSetup.path.join(browsePath, '..');
 
@@ -93,11 +96,11 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
       selected: undefined,
     });
 
-    onTraverseUp(newPath);
+    setBrowsePath(newPath);
   };
 
   traverseDown = (childDirectory: string): void => {
-    const { browsePath, onTraverseDown } = this.props;
+    const { browsePath, setBrowsePath } = this.props;
 
     const newPath = control.bfsSetup.path.join(browsePath, childDirectory);
 
@@ -105,7 +108,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
       selected: undefined,
     });
 
-    onTraverseDown(newPath);
+    setBrowsePath(newPath);
   };
 
   expandChild = (child: string): void => {

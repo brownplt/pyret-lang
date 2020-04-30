@@ -16,7 +16,6 @@ type stateProps = {
   highlights: number[][],
   name: string,
   chunks: Chunk[],
-  chunkIndexCounter: number,
   focusedChunk: number | undefined,
 };
 
@@ -31,7 +30,6 @@ function mapStateToProps(state: State): stateProps {
     definitionsHighlights,
     currentFile,
     chunks,
-    TMPchunkIndexCounter,
     focusedChunk,
   } = state;
 
@@ -44,7 +42,6 @@ function mapStateToProps(state: State): stateProps {
     highlights: definitionsHighlights,
     name: currentFile,
     chunks,
-    chunkIndexCounter: TMPchunkIndexCounter,
     focusedChunk,
   };
 }
@@ -53,7 +50,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
   return {
     handleChunkEdit(
       chunks: Chunk[],
-      chunkIndexCounter: number,
       index: number,
       text: string,
       shouldCreateNewChunk: boolean,
@@ -74,7 +70,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
           return {
             text,
             startLine: p.startLine,
-            editor: p.editor,
             id: p.id,
           };
         }
@@ -87,8 +82,10 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       }
 
       // }
-      dispatch({ type: 'setChunks', chunks: newChunks });
-      dispatch({ type: 'updateChunkContents', index, contents: text });
+      console.log('handle chunk edit setchunks');
+      dispatch({ type: 'update', key: 'chunks', value: newChunks });
+      // TODO: the following shouldn't be necessary due to the setChunks above
+      // dispatch({ type: 'updateChunkContents', index, contents: text });
     },
     handleReorder(
       result: DropResult,
@@ -109,14 +106,16 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         newChunks[i].startLine = getStartLineForIndex(newChunks, i);
       }
 
-      dispatch({ type: 'setChunks', chunks: newChunks });
-      const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
-      dispatch({
-        type: 'updateChunkContents',
-        index: firstAffectedChunk,
-        contents: newChunks[firstAffectedChunk].text,
-      });
-      dispatch({ type: 'setFocusedChunk', index: result.destination.index });
+      // const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
+
+      console.log('handle reorder setchunks');
+      dispatch({ type: 'update', key: 'chunks', value: newChunks });
+      // dispatch({
+      //   type: 'updateChunkContents',
+      //   index: firstAffectedChunk,
+      //   contents: newChunks[firstAffectedChunk].text,
+      // });
+      dispatch({ type: 'update', key: 'focusedChunk', value: result.destination.index });
     },
   };
 }
@@ -130,14 +129,13 @@ function DefChunks({
   handleChunkEdit,
   handleReorder,
   chunks,
-  chunkIndexCounter,
   name,
   lintFailures,
   highlights,
   focusedChunk,
 }: DefChunksProps) {
   const onChunkEdit = (index: number, text: string, shouldCreateNewChunk: boolean) => {
-    handleChunkEdit(chunks, chunkIndexCounter, index, text, shouldCreateNewChunk);
+    handleChunkEdit(chunks, index, text, shouldCreateNewChunk);
   };
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null

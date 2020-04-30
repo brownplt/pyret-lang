@@ -30,27 +30,16 @@ type propsFromReact = {
 
 type dispatchProps = {
   setFocusedChunk: (index: number) => void,
-  unfocusChunk: (index: number) => void,
-  initializeEditor: (chunks: Chunk[], index: number, editor: CodeMirror.Editor) => void,
   setChunks: (chunks: Chunk[]) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
   return {
     setFocusedChunk(index: number) {
-      dispatch({ type: 'setFocusedChunk', index });
-    },
-    unfocusChunk(index: number) {
-      dispatch({ type: 'unfocusChunk', index });
-    },
-    initializeEditor(chunks: Chunk[], index: number, editor: CodeMirror.Editor) {
-      const newChunks = chunks.slice();
-      newChunks[index].editor = editor;
-      dispatch({ type: 'setChunks', chunks: newChunks });
+      dispatch({ type: 'update', key: 'focusedChunk', value: index });
     },
     setChunks(chunks: Chunk[]) {
-      console.log('setting chunks ...');
-      dispatch({ type: 'setChunks', chunks });
+      dispatch({ type: 'update', key: 'chunks', value: chunks });
     },
   };
 }
@@ -69,37 +58,44 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 
   // TODO (michael): investigate alternatives for this method
-  UNSAFE_componentWillReceiveProps() {
-    const { chunks, index } = this.props;
-    const { editor } = chunks[index];
-    if (editor !== undefined) {
-      const marks = editor.getDoc().getAllMarks();
-      marks.forEach((m: any) => m.clear());
-    }
-  }
+  // UNSAFE_componentWillReceiveProps() {
+  //   const { chunks, index } = this.props;
+  //   const { editor } = chunks[index];
+  //   if (editor !== undefined) {
+  //     const marks = editor.getDoc().getAllMarks();
+  //     marks.forEach((m: any) => m.clear());
+  //   }
+  // }
 
   componentDidUpdate() {
-    const { chunks, index, highlights } = this.props;
-    const { editor, startLine } = chunks[index];
-    if (editor !== undefined) {
-      const marks = editor.getDoc().getAllMarks();
-      marks.forEach((m) => m.clear());
-      if (highlights.length > 0) {
-        for (let i = 0; i < highlights.length; i += 1) {
-          editor.getDoc().markText(
-            {
-              line: highlights[i][0] - 1 - startLine,
-              ch: highlights[i][1],
-            },
-            {
-              line: highlights[i][2] - 1 - startLine,
-              ch: highlights[i][3],
-            },
-            { className: 'styled-background-error' },
-          );
-        }
-      }
-    }
+    const {
+    //  chunks,
+      index,
+    //  highlights,
+    } = this.props;
+    // const {
+    //   editor,
+    //   startLine,
+    // } = chunks[index];
+    // if (editor !== undefined) {
+    //   const marks = editor.getDoc().getAllMarks();
+    //   marks.forEach((m) => m.clear());
+    //   if (highlights.length > 0) {
+    //     for (let i = 0; i < highlights.length; i += 1) {
+    //       editor.getDoc().markText(
+    //         {
+    //           line: highlights[i][0] - 1 - startLine,
+    //           ch: highlights[i][1],
+    //         },
+    //         {
+    //           line: highlights[i][2] - 1 - startLine,
+    //           ch: highlights[i][3],
+    //         },
+    //         { className: 'styled-background-error' },
+    //       );
+    //     }
+    //   }
+    // }
 
     const { focusedChunk } = this.props;
     if (index === focusedChunk && this.input.current !== null) {
@@ -119,14 +115,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     newChunks[index] = {
       startLine: newChunks[index].startLine,
       text: value,
-      editor: undefined,
       id: newChunks[index].id,
     };
     for (let i = index; i < newChunks.length; i += 1) {
       newChunks[i] = {
         startLine: getStartLineForIndex(newChunks, i),
         text: newChunks[i].text,
-        editor: undefined,
         id: newChunks[i].id,
       };
     }
@@ -182,7 +176,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           {
             text: '',
             startLine: getStartLineForIndex(chunks, index + 1),
-            editor: undefined,
             id: newId(),
           },
           ...chunks.slice(index + 1),
@@ -191,7 +184,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           newChunks[i] = {
             text: newChunks[i].text,
             startLine: getStartLineForIndex(newChunks, i),
-            editor: undefined,
             id: newChunks[i].id,
           };
         }
@@ -210,13 +202,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       chunks, index, setChunks, setFocusedChunk,
     } = this.props;
     if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
-      console.log('CASE ONE');
       const newChunks = [...chunks.slice(1, chunks.length)];
       for (let i = 0; i < newChunks.length; i += 1) {
         newChunks[i] = {
           startLine: getStartLineForIndex(newChunks, i),
           text: newChunks[i].text,
-          editor: undefined,
           id: newChunks[i].id,
         };
       }
@@ -224,7 +214,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk(0);
       event.preventDefault();
     } else if (index > 0 && chunks[index].text.trim() === '') {
-      console.log('CASE TWO');
       const newChunks = [
         ...chunks.slice(0, index),
         ...chunks.slice(index + 1, chunks.length)];
@@ -232,7 +221,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         newChunks[i] = {
           startLine: getStartLineForIndex(newChunks, i),
           text: newChunks[i].text,
-          editor: undefined,
           id: newChunks[i].id,
         };
       }
@@ -265,7 +253,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseDown();
           }}
           editorDidMount={(editor) => {
-            console.log(`mounted editor for ${index}`);
             const marks = editor.getDoc().getAllMarks();
             marks.forEach((m) => m.clear());
             editor.setSize(null, 'auto');

@@ -1,36 +1,54 @@
 import { Chunk } from './chunk';
-import { EditorMode, LintFailure } from './state';
+import { EditorMode } from './state';
+import { Effect } from './effect';
+
+export type AsyncProcess = 'createRepl' | 'lint' | 'compile' | 'run';
+
+export type AsyncFailure =
+  ({ process: 'createRepl' }
+  | { process: 'setup' }
+  | { process: 'lint', name: string, errors: string[] } // TODO: check errors type
+  | { process: 'compile', errors: string[] }
+  | { process: 'run', errors: any });
+
+export type AsyncSuccess =
+  ({ process: 'createRepl' }
+  | { process: 'setup' }
+  | { process: 'lint', name: string }
+  | { process: 'compile' }
+  | { process: 'run', result: any });
+
+export type AsyncSuccessForProcess<P extends AsyncProcess>
+  = Extract<AsyncSuccess, { process: P }>;
+
+export type AsyncFailureForProcess<P extends AsyncProcess>
+  = Extract<AsyncFailure, { process: P }>;
+
+export type AsyncStatus<P extends AsyncProcess> =
+  ({ status: 'started', process: P }
+  | { status: 'succeeded', process: P } & AsyncSuccessForProcess<P>
+  | { status: 'failed', process: P } & AsyncFailureForProcess<P>);
+
+export type Update =
+  ({ key: 'editorMode', value: EditorMode }
+  | { key: 'effectQueue', value: Effect[] }
+  | { key: 'currentRunner', value: any }
+  | { key: 'currentFileContents', value: string }
+  | { key: 'browsePath', value: string }
+  | { key: 'currentFile', value: string }
+  | { key: 'chunks', value: Chunk[] }
+  | { key: 'focusedChunk', value: number });
+
+export type UpdateKey = Update['key'];
+
+export type UpdateOfKey<K extends UpdateKey> = Extract<Update, { key: K }>;
+
+export type UpdateOfKeyValue<K extends UpdateKey> = UpdateOfKey<K>['value'];
 
 export type Action =
-  ({ type: 'setEditorMode', mode: EditorMode }
-  | { type: 'finishSetup' }
-  | { type: 'finishCreateRepl' }
-  | { type: 'queueRun' }
-  | { type: 'compile' }
-  | { type: 'run' }
-  | { type: 'finishRun' }
-  | { type: 'stop' }
-  | { type: 'runQueued' }
-  | { type: 'compile' }
-  | { type: 'compileFailure', errors: string[] }
-  | { type: 'runFailure', errors: string[] }
-  | { type: 'lintFailure', lintFailure: LintFailure }
-  | { type: 'lintSuccess', lintSuccess: { name: string }}
-  | { type: 'compileSuccess' }
-  | { type: 'runFinished', result: any }
-  | { type: 'updateRunner', runner: any }
-  | { type: 'beginStartup' }
-  | { type: 'startupCompleted' }
-  | { type: 'runStarted' }
-  | { type: 'updateContents', contents: string }
-  | { type: 'updateChunkContents', index: number, contents: string }
-  | { type: 'traverseUp', path: string }
-  | { type: 'traverseDown', path: string }
-  | { type: 'expandChild', path: string })
-  | { type: 'setChunks', chunks: Chunk[] }
-  | { type: 'setChunkIndexCounter', chunkIndexCounter: number }
-  | { type: 'setFocusedChunk', index: number }
-  | { type: 'unfocusChunk', index: number };
+  ({ type: 'setAsyncStatus' } & AsyncStatus<AsyncProcess>
+  | { type: 'queueEffect', effect: Effect }
+  | { type: 'update' } & Update);
 
 export type ActionType = Action['type'];
 
