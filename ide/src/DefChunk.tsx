@@ -99,12 +99,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     const { focusedChunk } = this.props;
     if (index === focusedChunk && this.input.current !== null) {
-      console.log('FOCUSING ...');
       this.input.current.editor.focus();
-    } else if (index === focusedChunk) {
-      console.log('null errors eek');
-    } else {
-      console.log('total fail');
     }
   }
 
