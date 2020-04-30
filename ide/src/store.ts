@@ -409,9 +409,7 @@ store.subscribe(() => {
       value: effectQueue,
     });
     applyEffect();
-  } // else if (oldEffectQueue.length > 0) {
-  //   throw new Error('could not apply any effect in queue');
-  // }
+  }
 });
 
 store.dispatch({ type: 'queueEffect', effect: 'setupWorkerMessageHandler' });
