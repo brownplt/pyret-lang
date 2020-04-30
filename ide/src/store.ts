@@ -200,13 +200,23 @@ function handleRun(dispatch: Dispatch, runKind: RunKind) {
     runProgram,
     (runResult: any) => {
       console.log('runResult', runResult);
-      const action: any = {
-        type: 'setAsyncStatus',
-        status: 'succeeded', // TODO: not every run is a success
-        process: 'run',
-        result: runResult,
-      };
-      dispatch(action);
+      if (runResult.result.error === undefined) {
+        const action: any = {
+          type: 'setAsyncStatus',
+          status: 'succeeded',
+          process: 'run',
+          result: runResult,
+        };
+        dispatch(action);
+      } else {
+        const action: any = {
+          type: 'setAsyncStatus',
+          status: 'failed',
+          process: 'run',
+          errors: runResult.result.result,
+        };
+        dispatch(action);
+      }
     },
     (runner: any) => {
       dispatch({

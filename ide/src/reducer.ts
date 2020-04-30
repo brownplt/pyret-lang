@@ -5,6 +5,7 @@ import {
   AsyncFailureForProcess,
   AsyncStatus,
   Action,
+  AsyncSuccessForProcess,
 } from './action';
 
 import {
@@ -12,6 +13,7 @@ import {
   State,
   initialState,
   CHUNKSEP,
+  makeResult,
 } from './state';
 
 import {
@@ -361,12 +363,13 @@ function handleCompileSuccess(state: State): State {
   };
 }
 
-function handleRunSuccess(state: State): State {
-  // TODO
-  console.log('handleRunSuccess: [mostly] ignored; (nyi)');
+function handleRunSuccess(state: State, status: AsyncSuccessForProcess<'run'>): State {
+  const results = makeResult(status.result.result, `file://${state.currentFile}`);
   return {
     ...state,
     running: false,
+    interactions: results,
+    checks: status.result.result.$checks,
   };
 }
 
@@ -389,7 +392,7 @@ function handleAsyncSuccess(state: State, status: AsyncSuccess): State {
     case 'compile':
       return handleCompileSuccess(state);
     case 'run':
-      return handleRunSuccess(state);
+      return handleRunSuccess(state, status);
     default:
       throw new Error(`handleAsyncSuccess: unknown process ${JSON.stringify(status)}`);
   }
@@ -432,10 +435,11 @@ function handleCompileFailure(
 }
 
 function handleRunFailure(state: State, status: AsyncFailureForProcess<'run'>) {
+  console.log('handleFailure', status);
   return {
     ...state,
     running: false,
-    interactionErrors: [status.errors.toString()],
+    interactionErrors: [JSON.stringify(status.errors)],
   };
 }
 
