@@ -565,13 +565,21 @@ function handleSetCurrentFile(state: State, file: string): State {
 function handleSetChunks(state: State, chunks: Chunk[]): State {
   const contents = chunks.map((chunk) => chunk.text).join(CHUNKSEP);
 
-  const { effectQueue } = state;
+  const { effectQueue, autoRun } = state;
+
+  function getNewEffectQueue(): Effect[] {
+    if (autoRun) {
+      return [...effectQueue, 'saveFile', 'compile'];
+    }
+
+    return [...effectQueue, 'saveFile'];
+  }
 
   return {
     ...state,
     chunks,
     currentFileContents: contents,
-    effectQueue: [...effectQueue, 'saveFile'],
+    effectQueue: getNewEffectQueue(),
   };
 }
 
