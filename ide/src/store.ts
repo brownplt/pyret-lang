@@ -203,11 +203,11 @@ function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
   control.compile(dir, base, typeCheck);
 }
 
-function handleRun(dispatch: Dispatch, runKind: RunKind) {
-  const { runBase, runProgram } = control.path;
+function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
+  const { base } = control.bfsSetup.path.parse(currentFile);
   control.run(
-    runBase,
-    runProgram,
+    control.path.runBase,
+    `${base}.js`,
     (runResult: any) => {
       console.log('runResult', runResult);
       if (runResult.result.error === undefined) {
@@ -346,6 +346,7 @@ function handleFirstActionableEffect(
       case 'run': {
         console.log('run');
         const {
+          currentFile,
           runKind,
           isMessageHandlerReady,
           isSetupFinished,
@@ -355,7 +356,7 @@ function handleFirstActionableEffect(
         if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
           return {
             effect: i,
-            applyEffect: () => handleRun(dispatch, runKind),
+            applyEffect: () => handleRun(dispatch, currentFile, runKind),
           };
         }
         break;
