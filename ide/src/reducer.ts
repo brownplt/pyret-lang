@@ -254,22 +254,20 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
   const { editorMode } = state;
 
   if (newEditorMode === EditorMode.Text && editorMode === EditorMode.Chunks) {
-    const { chunks } = state;
-    if (chunks.length === 0) {
-      return {
-        ...state,
-        editorMode: EditorMode.Text,
-        currentFileContents: '',
-      };
-    }
+    // we already keep currentFileContents in sync with chunk contents while
+    // in chunk mode, since we need it to save the file contents.
     return {
       ...state,
-      currentFileContents: chunks.map((chunk) => chunk.text).join(CHUNKSEP),
+      editorMode: EditorMode.Text,
     };
   }
 
   if (newEditorMode === EditorMode.Chunks && editorMode === EditorMode.Text) {
+    // in text mode currentFileContents can be more up-to-date than chunks, so we
+    // need to recreate the chunks.
+
     const { currentFileContents } = state;
+
     if (currentFileContents === undefined) {
       return {
         ...state,
