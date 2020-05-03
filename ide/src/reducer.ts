@@ -307,11 +307,30 @@ function handleSetCurrentRunner(state: State, runner: any): State {
 }
 
 function handleSetCurrentFileContents(state: State, contents: string): State {
-  const { effectQueue } = state;
+  const {
+    effectQueue,
+    autoRun,
+    compiling,
+    running,
+    editorMode,
+  } = state;
+
+  if (editorMode !== EditorMode.Text) {
+    throw new Error('handleSetCurrentFileContents: not in text mode');
+  }
+
+  function getNewEffectQueue(): Effect[] {
+    if (autoRun && !compiling && !running) {
+      return [...effectQueue, 'saveFile', 'compile'];
+    }
+
+    return [...effectQueue, 'saveFile'];
+  }
+
   return {
     ...state,
     currentFileContents: contents,
-    effectQueue: [...effectQueue, 'saveFile'],
+    effectQueue: getNewEffectQueue(),
     isFileSaved: false,
   };
 }
@@ -341,7 +360,12 @@ function handleSetChunks(state: State, chunks: Chunk[]): State {
     autoRun,
     compiling,
     running,
+    editorMode,
   } = state;
+
+  if (editorMode !== EditorMode.Chunks) {
+    throw new Error('handleSetChunks: not in chunk mode');
+  }
 
   function getNewEffectQueue(): Effect[] {
     if (autoRun && !compiling && !running) {
