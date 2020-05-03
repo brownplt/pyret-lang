@@ -97,7 +97,7 @@ function handleCompileSuccess(state: State): State {
     return {
       ...state,
       compiling: false,
-      effectQueue: [...effectQueue, 'saveFile', 'compile'],
+      effectQueue: [...effectQueue, 'saveFile'],
     };
   }
 
@@ -145,9 +145,25 @@ function handleLoadFileSuccess(state: State): State {
 
 function handleSaveFileSuccess(state: State): State {
   console.log('saved a file successfully');
+  const {
+    effectQueue,
+    compiling,
+    running,
+    autoRun,
+  } = state;
+
+  function getNewEffectQueue(): Effect[] {
+    if (autoRun && !compiling && !running) {
+      return [...effectQueue, 'compile'];
+    }
+
+    return effectQueue;
+  }
+
   return {
     ...state,
     isFileSaved: true,
+    effectQueue: getNewEffectQueue(),
   };
 }
 
@@ -205,7 +221,7 @@ function handleCompileFailure(
     return {
       ...state,
       compiling: false,
-      effectQueue: [...effectQueue, 'saveFile', 'compile'],
+      effectQueue: [...effectQueue, 'saveFile'],
     };
   }
 
@@ -328,9 +344,7 @@ function handleSetCurrentRunner(state: State, runner: any): State {
 function handleSetCurrentFileContents(state: State, contents: string): State {
   const {
     effectQueue,
-    autoRun,
     compiling,
-    running,
     editorMode,
   } = state;
 
@@ -338,18 +352,10 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
     throw new Error('handleSetCurrentFileContents: not in text mode');
   }
 
-  function getNewEffectQueue(): Effect[] {
-    if (autoRun && !compiling && !running) {
-      return [...effectQueue, 'saveFile', 'compile'];
-    }
-
-    return [...effectQueue, 'saveFile'];
-  }
-
   return {
     ...state,
     currentFileContents: contents,
-    effectQueue: getNewEffectQueue(),
+    effectQueue: [...effectQueue, 'saveFile'],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
   };
@@ -377,9 +383,7 @@ function handleSetChunks(state: State, chunks: Chunk[]): State {
 
   const {
     effectQueue,
-    autoRun,
     compiling,
-    running,
     editorMode,
   } = state;
 
@@ -387,19 +391,11 @@ function handleSetChunks(state: State, chunks: Chunk[]): State {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 
-  function getNewEffectQueue(): Effect[] {
-    if (autoRun && !compiling && !running) {
-      return [...effectQueue, 'saveFile', 'compile'];
-    }
-
-    return [...effectQueue, 'saveFile'];
-  }
-
   return {
     ...state,
     chunks,
     currentFileContents: contents,
-    effectQueue: getNewEffectQueue(),
+    effectQueue: [...effectQueue, 'saveFile'],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
   };
