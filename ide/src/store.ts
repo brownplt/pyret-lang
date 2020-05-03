@@ -39,11 +39,9 @@ function handleLoadFile(
 ) {
   const contents = control.openOrCreateFile(currentFile);
 
-  // dispatch({ type: 'update', key: 'currentFileContents', value: contents });
-
   switch (editorMode) {
     case EditorMode.Text:
-      // nothing more to do
+      dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
     case EditorMode.Chunks: {
       const chunkStrings = contents.split(CHUNKSEP);
