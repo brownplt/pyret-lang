@@ -138,6 +138,7 @@ function handleSaveFileSuccess(state: State): State {
   console.log('saved a file successfully');
   return {
     ...state,
+    isFileSaved: true,
   };
 }
 
@@ -313,6 +314,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
     ...state,
     currentFileContents: contents,
     effectQueue: [...effectQueue, 'saveFile'],
+    isFileSaved: false,
   };
 }
 
@@ -356,6 +358,7 @@ function handleSetChunks(state: State, chunks: Chunk[]): State {
     chunks,
     currentFileContents: contents,
     effectQueue: getNewEffectQueue(),
+    isFileSaved: false,
   };
 }
 

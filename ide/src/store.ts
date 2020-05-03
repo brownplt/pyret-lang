@@ -309,8 +309,9 @@ function handleFirstActionableEffect(
             isSetupFinished,
             compiling,
             running,
+            isFileSaved,
           } = state;
-          if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
+          if (isMessageHandlerReady && isSetupFinished && isFileSaved && !compiling && !running) {
             return {
               effect: i,
               applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),

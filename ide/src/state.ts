@@ -32,6 +32,7 @@ export type State = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
 
+  isFileSaved: boolean,
   isSetupFinished: boolean,
   isMessageHandlerReady: boolean,
   isReplReady: boolean,
@@ -137,6 +138,7 @@ export const initialState: State = {
   firstUpdatableChunk: 0,
 
   effectQueue: [],
+  isFileSaved: false,
   isMessageHandlerReady: false,
   isReplReady: false,
   isSetupFinished: false,
