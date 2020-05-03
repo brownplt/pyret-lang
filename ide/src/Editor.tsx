@@ -33,6 +33,7 @@ type stateProps = {
   editorMode: EditorMode,
   chunks: Chunk[],
   running: boolean,
+  compiling: boolean | 'out-of-date',
 };
 
 function mapStateToProps(state: State.State): stateProps {
@@ -48,6 +49,7 @@ function mapStateToProps(state: State.State): stateProps {
     editorMode: state.editorMode,
     chunks: state.chunks,
     running: state.running,
+    compiling: state.compiling,
   };
 }
 
@@ -184,6 +186,7 @@ export class Editor extends React.Component<EditorProps, any> {
       stop,
       run,
       running,
+      compiling,
     } = this.props;
 
     const interactionValues = (
@@ -339,7 +342,7 @@ export class Editor extends React.Component<EditorProps, any> {
             {rightHandSide}
           </SplitterLayout>
         </div>
-        <Footer message="TODO: update message" />
+        <Footer message={`compiling: ${compiling}; running: ${running}`} />
       </div>
     );
   }

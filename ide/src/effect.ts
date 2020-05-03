@@ -1,5 +1,7 @@
 export type Effect =
   (| 'createRepl'
+   | 'startEditTimer'
+   | 'editTimer'
    | 'lint'
    | 'compile'
    | 'run'

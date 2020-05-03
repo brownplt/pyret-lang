@@ -13,6 +13,25 @@ type Dispatch = (action: Action) => void;
 
 let currentRunner: any;
 
+function handleStartEditTimer(dispatch: Dispatch, editTimer: NodeJS.Timer | false) {
+  if (editTimer) {
+    clearTimeout(editTimer);
+  }
+
+  dispatch({
+    type: 'effectEnded',
+    status: 'succeeded',
+    effect: 'startEditTimer',
+    timer: setTimeout(() => {
+      dispatch({
+        type: 'effectEnded',
+        status: 'succeeded',
+        effect: 'editTimer',
+      });
+    }, 200),
+  });
+}
+
 function handleLoadFile(
   dispatch: Dispatch,
   currentFile: string,
@@ -237,6 +256,13 @@ function handleFirstActionableEffect(
     const effect = effectQueue[i];
 
     switch (effect) {
+      case 'startEditTimer': {
+        const { editTimer } = state;
+        return {
+          effect: i,
+          applyEffect: () => handleStartEditTimer(dispatch, editTimer),
+        };
+      }
       case 'loadFile':
         {
           console.log('loadFile');

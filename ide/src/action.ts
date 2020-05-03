@@ -4,6 +4,8 @@ import { Effect } from './effect';
 
 export type EffectFailure =
   (| { effect: 'createRepl' }
+  | { effect: 'startEditTimer' }
+  | { effect: 'editTimer' }
   | { effect: 'lint', name: string, errors: string[] } // TODO: check errors type
   | { effect: 'compile', errors: string[] }
   | { effect: 'run', errors: any }
@@ -15,6 +17,8 @@ export type EffectFailure =
 
 export type EffectSuccess =
   (| { effect: 'createRepl' }
+  | { effect: 'startEditTimer', timer: NodeJS.Timer }
+  | { effect: 'editTimer' }
   | { effect: 'lint', name: string }
   | { effect: 'compile' }
   | { effect: 'run', result: any }

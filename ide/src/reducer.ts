@@ -82,6 +82,27 @@ function handleCreateReplSuccess(state: State): State {
   };
 }
 
+function handleStartEditTimerSuccess(
+  state: State,
+  action: SuccessForEffect<'startEditTimer'>,
+): State {
+  return {
+    ...state,
+    editTimer: action.timer,
+  };
+}
+
+function handleEditTimerSuccess(state: State): State {
+  const {
+    effectQueue,
+  } = state;
+
+  return {
+    ...state,
+    effectQueue: [...effectQueue, 'saveFile'],
+  };
+}
+
 function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): State {
   console.log('lint success', action);
   return {
@@ -178,6 +199,10 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   switch (action.effect) {
     case 'createRepl':
       return handleCreateReplSuccess(state);
+    case 'startEditTimer':
+      return handleStartEditTimerSuccess(state, action);
+    case 'editTimer':
+      return handleEditTimerSuccess(state);
     case 'lint':
       return handleLintSuccess(state, action);
     case 'compile':
@@ -195,7 +220,7 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
     case 'setupWorkerMessageHandler':
       return handleSetupWorkerMessageHandlerSuccess(state);
     default:
-      throw new Error(`handleAsyncSuccess: unknown process ${JSON.stringify(action)}`);
+      throw new Error(`handleEffectSucceeded: unknown process ${JSON.stringify(action)}`);
   }
 }
 
@@ -355,7 +380,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
   return {
     ...state,
     currentFileContents: contents,
-    effectQueue: [...effectQueue, 'saveFile'],
+    effectQueue: [...effectQueue, 'startEditTimer'],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
   };
@@ -395,7 +420,7 @@ function handleSetChunks(state: State, chunks: Chunk[]): State {
     ...state,
     chunks,
     currentFileContents: contents,
-    effectQueue: [...effectQueue, 'saveFile'],
+    effectQueue: [...effectQueue, 'startEditTimer'],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
   };
