@@ -12,7 +12,7 @@ import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
 import Tab from './Tab';
 import Footer from './Footer';
-// import { FontSize } from './FontSize';
+import FontSize from './FontSize';
 import FSBrowser from './FSBrowser';
 // import { Dropdown, DropdownOption } from './Dropdown';
 import Header from './Header';
@@ -226,14 +226,6 @@ export class Editor extends React.Component<EditorProps, any> {
      *         </DropdownOption>
      *     </Dropdown>);
      */
-    /* const fontSize =
-     *     <FontSize onIncrease={this.onIncreaseFontSize}
-     *               onDecrease={this.onDecreaseFontSize}
-     *               onReset={this.onResetFontSize}
-     *               size={this.state.fontSize}
-     *               key="FontSize">
-     *     </FontSize>;
-     */
 
     const textEditor = (
       <button
@@ -270,8 +262,8 @@ export class Editor extends React.Component<EditorProps, any> {
         <Tab name="⚙">
           {textEditor}
           {chunkEditor}
-          {/* {builtinsLoader}
-              {fontSize} */}
+          {/* {builtinsLoader} */}
+          <FontSize key="FontSize" />
         </Tab>
       </Menu>
     );

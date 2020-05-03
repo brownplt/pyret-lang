@@ -47,7 +47,8 @@ export type Update =
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: Chunk[] }
-  | { key: 'focusedChunk', value: number });
+  | { key: 'focusedChunk', value: number }
+  | { key: 'fontSize', value: number });
 
 export type UpdateKey = Update['key'];
 

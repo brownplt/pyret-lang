@@ -430,6 +430,10 @@ function handleSetFocusedChunk(state: State, index: number): State {
   return { ...state, focusedChunk: index };
 }
 
+function handleSetFontSize(state: State, fontSize: number): State {
+  return { ...state, fontSize };
+}
+
 function handleUpdate(
   state: State,
   action: Update,
@@ -449,6 +453,8 @@ function handleUpdate(
       return handleSetChunks(state, action.value);
     case 'focusedChunk':
       return handleSetFocusedChunk(state, action.value);
+    case 'fontSize':
+      return handleSetFontSize(state, action.value);
     default:
       throw new Error(`handleUpdate: unknown action ${action}`);
   }

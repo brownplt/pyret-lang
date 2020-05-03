@@ -1,20 +1,52 @@
 import React from 'react';
+import { connect, ConnectedProps } from 'react-redux';
+import { State } from './state';
+import { Action } from './action';
 
-type FontSizeProps = {
-  onIncrease: () => void,
-  onDecrease: () => void,
-  onReset: () => void,
-  size: number,
+type stateProps = {
+  fontSize: number,
 };
 
-export default function FontSize({
-  onIncrease, onDecrease, onReset, size,
+function mapStateToProps(state: State): stateProps {
+  const { fontSize } = state;
+  return {
+    fontSize,
+  };
+}
+
+type dispatchProps = {
+  onIncrease: (oldSize: number) => void,
+  onDecrease: (oldSize: number) => void,
+  onReset: () => void,
+};
+
+function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
+  return {
+    onIncrease(oldSize: number): void {
+      dispatch({ type: 'update', key: 'fontSize', value: oldSize + 1 });
+    },
+    onDecrease(oldSize: number): void {
+      dispatch({ type: 'update', key: 'fontSize', value: oldSize - 1 });
+    },
+    onReset(): void {
+      dispatch({ type: 'update', key: 'fontSize', value: 12 });
+    },
+  };
+}
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type PropsFromRedux = ConnectedProps<typeof connector>;
+type FontSizeProps = PropsFromRedux & dispatchProps & stateProps;
+
+function FontSize({
+  onIncrease, onDecrease, onReset, fontSize,
 }: FontSizeProps) {
   return (
     <div className="font-size-options">
       <button
         className="font-minus"
-        onClick={onDecrease}
+        onClick={() => onDecrease(fontSize)}
         type="button"
       >
         -
@@ -25,13 +57,13 @@ export default function FontSize({
         type="button"
       >
         Font (
-        {size}
+        {fontSize}
         {' '}
         px)
       </button>
       <button
         className="font-plus"
-        onClick={onIncrease}
+        onClick={() => onIncrease(fontSize)}
         type="button"
       >
         +
@@ -39,3 +71,5 @@ export default function FontSize({
     </div>
   );
 }
+
+export default connector(FontSize);
