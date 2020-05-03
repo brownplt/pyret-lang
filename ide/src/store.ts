@@ -1,7 +1,6 @@
 import { createStore } from 'redux';
 import ideApp from './reducer';
 import { EditorMode, CHUNKSEP, State } from './state';
-import { Effect } from './effect';
 import {
   newId,
   Chunk,
@@ -27,30 +26,33 @@ function handleLoadFile(
     case EditorMode.Text:
       // nothing more to do
       break;
-    case EditorMode.Chunks:
-      {
-        const chunkStrings = contents.split(CHUNKSEP);
-        let totalLines = 0;
-        const chunks = chunkStrings.map((chunkString) => {
-          const chunk = {
-            text: chunkString,
-            startLine: totalLines,
-            editor: undefined,
-            id: newId(),
-          };
+    case EditorMode.Chunks: {
+      const chunkStrings = contents.split(CHUNKSEP);
+      let totalLines = 0;
+      const chunks = chunkStrings.map((chunkString) => {
+        const chunk = {
+          text: chunkString,
+          startLine: totalLines,
+          editor: undefined,
+          id: newId(),
+        };
 
-          totalLines += chunkString.split('\n').length;
+        totalLines += chunkString.split('\n').length;
 
-          return chunk;
-        });
+        return chunk;
+      });
 
-        dispatch({ type: 'update', key: 'chunks', value: chunks });
-      }
+      dispatch({ type: 'update', key: 'chunks', value: chunks });
       break;
+    }
     default:
-
-      //  throw new Error('handleLoadFile: unknown editor mode');
   }
+
+  dispatch({
+    type: 'effectEnded',
+    status: 'succeeded',
+    effect: 'loadFile',
+  });
 }
 
 function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
@@ -59,70 +61,64 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   }
 
   function handleSetupFinished(): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'succeeded',
-      process: 'setup',
-    };
-    dispatch(action);
+      effect: 'setup',
+    });
   }
 
   function handleCompileFailure(errors: string[]): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'failed',
-      process: 'compile',
+      effect: 'compile',
       errors,
-    };
-    dispatch(action);
+    });
   }
 
   function handleRuntimeFailure(errors: string[]): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'failed',
-      process: 'run',
+      effect: 'run',
       errors,
-    };
-    dispatch(action);
+    });
   }
 
   function handleLintFailure(lintFailure: { name: string, errors: string[] }): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'failed',
-      process: 'lint',
-      errors: lintFailure,
-    };
-    dispatch(action);
+      effect: 'lint',
+      name: lintFailure.name,
+      errors: lintFailure.errors,
+    });
   }
 
   function handleLintSuccess(lintSuccess: { name: string }): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'succeeded',
-      process: 'lint',
+      effect: 'lint',
       name: lintSuccess.name,
-    };
-    dispatch(action);
+    });
   }
 
   function handleCompileSuccess(): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'succeeded',
-      process: 'compile',
-    };
-    dispatch(action);
+      effect: 'compile',
+    });
   }
 
   function handleCreateReplSuccess(): void {
-    const action: any = {
-      type: 'setAsyncStatus',
+    dispatch({
+      type: 'effectEnded',
       status: 'succeeded',
-      process: 'createRepl',
-    };
-    dispatch(action);
+      effect: 'createRepl',
+    });
   }
 
   function handleCompileInteractionSuccess(): void {
@@ -146,15 +142,14 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     handleCompileInteractionFailure,
   );
 
-  dispatch({ type: 'update', key: 'isMessageHandlerReady', value: true });
+  dispatch({
+    type: 'effectEnded',
+    status: 'succeeded',
+    effect: 'setupWorkerMessageHandler',
+  });
 }
 
-function handleCreateRepl(dispatch: Dispatch) {
-  dispatch({
-    type: 'setAsyncStatus',
-    status: 'started',
-    process: 'createRepl',
-  });
+function handleCreateRepl() {
   control.createRepl();
 }
 
@@ -178,24 +173,20 @@ function handleSaveFile(
     default:
       throw new Error('handleSaveFile: unknown editor mode');
   }
+
+  dispatch({
+    type: 'effectEnded',
+    status: 'succeeded',
+    effect: 'saveFile',
+  });
 }
 
 function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
-  dispatch({
-    type: 'setAsyncStatus',
-    status: 'started',
-    process: 'compile',
-  });
   const { dir, base } = control.bfsSetup.path.parse(path);
   control.compile(dir, base, typeCheck);
 }
 
 function handleRun(dispatch: Dispatch, runKind: RunKind) {
-  dispatch({
-    type: 'setAsyncStatus',
-    status: 'started',
-    process: 'run',
-  });
   const { runBase, runProgram } = control.path;
   control.run(
     runBase,
@@ -203,31 +194,23 @@ function handleRun(dispatch: Dispatch, runKind: RunKind) {
     (runResult: any) => {
       console.log('runResult', runResult);
       if (runResult.result.error === undefined) {
-        const action: any = {
-          type: 'setAsyncStatus',
+        dispatch({
+          type: 'effectEnded',
           status: 'succeeded',
-          process: 'run',
+          effect: 'run',
           result: runResult,
-        };
-        dispatch(action);
+        });
       } else {
-        const action: any = {
-          type: 'setAsyncStatus',
+        dispatch({
+          type: 'effectEnded',
           status: 'failed',
-          process: 'run',
+          effect: 'run',
           errors: runResult.result.result,
-        };
-        dispatch(action);
+        });
       }
     },
     (runner: any) => {
       currentRunner = runner;
-      // TODO
-      dispatch({
-        type: 'update',
-        key: 'currentRunner',
-        value: runner,
-      });
     },
     runKind,
   );
@@ -235,32 +218,20 @@ function handleRun(dispatch: Dispatch, runKind: RunKind) {
 
 function handleStop(dispatch: Dispatch) {
   currentRunner.pause((line: number) => {
-    const action: any = {
-      type: 'setAsyncStatus',
-      status: 'failed',
-      process: 'run',
-      errors: `paused on line ${line}`,
-    };
-    dispatch(action);
+    dispatch({
+      type: 'effectEnded',
+      status: 'succeeded',
+      effect: 'stop',
+      line,
+    });
   });
 }
 
 function handleFirstActionableEffect(
   state: State,
   dispatch: Dispatch,
-): { effectQueue: Effect[], applyEffect: () => void } {
+): false | { effect: number, applyEffect: () => void } {
   const { effectQueue } = state;
-
-  if (effectQueue.length === 0) {
-    return { effectQueue: [], applyEffect: () => { } };
-  }
-
-  function getNewEffectQueue(indexToRemove: number) {
-    return [
-      ...effectQueue.slice(0, indexToRemove),
-      ...effectQueue.slice(indexToRemove + 1, effectQueue.length),
-    ];
-  }
 
   for (let i = 0; i < effectQueue.length; i += 1) {
     const effect = effectQueue[i];
@@ -272,7 +243,7 @@ function handleFirstActionableEffect(
           const { currentFile, editorMode } = state;
           if (currentFile !== undefined) {
             return {
-              effectQueue: getNewEffectQueue(i),
+              effect: i,
               applyEffect: () => handleLoadFile(dispatch, currentFile, editorMode),
             };
           }
@@ -286,7 +257,7 @@ function handleFirstActionableEffect(
           } = state;
           if (currentFile !== undefined && currentFileContents !== undefined) {
             return {
-              effectQueue: getNewEffectQueue(i),
+              effect: i,
               applyEffect: () => handleSaveFile(
                 dispatch,
                 editorMode,
@@ -304,7 +275,7 @@ function handleFirstActionableEffect(
           const { isMessageHandlerReady } = state;
           if (!isMessageHandlerReady) {
             return {
-              effectQueue: getNewEffectQueue(i),
+              effect: i,
               applyEffect: () => handleSetupWorkerMessageHandler(dispatch),
             };
           }
@@ -316,8 +287,8 @@ function handleFirstActionableEffect(
           const { isReplReady } = state;
           if (!isReplReady) {
             return {
-              effectQueue: getNewEffectQueue(i),
-              applyEffect: () => handleCreateRepl(dispatch),
+              effect: i,
+              applyEffect: () => handleCreateRepl(),
             };
           }
         }
@@ -325,7 +296,7 @@ function handleFirstActionableEffect(
       case 'lint':
         console.log('applyFirstActionableEffect: warning: lint effect ignored (nyi)');
         return {
-          effectQueue: getNewEffectQueue(i),
+          effect: i,
           applyEffect: () => { },
         };
       case 'compile':
@@ -341,7 +312,7 @@ function handleFirstActionableEffect(
           } = state;
           if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
             return {
-              effectQueue: getNewEffectQueue(i),
+              effect: i,
               applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
             };
           }
@@ -358,7 +329,7 @@ function handleFirstActionableEffect(
         } = state;
         if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
           return {
-            effectQueue: getNewEffectQueue(i),
+            effect: i,
             applyEffect: () => handleRun(dispatch, runKind),
           };
         }
@@ -368,13 +339,13 @@ function handleFirstActionableEffect(
         const { running } = state;
         if (running && currentRunner !== undefined) {
           return {
-            effectQueue: getNewEffectQueue(i),
+            effect: i,
             applyEffect: () => handleStop(dispatch),
           };
         }
 
         return {
-          effectQueue: getNewEffectQueue(i),
+          effect: i,
           applyEffect: () => { },
         };
       }
@@ -383,10 +354,7 @@ function handleFirstActionableEffect(
     }
   }
 
-  return { // we didn't handle any effects
-    effectQueue,
-    applyEffect: () => { },
-  };
+  return false;
 }
 
 const store = createStore(
@@ -397,23 +365,22 @@ const store = createStore(
 store.subscribe(() => {
   const state = store.getState();
 
-  const oldEffectQueue = state.effectQueue;
   const { dispatch } = store;
 
-  const { effectQueue, applyEffect } = handleFirstActionableEffect(state, dispatch);
+  const maybeEffect = handleFirstActionableEffect(state, dispatch);
 
-  if (oldEffectQueue.length !== effectQueue.length) {
-    dispatch({
-      type: 'update',
-      key: 'effectQueue',
-      value: effectQueue,
-    });
-    applyEffect();
+  if (!maybeEffect) {
+    return;
   }
+
+  const { effect, applyEffect } = maybeEffect;
+
+  dispatch({ type: 'effectStarted', effect });
+  applyEffect();
 });
 
-store.dispatch({ type: 'queueEffect', effect: 'setupWorkerMessageHandler' });
-store.dispatch({ type: 'queueEffect', effect: 'loadFile' });
+store.dispatch({ type: 'enqueueEffect', effect: 'setupWorkerMessageHandler' });
+store.dispatch({ type: 'enqueueEffect', effect: 'loadFile' });
 
 export default store;
 

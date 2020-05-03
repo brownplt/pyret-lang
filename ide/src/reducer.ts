@@ -1,11 +1,13 @@
 import {
-  AsyncProcess,
-  AsyncFailure,
-  AsyncSuccess,
-  AsyncFailureForProcess,
-  AsyncStatus,
+  EffectFailure,
+  EffectSuccess,
+  EffectEnded,
+  FailureForEffect,
+  Update,
+  EffectStarted,
   Action,
-  AsyncSuccessForProcess,
+  SuccessForEffect,
+  EnqueueEffect,
 } from './action';
 
 import {
@@ -309,30 +311,50 @@ import {
 //   return { ...rootReducer(state, action) };
 // }
 
-function handleAsyncStarted(state: State, status: AsyncStatus<AsyncProcess>): State {
-  switch (status.process) {
+function handleEffectStarted(state: State, action: EffectStarted): State {
+  const oldEffectQueue = state.effectQueue;
+
+  if (oldEffectQueue[action.effect] === undefined) {
+    const message = `handleEffectStarted: effect to remove is out of bounds${
+      JSON.stringify(action)}`;
+    throw new Error(message);
+  }
+
+  const effectQueue = [
+    ...oldEffectQueue.slice(0, action.effect),
+    ...oldEffectQueue.slice(action.effect + 1, oldEffectQueue.length),
+  ];
+
+  switch (oldEffectQueue[action.effect]) {
     case 'createRepl':
       return {
         ...state,
         creatingRepl: true,
+        effectQueue,
       };
     case 'lint':
       return {
         ...state,
         linting: true,
+        effectQueue,
       };
     case 'compile':
       return {
         ...state,
         compiling: true,
+        effectQueue,
       };
     case 'run':
       return {
         ...state,
         running: true,
+        effectQueue,
       };
     default:
-      throw new Error('handleAsyncStarted: unknown process');
+      return {
+        ...state,
+        effectQueue,
+      };
   }
 }
 
@@ -344,8 +366,8 @@ function handleCreateReplSuccess(state: State): State {
   };
 }
 
-function handleLintSuccess(state: State): State {
-  // TODO: use status.name here somehow
+function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): State {
+  console.log('lint success', action);
   return {
     ...state,
     linting: false,
@@ -363,7 +385,7 @@ function handleCompileSuccess(state: State): State {
   };
 }
 
-function handleRunSuccess(state: State, status: AsyncSuccessForProcess<'run'>): State {
+function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
   const results = makeResult(status.result.result, `file://${state.currentFile}`);
   return {
     ...state,
@@ -376,32 +398,66 @@ function handleRunSuccess(state: State, status: AsyncSuccessForProcess<'run'>): 
 function handleSetupSuccess(state: State): State {
   return {
     ...state,
-    settingUp: false,
     isSetupFinished: true,
+    settingUp: false,
   };
 }
 
-function handleAsyncSuccess(state: State, status: AsyncSuccess): State {
-  switch (status.process) {
-    case 'setup':
-      return handleSetupSuccess(state);
+function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): State {
+  console.log('stop successful, paused on line', action.line);
+  return {
+    ...state,
+    running: false,
+  };
+}
+
+function handleLoadFileSuccess(state: State): State {
+  console.log('loaded a file successfully');
+  return {
+    ...state,
+  };
+}
+
+function handleSaveFileSuccess(state: State): State {
+  console.log('saved a file successfully');
+  return {
+    ...state,
+  };
+}
+
+function handleSetupWorkerMessageHandlerSuccess(state: State): State {
+  return {
+    ...state,
+    isMessageHandlerReady: true,
+  };
+}
+
+function handleEffectSucceeded(state: State, action: EffectSuccess): State {
+  switch (action.effect) {
     case 'createRepl':
       return handleCreateReplSuccess(state);
     case 'lint':
-      return handleLintSuccess(state);
+      return handleLintSuccess(state, action);
     case 'compile':
       return handleCompileSuccess(state);
     case 'run':
-      return handleRunSuccess(state, status);
+      return handleRunSuccess(state, action);
+    case 'setup':
+      return handleSetupSuccess(state);
+    case 'stop':
+      return handleStopSuccess(state, action);
+    case 'loadFile':
+      return handleLoadFileSuccess(state);
+    case 'saveFile':
+      return handleSaveFileSuccess(state);
+    case 'setupWorkerMessageHandler':
+      return handleSetupWorkerMessageHandlerSuccess(state);
     default:
-      throw new Error(`handleAsyncSuccess: unknown process ${JSON.stringify(status)}`);
+      throw new Error(`handleAsyncSuccess: unknown process ${JSON.stringify(action)}`);
   }
 }
 
-function handleCreateReplFailure(
-// state: State,
-// status: AsyncFailureForProcess<'createRepl'>,
-): State {
+function handleCreateReplFailure(): State {
   throw new Error('handleCreateReplFailure: failed to create a REPL');
 }
 
@@ -415,7 +471,7 @@ function handleLintFailure(state: State): State {
 
 function handleCompileFailure(
   state: State,
-  status: AsyncFailureForProcess<'compile'>,
+  status: FailureForEffect<'compile'>,
 ): State {
   const places: any = [];
   for (let i = 0; i < status.errors.length; i += 1) {
@@ -434,7 +490,7 @@ function handleCompileFailure(
   };
 }
 
-function handleRunFailure(state: State, status: AsyncFailureForProcess<'run'>) {
+function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
   console.log('handleFailure', status);
   return {
     ...state,
@@ -443,39 +499,37 @@ function handleRunFailure(state: State, status: AsyncFailureForProcess<'run'>) {
   };
 }
 
-function handleAsyncFailure(state: State, status: AsyncFailure): State {
-  switch (status.process) {
+function handleEffectFailed(state: State, action: EffectFailure): State {
+  switch (action.effect) {
     case 'createRepl':
       return handleCreateReplFailure();
     case 'lint':
       return handleLintFailure(state);
     case 'compile':
-      return handleCompileFailure(state, status);
+      return handleCompileFailure(state, action);
     case 'run':
-      return handleRunFailure(state, status);
+      return handleRunFailure(state, action);
     default:
-      throw new Error('handleAsyncFailure: unknown process');
+      throw new Error(`handleEffectFailed: unknown effect ${JSON.stringify(action)}`);
   }
 }
 
-function handleSetAsyncStatus(state: State, status: AsyncStatus<AsyncProcess>): State {
-  switch (status.status) {
-    case 'started':
-      return handleAsyncStarted(state, status);
+function handleEffectEnded(state: State, action: EffectEnded): State {
+  switch (action.status) {
     case 'succeeded':
-      return handleAsyncSuccess(state, status);
+      return handleEffectSucceeded(state, action);
     case 'failed':
-      return handleAsyncFailure(state, status);
+      return handleEffectFailed(state, action);
     default:
-      throw new Error(`handleSetAsyncStatus: unknown status ${JSON.stringify(status)}`);
+      throw new Error(`handleEffectEnded: unknown action ${JSON.stringify(action)}`);
   }
 }
 
-function handleQueueEffect(state: State, effect: Effect): State {
+function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
   const { effectQueue } = state;
   return {
     ...state,
-    effectQueue: [...effectQueue, effect],
+    effectQueue: [...effectQueue, action.effect],
   };
 }
 
@@ -555,6 +609,7 @@ function handleSetBrowsePath(state: State, path: string): State {
 
 function handleSetCurrentFile(state: State, file: string): State {
   const { effectQueue } = state;
+
   return {
     ...state,
     currentFile: file,
@@ -565,10 +620,15 @@ function handleSetCurrentFile(state: State, file: string): State {
 function handleSetChunks(state: State, chunks: Chunk[]): State {
   const contents = chunks.map((chunk) => chunk.text).join(CHUNKSEP);
 
-  const { effectQueue, autoRun } = state;
+  const {
+    effectQueue,
+    autoRun,
+    compiling,
+    running,
+  } = state;
 
   function getNewEffectQueue(): Effect[] {
-    if (autoRun) {
+    if (autoRun && !compiling && !running) {
       return [...effectQueue, 'saveFile', 'compile'];
     }
 
@@ -587,57 +647,40 @@ function handleSetFocusedChunk(state: State, index: number): State {
   return { ...state, focusedChunk: index };
 }
 
-function handleSetEffectQueue(state: State, newEffectQueue: Effect[]): State {
-  return { ...state, effectQueue: newEffectQueue };
-}
-
-function handleSetIsMessageHandlerReady(state: State, ready: boolean): State {
-  if (ready) {
-    return {
-      ...state,
-      isMessageHandlerReady: true,
-    };
-  }
-  throw new Error('handleSetEditorMode: attempt to unset message handler readiness');
-}
-
 function handleUpdate(
   state: State,
-  key: any, // TODO: fix types
-  value: any,
+  action: Update,
 ): State {
-  switch (key) {
+  switch (action.key) {
     case 'editorMode':
-      return handleSetEditorMode(state, value);
-    case 'isMessageHandlerReady':
-      return handleSetIsMessageHandlerReady(state, value);
+      return handleSetEditorMode(state, action.value);
     case 'currentRunner':
-      return handleSetCurrentRunner(state, value);
+      return handleSetCurrentRunner(state, action.value);
     case 'currentFileContents':
-      return handleSetCurrentFileContents(state, value);
+      return handleSetCurrentFileContents(state, action.value);
     case 'browsePath':
-      return handleSetBrowsePath(state, value);
+      return handleSetBrowsePath(state, action.value);
     case 'currentFile':
-      return handleSetCurrentFile(state, value);
+      return handleSetCurrentFile(state, action.value);
     case 'chunks':
-      return handleSetChunks(state, value);
+      return handleSetChunks(state, action.value);
     case 'focusedChunk':
-      return handleSetFocusedChunk(state, value);
-    case 'effectQueue':
-      return handleSetEffectQueue(state, value);
+      return handleSetFocusedChunk(state, action.value);
     default:
-      throw new Error(`handleUpdate: unknown key ${key}`);
+      throw new Error(`handleUpdate: unknown action ${action}`);
   }
 }
 
 function rootReducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'setAsyncStatus':
-      return handleSetAsyncStatus(state, action);
-    case 'queueEffect':
-      return handleQueueEffect(state, action.effect);
+    case 'effectStarted':
+      return handleEffectStarted(state, action);
+    case 'effectEnded':
+      return handleEffectEnded(state, action);
+    case 'enqueueEffect':
+      return handleEnqueueEffect(state, action);
     case 'update':
-      return handleUpdate(state, action.key, action.value);
+      return handleUpdate(state, action);
     default:
       return state;
   }

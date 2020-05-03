@@ -1,9 +1,10 @@
 export type Effect =
-  'loadFile'
-  | 'saveFile'
-  | 'setupWorkerMessageHandler'
-  | 'createRepl'
-  | 'lint'
-  | 'compile'
-  | 'run'
-  | 'stop';
+  (| 'createRepl'
+   | 'lint'
+   | 'compile'
+   | 'run'
+   | 'setup'
+   | 'stop'
+   | 'loadFile'
+   | 'saveFile'
+   | 'setupWorkerMessageHandler');

@@ -2,39 +2,42 @@ import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';
 
-export type AsyncProcess = 'createRepl' | 'lint' | 'compile' | 'run';
+export type EffectFailure =
+  (| { effect: 'createRepl' }
+  | { effect: 'lint', name: string, errors: string[] } // TODO: check errors type
+  | { effect: 'compile', errors: string[] }
+  | { effect: 'run', errors: any }
+  | { effect: 'setup' }
+  | { effect: 'stop' }
+  | { effect: 'loadFile' }
+  | { effect: 'saveFile' }
+  | { effect: 'setupWorkerMessageHandler' });
 
-export type AsyncFailure =
-  ({ process: 'createRepl' }
-  | { process: 'setupWorkerMessageHandler' }
-  | { process: 'setup' }
-  | { process: 'lint', name: string, errors: string[] } // TODO: check errors type
-  | { process: 'compile', errors: string[] }
-  | { process: 'run', errors: any });
+export type EffectSuccess =
+  (| { effect: 'createRepl' }
+  | { effect: 'lint', name: string }
+  | { effect: 'compile' }
+  | { effect: 'run', result: any }
+  | { effect: 'setup' }
+  | { effect: 'stop', line: number }
+  | { effect: 'loadFile' }
+  | { effect: 'saveFile' }
+  | { effect: 'setupWorkerMessageHandler' });
 
-export type AsyncSuccess =
-  ({ process: 'createRepl' }
-  | { process: 'setupWorkerMessageHandler' }
-  | { process: 'setup' }
-  | { process: 'lint', name: string }
-  | { process: 'compile' }
-  | { process: 'run', result: any });
+export type SuccessForEffect<E extends Effect> =
+  Extract<EffectSuccess, { effect: E }>;
 
-export type AsyncSuccessForProcess<P extends AsyncProcess>
-  = Extract<AsyncSuccess, { process: P }>;
+export type FailureForEffect<E extends Effect> =
+  Extract<EffectFailure, { effect: E }>;
 
-export type AsyncFailureForProcess<P extends AsyncProcess>
-  = Extract<AsyncFailure, { process: P }>;
+export type EffectSucceeded = { status: 'succeeded' } & SuccessForEffect<Effect>;
 
-export type AsyncStatus<P extends AsyncProcess> =
-  ({ status: 'started', process: P }
-  | { status: 'succeeded', process: P } & AsyncSuccessForProcess<P>
-  | { status: 'failed', process: P } & AsyncFailureForProcess<P>);
+export type EffectFailed = { status: 'failed' } & FailureForEffect<Effect>;
+
+export type EffectEnded = EffectSucceeded | EffectFailed;
 
 export type Update =
-  ({ key: 'editorMode', value: EditorMode }
-  | { key: 'isMessageHandlerReady', value: boolean }
-  | { key: 'effectQueue', value: Effect[] }
+  (| { key: 'editorMode', value: EditorMode }
   | { key: 'currentRunner', value: any }
   | { key: 'currentFileContents', value: string }
   | { key: 'browsePath', value: string }
@@ -48,9 +51,14 @@ export type UpdateOfKey<K extends UpdateKey> = Extract<Update, { key: K }>;
 
 export type UpdateOfKeyValue<K extends UpdateKey> = UpdateOfKey<K>['value'];
 
+export type EffectStarted = { effect: number };
+
+export type EnqueueEffect = { effect: Effect };
+
 export type Action =
-  ({ type: 'setAsyncStatus' } & AsyncStatus<AsyncProcess>
-  | { type: 'queueEffect', effect: Effect }
+  (| { type: 'effectStarted' } & EffectStarted
+  | { type: 'effectEnded' } & EffectEnded
+  | { type: 'enqueueEffect' } & EnqueueEffect
   | { type: 'update' } & Update);
 
 export type ActionType = Action['type'];
