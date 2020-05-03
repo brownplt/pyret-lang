@@ -39,7 +39,7 @@ export type State = {
   settingUp: boolean,
   creatingRepl: boolean,
   linting: boolean,
-  compiling: boolean,
+  compiling: boolean | 'out-of-date',
   running: boolean,
   compiledSinceLastEdit: boolean,
 };

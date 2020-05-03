@@ -91,7 +91,16 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 }
 
 function handleCompileSuccess(state: State): State {
-  const { autoRun, effectQueue } = state;
+  const { compiling, autoRun, effectQueue } = state;
+
+  if (compiling === 'out-of-date') {
+    return {
+      ...state,
+      compiling: false,
+      effectQueue: [...effectQueue, 'saveFile', 'compile'],
+    };
+  }
+
   return {
     ...state,
     compiling: false,
@@ -190,6 +199,16 @@ function handleCompileFailure(
   state: State,
   status: FailureForEffect<'compile'>,
 ): State {
+  const { compiling } = state;
+  if (compiling === 'out-of-date') {
+    const { effectQueue } = state;
+    return {
+      ...state,
+      compiling: false,
+      effectQueue: [...effectQueue, 'saveFile', 'compile'],
+    };
+  }
+
   const places: any = [];
   for (let i = 0; i < status.errors.length; i += 1) {
     const matches = status.errors[i].match(/:\d+:\d+-\d+:\d+/g);
@@ -332,6 +351,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
     currentFileContents: contents,
     effectQueue: getNewEffectQueue(),
     isFileSaved: false,
+    compiling: compiling ? 'out-of-date' : false,
   };
 }
 
@@ -381,6 +401,7 @@ function handleSetChunks(state: State, chunks: Chunk[]): State {
     currentFileContents: contents,
     effectQueue: getNewEffectQueue(),
     isFileSaved: false,
+    compiling: compiling ? 'out-of-date' : false,
   };
 }
 

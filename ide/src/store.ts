@@ -251,10 +251,10 @@ function handleFirstActionableEffect(
         break;
       case 'saveFile':
         {
-          console.log('saveFile');
           const {
             editorMode, currentFile, currentFileContents, chunks,
           } = state;
+          console.log('saveFile, contents=', currentFileContents);
           if (currentFile !== undefined && currentFileContents !== undefined) {
             return {
               effect: i,
