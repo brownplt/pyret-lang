@@ -87,14 +87,14 @@ export const removeRootDirectory = (): void => {
 };
 
 export const lint = (
-  programFileName: string,
   programText: string,
+  programName: string,
 ): void => {
   backend.lintProgram(
     worker,
     {
-      program: programFileName,
-      programSource: programText,
+      program: programText,
+      programSource: programName,
     },
   );
 };
