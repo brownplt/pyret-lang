@@ -4,7 +4,6 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
 import { Chunk, getStartLineForIndex, newId } from './chunk';
 import { Action } from './action';
-import * as control from './control';
 
 type stateProps = {
   chunks: Chunk[],
@@ -21,7 +20,6 @@ function mapStateToProps(state: State): stateProps {
 
 type propsFromReact = {
   index: number,
-  name: string,
   focused: boolean,
 };
 
@@ -70,27 +68,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       chunks,
       index,
     } = this.props;
-
-    // const currentChunk = chunks[index];
-    // if (currentChunk.lint.status === 'failed') {
-    //   const { highlights } = currentChunk.lint;
-    //   marks.forEach((m) => m.clear());
-    //   if (highlights.length > 0) {
-    //     for (let i = 0; i < highlights.length; i += 1) {
-    //       editor.getDoc().markText(
-    //         {
-    //           line: highlights[i][0] - 1 - startLine,
-    //           ch: highlights[i][1],
-    //         },
-    //         {
-    //           line: highlights[i][2] - 1 - startLine,
-    //           ch: highlights[i][3],
-    //         },
-    //         { className: 'styled-background-error' },
-    //       );
-    //     }
-    //   }
-    // }
 
     const {
       editor,
@@ -141,11 +118,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       };
     }
     setChunks(newChunks);
-  }
-
-  lint(value : string) {
-    const { name } = this.props;
-    control.lint(value, name);
   }
 
   handleArrowUp(editor: any, event: Event) {

@@ -5,16 +5,12 @@ import {
 } from 'react-beautiful-dnd';
 import { Action } from './action';
 import {
-  LintFailures,
   State,
 } from './state';
 import { Chunk, getStartLineForIndex } from './chunk';
 import DefChunk from './DefChunk';
 
 type stateProps = {
-  lintFailures: LintFailures,
-  highlights: number[][],
-  name: string,
   chunks: Chunk[],
   focusedChunk: number | undefined,
 };
@@ -25,21 +21,11 @@ type dispatchProps = {
 
 function mapStateToProps(state: State): stateProps {
   const {
-    lintFailures,
-    definitionsHighlights,
-    currentFile,
     chunks,
     focusedChunk,
   } = state;
 
-  if (currentFile === undefined) {
-    throw new Error('currentFile is undefined');
-  }
-
   return {
-    lintFailures,
-    highlights: definitionsHighlights,
-    name: currentFile,
     chunks,
     focusedChunk,
   };
@@ -68,13 +54,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 
       // const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
 
-      console.log('handle reorder setchunks');
       dispatch({ type: 'update', key: 'chunks', value: newChunks });
-      // dispatch({
-      //   type: 'updateChunkContents',
-      //   index: firstAffectedChunk,
-      //   contents: newChunks[firstAffectedChunk].text,
-      // });
       dispatch({ type: 'update', key: 'focusedChunk', value: result.destination.index });
     },
   };
@@ -88,7 +68,6 @@ type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
 function DefChunks({
   handleReorder,
   chunks,
-  name,
   focusedChunk,
 }: DefChunksProps) {
   const onDragEnd = (result: DropResult) => {
@@ -99,21 +78,6 @@ function DefChunks({
   };
 
   function setupChunk(chunk: Chunk, index: number) {
-    // const linesInChunk = chunk.text.split('\n').length;
-    // let chunkHighlights : number[][];
-    const chunkName = `${name}_chunk_${index}`;
-    // let failures : string[] = [];
-    // if (chunkName in lintFailures) {
-    //   failures = lintFailures[chunkName].errors;
-    // }
-    // if (highlights.length > 0) {
-    //   chunkHighlights = highlights.filter(
-    //     (h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk,
-    //   );
-    // } else {
-    //   chunkHighlights = [];
-    // }
-
     const focused = focusedChunk === index;
 
     function getBorderColor() {
@@ -167,7 +131,6 @@ function DefChunks({
                 ::
               </div>
               <DefChunk
-                name={chunkName}
                 key={chunk.id}
                 index={index}
                 focused={focused}
