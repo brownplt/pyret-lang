@@ -21,9 +21,6 @@ function mapStateToProps(state: State): stateProps {
 
 type propsFromReact = {
   index: number,
-  onEdit: (key: number, chunk: string, shouldCreateNewChunk: boolean) => void,
-  highlights: any,
-  failures: any,
   name: string,
   focused: boolean,
 };
@@ -68,17 +65,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   // }
 
   componentDidUpdate() {
+    console.log('COMPONENT DID UPDATE');
     const {
-    //  chunks,
+      chunks,
       index,
-    //  highlights,
     } = this.props;
-    // const {
-    //   editor,
-    //   startLine,
-    // } = chunks[index];
-    // if (editor !== undefined) {
-    //   const marks = editor.getDoc().getAllMarks();
+
+    // const currentChunk = chunks[index];
+    // if (currentChunk.lint.status === 'failed') {
+    //   const { highlights } = currentChunk.lint;
     //   marks.forEach((m) => m.clear());
     //   if (highlights.length > 0) {
     //     for (let i = 0; i < highlights.length; i += 1) {
@@ -97,6 +92,33 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     //   }
     // }
 
+    const {
+      editor,
+      lint,
+    } = chunks[index];
+    if (editor && lint.status === 'failed') {
+      const { highlights } = lint;
+      console.log('highlights:', highlights);
+      const marks = editor.getDoc().getAllMarks();
+      marks.forEach((m) => m.clear());
+      if (highlights.length > 0) {
+        for (let i = 0; i < highlights.length; i += 1) {
+          console.log('marking ...');
+          editor.getDoc().markText(
+            {
+              line: highlights[i][0] - 1,
+              ch: highlights[i][1],
+            },
+            {
+              line: highlights[i][2] - 1,
+              ch: highlights[i][3],
+            },
+            { className: 'styled-background-error' },
+          );
+        }
+      }
+    }
+
     const { focusedChunk } = this.props;
     if (index === focusedChunk && this.input.current !== null) {
       this.input.current.editor.focus();
@@ -108,15 +130,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     const newChunks = [...chunks];
     newChunks[index] = {
-      startLine: newChunks[index].startLine,
+      ...newChunks[index],
       text: value,
-      id: newChunks[index].id,
+      lint: { status: 'notLinted' },
     };
     for (let i = index; i < newChunks.length; i += 1) {
       newChunks[i] = {
+        ...newChunks[i],
         startLine: getStartLineForIndex(newChunks, i),
-        text: newChunks[i].text,
-        id: newChunks[i].id,
       };
     }
     setChunks(newChunks);
@@ -153,13 +174,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const token = editor.getTokenAt(pos);
     if (token.state.lineState.tokens.length === 0) {
       if (index + 1 === chunks.length) {
-        const newChunks = [
+        const newChunks: Chunk[] = [
           ...chunks.slice(),
           {
             text: '',
             startLine: getStartLineForIndex(chunks, index + 1),
-            editor: undefined,
             id: newId(),
+            lint: { status: 'notLinted' },
+            editor: false,
           },
         ];
         setChunks(newChunks);
@@ -172,14 +194,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             text: '',
             startLine: getStartLineForIndex(chunks, index + 1),
             id: newId(),
+            lint: { status: 'notLinted' },
+            editor: false,
           },
           ...chunks.slice(index + 1),
         ];
         for (let i = index + 1; i < newChunks.length; i += 1) {
           newChunks[i] = {
-            text: newChunks[i].text,
+            ...newChunks[i],
             startLine: getStartLineForIndex(newChunks, i),
-            id: newChunks[i].id,
           };
         }
         setChunks(newChunks);
@@ -200,9 +223,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       const newChunks = [...chunks.slice(1, chunks.length)];
       for (let i = 0; i < newChunks.length; i += 1) {
         newChunks[i] = {
+          ...newChunks[i],
           startLine: getStartLineForIndex(newChunks, i),
-          text: newChunks[i].text,
-          id: newChunks[i].id,
         };
       }
       setChunks(newChunks);
@@ -214,9 +236,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         ...chunks.slice(index + 1, chunks.length)];
       for (let i = index; i < newChunks.length; i += 1) {
         newChunks[i] = {
+          ...newChunks[i],
           startLine: getStartLineForIndex(newChunks, i),
-          text: newChunks[i].text,
-          id: newChunks[i].id,
         };
       }
       setChunks(newChunks);
@@ -232,10 +253,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   render() {
     const {
-      chunks, index, failures, focusedChunk,
+      chunks, index, focusedChunk,
     } = this.props;
     const { text, startLine } = chunks[index];
-    const chunk = text;
 
     return (
       <div style={{
@@ -248,11 +268,22 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseDown();
           }}
           editorDidMount={(editor) => {
+            const { setChunks } = this.props;
+
             const marks = editor.getDoc().getAllMarks();
             marks.forEach((m) => m.clear());
             editor.setSize(null, 'auto');
+
+            const newChunks: Chunk[] = chunks.map((chunk, i) => {
+              if (i === index) {
+                return { ...chunk, editor };
+              }
+
+              return chunk;
+            });
+            setChunks(newChunks);
           }}
-          value={chunk}
+          value={text}
           options={{
             mode: 'pyret',
             theme: 'default',
@@ -284,11 +315,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           }}
           autoCursor
         />
-        {failures.length !== 0 && (
-          <ul>
+        {/* {failures.length !== 0 && (
+            <ul>
             {failures.map((f: any, ix: number) => <li key={String(ix)}>{f}</li>)}
-          </ul>
-        )}
+            </ul>
+            )} */}
       </div>
     );
   }

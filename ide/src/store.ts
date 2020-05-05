@@ -47,11 +47,12 @@ function handleLoadFile(
       const chunkStrings = contents.split(CHUNKSEP);
       let totalLines = 0;
       const chunks = chunkStrings.map((chunkString) => {
-        const chunk = {
+        const chunk: Chunk = {
           text: chunkString,
           startLine: totalLines,
-          editor: undefined,
           id: newId(),
+          lint: { status: 'notLinted' },
+          editor: false,
         };
 
         totalLines += chunkString.split('\n').length;
@@ -244,6 +245,14 @@ function handleStop(dispatch: Dispatch) {
   });
 }
 
+function handleTextLint(currentFileContents: string): void {
+  control.lint(currentFileContents, 'text');
+}
+
+function handleChunkLint(text: string, id: number): void {
+  control.lint(text, String(id));
+}
+
 function handleFirstActionableEffect(
   state: State,
   dispatch: Dispatch,
@@ -317,12 +326,42 @@ function handleFirstActionableEffect(
           }
         }
         break;
-      case 'lint':
-        console.log('applyFirstActionableEffect: warning: lint effect ignored (nyi)');
-        return {
-          effect: i,
-          applyEffect: () => { },
-        };
+      case 'lint': {
+        const {
+          editorMode,
+          chunks,
+          currentFileContents,
+          isSetupFinished,
+          isFileSaved,
+        } = state;
+
+        if (isSetupFinished && isFileSaved) {
+          if (currentFileContents !== undefined && editorMode === EditorMode.Text) {
+            return {
+              effect: i,
+              applyEffect: () => handleTextLint(currentFileContents),
+            };
+          }
+
+          if (editorMode === EditorMode.Chunks) {
+            const sendLintRequests = (): void => {
+              chunks.forEach(({ text, lint, id }) => {
+                if (lint.status === 'notLinted') {
+                  console.log(`linting chunk ${id}`);
+                  handleChunkLint(text, id);
+                }
+              });
+            };
+
+            return {
+              effect: i,
+              applyEffect: sendLintRequests,
+            };
+          }
+        }
+
+        break;
+      }
       case 'compile':
         {
           console.log('compile');

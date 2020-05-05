@@ -20,7 +20,6 @@ type stateProps = {
 };
 
 type dispatchProps = {
-  handleChunkEdit: any,
   handleReorder: any,
 };
 
@@ -48,45 +47,6 @@ function mapStateToProps(state: State): stateProps {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
   return {
-    handleChunkEdit(
-      chunks: Chunk[],
-      index: number,
-      text: string,
-      shouldCreateNewChunk: boolean,
-    ) {
-      /* if (index === chunks.length) {
-       *   const id = String(chunkIndexCounter);
-       *   dispatch({ type: 'setChunkIndexCounter', chunkIndexCounter: chunkIndexCounter + 1 });
-       *   newChunks = chunks.concat([{
-       *     text,
-       *     id,
-       *     startLine: getStartLineForIndex(chunks, chunks.length),
-       *     editor: undefined,
-       *   }]);
-       * } else */
-      // {
-      const newChunks: Chunk[] = chunks.map((p, ix) => {
-        if (ix === index) {
-          return {
-            text,
-            startLine: p.startLine,
-            id: p.id,
-          };
-        }
-        return p;
-      });
-      if (shouldCreateNewChunk) {
-        console.log('SHOULD CREATE NEW CHUNK');
-      } else {
-        console.log('SHOULD NOT CREATE NEW CHUNK');
-      }
-
-      // }
-      console.log('handle chunk edit setchunks');
-      dispatch({ type: 'update', key: 'chunks', value: newChunks });
-      // TODO: the following shouldn't be necessary due to the setChunks above
-      // dispatch({ type: 'updateChunkContents', index, contents: text });
-    },
     handleReorder(
       result: DropResult,
       chunks: Chunk[],
@@ -126,17 +86,11 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
 
 function DefChunks({
-  handleChunkEdit,
   handleReorder,
   chunks,
   name,
-  lintFailures,
-  highlights,
   focusedChunk,
 }: DefChunksProps) {
-  const onChunkEdit = (index: number, text: string, shouldCreateNewChunk: boolean) => {
-    handleChunkEdit(chunks, index, text, shouldCreateNewChunk);
-  };
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
@@ -145,31 +99,31 @@ function DefChunks({
   };
 
   function setupChunk(chunk: Chunk, index: number) {
-    const linesInChunk = chunk.text.split('\n').length;
-    let chunkHighlights : number[][];
+    // const linesInChunk = chunk.text.split('\n').length;
+    // let chunkHighlights : number[][];
     const chunkName = `${name}_chunk_${index}`;
-    let failures : string[] = [];
-    if (chunkName in lintFailures) {
-      failures = lintFailures[chunkName].errors;
-    }
-    if (highlights.length > 0) {
-      chunkHighlights = highlights.filter(
-        (h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk,
-      );
-    } else {
-      chunkHighlights = [];
-    }
+    // let failures : string[] = [];
+    // if (chunkName in lintFailures) {
+    //   failures = lintFailures[chunkName].errors;
+    // }
+    // if (highlights.length > 0) {
+    //   chunkHighlights = highlights.filter(
+    //     (h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk,
+    //   );
+    // } else {
+    //   chunkHighlights = [];
+    // }
 
     const focused = focusedChunk === index;
 
     function getBorderColor() {
-      if (focused && chunkHighlights.length > 0) {
-        return 'red';
-      }
+      // if (focused && chunkHighlights.length > 0) {
+      //   return 'red';
+      // }
 
-      if (!focused && chunkHighlights.length > 0) {
-        return '#ff9999';
-      }
+      // if (!focused && chunkHighlights.length > 0) {
+      //   return '#ff9999';
+      // }
 
       if (focused) {
         return 'lightgray';
@@ -214,11 +168,8 @@ function DefChunks({
               </div>
               <DefChunk
                 name={chunkName}
-                failures={failures}
-                highlights={chunkHighlights}
                 key={chunk.id}
                 index={index}
-                onEdit={onChunkEdit}
                 focused={focused}
               />
             </div>

@@ -104,11 +104,48 @@ function handleEditTimerSuccess(state: State): State {
 }
 
 function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): State {
-  console.log('lint success', action);
-  return {
-    ...state,
-    linting: false,
-  };
+  const { editorMode } = state;
+
+  switch (editorMode) {
+    case EditorMode.Text: {
+      const { effectQueue } = state;
+      return {
+        ...state,
+        linting: false,
+        linted: true,
+        effectQueue: [...effectQueue, 'compile'],
+      };
+    }
+    case EditorMode.Chunks: {
+      const { chunks, effectQueue } = state;
+
+      let allLinted = true;
+      const newChunks: Chunk[] = chunks.map((chunk) => {
+        if (String(chunk.id) === action.name) {
+          return {
+            ...chunk,
+            lint: { status: 'succeeded' },
+          };
+        }
+
+        if (chunk.lint.status === 'notLinted') {
+          allLinted = false;
+        }
+
+        return chunk;
+      });
+
+      return {
+        ...state,
+        chunks: newChunks,
+        linted: allLinted,
+        linting: !allLinted,
+        effectQueue: allLinted ? [...effectQueue, 'compile'] : effectQueue,
+      };
+    }
+    default:
+      throw new Error('handleLintSuccess: unknown editor mode');
+  }
 }
 
 function handleCompileSuccess(state: State): State {
@@ -175,7 +212,7 @@ function handleSaveFileSuccess(state: State): State {
 
   function getNewEffectQueue(): Effect[] {
     if (autoRun && !compiling && !running) {
-      return [...effectQueue, 'compile'];
+      return [...effectQueue, 'lint'];
     }
 
     return effectQueue;
@@ -228,12 +265,53 @@ function handleCreateReplFailure(): State {
   throw new Error('handleCreateReplFailure: failed to create a REPL');
 }
 
-function handleLintFailure(state: State): State {
-  console.log('handleLintFailure: ignored (nyi)');
-  return {
-    ...state,
-    linting: false,
-  };
+function handleLintFailure(state: State, action: FailureForEffect<'lint'>): State {
+  const { editorMode } = state;
+
+  switch (editorMode) {
+    case EditorMode.Text:
+      throw new Error('handleLintFailure: not yet implemented for text mode');
+    case EditorMode.Chunks: {
+      const { chunks } = state;
+
+      let allLinted = true;
+      const newChunks: Chunk[] = chunks.map((chunk) => {
+        if (String(chunk.id) === action.name) {
+          console.log('ERRORS:', action);
+
+          const highlights: number[][] = [];
+          for (let i = 0; i < action.errors.length; i += 1) {
+            const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
+            if (matches !== null) {
+              matches.forEach((m: any) => {
+                highlights.push(m.match(/\d+/g)!.map(Number));
+              });
+            }
+          }
+
+          return {
+            ...chunk,
+            lint: { status: 'failed', failures: action.errors, highlights },
+          };
+        }
+
+        if (chunk.lint.status === 'notLinted') {
+          allLinted = false;
+        }
+
+        return chunk;
+      });
+
+      return {
+        ...state,
+        chunks: newChunks,
+        linted: allLinted,
+        linting: !allLinted,
+      };
+    }
+    default:
+      throw new Error('handleLintFailure: unknown editor mode');
+  }
 }
 
 function handleCompileFailure(
@@ -281,7 +359,7 @@ function handleEffectFailed(state: State, action: EffectFailure): State {
     case 'createRepl':
       return handleCreateReplFailure();
     case 'lint':
-      return handleLintFailure(state);
+      return handleLintFailure(state, action);
     case 'compile':
       return handleCompileFailure(state, action);
     case 'run':
@@ -344,6 +422,8 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         text: chunkString,
         startLine: totalLines,
         id: newId(),
+        lint: { status: 'notLinted' },
+        editor: false,
       });
 
       totalLines += chunkString.split('\n').length;

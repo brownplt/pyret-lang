@@ -34,6 +34,7 @@ type stateProps = {
   chunks: Chunk[],
   running: boolean,
   compiling: boolean | 'out-of-date',
+  linting: boolean,
 };
 
 function mapStateToProps(state: State.State): stateProps {
@@ -50,6 +51,7 @@ function mapStateToProps(state: State.State): stateProps {
     chunks: state.chunks,
     running: state.running,
     compiling: state.compiling,
+    linting: state.linting,
   };
 }
 
@@ -152,7 +154,6 @@ export class Editor extends React.Component<EditorProps, any> {
       currentFileContents,
       updateContents,
       definitionsHighlights,
-      chunks,
     } = this.props;
 
     if (editorMode === EditorMode.Text) {
@@ -166,7 +167,6 @@ export class Editor extends React.Component<EditorProps, any> {
     }
 
     if (editorMode === EditorMode.Chunks) {
-      console.log(chunks);
       return (
         <DefChunks />
       );
@@ -187,6 +187,7 @@ export class Editor extends React.Component<EditorProps, any> {
       run,
       running,
       compiling,
+      linting,
     } = this.props;
 
     const interactionValues = (
@@ -334,7 +335,7 @@ export class Editor extends React.Component<EditorProps, any> {
             {rightHandSide}
           </SplitterLayout>
         </div>
-        <Footer message={`compiling: ${compiling}; running: ${running}`} />
+        <Footer message={`linting; ${linting}; compiling: ${compiling}; running: ${running}`} />
       </div>
     );
   }
