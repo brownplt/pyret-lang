@@ -92,13 +92,21 @@ function DefChunks({
     const focused = focusedChunk === index;
 
     function getBorderColor() {
-      // if (focused && chunkHighlights.length > 0) {
-      //   return 'red';
-      // }
+      if (focused && chunk.lint.status === 'failed') {
+        return 'red';
+      }
 
-      // if (!focused && chunkHighlights.length > 0) {
-      //   return '#ff9999';
-      // }
+      if (!focused && chunk.lint.status === 'failed') {
+        return '#ff9999';
+      }
+
+      if (focused && chunk.lint.status === 'notLinted') {
+        return 'orange';
+      }
+
+      if (!focused && chunk.lint.status === 'notLinted') {
+        return 'yellow';
+      }
 
       if (focused) {
         return 'lightgray';
