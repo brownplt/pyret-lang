@@ -2,6 +2,7 @@ import React from 'react';
 
 type TabProps = {
   name: string,
+  icon: any,
   children: any
 };
 

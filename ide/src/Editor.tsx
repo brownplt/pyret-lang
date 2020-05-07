@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import SplitterLayout from 'react-splitter-layout';
+import { ReactSVG } from 'react-svg';
 import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode } from './state';
@@ -297,10 +298,20 @@ export class Editor extends React.Component<EditorProps, any> {
      */
     const menu = (
       <Menu>
-        <Tab name="📁">
+        <Tab
+          name="fsBrowser"
+          icon={
+            <ReactSVG src="folderIcon.svg" />
+          }
+        >
           <FSBrowser />
         </Tab>
-        <Tab name="⚙">
+        <Tab
+          name="options"
+          icon={
+            <ReactSVG src="gearIcon.svg" />
+          }
+        >
           {textEditor}
           {chunkEditor}
           {/* {builtinsLoader} */}

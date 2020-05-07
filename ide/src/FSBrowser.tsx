@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import { ReactSVG } from 'react-svg';
 import * as control from './control';
 import * as action from './action';
 import FSItem from './FSItem';
@@ -270,7 +271,11 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               {editType === EditType.CreateFile ? (
                 <div>&#128441; Name</div>
               ) : (
-                <div>&#x1f4c2; Name</div>
+                <div style={{ display: 'flex', flexDirection: 'row' }}>
+                  <ReactSVG src="smallFolderIcon.svg" />
+                  &nbsp;
+                  Name
+                </div>
               )}
             </pre>
             <form
@@ -350,7 +355,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                     display: 'none',
                   }}
                 />
-                &#11193;
+                <ReactSVG src="uploadFolderIcon.svg" />
               </label>
               <button
                 className="fs-browser-item"
@@ -364,7 +369,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 onClick={this.toggleEditDirectory}
                 type="button"
               >
-                +&#x1f4c2;
+                <ReactSVG src="addFolderIcon.svg" />
               </button>
               {!this.browsingRoot
                              && (

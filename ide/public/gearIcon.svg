@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="gearIcon.svg"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   id="svg1096"
+   version="1.1"
+   viewBox="0 0 8.083785 8.083785"
+   height="8.0837851mm"
+   width="8.0837851mm">
+  <defs
+     id="defs1090" />
+  <sodipodi:namedview
+     inkscape:snap-object-midpoints="true"
+     inkscape:guide-bbox="true"
+     inkscape:snap-grids="false"
+     showguides="true"
+     fit-margin-bottom="0"
+     fit-margin-right="0"
+     fit-margin-left="0"
+     fit-margin-top="0"
+     inkscape:window-maximized="1"
+     inkscape:window-y="0"
+     inkscape:window-x="0"
+     inkscape:window-height="1080"
+     inkscape:window-width="1920"
+     showgrid="true"
+     inkscape:document-rotation="0"
+     inkscape:current-layer="g1677"
+     inkscape:document-units="mm"
+     inkscape:cy="21.686975"
+     inkscape:cx="6.4877229"
+     inkscape:zoom="22.627417"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base">
+    <sodipodi:guide
+       id="guide1684"
+       orientation="0,-1"
+       position="-1.2563212,18.661131" />
+    <inkscape:grid
+       id="grid2269"
+       type="xygrid" />
+    <sodipodi:guide
+       id="guide2271"
+       orientation="1,0"
+       position="4.0396057,7.8492" />
+    <sodipodi:guide
+       id="guide2273"
+       orientation="0,-1"
+       position="8.1600195,4.0403849" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata1093">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-74.548208,-122.45811)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <g
+       inkscape:label="Rendered Gears"
+       transform="matrix(0.51942259,0,0,0.51942259,78.5901,126.5)"
+       id="g1677">
+      <path
+         transform="matrix(0.50937972,0,0,0.50937972,-7.7815098,-7.781506)"
+         d="M 14.726562 0.40625 L 13.980469 2.1132812 L 13.873047 2.9257812 L 13.970703 3.7773438 L 12.082031 4.1523438 L 11.845703 3.3300781 L 11.4375 2.6191406 L 10.09375 1.328125 L 9.078125 1.7480469 L 9.0410156 3.6113281 L 9.2539062 4.4023438 L 9.6699219 5.1523438 L 8.0683594 6.2207031 L 7.5351562 5.5527344 L 6.8847656 5.0527344 L 5.1503906 4.3730469 L 4.3730469 5.1503906 L 5.0527344 6.8847656 L 5.5527344 7.5351562 L 6.2207031 8.0683594 L 5.1523438 9.6699219 L 4.4023438 9.2539062 L 3.6113281 9.0410156 L 1.7480469 9.078125 L 1.328125 10.09375 L 2.6191406 11.4375 L 3.3300781 11.845703 L 4.1523438 12.082031 L 3.7773438 13.970703 L 2.9257812 13.873047 L 2.1132812 13.980469 L 0.40625 14.726562 L 0.40625 15.826172 L 2.1132812 16.572266 L 2.9257812 16.679688 L 3.7773438 16.582031 L 4.1523438 18.470703 L 3.3300781 18.707031 L 2.6191406 19.115234 L 1.328125 20.458984 L 1.7480469 21.474609 L 3.6113281 21.511719 L 4.4023438 21.298828 L 5.1523438 20.882812 L 6.2207031 22.484375 L 5.5527344 23.017578 L 5.0527344 23.667969 L 4.3730469 25.402344 L 5.1503906 26.179688 L 6.8847656 25.501953 L 7.5351562 25 L 8.0683594 24.332031 L 9.6699219 25.400391 L 9.2539062 26.150391 L 9.0410156 26.941406 L 9.078125 28.804688 L 10.09375 29.224609 L 11.4375 27.933594 L 11.845703 27.222656 L 12.082031 26.400391 L 13.970703 26.775391 L 13.873047 27.626953 L 13.980469 28.439453 L 14.726562 30.146484 L 15.826172 30.146484 L 16.572266 28.439453 L 16.679688 27.626953 L 16.582031 26.775391 L 18.470703 26.400391 L 18.707031 27.222656 L 19.115234 27.933594 L 20.458984 29.224609 L 21.474609 28.804688 L 21.511719 26.941406 L 21.298828 26.150391 L 20.882812 25.400391 L 22.484375 24.332031 L 23.017578 25 L 23.667969 25.501953 L 25.402344 26.179688 L 26.179688 25.402344 L 25.501953 23.667969 L 25 23.017578 L 24.332031 22.484375 L 25.400391 20.882812 L 26.150391 21.298828 L 26.941406 21.511719 L 28.804688 21.474609 L 29.224609 20.458984 L 27.933594 19.115234 L 27.222656 18.707031 L 26.400391 18.470703 L 26.775391 16.582031 L 27.626953 16.679688 L 28.439453 16.572266 L 30.146484 15.826172 L 30.146484 14.726562 L 28.439453 13.980469 L 27.626953 13.873047 L 26.775391 13.970703 L 26.400391 12.082031 L 27.222656 11.845703 L 27.933594 11.4375 L 29.224609 10.09375 L 28.804688 9.078125 L 26.941406 9.0410156 L 26.150391 9.2539062 L 25.400391 9.6699219 L 24.332031 8.0683594 L 25 7.5351562 L 25.501953 6.8847656 L 26.179688 5.1503906 L 25.402344 4.3730469 L 23.667969 5.0527344 L 23.017578 5.5527344 L 22.484375 6.2207031 L 20.882812 5.1523438 L 21.298828 4.4023438 L 21.511719 3.6113281 L 21.474609 1.7480469 L 20.458984 1.328125 L 19.115234 2.6191406 L 18.707031 3.3300781 L 18.470703 4.1523438 L 16.582031 3.7773438 L 16.679688 2.9257812 L 16.572266 2.1132812 L 15.826172 0.40625 L 14.726562 0.40625 z M 15.210938 6.8359375 A 8.4406168 8.4406168 0 0 1 15.277344 6.8359375 A 8.4406168 8.4406168 0 0 1 23.716797 15.277344 A 8.4406168 8.4406168 0 0 1 15.277344 23.716797 A 8.4406168 8.4406168 0 0 1 6.8359375 15.277344 A 8.4406168 8.4406168 0 0 1 15.210938 6.8359375 z "
+         style="fill:#ee1e10;fill-opacity:1;stroke:#000000;stroke-width:0.812598;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:normal"
+         id="path1673" />
+      <ellipse
+         ry="2.3031867"
+         rx="2.3014634"
+         cy="0.002907203"
+         cx="-0.0044014449"
+         id="path2267"
+         style="fill:#0c46ff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.48900453;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;paint-order:normal" />
+    </g>
+  </g>
+</svg>

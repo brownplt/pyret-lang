@@ -59,7 +59,7 @@ export default class Menu extends React.Component<MenuProps, MenuState> {
         key={childTab.props.name}
         onClick={() => this.toggleTab(index)}
       >
-        {childTab.props.name}
+        {childTab.props.icon}
       </div>
     ));
 
