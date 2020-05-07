@@ -55,6 +55,7 @@
     "react-google-charts": "^3.0.15",
     "react-redux": "^7.2.0",
     "react-splitter-layout": "^4.0.0",
+    "react-svg": "^11.0.21",
     "react-table": "^6.11.5",
     "redux": "^4.0.5",
     "resolve": "1.12.0",
