@@ -49,7 +49,18 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
       const newChunks = reorder(chunks, result.source.index, result.destination.index);
 
       for (let i = 0; i < newChunks.length; i += 1) {
-        newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+        if (i >= result.source.index) {
+          newChunks[i] = {
+            ...newChunks[i],
+            startLine: getStartLineForIndex(newChunks, i),
+            lint: { status: 'notLinted' },
+          };
+        } else {
+          newChunks[i] = {
+            ...newChunks[i],
+            startLine: getStartLineForIndex(newChunks, i),
+          };
+        }
       }
 
       // const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
