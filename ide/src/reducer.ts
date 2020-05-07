@@ -206,6 +206,8 @@ function handleSaveFileSuccess(state: State): State {
   const {
     effectQueue,
     autoRun,
+    compiling,
+    running,
     chunks,
   } = state;
 
@@ -219,12 +221,14 @@ function handleSaveFileSuccess(state: State): State {
       }
     }
 
-    if (needsLint) {
-      return [...effectQueue, 'lint'];
-    }
+    if (autoRun && !compiling && !running) {
+      if (needsLint) {
+        return [...effectQueue, 'lint'];
+      }
 
-    if (autoRun) {
-      return [...effectQueue, 'compile'];
+      if (autoRun) {
+        return [...effectQueue, 'compile'];
+      }
     }
 
     return effectQueue;
@@ -547,8 +551,16 @@ function handleUpdate(
       return handleSetFocusedChunk(state, action.value);
     case 'fontSize':
       return handleSetFontSize(state, action.value);
+    case 'autoRun':
+      return { ...state, autoRun: action.value };
+    case 'runKind':
+      return { ...state, runKind: action.value };
+    case 'typeCheck':
+      return { ...state, typeCheck: action.value };
+    case 'dropdownVisible':
+      return { ...state, dropdownVisible: action.value };
     default:
-      throw new Error(`handleUpdate: unknown action ${action}`);
+      throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }
 }
 

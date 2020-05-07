@@ -14,7 +14,8 @@ import Tab from './Tab';
 import Footer from './Footer';
 import FontSize from './FontSize';
 import FSBrowser from './FSBrowser';
-// import { Dropdown, DropdownOption } from './Dropdown';
+import Dropdown from './Dropdown';
+import DropdownOption from './DropdownOption';
 import Header from './Header';
 import InteractionError from './InteractionError';
 import * as control from './control';
@@ -35,6 +36,9 @@ type stateProps = {
   running: boolean,
   compiling: boolean | 'out-of-date',
   linting: boolean,
+  dropdownVisible: boolean,
+  autoRun: boolean,
+  typeCheck: boolean,
 };
 
 function mapStateToProps(state: State.State): stateProps {
@@ -52,6 +56,9 @@ function mapStateToProps(state: State.State): stateProps {
     running: state.running,
     compiling: state.compiling,
     linting: state.linting,
+    dropdownVisible: state.dropdownVisible,
+    autoRun: state.autoRun,
+    typeCheck: state.typeCheck,
   };
 }
 
@@ -60,6 +67,10 @@ type dispatchProps = {
   run: () => void,
   updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
+  setAutoRun: (autoRun: boolean) => void,
+  setStopify: (stopify: boolean) => void,
+  setTypeCheck: (typeCheck: boolean) => void,
+  setDropdownVisible: (dropdownVisible: boolean) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
@@ -73,6 +84,22 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchP
     }),
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
+    },
+    setAutoRun: (autoRun: boolean) => {
+      dispatch({ type: 'update', key: 'autoRun', value: autoRun });
+    },
+    setStopify: (stopify: boolean) => {
+      if (stopify) {
+        dispatch({ type: 'update', key: 'runKind', value: control.backend.RunKind.Async });
+      } else {
+        dispatch({ type: 'update', key: 'runKind', value: control.backend.RunKind.Sync });
+      }
+    },
+    setTypeCheck: (typeCheck: boolean) => {
+      dispatch({ type: 'update', key: 'typeCheck', value: typeCheck });
+    },
+    setDropdownVisible: (dropdownVisible: boolean) => {
+      dispatch({ type: 'update', key: 'dropdownVisible', value: dropdownVisible });
     },
   };
 }
@@ -188,6 +215,13 @@ export class Editor extends React.Component<EditorProps, any> {
       running,
       compiling,
       linting,
+      dropdownVisible,
+      autoRun,
+      typeCheck,
+      setAutoRun,
+      setStopify,
+      setTypeCheck,
+      setDropdownVisible,
     } = this.props;
 
     const interactionValues = (
@@ -211,22 +245,28 @@ export class Editor extends React.Component<EditorProps, any> {
       </div>
     );
 
-    /* const dropdown = this.state.dropdownVisible && (
-     *     <Dropdown>
-     *         <DropdownOption enabled={this.state.autoRun}
-     *                         onClick={this.toggleAutoRun}>
-     *             Auto Run
-     *         </DropdownOption>
-     *         <DropdownOption enabled={this.stopify}
-     *                         onClick={this.toggleStopify}>
-     *             Stopify
-     *         </DropdownOption>
-     *         <DropdownOption enabled={this.state.typeCheck}
-     *                         onClick={this.toggleTypeCheck}>
-     *             Type Check
-     *         </DropdownOption>
-     *     </Dropdown>);
-     */
+    const dropdown = dropdownVisible && (
+      <Dropdown>
+        <DropdownOption
+          enabled={autoRun}
+          onClick={() => setAutoRun(!autoRun)}
+        >
+          Auto Run
+        </DropdownOption>
+        <DropdownOption
+          enabled={stopify}
+          onClick={() => setStopify(!stopify)}
+        >
+          Stopify
+        </DropdownOption>
+        <DropdownOption
+          enabled={typeCheck}
+          onClick={() => setTypeCheck(!typeCheck)}
+        >
+          Type Check
+        </DropdownOption>
+      </Dropdown>
+    );
 
     const textEditor = (
       <button
@@ -314,10 +354,15 @@ export class Editor extends React.Component<EditorProps, any> {
             >
               Run
             </button>
-            {/* <button className="run-options"
-                onClick={this.props.toggleDropdownVisibility}
-                onBlur={this.props.removeDropdown}>&#8628;{dropdown}
-                </button> */}
+            <button
+              type="button"
+              className="run-options"
+              onClick={() => setDropdownVisible(!dropdownVisible)}
+              onBlur={() => setDropdownVisible(false)}
+            >
+              &#8628;
+              {dropdown}
+            </button>
           </div>
         </Header>
         <div className="code-container">

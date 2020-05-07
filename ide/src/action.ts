@@ -1,6 +1,7 @@
 import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';
+import * as control from './control';
 
 export type EffectFailure =
   (| { effect: 'createRepl' }
@@ -48,7 +49,11 @@ export type Update =
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: Chunk[] }
   | { key: 'focusedChunk', value: number }
-  | { key: 'fontSize', value: number });
+  | { key: 'fontSize', value: number }
+  | { key: 'autoRun', value: boolean }
+  | { key: 'runKind', value: control.backend.RunKind }
+  | { key: 'typeCheck', value: boolean }
+  | { key: 'dropdownVisible', value: boolean });
 
 export type UpdateKey = Update['key'];
 
