@@ -205,14 +205,26 @@ function handleSaveFileSuccess(state: State): State {
   console.log('saved a file successfully');
   const {
     effectQueue,
-    compiling,
-    running,
     autoRun,
+    chunks,
   } = state;
 
   function getNewEffectQueue(): Effect[] {
-    if (autoRun && !compiling && !running) {
+    let needsLint = false;
+
+    for (let i = 0; i < chunks.length; i += 1) {
+      if (chunks[i].lint.status === 'notLinted') {
+        needsLint = true;
+        break;
+      }
+    }
+
+    if (needsLint) {
       return [...effectQueue, 'lint'];
+    }
+
+    if (autoRun) {
+      return [...effectQueue, 'compile'];
     }
 
     return effectQueue;
