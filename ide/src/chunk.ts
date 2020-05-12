@@ -1,8 +1,8 @@
 import { Controlled as CodeMirror } from 'react-codemirror2';
 
 export type Lint =
-  ({ status: 'failed', failures: string[], highlights: number[][] }
-  | { status: 'succeeded' }
+  ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
+  | { status: 'succeeded', effect: 'lint' | 'compile' }
   | { status: 'notLinted' });
 
 export type Chunk = {

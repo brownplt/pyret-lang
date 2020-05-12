@@ -124,7 +124,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         if (String(chunk.id) === action.name) {
           return {
             ...chunk,
-            lint: { status: 'succeeded' },
+            lint: { status: 'succeeded', effect: 'lint' },
           };
         }
 
@@ -293,12 +293,9 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
       let allLinted = true;
       const newChunks: Chunk[] = chunks.map((chunk) => {
         if (String(chunk.id) === action.name) {
-          console.log('ERRORS:', action);
-
           const highlights: number[][] = [];
           for (let i = 0; i < action.errors.length; i += 1) {
             const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
-            console.log('handleLintFailure:', action, matches);
             if (matches !== null) {
               matches.forEach((m: any) => {
                 highlights.push(m.match(/\d+/g)!.map(Number));
@@ -308,7 +305,12 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
 
           return {
             ...chunk,
-            lint: { status: 'failed', failures: action.errors, highlights },
+            lint: {
+              status: 'failed',
+              effect: 'lint',
+              failures: action.errors,
+              highlights,
+            },
           };
         }
 
@@ -345,7 +347,9 @@ function handleCompileFailure(
     };
   }
 
-  const places: any = [];
+  const { editorMode } = state;
+
+  const places: number[][] = [];
   for (let i = 0; i < status.errors.length; i += 1) {
     const matches = status.errors[i].match(/:\d+:\d+-\d+:\d+/g);
     if (matches !== null) {
@@ -354,12 +358,60 @@ function handleCompileFailure(
       });
     }
   }
-  return {
-    ...state,
-    compiling: false,
-    interactionErrors: status.errors,
-    definitionsHighlights: places,
-  };
+
+  function findChunkFromSrcloc([l1] : number[]): number | false {
+    const { chunks } = state;
+    for (let i = 0; i < chunks.length; i += 1) {
+      const end = chunks[i].startLine + chunks[i].text.split('\n').length;
+      if (l1 >= chunks[i].startLine && l1 <= end) {
+        return i;
+      }
+    }
+    return false;
+  }
+
+  switch (editorMode) {
+    case EditorMode.Text:
+      return {
+        ...state,
+        compiling: false,
+        interactionErrors: status.errors,
+        definitionsHighlights: places,
+      };
+    case EditorMode.Chunks: {
+      if (places.length > 0) {
+        const { chunks } = state;
+        const newChunks = [...chunks];
+        for (let i = places.length - 1; i >= 0; i -= 1) {
+          const chunkIndex = findChunkFromSrcloc(places[i]);
+          if (chunkIndex) {
+            newChunks[chunkIndex] = {
+              ...newChunks[chunkIndex],
+              lint: {
+                status: 'failed',
+                effect: 'compile',
+                failures: status.errors,
+                highlights: [places[i]],
+              },
+            };
+          }
+        }
+        return {
+          ...state,
+          compiling: false,
+          chunks: newChunks,
+        };
+      }
+      return {
+        ...state,
+        compiling: false,
+        interactionErrors: status.errors,
+        definitionsHighlights: places,
+      };
+    }
+    default:
+      throw new Error('handleCompileFailure: unknown editor mode');
+  }
 }
 
 function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
