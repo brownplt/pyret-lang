@@ -128,7 +128,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
           };
         }
 
-        if (chunk.lint.status === 'notLinted') {
+        if (chunk.lint.status !== 'succeeded') {
           allLinted = false;
         }
 
@@ -298,6 +298,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
           const highlights: number[][] = [];
           for (let i = 0; i < action.errors.length; i += 1) {
             const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
+            console.log('handleLintFailure:', action, matches);
             if (matches !== null) {
               matches.forEach((m: any) => {
                 highlights.push(m.match(/\d+/g)!.map(Number));

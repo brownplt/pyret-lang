@@ -287,7 +287,6 @@ function handleFirstActionableEffect(
           const {
             editorMode, currentFile, currentFileContents, chunks,
           } = state;
-          console.log('saveFile, contents=', currentFileContents);
           if (currentFile !== undefined && currentFileContents !== undefined) {
             return {
               effect: i,
@@ -362,26 +361,41 @@ function handleFirstActionableEffect(
 
         break;
       }
-      case 'compile':
-        {
-          console.log('compile');
-          const {
-            currentFile,
-            typeCheck,
-            isMessageHandlerReady,
-            isSetupFinished,
-            compiling,
-            running,
-            isFileSaved,
-          } = state;
-          if (isMessageHandlerReady && isSetupFinished && isFileSaved && !compiling && !running) {
-            return {
-              effect: i,
-              applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
-            };
+      case 'compile': {
+        console.log('compile');
+        const {
+          currentFile,
+          typeCheck,
+          isMessageHandlerReady,
+          isSetupFinished,
+          compiling,
+          running,
+          isFileSaved,
+          chunks,
+        } = state;
+        let allLinted = true;
+
+        for (let j = 0; j < chunks.length; j += 1) {
+          if (chunks[j].lint.status === 'failed') {
+            allLinted = false;
+            break;
           }
         }
+
+        if (isMessageHandlerReady
+            && isSetupFinished
+            && isFileSaved
+            && !compiling
+            && !running
+            && allLinted) {
+          return {
+            effect: i,
+            applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
+          };
+        }
+
         break;
+      }
       case 'run': {
         console.log('run');
         const {
