@@ -500,22 +500,49 @@ function handleSetCurrentFile(state: State, file: string): State {
   };
 }
 
-function handleSetChunks(state: State, chunks: Chunk[]): State {
-  const contents = chunks.map((chunk) => chunk.text).join(CHUNKSEP);
-
-  const {
-    effectQueue,
-    compiling,
-    editorMode,
-  } = state;
-
+function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
+  const { editorMode } = state;
   if (editorMode !== EditorMode.Chunks) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 
+  const {
+    effectQueue,
+    compiling,
+  } = state;
+
+  if (Array.isArray(chunksOrChunk)) {
+    const chunks = chunksOrChunk;
+
+    const contents = chunks.map((chunk) => chunk.text).join(CHUNKSEP);
+
+    return {
+      ...state,
+      chunks,
+      currentFileContents: contents,
+      effectQueue: [...effectQueue, 'startEditTimer'],
+      isFileSaved: false,
+      compiling: compiling ? 'out-of-date' : false,
+    };
+  }
+
+  const chunk = chunksOrChunk;
+  const { chunks } = state;
+
+  const newChunks = [];
+  for (let i = 0; i < chunks.length; i += 1) {
+    if (chunks[i].id === chunk.id) {
+      newChunks.push(chunk);
+    } else {
+      newChunks.push(chunks[i]);
+    }
+  }
+
+  const contents = newChunks.map((c) => c.text).join(CHUNKSEP);
+
   return {
     ...state,
-    chunks,
+    chunks: newChunks,
     currentFileContents: contents,
     effectQueue: [...effectQueue, 'startEditTimer'],
     isFileSaved: false,

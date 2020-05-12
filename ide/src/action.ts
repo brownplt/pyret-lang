@@ -47,7 +47,7 @@ export type Update =
   | { key: 'currentFileContents', value: string }
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
-  | { key: 'chunks', value: Chunk[] }
+  | { key: 'chunks', value: Chunk[] | Chunk }
   | { key: 'focusedChunk', value: number }
   | { key: 'fontSize', value: number }
   | { key: 'autoRun', value: boolean }
