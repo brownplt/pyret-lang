@@ -287,11 +287,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           }}
           autoCursor
         />
-        {/* {failures.length !== 0 && (
-            <ul>
-            {failures.map((f: any, ix: number) => <li key={String(ix)}>{f}</li>)}
-            </ul>
-            )} */}
       </div>
     );
   }
