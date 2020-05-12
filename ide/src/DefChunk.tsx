@@ -26,6 +26,7 @@ type propsFromReact = {
 type dispatchProps = {
   setFocusedChunk: (index: number) => void,
   setChunks: (chunks: Chunk[]) => void,
+  setChunk: (chunk: Chunk) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
@@ -35,6 +36,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     },
     setChunks(chunks: Chunk[]) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
+    },
+    setChunk(chunk: Chunk) {
+      dispatch({ type: 'update', key: 'chunks', value: chunk });
     },
   };
 }
@@ -63,7 +67,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   // }
 
   componentDidUpdate() {
-    console.log('COMPONENT DID UPDATE');
     const {
       chunks,
       index,
@@ -73,14 +76,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       editor,
       lint,
     } = chunks[index];
-    if (editor && lint.status === 'failed') {
+    if (editor && lint.status === 'succeeded') {
+      const marks = editor.getDoc().getAllMarks();
+      marks.forEach((m) => m.clear());
+    } else if (editor && lint.status === 'failed') {
       const { highlights } = lint;
-      console.log('highlights:', highlights);
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
       if (highlights.length > 0) {
         for (let i = 0; i < highlights.length; i += 1) {
-          console.log('marking ...');
           editor.getDoc().markText(
             {
               line: highlights[i][0] - 1,
@@ -232,6 +236,21 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     return (
       <div style={{
         width: '100%',
+        display: 'flex',
+        height: (() => {
+          if (this.input.current !== null) {
+            return `${this.input.current.ref.clientHeight}px`;
+          }
+
+          return 'auto';
+        })(),
+        border: (() => {
+          if (chunks[index].lint.status === 'failed') {
+            return '2px solid #ff9999';
+          }
+
+          return '2px solid white';
+        })(),
       }}
       >
         <CodeMirror
@@ -240,20 +259,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseDown();
           }}
           editorDidMount={(editor) => {
-            const { setChunks } = this.props;
+            const { setChunk } = this.props;
 
             const marks = editor.getDoc().getAllMarks();
             marks.forEach((m) => m.clear());
             editor.setSize(null, 'auto');
 
-            const newChunks: Chunk[] = chunks.map((chunk, i) => {
-              if (i === index) {
-                return { ...chunk, editor };
-              }
-
-              return chunk;
-            });
-            setChunks(newChunks);
+            setChunk({ ...chunks[index], editor });
           }}
           value={text}
           options={{
@@ -282,11 +294,30 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 this.handleArrowDown(editor, event);
                 break;
               default:
-                console.log((event as any).key);
             }
           }}
           autoCursor
         />
+        {(() => {
+          const chunk = chunks[index];
+
+          if (chunk.lint.status === 'failed') {
+            return (
+              <div style={{
+                alignSelf: 'center',
+                background: '#ff9999',
+                position: 'sticky',
+                width: '50%',
+                zIndex: 1,
+              }}
+              >
+                {chunk.lint.failures}
+              </div>
+            );
+          }
+
+          return false;
+        })()}
       </div>
     );
   }

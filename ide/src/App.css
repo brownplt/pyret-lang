@@ -216,6 +216,7 @@ button::-moz-focus-inner {
 
 .react-codemirror2 {
     height: 100%;
+    width: 100%;
 }
 
 .CodeMirror {
