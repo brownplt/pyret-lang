@@ -117,7 +117,12 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
       };
     }
     case EditorMode.Chunks: {
-      const { chunks, effectQueue } = state;
+      const {
+        chunks,
+        effectQueue,
+        compiling,
+        running,
+      } = state;
 
       let allLinted = true;
       const newChunks: Chunk[] = chunks.map((chunk) => {
@@ -135,12 +140,14 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         return chunk;
       });
 
+      const shouldCompile = allLinted && !compiling && !running;
+
       return {
         ...state,
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
-        effectQueue: allLinted ? [...effectQueue, 'compile'] : effectQueue,
+        effectQueue: shouldCompile ? [...effectQueue, 'compile'] : effectQueue,
       };
     }
     default:
