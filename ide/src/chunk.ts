@@ -1,6 +1,6 @@
 import { Controlled as CodeMirror } from 'react-codemirror2';
 
-export type Lint =
+export type ErrorState =
   ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
   | { status: 'succeeded', effect: 'lint' | 'compile' }
   | { status: 'notLinted' });
@@ -9,7 +9,7 @@ export type Chunk = {
   startLine: number,
   text: string,
   id: number,
-  lint: Lint,
+  errorState: ErrorState,
   editor: false | CodeMirror.Editor;
 };
 

@@ -51,8 +51,14 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 
       for (let i = 0; i < newChunks.length; i += 1) {
         newChunks[i].startLine = getStartLineForIndex(newChunks, i);
-        if (i >= result.source.index && i <= result.destination.index) {
-          newChunks[i].lint.status = 'notLinted';
+        if (result.source.index < result.destination.index) {
+          if (i >= result.source.index && i <= result.destination.index) {
+            newChunks[i].errorState.status = 'notLinted';
+          }
+        } else if (result.source.index > result.destination.index) {
+          if (i >= result.destination.index && i <= result.source.index) {
+            newChunks[i].errorState.status = 'notLinted';
+          }
         }
       }
 
@@ -111,19 +117,19 @@ function DefChunks({
     const focused = focusedChunk === index;
 
     function getBorderColor() {
-      if (focused && chunk.lint.status === 'failed') {
+      if (focused && chunk.errorState.status === 'failed') {
         return 'red';
       }
 
-      if (!focused && chunk.lint.status === 'failed') {
+      if (!focused && chunk.errorState.status === 'failed') {
         return '#ff9999';
       }
 
-      if (focused && chunk.lint.status === 'notLinted') {
+      if (focused && chunk.errorState.status === 'notLinted') {
         return 'orange';
       }
 
-      if (!focused && chunk.lint.status === 'notLinted') {
+      if (!focused && chunk.errorState.status === 'notLinted') {
         return 'yellow';
       }
 

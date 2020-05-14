@@ -51,7 +51,7 @@ function handleLoadFile(
           text: chunkString,
           startLine: totalLines,
           id: newId(),
-          lint: { status: 'notLinted' },
+          errorState: { status: 'notLinted' },
           editor: false,
         };
 
@@ -344,8 +344,8 @@ function handleFirstActionableEffect(
 
           if (editorMode === EditorMode.Chunks) {
             const sendLintRequests = (): void => {
-              chunks.forEach(({ text, lint, id }) => {
-                if (lint.status !== 'succeeded') {
+              chunks.forEach(({ text, errorState, id }) => {
+                if (errorState.status !== 'succeeded') {
                   console.log(`linting chunk ${id}`);
                   handleChunkLint(text, id);
                 }
@@ -376,7 +376,7 @@ function handleFirstActionableEffect(
         let allLinted = true;
 
         for (let j = 0; j < chunks.length; j += 1) {
-          if (chunks[j].lint.status === 'failed') {
+          if (chunks[j].errorState.status === 'failed') {
             allLinted = false;
             break;
           }

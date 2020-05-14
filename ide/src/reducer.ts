@@ -124,11 +124,11 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         if (String(chunk.id) === action.name) {
           return {
             ...chunk,
-            lint: { status: 'succeeded', effect: 'lint' },
+            errorState: { status: 'succeeded', effect: 'lint' },
           };
         }
 
-        if (chunk.lint.status !== 'succeeded') {
+        if (chunk.errorState.status !== 'succeeded') {
           allLinted = false;
         }
 
@@ -215,7 +215,7 @@ function handleSaveFileSuccess(state: State): State {
     let needsLint = false;
 
     for (let i = 0; i < chunks.length; i += 1) {
-      if (chunks[i].lint.status !== 'succeeded') {
+      if (chunks[i].errorState.status !== 'succeeded') {
         needsLint = true;
         break;
       }
@@ -305,7 +305,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
 
           return {
             ...chunk,
-            lint: {
+            errorState: {
               status: 'failed',
               effect: 'lint',
               failures: action.errors,
@@ -314,7 +314,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
           };
         }
 
-        if (chunk.lint.status === 'notLinted') {
+        if (chunk.errorState.status === 'notLinted') {
           allLinted = false;
         }
 
@@ -371,8 +371,8 @@ function handleCompileFailure(
   }
 
   function getExistingHighlights(chunk : Chunk): number[][] | false {
-    if (chunk.lint.status === 'failed') {
-      return chunk.lint.highlights;
+    if (chunk.errorState.status === 'failed') {
+      return chunk.errorState.highlights;
     }
 
     return false;
@@ -397,7 +397,7 @@ function handleCompileFailure(
             const hl = getExistingHighlights(newChunks[chunkIndex]);
             newChunks[chunkIndex] = {
               ...newChunks[chunkIndex],
-              lint: {
+              errorState: {
                 status: 'failed',
                 effect: 'compile',
                 failures: status.errors,
@@ -501,7 +501,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         text: chunkString,
         startLine: totalLines,
         id: newId(),
-        lint: { status: 'notLinted' },
+        errorState: { status: 'notLinted' },
         editor: false,
       });
 

@@ -74,14 +74,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     const {
       editor,
-      lint,
+      errorState,
       startLine,
     } = chunks[index];
-    if (editor && lint.status === 'succeeded') {
+    if (editor && errorState.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
-    } else if (editor && lint.status === 'failed') {
-      const { highlights } = lint;
+    } else if (editor && errorState.status === 'failed') {
+      const { highlights } = errorState;
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
       if (highlights.length > 0) {
@@ -89,7 +89,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           const doc = editor.getDoc();
           // lint errors are relative to the start of a chunk, compile errors
           // are relative to the start of the program
-          if (lint.effect === 'lint') {
+          if (errorState.effect === 'lint') {
             const [l1, ch1, l2, ch2] = highlights[i];
             doc.markText(
               {
@@ -102,7 +102,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               },
               { className: 'styled-background-error' },
             );
-          } else if (lint.effect === 'compile') {
+          } else if (errorState.effect === 'compile') {
             const [l1, ch1, l2, ch2] = highlights[i];
             doc.markText(
               {
@@ -128,7 +128,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   getBorder() {
     const { chunks, index } = this.props;
-    if (chunks[index].lint.status === 'failed') {
+    if (chunks[index].errorState.status === 'failed') {
       return '2px solid #ff9999';
     }
 
@@ -142,7 +142,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     newChunks[index] = {
       ...newChunks[index],
       text: value,
-      lint: { status: 'notLinted' },
+      errorState: { status: 'notLinted' },
     };
     for (let i = index; i < newChunks.length; i += 1) {
       newChunks[i] = {
@@ -185,7 +185,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             text: '',
             startLine: getStartLineForIndex(chunks, index + 1),
             id: newId(),
-            lint: { status: 'notLinted' },
+            errorState: { status: 'notLinted' },
             editor: false,
           },
         ];
@@ -199,7 +199,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             text: '',
             startLine: getStartLineForIndex(chunks, index + 1),
             id: newId(),
-            lint: { status: 'notLinted' },
+            errorState: { status: 'notLinted' },
             editor: false,
           },
           ...chunks.slice(index + 1),
@@ -327,7 +327,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         {(() => {
           const chunk = chunks[index];
 
-          if (chunk.lint.status === 'failed') {
+          if (chunk.errorState.status === 'failed') {
             return (
               <div style={{
                 alignSelf: 'center',
@@ -342,7 +342,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 padding: '0.2em',
               }}
               >
-                {chunk.lint.failures}
+                {chunk.errorState.failures}
               </div>
             );
           }
