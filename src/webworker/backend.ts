@@ -51,7 +51,11 @@ export const makeBackendMessageHandler = (
       const msgType = msgObject.type;
 
       if (msgObject.tag === 'error') {
-        console.error(JSON.parse(msgObject.data));
+        try {
+          console.log(JSON.parse(msgObject.data));
+        } catch (err) {
+          console.log(msgObject.data);
+        }
       }
 
       if (msgType === undefined) {
