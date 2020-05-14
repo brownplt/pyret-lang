@@ -65,14 +65,14 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         return false;
       }
 
-      const newFocusedChunk = getNewFocusedChunk();
-      if (newFocusedChunk === false) {
-        throw new Error('handleReorder: new focused chunk is false');
-      }
-
       dispatch({ type: 'update', key: 'chunks', value: newChunks });
 
       if (oldFocusedId !== false) {
+        const newFocusedChunk = getNewFocusedChunk();
+        if (newFocusedChunk === false) {
+          throw new Error('handleReorder: new focused chunk is false');
+        }
+
         dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
       }
     },
