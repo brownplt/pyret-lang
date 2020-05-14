@@ -361,41 +361,41 @@ function handleFirstActionableEffect(
 
         break;
       }
-      case 'compile': {
-        console.log('compile');
-        const {
-          currentFile,
-          typeCheck,
-          isMessageHandlerReady,
-          isSetupFinished,
-          compiling,
-          running,
-          isFileSaved,
-          chunks,
-        } = state;
-        let allLinted = true;
+      case 'compile':
+        {
+          console.log('compile');
+          const {
+            currentFile,
+            typeCheck,
+            isMessageHandlerReady,
+            isSetupFinished,
+            compiling,
+            running,
+            isFileSaved,
+            chunks,
+          } = state;
+          let allLinted = true;
 
-        for (let j = 0; j < chunks.length; j += 1) {
-          if (chunks[j].errorState.status === 'failed') {
-            allLinted = false;
-            break;
+          for (let j = 0; j < chunks.length; j += 1) {
+            if (chunks[j].errorState.status !== 'succeeded') {
+              allLinted = false;
+              break;
+            }
+          }
+
+          if (isMessageHandlerReady
+              && isSetupFinished
+              && isFileSaved
+              && !compiling
+              && !running
+              && allLinted) {
+            return {
+              effect: i,
+              applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
+            };
           }
         }
-
-        if (isMessageHandlerReady
-            && isSetupFinished
-            && isFileSaved
-            && !compiling
-            && !running
-            && allLinted) {
-          return {
-            effect: i,
-            applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
-          };
-        }
-
         break;
-      }
       case 'run': {
         console.log('run');
         const {
