@@ -36,6 +36,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     handleReorder(
       result: DropResult,
       chunks: Chunk[],
+      oldFocusedId: number | false,
     ) {
       // Great examples! https://codesandbox.io/s/k260nyxq9v
       const reorder = (innerChunks: Chunk[], start: number, end: number) => {
@@ -54,8 +55,26 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 
       // const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
 
+      function getNewFocusedChunk() {
+        for (let i = 0; i < newChunks.length; i += 1) {
+          if (newChunks[i].id === oldFocusedId) {
+            return i;
+          }
+        }
+
+        return false;
+      }
+
+      const newFocusedChunk = getNewFocusedChunk();
+      if (newFocusedChunk === false) {
+        throw new Error('handleReorder: new focused chunk is false');
+      }
+
       dispatch({ type: 'update', key: 'chunks', value: newChunks });
-      dispatch({ type: 'update', key: 'focusedChunk', value: result.destination.index });
+
+      if (oldFocusedId !== false) {
+        dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
+      }
     },
   };
 }
@@ -73,7 +92,15 @@ function DefChunks({
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
-      handleReorder(result, chunks);
+      if (focusedChunk === undefined) {
+        handleReorder(result, chunks, false);
+      } else {
+        const fc = chunks[focusedChunk];
+        if (fc === undefined) {
+          throw new Error('onDragEnd: chunks[focusedChunk] is undefined');
+        }
+        handleReorder(result, chunks, fc.id);
+      }
     }
   };
 
