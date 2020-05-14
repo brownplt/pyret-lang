@@ -370,6 +370,14 @@ function handleCompileFailure(
     return false;
   }
 
+  function getExistingHighlights(chunk : Chunk): number[][] | false {
+    if (chunk.lint.status === 'failed') {
+      return chunk.lint.highlights;
+    }
+
+    return false;
+  }
+
   switch (editorMode) {
     case EditorMode.Text:
       return {
@@ -380,22 +388,38 @@ function handleCompileFailure(
       };
     case EditorMode.Chunks: {
       if (places.length > 0) {
+        console.log('MULTIPLE PLACES', status, places);
         const { chunks } = state;
         const newChunks = [...chunks];
-        for (let i = places.length - 1; i >= 0; i -= 1) {
+        for (let i = 0; i < places.length; i += 1) {
           const chunkIndex = findChunkFromSrcloc(places[i]);
           if (chunkIndex) {
+            const hl = getExistingHighlights(newChunks[chunkIndex]);
             newChunks[chunkIndex] = {
               ...newChunks[chunkIndex],
               lint: {
                 status: 'failed',
                 effect: 'compile',
                 failures: status.errors,
-                highlights: [places[i]],
+                highlights: hl ? [...hl, places[i]] : [places[i]],
               },
             };
           }
         }
+        // for (let i = places.length - 1; i >= 0; i -= 1) {
+        //   const chunkIndex = findChunkFromSrcloc(places[i]);
+        //   if (chunkIndex) {
+        //     newChunks[chunkIndex] = {
+        //       ...newChunks[chunkIndex],
+        //       lint: {
+        //         status: 'failed',
+        //         effect: 'compile',
+        //         failures: status.errors,
+        //         highlights: [places[i]],
+        //       },
+        //     };
+        //   }
+        // }
         return {
           ...state,
           compiling: false,

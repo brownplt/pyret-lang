@@ -75,6 +75,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       editor,
       lint,
+      startLine,
     } = chunks[index];
     if (editor && lint.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
@@ -85,17 +86,36 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       marks.forEach((m) => m.clear());
       if (highlights.length > 0) {
         for (let i = 0; i < highlights.length; i += 1) {
-          editor.getDoc().markText(
-            {
-              line: highlights[i][0] - 1,
-              ch: highlights[i][1],
-            },
-            {
-              line: highlights[i][2] - 1,
-              ch: highlights[i][3],
-            },
-            { className: 'styled-background-error' },
-          );
+          const doc = editor.getDoc();
+          // lint errors are relative to the start of a chunk, compile errors
+          // are relative to the start of the program
+          if (lint.effect === 'lint') {
+            const [l1, ch1, l2, ch2] = highlights[i];
+            doc.markText(
+              {
+                line: l1 - 1,
+                ch: ch1,
+              },
+              {
+                line: l2 - 1,
+                ch: ch2,
+              },
+              { className: 'styled-background-error' },
+            );
+          } else if (lint.effect === 'compile') {
+            const [l1, ch1, l2, ch2] = highlights[i];
+            doc.markText(
+              {
+                line: l1 - startLine - 1,
+                ch: ch1,
+              },
+              {
+                line: l2 - startLine - 1,
+                ch: ch2,
+              },
+              { className: 'styled-background-error' },
+            );
+          }
         }
       }
     }
