@@ -406,20 +406,6 @@ function handleCompileFailure(
             };
           }
         }
-        // for (let i = places.length - 1; i >= 0; i -= 1) {
-        //   const chunkIndex = findChunkFromSrcloc(places[i]);
-        //   if (chunkIndex) {
-        //     newChunks[chunkIndex] = {
-        //       ...newChunks[chunkIndex],
-        //       lint: {
-        //         status: 'failed',
-        //         effect: 'compile',
-        //         failures: status.errors,
-        //         highlights: [places[i]],
-        //       },
-        //     };
-        //   }
-        // }
         return {
           ...state,
           compiling: false,
