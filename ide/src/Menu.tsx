@@ -16,7 +16,7 @@ export default class Menu extends React.Component<MenuProps, MenuState> {
     super(props);
 
     this.state = {
-      visible: true,
+      visible: false,
       tab: 0,
     };
   }
