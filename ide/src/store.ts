@@ -345,7 +345,7 @@ function handleFirstActionableEffect(
           if (editorMode === EditorMode.Chunks) {
             const sendLintRequests = (): void => {
               chunks.forEach(({ text, lint, id }) => {
-                if (lint.status === 'notLinted') {
+                if (lint.status !== 'succeeded') {
                   console.log(`linting chunk ${id}`);
                   handleChunkLint(text, id);
                 }
