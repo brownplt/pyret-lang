@@ -126,15 +126,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
-  getBorder() {
-    const { chunks, index } = this.props;
-    if (chunks[index].errorState.status === 'failed') {
-      return '2px solid #ff9999';
-    }
-
-    return '2px solid white';
-  }
-
   scheduleUpdate(value: string) {
     const { chunks, index, setChunks } = this.props;
 
@@ -262,8 +253,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     } = this.props;
     const { text, startLine } = chunks[index];
 
-    const border = this.getBorder();
-
     return (
       <div style={{
         width: '100%',
@@ -275,8 +264,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
           return 'auto';
         })(),
-        borderTop: border,
-        borderBottom: border,
       }}
       >
         <CodeMirror
@@ -335,11 +322,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 position: 'sticky',
                 top: '2.7em',
                 width: '50%',
-                zIndex: 1,
+                zIndex: 1000,
                 fontFamily: 'sans-serif',
                 borderRadius: '3px',
                 border: '0.3em solid hsl(204, 100%, 74%)',
                 padding: '0.2em',
+                marginRight: '1em',
+                boxShadow: '0 0 1em',
               }}
               >
                 {chunk.errorState.failures}
