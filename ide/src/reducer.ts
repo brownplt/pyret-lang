@@ -215,7 +215,7 @@ function handleSaveFileSuccess(state: State): State {
     let needsLint = false;
 
     for (let i = 0; i < chunks.length; i += 1) {
-      if (chunks[i].lint.status === 'notLinted') {
+      if (chunks[i].lint.status !== 'succeeded') {
         needsLint = true;
         break;
       }
