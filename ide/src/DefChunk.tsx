@@ -307,7 +307,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         {(() => {
           const chunk = chunks[index];
 
-          if (chunk.errorState.status === 'failed') {
+          if (chunk.errorState.status === 'failed'
+              && focusedChunk === index) {
             return (
               <div style={{
                 alignSelf: 'center',
