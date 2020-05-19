@@ -257,13 +257,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       <div style={{
         width: '100%',
         display: 'flex',
-        height: (() => {
-          if (this.input.current !== null) {
-            return `${this.input.current.ref.clientHeight}px`;
-          }
-
-          return 'auto';
-        })(),
       }}
       >
         <CodeMirror
