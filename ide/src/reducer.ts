@@ -576,7 +576,6 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
   }
 
   const {
-    effectQueue,
     compiling,
   } = state;
 
@@ -589,7 +588,6 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
       ...state,
       chunks,
       currentFileContents: contents,
-      effectQueue: [...effectQueue, 'startEditTimer'],
       isFileSaved: false,
       compiling: compiling ? 'out-of-date' : false,
     };
@@ -613,7 +611,6 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
     ...state,
     chunks: newChunks,
     currentFileContents: contents,
-    effectQueue: [...effectQueue, 'startEditTimer'],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
   };
