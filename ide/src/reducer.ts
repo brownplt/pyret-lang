@@ -617,7 +617,12 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
 }
 
 function handleSetFocusedChunk(state: State, index: number): State {
-  return { ...state, focusedChunk: index };
+  const { effectQueue } = state;
+  return {
+    ...state,
+    focusedChunk: index,
+    effectQueue: [...effectQueue, 'saveFile'],
+  };
 }
 
 function handleSetFontSize(state: State, fontSize: number): State {
