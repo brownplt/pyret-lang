@@ -4,6 +4,7 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
 import { Chunk, getStartLineForIndex, newId } from './chunk';
 import { Action } from './action';
+import { Effect } from './effect';
 
 type stateProps = {
   chunks: Chunk[],
@@ -27,6 +28,7 @@ type dispatchProps = {
   setFocusedChunk: (index: number) => void,
   setChunks: (chunks: Chunk[]) => void,
   setChunk: (chunk: Chunk) => void,
+  enqueueEffect: (effect: Effect) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
@@ -39,6 +41,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     },
     setChunk(chunk: Chunk) {
       dispatch({ type: 'update', key: 'chunks', value: chunk });
+    },
+    enqueueEffect(effect: Effect) {
+      dispatch({ type: 'enqueueEffect', effect });
     },
   };
 }
@@ -164,11 +169,18 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   handleEnter(editor: any, event: Event) {
     const {
-      chunks, index, setChunks, setFocusedChunk,
+      chunks,
+      index,
+      setChunks,
+      setFocusedChunk,
+      enqueueEffect,
     } = this.props;
     const pos = (editor as any).getCursor();
     const token = editor.getTokenAt(pos);
-    if (token.state.lineState.tokens.length === 0) {
+    if ((event as any).shiftKey) {
+      enqueueEffect('saveFile');
+      event.preventDefault();
+    } else if (token.state.lineState.tokens.length === 0) {
       if (index + 1 === chunks.length) {
         const newChunks: Chunk[] = [
           ...chunks.slice(),
