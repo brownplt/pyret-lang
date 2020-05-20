@@ -621,7 +621,7 @@ function handleSetFocusedChunk(state: State, index: number): State {
   return {
     ...state,
     focusedChunk: index,
-    effectQueue: [...effectQueue, 'saveFile'],
+    effectQueue: [...effectQueue, 'startEditTimer'],
   };
 }
 
