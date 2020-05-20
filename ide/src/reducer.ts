@@ -21,6 +21,7 @@ import {
 import {
   Chunk,
   newId,
+  getStartLineForIndex,
 } from './chunk';
 
 import {
@@ -177,11 +178,83 @@ function handleCompileSuccess(state: State): State {
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
   const results = makeResult(status.result.result, `file://${state.currentFile}`);
+
+  const {
+    focusedChunk,
+    chunks,
+    shouldAdvanceCursor,
+  } = state;
+
+  if (focusedChunk !== undefined && shouldAdvanceCursor) {
+    if (focusedChunk + 1 === chunks.length) {
+      const newChunks: Chunk[] = [
+        ...chunks,
+        {
+          text: '',
+          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
+          id: newId(),
+          errorState: { status: 'succeeded', effect: 'lint' },
+          editor: false,
+        },
+      ];
+      return {
+        ...state,
+        running: false,
+        interactions: results,
+        checks: status.result.result.$checks,
+        chunks: newChunks,
+        focusedChunk: focusedChunk + 1,
+        shouldAdvanceCursor: false,
+      };
+    }
+
+    if (chunks[focusedChunk + 1].text.trim() !== '') {
+      const newChunks: Chunk[] = [
+        ...chunks.slice(0, focusedChunk + 1),
+        {
+          text: '',
+          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
+          id: newId(),
+          errorState: { status: 'succeeded', effect: 'lint' },
+          editor: false,
+        },
+        ...chunks.slice(focusedChunk + 1),
+      ];
+      for (let i = focusedChunk + 1; i < newChunks.length; i += 1) {
+        newChunks[i] = {
+          ...newChunks[i],
+          startLine: getStartLineForIndex(newChunks, i),
+        };
+      }
+      return {
+        ...state,
+        running: false,
+        interactions: results,
+        checks: status.result.result.$checks,
+        chunks: newChunks,
+        focusedChunk: focusedChunk + 1,
+        shouldAdvanceCursor: false,
+      };
+    }
+
+    if (chunks[focusedChunk + 1].text.trim() === '') {
+      return {
+        ...state,
+        running: false,
+        interactions: results,
+        checks: status.result.result.$checks,
+        focusedChunk: focusedChunk + 1,
+        shouldAdvanceCursor: false,
+      };
+    }
+  }
+
   return {
     ...state,
     running: false,
     interactions: results,
     checks: status.result.result.$checks,
+    shouldAdvanceCursor: false,
   };
 }
 
@@ -658,6 +731,8 @@ function handleUpdate(
       return { ...state, typeCheck: action.value };
     case 'dropdownVisible':
       return { ...state, dropdownVisible: action.value };
+    case 'shouldAdvanceCursor':
+      return { ...state, shouldAdvanceCursor: action.value };
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }

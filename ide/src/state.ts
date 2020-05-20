@@ -28,7 +28,7 @@ export type State = {
   firstUpdatableChunk: number | undefined,
   chunks: Chunk[],
   focusedChunk: number | undefined,
-
+  shouldAdvanceCursor: boolean,
   isFileSaved: boolean,
   isSetupFinished: boolean,
   isMessageHandlerReady: boolean,
@@ -82,7 +82,7 @@ export const initialState: State = {
   currentRunner: undefined,
   currentChunk: 0,
   firstUpdatableChunk: 0,
-
+  shouldAdvanceCursor: false,
   effectQueue: [],
   isFileSaved: false,
   isMessageHandlerReady: false,

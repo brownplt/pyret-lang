@@ -53,6 +53,7 @@ export type Update =
   | { key: 'autoRun', value: boolean }
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }
+  | { key: 'shouldAdvanceCursor', value: boolean }
   | { key: 'dropdownVisible', value: boolean });
 
 export type UpdateKey = Update['key'];

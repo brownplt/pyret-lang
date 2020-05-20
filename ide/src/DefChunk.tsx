@@ -2,7 +2,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
-import { Chunk, getStartLineForIndex, newId } from './chunk';
+import { Chunk, getStartLineForIndex } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
 
@@ -29,6 +29,7 @@ type dispatchProps = {
   setChunks: (chunks: Chunk[]) => void,
   setChunk: (chunk: Chunk) => void,
   enqueueEffect: (effect: Effect) => void,
+  setShouldAdvanceCursor: (value: boolean) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
@@ -44,6 +45,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     },
     enqueueEffect(effect: Effect) {
       dispatch({ type: 'enqueueEffect', effect });
+    },
+    setShouldAdvanceCursor(value: boolean) {
+      dispatch({ type: 'update', key: 'shouldAdvanceCursor', value });
     },
   };
 }
@@ -169,57 +173,19 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   handleEnter(editor: any, event: Event) {
     const {
-      chunks,
-      index,
-      setChunks,
-      setFocusedChunk,
       enqueueEffect,
+      setShouldAdvanceCursor,
     } = this.props;
     const pos = (editor as any).getCursor();
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
+      setShouldAdvanceCursor(false);
       enqueueEffect('saveFile');
       event.preventDefault();
     } else if (token.state.lineState.tokens.length === 0) {
-      if (index + 1 === chunks.length) {
-        const newChunks: Chunk[] = [
-          ...chunks.slice(),
-          {
-            text: '',
-            startLine: getStartLineForIndex(chunks, index + 1),
-            id: newId(),
-            errorState: { status: 'succeeded', effect: 'lint' },
-            editor: false,
-          },
-        ];
-        setChunks(newChunks);
-        setFocusedChunk(index + 1);
-        event.preventDefault();
-      } else if (chunks[index + 1].text.trim() !== '') {
-        const newChunks: Chunk[] = [
-          ...chunks.slice(0, index + 1),
-          {
-            text: '',
-            startLine: getStartLineForIndex(chunks, index + 1),
-            id: newId(),
-            errorState: { status: 'notLinted' },
-            editor: false,
-          },
-          ...chunks.slice(index + 1),
-        ];
-        for (let i = index + 1; i < newChunks.length; i += 1) {
-          newChunks[i] = {
-            ...newChunks[i],
-            startLine: getStartLineForIndex(newChunks, i),
-          };
-        }
-        setChunks(newChunks);
-        setFocusedChunk(index + 1);
-        event.preventDefault();
-      } else if (chunks[index + 1].text.trim() === '') {
-        setFocusedChunk(index + 1);
-        event.preventDefault();
-      }
+      setShouldAdvanceCursor(true);
+      enqueueEffect('saveFile');
+      event.preventDefault();
     }
   }
 
