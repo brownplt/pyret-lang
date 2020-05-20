@@ -188,7 +188,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             text: '',
             startLine: getStartLineForIndex(chunks, index + 1),
             id: newId(),
-            errorState: { status: 'notLinted' },
+            errorState: { status: 'succeeded', effect: 'lint' },
             editor: false,
           },
         ];
