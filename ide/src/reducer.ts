@@ -195,6 +195,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
           id: newId(),
           errorState: { status: 'succeeded', effect: 'lint' },
           editor: false,
+          needsJiggle: false,
         },
       ];
       return {
@@ -217,6 +218,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
           id: newId(),
           errorState: { status: 'succeeded', effect: 'lint' },
           editor: false,
+          needsJiggle: false,
         },
         ...chunks.slice(focusedChunk + 1),
       ];
@@ -391,6 +393,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
               failures: action.errors,
               highlights,
             },
+            needsJiggle: true,
           };
         }
 
@@ -583,6 +586,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         id: newId(),
         errorState: { status: 'notLinted' },
         editor: false,
+        needsJiggle: false,
       });
 
       totalLines += chunkString.split('\n').length;

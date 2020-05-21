@@ -11,6 +11,7 @@ export type Chunk = {
   id: number,
   errorState: ErrorState,
   editor: false | CodeMirror.Editor;
+  needsJiggle: boolean,
 };
 
 export function getStartLineForIndex(chunks : Chunk[], index : number) {

@@ -53,6 +53,7 @@ function handleLoadFile(
           id: newId(),
           errorState: { status: 'notLinted' },
           editor: false,
+          needsJiggle: false,
         };
 
         totalLines += chunkString.split('\n').length;
