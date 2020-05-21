@@ -356,3 +356,18 @@ button::-moz-focus-inner {
     z-index: 5;
     overflow-y: scroll;
 }
+
+@keyframes chunk-jiggle {
+  0% {
+    translate: 0px;
+  }
+  33% {
+    translate: 5px;
+  }
+  66% {
+    translate: -5px;
+  }
+  100% {
+    translate: 0px;
+  }
+}

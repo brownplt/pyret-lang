@@ -231,10 +231,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     } = this.props;
     const { text, startLine } = chunks[index];
 
+    const animation = chunks[index].errorState.status === 'failed'
+      ? '0.25s ease-in-out 0.25s 2 alternate chunk-jiggle'
+      : '';
+
     return (
       <div style={{
         width: '100%',
         display: 'flex',
+        animation,
       }}
       >
         <CodeMirror
