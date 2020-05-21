@@ -308,10 +308,13 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
 }
 
 function handleSetupSuccess(state: State): State {
+  const { effectQueue } = state;
+
   return {
     ...state,
     isSetupFinished: true,
     settingUp: false,
+    effectQueue: [...effectQueue, 'saveFile'],
   };
 }
 
