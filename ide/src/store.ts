@@ -387,7 +387,7 @@ function handleFirstActionableEffect(
           if (isMessageHandlerReady
               && isSetupFinished
               && isFileSaved
-              && !compiling
+              && compiling !== true
               && !running
               && allLinted) {
             return {

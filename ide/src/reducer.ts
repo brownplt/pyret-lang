@@ -292,6 +292,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
         checks: status.result.result.$checks,
         focusedChunk: focusedChunk + 1,
         shouldAdvanceCursor: false,
+        chunks: newChunks,
       };
     }
   }
@@ -302,6 +303,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     interactions: results,
     checks: status.result.result.$checks,
     shouldAdvanceCursor: false,
+    chunks: newChunks,
   };
 }
 
@@ -348,7 +350,7 @@ function handleSaveFileSuccess(state: State): State {
       }
     }
 
-    if (autoRun && !compiling && !running) {
+    if (autoRun && compiling !== true && !running) {
       if (needsLint) {
         return [...effectQueue, 'lint'];
       }
