@@ -745,11 +745,11 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
 }
 
 function handleSetFocusedChunk(state: State, index: number): State {
-  const { effectQueue } = state;
+  const { effectQueue, isFileSaved } = state;
   return {
     ...state,
     focusedChunk: index,
-    effectQueue: [...effectQueue, 'startEditTimer'],
+    effectQueue: isFileSaved ? effectQueue : [...effectQueue, 'startEditTimer'],
   };
 }
 
