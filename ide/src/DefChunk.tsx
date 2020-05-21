@@ -322,6 +322,30 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             );
           }
 
+          if (chunk.errorState.status === 'succeeded'
+              && chunk.errorState.effect === 'run'
+              && index === focusedChunk) {
+            return (
+              <div style={{
+                alignSelf: 'center',
+                background: 'lightgreen',
+                position: 'sticky',
+                top: '2.7em',
+                width: '50%',
+                zIndex: 1000,
+                fontFamily: 'sans-serif',
+                borderRadius: '3px',
+                border: '0.3em solid green',
+                padding: '0.2em',
+                marginRight: '1em',
+                boxShadow: '0 0 1em',
+              }}
+              >
+                {chunk.errorState.result}
+              </div>
+            );
+          }
+
           return false;
         })()}
       </div>

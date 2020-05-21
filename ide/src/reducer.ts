@@ -177,21 +177,66 @@ function handleCompileSuccess(state: State): State {
 }
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
+  console.log('run result', status);
   const results = makeResult(status.result.result, `file://${state.currentFile}`);
 
   const {
     focusedChunk,
     chunks,
     shouldAdvanceCursor,
+    currentFile,
   } = state;
 
+  function findChunkFromSrcloc([file, l1] : [string, number]): number | false {
+    if (file !== `file://${currentFile}`) {
+      return false;
+    }
+
+    for (let i = 0; i < chunks.length; i += 1) {
+      const end = chunks[i].startLine + chunks[i].text.split('\n').length;
+      if (l1 >= chunks[i].startLine && l1 <= end) {
+        return i;
+      }
+    }
+
+    return false;
+  }
+
+  const newChunks = chunks.slice();
+  const locations = status.result.result.$locations;
+  const traces = status.result.result.$traces;
+
+  locations.forEach((loc: any) => {
+    const { name, srcloc } = loc;
+    const chunk = findChunkFromSrcloc(srcloc);
+    if (chunk !== false) {
+      newChunks[chunk].errorState = {
+        status: 'succeeded',
+        effect: 'run',
+        result: JSON.stringify(status.result.result[name]),
+      };
+    }
+  });
+
+  traces.forEach((loc: any) => {
+    const { value, srcloc } = loc;
+    const chunk = findChunkFromSrcloc(srcloc);
+    if (chunk !== false) {
+      newChunks[chunk].errorState = {
+        status: 'succeeded',
+        effect: 'run',
+        result: JSON.stringify(value),
+      };
+    }
+  });
+
   if (focusedChunk !== undefined && shouldAdvanceCursor) {
-    if (focusedChunk + 1 === chunks.length) {
-      const newChunks: Chunk[] = [
-        ...chunks,
+    if (focusedChunk + 1 === newChunks.length) {
+      const nextChunks: Chunk[] = [
+        ...newChunks,
         {
           text: '',
-          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
+          startLine: getStartLineForIndex(newChunks, focusedChunk + 1),
           id: newId(),
           errorState: { status: 'succeeded', effect: 'lint' },
           editor: false,
@@ -203,29 +248,29 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
         running: false,
         interactions: results,
         checks: status.result.result.$checks,
-        chunks: newChunks,
+        chunks: nextChunks,
         focusedChunk: focusedChunk + 1,
         shouldAdvanceCursor: false,
       };
     }
 
-    if (chunks[focusedChunk + 1].text.trim() !== '') {
-      const newChunks: Chunk[] = [
-        ...chunks.slice(0, focusedChunk + 1),
+    if (newChunks[focusedChunk + 1].text.trim() !== '') {
+      const nextChunks: Chunk[] = [
+        ...newChunks.slice(0, focusedChunk + 1),
         {
           text: '',
-          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
+          startLine: getStartLineForIndex(newChunks, focusedChunk + 1),
           id: newId(),
           errorState: { status: 'succeeded', effect: 'lint' },
           editor: false,
           needsJiggle: false,
         },
-        ...chunks.slice(focusedChunk + 1),
+        ...newChunks.slice(focusedChunk + 1),
       ];
-      for (let i = focusedChunk + 1; i < newChunks.length; i += 1) {
-        newChunks[i] = {
-          ...newChunks[i],
-          startLine: getStartLineForIndex(newChunks, i),
+      for (let i = focusedChunk + 1; i < nextChunks.length; i += 1) {
+        nextChunks[i] = {
+          ...nextChunks[i],
+          startLine: getStartLineForIndex(nextChunks, i),
         };
       }
       return {
@@ -233,13 +278,13 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
         running: false,
         interactions: results,
         checks: status.result.result.$checks,
-        chunks: newChunks,
+        chunks: nextChunks,
         focusedChunk: focusedChunk + 1,
         shouldAdvanceCursor: false,
       };
     }
 
-    if (chunks[focusedChunk + 1].text.trim() === '') {
+    if (newChunks[focusedChunk + 1].text.trim() === '') {
       return {
         ...state,
         running: false,

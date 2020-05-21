@@ -3,6 +3,7 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 export type ErrorState =
   ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
   | { status: 'succeeded', effect: 'lint' | 'compile' }
+  | { status: 'succeeded', effect: 'run', result: any }
   | { status: 'notLinted' });
 
 export type Chunk = {
