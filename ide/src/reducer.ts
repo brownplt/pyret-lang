@@ -213,7 +213,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
       newChunks[chunk].errorState = {
         status: 'succeeded',
         effect: 'run',
-        result: JSON.stringify(status.result.result[name]),
+        result: status.result.result[name],
       };
     }
   });
@@ -225,7 +225,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
       newChunks[chunk].errorState = {
         status: 'succeeded',
         effect: 'run',
-        result: JSON.stringify(value),
+        result: value,
       };
     }
   });
