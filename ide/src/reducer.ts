@@ -486,6 +486,7 @@ function handleCompileFailure(
                 failures: status.errors,
                 highlights: hl ? [...hl, places[i]] : [places[i]],
               },
+              needsJiggle: true,
             };
           }
         }
