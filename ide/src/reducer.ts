@@ -35,7 +35,10 @@ function handleEnter(state: State): State {
     chunks,
   } = state;
 
-  if (focusedChunk !== undefined && shouldAdvanceCursor) {
+  if (focusedChunk !== undefined
+    && shouldAdvanceCursor
+    && chunks[focusedChunk] !== undefined
+    && chunks[focusedChunk].errorState.status !== 'failed') {
     if (focusedChunk + 1 === chunks.length) {
       const nextChunks: Chunk[] = [
         ...chunks,
