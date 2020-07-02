@@ -28,12 +28,79 @@ import {
   Effect,
 } from './effect';
 
+function handleEnter(state: State): State | false {
+  const {
+    focusedChunk,
+    shouldAdvanceCursor,
+    chunks,
+  } = state;
+
+  if (focusedChunk !== undefined && shouldAdvanceCursor) {
+    if (focusedChunk + 1 === chunks.length) {
+      const nextChunks: Chunk[] = [
+        ...chunks,
+        {
+          text: '',
+          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
+          id: newId(),
+          errorState: { status: 'succeeded', effect: 'lint' },
+          editor: false,
+          needsJiggle: false,
+        },
+      ];
+      return {
+        ...state,
+        chunks: nextChunks,
+        focusedChunk: focusedChunk + 1,
+        shouldAdvanceCursor: false,
+      };
+    }
+
+    if (chunks[focusedChunk + 1].text.trim() !== '') {
+      const nextChunks: Chunk[] = [
+        ...chunks.slice(0, focusedChunk + 1),
+        {
+          text: '',
+          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
+          id: newId(),
+          errorState: { status: 'succeeded', effect: 'lint' },
+          editor: false,
+          needsJiggle: false,
+        },
+        ...chunks.slice(focusedChunk + 1),
+      ];
+      for (let i = focusedChunk + 1; i < nextChunks.length; i += 1) {
+        nextChunks[i] = {
+          ...nextChunks[i],
+          startLine: getStartLineForIndex(nextChunks, i),
+        };
+      }
+      return {
+        ...state,
+        chunks: nextChunks,
+        focusedChunk: focusedChunk + 1,
+        shouldAdvanceCursor: false,
+      };
+    }
+
+    if (chunks[focusedChunk + 1].text.trim() === '') {
+      return {
+        ...state,
+        focusedChunk: focusedChunk + 1,
+        shouldAdvanceCursor: false,
+        chunks,
+      };
+    }
+  }
+
+  return false;
+}
+
 function handleEffectStarted(state: State, action: EffectStarted): State {
   const oldEffectQueue = state.effectQueue;
 
   if (oldEffectQueue[action.effect] === undefined) {
-    const message = `handleEffectStarted: effect to remove is out of bounds${
-      JSON.stringify(action)}`;
+    const message = `handleEffectStarted: effect to remove is out of bounds${JSON.stringify(action)}`;
     throw new Error(message);
   }
 
@@ -181,9 +248,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   const results = makeResult(status.result.result, `file://${state.currentFile}`);
 
   const {
-    focusedChunk,
     chunks,
-    shouldAdvanceCursor,
     currentFile,
   } = state;
 
@@ -230,71 +295,15 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     }
   });
 
-  if (focusedChunk !== undefined && shouldAdvanceCursor) {
-    if (focusedChunk + 1 === newChunks.length) {
-      const nextChunks: Chunk[] = [
-        ...newChunks,
-        {
-          text: '',
-          startLine: getStartLineForIndex(newChunks, focusedChunk + 1),
-          id: newId(),
-          errorState: { status: 'succeeded', effect: 'lint' },
-          editor: false,
-          needsJiggle: false,
-        },
-      ];
-      return {
-        ...state,
-        running: false,
-        interactions: results,
-        checks: status.result.result.$checks,
-        chunks: nextChunks,
-        focusedChunk: focusedChunk + 1,
-        shouldAdvanceCursor: false,
-      };
-    }
-
-    if (newChunks[focusedChunk + 1].text.trim() !== '') {
-      const nextChunks: Chunk[] = [
-        ...newChunks.slice(0, focusedChunk + 1),
-        {
-          text: '',
-          startLine: getStartLineForIndex(newChunks, focusedChunk + 1),
-          id: newId(),
-          errorState: { status: 'succeeded', effect: 'lint' },
-          editor: false,
-          needsJiggle: false,
-        },
-        ...newChunks.slice(focusedChunk + 1),
-      ];
-      for (let i = focusedChunk + 1; i < nextChunks.length; i += 1) {
-        nextChunks[i] = {
-          ...nextChunks[i],
-          startLine: getStartLineForIndex(nextChunks, i),
-        };
-      }
-      return {
-        ...state,
-        running: false,
-        interactions: results,
-        checks: status.result.result.$checks,
-        chunks: nextChunks,
-        focusedChunk: focusedChunk + 1,
-        shouldAdvanceCursor: false,
-      };
-    }
-
-    if (newChunks[focusedChunk + 1].text.trim() === '') {
-      return {
-        ...state,
-        running: false,
-        interactions: results,
-        checks: status.result.result.$checks,
-        focusedChunk: focusedChunk + 1,
-        shouldAdvanceCursor: false,
-        chunks: newChunks,
-      };
-    }
+  const maybeEnter = handleEnter({
+    ...state,
+    chunks: newChunks,
+    interactions: results,
+    checks: status.result.result.$checks,
+    running: false,
+  });
+  if (maybeEnter) {
+    return maybeEnter;
   }
 
   return {
