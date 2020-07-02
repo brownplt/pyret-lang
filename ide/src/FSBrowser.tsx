@@ -5,7 +5,12 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { ReactSVG } from 'react-svg';
+import {
+  Upload,
+  FilePlus,
+  FolderPlus,
+  X,
+} from 'react-feather';
 import * as control from './control';
 import * as action from './action';
 import FSItem from './FSItem';
@@ -269,12 +274,10 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             }}
             >
               {editType === EditType.CreateFile ? (
-                <div>&#128441; Name</div>
+                <div>Name:</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'row' }}>
-                  <ReactSVG src="smallFolderIcon.svg" />
-                  &nbsp;
-                  Name
+                  Name:
                 </div>
               )}
             </pre>
@@ -355,21 +358,21 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                     display: 'none',
                   }}
                 />
-                <ReactSVG src="uploadFolderIcon.svg" />
+                <Upload />
               </label>
               <button
                 className="fs-browser-item"
                 onClick={this.toggleEditFile}
                 type="button"
               >
-                +&#128441;
+                <FilePlus />
               </button>
               <button
                 className="fs-browser-item"
                 onClick={this.toggleEditDirectory}
                 type="button"
               >
-                <ReactSVG src="addFolderIcon.svg" />
+                <FolderPlus />
               </button>
               {!this.browsingRoot
                              && (
@@ -378,7 +381,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                                onClick={this.deleteSelected}
                                type="button"
                              >
-                               &#10060;
+                               <X />
                              </button>
                              )}
             </div>
