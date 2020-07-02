@@ -52,6 +52,7 @@
     "react-copy-to-clipboard": "^5.0.2",
     "react-dev-utils": "^9.0.2",
     "react-dom": "^16.13.1",
+    "react-feather": "^2.0.8",
     "react-google-charts": "^3.0.15",
     "react-redux": "^7.2.0",
     "react-splitter-layout": "^4.0.0",
