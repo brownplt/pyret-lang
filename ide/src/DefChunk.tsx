@@ -154,19 +154,30 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 
   handleArrowUp(editor: any, event: Event) {
-    const { index, setFocusedChunk } = this.props;
+    const {
+      index,
+      setFocusedChunk,
+      setShouldAdvanceCursor,
+    } = this.props;
     const pos = (editor as any).getCursor();
     if (pos.line === 0 && index > 0) {
       setFocusedChunk(index - 1);
+      setShouldAdvanceCursor(false);
       event.preventDefault();
     }
   }
 
   handleArrowDown(editor: any, event: Event) {
-    const { index, setFocusedChunk, chunks } = this.props;
+    const {
+      index,
+      setFocusedChunk,
+      chunks,
+      setShouldAdvanceCursor,
+    } = this.props;
     const pos = (editor as any).getCursor();
     if (pos.line === chunks[index].text.split('\n').length - 1 && index < chunks.length - 1) {
       setFocusedChunk(index + 1);
+      setShouldAdvanceCursor(false);
       event.preventDefault();
     }
   }
@@ -221,7 +232,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 
   handleMouseDown() {
-    const { index, setFocusedChunk } = this.props;
+    const {
+      index,
+      setFocusedChunk,
+      setShouldAdvanceCursor,
+    } = this.props;
+    setShouldAdvanceCursor(false);
     setFocusedChunk(index);
   }
 

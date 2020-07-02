@@ -1,5 +1,8 @@
 import React from 'react';
-import { ReactSVG } from 'react-svg';
+import {
+  File,
+  Folder,
+} from 'react-feather';
 import * as control from './control';
 
 type FSItemProps = {
@@ -19,11 +22,11 @@ export default class FSItem extends React.Component<FSItemProps, FSItemState> {
     const label = (() => {
       if (stats.isDirectory()) {
         return (
-          <ReactSVG src="smallFolderIcon.svg" />
+          <Folder />
         );
       } if (stats.isFile()) {
         return (
-          <ReactSVG src="file.svg" />
+          <File />
         );
       }
       return '?';
