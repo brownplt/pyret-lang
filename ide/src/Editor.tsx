@@ -114,55 +114,6 @@ control.loadBuiltins();
 type EditorProps = PropsFromRedux & dispatchProps & stateProps;
 
 export class Editor extends React.Component<EditorProps, any> {
-  // run = State.handleRun(this)
-  // update = State.handleUpdate(this)
-  // onTextEdit = State.handleTextEdit(this)
-  // onChunkEdit = State.handleChunkEdit(this)
-  // onTraverseDown = State.handleTraverseDown(this)
-  // onTraverseUp = State.handleTraverseUp(this)
-  // onExpandChild = State.handleExpandChild(this)
-  // setEditorMode = State.handleSetEditorMode(this)
-  // toggleDropdownVisibility = State.handleToggleDropdownVisibility(this)
-  // toggleAutoRun = State.handleToggleAutoRun(this)
-  // toggleStopify = State.handleToggleStopify(this)
-  // toggleTypeCheck = State.handleToggleTypeCheck(this)
-  // onDecreaseFontSize = State.handleDecreaseFontSize(this)
-  // onIncreaseFontSize = State.handleIncreaseFontSize(this)
-  // onResetFontSize = State.handleResetFontSize(this)
-  // removeDropdown = State.handleRemoveDropdown(this)
-  // setMessage = State.handleSetMessage(this)
-  // stop = State.handleStop(this)
-
-  // get isPyretFile() {
-  //    return /\.arr$/.test(this.currentFile);
-  // }
-
-  // get currentFile() {
-  //    return control.bfsSetup.path.join(
-  //        ...this.state.currentFileDirectory,
-  //        this.state.currentFileName);
-  // }
-
-  // get currentFileName() {
-  //    return this.state.currentFileName;
-  // }
-
-  // get currentFileDirectory() {
-  //    return control.bfsSetup.path.join(...this.state.currentFileDirectory);
-  // }
-
-  // get stopify() {
-  //    return this.state.runKind === control.backend.RunKind.Async;
-  // }
-
-  // loadBuiltins = (e: React.MouseEvent<HTMLElement>): void => {
-  //    control.loadBuiltins();
-  // };
-
-  // removeRootDirectory = (e: React.MouseEvent<HTMLElement>): void => {
-  //    control.removeRootDirectory();
-  // };
-
   makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => (
     <button
       className={(enabled ? 'run-option-enabled' : 'run-option-disabled')}
@@ -264,35 +215,6 @@ export class Editor extends React.Component<EditorProps, any> {
         </DropdownOption>
       </Dropdown>
     );
-
-    /* const builtinsLoader =
-     *     <button onClick={control.loadBuiltins}>
-     *         Load Builtins
-     *     </button>;
-     */
-    // const menu = (
-    //   <Menu>
-    //     <Tab
-    //       name="fsBrowser"
-    //       icon={
-    //         <ReactSVG src="folderIcon.svg" />
-    //       }
-    //     >
-    //       <FSBrowser />
-    //     </Tab>
-    //     <Tab
-    //       name="options"
-    //       icon={
-    //         <ReactSVG src="gearIcon.svg" />
-    //       }
-    //     >
-    //       {textEditor}
-    //       {chunkEditor}
-    //       {/* {builtinsLoader} */}
-    //       <FontSize key="FontSize" />
-    //     </Tab>
-    //   </Menu>
-    // );
 
     const rightHandSide = (
       <div className="interactions-area-container">
