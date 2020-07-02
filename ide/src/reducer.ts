@@ -28,7 +28,7 @@ import {
   Effect,
 } from './effect';
 
-function handleEnter(state: State): State | false {
+function handleEnter(state: State): State {
   const {
     focusedChunk,
     shouldAdvanceCursor,
@@ -93,7 +93,7 @@ function handleEnter(state: State): State | false {
     }
   }
 
-  return false;
+  return state;
 }
 
 function handleEffectStarted(state: State, action: EffectStarted): State {
@@ -295,25 +295,13 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     }
   });
 
-  const maybeEnter = handleEnter({
+  return handleEnter({
     ...state,
     chunks: newChunks,
     interactions: results,
     checks: status.result.result.$checks,
     running: false,
   });
-  if (maybeEnter) {
-    return maybeEnter;
-  }
-
-  return {
-    ...state,
-    running: false,
-    interactions: results,
-    checks: status.result.result.$checks,
-    shouldAdvanceCursor: false,
-    chunks: newChunks,
-  };
 }
 
 function handleSetupSuccess(state: State): State {
@@ -463,12 +451,12 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
         return chunk;
       });
 
-      return {
+      return handleEnter({
         ...state,
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
-      };
+      });
     }
     default:
       throw new Error('handleLintFailure: unknown editor mode');
@@ -549,18 +537,18 @@ function handleCompileFailure(
             };
           }
         }
-        return {
+        return handleEnter({
           ...state,
           compiling: false,
           chunks: newChunks,
-        };
+        });
       }
-      return {
+      return handleEnter({
         ...state,
         compiling: false,
         interactionErrors: status.errors,
         definitionsHighlights: places,
-      };
+      });
     }
     default:
       throw new Error('handleCompileFailure: unknown editor mode');
@@ -569,11 +557,11 @@ function handleCompileFailure(
 
 function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
   console.log('handleFailure', status);
-  return {
+  return handleEnter({
     ...state,
     running: false,
     interactionErrors: [JSON.stringify(status.errors)],
-  };
+  });
 }
 
 function handleEffectFailed(state: State, action: EffectFailure): State {
