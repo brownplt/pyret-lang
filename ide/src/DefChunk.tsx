@@ -5,7 +5,6 @@ import { State } from './state';
 import { Chunk, getStartLineForIndex } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
-import RenderedValue from './RenderedValue';
 
 type stateProps = {
   chunks: Chunk[],
@@ -319,28 +318,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               }}
               >
                 {chunk.errorState.failures}
-              </div>
-            );
-          }
-
-          if (chunk.errorState.status === 'succeeded'
-              && chunk.errorState.effect === 'run'
-              && index === focusedChunk) {
-            return (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                background: '#f7f7f7',
-                alignSelf: 'center',
-                position: 'relative',
-                height: '100%',
-                width: '50%',
-                zIndex: 1000,
-                fontFamily: 'sans-serif',
-              }}
-              >
-                <RenderedValue value={chunk.errorState.result} />
               </div>
             );
           }
