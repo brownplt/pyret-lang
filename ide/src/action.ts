@@ -54,7 +54,8 @@ export type Update =
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }
   | { key: 'shouldAdvanceCursor', value: boolean }
-  | { key: 'dropdownVisible', value: boolean });
+  | { key: 'dropdownVisible', value: boolean }
+  | { key: 'menuTabVisible', value: false | number});
 
 export type UpdateKey = Update['key'];
 

@@ -757,6 +757,22 @@ function handleSetFontSize(state: State, fontSize: number): State {
   return { ...state, fontSize };
 }
 
+function handleSetMenuTabVisible(state: State, tab: false | number) {
+  const { menuTabVisible } = state;
+  if (menuTabVisible !== false) {
+    if (menuTabVisible !== tab) {
+      return { ...state, menuTabVisible: tab };
+    }
+
+    // typescript tries to lift a literal `false` to the `boolean` type, but `false | number`
+    // cannot be `true`.
+    const myFalse: false = false;
+    return { ...state, menuTabVisible: myFalse };
+  }
+
+  return { ...state, menuTabVisible: tab };
+}
+
 function handleUpdate(
   state: State,
   action: Update,
@@ -788,6 +804,8 @@ function handleUpdate(
       return { ...state, dropdownVisible: action.value };
     case 'shouldAdvanceCursor':
       return { ...state, shouldAdvanceCursor: action.value };
+    case 'menuTabVisible':
+      return handleSetMenuTabVisible(state, action.value);
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }

@@ -2,7 +2,6 @@ import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import SplitterLayout from 'react-splitter-layout';
-import { ReactSVG } from 'react-svg';
 import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode } from './state';
@@ -11,10 +10,8 @@ import { TestResult } from './Check';
 import DefChunks from './DefChunks';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
-import Tab from './Tab';
+import MenuBar from './MenuBar';
 import Footer from './Footer';
-import FontSize from './FontSize';
-import FSBrowser from './FSBrowser';
 import Dropdown from './Dropdown';
 import DropdownOption from './DropdownOption';
 import Header from './Header';
@@ -208,7 +205,6 @@ export class Editor extends React.Component<EditorProps, any> {
       fontSize,
       checks,
       interactions,
-      setEditorMode,
       interactionErrors,
       stopify,
       stop,
@@ -269,56 +265,34 @@ export class Editor extends React.Component<EditorProps, any> {
       </Dropdown>
     );
 
-    const textEditor = (
-      <button
-        className="text-editor"
-        onClick={() => setEditorMode(EditorMode.Text)}
-        key="TextEditor"
-        type="button"
-      >
-        Text
-      </button>
-    );
-
-    const chunkEditor = (
-      <button
-        className="chunk-editor"
-        onClick={() => setEditorMode(EditorMode.Chunks)}
-        key="ChunkEditor"
-        type="button"
-      >
-        Chunks
-      </button>
-    );
-
     /* const builtinsLoader =
      *     <button onClick={control.loadBuiltins}>
      *         Load Builtins
      *     </button>;
      */
-    const menu = (
-      <Menu>
-        <Tab
-          name="fsBrowser"
-          icon={
-            <ReactSVG src="folderIcon.svg" />
-          }
-        >
-          <FSBrowser />
-        </Tab>
-        <Tab
-          name="options"
-          icon={
-            <ReactSVG src="gearIcon.svg" />
-          }
-        >
-          {textEditor}
-          {chunkEditor}
-          {/* {builtinsLoader} */}
-          <FontSize key="FontSize" />
-        </Tab>
-      </Menu>
-    );
+    // const menu = (
+    //   <Menu>
+    //     <Tab
+    //       name="fsBrowser"
+    //       icon={
+    //         <ReactSVG src="folderIcon.svg" />
+    //       }
+    //     >
+    //       <FSBrowser />
+    //     </Tab>
+    //     <Tab
+    //       name="options"
+    //       icon={
+    //         <ReactSVG src="gearIcon.svg" />
+    //       }
+    //     >
+    //       {textEditor}
+    //       {chunkEditor}
+    //       {/* {builtinsLoader} */}
+    //       <FontSize key="FontSize" />
+    //     </Tab>
+    //   </Menu>
+    // );
 
     const rightHandSide = (
       <div className="interactions-area-container">
@@ -341,43 +315,54 @@ export class Editor extends React.Component<EditorProps, any> {
     return (
       <div className="page-container">
         <Header>
-          {stopify && running ? (
-            <button
-              className="stop-available"
-              onClick={stop}
-              type="button"
+          <div>
+            <MenuBar />
+          </div>
+          <div
+            style={{
+              height: '100%',
+            }}
+          >
+            {stopify && running ? (
+              <button
+                className="stop-available"
+                onClick={stop}
+                type="button"
+              >
+                Stop
+              </button>
+            ) : (
+              <button
+                className="stop-unavailable"
+                type="button"
+              >
+                Stop
+              </button>
+            )}
+            <div
+              className="run-container"
             >
-              Stop
-            </button>
-          ) : (
-            <button
-              className="stop-unavailable"
-              type="button"
-            >
-              Stop
-            </button>
-          )}
-          <div className="run-container">
-            <button
-              className="run-ready"
-              type="button"
-              onClick={run}
-            >
-              Run
-            </button>
-            <button
-              type="button"
-              className="run-options"
-              onClick={() => setDropdownVisible(!dropdownVisible)}
-              onBlur={() => setDropdownVisible(false)}
-            >
-              &#8628;
-              {dropdown}
-            </button>
+              <button
+                className="run-ready"
+                type="button"
+                onClick={run}
+              >
+                Run
+              </button>
+              <button
+                type="button"
+                className="run-options"
+                onClick={() => setDropdownVisible(!dropdownVisible)}
+                onBlur={() => setDropdownVisible(false)}
+              >
+                &#8628;
+                {dropdown}
+              </button>
+            </div>
           </div>
         </Header>
         <div className="code-container">
-          {menu}
+          <Menu />
           <SplitterLayout
             vertical={false}
             percentage

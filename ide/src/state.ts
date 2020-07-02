@@ -1,6 +1,7 @@
 import { Check } from './Check';
 import { Chunk } from './chunk';
 import { Effect } from './effect';
+import { MenuItems } from './menu';
 import * as control from './control';
 
 export type State = {
@@ -40,6 +41,8 @@ export type State = {
   compiling: boolean | 'out-of-date',
   running: boolean,
   compiledSinceLastEdit: boolean,
+  menuItems: MenuItems,
+  menuTabVisible: false | number,
 };
 
 export enum EditorMode {
@@ -95,9 +98,19 @@ export const initialState: State = {
   compiling: false,
   running: false,
   compiledSinceLastEdit: false,
-
   chunks: [],
   focusedChunk: undefined,
+  menuTabVisible: false,
+  menuItems: [
+    {
+      name: 'Files',
+      icon: 'folderIcon.svg',
+    },
+    {
+      name: 'Options',
+      icon: 'gearIcon.svg',
+    },
+  ],
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';
