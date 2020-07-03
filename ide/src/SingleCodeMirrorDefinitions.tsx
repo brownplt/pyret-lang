@@ -10,7 +10,6 @@ import * as RawCodeMirror from 'codemirror';
 (window as any).CodeMirror = RawCodeMirror;
 require('pyret-codemirror-mode/mode/pyret');
 
-
 type Props = {
   onEdit: (s: string) => void,
   highlights: number[][],
@@ -63,7 +62,6 @@ export default class SingleCodeMirrorDefinitions extends React.Component<Props, 
     }
     onEdit(value);
   };
-
 
   render() {
     const { text } = this.props;

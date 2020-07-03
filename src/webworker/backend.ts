@@ -1,8 +1,8 @@
-
 export interface LintOptions {
   program: string,
   programSource: string,
 }
+
 export interface CompileOptions {
   program: string,
   baseDir: string,

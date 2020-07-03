@@ -99,7 +99,6 @@ export const lint = (
   );
 };
 
-
 export const compile = (
   baseDirectory: string,
   programFileName: string,
