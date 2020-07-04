@@ -2,6 +2,7 @@ import { Check } from './Check';
 import { Chunk } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu';
+import { RHS } from './rhsObject';
 import * as control from './control';
 
 export type State = {
@@ -13,6 +14,7 @@ export type State = {
   typeCheck: boolean,
   checks: Check[],
   interactions: { key: any, name: any, value: any }[],
+  rhs: RHS,
   interactionErrors: string[],
   lintFailures: LintFailures,
   runKind: control.backend.RunKind,
@@ -71,6 +73,7 @@ export const initialState: State = {
     name: 'Note',
     value: 'Press Run to compile and run',
   }],
+  rhs: { objects: [] },
   interactionErrors: [],
   lintFailures: {},
   runKind: control.backend.RunKind.Async,
