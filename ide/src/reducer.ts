@@ -28,6 +28,10 @@ import {
   Effect,
 } from './effect';
 
+import {
+  makeRHSObjects,
+} from './rhsObject';
+
 function handleEnter(state: State): State {
   const {
     focusedChunk,
@@ -249,6 +253,7 @@ function handleCompileSuccess(state: State): State {
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
   console.log('run result', status);
   const results = makeResult(status.result.result, `file://${state.currentFile}`);
+  const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
   const {
     chunks,
@@ -304,6 +309,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     interactions: results,
     checks: status.result.result.$checks,
     running: false,
+    rhs,
   });
 }
 

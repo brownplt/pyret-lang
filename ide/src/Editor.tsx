@@ -5,8 +5,7 @@ import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode } from './state';
-import Interaction from './Interaction';
-import { TestResult } from './Check';
+import RHS from './RHS';
 import DefChunks from './DefChunks';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
@@ -154,8 +153,6 @@ export class Editor extends React.Component<EditorProps, any> {
   render() {
     const {
       fontSize,
-      checks,
-      interactions,
       interactionErrors,
       stopify,
       stop,
@@ -174,24 +171,29 @@ export class Editor extends React.Component<EditorProps, any> {
 
     const interactionValues = (
       <div style={{ fontSize }}>
-        <pre className="checks-area">
-          { checks && checks.map((c: any) => <TestResult check={c} />)}
-        </pre>
-        <pre className="interactions-area">
-          {
-            interactions.map(
-              (i: any) => (
-                <Interaction
-                  key={i.key}
-                  name={i.name}
-                  value={i.value}
-                />
-              ),
-            )
-          }
-        </pre>
+        <RHS />
       </div>
     );
+    // const interactionValues = (
+    //   <div style={{ fontSize }}>
+    //     <pre className="checks-area">
+    //       { checks && checks.map((c: any) => <TestResult check={c} />)}
+    //     </pre>
+    //     <pre className="interactions-area">
+    //       {
+    //         interactions.map(
+    //           (i: any) => (
+    //             <Interaction
+    //               key={i.key}
+    //               name={i.name}
+    //               value={i.value}
+    //             />
+    //           ),
+    //         )
+    //       }
+    //     </pre>
+    //   </div>
+    // );
 
     const dropdown = dropdownVisible && (
       <Dropdown>

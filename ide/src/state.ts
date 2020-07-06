@@ -2,7 +2,7 @@ import { Check } from './Check';
 import { Chunk } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu';
-import { RHS } from './rhsObject';
+import { RHSObjects } from './rhsObject';
 import * as control from './control';
 
 export type State = {
@@ -14,7 +14,7 @@ export type State = {
   typeCheck: boolean,
   checks: Check[],
   interactions: { key: any, name: any, value: any }[],
-  rhs: RHS,
+  rhs: RHSObjects,
   interactionErrors: string[],
   lintFailures: LintFailures,
   runKind: control.backend.RunKind,
