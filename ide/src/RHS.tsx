@@ -36,7 +36,13 @@ function RHS({ rhs }: RHSProps) {
 
       if (isLocation(rhsObject)) {
         return (
-          <pre key={rhsObject.key}>
+          <pre
+            key={rhsObject.key}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
             {rhsObject.name}
             {' '}
             =&nbsp;
