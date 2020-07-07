@@ -26,7 +26,6 @@ type stateProps = {
   fontSize: number,
   stopify: boolean,
   checks: any[],
-  interactions: { key: any, name: any, value: any }[],
   interactionErrors: any[],
   editorMode: EditorMode,
   chunks: Chunk[],
@@ -46,7 +45,6 @@ function mapStateToProps(state: State.State): stateProps {
     fontSize: state.fontSize,
     stopify: state.runKind === control.backend.RunKind.Async,
     checks: state.checks,
-    interactions: state.interactions,
     interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
     chunks: state.chunks,
@@ -174,26 +172,6 @@ export class Editor extends React.Component<EditorProps, any> {
         <RHS />
       </div>
     );
-    // const interactionValues = (
-    //   <div style={{ fontSize }}>
-    //     <pre className="checks-area">
-    //       { checks && checks.map((c: any) => <TestResult check={c} />)}
-    //     </pre>
-    //     <pre className="interactions-area">
-    //       {
-    //         interactions.map(
-    //           (i: any) => (
-    //             <Interaction
-    //               key={i.key}
-    //               name={i.name}
-    //               value={i.value}
-    //             />
-    //           ),
-    //         )
-    //       }
-    //     </pre>
-    //   </div>
-    // );
 
     const dropdown = dropdownVisible && (
       <Dropdown>

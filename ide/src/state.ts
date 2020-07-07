@@ -13,7 +13,6 @@ export type State = {
   currentFileContents: string | undefined,
   typeCheck: boolean,
   checks: Check[],
-  interactions: { key: any, name: any, value: any }[],
   rhs: RHSObjects,
   interactionErrors: string[],
   lintFailures: LintFailures,
@@ -68,11 +67,6 @@ export const initialState: State = {
   currentFileContents: undefined,
   typeCheck: true,
   checks: [],
-  interactions: [{
-    key: 'Note',
-    name: 'Note',
-    value: 'Press Run to compile and run',
-  }],
   rhs: { objects: [] },
   interactionErrors: [],
   lintFailures: {},
@@ -117,36 +111,3 @@ export const initialState: State = {
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';
-
-export const makeResult = (
-  result: any,
-  moduleUri: string,
-): { key: string, name: string, value: any }[] => {
-  const compareLocations = (a: any, b: any): number => a.srcloc[1] - b.srcloc[1];
-
-  // There may be toplevel expressions in many modules, but we only want to
-  // show the ones from the main module we're working on
-  const mainTraces = result.$traces.filter((t : any) => t.srcloc[0] === moduleUri);
-
-  const allWithLocs = result.$locations.concat(mainTraces);
-
-  // We combine and then sort to get the traces interleaved correctly with named values
-  const allSorted = allWithLocs.sort(compareLocations);
-  return allSorted.map((key: any) => {
-    if ('name' in key) {
-      return {
-        name: key.name,
-        key: key.name,
-        line: key.srcloc[1],
-        value: result[key.name],
-      };
-    }
-
-    return {
-      name: '',
-      key: String(key.srcloc[1]),
-      line: key.srcloc[1],
-      value: key.value,
-    };
-  });
-};

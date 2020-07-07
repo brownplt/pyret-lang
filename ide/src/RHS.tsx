@@ -23,7 +23,7 @@ const connector = connect(mapStateToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type RHSProps = stateProps & PropsFromRedux;
 
-export function RHS({ rhs }: RHSProps) {
+function RHS({ rhs }: RHSProps) {
   const elements = (
     rhs.objects.map((rhsObject) => {
       if (isTrace(rhsObject)) {

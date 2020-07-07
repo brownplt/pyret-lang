@@ -15,7 +15,6 @@ import {
   State,
   initialState,
   CHUNKSEP,
-  makeResult,
 } from './state';
 
 import {
@@ -252,7 +251,6 @@ function handleCompileSuccess(state: State): State {
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
   console.log('run result', status);
-  const results = makeResult(status.result.result, `file://${state.currentFile}`);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
   const {
@@ -306,7 +304,6 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   return handleEnter({
     ...state,
     chunks: newChunks,
-    interactions: results,
     checks: status.result.result.$checks,
     running: false,
     rhs,
