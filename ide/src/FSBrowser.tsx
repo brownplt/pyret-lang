@@ -9,7 +9,6 @@ import {
   Upload,
   FilePlus,
   FolderPlus,
-  X,
 } from 'react-feather';
 import * as control from './control';
 import * as action from './action';
@@ -374,16 +373,16 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               >
                 <FolderPlus />
               </button>
-              {!this.browsingRoot
-                             && (
-                             <button
-                               className="fs-browser-item"
-                               onClick={this.deleteSelected}
-                               type="button"
-                             >
-                               <X />
-                             </button>
-                             )}
+              {/* {!this.browsingRoot
+                  && (
+                  <button
+                  className="fs-browser-item"
+                  onClick={this.deleteSelected}
+                  type="button"
+                  >
+                  <X />
+                  </button>
+                  )} */}
             </div>
           </div>
           {editor}
