@@ -223,6 +223,10 @@ button::-moz-focus-inner {
     border: none !important;
 }
 
+.CodeMirror-linenumber {
+    user-select: none;
+}
+
 .interactions-area-container {
     height: 100%;
     display: flex;
