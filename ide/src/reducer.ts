@@ -524,7 +524,6 @@ function handleCompileFailure(
       };
     case EditorMode.Chunks: {
       if (places.length > 0) {
-        console.log('MULTIPLE PLACES', status, places);
         const { chunks } = state;
         const newChunks = [...chunks];
         for (let i = 0; i < places.length; i += 1) {
