@@ -72,7 +72,7 @@ function getRow(hasSrcLoc: HasSrcLoc): number {
 
   const { loc } = hasSrcLoc;
 
-  const matches = loc.match(/:(\d)+:\d+-\d+:\d+$/);
+  const matches = loc.match(/:(\d+):\d+-\d+:\d+$/);
 
   if (matches === null) {
     throw new Error('getRow: received malformed srcloc');
