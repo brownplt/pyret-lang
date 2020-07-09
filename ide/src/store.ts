@@ -250,8 +250,8 @@ function handleTextLint(currentFileContents: string): void {
   control.lint(currentFileContents, 'text');
 }
 
-function handleChunkLint(text: string, id: number): void {
-  control.lint(text, String(id));
+function handleChunkLint(text: string, id: string): void {
+  control.lint(text, id);
 }
 
 function handleFirstActionableEffect(

@@ -36,7 +36,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     handleReorder(
       result: DropResult,
       chunks: Chunk[],
-      oldFocusedId: number | false,
+      oldFocusedId: string | false,
     ) {
       // Great examples! https://codesandbox.io/s/k260nyxq9v
       const reorder = (innerChunks: Chunk[], start: number, end: number) => {
@@ -143,7 +143,7 @@ function DefChunks({
     const border = getBorderColor();
 
     return (
-      <Draggable key={chunk.id} draggableId={String(chunk.id)} index={index}>
+      <Draggable key={chunk.id} draggableId={chunk.id} index={index}>
         {(draggableProvided) => (
           <div
             ref={draggableProvided.innerRef}

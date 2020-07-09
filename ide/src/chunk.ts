@@ -1,4 +1,5 @@
 import { Controlled as CodeMirror } from 'react-codemirror2';
+import { v4 as uuidv4 } from 'uuid';
 
 export type ErrorState =
   ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
@@ -9,7 +10,7 @@ export type ErrorState =
 export type Chunk = {
   startLine: number,
   text: string,
-  id: number,
+  id: string,
   errorState: ErrorState,
   editor: false | CodeMirror.Editor;
   needsJiggle: boolean,
@@ -22,5 +23,5 @@ export function getStartLineForIndex(chunks : Chunk[], index : number) {
 }
 
 export function newId() {
-  return Math.floor(new Date().valueOf() + 1000 * Math.random());
+  return uuidv4();
 }

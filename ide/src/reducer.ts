@@ -200,7 +200,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 
       let allLinted = true;
       const newChunks: Chunk[] = chunks.map((chunk) => {
-        if (String(chunk.id) === action.name) {
+        if (chunk.id === action.name) {
           return {
             ...chunk,
             errorState: { status: 'succeeded', effect: 'lint' },
@@ -427,7 +427,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
 
       let allLinted = true;
       const newChunks: Chunk[] = chunks.map((chunk) => {
-        if (String(chunk.id) === action.name) {
+        if (chunk.id === action.name) {
           const highlights: number[][] = [];
           for (let i = 0; i < action.errors.length; i += 1) {
             const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
