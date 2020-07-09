@@ -748,11 +748,12 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
 }
 
 function handleSetFocusedChunk(state: State, index: number): State {
-  const { effectQueue, isFileSaved } = state;
+  const { effectQueue, isFileSaved, focusedChunk } = state;
+  const shouldStartEditTimer = !isFileSaved && focusedChunk !== index;
   return {
     ...state,
     focusedChunk: index,
-    effectQueue: isFileSaved ? effectQueue : [...effectQueue, 'startEditTimer'],
+    effectQueue: shouldStartEditTimer ? [...effectQueue, 'startEditTimer'] : effectQueue,
   };
 }
 
