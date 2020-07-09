@@ -170,6 +170,7 @@ function DefChunks({
                   background: `${border}`,
                   borderRadius: '75% 0% 0% 75%',
                   marginLeft: '0.5em',
+                  userSelect: 'none',
                 }}
               >
                 ::
