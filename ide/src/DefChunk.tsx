@@ -200,6 +200,36 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  handleDelete(event: Event) {
+    const {
+      chunks, index, setChunks, setFocusedChunk,
+    } = this.props;
+    if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+      const newChunks = [...chunks.slice(1, chunks.length)];
+      for (let i = 0; i < newChunks.length; i += 1) {
+        newChunks[i] = {
+          ...newChunks[i],
+          startLine: getStartLineForIndex(newChunks, i),
+        };
+      }
+      setChunks(newChunks);
+      setFocusedChunk(0);
+      event.preventDefault();
+    } else if (index > 0 && index < chunks.length - 1 && chunks[index].text.trim() === '') {
+      const newChunks = [
+        ...chunks.slice(0, index),
+        ...chunks.slice(index + 1, chunks.length)];
+      for (let i = index; i < newChunks.length; i += 1) {
+        newChunks[i] = {
+          ...newChunks[i],
+          startLine: getStartLineForIndex(newChunks, i),
+        };
+      }
+      setChunks(newChunks);
+      event.preventDefault();
+    }
+  }
+
   handleBackspace(event: Event) {
     const {
       chunks, index, setChunks, setFocusedChunk,
@@ -300,6 +330,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 break;
               case 'Backspace':
                 this.handleBackspace(event);
+                break;
+              case 'Delete':
+                this.handleDelete(event);
                 break;
               case 'ArrowUp':
                 this.handleArrowUp(editor, event);
