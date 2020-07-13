@@ -16,7 +16,6 @@ var setInteract = function(newInteract) {
     externalInteractionHandler = newInteract;
 }
 var makeReactor = function(init, fields) {
-    runtime.checkObject(fields);
     var handlerDict = {};
     Object.keys(fields.dict).forEach(function(f) {
         if(runtime.ffi.isSome(gf(fields, f))) {
