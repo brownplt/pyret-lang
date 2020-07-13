@@ -251,11 +251,6 @@ var values = {
     "interact": interact,
 };
 
-var types = {
-    Event: gtf(reactorEvents, "Event"),
-    Reactor: annReactor
-};
-
 var internal = {
     setInteract: setInteract
 };
