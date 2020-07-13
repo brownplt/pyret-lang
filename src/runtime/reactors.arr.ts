@@ -233,7 +233,11 @@ function stopTrace(reactor) {
     return runtime.getField(reactor, "stop-trace").app();
 }
 
-var values = {
+var internal = {
+    setInteract: setInteract
+};
+
+module.exports = {
     mouse: reactorEvents["mouse"],
     keypress: reactorEvents["keypress"],
     "time-tick": reactorEvents["time-tick"],
@@ -250,9 +254,3 @@ var values = {
     "react": react,
     "interact": interact,
 };
-
-var internal = {
-    setInteract: setInteract
-};
-
-return module.exports = values;
