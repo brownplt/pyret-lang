@@ -199,43 +199,43 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
     return self;
 }
 
-function getValue(reactor) {
+function getValue<A>(reactor: Reactor<A>): A {
     return reactor["get-value"]();
 }
 
-function draw(reactor) {
+function draw<A>(reactor: Reactor<A>): any {
     return reactor.draw();
 }
 
-function interact(reactor) {
+function interact<A>(reactor: Reactor<A>): Reactor<A> {
     return reactor.interact();
 }
 
-function react(reactor, event) {
+function react<A>(reactor: Reactor<A>, event: any): Reactor<A> {
     return reactor.react(event);
 }
 
-function getTrace(reactor) {
+function getTrace<A>(reactor: Reactor<A>): A[] {
     return reactor["get-trace"]();
 }
 
-function getTraceAsTable(reactor) {
+function getTraceAsTable<A>(reactor: Reactor<A>): Table {
     return reactor["get-trace-as-table"]();
 }
 
-function startTrace(reactor) {
+function startTrace<A>(reactor: Reactor<A>): Reactor<A> {
     return reactor["start-trace"]();
 }
 
-function interactTrace(reactor) {
+function interactTrace<A>(reactor: Reactor<A>): Table {
     return reactor["interact-trace"]();
 }
 
-function simulateTrace(reactor, limit) {
+function simulateTrace<A>(reactor: Reactor<A>, limit: number): Table {
     return reactor["simulate-trace"](limit);
 }
 
-function stopTrace(reactor) {
+function stopTrace<A>(reactor: Reactor<A>): Reactor<A> {
     return reactor["stop-trace"]();
 }
 
