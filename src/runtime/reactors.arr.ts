@@ -85,13 +85,11 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
                     k();
                 };
             }
-            return runtime.safeCall(function() {
-                return externalInteractionHandler(init, handlers, tracer);
-            }, function(newVal) {
-                // This unshift prevents duplicate first elements
-                thisInteractTrace.shift();
-                return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
-            }, "interact");
+
+            const newVal = externalInteractionHandler(init, handlers, tracer);
+            // This unshift prevents duplicate first elements
+            thisInteractTrace.shift();
+            return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
         },
         "start-trace": () => {
             return makeReactorRaw(init, handlers, true, [init]);
@@ -125,47 +123,37 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
             function callOrError(handlerName, args) {
                 if(handlers.hasOwnProperty(handlerName)) {
                     var funObj = handlers[handlerName];
-                    return runtime.safeCall(function() {
-                        return funObj.apply(funObj, args);
-                    }, function(newVal) {
-                        if(tracing) {
-                            var newTrace = trace.concat([newVal]);
-                        }
-                        else {
-                            var newTrace = trace;
-                        }
-                        return makeReactorRaw(newVal, handlers, tracing, newTrace);
-                    }, "react:" + handlerName);
+                    const newVal = funObj.apply(funObj, args);
+                    if (tracing) {
+                        var newTrace = trace.concat([newVal]);
+                    }
+                    else {
+                        var newTrace = trace;
+                    }
+                    return makeReactorRaw(newVal, handlers, tracing, newTrace);
                 }
                 else {
                     throw new Error("No " + handlerName + " handler defined")
                 }
             }
-            return runtime.safeCall(function() {
-                if(handlers["stop-when"]) {
-                    return handlers["stop-when"](init);
-                }
-                else {
-                    return false;
-                }
-            }, function(stop) {
-                if(stop) {
-                    return self;
-                }
-                else {
-                    return runtime.ffi.cases(isEvent, "Event", event, {
-                        keypress: function(key) {
-                            return callOrError("on-key", [init, key]);
-                        },
-                        "time-tick": function() {
-                            return callOrError("on-tick", [init]);
-                        },
-                        mouse: function(x, y, kind) {
-                            return callOrError("on-mouse", [init, x, y, kind]);
-                        }
-                    });
-                }
-            }, "react:stop-when");
+
+            const stop = handlers["stop-when"] ? handlers["stop-when"](init) : false;
+            if (stop) {
+                return self;
+            }
+            else {
+                return runtime.ffi.cases(isEvent, "Event", event, {
+                    keypress: function(key) {
+                        return callOrError("on-key", [init, key]);
+                    },
+                    "time-tick": function() {
+                        return callOrError("on-tick", [init]);
+                    },
+                    mouse: function(x, y, kind) {
+                        return callOrError("on-mouse", [init, x, y, kind]);
+                    }
+                });
+            }
         },
         "is-stopped": () => {
             if(handlers["stop-when"]) {
