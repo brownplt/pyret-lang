@@ -1,3 +1,5 @@
+import { Table } from "./tables.arr";
+
 const runtime = require("./runtime.js");
 const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
@@ -7,22 +9,47 @@ var externalInteractionHandler = null;
 var setInteract = function(newInteract) {
     externalInteractionHandler = newInteract;
 }
-var makeReactor = function(init, fields) {
-    var handlerDict = {};
-    Object.keys(fields.dict).forEach(function(f) {
-        if(runtime.ffi.isSome(fields[f])) {
-            handlerDict[f] = fields[f].value;
-        }
-    });
-    return makeReactorRaw(init, handlerDict, false, []);
+
+type ReactorFields<A> = {
+    init: A,
+    "on-tick"?: (a: A) => A,
+    "seconds-per-tick"?: number,
+    // to-draw is supposed to return an Image, but the image library
+    // isn't written in TypeScript, hence the `any`
+    "to-draw"?: (a: A) => any,
+    "on-key"?: (a: A, key: string) => A,
+    "on-mouse"?: (a: A, x: number, y: number, eventType: string) => A,
+    "stop-when"?: (a: A) => boolean,
+    "close-when-stop"?: boolean,
+    title?: string,
+};
+
+function makeReactor<A>(init: A, fields: ReactorFields<A>): Reactor<A> {
+    return makeReactorRaw<A>(init, fields, false, []);
 }
-var makeReactorRaw = function(init, handlers, tracing, trace) {
-    const self = {
-        "$brand": "reactor",
+
+type Reactor<A> = {
+    $brand: "reactor",
+    "get-value": () => A,
+    draw: () => any, // `any` means `Image` here
+    "interact-trace": () => Table,
+    "simulate-trace": (limit: number) => Table,
+    interact: () => Reactor<A>,
+    "start-trace": () => Reactor<A>,
+    "stop-trace": () => Reactor<A>,
+    "get-trace": () => A[], // should be List<A> type
+    "get-trace-as-table": () => Table,
+    react: (event: any) => Reactor<A>, // `any` should be ReactorEvent
+    "is-stopped": () => boolean,
+};
+
+function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean, trace: A[]): Reactor<A> {
+    const self: Reactor<A> = {
+        $brand: "reactor",
         "get-value": () => {
             return init;
         },
-        "draw": () => {
+        draw: () => {
             if(!handlers.hasOwnProperty("to-draw")) {
                 runtime.ffi.throwMessageException("Cannot draw() because no to-draw was specified on this reactor.");
             }
