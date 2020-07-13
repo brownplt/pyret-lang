@@ -2,10 +2,6 @@ const runtime = require("./runtime.js");
 const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
 
-var gtf = function(m, f) { return m.types[f]; }
-
-var annEvent = gtf(reactorEvents, "Event");
-
 var isEvent = reactorEvents["is-Event"];
 var externalInteractionHandler = null;
 var setInteract = function(newInteract) {
