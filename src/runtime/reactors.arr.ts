@@ -99,7 +99,7 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
         },
         "get-trace": () => {
             if(tracing) {
-                return runtime.ffi.makeList(trace);
+                return trace;
             }
             else {
                 throw new Error("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first")
