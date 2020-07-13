@@ -51,11 +51,11 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
             return init;
         },
         draw: () => {
-            if(!handlers.hasOwnProperty("to-draw")) {
-                runtime.ffi.throwMessageException("Cannot draw() because no to-draw was specified on this reactor.");
+            if (!handlers.hasOwnProperty("to-draw")) {
+                throw new Error("Cannot draw() because no to-draw was specified on this reactor.");
             }
-            var drawer = handlers["to-draw"];
-            return drawer(init);
+
+            return handlers["to-draw"](init);
         },
         "interact-trace": () => {
             return runtime.safeThen(function() {
@@ -94,8 +94,8 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
             return help(withTracing, limit).start();
         },
         interact: () => {
-            if(externalInteractionHandler === null) {
-                runtime.ffi.throwMessageException("No interaction set up for this context (please report a bug if you are using code.pyret.org and see this message)");
+            if (externalInteractionHandler === null) {
+                throw new Error("No interaction set up for this context (please report a bug if you are using code.pyret.org and see this message)")
             }
             var thisInteractTrace = [];
             var tracer = null;
@@ -124,7 +124,7 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
                 return runtime.ffi.makeList(trace);
             }
             else {
-                runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
+                throw new Error("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first")
             }
         },
         "get-trace-as-table": () => {
@@ -138,7 +138,7 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
                 return tables.makeTable(["tick", "state"], rows);
             }
             else {
-                runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
+                throw new Error("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first")
             }
         },
         react: (event) => {
@@ -158,7 +158,7 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
                     }, "react:" + handlerName);
                 }
                 else {
-                    runtime.ffi.throwMessageException("No " + handlerName + " handler defined");
+                    throw new Error("No " + handlerName + " handler defined")
                 }
             }
             return runtime.safeCall(function() {
