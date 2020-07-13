@@ -1,6 +1,5 @@
 import { Table } from "./tables.arr";
 
-const runtime = require("./runtime.js");
 const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
 
