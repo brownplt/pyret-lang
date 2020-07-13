@@ -4,9 +4,6 @@ const tables = require("./tables.arr.js");
 
 var gtf = function(m, f) { return m.types[f]; }
 
-// var brandReactor = runtime.namedBrander("reactors", ["reactors"]);
-// var annReactor = runtime.makeBranderAnn(brandReactor, "Reactor");
-
 var annEvent = gtf(reactorEvents, "Event");
 
 var isEvent = reactorEvents["is-Event"];
