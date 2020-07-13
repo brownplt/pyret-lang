@@ -2,8 +2,6 @@ const runtime = require("./runtime.js");
 const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
 
-// VSlib - valueskeletons
-
 var gf = runtime.getField;
 var gtf = function(m, f) { return gf(m, "types")[f]; }
 
