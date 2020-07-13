@@ -34,33 +34,33 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                 runtime.ffi.throwMessageException("Cannot draw() because no to-draw was specified on this reactor.");
             }
             var drawer = handlers["to-draw"];
-            return drawer.app(init);
+            return drawer(init);
         },
         "interact-trace": () => {
             return runtime.safeThen(function() {
-                return self["start-trace"].app();
+                return self["start-trace"]();
             }).then(function(val) {
-                return val.interact.app();
+                return val.interact();
             }).then(function(val) {
-                return val["get-trace-as-table"].app(); 
+                return val["get-trace-as-table"]();
             }).start();
         },
         "simulate-trace": (limit) => {
             function help(r, i) {
                 return r.then(function(rval) {
                     if(i <= 0) {
-                        return rval["get-trace-as-table"].app();
+                        return rval["get-trace-as-table"]();
                     }
                     else {
                         return runtime.safeThen(function() {
-                            return rval["is-stopped"].app();
+                            return rval["is-stopped"]();
                         }).then(function(isStopped) {
                             if(isStopped) {
-                                return rval["get-trace-as-table"].app()
+                                return rval["get-trace-as-table"]()
                             }
                             else {
                                 return help(runtime.safeThen(function() {
-                                    return rval.react.app(reactorEvents["time-tick"]);
+                                    return rval.react(reactorEvents["time-tick"]);
                                 }), i - 1).start();
                             }
                         }).start()
@@ -68,7 +68,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                 });
             }
             var withTracing = runtime.safeThen(function() {
-                return self["start-trace"].app();
+                return self["start-trace"]();
             });
             return help(withTracing, limit).start();
         },
@@ -123,7 +123,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
         react: (event) => {
             function callOrError(handlerName, args) {
                 if(handlers.hasOwnProperty(handlerName)) {
-                    var funObj = handlers[handlerName].app;
+                    var funObj = handlers[handlerName];
                     return runtime.safeCall(function() {
                         return funObj.apply(funObj, args);
                     }, function(newVal) {
@@ -142,7 +142,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
             }
             return runtime.safeCall(function() {
                 if(handlers["stop-when"]) {
-                    return handlers["stop-when"].app(init);
+                    return handlers["stop-when"](init);
                 }
                 else {
                     return false;
@@ -168,7 +168,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
         },
         "is-stopped": () => {
             if(handlers["stop-when"]) {
-                return handlers["stop-when"].app(init);
+                return handlers["stop-when"](init);
             }
             else {
                 return false;
@@ -180,43 +180,43 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
 }
 
 function getValue(reactor) {
-    return reactor["get-value"].app();
+    return reactor["get-value"]();
 }
 
 function draw(reactor) {
-    return reactor.draw.app();
+    return reactor.draw();
 }
 
 function interact(reactor) {
-    return reactor.interact.app();
+    return reactor.interact();
 }
 
 function react(reactor, event) {
-    return reactor.react.app(event);
+    return reactor.react(event);
 }
 
 function getTrace(reactor) {
-    return reactor["get-trace"].app();
+    return reactor["get-trace"]();
 }
 
 function getTraceAsTable(reactor) {
-    return reactor["get-trace-as-table"].app();
+    return reactor["get-trace-as-table"]();
 }
 
 function startTrace(reactor) {
-    return reactor["start-trace"].app();
+    return reactor["start-trace"]();
 }
 
 function interactTrace(reactor) {
-    return reactor["interact-trace"].app();
+    return reactor["interact-trace"]();
 }
 
 function simulateTrace(reactor, limit) {
-    return reactor["simulate-trace"].app(limit);
+    return reactor["simulate-trace"](limit);
 }
 
 function stopTrace(reactor) {
-    return reactor["stop-trace"].app();
+    return reactor["stop-trace"]();
 }
 
 var internal = {
