@@ -3,8 +3,6 @@ import { Table } from "./tables.arr";
 const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
 
-var isEvent = reactorEvents["is-Event"];
-
 // TODO: what's the type of externalInteractionHandler?
 type IDKFunction<A> = (...args: any[]) => A;
 type InteractionHandler<A> = null | IDKFunction<A>;
