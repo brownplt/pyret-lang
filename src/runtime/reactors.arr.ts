@@ -5,10 +5,11 @@ const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
 
 var isEvent = reactorEvents["is-Event"];
-var externalInteractionHandler = null;
-var setInteract = function(newInteract) {
-    externalInteractionHandler = newInteract;
-}
+
+// TODO: what's the type of externalInteractionHandler?
+type IDKFunction = (...args: any[]) => any;
+type InteractionHandler = null | IDKFunction;
+var externalInteractionHandler: InteractionHandler = null;
 
 type ReactorFields<A> = {
     init: A,
