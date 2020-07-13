@@ -7,19 +7,19 @@ const tables = require("./tables.arr.js");
 var gf = runtime.getField;
 var gtf = function(m, f) { return gf(m, "types")[f]; }
 
-var brandReactor = runtime.namedBrander("reactors", ["reactors"]);
-var annReactor = runtime.makeBranderAnn(brandReactor, "Reactor");
+// var brandReactor = runtime.namedBrander("reactors", ["reactors"]);
+// var annReactor = runtime.makeBranderAnn(brandReactor, "Reactor");
 
 var checkArity = runtime.ffi.checkArity;
 
 var annEvent = gtf(reactorEvents, "Event");
 
-function applyBrand(brand, val) {
-    return gf(brand, "brand").app(val);
-}
-function hasBrand(brand, val) {
-    return gf(brand, "test").app(val);
-}
+// function applyBrand(brand, val) {
+//     return gf(brand, "brand").app(val);
+// }
+// function hasBrand(brand, val) {
+//     return gf(brand, "test").app(val);
+// }
 
 var isEvent = reactorEvents["is-Event"];
 var externalInteractionHandler = null;
@@ -188,7 +188,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
             }
         })
     });
-    return applyBrand(brandReactor, o);
+    // return applyBrand(brandReactor, o);
 }
 
 var c = function(name, ...argsAndAnns) {
