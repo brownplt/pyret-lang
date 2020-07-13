@@ -38,7 +38,8 @@ var makeReactor = function(init, fields) {
     return makeReactorRaw(init, handlerDict, false, []);
 }
 var makeReactorRaw = function(init, handlers, tracing, trace) {
-    var o = runtime.makeObject({
+    return {
+        "$brand": "reactor",
         "get-value": (self) => {
             return init;
         },
@@ -187,8 +188,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                 return false;
             }
         },
-    });
-    // return applyBrand(brandReactor, o);
+    };
 }
 
 var c = function(name, ...argsAndAnns) {
