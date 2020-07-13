@@ -177,57 +177,43 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
     };
 }
 
-var c = function(name, ...argsAndAnns) {
-    runtime.checkArgsInternalInline("reactors", name, ...argsAndAnns);
-}
-
 function getValue(reactor) {
-    c("get-value", reactor, annReactor);
     return reactor["get-value"].app();
 }
 
 function draw(reactor) {
-    c("draw", reactor, annReactor);
     return reactor.draw.app();
 }
 
 function interact(reactor) {
-    c("interact", reactor, annReactor);
     return reactor.interact.app();
 }
 
 function react(reactor, event) {
-    c("react", reactor, annReactor, event, annEvent);
     return reactor.react.app(event);
 }
 
 function getTrace(reactor) {
-    c("get-trace", reactor, annReactor);
     return reactor["get-trace"].app();
 }
 
 function getTraceAsTable(reactor) {
-    c("get-trace-as-table", reactor, annReactor);
     return reactor["get-trace-as-table"].app();
 }
 
 function startTrace(reactor) {
-    c("start-trace", reactor, annReactor);
     return reactor["start-trace"].app();
 }
 
 function interactTrace(reactor) {
-    c("interact-trace", reactor, annReactor);
     return reactor["interact-trace"].app();
 }
 
 function simulateTrace(reactor, limit) {
-    c("simulate-trace", reactor, annReactor, limit, runtime.NumInteger);
     return reactor["simulate-trace"].app(limit);
 }
 
 function stopTrace(reactor) {
-    c("stop-trace", reactor, annReactor);
     return reactor["stop-trace"].app();
 }
 
