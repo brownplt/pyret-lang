@@ -239,10 +239,6 @@ function stopTrace<A>(reactor: Reactor<A>): Reactor<A> {
     return reactor["stop-trace"]();
 }
 
-var internal = {
-    setInteract: setInteract
-};
-
 module.exports = {
     mouse: reactorEvents["mouse"],
     keypress: reactorEvents["keypress"],
