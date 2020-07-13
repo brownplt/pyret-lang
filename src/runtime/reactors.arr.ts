@@ -2,8 +2,7 @@ const runtime = require("./runtime.js");
 const reactorEvents = require("./reactor-events.arr.js");
 const tables = require("./tables.arr.js");
 
-var gf = runtime.getField;
-var gtf = function(m, f) { return gf(m, "types")[f]; }
+var gtf = function(m, f) { return m.types[f]; }
 
 // var brandReactor = runtime.namedBrander("reactors", ["reactors"]);
 // var annReactor = runtime.makeBranderAnn(brandReactor, "Reactor");
@@ -18,8 +17,8 @@ var setInteract = function(newInteract) {
 var makeReactor = function(init, fields) {
     var handlerDict = {};
     Object.keys(fields.dict).forEach(function(f) {
-        if(runtime.ffi.isSome(gf(fields, f))) {
-            handlerDict[f] = gf(gf(fields, f), "value");
+        if(runtime.ffi.isSome(fields[f])) {
+            handlerDict[f] = fields[f].value;
         }
     });
     return makeReactorRaw(init, handlerDict, false, []);
@@ -39,29 +38,29 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
         },
         "interact-trace": (self) => {
             return runtime.safeThen(function() {
-                return gf(self, "start-trace").app();
+                return self["start-trace"].app();
             }).then(function(val) {
-                return gf(val, "interact").app();
+                return val.interact.app();
             }).then(function(val) {
-                return gf(val, "get-trace-as-table").app(); 
+                return val["get-trace-as-table"].app(); 
             }).start();
         },
         "simulate-trace": (self, limit) => {
             function help(r, i) {
                 return r.then(function(rval) {
                     if(i <= 0) {
-                        return gf(rval, "get-trace-as-table").app()
+                        return rval["get-trace-as-table"].app();
                     }
                     else {
                         return runtime.safeThen(function() {
-                            return gf(rval, "is-stopped").app();
+                            return rval["is-stopped"].app();
                         }).then(function(isStopped) {
                             if(isStopped) {
-                                return gf(rval, "get-trace-as-table").app()
+                                return rval["get-trace-as-table"].app()
                             }
                             else {
                                 return help(runtime.safeThen(function() {
-                                    return gf(rval, "react").app(reactorEvents["time-tick"]);
+                                    return rval.react.app(reactorEvents["time-tick"]);
                                 }), i - 1).start();
                             }
                         }).start()
@@ -69,7 +68,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                 });
             }
             var withTracing = runtime.safeThen(function() {
-                return gf(self, "start-trace").app();
+                return self["start-trace"].app();
             });
             return help(withTracing, limit).start();
         },
@@ -184,52 +183,52 @@ var c = function(name, ...argsAndAnns) {
 
 function getValue(reactor) {
     c("get-value", reactor, annReactor);
-    return runtime.getField(reactor, "get-value").app();
+    return reactor["get-value"].app();
 }
 
 function draw(reactor) {
     c("draw", reactor, annReactor);
-    return runtime.getField(reactor, "draw").app();
+    return reactor.draw.app();
 }
 
 function interact(reactor) {
     c("interact", reactor, annReactor);
-    return runtime.getField(reactor, "interact").app();
+    return reactor.interact.app();
 }
 
 function react(reactor, event) {
     c("react", reactor, annReactor, event, annEvent);
-    return runtime.getField(reactor, "react").app(event);
+    return reactor.react.app(event);
 }
 
 function getTrace(reactor) {
     c("get-trace", reactor, annReactor);
-    return runtime.getField(reactor, "get-trace").app();
+    return reactor["get-trace"].app();
 }
 
 function getTraceAsTable(reactor) {
     c("get-trace-as-table", reactor, annReactor);
-    return runtime.getField(reactor, "get-trace-as-table").app();
+    return reactor["get-trace-as-table"].app();
 }
 
 function startTrace(reactor) {
     c("start-trace", reactor, annReactor);
-    return runtime.getField(reactor, "start-trace").app();
+    return reactor["start-trace"].app();
 }
 
 function interactTrace(reactor) {
     c("interact-trace", reactor, annReactor);
-    return runtime.getField(reactor, "interact-trace").app();
+    return reactor["interact-trace"].app();
 }
 
 function simulateTrace(reactor, limit) {
     c("simulate-trace", reactor, annReactor, limit, runtime.NumInteger);
-    return runtime.getField(reactor, "simulate-trace").app(limit);
+    return reactor["simulate-trace"].app(limit);
 }
 
 function stopTrace(reactor) {
     c("stop-trace", reactor, annReactor);
-    return runtime.getField(reactor, "stop-trace").app();
+    return reactor["stop-trace"].app();
 }
 
 var internal = {
