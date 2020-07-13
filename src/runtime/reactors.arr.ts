@@ -58,40 +58,20 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
             return handlers["to-draw"](init);
         },
         "interact-trace": () => {
-            return runtime.safeThen(function() {
-                return self["start-trace"]();
-            }).then(function(val) {
-                return val.interact();
-            }).then(function(val) {
-                return val["get-trace-as-table"]();
-            }).start();
+            return self["start-trace"]().interact()["get-trace-as-table"]();
         },
         "simulate-trace": (limit) => {
-            function help(r, i) {
-                return r.then(function(rval) {
-                    if(i <= 0) {
-                        return rval["get-trace-as-table"]();
-                    }
-                    else {
-                        return runtime.safeThen(function() {
-                            return rval["is-stopped"]();
-                        }).then(function(isStopped) {
-                            if(isStopped) {
-                                return rval["get-trace-as-table"]()
-                            }
-                            else {
-                                return help(runtime.safeThen(function() {
-                                    return rval.react(reactorEvents["time-tick"]);
-                                }), i - 1).start();
-                            }
-                        }).start()
-                    }
-                });
+            let r: Reactor<A> = self["start-trace"]();
+
+            for (let i = limit; i > 0; i -= 1) {
+                if (r["is-stopped"]()) {
+                    break;
+                }
+
+                r = r.react(reactorEvents["time-tick"]);
             }
-            var withTracing = runtime.safeThen(function() {
-                return self["start-trace"]();
-            });
-            return help(withTracing, limit).start();
+
+            return r["get-trace-as-table"]();
         },
         interact: () => {
             if (externalInteractionHandler === null) {
