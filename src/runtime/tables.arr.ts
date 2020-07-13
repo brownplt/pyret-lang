@@ -5,7 +5,7 @@ const parse = require("csv-parse/lib/sync")
 const fs = require("fs");
 const jsnums = require("./js-numbers.js");
 
-interface Table {
+export interface Table {
   'add-column': (columnName: string, newVals: any[]) => Table,
   'add-row': (row: Row) => Table,
   'all-columns': () => any[][],
