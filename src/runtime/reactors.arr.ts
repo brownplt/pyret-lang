@@ -39,17 +39,17 @@ var makeReactor = function(init, fields) {
 }
 var makeReactorRaw = function(init, handlers, tracing, trace) {
     var o = runtime.makeObject({
-        "get-value": runtime.makeMethod0(function(self) {
+        "get-value": (self) => {
             return init;
-        }),
-        "draw": runtime.makeMethod0(function(self) {
+        },
+        "draw": (self) => {
             if(!handlers.hasOwnProperty("to-draw")) {
                 runtime.ffi.throwMessageException("Cannot draw() because no to-draw was specified on this reactor.");
             }
             var drawer = handlers["to-draw"];
             return drawer.app(init);
-        }),
-        "interact-trace": runtime.makeMethod0(function(self) {
+        },
+        "interact-trace": (self) => {
             return runtime.safeThen(function() {
                 return gf(self, "start-trace").app();
             }).then(function(val) {
@@ -57,8 +57,8 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
             }).then(function(val) {
                 return gf(val, "get-trace-as-table").app(); 
             }).start();
-        }),
-        "simulate-trace": runtime.makeMethod1(function(self, limit) {
+        },
+        "simulate-trace": (self, limit) => {
             function help(r, i) {
                 return r.then(function(rval) {
                     if(i <= 0) {
@@ -84,8 +84,8 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                 return gf(self, "start-trace").app();
             });
             return help(withTracing, limit).start();
-        }),
-        interact: runtime.makeMethod0(function(self) {
+        },
+        interact: (self) => {
             if(externalInteractionHandler === null) {
                 runtime.ffi.throwMessageException("No interaction set up for this context (please report a bug if you are using code.pyret.org and see this message)");
             }
@@ -104,22 +104,22 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                 thisInteractTrace.shift();
                 return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
             }, "interact");
-        }),
-        "start-trace": runtime.makeMethod0(function(self) {
+        },
+        "start-trace": (self) => {
             return makeReactorRaw(init, handlers, true, [init]);
-        }),
-        "stop-trace": runtime.makeMethod0(function(self) {
+        },
+        "stop-trace": (self) => {
             return makeReactorRaw(init, handlers, false, []);
-        }),
-        "get-trace": runtime.makeMethod0(function(self) {
+        },
+        "get-trace": (self) => {
             if(tracing) {
                 return runtime.ffi.makeList(trace);
             }
             else {
                 runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
             }
-        }),
-        "get-trace-as-table": runtime.makeMethod0(function(self) {
+        },
+        "get-trace-as-table": (self) => {
             if(tracing) {
                 var i = 0;
                 var rows = trace.map(function(state) {
@@ -132,8 +132,8 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
             else {
                 runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
             }
-        }),
-        react: runtime.makeMethod1(function(self, event) {
+        },
+        react: (self, event) => {
             function callOrError(handlerName, args) {
                 if(handlers.hasOwnProperty(handlerName)) {
                     var funObj = handlers[handlerName].app;
@@ -178,15 +178,15 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                     });
                 }
             }, "react:stop-when");
-        }),
-        "is-stopped": runtime.makeMethod0(function(self) {
+        },
+        "is-stopped": (self) => {
             if(handlers["stop-when"]) {
                 return handlers["stop-when"].app(init);
             }
             else {
                 return false;
             }
-        })
+        },
     });
     // return applyBrand(brandReactor, o);
 }
@@ -255,24 +255,22 @@ function stopTrace(reactor) {
     return runtime.getField(reactor, "stop-trace").app();
 }
 
-var F = runtime.makeFunction;
-
 var values = {
     mouse: reactorEvents["mouse"],
     keypress: reactorEvents["keypress"],
     "time-tick": reactorEvents["time-tick"],
-    "make-reactor": F(makeReactor, "make-reactor"),
-    "get-value": F(getValue, "get-value"),
-    "get-instance": F(getValue, "get-instance"),
-    "draw": F(draw, "draw"),
-    "get-trace": F(getTrace, "get-trace"),
-    "get-trace-as-table": F(getTraceAsTable, "get-trace-as-table"),
-    "start-trace": F(startTrace, "start-trace"),
-    "stop-trace": F(stopTrace, "stop-trace"),
-    "interact-trace": F(interactTrace, "interact-trace"),
-    "simulate-trace": F(simulateTrace, "simulate-trace"),
-    "react": F(react, "react"),
-    "interact": F(interact, "interact")
+    "make-reactor": makeReactor,
+    "get-value": getValue,
+    "get-instance": getValue,
+    "draw": draw,
+    "get-trace": getTrace,
+    "get-trace-as-table": getTraceAsTable,
+    "start-trace": startTrace,
+    "stop-trace": stopTrace,
+    "interact-trace": interactTrace,
+    "simulate-trace": simulateTrace,
+    "react": react,
+    "interact": interact,
 };
 
 var types = {
