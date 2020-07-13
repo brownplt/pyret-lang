@@ -5,7 +5,6 @@ const tables = require("./tables.arr.js");
 // VSlib - valueskeletons
 
 var gf = runtime.getField;
-var gmf = function(m, f) { return gf(runtime.getField(m, "values"), f); }
 var gtf = function(m, f) { return gf(m, "types")[f]; }
 
 var brandReactor = runtime.namedBrander("reactors", ["reactors"]);
@@ -22,7 +21,7 @@ function hasBrand(brand, val) {
     return gf(brand, "test").app(val);
 }
 
-var isEvent = gmf(reactorEvents, "is-Event");
+var isEvent = reactorEvents["is-Event"];
 var externalInteractionHandler = null;
 var setInteract = function(newInteract) {
     externalInteractionHandler = newInteract;
@@ -74,7 +73,7 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
                             }
                             else {
                                 return help(runtime.safeThen(function() {
-                                    return gf(rval, "react").app(gmf(reactorEvents, "time-tick"));
+                                    return gf(rval, "react").app(reactorEvents["time-tick"]);
                                 }), i - 1).start();
                             }
                         }).start()
@@ -259,9 +258,9 @@ function stopTrace(reactor) {
 var F = runtime.makeFunction;
 
 var values = {
-    mouse: gmf(reactorEvents, "mouse"),
-    keypress: gmf(reactorEvents, "keypress"),
-    "time-tick": gmf(reactorEvents, "time-tick"),
+    mouse: reactorEvents["mouse"],
+    keypress: reactorEvents["keypress"],
+    "time-tick": reactorEvents["time-tick"],
     "make-reactor": F(makeReactor, "make-reactor"),
     "get-value": F(getValue, "get-value"),
     "get-instance": F(getValue, "get-instance"),
