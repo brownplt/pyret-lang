@@ -142,17 +142,15 @@ function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean
                 return self;
             }
             else {
-                return runtime.ffi.cases(isEvent, "Event", event, {
-                    keypress: function(key) {
-                        return callOrError("on-key", [init, key]);
-                    },
-                    "time-tick": function() {
-                        return callOrError("on-tick", [init]);
-                    },
-                    mouse: function(x, y, kind) {
-                        return callOrError("on-mouse", [init, x, y, kind]);
-                    }
-                });
+                if (event["is-keypress"]) {
+                    const { key } = event;
+                    return callOrError("on-key", [init, key]);
+                } else if (event["is-time-tick"]) {
+                    return callOrError("on-tick", [init]);
+                } else if (event["is-mouse"]) {
+                    const { x, y, kind } = event;
+                    return callOrError("on-mouse", [init, x, y, kind]);
+                }
             }
         },
         "is-stopped": () => {
