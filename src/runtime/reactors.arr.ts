@@ -7,7 +7,6 @@ const tables = require("./tables.arr.js");
 var gf = runtime.getField;
 var gmf = function(m, f) { return gf(runtime.getField(m, "values"), f); }
 var gtf = function(m, f) { return gf(m, "types")[f]; }
-var VS = runtime.getField(VSlib, "values");
 
 var brandReactor = runtime.namedBrander("reactors", ["reactors"]);
 var annReactor = runtime.makeBranderAnn(brandReactor, "Reactor");
@@ -188,11 +187,6 @@ var makeReactorRaw = function(init, handlers, tracing, trace) {
             else {
                 return false;
             }
-        }),
-        _output: runtime.makeMethod0(function(self) {
-            return runtime.getField(VS, "vs-constr").app(
-                "reactor",
-                runtime.ffi.makeList([ gf(VS, "vs-value").app(init) ]));
         })
     });
     return applyBrand(brandReactor, o);
