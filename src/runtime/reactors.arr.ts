@@ -14,13 +14,6 @@ var checkArity = runtime.ffi.checkArity;
 
 var annEvent = gtf(reactorEvents, "Event");
 
-// function applyBrand(brand, val) {
-//     return gf(brand, "brand").app(val);
-// }
-// function hasBrand(brand, val) {
-//     return gf(brand, "test").app(val);
-// }
-
 var isEvent = reactorEvents["is-Event"];
 var externalInteractionHandler = null;
 var setInteract = function(newInteract) {
