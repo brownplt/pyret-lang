@@ -277,10 +277,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     } = this.props;
     const { text, startLine } = chunks[index];
 
-    const animation = chunks[index].needsJiggle
-      ? '0.25s ease-in-out 0.25s 2 alternate chunk-jiggle'
-      : '';
-
     return (
       <div
         style={{
@@ -326,16 +322,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         </div>
         <div
           style={{
-            animation,
             width: '100%',
-          }}
-          onAnimationEnd={() => {
-            const { setChunk } = this.props;
-
-            setChunk({
-              ...chunks[index],
-              needsJiggle: false,
-            });
           }}
         >
           <CodeMirror
