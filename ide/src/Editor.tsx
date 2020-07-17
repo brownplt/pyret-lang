@@ -205,7 +205,13 @@ export class Editor extends React.Component<EditorProps, any> {
           >
             {interactionValues}
             <InteractionError fontSize={fontSize}>
-              {interactionErrors}
+              {(() => {
+                if (interactionErrors.length === 1
+                        && interactionErrors[0] === 'Could not find module with uri: builtin://global') {
+                  return ['The first line of your program should be `import global as G`'];
+                }
+                return interactionErrors;
+              })()}
             </InteractionError>
           </SplitterLayout>
         ) : interactionValues}
