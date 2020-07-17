@@ -71,7 +71,7 @@ type dispatchProps = {
 function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
   return {
     stop: () => dispatch({ type: 'enqueueEffect', effect: 'stop' }),
-    run: () => dispatch({ type: 'enqueueEffect', effect: 'compile' }),
+    run: () => dispatch({ type: 'enqueueEffect', effect: 'saveFile' }),
     updateContents: (contents: string) => dispatch({
       type: 'update',
       key: 'currentFileContents',
