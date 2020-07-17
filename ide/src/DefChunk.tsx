@@ -286,93 +286,107 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         style={{
           width: '100%',
           display: 'flex',
-          animation,
-        }}
-        onAnimationEnd={() => {
-          const { setChunk } = this.props;
-
-          setChunk({
-            ...chunks[index],
-            needsJiggle: false,
-          });
         }}
       >
-        <CodeMirror
-          ref={this.input}
-          onMouseDown={() => {
-            this.handleMouseDown();
+        <div
+          style={{
+            position: 'relative',
+            width: 0,
+            height: '100%',
           }}
-          editorDidMount={(editor) => {
+        >
+          {(() => {
+            const chunk = chunks[index];
+
+            if (chunk.errorState.status === 'failed'
+                && focusedChunk === index) {
+              return (
+                <div style={{
+                  alignSelf: 'center',
+                  background: '#FFF2F2',
+                  position: 'absolute',
+                  top: '100%',
+                  width: '40em',
+                  zIndex: 500001,
+                  fontFamily: 'sans-serif',
+                  borderRadius: '3px',
+                  border: '0.3em solid hsl(204, 100%, 74%)',
+                  padding: '0.2em',
+                  marginRight: '1em',
+                  boxShadow: '0 0 1em',
+                }}
+                >
+                  {chunk.errorState.failures}
+                </div>
+              );
+            }
+
+            return false;
+          })()}
+        </div>
+        <div
+          style={{
+            animation,
+            width: '100%',
+          }}
+          onAnimationEnd={() => {
             const { setChunk } = this.props;
 
-            const marks = editor.getDoc().getAllMarks();
-            marks.forEach((m) => m.clear());
-            editor.setSize(null, 'auto');
+            setChunk({
+              ...chunks[index],
+              needsJiggle: false,
+            });
+          }}
+        >
+          <CodeMirror
+            ref={this.input}
+            onMouseDown={() => {
+              this.handleMouseDown();
+            }}
+            editorDidMount={(editor) => {
+              const { setChunk } = this.props;
 
-            setChunk({ ...chunks[index], editor });
-          }}
-          value={text}
-          options={{
-            mode: 'pyret',
-            theme: 'default',
-            lineNumbers: true,
-            lineWrapping: true,
-            lineNumberFormatter: (l) => String(l + startLine),
-            autofocus: index === focusedChunk,
-          }}
-          onBeforeChange={(editor, data, value) => {
-            this.scheduleUpdate(value);
-          }}
-          onKeyDown={(editor, event) => {
-            switch ((event as any).key) {
-              case 'Enter':
-                this.handleEnter(editor, event);
-                break;
-              case 'Backspace':
-                this.handleBackspace(event);
-                break;
-              case 'Delete':
-                this.handleDelete(event);
-                break;
-              case 'ArrowUp':
-                this.handleArrowUp(editor, event);
-                break;
-              case 'ArrowDown':
-                this.handleArrowDown(editor, event);
-                break;
-              default:
-            }
-          }}
-          autoCursor
-        />
-        {(() => {
-          const chunk = chunks[index];
+              const marks = editor.getDoc().getAllMarks();
+              marks.forEach((m) => m.clear());
+              editor.setSize(null, 'auto');
 
-          if (chunk.errorState.status === 'failed'
-              && focusedChunk === index) {
-            return (
-              <div style={{
-                alignSelf: 'center',
-                background: '#FFF2F2',
-                position: 'sticky',
-                top: '2.7em',
-                width: '50%',
-                zIndex: 1000,
-                fontFamily: 'sans-serif',
-                borderRadius: '3px',
-                border: '0.3em solid hsl(204, 100%, 74%)',
-                padding: '0.2em',
-                marginRight: '1em',
-                boxShadow: '0 0 1em',
-              }}
-              >
-                {chunk.errorState.failures}
-              </div>
-            );
-          }
-
-          return false;
-        })()}
+              setChunk({ ...chunks[index], editor });
+            }}
+            value={text}
+            options={{
+              mode: 'pyret',
+              theme: 'default',
+              lineNumbers: true,
+              lineWrapping: true,
+              lineNumberFormatter: (l) => String(l + startLine),
+              autofocus: index === focusedChunk,
+            }}
+            onBeforeChange={(editor, data, value) => {
+              this.scheduleUpdate(value);
+            }}
+            onKeyDown={(editor, event) => {
+              switch ((event as any).key) {
+                case 'Enter':
+                  this.handleEnter(editor, event);
+                  break;
+                case 'Backspace':
+                  this.handleBackspace(event);
+                  break;
+                case 'Delete':
+                  this.handleDelete(event);
+                  break;
+                case 'ArrowUp':
+                  this.handleArrowUp(editor, event);
+                  break;
+                case 'ArrowDown':
+                  this.handleArrowDown(editor, event);
+                  break;
+                default:
+              }
+            }}
+            autoCursor
+          />
+        </div>
       </div>
     );
   }
