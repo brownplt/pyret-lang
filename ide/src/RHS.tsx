@@ -69,7 +69,11 @@ function RHS({ rhs }: RHSProps) {
     }));
 
   return (
-    <div>
+    <div
+      style={{
+        paddingLeft: '1em',
+      }}
+    >
       {elements}
     </div>
   );
