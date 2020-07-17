@@ -43,18 +43,30 @@ function FontSize({
   onIncrease, onDecrease, onReset, fontSize,
 }: FontSizeProps) {
   return (
-    <div className="font-size-options">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        height: '2.7em',
+      }}
+    >
       <button
-        className="font-minus"
+        className="option"
         onClick={() => onDecrease(fontSize)}
         type="button"
+        style={{
+          width: '2.7em',
+        }}
       >
         -
       </button>
       <button
-        className="font-label"
+        className="option"
         onClick={onReset}
         type="button"
+        style={{
+          flexGrow: 2,
+        }}
       >
         Font (
         {fontSize}
@@ -62,9 +74,12 @@ function FontSize({
         px)
       </button>
       <button
-        className="font-plus"
+        className="option"
         onClick={() => onIncrease(fontSize)}
         type="button"
+        style={{
+          width: '2.7em',
+        }}
       >
         +
       </button>

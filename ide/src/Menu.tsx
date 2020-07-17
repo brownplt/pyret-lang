@@ -64,28 +64,22 @@ function Menu({ menuItems, menuTabVisible, setEditorMode }: MenuProps) {
             >
               <button
                 onClick={() => setEditorMode(EditorMode.Text)}
+                className="option"
                 key="TextEditor"
                 type="button"
                 style={{
                   width: '50%',
-                  background: '#979797',
-                  color: '#fff',
-                  border: 'none',
-                  height: '100%',
                 }}
               >
                 Text
               </button>
               <button
                 onClick={() => setEditorMode(EditorMode.Chunks)}
+                className="option"
                 key="ChunkEditor"
                 type="button"
                 style={{
                   width: '50%',
-                  background: '#979797',
-                  color: '#fff',
-                  border: 'none',
-                  height: '100%',
                 }}
               >
                 Chunks

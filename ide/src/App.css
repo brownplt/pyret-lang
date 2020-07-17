@@ -151,7 +151,7 @@ button::-moz-focus-inner {
     background: #b30c00;
 }
 
-.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .font-label:hover, .font-minus:hover, .font-plus:hover {
+.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .option:hover {
     background: #979797;
 }
 
@@ -273,34 +273,11 @@ button::-moz-focus-inner {
     flex: none;
 }
 
-.font-size-options {
-    display: flex;
-    flex-direction: row;
-}
-
-.font-label {
-    flex-grow: 2;
-    border: none;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-}
-
-.font-minus {
-    border: none;
-    width: 2.7em;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-}
-
-.font-plus {
-    border: none;
-    width: 2.7em;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-}
-
-.font-size-options {
-    height: 2.7em;
+.option {
+  border: none;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  border: 1px solid darkgray;
 }
 
 .table-copy {
