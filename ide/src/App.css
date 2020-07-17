@@ -152,7 +152,6 @@ button::-moz-focus-inner {
 }
 
 .run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .font-label:hover, .font-minus:hover, .font-plus:hover {
-    box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
     background: #979797;
 }
 
