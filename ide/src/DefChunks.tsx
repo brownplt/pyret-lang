@@ -87,7 +87,11 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
           throw new Error('handleReorder: new focused chunk is false');
         }
 
-        dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
+        if (chunks[newFocusedChunk].id !== oldFocusedId) {
+          dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
+        } else {
+          dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+        }
       }
     },
     setRHS(value: RHSObjects) {
