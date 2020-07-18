@@ -81,7 +81,10 @@ function getRow(hasSrcLoc: HasSrcLoc): number {
   return Number(matches[1]);
 }
 
-export type RHSObjects = { objects: RHSObject[] };
+export type RHSObjects = {
+  objects: RHSObject[],
+  outdated: boolean,
+};
 
 export type RunResult = {
   time: number,
@@ -125,5 +128,6 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
 
   return {
     objects: withKeys,
+    outdated: false,
   };
 }

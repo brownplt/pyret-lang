@@ -809,6 +809,8 @@ function handleUpdate(
       return { ...state, shouldAdvanceCursor: action.value };
     case 'menuTabVisible':
       return handleSetMenuTabVisible(state, action.value);
+    case 'rhs':
+      return { ...state, rhs: action.value };
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }

@@ -5,17 +5,20 @@ import { State } from './state';
 import { Chunk, getStartLineForIndex } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
+import { RHSObjects } from './rhsObject';
 
 type stateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
+  rhs: RHSObjects,
 };
 
 function mapStateToProps(state: State): stateProps {
-  const { chunks, focusedChunk } = state;
+  const { chunks, focusedChunk, rhs } = state;
   return {
     chunks,
     focusedChunk,
+    rhs,
   };
 }
 
@@ -30,6 +33,7 @@ type dispatchProps = {
   setChunk: (chunk: Chunk) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
+  setRHS: (value: RHSObjects) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
@@ -49,6 +53,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     setShouldAdvanceCursor(value: boolean) {
       dispatch({ type: 'update', key: 'shouldAdvanceCursor', value });
     },
+    setRHS(value: RHSObjects) {
+      dispatch({ type: 'update', key: 'rhs', value });
+    },
   };
 }
 
@@ -64,16 +71,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     super(props);
     this.input = React.createRef();
   }
-
-  // TODO (michael): investigate alternatives for this method
-  // UNSAFE_componentWillReceiveProps() {
-  //   const { chunks, index } = this.props;
-  //   const { editor } = chunks[index];
-  //   if (editor !== undefined) {
-  //     const marks = editor.getDoc().getAllMarks();
-  //     marks.forEach((m: any) => m.clear());
-  //   }
-  // }
 
   componentDidUpdate() {
     const {
@@ -136,7 +133,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 
   scheduleUpdate(value: string) {
-    const { chunks, index, setChunks } = this.props;
+    const {
+      chunks,
+      index,
+      setChunks,
+      rhs,
+      setRHS,
+    } = this.props;
 
     const newChunks = [...chunks];
     newChunks[index] = {
@@ -151,6 +154,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       };
     }
     setChunks(newChunks);
+
+    if (!rhs.outdated) {
+      setRHS({ ...rhs, outdated: true });
+    }
   }
 
   handleArrowUp(editor: any, event: Event) {

@@ -8,26 +8,31 @@ import {
   State,
 } from './state';
 import { Chunk, getStartLineForIndex } from './chunk';
+import { RHSObjects } from './rhsObject';
 import DefChunk from './DefChunk';
 
 type stateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
+  rhs: RHSObjects,
 };
 
 type dispatchProps = {
   handleReorder: any,
+  setRHS: (value: RHSObjects) => void,
 };
 
 function mapStateToProps(state: State): stateProps {
   const {
     chunks,
     focusedChunk,
+    rhs,
   } = state;
 
   return {
     chunks,
     focusedChunk,
+    rhs,
   };
 }
 
@@ -85,6 +90,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
       }
     },
+    setRHS(value: RHSObjects) {
+      dispatch({ type: 'update', key: 'rhs', value });
+    },
   };
 }
 
@@ -97,18 +105,22 @@ function DefChunks({
   handleReorder,
   chunks,
   focusedChunk,
+  rhs,
+  setRHS,
 }: DefChunksProps) {
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
       if (focusedChunk === undefined) {
         handleReorder(result, chunks, false);
+        setRHS({ ...rhs, outdated: true });
       } else {
         const fc = chunks[focusedChunk];
         if (fc === undefined) {
           throw new Error('onDragEnd: chunks[focusedChunk] is undefined');
         }
         handleReorder(result, chunks, fc.id);
+        setRHS({ ...rhs, outdated: true });
       }
     }
   };

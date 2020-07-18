@@ -1,6 +1,7 @@
 import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';
+import { RHSObjects } from './rhsObject';
 import * as control from './control';
 
 export type EffectFailure =
@@ -55,7 +56,8 @@ export type Update =
   | { key: 'typeCheck', value: boolean }
   | { key: 'shouldAdvanceCursor', value: boolean }
   | { key: 'dropdownVisible', value: boolean }
-  | { key: 'menuTabVisible', value: false | number});
+  | { key: 'menuTabVisible', value: false | number})
+  | { key: 'rhs', value: RHSObjects };
 
 export type UpdateKey = Update['key'];
 

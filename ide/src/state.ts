@@ -67,7 +67,10 @@ export const initialState: State = {
   currentFileContents: undefined,
   typeCheck: true,
   checks: [],
-  rhs: { objects: [] },
+  rhs: {
+    objects: [],
+    outdated: false,
+  },
   interactionErrors: [],
   lintFailures: {},
   runKind: control.backend.RunKind.Async,

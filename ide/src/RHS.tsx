@@ -24,6 +24,7 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type RHSProps = stateProps & PropsFromRedux;
 
 function RHS({ rhs }: RHSProps) {
+  console.log('updated!!!!!!!!!');
   const elements = (
     rhs.objects.map((rhsObject) => {
       if (isTrace(rhsObject)) {
@@ -72,6 +73,7 @@ function RHS({ rhs }: RHSProps) {
     <div
       style={{
         paddingLeft: '1em',
+        background: rhs.outdated ? 'gray' : '#fff',
       }}
     >
       {elements}
