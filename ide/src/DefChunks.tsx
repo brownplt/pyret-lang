@@ -92,6 +92,8 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
         } else {
           dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
         }
+      } else {
+        dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
       }
     },
     setRHS(value: RHSObjects) {
