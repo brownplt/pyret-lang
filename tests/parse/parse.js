@@ -226,6 +226,23 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd``\\````")).not.toBe(false);
       expect(parse("```asd```asd```")).toBe(false);
     });
+
+    it('should lex octal escape sequences', function() {
+      const escapeSequences = ["'\\0'", "'\\77'", "'\\101'"];
+      const expectedValues = ["'\0'", "'?'", "'A'"];
+      for (let i = 0; i < escapeSequences.length; ++i) {
+        const tokens = lex(escapeSequences[i]);
+        expect(tokens.length).toBe(2);
+        expect(tokens[0].value).toBe(expectedValues[i]);
+        expect(tokens[1].name).toBe("EOF");
+
+        const parseStr = `str = ${escapeSequences[i]}`;
+        expect(parse(parseStr)).not.toBe(false);
+      }
+
+      // invalid escape sequence
+      expect(parse("str = '\\8'")).toBe(false);
+    });
   });
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
@@ -500,9 +517,9 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("{(a): true}")).not.toBe(false);
       expect(parse("{(a, b): true}")).not.toBe(false); // colon ==> lambda
       expect(parse("{(a, b); true}")).toBe(false); // semicolon ==> tuple with invalid first arg
-      expect(parse("{ (): true}")).toBe(false);
-      expect(parse("{ (a): true}")).toBe(false);
-      expect(parse("{ (a, b): true}")).toBe(false);
+      expect(parse("{ (): true}")).not.toBe(false);  // NOTE: will be caught with a bad-args parse later
+      expect(parse("{ (a): true}")).not.toBe(false); // NOTE: will be caught with a bad-args parse later
+      expect(parse("{ (a, b): true}")).not.toBe(false);  // NOTE: will be caught with a bad-args parse later
       expect(parse("{(1 + 2); (3 + 4)}")).not.toBe(false);
       expect(parse("{ (1 + 2); (3 + 4) }")).not.toBe(false);
     });

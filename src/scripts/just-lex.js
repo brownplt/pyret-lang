@@ -37,6 +37,7 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs", "src-bas
   while (toks.hasNext()) {
     var tok = toks.next();
     oldAns.push(tok);
+    console.log(tok);
   }
   var endOld = process.hrtime(startOld);
   console.log("=========================================================");

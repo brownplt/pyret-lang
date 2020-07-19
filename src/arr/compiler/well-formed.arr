@@ -4,6 +4,7 @@ provide {
 provide-types *
 
 import ast as A
+import file("ast-util.arr") as AU
 import srcloc as SL
 import error-display as ED
 import file("compile-structs.arr") as C
@@ -240,7 +241,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
                 if A.is-s-template(first) and prev-is-template:
                   add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
-                  add-error(C.same-line(loc, first.l))
+                  add-error(C.same-line(loc, first.l, A.is-s-paren(first)))
                 else:
                   nothing
                 end
@@ -313,7 +314,7 @@ fun reachable-ops(self, l, op-l, op, ast):
   end
 end
 
-fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) block:
+fun reject-standalone-exprs(stmts :: List, ignore-last :: Boolean) block:
   to-examine = if ignore-last:
     # Ignore the last statement, because it might well be an expression
     stmts.reverse().rest.reverse()
@@ -371,18 +372,23 @@ fun wrap-reject-standalones-in-check(target) block:
   in-check-block := true
   ret = cases(Option) target:
     | none => true
-    | some(t) => reject-standalone-exprs(t.stmts, false)
+    | some(t) =>
+      if is-link(t.stmts):
+        reject-standalone-exprs(t.stmts, false)
+      else:
+        true
+      end
   end
   in-check-block := cur-in-check
   ret
 end
 
 
-fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
+fun wf-block-stmts(visitor, l, stmts :: List%(is-link), toplevel :: Boolean) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts)
   ensure-distinct-lines(A.dummy-loc, false, stmts)
-  when not(in-check-block):
+  when not(in-check-block) and not(toplevel):
     reject-standalone-exprs(stmts, true)
   end
   lists.all(_.visit(visitor), stmts)
@@ -437,7 +443,7 @@ end
 var parent-block-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, provides, imports, body):
     raise("Impossible")
   end,
   method s-special-import(self, l, kind, args) block:
@@ -591,7 +597,7 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else:
       wf-last-stmt(parent-block-loc, stmts.last())
-      wf-block-stmts(self, parent-block-loc, stmts)
+      wf-block-stmts(self, parent-block-loc, stmts, false)
       true
     end
   end,
@@ -1000,9 +1006,9 @@ well-formed-visitor = A.default-iter-visitor.{
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _provide, _provide-types, provides, imports, body):
     ok-body = cases(A.Expr) body:
-      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
+      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts, true)
       | else => body.visit(self)
     end
     ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))

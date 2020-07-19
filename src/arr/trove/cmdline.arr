@@ -2,11 +2,11 @@
 
 provide {
   file-name: file-name,
-  args: other-args,
-  Number: read-number,
-  Bool: read-bool,
-  String: read-string,
-  Custom: read-custom,
+  other-args: other-args,
+  Num: Num,
+  Bool: Bool,
+  Str: Str,
+  Custom: Custom,
   ParseParam: is-ParseParam,
   ParamRepeat: is-ParamRepeat,
   Param: is-Param,
@@ -513,3 +513,7 @@ check:
     is success(dict([list: "color", [list: green, red, red]]), [list: "blue"])
 end
 
+Num = read-number
+Str = read-string
+Bool = read-bool
+Custom = read-custom

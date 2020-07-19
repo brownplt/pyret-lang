@@ -60,8 +60,8 @@ fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment):
             contains no s-cases, s-cases-else, s-instantiate
         ```
   cases(A.Program) program:
-    | s-program(l, _provide, provided-types, imports, body) =>
-      A.s-program(l, _provide, provided-types, imports, body.visit(desugar-visitor))
+    | s-program(l, _provide, provided-types, provides, imports, body) =>
+      A.s-program(l, _provide, provided-types, provides, imports, body.visit(desugar-visitor))
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end

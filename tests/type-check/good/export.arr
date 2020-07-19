@@ -2,9 +2,11 @@ provide {
   foo: foo,
   f: f,
   foobar-fun: foobar-fun,
-  is-internal-error: E.is-internal-error,
-  E: E
+  is-internal-error: is-internal-error
 } end
+provide:
+  module E
+end
 provide-types {
   Foo:: Foo,
   FooBar:: FooBar
@@ -33,3 +35,5 @@ end
 fun g() -> Number:
   1
 end
+
+is-internal-error = E.is-internal-error

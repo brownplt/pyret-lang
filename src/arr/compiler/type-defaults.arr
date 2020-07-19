@@ -137,9 +137,14 @@ fun make-default-types() block:
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
 
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
+  default-typs.set-now("roughly-equal-always", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal-now", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("equal-always", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("equal-now", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("identical", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
+  default-typs.set-now("roughly-equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("identical3", t-arrow([list: t-top, t-top], t-equality-result))
@@ -362,6 +367,7 @@ module-const-lists = t-module("builtin://lists",
     "push", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-list-app(tva))),
     "reverse-help", t-forall([list: tva], t-arrow([list: t-list-app(tva), t-list-app(tva)], t-list-app(tva))),
     "last", t-forall([list: tva], t-arrow([list: t-list-app(tva)], tva)),
+    "sort", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-list-app(tva))),
     "sort-by", t-forall([list: tva], t-arrow([list: t-list-app(tva), t-arrow([list: tva, tva], t-boolean), t-arrow([list: tva, tva], t-boolean)], t-list-app(tva))),
     "range", t-arrow([list: t-number, t-number], t-list-app(t-number)),
     "range-by", t-arrow([list: t-number, t-number, t-number], t-list-app(t-number)),
@@ -407,6 +413,7 @@ module-const-lists = t-module("builtin://lists",
     "member-always3", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-equality-result)),
     "member-always", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-boolean)),
     "member-now", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-boolean)),
+    "member-now3", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-equality-result)),
     "member-identical3", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-equality-result)),
     "member-identical", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-boolean)),
     "shuffle", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-list-app(tva))),
@@ -561,6 +568,12 @@ module-const-error = t-module("builtin://error",
     "is-invalid-array-index", t-arrow([list: t-top], t-boolean),
     "user-break", t-runtime-error,
     "is-user-break", t-arrow([list: t-top], t-boolean),
+    "user-exception", t-arrow([list: t-top], t-runtime-error),
+    "is-user-exception", t-arrow([list: t-top], t-boolean),
+    "exit", t-arrow([list: t-number], t-runtime-error),
+    "is-exit", t-arrow([list: t-top], t-boolean),
+    "exit-quiet", t-arrow([list: t-number], t-runtime-error),
+    "is-exit-quiet", t-arrow([list: t-top], t-boolean),
     "ParseError", t-arrow([list: t-top], t-boolean),
     "is-ParseError", t-arrow([list: t-top], t-boolean),
     "parse-error-next-token", t-arrow([list: t-top, t-string], t-parse-error),
@@ -625,7 +638,7 @@ module-const-error = t-module("builtin://error",
       [list: ],
       [list:
         t-variant("parse-error-next-token", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
-        t-variant("parse-error-bad-check-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-check-operator", [list: {"op"; t-top}], [string-dict: ]),
         t-variant("parse-error-bad-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-bad-number", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-eof", [list: {"loc"; t-top}], [string-dict: ]),
@@ -817,19 +830,20 @@ module-const-json-structs = t-module("builtin://json-structs",
     .set("List", t-list)
     .set("JSON", t-json))
 
+default-modules = SD.make-mutable-string-dict()
+default-modules.set-now("builtin://equality", module-const-equality)
+default-modules.set-now("builtin://lists", module-const-lists)
+default-modules.set-now("builtin://option", module-const-option)
+default-modules.set-now("builtin://error", module-const-error)
+default-modules.set-now("builtin://either", module-const-either)
+default-modules.set-now("builtin://arrays", module-const-arrays)
+default-modules.set-now("builtin://pick", module-const-pick)
+default-modules.set-now("builtin://sets", module-const-sets)
+default-modules.set-now("builtin://s-exp", module-const-s-exp)
+default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
+default-modules.set-now("builtin://json-structs", module-const-json-structs)
+shadow default-modules = default-modules.freeze()
+
 fun make-default-modules() block:
-  default-modules = SD.make-mutable-string-dict()
-  default-modules.set-now("builtin://equality", module-const-equality)
-  default-modules.set-now("builtin://lists", module-const-lists)
-  default-modules.set-now("builtin://option", module-const-option)
-  default-modules.set-now("builtin://error", module-const-error)
-  default-modules.set-now("builtin://either", module-const-either)
-  default-modules.set-now("builtin://arrays", module-const-arrays)
-  default-modules.set-now("builtin://pick", module-const-pick)
-  default-modules.set-now("builtin://sets", module-const-sets)
-  default-modules.set-now("builtin://s-exp", module-const-s-exp)
-  default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
-  default-modules.set-now("builtin://json-structs", module-const-json-structs)
-  default-modules.set-now("builtin://valueskeleton", module-const-valueskeleton)
-  default-modules.freeze()
+  default-modules
 end

@@ -24,3 +24,6 @@ import file("./regression/tail-recursion-arg-order.arr") as _
 import file("./regression/flat-refinement.arr") as _
 import file("./regression/parens-after-comments.arr") as _
 import file("./regression/get-assignments-var-as-expr.arr") as _
+import file("./regression/empty-check-block.arr") as _
+import file("./regression/weave-tuple.arr") as _
+import file("./regression/get-assignments-var-as-expr.arr") as _

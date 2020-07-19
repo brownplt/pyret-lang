@@ -31,6 +31,7 @@ end
 
 var builtin-js-dirs = [list: "src/js/trove/"]
 var builtin-arr-dirs = [list: "src/arr/trove/"]
+var typable-builtins = [list: ]
 var allow-builtin-overrides = false
 
 fun set-builtin-js-dirs(paths :: List<String>):
@@ -45,10 +46,15 @@ fun set-allow-builtin-overrides(flag :: Boolean):
   allow-builtin-overrides := flag
 end
 
+fun set-typable-builtins(uris :: List<String>):
+  typable-builtins := uris
+end
+
 fun make-builtin-js-locator(basedir, builtin-name):
   raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
   {
     method needs-compile(_, _): false end,
+    method get-uncached(_): none end,
     method get-modified-time(self):
       F.file-times(P.join(basedir, builtin-name + ".js")).mtime
     end,
@@ -80,11 +86,12 @@ fun make-builtin-js-locator(basedir, builtin-name):
     method get-compiled(self):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
+        modules: raw-array-to-list(raw.get-raw-module-provides()),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.no-builtins,
+      some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none,
           CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
     end,
 
@@ -101,8 +108,10 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     method get-modified-time(self):
       F.file-times(path).mtime
     end,
+    method get-uncached(_): none end,
     method get-options(self, options):
-      options.{ check-mode: false, type-check: false }
+      type-check = typable-builtins.member(self.uri())
+      options.{ check-mode: false, type-check: type-check }
     end,
     method get-module(self) block:
       when ast == nothing block:

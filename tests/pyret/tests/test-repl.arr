@@ -3,6 +3,7 @@ import runtime-lib as RT
 import string-dict as SD
 import either as E
 import pathlib as P
+import render-error-display as RED
 import file("../../../src/arr/compiler/locators/builtin.arr") as B
 import file("../../../src/arr/compiler/repl.arr") as R
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
@@ -12,82 +13,179 @@ print("Running repl-tests: " + tostring(time-now()) + "\n")
 
 type Either = E.Either
 
-fun get-run-answer(res):
+fun val(res):
   cases(Either) res block:
-    | right(ans) => ans
+    | right(ans) => L.get-result-answer(ans)
     | left(err) =>
       print-error("Expected an answer, but got compilation errors:")
       for lists.each(e from err):
         print-error(tostring(e))
       end
+      nothing
   end
 end
-val = lam(str): L.get-result-answer(get-run-answer(str)) end
-msg = lam(str): L.render-error-message(get-run-answer(str)) end
+fun msgs(res) block:
+  cases(Either) res block:
+    | right(ans) =>
+      L.render-error-message(ans).message
+    | left(shadow res) =>
+      sep = "\n========================\n"
+      for map(r from res):
+        cases(CS.CompileResult) r:
+          | ok(code) => tostring(code)
+          | err(problems) =>
+            for map(p from problems):
+              RED.display-to-string(p.render-reason(), torepr, empty)
+            end.join-str("sep")
+        end
+      end.join-str(sep)
+  end
+end
 
-fun startswith(hay, needle):
-  needle-len = string-length(needle)
-  hay-len = string-length(hay)
-  (needle-len <= hay-len) and
-  string-equal(string-substring(hay, 0, needle-len), needle)
+r = RT.make-runtime()
+
+repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
+fun restart(src, type-check):
+  i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
+  repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
+end
+fun next-interaction(src):
+  i = repl.make-interaction-locator(lam(): src end)
+  repl.run-interaction(i)
 end
 
 check:
-  r = RT.make-runtime()
+  result = restart("5", false)
+  L.get-result-answer(result.v) is some(5)
+end
 
-  repl = R.make-repl(r, [SD.mutable-string-dict:], L.empty-realm(), CLI.default-test-context, lam(): CLI.module-finder end)
-  fun restart(src, type-check):
-    i = repl.make-definitions-locator(lam(): src end, CS.standard-globals)
-    repl.restart-interactions(i, CS.default-compile-options.{type-check: type-check})
-  end
-  fun next-interaction(src):
-    i = repl.make-interaction-locator(lam(): src end)
-    repl.run-interaction(i)
-  end
+check:
+  result = restart("x = 5", false)
+  L.get-result-answer(result.v) is none
 
-  result1 = restart("5", false)
-  L.get-result-answer(result1.v) is some(5)
+  result2 = next-interaction("y = 10\nx")
+  val(result2) is some(5)
 
-  result2 = restart("x = 5", false)
-  L.get-result-answer(result2.v) is none
+  result3 = next-interaction("y")
+  val(result3) is some(10)
 
-  result3 = next-interaction("y = 10\nx")
-  val(result3) is some(5)
+  result4 = next-interaction("include string-dict")
+  result4.v satisfies L.is-success-result
 
-  result4 = next-interaction("y")
-  val(result4) is some(10)
+  result5 = next-interaction("is-function(make-string-dict)")
+  val(result5) is some(true)
+end
 
-  result5 = next-interaction("include string-dict")
-  result5.v satisfies L.is-success-result
+check:
+  prog = ```
+         import string-dict as SD
+         include from SD:
+         string-dict as sd
+         end
+         ```
+  result = restart(prog, false)
+  L.get-result-answer(result.v) is none
 
-  result6 = next-interaction("is-function(make-string-dict)")
-  val(result6) is some(true)
+  result2 = next-interaction("sd")
+  result2 satisfies E.is-right
 
+  result3 = next-interaction("sd = 5")
+  result3 satisfies E.is-left
+  msg3 = msgs(result3)
+  msg3 is%(string-contains) "declaration of `sd` at "
+  msg3 is%(string-contains) "imported from" # TODO: update this text when the error message is fixed
+  
+end
+
+check:
+  result = restart("import some from option", false)
+  L.get-result-answer(result.v) is none
+
+  result2 = next-interaction("some = 5")
+  result2 satisfies E.is-left
+  msg2 = msgs(result2)
+  msg2 is%(string-contains) "declaration of `some` at "
+  msg2 is%(string-contains) "shadows a previous declaration of `some` defined at builtin://option"
+  msg2 is%(string-contains) "and imported from"
+
+  result3 = restart("some = 5", false)
+  result3 satisfies E.is-left
+  msg3 = msgs(result3)
+  msg3 is%(string-contains) "declaration of `some` at"
+  msg3 is%(string-contains) "shadows a previous declaration of `some` defined at builtin://option"
+  msg3 is-not%(string-contains) "and imported from"
+
+  result4 = restart("include ast", false)
+  L.get-result-answer(result4.v) is none
+
+  result5 = next-interaction("s-program = 5")
+  result5 satisfies E.is-left
+  msg5 = msgs(result5)
+  msg5 is%(string-contains) "declaration of `s-program` at "
+  msg5 is%(string-contains) "shadows a previous declaration of `s-program` defined at builtin://ast"
+  msg5 is%(string-contains) "and imported from"
+end
+
+check:
   importsd = "import string-dict as SD\nstring-dict = SD.string-dict\n55"
-  result7 = restart(importsd, false)
-  val(result7) is some(55)
+  result = restart(importsd, false)
+  result satisfies E.is-right
+  val(result) is some(55)
 
   # should fail because y no longer bound
-  result8 = next-interaction("y")
-  result8 satisfies E.is-left
+  result2 = next-interaction("y")
+  result2 satisfies E.is-left
 
-  result9 = next-interaction("is-function(string-dict.make)")
-  val(result9) is some(true)
+  result3 = next-interaction("is-function(string-dict.make)")
+  result3 satisfies E.is-right
+  val(result3) is some(true)
 
-  result10 = next-interaction("import string-dict as SD2")
-  result10 satisfies E.is-right
+  result4 = next-interaction("import string-dict as SD2")
+  result4 satisfies E.is-right
 
-  result11 = next-interaction(```
+  result5 = next-interaction(```
     sd1 :: SD.StringDict = [SD2.string-dict:]
     sd2 = [SD.string-dict:]
     sd1 == sd2
   ```)
-  val(result11) is some(true)
+  val(result5) is some(true)
 
   # fails because shadows SD above
-  result12 = next-interaction("import string-dict as SD")
-  result12 satisfies E.is-left
+  result6 = next-interaction("import string-dict as SD")
+  result6 satisfies E.is-left
 
+  result7 = next-interaction(```
+    include from SD:
+      mutable-string-dict,
+      type MutableStringDict
+    end
+    msd1 :: SD.MutableStringDict = [mutable-string-dict:]
+    msd2 :: MutableStringDict = [SD2.mutable-string-dict:]
+    msd1 =~ msd2
+  ```)
+  val(result7) is some(true)
+
+end
+
+check "include-from at repl":
+  new-import-sd = ```
+  import string-dict as SD
+  include from SD:
+  string-dict as sd,
+  type StringDict as StrD
+  end
+  ```
+  result1 = restart(new-import-sd, false)
+  result1 satisfies E.is-right
+
+  result2 = next-interaction("sd")
+  result2 satisfies E.is-right
+
+  result3 = next-interaction("s :: StrD = [sd:]")
+  result3 satisfies E.is-right
+end
+
+check:
   importbindsd = "import string-dict as SD\nstring-dict = SD.string-dict"
   result13 = restart(importbindsd, false)
   result13 satisfies E.is-right
@@ -221,8 +319,8 @@ check:
   raw-array-length(stacktrace46) is 5
   raw-array-get(stacktrace46, 0) is "definitions://: line 2, column 12"
   # Don't check the actual line number in the builtin:lists
-  startswith(raw-array-get(stacktrace46, 1), "builtin://lists:")
-  startswith(raw-array-get(stacktrace46, 2), "builtin://lists:")
+  raw-array-get(stacktrace46, 1) is%(string-starts-with) "builtin://lists:"
+  raw-array-get(stacktrace46, 2) is%(string-starts-with) "builtin://lists:"
   raw-array-get(stacktrace46, 3) is "definitions://: line 3, column 0"
   raw-array-get(stacktrace46, 4) is "interactions://1: line 1, column 0"
 

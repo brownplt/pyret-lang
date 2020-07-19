@@ -62,7 +62,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
       else if (esc === "\\") { ret += "\\"; }
       else if (esc[0] === 'u') { ret += String.fromCharCode(parseInt(esc.slice(1), 16)); }
       else if (esc[0] === 'x') { ret += String.fromCharCode(parseInt(esc.slice(1), 16)); }
-      else { ret += String.fromCharCode(parseInt(esc.slice(2), 8)); }
+      else { ret += String.fromCharCode(parseInt(esc, 8)); }
       match = escapes.exec(s);
     }
     ret += s;
@@ -112,6 +112,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "FOR", val: "for"},
     {name: "FROM", val: "from"},
     {name: "FUN", val: "fun"},
+    {name: "HIDING", val: "hiding"},
     {name: "IF", val: "if"},
     {name: "IMPORT", val: "import"},
     {name: "INCLUDE", val: "include"},
@@ -131,6 +132,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "LETREC", val: "letrec"},
     {name: "LOAD-TABLE", val: "load-table"},
     {name: "METHOD", val: "method"},
+    {name: "MODULE", val: "module"},
     {name: "NEWTYPE", val: "newtype"},
     {name: "OF", val: "of"},
     {name: "OR", val: "or", parenIsForExp: true},
@@ -220,6 +222,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "ELSECOLON", val: "else:", parenIsForExp: true},
     {name: "EXAMPLESCOLON", val: "examples:", parenIsForExp: true},
     {name: "OTHERWISECOLON", val: "otherwise:", parenIsForExp: true},
+    {name: "PROVIDECOLON", val: "provide:", parenIsForExp: true},
     {name: "ROW", val: "row:"},
     {name: "SHARING", val: "sharing:", parenIsForExp: true},
     {name: "SOURCECOLON", val: "source:"},
@@ -257,6 +260,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "BAR", val: "|", parenIsForExp: true},
     {name: "EQUALS", val: "=", noFollow: new Set("~"), parenIsForExp: true},
     {name: "LANGLE", val: "<", noFollow: new Set(">=")},
+    {name: "STAR", val: "*", noFollow: new Set(wsString), needsWs: true, parenIsForExp: true},
     {name: "RANGLE", val: ">", noFollow: new Set("=")},
     { name: "NUMBER", val: "", firsts: new Set("~-+1234567890"),
       process: function tokenizeNumber(tok_spec) {
@@ -483,7 +487,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "CARET", val: "^", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "PLUS", val: "+", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "DASH", val: "-", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
-    {name: "STAR", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
+    {name: "TIMES", val: "*", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "SLASH", val: "/", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "SPACESHIP", val: "<=>", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},
     {name: "LEQ", val: "<=", mustFollow: wsMustFollow, needsWs: true, parenIsForExp: true},

@@ -41,7 +41,7 @@
         "has-field": ["arrow", [["record", {}], "String"], "Boolean"],
         "raw-array-from-list": ["forall", ["a"], ["arrow", [["List", "tva"]], ["RawArray", "tva"]]],
         "raw-array-join-str": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "String"]],
-        "list-to-raw-array": ["forall", ["a"], ["arrow", [["List", "tva"]], ["RawArray", "tva"]]],
+        "raw-array-sort-nums" : ["arrow", [["RawArray", "Number"], "Boolean"], ["RawArray", "Number"]],
         "raw-list-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], ["List", "tva"]], ["List", "tvb"]]],
         "raw-list-filter": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Boolean"], ["List", "tva"]], ["List", "tva"]]],
         "raw-list-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", ["List", "tva"]], "tvb"]],
@@ -87,6 +87,10 @@
                         'flatness': 0,
                         'name': 'raw-array-get',
                         'typ': ["forall", ["a"], ["arrow", [["RawArray", "tva"], "Number"], "tva"]]},
+      "raw-array-sort-nums" : {'bind' : 'fun',
+                        'flatness': 0,
+                        'name': 'raw-array-sort-nums',
+                        'typ': ["arrow", [["RawArray", "Number"], "Boolean"], ["RawArray", "Number"]]},
       "raw-array-set": {'bind': 'fun',
                         'flatness': 0,
                         'name': 'raw-array-set',
@@ -124,9 +128,14 @@
 
       // Equality functions
 
+      "roughly-equal-always3": "EqualityPred",
+      "roughly-equal-now3":    "EqualityPred",
       "equal-always3": "EqualityPred",
       "equal-now3":    "EqualityPred",
       "identical3":    "EqualityPred",
+      "roughly-equal-always": "AnyPred2",
+      "roughly-equal-now": "AnyPred2",
+      "roughly-equal": "AnyPred2",
       "equal-always": "AnyPred2",
       "equal-now": "AnyPred2",
       "identical": "AnyPred2",
@@ -290,6 +299,8 @@
                         'name': 'string-char-at',
                         'typ': ['arrow', ['String', 'Number'], 'String']},
       "string-contains":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
+      "string-starts-with":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
+      "string-ends-with":{'bind': 'fun', 'flatness': 0, 'name': 'string-contains', 'typ': 'StrPred2'},
       "string-equal":{'bind': 'fun', 'flatness': 0, 'name': 'string-equal', 'typ': 'StrPred2'},
       "string-explode":{'bind': 'fun',
                         'flatness': 0,
@@ -333,7 +344,6 @@
                                'flatness': 0,
                                'name': 'string-to-code-points',
                                'typ': ['arrow', ['String'], ['List', 'Number']]},
-
       "_plus":   {'bind': 'fun',
                   'flatness': false,
                   'name': '_plus',
@@ -386,7 +396,20 @@
       "NumRational": "Number",
       "NumInteger": "Number",
       "Roughnum": "Number",
-      "Exactnum": "Number"
+      "Exactnum": "Number",
+      "Boolean": "Boolean",
+      "Number": "Number",
+      "String": "String",
+      "Nothing": "Nothing",
+      "RawArray": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "RawArray" },
+      "Row": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Row" },
+      "Table": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Table" }
     },
     datatypes: {
       "Number": ["data", "Number", [], [], {
