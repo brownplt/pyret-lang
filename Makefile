@@ -104,7 +104,6 @@ $(PHASEA)/libs.jarr: $(PHASEA)/pyret.jarr
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/lib-compiled/ \
                       --deps-file build/phaseA/bundled-node-compile-deps.js \
-                      -no-user-annotations \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
