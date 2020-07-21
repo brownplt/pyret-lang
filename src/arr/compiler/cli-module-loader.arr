@@ -138,7 +138,6 @@ fun get-cached(basedir, uri, name, cache-type):
       CS.standard-imports
     end,
     method get-dependencies(_):
-      spy "raw-deps": uri, basedir end
       deps = raw.get-raw-dependencies()
       raw-array-to-list(deps).map(CS.make-dep)
     end,
@@ -159,9 +158,10 @@ fun get-cached(basedir, uri, name, cache-type):
           uri: self.uri(),
           values: raw-array-to-list(raw.get-raw-value-provides()),
           aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-          datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+          modules: raw-array-to-list(raw.get-raw-module-provides())
         })
-      some(CL.module-as-string(provs, CS.no-builtins,
+      some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none,
           CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
     end,
 
@@ -176,70 +176,21 @@ fun get-cached-if-available(basedir, loc) block:
 end
 fun get-cached-if-available-known-mtimes(basedir, loc, max-dep-times) block:
   saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
-  #print("Looking for builtin module " + loc.uri() + " at: " + saved-path + "\n")
   dependency-based-mtime =
     if max-dep-times.has-key(loc.uri()): max-dep-times.get-value(loc.uri())
     else: loc.get-modified-time()
     end
-  if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < dependency-based-mtime) block:
-    #print("It wasn't there\n")
-    cases(Option) loc.get-uncached():
-      | some(shadow loc) => loc
-      | none => loc
-    end
-  else:
-    uri = loc.uri()
-    static-path = saved-path + "-static"
-    raw = B.builtin-raw-locator(static-path)
-    {
-      method get-uncached(self): some(loc) end,
-      method needs-compile(_, _): false end,
-      method get-modified-time(self):
-        F.file-times(static-path + ".js").mtime
-      end,
-      method get-options(self, options):
-        options.{ check-mode: false }
-      end,
-      method get-module(_):
-        raise("Should never fetch source for builtin module " + static-path)
-      end,
-      method get-extra-imports(self):
-        CS.standard-imports
-      end,
-      method get-dependencies(_):
-      spy "raw-deps": uri: loc.uri(), basedir end
-        deps = raw.get-raw-dependencies()
-        raw-array-to-list(deps).map(CS.make-dep)
-      end,
-      method get-native-modules(_):
-        natives = raw.get-raw-native-modules()
-        raw-array-to-list(natives).map(CS.requirejs)
-      end,
-      method get-globals(_):
-        CS.standard-globals
-      end,
-
-      method uri(_): uri end,
-      method name(_): loc.name() end,
-
-      method set-compiled(_, _, _): nothing end,
-      method get-compiled(self):
-        provs = CS.provides-from-raw-provides(self.uri(), {
-            uri: self.uri(),
-            modules: raw-array-to-list(raw.get-raw-module-provides()),
-            values: raw-array-to-list(raw.get-raw-value-provides()),
-            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-          })
-        some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none,
-            CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
-      end,
-
-      method _equals(self, other, req-eq):
-        req-eq(self.uri(), other.uri())
+  cached-type = cached-available(basedir, loc.uri(), loc.name(), dependency-based-mtime)
+  cases(Option) cached-type:
+    | none =>
+      cases(Option) loc.get-uncached():
+        | some(shadow loc) => loc
+        | none => loc
       end
-    }
+
+    | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct).{
+        method get-uncached(self): some(loc) end
+      }
   end
 end
 
@@ -300,7 +251,7 @@ fun get-loadable(basedir, read-only-basedirs, l, max-dep-times) -> Option<Loadab
         aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
       })
-      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + ".js"))))
+      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(module-path))))
   end
 end
 
