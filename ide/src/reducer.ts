@@ -21,6 +21,7 @@ import {
   Chunk,
   newId,
   getStartLineForIndex,
+  findChunkFromSrcloc,
 } from './chunk';
 
 import {
@@ -258,28 +259,13 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     currentFile,
   } = state;
 
-  function findChunkFromSrcloc([file, l1] : [string, number]): number | false {
-    if (file !== `file://${currentFile}`) {
-      return false;
-    }
-
-    for (let i = 0; i < chunks.length; i += 1) {
-      const end = chunks[i].startLine + chunks[i].text.split('\n').length;
-      if (l1 >= chunks[i].startLine && l1 <= end) {
-        return i;
-      }
-    }
-
-    return false;
-  }
-
   const newChunks = chunks.slice();
   const locations = status.result.result.$locations;
   const traces = status.result.result.$traces;
 
   locations.forEach((loc: any) => {
     const { name, srcloc } = loc;
-    const chunk = findChunkFromSrcloc(srcloc);
+    const chunk = findChunkFromSrcloc(chunks, srcloc, currentFile);
     if (chunk !== false) {
       newChunks[chunk].errorState = {
         status: 'succeeded',
@@ -291,7 +277,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
 
   traces.forEach((loc: any) => {
     const { value, srcloc } = loc;
-    const chunk = findChunkFromSrcloc(srcloc);
+    const chunk = findChunkFromSrcloc(chunks, srcloc, currentFile);
     if (chunk !== false) {
       newChunks[chunk].errorState = {
         status: 'succeeded',
@@ -495,7 +481,7 @@ function handleCompileFailure(
     }
   }
 
-  function findChunkFromSrcloc([l1] : number[]): number | false {
+  function findChunkFromSrclocResult([l1] : number[]): number | false {
     const { chunks } = state;
     for (let i = 0; i < chunks.length; i += 1) {
       const end = chunks[i].startLine + chunks[i].text.split('\n').length;
@@ -527,7 +513,7 @@ function handleCompileFailure(
         const { chunks } = state;
         const newChunks = [...chunks];
         for (let i = 0; i < places.length; i += 1) {
-          const chunkIndex = findChunkFromSrcloc(places[i]);
+          const chunkIndex = findChunkFromSrclocResult(places[i]);
           if (chunkIndex) {
             const hl = getExistingHighlights(newChunks[chunkIndex]);
             newChunks[chunkIndex] = {

@@ -25,3 +25,22 @@ export function getStartLineForIndex(chunks : Chunk[], index : number) {
 export function newId() {
   return uuidv4();
 }
+
+export function findChunkFromSrcloc(
+  chunks: Chunk[],
+  [file, l1] : [string, number],
+  currentFile: string,
+): number | false {
+  if (file !== `file://${currentFile}`) {
+    return false;
+  }
+
+  for (let i = 0; i < chunks.length; i += 1) {
+    const end = chunks[i].startLine + chunks[i].text.split('\n').length;
+    if (l1 >= chunks[i].startLine && l1 <= end) {
+      return i;
+    }
+  }
+
+  return false;
+}

@@ -7,16 +7,36 @@ import {
   isTrace,
   isLocation,
   isRHSCheck,
+  getRow,
 } from './rhsObject';
+import {
+  Chunk,
+  findChunkFromSrcloc,
+} from './chunk';
 
 type stateProps = {
   rhs: RHSObjects,
   fontSize: number,
+  chunks: Chunk[],
+  currentFile: string,
+  focusedChunk: number | undefined,
 };
 
 function mapStateToProps(state: State): stateProps {
-  const { rhs, fontSize } = state;
-  return { rhs, fontSize };
+  const {
+    rhs,
+    fontSize,
+    chunks,
+    currentFile,
+    focusedChunk,
+  } = state;
+  return {
+    rhs,
+    fontSize,
+    chunks,
+    currentFile,
+    focusedChunk,
+  };
 }
 
 const connector = connect(mapStateToProps);
@@ -24,15 +44,32 @@ const connector = connect(mapStateToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type RHSProps = stateProps & PropsFromRedux;
 
-function RHS({ rhs, fontSize }: RHSProps) {
+function RHS({
+  rhs,
+  fontSize,
+  chunks,
+  currentFile,
+  focusedChunk,
+}: RHSProps) {
   const elements = (
     rhs.objects.map((rhsObject) => {
+      const isSelected = focusedChunk !== undefined && findChunkFromSrcloc(
+        chunks,
+        [`file://${currentFile}`, getRow(rhsObject)],
+        currentFile,
+      ) === focusedChunk;
+      const selectedStyle = {
+        background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
+        borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+        borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+      };
       if (isTrace(rhsObject)) {
         return (
           <pre
             key={rhsObject.key}
             style={{
               paddingLeft: '1em',
+              ...selectedStyle,
             }}
           >
             <RenderedValue value={rhsObject.value} />
@@ -48,6 +85,7 @@ function RHS({ rhs, fontSize }: RHSProps) {
               display: 'flex',
               alignItems: 'center',
               paddingLeft: '1em',
+              ...selectedStyle,
             }}
           >
             {rhsObject.name}
@@ -64,6 +102,7 @@ function RHS({ rhs, fontSize }: RHSProps) {
             key={rhsObject.key}
             style={{
               paddingLeft: '1em',
+              ...selectedStyle,
             }}
           >
             Test
