@@ -1,7 +1,7 @@
 import { Check } from './Check';
 import { Chunk } from './chunk';
 import { Effect } from './effect';
-import { MenuItems } from './menu';
+import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import * as control from './control';
 

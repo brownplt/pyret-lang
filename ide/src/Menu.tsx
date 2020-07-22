@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { MenuItems } from './menu';
+import { MenuItems } from './menu-types';
 import { State, EditorMode } from './state';
 import { Action } from './action';
 import FSBrowser from './FSBrowser';
