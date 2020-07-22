@@ -168,9 +168,7 @@ export class Editor extends React.Component<EditorProps, any> {
     } = this.props;
 
     const interactionValues = (
-      <div style={{ fontSize }}>
-        <RHS />
-      </div>
+      <RHS />
     );
 
     const dropdown = dropdownVisible && (
