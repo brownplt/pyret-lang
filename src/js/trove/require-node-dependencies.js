@@ -26,3 +26,8 @@ define("path", [], function () { return path; });
 http = nodeRequire("http");
 define("http", [], function () {return http;});
 
+deasync = nodeRequire("deasync");
+define("deasync", [], function () { return deasync });
+
+request = nodeRequire("request");
+define("request", [], function () { return request });

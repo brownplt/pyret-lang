@@ -7,7 +7,9 @@
         'q': 'empty:',
         'requirejs': 'empty:',
         's-expression': 'empty:',
-        'seedrandom': 'empty:'
+        'seedrandom': 'empty:',
+      "deasync": "empty",
+      "request": "empty"
       }
 })
 
