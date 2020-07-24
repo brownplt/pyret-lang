@@ -44,6 +44,7 @@ export type State = {
   compiledSinceLastEdit: boolean,
   menuItems: MenuItems,
   menuTabVisible: false | number,
+  firstSelectedChunkIndex: false | number,
 };
 
 export enum EditorMode {
@@ -111,6 +112,7 @@ export const initialState: State = {
       icon: 'gearIcon.svg',
     },
   ],
+  firstSelectedChunkIndex: false,
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';

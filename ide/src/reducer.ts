@@ -797,6 +797,8 @@ function handleUpdate(
       return handleSetMenuTabVisible(state, action.value);
     case 'rhs':
       return { ...state, rhs: action.value };
+    case 'firstSelectedChunkIndex':
+      return { ...state, firstSelectedChunkIndex: action.value };
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }
