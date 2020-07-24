@@ -271,11 +271,23 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   handleMouseDown() {
     const {
       index,
+      chunks,
       setFocusedChunk,
       setShouldAdvanceCursor,
     } = this.props;
     setShouldAdvanceCursor(false);
     setFocusedChunk(index);
+
+    chunks.forEach((chunk) => {
+      const { editor } = chunk;
+      if (editor === false) {
+        return;
+      }
+      const doc = editor.getDoc();
+      doc.setSelections([
+        { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+      ]); // remove all selections
+    });
   }
 
   render() {
@@ -330,6 +342,19 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         <div
           style={{
             width: '100%',
+          }}
+          onMouseEnter={(e: any) => {
+            if (e.buttons !== 1) {
+              return;
+            }
+
+            const { editor } = chunks[index];
+
+            if (editor === false) {
+              return;
+            }
+
+            editor.execCommand('selectAll');
           }}
         >
           <CodeMirror
