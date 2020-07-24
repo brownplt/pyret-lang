@@ -53,7 +53,7 @@ function RHS({
 }: RHSProps) {
   const elements = (
     rhs.objects.map((rhsObject) => {
-      const isSelected = focusedChunk !== undefined && findChunkFromSrcloc(
+      const isSelected = !rhs.outdated && focusedChunk !== undefined && findChunkFromSrcloc(
         chunks,
         [`file://${currentFile}`, getRow(rhsObject)],
         currentFile,
