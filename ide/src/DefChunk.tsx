@@ -268,7 +268,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
-  handleMouseDown() {
+  handleMouseDown(event: any) {
     const {
       index,
       chunks,
@@ -278,6 +278,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     setShouldAdvanceCursor(false);
     setFocusedChunk(index);
 
+    if (event.buttons !== 1) {
+      return;
+    }
     chunks.forEach((chunk) => {
       const { editor } = chunk;
       if (editor === false) {
@@ -359,8 +362,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         >
           <CodeMirror
             ref={this.input}
-            onMouseDown={() => {
-              this.handleMouseDown();
+            onMouseDown={(editor: any, e: any) => {
+              this.handleMouseDown(e);
             }}
             editorDidMount={(editor) => {
               const { setChunk } = this.props;
