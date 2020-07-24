@@ -111,6 +111,10 @@ control.loadBuiltins();
 type EditorProps = PropsFromRedux & dispatchProps & stateProps;
 
 export class Editor extends React.Component<EditorProps, any> {
+  componentDidMount() {
+    document.body.addEventListener('copy', this.makeCopyHandler());
+  }
+
   makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => (
     <button
       className={(enabled ? 'run-option-enabled' : 'run-option-disabled')}
@@ -146,6 +150,42 @@ export class Editor extends React.Component<EditorProps, any> {
     }
 
     throw new Error('Unknown editor mode');
+  }
+
+  makeCopyHandler() {
+    const that = this;
+
+    return (e: any) => {
+      const {
+        chunks,
+      } = that.props;
+
+      let data = '';
+
+      chunks.forEach((chunk, i) => {
+        const { editor } = chunk;
+
+        if (editor === false) {
+          return;
+        }
+
+        const doc = editor.getDoc();
+        const selection = doc.getSelection();
+
+        if (selection === '') {
+          return;
+        }
+
+        data += selection;
+
+        if (i !== chunks.length - 1) {
+          data += '#.CHUNK#\n';
+        }
+      });
+
+      e.clipboardData.setData('text/plain', data);
+      e.preventDefault();
+    };
   }
 
   render() {
