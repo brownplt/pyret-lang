@@ -359,6 +359,33 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
             editor.execCommand('selectAll');
           }}
+          onCopy={(e: any) => {
+            let data = '';
+
+            chunks.forEach((chunk, i) => {
+              const { editor } = chunk;
+
+              if (editor === false) {
+                return;
+              }
+
+              const doc = editor.getDoc();
+              const selection = doc.getSelection();
+
+              if (selection === '') {
+                return;
+              }
+
+              data += selection;
+
+              if (i !== chunks.length - 1) {
+                data += '#.CHUNK#\n';
+              }
+            });
+
+            e.clipboardData.setData('text/plain', data);
+            e.preventDefault();
+          }}
         >
           <CodeMirror
             ref={this.input}
