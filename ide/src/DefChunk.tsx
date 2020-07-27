@@ -287,7 +287,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   handleDelete(event: Event) {
     const {
-      chunks, index, setChunks, setFocusedChunk,
+      chunks,
+      index,
+      setChunks,
+      setFocusedChunk,
+      focusedChunk,
+      enqueueEffect,
     } = this.props;
     if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
       const newChunks = [...chunks.slice(1, chunks.length)];
@@ -323,7 +328,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       } = result;
 
       if (shouldChangeFocus && firstSelectedChunk !== false) {
-        setFocusedChunk(Math.min(result.chunks.length - 1, firstSelectedChunk + 1));
+        const newFocusedChunk = Math.min(result.chunks.length - 1, firstSelectedChunk + 1);
+
+        if (newFocusedChunk !== focusedChunk) {
+          setFocusedChunk(newFocusedChunk);
+        } else {
+          enqueueEffect('saveFile');
+        }
       }
       if (shouldPreventDefault) {
         event.preventDefault();
