@@ -297,6 +297,22 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       }
       setChunks(newChunks);
       event.preventDefault();
+    } else {
+      const result = deleteSelectedChunks(chunks, index);
+      setChunks(result.chunks);
+
+      const {
+        shouldPreventDefault,
+        shouldChangeFocus,
+        firstSelectedChunk,
+      } = result;
+
+      if (shouldChangeFocus && firstSelectedChunk !== false) {
+        setFocusedChunk(Math.min(result.chunks.length - 1, firstSelectedChunk + 1));
+      }
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
     }
   }
 
