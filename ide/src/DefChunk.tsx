@@ -2,7 +2,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
-import { Chunk, getStartLineForIndex } from './chunk';
+import { Chunk, getStartLineForIndex, newId } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
 import { RHSObjects } from './rhsObject';
@@ -118,6 +118,17 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
   );
 
   const shouldChangeFocus = updatedChunks.length !== chunks.length;
+
+  if (updatedChunks.length === 0) {
+    updatedChunks.push({
+      startLine: 0,
+      text: '',
+      id: newId(),
+      errorState: { status: 'succeeded', effect: 'lint' },
+      editor: false,
+      needsJiggle: false,
+    });
+  }
 
   return {
     chunks: updatedChunks,
