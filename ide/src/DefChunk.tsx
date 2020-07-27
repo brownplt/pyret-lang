@@ -75,6 +75,58 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunkProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
+function deleteSelectedChunks(chunks: Chunk[], index: number): {
+  chunks: Chunk[],
+  shouldPreventDefault: boolean,
+  shouldChangeFocus: boolean,
+  firstSelectedChunk: false | number,
+} {
+  let shouldPreventDefault = false;
+  let firstSelectedChunk: false | number = false;
+  const updatedChunks = chunks.reduce(
+    (newChunks: Chunk[], chunk, i) => {
+      const { editor } = chunk;
+      if (editor === false) {
+        newChunks.push(chunk);
+        return newChunks;
+      }
+      const doc = editor.getDoc();
+      const selection = doc.getSelection();
+      if (selection === '') {
+        newChunks.push(chunk);
+        return newChunks;
+      }
+      if (firstSelectedChunk === false) {
+        firstSelectedChunk = i;
+      }
+      if (i === index) {
+        shouldPreventDefault = true;
+      }
+      doc.replaceSelection(''); // delete selected text
+      const newText = editor.getValue();
+      if (newText.trim() === '') {
+        return newChunks;
+      }
+      newChunks.push({
+        ...chunk,
+        text: newText,
+        errorState: { status: 'notLinted' },
+      });
+      return newChunks;
+    },
+    [],
+  );
+
+  const shouldChangeFocus = updatedChunks.length !== chunks.length;
+
+  return {
+    chunks: updatedChunks,
+    shouldChangeFocus,
+    shouldPreventDefault,
+    firstSelectedChunk,
+  };
+}
+
 class DefChunk extends React.Component<DefChunkProps, any> {
   private input: React.RefObject<any>;
 
@@ -277,45 +329,16 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk(index - 1);
       event.preventDefault();
     } else {
-      let shouldPreventDefault = false;
-      let firstSelectedChunk: false | number = false;
-      setChunks(
-        chunks.reduce(
-          (newChunks: Chunk[], chunk, i) => {
-            const { editor } = chunk;
-            if (editor === false) {
-              newChunks.push(chunk);
-              return newChunks;
-            }
-            const doc = editor.getDoc();
-            const selection = doc.getSelection();
-            if (selection === '') {
-              newChunks.push(chunk);
-              return newChunks;
-            }
-            if (firstSelectedChunk === false) {
-              firstSelectedChunk = i;
-            }
-            if (i === index) {
-              shouldPreventDefault = true;
-            }
-            doc.replaceSelection(''); // delete selected text
-            const newText = editor.getValue();
-            if (newText.trim() === '') {
-              return newChunks;
-            }
-            newChunks.push({
-              ...chunk,
-              text: newText,
-              errorState: { status: 'notLinted' },
-            });
-            return newChunks;
-          },
-          [],
-        ),
-      );
+      const result = deleteSelectedChunks(chunks, index);
+      setChunks(result.chunks);
 
-      if (firstSelectedChunk !== false) {
+      const {
+        shouldPreventDefault,
+        shouldChangeFocus,
+        firstSelectedChunk,
+      } = result;
+
+      if (shouldChangeFocus && firstSelectedChunk !== false) {
         setFocusedChunk(Math.max(0, firstSelectedChunk - 1));
       }
       if (shouldPreventDefault) {
@@ -375,7 +398,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             const chunk = chunks[index];
 
             if (chunk.errorState.status === 'failed'
-                && focusedChunk === index) {
+          && focusedChunk === index) {
               return (
                 <div style={{
                   alignSelf: 'center',
