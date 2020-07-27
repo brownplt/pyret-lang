@@ -276,6 +276,51 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setChunks(newChunks);
       setFocusedChunk(index - 1);
       event.preventDefault();
+    } else {
+      let shouldPreventDefault = false;
+      let firstSelectedChunk: false | number = false;
+      setChunks(
+        chunks.reduce(
+          (newChunks: Chunk[], chunk, i) => {
+            const { editor } = chunk;
+            if (editor === false) {
+              newChunks.push(chunk);
+              return newChunks;
+            }
+            const doc = editor.getDoc();
+            const selection = doc.getSelection();
+            if (selection === '') {
+              newChunks.push(chunk);
+              return newChunks;
+            }
+            if (firstSelectedChunk === false) {
+              firstSelectedChunk = i;
+            }
+            if (i === index) {
+              shouldPreventDefault = true;
+            }
+            doc.replaceSelection(''); // delete selected text
+            const newText = editor.getValue();
+            if (newText.trim() === '') {
+              return newChunks;
+            }
+            newChunks.push({
+              ...chunk,
+              text: newText,
+              errorState: { status: 'notLinted' },
+            });
+            return newChunks;
+          },
+          [],
+        ),
+      );
+
+      if (firstSelectedChunk !== false) {
+        setFocusedChunk(Math.max(0, firstSelectedChunk - 1));
+      }
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
     }
   }
 
