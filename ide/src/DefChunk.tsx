@@ -130,6 +130,10 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
     });
   }
 
+  for (let i = 0; i < updatedChunks.length; i += 1) {
+    updatedChunks[i].startLine = getStartLineForIndex(updatedChunks, i);
+  }
+
   return {
     chunks: updatedChunks,
     shouldChangeFocus,
