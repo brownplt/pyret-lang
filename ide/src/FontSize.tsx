@@ -3,24 +3,24 @@ import { connect, ConnectedProps } from 'react-redux';
 import { State } from './state';
 import { Action } from './action';
 
-type stateProps = {
+type StateProps = {
   fontSize: number,
 };
 
-function mapStateToProps(state: State): stateProps {
+function mapStateToProps(state: State): StateProps {
   const { fontSize } = state;
   return {
     fontSize,
   };
 }
 
-type dispatchProps = {
+type DispatchProps = {
   onIncrease: (oldSize: number) => void,
   onDecrease: (oldSize: number) => void,
   onReset: () => void,
 };
 
-function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     onIncrease(oldSize: number): void {
       dispatch({ type: 'update', key: 'fontSize', value: oldSize + 1 });
@@ -37,7 +37,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type FontSizeProps = PropsFromRedux & dispatchProps & stateProps;
+type FontSizeProps = PropsFromRedux & DispatchProps & StateProps;
 
 function FontSize({
   onIncrease, onDecrease, onReset, fontSize,

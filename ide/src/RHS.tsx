@@ -14,7 +14,7 @@ import {
   findChunkFromSrcloc,
 } from './chunk';
 
-type stateProps = {
+type StateProps = {
   rhs: RHSObjects,
   fontSize: number,
   chunks: Chunk[],
@@ -22,7 +22,7 @@ type stateProps = {
   focusedChunk: number | undefined,
 };
 
-function mapStateToProps(state: State): stateProps {
+function mapStateToProps(state: State): StateProps {
   const {
     rhs,
     fontSize,
@@ -42,7 +42,7 @@ function mapStateToProps(state: State): stateProps {
 const connector = connect(mapStateToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type RHSProps = stateProps & PropsFromRedux;
+type RHSProps = StateProps & PropsFromRedux;
 
 function RHS({
   rhs,

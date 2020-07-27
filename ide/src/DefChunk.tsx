@@ -7,14 +7,14 @@ import { Action } from './action';
 import { Effect } from './effect';
 import { RHSObjects } from './rhsObject';
 
-type stateProps = {
+type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
   rhs: RHSObjects,
   firstSelectedChunkIndex: false | number,
 };
 
-function mapStateToProps(state: State): stateProps {
+function mapStateToProps(state: State): StateProps {
   const {
     chunks,
     focusedChunk,
@@ -29,12 +29,12 @@ function mapStateToProps(state: State): stateProps {
   };
 }
 
-type propsFromReact = {
+type PropsFromReact = {
   index: number,
   focused: boolean,
 };
 
-type dispatchProps = {
+type DispatchProps = {
   setFocusedChunk: (index: number) => void,
   setChunks: (chunks: Chunk[]) => void,
   setChunk: (chunk: Chunk) => void,
@@ -44,7 +44,7 @@ type dispatchProps = {
   setFirstSelectedChunkIndex: (value: false | number) => void,
 };
 
-function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     setFocusedChunk(index: number) {
       dispatch({ type: 'update', key: 'focusedChunk', value: index });
@@ -73,7 +73,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type DefChunkProps = PropsFromRedux & dispatchProps & stateProps & propsFromReact;
+type DefChunkProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 class DefChunk extends React.Component<DefChunkProps, any> {
   private input: React.RefObject<any>;

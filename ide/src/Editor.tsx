@@ -19,7 +19,7 @@ import * as control from './control';
 import 'react-splitter-layout/lib/index.css';
 import * as action from './action';
 
-type stateProps = {
+type StateProps = {
   browseRoot: string,
   currentFileContents: undefined | string,
   definitionsHighlights: number[][],
@@ -37,7 +37,7 @@ type stateProps = {
   typeCheck: boolean,
 };
 
-function mapStateToProps(state: State.State): stateProps {
+function mapStateToProps(state: State.State): StateProps {
   return {
     browseRoot: state.browseRoot,
     currentFileContents: state.currentFileContents,
@@ -57,7 +57,7 @@ function mapStateToProps(state: State.State): stateProps {
   };
 }
 
-type dispatchProps = {
+type DispatchProps = {
   stop: () => void,
   run: () => void,
   updateContents: (contents: string) => void,
@@ -68,7 +68,7 @@ type dispatchProps = {
   setDropdownVisible: (dropdownVisible: boolean) => void,
 };
 
-function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
     stop: () => dispatch({ type: 'enqueueEffect', effect: 'stop' }),
     run: () => dispatch({ type: 'enqueueEffect', effect: 'saveFile' }),
@@ -108,7 +108,7 @@ control.loadBuiltins();
 
 // type EditorProps = {};
 
-type EditorProps = PropsFromRedux & dispatchProps & stateProps;
+type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
 export class Editor extends React.Component<EditorProps, any> {
   componentDidMount() {

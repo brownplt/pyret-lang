@@ -11,18 +11,18 @@ import { Chunk, getStartLineForIndex } from './chunk';
 import { RHSObjects } from './rhsObject';
 import DefChunk from './DefChunk';
 
-type stateProps = {
+type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
   rhs: RHSObjects,
 };
 
-type dispatchProps = {
+type DispatchProps = {
   handleReorder: any,
   setRHS: (value: RHSObjects) => void,
 };
 
-function mapStateToProps(state: State): stateProps {
+function mapStateToProps(state: State): StateProps {
   const {
     chunks,
     focusedChunk,
@@ -36,7 +36,7 @@ function mapStateToProps(state: State): stateProps {
   };
 }
 
-function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     handleReorder(
       result: DropResult,
@@ -105,7 +105,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
+type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 
 function DefChunks({
   handleReorder,

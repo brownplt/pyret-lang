@@ -14,24 +14,24 @@ import * as control from './control';
 import * as action from './action';
 import FSItem from './FSItem';
 
-type stateProps = {
+type StateProps = {
   browseRoot: string,
   browsePath: string
 };
 
-function mapStateToProps(state: any): stateProps {
+function mapStateToProps(state: any): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
   };
 }
 
-type dispatchProps = {
+type DispatchProps = {
   setBrowsePath: (path: string) => void,
   onExpandChild: (path: string) => void,
 };
 
-function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
     setBrowsePath: (path: string) => dispatch({
       type: 'update',
@@ -49,7 +49,7 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchP
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type FSBrowserProps = PropsFromRedux & dispatchProps & stateProps;
+type FSBrowserProps = PropsFromRedux & DispatchProps & StateProps;
 
 enum EditType {
   CreateFile,
