@@ -8,30 +8,35 @@ import {
   State,
 } from './state';
 import { Chunk, getStartLineForIndex } from './chunk';
+import { RHSObjects } from './rhsObject';
 import DefChunk from './DefChunk';
 
-type stateProps = {
+type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
+  rhs: RHSObjects,
 };
 
-type dispatchProps = {
+type DispatchProps = {
   handleReorder: any,
+  setRHS: (value: RHSObjects) => void,
 };
 
-function mapStateToProps(state: State): stateProps {
+function mapStateToProps(state: State): StateProps {
   const {
     chunks,
     focusedChunk,
+    rhs,
   } = state;
 
   return {
     chunks,
     focusedChunk,
+    rhs,
   };
 }
 
-function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     handleReorder(
       result: DropResult,
@@ -82,8 +87,17 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
           throw new Error('handleReorder: new focused chunk is false');
         }
 
-        dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
+        if (chunks[newFocusedChunk].id !== oldFocusedId) {
+          dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
+        } else {
+          dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+        }
+      } else {
+        dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
       }
+    },
+    setRHS(value: RHSObjects) {
+      dispatch({ type: 'update', key: 'rhs', value });
     },
   };
 }
@@ -91,24 +105,28 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type DefChunksProps = PropsFromRedux & dispatchProps & stateProps;
+type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 
 function DefChunks({
   handleReorder,
   chunks,
   focusedChunk,
+  rhs,
+  setRHS,
 }: DefChunksProps) {
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
       if (focusedChunk === undefined) {
         handleReorder(result, chunks, false);
+        setRHS({ ...rhs, outdated: true });
       } else {
         const fc = chunks[focusedChunk];
         if (fc === undefined) {
           throw new Error('onDragEnd: chunks[focusedChunk] is undefined');
         }
         handleReorder(result, chunks, fc.id);
+        setRHS({ ...rhs, outdated: true });
       }
     }
   };

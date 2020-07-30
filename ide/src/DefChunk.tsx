@@ -2,37 +2,49 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
-import { Chunk, getStartLineForIndex } from './chunk';
+import { Chunk, getStartLineForIndex, newId } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
+import { RHSObjects } from './rhsObject';
 
-type stateProps = {
+type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
+  rhs: RHSObjects,
+  firstSelectedChunkIndex: false | number,
 };
 
-function mapStateToProps(state: State): stateProps {
-  const { chunks, focusedChunk } = state;
+function mapStateToProps(state: State): StateProps {
+  const {
+    chunks,
+    focusedChunk,
+    rhs,
+    firstSelectedChunkIndex,
+  } = state;
   return {
     chunks,
     focusedChunk,
+    rhs,
+    firstSelectedChunkIndex,
   };
 }
 
-type propsFromReact = {
+type PropsFromReact = {
   index: number,
   focused: boolean,
 };
 
-type dispatchProps = {
+type DispatchProps = {
   setFocusedChunk: (index: number) => void,
   setChunks: (chunks: Chunk[]) => void,
   setChunk: (chunk: Chunk) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
+  setRHS: (value: RHSObjects) => void,
+  setFirstSelectedChunkIndex: (value: false | number) => void,
 };
 
-function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     setFocusedChunk(index: number) {
       dispatch({ type: 'update', key: 'focusedChunk', value: index });
@@ -49,13 +61,86 @@ function mapDispatchToProps(dispatch: (action: Action) => any): dispatchProps {
     setShouldAdvanceCursor(value: boolean) {
       dispatch({ type: 'update', key: 'shouldAdvanceCursor', value });
     },
+    setRHS(value: RHSObjects) {
+      dispatch({ type: 'update', key: 'rhs', value });
+    },
+    setFirstSelectedChunkIndex(value: false | number) {
+      dispatch({ type: 'update', key: 'firstSelectedChunkIndex', value });
+    },
   };
 }
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type DefChunkProps = PropsFromRedux & dispatchProps & stateProps & propsFromReact;
+type DefChunkProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
+
+function deleteSelectedChunks(chunks: Chunk[], index: number): {
+  chunks: Chunk[],
+  shouldPreventDefault: boolean,
+  shouldChangeFocus: boolean,
+  firstSelectedChunk: false | number,
+} {
+  let shouldPreventDefault = false;
+  let firstSelectedChunk: false | number = false;
+  const updatedChunks = chunks.reduce(
+    (newChunks: Chunk[], chunk, i) => {
+      const { editor } = chunk;
+      if (editor === false) {
+        newChunks.push(chunk);
+        return newChunks;
+      }
+      const doc = editor.getDoc();
+      const selection = doc.getSelection();
+      if (selection === '') {
+        newChunks.push(chunk);
+        return newChunks;
+      }
+      if (firstSelectedChunk === false) {
+        firstSelectedChunk = i;
+      }
+      if (i === index) {
+        shouldPreventDefault = true;
+      }
+      doc.replaceSelection(''); // delete selected text
+      const newText = editor.getValue();
+      if (newText.trim() === '') {
+        return newChunks;
+      }
+      newChunks.push({
+        ...chunk,
+        text: newText,
+        errorState: { status: 'notLinted' },
+      });
+      return newChunks;
+    },
+    [],
+  );
+
+  const shouldChangeFocus = updatedChunks.length !== chunks.length;
+
+  if (updatedChunks.length === 0) {
+    updatedChunks.push({
+      startLine: 0,
+      text: '',
+      id: newId(),
+      errorState: { status: 'succeeded', effect: 'lint' },
+      editor: false,
+      needsJiggle: false,
+    });
+  }
+
+  for (let i = 0; i < updatedChunks.length; i += 1) {
+    updatedChunks[i].startLine = getStartLineForIndex(updatedChunks, i);
+  }
+
+  return {
+    chunks: updatedChunks,
+    shouldChangeFocus,
+    shouldPreventDefault,
+    firstSelectedChunk,
+  };
+}
 
 class DefChunk extends React.Component<DefChunkProps, any> {
   private input: React.RefObject<any>;
@@ -64,16 +149,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     super(props);
     this.input = React.createRef();
   }
-
-  // TODO (michael): investigate alternatives for this method
-  // UNSAFE_componentWillReceiveProps() {
-  //   const { chunks, index } = this.props;
-  //   const { editor } = chunks[index];
-  //   if (editor !== undefined) {
-  //     const marks = editor.getDoc().getAllMarks();
-  //     marks.forEach((m: any) => m.clear());
-  //   }
-  // }
 
   componentDidUpdate() {
     const {
@@ -136,7 +211,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 
   scheduleUpdate(value: string) {
-    const { chunks, index, setChunks } = this.props;
+    const {
+      chunks,
+      index,
+      setChunks,
+      rhs,
+      setRHS,
+    } = this.props;
 
     const newChunks = [...chunks];
     newChunks[index] = {
@@ -151,6 +232,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       };
     }
     setChunks(newChunks);
+
+    if (!rhs.outdated) {
+      setRHS({ ...rhs, outdated: true });
+    }
   }
 
   handleArrowUp(editor: any, event: Event) {
@@ -202,7 +287,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   handleDelete(event: Event) {
     const {
-      chunks, index, setChunks, setFocusedChunk,
+      chunks,
+      index,
+      setChunks,
+      setFocusedChunk,
+      focusedChunk,
+      enqueueEffect,
     } = this.props;
     if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
       const newChunks = [...chunks.slice(1, chunks.length)];
@@ -227,6 +317,28 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       }
       setChunks(newChunks);
       event.preventDefault();
+    } else {
+      const result = deleteSelectedChunks(chunks, index);
+      setChunks(result.chunks);
+
+      const {
+        shouldPreventDefault,
+        shouldChangeFocus,
+        firstSelectedChunk,
+      } = result;
+
+      if (shouldChangeFocus && firstSelectedChunk !== false) {
+        const newFocusedChunk = Math.min(result.chunks.length - 1, firstSelectedChunk + 1);
+
+        if (newFocusedChunk !== focusedChunk) {
+          setFocusedChunk(newFocusedChunk);
+        } else {
+          enqueueEffect('saveFile');
+        }
+      }
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
     }
   }
 
@@ -258,17 +370,50 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setChunks(newChunks);
       setFocusedChunk(index - 1);
       event.preventDefault();
+    } else {
+      const result = deleteSelectedChunks(chunks, index);
+      setChunks(result.chunks);
+
+      const {
+        shouldPreventDefault,
+        shouldChangeFocus,
+        firstSelectedChunk,
+      } = result;
+
+      if (shouldChangeFocus && firstSelectedChunk !== false) {
+        setFocusedChunk(Math.max(0, firstSelectedChunk - 1));
+      }
+      if (shouldPreventDefault) {
+        event.preventDefault();
+      }
     }
   }
 
-  handleMouseDown() {
+  handleMouseDown(event: any) {
     const {
       index,
+      chunks,
       setFocusedChunk,
       setShouldAdvanceCursor,
+      setFirstSelectedChunkIndex,
     } = this.props;
     setShouldAdvanceCursor(false);
     setFocusedChunk(index);
+
+    if (event.buttons !== 1) {
+      return;
+    }
+    chunks.forEach((chunk) => {
+      const { editor } = chunk;
+      if (editor === false) {
+        return;
+      }
+      const doc = editor.getDoc();
+      doc.setSelections([
+        { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+      ]); // remove all selections
+    });
+    setFirstSelectedChunkIndex(index);
   }
 
   render() {
@@ -277,102 +422,156 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     } = this.props;
     const { text, startLine } = chunks[index];
 
-    const animation = chunks[index].needsJiggle
-      ? '0.25s ease-in-out 0.25s 2 alternate chunk-jiggle'
-      : '';
-
     return (
       <div
         style={{
           width: '100%',
           display: 'flex',
-          animation,
-        }}
-        onAnimationEnd={() => {
-          const { setChunk } = this.props;
-
-          setChunk({
-            ...chunks[index],
-            needsJiggle: false,
-          });
         }}
       >
-        <CodeMirror
-          ref={this.input}
-          onMouseDown={() => {
-            this.handleMouseDown();
+        <div
+          style={{
+            position: 'relative',
+            width: 0,
+            height: '100%',
           }}
-          editorDidMount={(editor) => {
-            const { setChunk } = this.props;
+        >
+          {(() => {
+            const chunk = chunks[index];
 
-            const marks = editor.getDoc().getAllMarks();
-            marks.forEach((m) => m.clear());
-            editor.setSize(null, 'auto');
+            if (chunk.errorState.status === 'failed'
+          && focusedChunk === index) {
+              return (
+                <div style={{
+                  alignSelf: 'center',
+                  background: '#FFF2F2',
+                  position: 'absolute',
+                  top: '100%',
+                  width: '40em',
+                  zIndex: 500001,
+                  fontFamily: 'sans-serif',
+                  borderRadius: '3px',
+                  border: '0.3em solid hsl(204, 100%, 74%)',
+                  padding: '0.2em',
+                  marginRight: '1em',
+                  boxShadow: '0 0 1em',
+                }}
+                >
+                  {chunk.errorState.failures}
+                </div>
+              );
+            }
 
-            setChunk({ ...chunks[index], editor });
+            return false;
+          })()}
+        </div>
+        <div
+          style={{
+            width: '100%',
           }}
-          value={text}
-          options={{
-            mode: 'pyret',
-            theme: 'default',
-            lineNumbers: true,
-            lineWrapping: true,
-            lineNumberFormatter: (l) => String(l + startLine),
-            autofocus: index === focusedChunk,
-          }}
-          onBeforeChange={(editor, data, value) => {
-            this.scheduleUpdate(value);
-          }}
-          onKeyDown={(editor, event) => {
-            switch ((event as any).key) {
-              case 'Enter':
-                this.handleEnter(editor, event);
-                break;
-              case 'Backspace':
-                this.handleBackspace(event);
-                break;
-              case 'Delete':
-                this.handleDelete(event);
-                break;
-              case 'ArrowUp':
-                this.handleArrowUp(editor, event);
-                break;
-              case 'ArrowDown':
-                this.handleArrowDown(editor, event);
-                break;
-              default:
+          onMouseEnter={(e: any) => {
+            if (e.buttons !== 1) {
+              return;
+            }
+
+            const { editor } = chunks[index];
+
+            if (editor === false) {
+              return;
+            }
+
+            const {
+              firstSelectedChunkIndex,
+              setFirstSelectedChunkIndex,
+            } = this.props;
+
+            if (firstSelectedChunkIndex === false) {
+              setFirstSelectedChunkIndex(index);
+              editor.execCommand('selectAll');
+            } else if (index <= firstSelectedChunkIndex) {
+              // selecting from bottom to the top
+              for (let i = 0; i < chunks.length; i += 1) {
+                const chunkEditor = chunks[i].editor;
+                if (chunkEditor === false) {
+                  return;
+                }
+                const doc = chunkEditor.getDoc();
+                if (i < index || i > firstSelectedChunkIndex) {
+                  doc.setSelections([
+                    { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+                  ]); // remove all selections
+                } else {
+                  chunkEditor.execCommand('selectAll');
+                }
+              }
+            } else if (index > firstSelectedChunkIndex) {
+              // selecting from top to bottom
+              for (let i = 0; i < chunks.length; i += 1) {
+                const chunkEditor = chunks[i].editor;
+                if (chunkEditor === false) {
+                  return;
+                }
+                const doc = chunkEditor.getDoc();
+                if (i > index || i < firstSelectedChunkIndex) {
+                  doc.setSelections([
+                    { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+                  ]); // remove all selections
+                } else {
+                  chunkEditor.execCommand('selectAll');
+                }
+              }
             }
           }}
-          autoCursor
-        />
-        {(() => {
-          const chunk = chunks[index];
+        >
+          <CodeMirror
+            ref={this.input}
+            onMouseDown={(editor: any, e: any) => {
+              this.handleMouseDown(e);
+            }}
+            editorDidMount={(editor) => {
+              const { setChunk } = this.props;
 
-          if (chunk.errorState.status === 'failed'
-              && focusedChunk === index) {
-            return (
-              <div style={{
-                alignSelf: 'center',
-                background: '#FFF2F2',
-                position: 'sticky',
-                top: '2.7em',
-                width: '50%',
-                zIndex: 1000,
-                fontFamily: 'sans-serif',
-                borderRadius: '3px',
-                border: '0.3em solid hsl(204, 100%, 74%)',
-                padding: '0.2em',
-                marginRight: '1em',
-                boxShadow: '0 0 1em',
-              }}
-              >
-                {chunk.errorState.failures}
-              </div>
-            );
-          }
+              const marks = editor.getDoc().getAllMarks();
+              marks.forEach((m) => m.clear());
+              editor.setSize(null, 'auto');
 
-          return false;
-        })()}
+              setChunk({ ...chunks[index], editor });
+            }}
+            value={text}
+            options={{
+              mode: 'pyret',
+              theme: 'default',
+              lineNumbers: true,
+              lineWrapping: true,
+              lineNumberFormatter: (l) => String(l + startLine),
+              autofocus: index === focusedChunk,
+            }}
+            onBeforeChange={(editor, data, value) => {
+              this.scheduleUpdate(value);
+            }}
+            onKeyDown={(editor, event) => {
+              switch ((event as any).key) {
+                case 'Enter':
+                  this.handleEnter(editor, event);
+                  break;
+                case 'Backspace':
+                  this.handleBackspace(event);
+                  break;
+                case 'Delete':
+                  this.handleDelete(event);
+                  break;
+                case 'ArrowUp':
+                  this.handleArrowUp(editor, event);
+                  break;
+                case 'ArrowDown':
+                  this.handleArrowDown(editor, event);
+                  break;
+                default:
+              }
+            }}
+            autoCursor
+          />
+        </div>
       </div>
     );
   }

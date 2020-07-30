@@ -18,13 +18,6 @@ export default function DropdownOption({ enabled, onClick, children }: DropdownO
       className={enabled ? 'run-option-enabled' : 'run-option-disabled'}
       onClick={onClick}
     >
-      <input
-        type="checkBox"
-        checked={enabled}
-        name={internalName}
-        className="run-option-checkbox"
-        readOnly
-      />
       <label
         htmlFor={internalName}
         className="run-option-label"

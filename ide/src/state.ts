@@ -1,7 +1,7 @@
 import { Check } from './Check';
 import { Chunk } from './chunk';
 import { Effect } from './effect';
-import { MenuItems } from './menu';
+import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import * as control from './control';
 
@@ -44,6 +44,7 @@ export type State = {
   compiledSinceLastEdit: boolean,
   menuItems: MenuItems,
   menuTabVisible: false | number,
+  firstSelectedChunkIndex: false | number,
 };
 
 export enum EditorMode {
@@ -67,7 +68,10 @@ export const initialState: State = {
   currentFileContents: undefined,
   typeCheck: true,
   checks: [],
-  rhs: { objects: [] },
+  rhs: {
+    objects: [],
+    outdated: false,
+  },
   interactionErrors: [],
   lintFailures: {},
   runKind: control.backend.RunKind.Async,
@@ -108,6 +112,7 @@ export const initialState: State = {
       icon: 'gearIcon.svg',
     },
   ],
+  firstSelectedChunkIndex: false,
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';

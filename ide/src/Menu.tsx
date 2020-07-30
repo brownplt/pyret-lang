@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { MenuItems } from './menu';
+import { MenuItems } from './menu-types';
 import { State, EditorMode } from './state';
 import { Action } from './action';
 import FSBrowser from './FSBrowser';
@@ -64,28 +64,22 @@ function Menu({ menuItems, menuTabVisible, setEditorMode }: MenuProps) {
             >
               <button
                 onClick={() => setEditorMode(EditorMode.Text)}
+                className="option"
                 key="TextEditor"
                 type="button"
                 style={{
                   width: '50%',
-                  background: '#979797',
-                  color: '#fff',
-                  border: 'none',
-                  height: '100%',
                 }}
               >
                 Text
               </button>
               <button
                 onClick={() => setEditorMode(EditorMode.Chunks)}
+                className="option"
                 key="ChunkEditor"
                 type="button"
                 style={{
                   width: '50%',
-                  background: '#979797',
-                  color: '#fff',
-                  border: 'none',
-                  height: '100%',
                 }}
               >
                 Chunks

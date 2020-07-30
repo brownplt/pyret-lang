@@ -19,7 +19,7 @@ import * as control from './control';
 import 'react-splitter-layout/lib/index.css';
 import * as action from './action';
 
-type stateProps = {
+type StateProps = {
   browseRoot: string,
   currentFileContents: undefined | string,
   definitionsHighlights: number[][],
@@ -37,7 +37,7 @@ type stateProps = {
   typeCheck: boolean,
 };
 
-function mapStateToProps(state: State.State): stateProps {
+function mapStateToProps(state: State.State): StateProps {
   return {
     browseRoot: state.browseRoot,
     currentFileContents: state.currentFileContents,
@@ -57,7 +57,7 @@ function mapStateToProps(state: State.State): stateProps {
   };
 }
 
-type dispatchProps = {
+type DispatchProps = {
   stop: () => void,
   run: () => void,
   updateContents: (contents: string) => void,
@@ -68,10 +68,10 @@ type dispatchProps = {
   setDropdownVisible: (dropdownVisible: boolean) => void,
 };
 
-function mapDispatchToProps(dispatch: (action: action.Action) => any): dispatchProps {
+function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
     stop: () => dispatch({ type: 'enqueueEffect', effect: 'stop' }),
-    run: () => dispatch({ type: 'enqueueEffect', effect: 'compile' }),
+    run: () => dispatch({ type: 'enqueueEffect', effect: 'saveFile' }),
     updateContents: (contents: string) => dispatch({
       type: 'update',
       key: 'currentFileContents',
@@ -108,9 +108,13 @@ control.loadBuiltins();
 
 // type EditorProps = {};
 
-type EditorProps = PropsFromRedux & dispatchProps & stateProps;
+type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
 export class Editor extends React.Component<EditorProps, any> {
+  componentDidMount() {
+    document.body.addEventListener('copy', this.makeCopyHandler());
+  }
+
   makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => (
     <button
       className={(enabled ? 'run-option-enabled' : 'run-option-disabled')}
@@ -148,6 +152,42 @@ export class Editor extends React.Component<EditorProps, any> {
     throw new Error('Unknown editor mode');
   }
 
+  makeCopyHandler() {
+    const that = this;
+
+    return (e: any) => {
+      const {
+        chunks,
+      } = that.props;
+
+      let data = '';
+
+      chunks.forEach((chunk, i) => {
+        const { editor } = chunk;
+
+        if (editor === false) {
+          return;
+        }
+
+        const doc = editor.getDoc();
+        const selection = doc.getSelection();
+
+        if (selection === '') {
+          return;
+        }
+
+        data += selection;
+
+        if (i !== chunks.length - 1) {
+          data += '#.CHUNK#\n';
+        }
+      });
+
+      e.clipboardData.setData('text/plain', data);
+      e.preventDefault();
+    };
+  }
+
   render() {
     const {
       fontSize,
@@ -168,9 +208,7 @@ export class Editor extends React.Component<EditorProps, any> {
     } = this.props;
 
     const interactionValues = (
-      <div style={{ fontSize }}>
-        <RHS />
-      </div>
+      <RHS />
     );
 
     const dropdown = dropdownVisible && (
@@ -205,7 +243,13 @@ export class Editor extends React.Component<EditorProps, any> {
           >
             {interactionValues}
             <InteractionError fontSize={fontSize}>
-              {interactionErrors}
+              {(() => {
+                if (interactionErrors.length === 1
+                        && interactionErrors[0] === 'Could not find module with uri: builtin://global') {
+                  return ['The first line of your program should be `import global as G`'];
+                }
+                return interactionErrors;
+              })()}
             </InteractionError>
           </SplitterLayout>
         ) : interactionValues}

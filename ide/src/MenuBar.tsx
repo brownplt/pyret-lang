@@ -5,7 +5,7 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Action } from './action';
-import { MenuItems } from './menu';
+import { MenuItems } from './menu-types';
 import { State } from './state';
 
 type StateProps = {

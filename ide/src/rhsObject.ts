@@ -65,7 +65,7 @@ function hasOwnProperty<X extends {}, Y extends PropertyKey>(
   return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
-function getRow(hasSrcLoc: HasSrcLoc): number {
+export function getRow(hasSrcLoc: HasSrcLoc): number {
   if (hasOwnProperty(hasSrcLoc, 'srcloc')) {
     return hasSrcLoc.srcloc[1];
   }
@@ -81,7 +81,10 @@ function getRow(hasSrcLoc: HasSrcLoc): number {
   return Number(matches[1]);
 }
 
-export type RHSObjects = { objects: RHSObject[] };
+export type RHSObjects = {
+  objects: RHSObject[],
+  outdated: boolean,
+};
 
 export type RunResult = {
   time: number,
@@ -125,5 +128,6 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
 
   return {
     objects: withKeys,
+    outdated: false,
   };
 }
