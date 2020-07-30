@@ -568,8 +568,6 @@ module.exports = {
         return runtime.makeBoolean(isWorldConfigOption(v.val));
     }),
     "is-key-equal": makeFunction(function(key1, key2) {
-        runtime.checkString(key1);
-        runtime.checkString(key2);
         return key1.toString().toLowerCase() === key2.toString().toLowerCase();
     }),
     // // this was part of the `internal` argument to runtime.makeModuleReturn
