@@ -524,60 +524,56 @@ var DEFAULT_TICK_DELAY = 1/28;
 
 var makeFunction = runtime.makeFunction;
 
-return runtime.makeModuleReturn(
-    {
-        "reactor": makeFunction(makeReactor, "reactor"),
-        "big-bang": makeFunction(function(init, handlers) {
-            var arr = runtime.ffi.toArray(handlers);
-            var initialWorldValue = init;
-            arr.map(function(h) { checkHandler(h); });
-            return bigBang(initialWorldValue, arr, null, 'big-bang');
-            runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
-        }, "big-bang"),
-        "on-tick": makeFunction(function(handler) {
-            runtime.checkFunction(handler);
-            return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
-        }),
-        "on-tick-n": makeFunction(function(handler, n) {
-            runtime.checkFunction(handler);
-            runtime.checkNumber(n);
-            var fixN = jsnums.toFixnum(n);
-            return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
-        }),
-        "to-draw": makeFunction(function(drawer) {
-            runtime.checkFunction(drawer);
-            return runtime.makeOpaque(new ToDraw(drawer));
-        }),
-        "stop-when": makeFunction(function(stopper) {
-            runtime.checkFunction(stopper);
-            return runtime.makeOpaque(new StopWhen(stopper));
-        }),
-        "close-when-stop": makeFunction(function(isClose) {
-            runtime.checkBoolean(isClose);
-            return runtime.makeOpaque(new CloseWhenStop(isClose));
-        }),
-        "on-key": makeFunction(function(onKey) {
-            runtime.checkFunction(onKey);
-            return runtime.makeOpaque(new OnKey(onKey));
-        }),
-        "on-mouse": makeFunction(function(onMouse) {
-            runtime.checkFunction(onMouse);
-            return runtime.makeOpaque(new OnMouse(onMouse));
-        }),
-        "is-world-config": makeFunction(function(v) {
-            if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
-            return runtime.makeBoolean(isWorldConfigOption(v.val));
-        }),
-        "is-key-equal": makeFunction(function(key1, key2) {
-            runtime.checkString(key1);
-            runtime.checkString(key2);
-            return key1.toString().toLowerCase() === key2.toString().toLowerCase();
-        })
-    },
-    {},
-    {
-        WorldConfigOption: WorldConfigOption,
-        adaptWorldFunction: adaptWorldFunction,
-        bigBangFromDict: bigBangFromDict
-    }
-);
+module.exports = {
+    "reactor": makeFunction(makeReactor, "reactor"),
+    "big-bang": makeFunction(function(init, handlers) {
+        var arr = runtime.ffi.toArray(handlers);
+        var initialWorldValue = init;
+        arr.map(function(h) { checkHandler(h); });
+        return bigBang(initialWorldValue, arr, null, 'big-bang');
+        runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
+    }, "big-bang"),
+    "on-tick": makeFunction(function(handler) {
+        runtime.checkFunction(handler);
+        return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
+    }),
+    "on-tick-n": makeFunction(function(handler, n) {
+        runtime.checkFunction(handler);
+        runtime.checkNumber(n);
+        var fixN = jsnums.toFixnum(n);
+        return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
+    }),
+    "to-draw": makeFunction(function(drawer) {
+        runtime.checkFunction(drawer);
+        return runtime.makeOpaque(new ToDraw(drawer));
+    }),
+    "stop-when": makeFunction(function(stopper) {
+        runtime.checkFunction(stopper);
+        return runtime.makeOpaque(new StopWhen(stopper));
+    }),
+    "close-when-stop": makeFunction(function(isClose) {
+        runtime.checkBoolean(isClose);
+        return runtime.makeOpaque(new CloseWhenStop(isClose));
+    }),
+    "on-key": makeFunction(function(onKey) {
+        runtime.checkFunction(onKey);
+        return runtime.makeOpaque(new OnKey(onKey));
+    }),
+    "on-mouse": makeFunction(function(onMouse) {
+        runtime.checkFunction(onMouse);
+        return runtime.makeOpaque(new OnMouse(onMouse));
+    }),
+    "is-world-config": makeFunction(function(v) {
+        if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
+        return runtime.makeBoolean(isWorldConfigOption(v.val));
+    }),
+    "is-key-equal": makeFunction(function(key1, key2) {
+        runtime.checkString(key1);
+        runtime.checkString(key2);
+        return key1.toString().toLowerCase() === key2.toString().toLowerCase();
+    }),
+    // // this was part of the `internal` argument to runtime.makeModuleReturn
+    // WorldConfigOption: WorldConfigOption,
+    // adaptWorldFunction: adaptWorldFunction,
+    // bigBangFromDict: bigBangFromDict,
+};
