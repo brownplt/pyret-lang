@@ -492,7 +492,7 @@ DefaultDrawingOutput.prototype.toRawHandler = function(toplevelNode) {
 
 var CloseWhenStop = function(isClose) {
     WorldConfigOption.call(this, 'close-when-stop');
-    this.isClose = runtime.isPyretTrue(isClose);
+    this.isClose = isClose === true;
 };
 
 CloseWhenStop.prototype = Object.create(WorldConfigOption.prototype);
