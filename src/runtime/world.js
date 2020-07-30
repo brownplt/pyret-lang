@@ -26,7 +26,7 @@ var makeReactor = function(init, handlers) {
     return makeReactorRaw(init, arr, false, []);
 }
 var makeReactorRaw = function(init, handlersArray, tracing, trace) {
-    return runtime.makeObject({
+    return {
         "get-value": runtime.makeMethod0(function(self) {
             return init;
         }),
@@ -87,7 +87,7 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                 runtime.throwMessageException("Only the literal event \"tick\" is supported");
             }
         })
-    });
+    };
 }
 
 function bigBangFromDict(init, dict, tracer) {
@@ -522,7 +522,6 @@ var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfig
 // The default tick delay is 28 times a second.
 var DEFAULT_TICK_DELAY = 1/28;
 
-var makeObject = runtime.makeObject;
 var makeFunction = runtime.makeFunction;
 
 return runtime.makeModuleReturn(
