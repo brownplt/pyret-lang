@@ -58,7 +58,7 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
             return makeReactorRaw(init, handlersArray, false, []);
         },
         "get-trace": () => {
-            return runtime.ffi.makeList(trace);
+            return trace;
         },
         react: (event) => {
             if(event === "tick") {
