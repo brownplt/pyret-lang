@@ -1,5 +1,3 @@
-// runtime, namespace, uri, imageLibrary, rawJsworld, VSlib, jsnums
-
 const imageLibrary = require('./image.arr.js');
 const rawJsworld = require('./world-lib.js').jsworld;
 const jsnums = require("./js-numbers.js");
@@ -22,7 +20,6 @@ var isOpaqueToDraw = function(v) {
 }
 
 var makeReactor = function(init, handlers) {
-    runtime.ffi.checkArity(2, arguments, "reactor", false);
     runtime.checkList(handlers);
     var arr = runtime.ffi.toArray(handlers);
     var initialWorldValue = init;
@@ -533,7 +530,6 @@ return runtime.makeModuleReturn(
     {
         "reactor": makeFunction(makeReactor, "reactor"),
         "big-bang": makeFunction(function(init, handlers) {
-            runtime.ffi.checkArity(2, arguments, "big-bang", false);
             runtime.checkList(handlers);
             var arr = runtime.ffi.toArray(handlers);
             var initialWorldValue = init;
@@ -542,49 +538,40 @@ return runtime.makeModuleReturn(
             runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
         }, "big-bang"),
         "on-tick": makeFunction(function(handler) {
-            runtime.ffi.checkArity(1, arguments, "on-tick", false);
             runtime.checkFunction(handler);
             return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
         }),
         "on-tick-n": makeFunction(function(handler, n) {
-            runtime.ffi.checkArity(2, arguments, "on-tick-n", false);
             runtime.checkFunction(handler);
             runtime.checkNumber(n);
             var fixN = jsnums.toFixnum(n);
             return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
         }),
         "to-draw": makeFunction(function(drawer) {
-            runtime.ffi.checkArity(1, arguments, "to-draw", false);
             runtime.checkFunction(drawer);
             return runtime.makeOpaque(new ToDraw(drawer));
         }),
         "stop-when": makeFunction(function(stopper) {
-            runtime.ffi.checkArity(1, arguments, "stop-when", false);
             runtime.checkFunction(stopper);
             return runtime.makeOpaque(new StopWhen(stopper));
         }),
         "close-when-stop": makeFunction(function(isClose) {
-            runtime.ffi.checkArity(1, arguments, "close-when-stop", false);
             runtime.checkBoolean(isClose);
             return runtime.makeOpaque(new CloseWhenStop(isClose));
         }),
         "on-key": makeFunction(function(onKey) {
-            runtime.ffi.checkArity(1, arguments, "on-key", false);
             runtime.checkFunction(onKey);
             return runtime.makeOpaque(new OnKey(onKey));
         }),
         "on-mouse": makeFunction(function(onMouse) {
-            runtime.ffi.checkArity(1, arguments, "on-mouse", false);
             runtime.checkFunction(onMouse);
             return runtime.makeOpaque(new OnMouse(onMouse));
         }),
         "is-world-config": makeFunction(function(v) {
-            runtime.ffi.checkArity(1, arguments, "is-world-config", false);
             if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
             return runtime.makeBoolean(isWorldConfigOption(v.val));
         }),
         "is-key-equal": makeFunction(function(key1, key2) {
-            runtime.ffi.checkArity(2, arguments, "is-key-equal", false);
             runtime.checkString(key1);
             runtime.checkString(key2);
             return key1.toString().toLowerCase() === key2.toString().toLowerCase();
