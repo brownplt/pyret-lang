@@ -2,6 +2,7 @@
 
 const imageLibrary = require('./image.arr.js');
 const rawJsworld = require('./world-lib.js').jsworld;
+const jsnums = require("./js-numbers.js");
 
 var isImage = imageLibrary.isImage;
 
