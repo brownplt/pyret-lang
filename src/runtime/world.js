@@ -558,8 +558,7 @@ module.exports = {
     "is-key-equal": (key1, key2) => {
         return key1.toString().toLowerCase() === key2.toString().toLowerCase();
     },
-    // // this was part of the `internal` argument to runtime.makeModuleReturn
-    // WorldConfigOption: WorldConfigOption,
-    // adaptWorldFunction: adaptWorldFunction,
-    // bigBangFromDict: bigBangFromDict,
+    $WorldConfigOption: WorldConfigOption,
+    $adaptWorldFunction: adaptWorldFunction,
+    $bigBangFromDict: bigBangFromDict,
 };
