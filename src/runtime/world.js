@@ -556,7 +556,7 @@ module.exports = {
         return runtime.makeOpaque(new OnMouse(onMouse));
     },
     "is-world-config": (v) => {
-        if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
+        if(!runtime.isOpaque(v)) { return false; }
         return isWorldConfigOption(v.val);
     },
     "is-key-equal": (key1, key2) => {
