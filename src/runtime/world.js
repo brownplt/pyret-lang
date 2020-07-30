@@ -1,6 +1,7 @@
 const imageLibrary = require('./image.arr.js');
 const rawJsworld = require('./world-lib.js').jsworld;
-const jsnums = require("./js-numbers.js");
+const jsnums = require('./js-numbers.js');
+const anchorRuntime = require('./runtime.js');
 
 var isImage = imageLibrary.isImage;
 
@@ -161,7 +162,7 @@ var bigBang = function(initW, handlers, tracer, title) {
     }
 
 
-    return runtime.pauseStack(function(restarter) {
+    return anchorRuntime.pauseStack(function(restarter) {
         rawJsworld.bigBang(
             toplevelNode,
             initW,
