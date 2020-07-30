@@ -1,5 +1,7 @@
 // runtime, namespace, uri, imageLibrary, rawJsworld, VSlib, jsnums
 
+const imageLibrary = require('./image.arr.js');
+
 var isImage = imageLibrary.isImage;
 
 //////////////////////////////////////////////////////////////////////
