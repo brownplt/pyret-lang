@@ -22,7 +22,7 @@
     "babel-loader": "8.0.6",
     "babel-plugin-named-asset-import": "^0.3.6",
     "babel-preset-react-app": "^9.1.2",
-    "browserfs": "^1.4.3",
+    "browserfs": "git://github.com/jvilk/BrowserFS.git#c4985cba16ae7027658e5da3596085167a212b40",
     "camelcase": "^5.2.0",
     "case-sensitive-paths-webpack-plugin": "2.2.0",
     "codemirror": "^5.55.0",

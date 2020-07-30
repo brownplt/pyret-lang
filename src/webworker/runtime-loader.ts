@@ -21,17 +21,19 @@ export default function load(
   runtimeFiles.forEach((item: any) => {
     const { key, content, timestamp } = item;
 
-    const compiledPath = key.replace(/^prewritten/, 'compiled/builtin');
+    const fullPathKey = `/${key}`;
 
-    if (fs.existsSync(key)) {
-      const statResult = fs.statSync(key);
+    const compiledPath = fullPathKey.replace(/^\/prewritten/, '/compiled/builtin');
+
+    if (fs.existsSync(fullPathKey)) {
+      const statResult = fs.statSync(fullPathKey);
       const localTimestamp = statResult.mtime.getTime();
       if (localTimestamp < timestamp) {
-        fs.writeFileSync(key, content);
+        fs.writeFileSync(fullPathKey, content);
         fs.writeFileSync(compiledPath, content);
       }
     } else {
-      fs.writeFileSync(key, content);
+      fs.writeFileSync(fullPathKey, content);
       fs.writeFileSync(compiledPath, content);
     }
   });
