@@ -3,6 +3,15 @@ const rawJsworld = require('./world-lib.js').jsworld;
 const jsnums = require('./js-numbers.js');
 const anchorRuntime = require('./runtime.js');
 
+// TODO(michael): this should throw pretty error messages via error.arr
+function makeCheckType(pred, type) {
+    return (val) => {
+        if (!pred(val)) {
+            throw new Error(`Evaluating an expression failed. It was supposed to produce to a ${type}, but it produced a non-${type} value: ${val}`);
+        }
+    };
+}
+
 var isImage = imageLibrary.isImage;
 
 //////////////////////////////////////////////////////////////////////
@@ -404,7 +413,7 @@ ToDraw.prototype.toRawHandler = function(toplevelNode) {
                 var checkImagePred = function(val) {
                     return runtime.isOpaque(val) && isImage(val.val);
                 };
-                var checkImageType = runtime.makeCheckType(checkImagePred, "Image");
+                var checkImageType = makeCheckType(checkImagePred, "Image");
                 checkImageType(v);
 
                 var theImage = v.val;
@@ -505,7 +514,7 @@ StopWhen.prototype.toRawHandler = function(toplevelNode) {
     return rawJsworld.stop_when(worldFunction);
 };
 
-var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
+var checkHandler = makeCheckType(isOpaqueWorldConfigOption, "WorldConfigOption");
 //////////////////////////////////////////////////////////////////////
 
 
