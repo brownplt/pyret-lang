@@ -20,7 +20,7 @@ var isOpaqueToDraw = function(v) {
 }
 
 var makeReactor = function(init, handlers) {
-    var arr = runtime.ffi.toArray(handlers);
+    var arr = handlers;
     var initialWorldValue = init;
     arr.map(function(h) { checkHandler(h); });
     return makeReactorRaw(init, arr, false, []);
@@ -525,7 +525,7 @@ var DEFAULT_TICK_DELAY = 1/28;
 module.exports = {
     "reactor": makeReactor,
     "big-bang": (init, handlers) => {
-        var arr = runtime.ffi.toArray(handlers);
+        var arr = handlers;
         var initialWorldValue = init;
         arr.map(function(h) { checkHandler(h); });
         return bigBang(initialWorldValue, arr, null, 'big-bang');
