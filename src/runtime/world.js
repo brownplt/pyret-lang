@@ -534,21 +534,17 @@ module.exports = {
         runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
     }, "big-bang"),
     "on-tick": makeFunction(function(handler) {
-        runtime.checkFunction(handler);
         return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
     }),
     "on-tick-n": makeFunction(function(handler, n) {
-        runtime.checkFunction(handler);
         runtime.checkNumber(n);
         var fixN = jsnums.toFixnum(n);
         return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
     }),
     "to-draw": makeFunction(function(drawer) {
-        runtime.checkFunction(drawer);
         return runtime.makeOpaque(new ToDraw(drawer));
     }),
     "stop-when": makeFunction(function(stopper) {
-        runtime.checkFunction(stopper);
         return runtime.makeOpaque(new StopWhen(stopper));
     }),
     "close-when-stop": makeFunction(function(isClose) {
@@ -556,11 +552,9 @@ module.exports = {
         return runtime.makeOpaque(new CloseWhenStop(isClose));
     }),
     "on-key": makeFunction(function(onKey) {
-        runtime.checkFunction(onKey);
         return runtime.makeOpaque(new OnKey(onKey));
     }),
     "on-mouse": makeFunction(function(onMouse) {
-        runtime.checkFunction(onMouse);
         return runtime.makeOpaque(new OnMouse(onMouse));
     }),
     "is-world-config": makeFunction(function(v) {
