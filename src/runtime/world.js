@@ -26,11 +26,11 @@ var makeReactor = function(init, handlers) {
     return makeReactorRaw(init, arr, false, []);
 }
 var makeReactorRaw = function(init, handlersArray, tracing, trace) {
-    return {
-        "get-value": runtime.makeMethod0(function(self) {
+    const self = {
+        "get-value": () => {
             return init;
-        }),
-        "draw": runtime.makeMethod0(function(self) {
+        },
+        "draw": () => {
             var drawer = handlersArray.filter(function(h) {
                 return isOpaqueToDraw(h);
             })[0];
@@ -38,8 +38,8 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                 runtime.throwMessageException("Tried to draw() a reactor with no to-draw");
             }
             return drawer.val.handler.app(init);
-        }),
-        interact: runtime.makeMethod0(function(self) {
+        },
+        interact: () => {
             var thisInteractTrace = [];
             var tracer = null;
             if(tracing) {
@@ -50,17 +50,17 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
             }
             const newVal = bigBang(init, handlersArray, tracer);
             return makeReactorRaw(newVal, handlersArray, tracing, trace.concat(thisInteractTrace));
-        }),
-        "start-trace": runtime.makeMethod0(function(self) {
+        },
+        "start-trace": () => {
             return makeReactorRaw(init, handlersArray, true, []);
-        }),
-        "stop-trace": runtime.makeMethod0(function(self) {
+        },
+        "stop-trace": () => {
             return makeReactorRaw(init, handlersArray, false, []);
-        }),
-        "get-trace": runtime.makeMethod0(function(self) {
+        },
+        "get-trace": () => {
             return runtime.ffi.makeList(trace);
-        }),
-        react: runtime.makeMethod1(function(self, event) {
+        },
+        react: (event) => {
             if(event === "tick") {
                 var ticker = handlersArray.filter(function(h) {
                     return isOpaqueOnTick(h);
@@ -80,8 +80,10 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
             else {
                 runtime.throwMessageException("Only the literal event \"tick\" is supported");
             }
-        })
+        },
     };
+
+    return self;
 }
 
 function bigBangFromDict(init, dict, tracer) {
