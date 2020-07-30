@@ -48,11 +48,8 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                     k();
                 };
             }
-            return runtime.safeCall(function() {
-                return bigBang(init, handlersArray, tracer);
-            }, function(newVal) {
-                return makeReactorRaw(newVal, handlersArray, tracing, trace.concat(thisInteractTrace));
-            }, "interact");
+            const newVal = bigBang(init, handlersArray, tracer);
+            return makeReactorRaw(newVal, handlersArray, tracing, trace.concat(thisInteractTrace));
         }),
         "start-trace": runtime.makeMethod0(function(self) {
             return makeReactorRaw(init, handlersArray, true, []);
@@ -72,15 +69,12 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                     runtime.throwMessageException("Tried to tick a reactor with no on-tick");
                 }
                 else {
-                    return runtime.safeCall(function() {
-                        return ticker.val.handler.app(init);
-                    }, function(result) {
-                        var newTrace = trace;
-                        if(tracing) {
-                            newTrace = trace.concat([result]);
-                        }
-                        return makeReactorRaw(result, handlersArray, tracing, newTrace);
-                    }, "react:on-tick");
+                    const result = ticker.val.handler.app(init);
+                    var newTrace = trace;
+                    if(tracing) {
+                        newTrace = trace.concat([result]);
+                    }
+                    return makeReactorRaw(result, handlersArray, tracing, newTrace);
                 }
             }
             else {
@@ -237,13 +231,8 @@ var adaptWorldFunction = function(worldFunction) {
         // any other nested function's args
         var pyretArgs = [].slice.call(arguments, 0, arguments.length - 1);
         runtime.run(function(_, _) {
-            // NOTE(joe): adding safecall here to get some meaningful caller frame
-            // so error messages know where the call is coming from
-            return runtime.safeCall(function() {
-                return worldFunction.app.apply(null, pyretArgs);
-            }, function(result) {
-                return result;
-            }, "big-bang");
+            const result = worldFunction.app.apply(null, pyretArgs);
+            return result;
         }, runtime.namespace,
                     { sync: false },
                     function(result) {
@@ -473,13 +462,11 @@ DefaultDrawingOutput.prototype.toRawHandler = function(toplevelNode) {
     var that = this;
     var worldFunction = function(world, success) {
         var textNode = jQuery("<pre>");
-        return runtime.safeCall(function() {
-            return runtime.toReprJS(world, runtime.ReprMethods._torepr);
-        }, function(str) {
-            textNode.text(str);
-            success([toplevelNode,
-                     rawJsworld.node_to_tree(textNode[0])]);
-        }, "default-drawing:toRepr");
+        const str = runtime.toReprJS(world, runtime.ReprMethods._torepr);
+        textNode.text(str);
+        success([toplevelNode,
+                 rawJsworld.node_to_tree(textNode[0])]);
+        return;
     };
     var cssFunction = function(w, success) { success([]); }
     return rawJsworld.on_draw(worldFunction, cssFunction);
