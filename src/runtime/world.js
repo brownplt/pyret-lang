@@ -522,48 +522,46 @@ var checkHandler = runtime.makeCheckType(isOpaqueWorldConfigOption, "WorldConfig
 // The default tick delay is 28 times a second.
 var DEFAULT_TICK_DELAY = 1/28;
 
-var makeFunction = runtime.makeFunction;
-
 module.exports = {
-    "reactor": makeFunction(makeReactor, "reactor"),
-    "big-bang": makeFunction(function(init, handlers) {
+    "reactor": makeReactor,
+    "big-bang": (init, handlers) => {
         var arr = runtime.ffi.toArray(handlers);
         var initialWorldValue = init;
         arr.map(function(h) { checkHandler(h); });
         return bigBang(initialWorldValue, arr, null, 'big-bang');
         runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
-    }, "big-bang"),
-    "on-tick": makeFunction(function(handler) {
+    },
+    "on-tick": (handler) => {
         return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
-    }),
-    "on-tick-n": makeFunction(function(handler, n) {
+    },
+    "on-tick-n": (handler, n) => {
         runtime.checkNumber(n);
         var fixN = jsnums.toFixnum(n);
         return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
-    }),
-    "to-draw": makeFunction(function(drawer) {
+    },
+    "to-draw": (drawer) => {
         return runtime.makeOpaque(new ToDraw(drawer));
-    }),
-    "stop-when": makeFunction(function(stopper) {
+    },
+    "stop-when": (stopper) => {
         return runtime.makeOpaque(new StopWhen(stopper));
-    }),
-    "close-when-stop": makeFunction(function(isClose) {
+    },
+    "close-when-stop": (isClose) => {
         runtime.checkBoolean(isClose);
         return runtime.makeOpaque(new CloseWhenStop(isClose));
-    }),
-    "on-key": makeFunction(function(onKey) {
+    },
+    "on-key": (onKey) => {
         return runtime.makeOpaque(new OnKey(onKey));
-    }),
-    "on-mouse": makeFunction(function(onMouse) {
+    },
+    "on-mouse": (onMouse) => {
         return runtime.makeOpaque(new OnMouse(onMouse));
-    }),
-    "is-world-config": makeFunction(function(v) {
+    },
+    "is-world-config": (v) => {
         if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
         return runtime.makeBoolean(isWorldConfigOption(v.val));
-    }),
-    "is-key-equal": makeFunction(function(key1, key2) {
+    },
+    "is-key-equal": (key1, key2) => {
         return key1.toString().toLowerCase() === key2.toString().toLowerCase();
-    }),
+    },
     // // this was part of the `internal` argument to runtime.makeModuleReturn
     // WorldConfigOption: WorldConfigOption,
     // adaptWorldFunction: adaptWorldFunction,
