@@ -1,7 +1,6 @@
 // runtime, namespace, uri, imageLibrary, rawJsworld, VSlib, jsnums
 
 var isImage = imageLibrary.isImage;
-var VS = runtime.getField(VSlib, "values");
 
 //////////////////////////////////////////////////////////////////////
 
@@ -87,13 +86,6 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
             else {
                 runtime.throwMessageException("Only the literal event \"tick\" is supported");
             }
-        }),
-        _output: runtime.makeMethod0(function(self) {
-            return runtime.getField(VS, "vs-constr").app(
-                "reactor",
-                runtime.ffi.makeList([
-                    runtime.getField(VS, "vs-value").app(init),
-                    runtime.getField(VS, "vs-value").app(runtime.ffi.makeList(trace))]));
         })
     });
 }
