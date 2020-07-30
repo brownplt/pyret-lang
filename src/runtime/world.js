@@ -20,7 +20,6 @@ var isOpaqueToDraw = function(v) {
 }
 
 var makeReactor = function(init, handlers) {
-    runtime.checkList(handlers);
     var arr = runtime.ffi.toArray(handlers);
     var initialWorldValue = init;
     arr.map(function(h) { checkHandler(h); });
@@ -530,7 +529,6 @@ return runtime.makeModuleReturn(
     {
         "reactor": makeFunction(makeReactor, "reactor"),
         "big-bang": makeFunction(function(init, handlers) {
-            runtime.checkList(handlers);
             var arr = runtime.ffi.toArray(handlers);
             var initialWorldValue = init;
             arr.map(function(h) { checkHandler(h); });
