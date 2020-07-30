@@ -35,7 +35,7 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                 return isOpaqueToDraw(h);
             })[0];
             if(drawer === undefined) {
-                runtime.throwMessageException("Tried to draw() a reactor with no to-draw");
+                throw new Error("Tried to draw() a reactor with no to-draw");
             }
             return drawer.val.handler.app(init);
         },
@@ -66,7 +66,7 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                     return isOpaqueOnTick(h);
                 })[0];
                 if(ticker === undefined) {
-                    runtime.throwMessageException("Tried to tick a reactor with no on-tick");
+                    throw new Error("Tried to tick a reactor with no on-tick");
                 }
                 else {
                     const result = ticker.val.handler.app(init);
@@ -78,7 +78,7 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
                 }
             }
             else {
-                runtime.throwMessageException("Only the literal event \"tick\" is supported");
+                throw new Error("Only the literal event \"tick\" is supported");
             }
         },
     };
@@ -518,7 +518,6 @@ module.exports = {
         var initialWorldValue = init;
         arr.map(function(h) { checkHandler(h); });
         return bigBang(initialWorldValue, arr, null, 'big-bang');
-        runtime.ffi.throwMessageException("Internal error in bigBang: stack not properly paused and stored.");
     },
     "on-tick": (handler) => {
         return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
