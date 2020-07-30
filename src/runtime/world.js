@@ -533,7 +533,6 @@ module.exports = {
         return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
     },
     "on-tick-n": (handler, n) => {
-        runtime.checkNumber(n);
         var fixN = jsnums.toFixnum(n);
         return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
     },
