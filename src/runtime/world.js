@@ -544,7 +544,6 @@ module.exports = {
         return runtime.makeOpaque(new StopWhen(stopper));
     },
     "close-when-stop": (isClose) => {
-        runtime.checkBoolean(isClose);
         return runtime.makeOpaque(new CloseWhenStop(isClose));
     },
     "on-key": (onKey) => {
