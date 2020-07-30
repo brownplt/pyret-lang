@@ -1008,7 +1008,7 @@ fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
   found
 end
 
-fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; List<J.JExpr>}:
+fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JStmt>; List<J.JStmt>}:
   doc: ```
        Find an order of assignment statements in `lst` that avoid new variables
        where `limit` is the number of round-robin attempts allowed.
@@ -1035,7 +1035,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
           if limit == 0:
             tmp-arg = fresh-id(compiler-name('tmp_asgn'))
             {pre; post} = get-assignments(rest, rest.length())
-            {link(j-var(tmp-arg, actual), pre); link(j-assign(formal, j-id(tmp-arg)), post)}
+            {link(j-var(tmp-arg, actual), pre); link(j-expr(j-assign(formal, j-id(tmp-arg))), post)}
           else:
             occurs-any = for any(next-asgn :: J.JExpr%(is-j-assign) from rest):
               is-id-occurs(formal, next-asgn.rhs)
@@ -1044,7 +1044,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
               get-assignments(rest + [list: asgn], limit - 1)
             else:
               {pre; post} = get-assignments(rest, rest.length())
-              {link(asgn, pre); post}
+              {link(j-expr(asgn), pre); post}
             end
           end
       end
@@ -1076,7 +1076,7 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
             j-block([clist:
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list(j-expr, pre + post) +
+        CL.from_list(pre + post) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
         #     console-log-stmt([clist: j-str(tostring(arg)), j-id(arg)])
@@ -2047,22 +2047,22 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
   free-ids = freevars.map-keys-now(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
-    { maybe-uri; which } =
+    { maybe-origin; which } =
       cases(A.Name) n:
         | s-module-global(s) =>
-          { env.uri-by-module-name(n.toname()); "modules"}
+          { env.origin-by-module-name(n.toname()); "modules"}
         | s-global(s) =>
-          { env.uri-by-value-name(n.toname()); "values"}
+          { env.origin-by-value-name(n.toname()); "values"}
         | s-type-global(s) =>
-          { env.uri-by-type-name(n.toname()); "types"}
+          { env.origin-by-type-name(n.toname()); "types"}
       end
 
-    uri = cases(Option) maybe-uri:
-      | some(global-uri) => global-uri
+    { uri; name } = cases(Option) maybe-origin:
+      | some(origin) => { origin.uri-of-definition; origin.original-name.toname() }
       | none => raise(n.toname() + " not found")
     end
 
-    j-var(js-id-of(n), get-module-field(uri, which, n.toname()))
+    j-var(js-id-of(n), get-module-field(uri, which, name))
   end
   # MARK(joe): need to do something below for modules that come from
   # a context like "include"

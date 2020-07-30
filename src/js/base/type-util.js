@@ -82,9 +82,10 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
-  function dataType(name, params, variants, methods) {
+  function dataType(origin, name, params, variants, methods) {
     return {
       tag: "data",
+      origin: origin,
       name: name,
       params: params,
       variants: variants,
@@ -117,17 +118,13 @@ define("pyret-base/js/type-util", [], function() {
     };
   }
 
-  function bindToPyret(runtime, value) {
-    var wrapper = function(t) {
-      return runtime.makeObject({ bind: "let", typ: t });
-    };
-    var typ;
+  function bindToPyret(runtime, value, shorthands) {
     var origin = runtime.makeObject({ provided: false });
     if(!value.bind) {
       return runtime.makeObject({
         origin: origin,
         bind: "let",
-        typ: toPyretType(runtime, expandType(value))
+        typ: toPyretType(runtime, expandType(value, shorthands))
       });
     }
     else {
@@ -139,7 +136,7 @@ define("pyret-base/js/type-util", [], function() {
       if(value.bind === "let") {
         return runtime.makeObject({
           origin: origin,
-          typ: toPyretType(runtime, expandType(value.typ)),
+          typ: toPyretType(runtime, expandType(value.typ, shorthands)),
           bind: "let"
         });
       }
@@ -161,14 +158,14 @@ define("pyret-base/js/type-util", [], function() {
           bind: "fun",
           name: value.name || "",
           flatness: flatness,
-          typ: toPyretType(runtime, expandType(value.typ))
+          typ: toPyretType(runtime, expandType(value.typ, shorthands))
         });
       }
       else if(value.bind === "var") {
         return runtime.makeObject({
           origin: origin,
           bind: "var",
-          typ: toPyretType(runtime, expandType(value.typ))
+          typ: toPyretType(runtime, expandType(value.typ, shorthands))
         });
       }
       else {
@@ -178,21 +175,29 @@ define("pyret-base/js/type-util", [], function() {
     }
   }
 
+
   function toPyretType(runtime, typ) {
     var O = runtime.makeObject;
     var L = runtime.ffi.makeList;
     var tp = function(thing) { return toPyretType(runtime, thing); };
+    function provided(o) { o.provided = true; return O(o); }
     if(typ === "tany") { return O({ tag: "any" }); }
     if(typ === "tbot") { return O({ tag: "bot" }); }
     switch(typ.tag) {
       case "any":
         return O({ tag: "any"});
+      case "data-alias":
+        return O({ tag: "data-alias", origin: provided(typ.origin), name : typ.name });
       case "data":
         var methods = Object.keys(typ.methods).map(function(k) {
           return O({ name: k, value: tp(typ.methods[k]) });
         });
+        var origin;
+        if(typeof typ.origin === "object" && typeof typ.origin.provided !== "boolean") { origin = provided(typ.origin); }
+        else { origin = O({provided: false}); }
         return O({
           tag: "data",
+          origin: origin,
           name: typ.name,
           params: L(typ.params),
           variants: L(typ.variants.map(tp)),
@@ -279,13 +284,14 @@ define("pyret-base/js/type-util", [], function() {
     if(typ.bind == 'fun') {
       return {
         bind: typ.bind,
+        origin: typ.origin,
         flatness: typ.flatness,
         name: typ.name,
         typ: expandType(typ.typ, shorthands)
       };
     }
     else if (typ.bind === 'var') {
-      return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
+      return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
     }
     var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
@@ -423,13 +429,31 @@ define("pyret-base/js/type-util", [], function() {
             elts: typ[1].map(function(t) { return expandType(t, shorthands); })
           };
         }
+        else if(head === "data" && typ.length === 6 && iA(typ[3]) && iA(typ[4]) && iO(typ[5])) {
+          return {
+            tag: "data",
+            origin: typ[1],
+            name: typ[2],
+            params: typ[3],
+            variants: typ[4].map(function(v) { return expandVariant(v, shorthands); }),
+            methods: expandRecord(typ[5], shorthands)
+          };
+        }
         else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
           return {
             tag: "data",
+            origin: {provided: false},
             name: typ[1],
             params: typ[2],
             variants: typ[3].map(function(v) { return expandVariant(v, shorthands); }),
             methods: expandRecord(typ[4], shorthands)
+          };
+        }
+        else if(head === "data-alias" && typ.length === 3) {
+          return {
+            tag: "data-alias",
+            origin: typ[1],
+            name: typ[2]
           };
         }
         else if(head === "tid" && typ.length === 2) {

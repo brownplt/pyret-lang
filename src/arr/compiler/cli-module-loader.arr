@@ -128,6 +128,7 @@ fun get-cached(basedir, uri, name, cache-type):
   end
   raw = B.builtin-raw-locator(static-path)
   {
+    method get-uncached(_): none end,
     method needs-compile(_, _): false end,
     method get-modified-time(self):
       0
@@ -163,9 +164,11 @@ fun get-cached(basedir, uri, name, cache-type):
           uri: self.uri(),
           values: raw-array-to-list(raw.get-raw-value-provides()),
           aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-          datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
+          datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+          modules: raw-array-to-list(raw.get-raw-module-provides())
         })
-      CL.arr-js-file(provs, P.resolve(module-path + ".arr.json"), P.resolve(module-path + ".arr.js"))
+      some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none,
+          CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
     end,
 
     method _equals(self, other, req-eq):
@@ -175,14 +178,25 @@ fun get-cached(basedir, uri, name, cache-type):
 end
 
 fun get-cached-if-available(basedir, loc) block:
-  uri = loc.uri()
-  name = loc.name()
-  saved-path = P.join(basedir, uri-to-path(uri, name))
-  mtime = loc.get-modified-time()
-  cached-type = cached-available(basedir, uri, name, mtime)
+  get-cached-if-available-known-mtimes(basedir, loc, [SD.string-dict:])
+end
+fun get-cached-if-available-known-mtimes(basedir, loc, max-dep-times) block:
+  saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
+  dependency-based-mtime =
+    if max-dep-times.has-key(loc.uri()): max-dep-times.get-value(loc.uri())
+    else: loc.get-modified-time()
+    end
+  cached-type = cached-available(basedir, loc.uri(), loc.name(), dependency-based-mtime)
   cases(Option) cached-type:
-    | none => loc
-    | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct)
+    | none =>
+      cases(Option) loc.get-uncached():
+        | some(shadow loc) => loc
+        | none => loc
+      end
+
+    | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct).{
+        method get-uncached(self): some(loc) end
+      }
   end
 end
 
@@ -218,16 +232,16 @@ fun get-builtin-test-locator(basedir, modname, options):
   get-cached-if-available(basedir, loc)
 end
 
-fun get-loadable(basedir, read-only-basedirs, l) -> Option<Loadable>:
+fun get-loadable(basedir, read-only-basedirs, l, max-dep-times) -> Option<Loadable>:
   locuri = l.locator.uri()
 #  cached = cached-available(basedir, l.locator.uri(), l.locator.name(), l.locator.get-modified-time())
   first-available = for find(rob from link(basedir, read-only-basedirs)):
-    is-some(cached-available(rob, l.locator.uri(), l.locator.name(), l.locator.get-modified-time()))
+    is-some(cached-available(rob, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri)))
   end
   cases(Option) first-available block:
     | none => none
     | some(found-basedir) => 
-      c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), l.locator.get-modified-time())
+      c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri))
       saved-path = P.join(found-basedir, uri-to-path(locuri, l.locator.name()))
       {static-path; module-path} = cases(CachedType) c.or-else(single-file):
         | split =>
@@ -238,11 +252,12 @@ fun get-loadable(basedir, read-only-basedirs, l) -> Option<Loadable>:
       raw-static = B.builtin-raw-locator(static-path)
       provs = CS.provides-from-raw-provides(locuri, {
         uri: locuri,
+        modules: raw-array-to-list(raw-static.get-raw-module-provides()),
         values: raw-array-to-list(raw-static.get-raw-value-provides()),
         aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(module-path))))
+      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(module-path))))
   end
 end
 
@@ -335,42 +350,26 @@ fun set-loadable(options, locator, loadable) block:
   end
 end
 
-fun get-cli-module-storage(storage-dir :: String, extra-dirs :: List<String>):
-  {
-    method load-modules(self, to-compile, modules) block:
-      maybe-modules = for map(t from to-compile):
-        get-loadable(storage-dir, extra-dirs, t)
-      end
-      for each2(m from maybe-modules, t from to-compile):
-        cases(Option<Loadable>) m:
-          | none => nothing
-          | some(shadow m) => nothing
-            # NOTE(joe):
-            # With re-providing, this is unsafe, because modules can alias values in others
-            # Therefore, we need to wait to add modules until after all their dependencies
-            # have been processed, otherwise the type-checker will not be able
-            # to compute the type environment
-            #
-            # modules.set-now(t.locator.uri(), m)
-        end
-      end
-      modules
-    end
-  }
-end
-
 type CLIContext = {
   current-load-path :: String,
   cache-base-dir :: String
 }
+
+fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
+  this-path = dep.arguments.get(0)
+  if P.is-absolute(this-path):
+    P.relative(current-load-path, this-path)
+  else:
+    P.join(current-load-path, this-path)
+  end
+end
 
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
     | dependency(protocol, args) =>
       if protocol == "file":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
@@ -387,8 +386,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
@@ -397,8 +395,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)
@@ -543,22 +540,20 @@ fun build-program(path, options, stats) block:
     options: options
   }, base-module)
   clear-and-print("Compiling worklist...")
-  starter-modules = if options.recompile-builtins: [SD.mutable-string-dict:] else: module-cache end
-  for each(sm from starter-modules.keys-list-now()):
-    when string-index-of(sm, "builtin://") <> 0:
-      starter-modules.remove-now(sm)
-    end
+  wl = CL.compile-worklist(module-finder, base.locator, base.context)
+
+  max-dep-times = CL.dep-times-from-worklist(wl)
+
+  shadow wl = for map(located from wl):
+    located.{ locator: get-cached-if-available-known-mtimes(options.compiled-cache, located.locator, max-dep-times) }
   end
-  length-before-wl = starter-modules.count-now()
-  wl = CL.compile-worklist-known-modules(module-finder, base.locator, base.context, starter-modules)
-  storage = get-cli-module-storage(options.compiled-cache, options.compiled-read-only)
-  storage.load-modules(wl, starter-modules)
   copy-js-dependencies( wl, options )
   clear-and-print("Loading existing compiled modules...")
 
+  starter-modules = CL.modules-from-worklist(wl, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
 
 
-  cached-modules = starter-modules.count-now() - length-before-wl
+  cached-modules = starter-modules.count-now() - starter-modules.count-now()
   total-modules = wl.length() - cached-modules
   var num-compiled = 0
   when total-modules == 0:

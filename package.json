@@ -23,6 +23,7 @@
     "error-stack-parser": "^2.0.1",
     "http": "0.0.0",
     "immutable": "^3.8.2",
+    "jasmine": "^3.2.0",
     "js-sha256": "^0.5.0",
     "jsesc": "^2.5.2",
     "lockfile": "^1.0.2",

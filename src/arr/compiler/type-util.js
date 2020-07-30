@@ -9,7 +9,7 @@
     var number = { "tag": "name", "module": "builtin", "name": "Number" }
     var boolean = { "tag": "name", "module": "builtin", "name": "Boolean" }
     var nothing = { "tag": "name", "module": "builtin", "name": "Nothing" }
-
+  
     function forall(args, onto) {
       if(!Array.isArray(args)) { throw "Expected list for args, but got " + String(args); }
       args.forEach(function(a) {
@@ -21,7 +21,7 @@
         onto: onto
       }
     }
-
+  
     function arrow(args, ret) {
       if(!Array.isArray(args)) { throw "Expected list for arrow args, but got " + String(args); }
       return {
@@ -30,7 +30,7 @@
         ret: ret
       };
     }
-
+  
     function tyapp(onto, args) {
       if(!Array.isArray(args)) { throw "Expected list for tyapp args, but got " + String(args); }
       return {
@@ -39,14 +39,14 @@
         args: args
       };
     }
-
+  
     function tyvar(name) {
       return {
         tag: "tyvar",
         name: name
       };
     }
-
+  
     function builtinName(name) {
       return {
         tag: "name",
@@ -54,7 +54,7 @@
         name: name
       };
     }
-
+  
     function libName(lib, name) {
       return {
         tag: "name",
@@ -62,7 +62,7 @@
         name: name
       };
     }
-
+  
     function localType(name) {
       return {
         tag: "name",
@@ -70,14 +70,14 @@
         name: name
       };
     }
-
+  
     function record(fields) {
       return {
         tag: "record",
         fields: fields
       };
     }
-
+  
     function dataRefinement(basetype, variant) {
       return {
         tag: "data-refinement",
@@ -85,32 +85,35 @@
         variant: variant
       };
     }
-
-    function dataType(name, params, variants, methods) {
+  
+    function dataType(origin, name, params, variants, methods) {
       return {
         tag: "data",
+        origin: origin,
         name: name,
         params: params,
         variants: variants,
         methods: methods
       };
     }
-
-    function variant(name, vmembers) {
+  
+    function variant(name, vmembers, withmembers) {
       return {
         tag: "variant",
         name: name,
-        vmembers: vmembers
+        vmembers: vmembers,
+        withmembers: withmembers
       };
     }
-
-    function singletonVariant(name) {
+  
+    function singletonVariant(name, withmembers) {
       return {
         tag: "singleton-variant",
-        name: name
+        name: name,
+        withmembers: withmembers
       }
     }
-
+  
     function variantMember(name, kind, typ) {
       return {
         tag: "variant-member",
@@ -118,18 +121,14 @@
         typ: typ
       };
     }
-
-    function bindToPyret(runtime, value) {
-      var wrapper = function(t) {
-        return runtime.makeObject({ bind: "let", typ: t });
-      };
-      var typ;
+  
+    function bindToPyret(runtime, value, shorthands) {
       var origin = runtime.makeObject({ provided: false });
       if(!value.bind) {
         return runtime.makeObject({
           origin: origin,
           bind: "let",
-          typ: toPyretType(runtime, expandType(value))
+          typ: toPyretType(runtime, expandType(value, shorthands))
         });
       }
       else {
@@ -141,7 +140,7 @@
         if(value.bind === "let") {
           return runtime.makeObject({
             origin: origin,
-            typ: toPyretType(runtime, expandType(value.typ)),
+            typ: toPyretType(runtime, expandType(value.typ, shorthands)),
             bind: "let"
           });
         }
@@ -163,14 +162,14 @@
             bind: "fun",
             name: value.name || "",
             flatness: flatness,
-            typ: toPyretType(runtime, expandType(value.typ))
+            typ: toPyretType(runtime, expandType(value.typ, shorthands))
           });
         }
         else if(value.bind === "var") {
           return runtime.makeObject({
             origin: origin,
             bind: "var",
-            typ: toPyretType(runtime, expandType(value.typ))
+            typ: toPyretType(runtime, expandType(value.typ, shorthands))
           });
         }
         else {
@@ -179,39 +178,53 @@
         }
       }
     }
-
+  
+  
     function toPyretType(runtime, typ) {
       var O = runtime.makeObject;
       var L = runtime.ffi.makeList;
       var tp = function(thing) { return toPyretType(runtime, thing); };
+      function provided(o) { o.provided = true; return O(o); }
       if(typ === "tany") { return O({ tag: "any" }); }
       if(typ === "tbot") { return O({ tag: "bot" }); }
       switch(typ.tag) {
         case "any":
           return O({ tag: "any"});
+        case "data-alias":
+          return O({ tag: "data-alias", origin: provided(typ.origin), name : typ.name });
         case "data":
           var methods = Object.keys(typ.methods).map(function(k) {
             return O({ name: k, value: tp(typ.methods[k]) });
           });
+          var origin;
+          if(typeof typ.origin === "object" && typeof typ.origin.provided !== "boolean") { origin = provided(typ.origin); }
+          else { origin = O({provided: false}); }
           return O({
             tag: "data",
+            origin: origin,
             name: typ.name,
             params: L(typ.params),
             variants: L(typ.variants.map(tp)),
             methods: L(methods)
           });
         case "variant":
+          var methods = Object.keys(typ.withmembers).map(function(k) {
+            return O({ name: k, value: tp(typ.withmembers[k]) });
+          });
           return O({
             tag: "variant",
             name: typ.name,
             vmembers: L(typ.vmembers.map(tp)),
-            withmembers: L([]),   // TODO(alex): Handle variant withmembers 
+            withmembers: L(methods)
           });
         case "singleton-variant":
+          var methods = Object.keys(typ.withmembers).map(function(k) {
+            return O({ name: k, value: tp(typ.withmembers[k]) });
+          });
           return O({
             tag: "singleton-variant",
             name: typ.name,
-            withmembers: L([]),   // TODO(alex): Handle variant withmembers 
+            withmembers: L(methods)
           });
         case "variant-member":
           return O({
@@ -270,18 +283,19 @@
           throw new Error("No such tag: " + typ.tag);
       }
     }
-
+  
     function expandType(typ, shorthands) {
       if(typ.bind == 'fun') {
         return {
           bind: typ.bind,
+          origin: typ.origin,
           flatness: typ.flatness,
           name: typ.name,
           typ: expandType(typ.typ, shorthands)
         };
       }
       else if (typ.bind === 'var') {
-        return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
+        return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
       }
       var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
       var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
@@ -325,8 +339,8 @@
       };
       var iA = Array.isArray;
       var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
-
-
+  
+  
       function expandMember(m, shorthands) {
         if(!iA(m)) {
           throw new Error("Serialized members should be arrays, got: " + String(m));
@@ -351,30 +365,34 @@
           throw new Error("Bad serialized member: " + String(m));
         }
       }
-
+  
       function expandVariant(v, shorthands) {
         if(!iA(v)) {
           throw new Error("Serialized variant types should be arrays, got: " + String(v));
-        } else {
+        }
+        else {
           if(v.length === 1) {
             return singletonVariant(v[0], {});
-          } else if(v.length === 2) {
+          }
+          else if(v.length === 2) {
             if(Array.isArray(v[1])) {
               return variant(v[0], v[1].map(function(m) { return expandMember(m, shorthands); }), {});
             }
             else {
               return singletonVariant(v[0], expandRecord(v[1], shorthands));
             }
-          } else if(v.length === 3) {
-            return variant(v[0], 
+          }
+          else if(v.length === 3) {
+            return variant(v[0],
               v[1].map(function(m) { return expandMember(m, shorthands); }),
               expandRecord(v[2], shorthands));
-          } else {
+          }
+          else {
             throw new Error("Bad serialized variant: " + String(v));
           }
         }
       }
-
+  
       if(typeof typ === "string") {
         if(typ === "tany") {
           return "tany";
@@ -415,13 +433,31 @@
               elts: typ[1].map(function(t) { return expandType(t, shorthands); })
             };
           }
+          else if(head === "data" && typ.length === 6 && iA(typ[3]) && iA(typ[4]) && iO(typ[5])) {
+            return {
+              tag: "data",
+              origin: typ[1],
+              name: typ[2],
+              params: typ[3],
+              variants: typ[4].map(function(v) { return expandVariant(v, shorthands); }),
+              methods: expandRecord(typ[5], shorthands)
+            };
+          }
           else if(head === "data" && typ.length === 5 && iA(typ[2]) && iA(typ[3]) && iO(typ[4])) {
             return {
               tag: "data",
+              origin: {provided: false},
               name: typ[1],
               params: typ[2],
               variants: typ[3].map(function(v) { return expandVariant(v, shorthands); }),
               methods: expandRecord(typ[4], shorthands)
+            };
+          }
+          else if(head === "data-alias" && typ.length === 3) {
+            return {
+              tag: "data-alias",
+              origin: typ[1],
+              name: typ[2]
             };
           }
           else if(head === "tid" && typ.length === 2) {
@@ -490,7 +526,7 @@
         throw new Error("Unknown description for serialized type: " + String(typ));
       }
     }
-
+  
     function expandRecord(r, shorthands) {
       var o = {};
       Object.keys(r).forEach(function(k) {
@@ -498,8 +534,8 @@
       });
       return o;
     }
-
-
+  
+  
     return runtime.makeJSModuleReturn({
       any: any,
       string: string,
@@ -520,7 +556,5 @@
       expandType: expandType,
       expandRecord: expandRecord
     });
-
-
   }
 })
