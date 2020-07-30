@@ -557,7 +557,7 @@ module.exports = {
     },
     "is-world-config": (v) => {
         if(!runtime.isOpaque(v)) { return runtime.pyretFalse; }
-        return runtime.makeBoolean(isWorldConfigOption(v.val));
+        return isWorldConfigOption(v.val);
     },
     "is-key-equal": (key1, key2) => {
         return key1.toString().toLowerCase() === key2.toString().toLowerCase();
