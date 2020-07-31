@@ -199,7 +199,7 @@ function _rebind(toRebind: any): any {
       }
 
       let value = toRebind[key];
-      if (_EQUALITY.isMethod(value)) {
+      if (_PRIMITIVES.isMethod(value)) {
         toRebind[key] = value["$binder"](toRebind);
       }
     });
