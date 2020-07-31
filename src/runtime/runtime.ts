@@ -45,7 +45,7 @@ export interface PRef {
 }
 
 // ********* EqualityResult Representations *********
-export interface Equal { 
+export interface Equal {
   $brand: any,
   $tag: number,
 }
@@ -110,10 +110,10 @@ export function isUnknown(val: any): boolean {
 
 // ********* Helpers *********
 function equalityResultToBool(ans: EqualityResult): boolean {
-  if (isEqual(ans)) { 
-    return true; 
-  } else if (isNotEqual(ans)) { 
-    return false; 
+  if (isEqual(ans)) {
+    return true;
+  } else if (isNotEqual(ans)) {
+    return false;
   } else if (isUnknown(ans)) {
     let unknownVariant = ans as Unknown;
     throw {
@@ -124,11 +124,11 @@ function equalityResultToBool(ans: EqualityResult): boolean {
   }
 }
 
-function isFunction(obj: any): boolean { 
-  return (typeof obj === "function") && !(isMethod(obj)); 
+function isFunction(obj: any): boolean {
+  return (typeof obj === "function") && !(isMethod(obj));
 }
 
-function isMethod(obj: any): boolean { 
+function isMethod(obj: any): boolean {
   return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
 }
 
@@ -212,7 +212,7 @@ export function identical(v1: any, v2: any): boolean {
 }
 
 /*
- * Structural equality. Stops at mutable data (refs) and only checks that 
+ * Structural equality. Stops at mutable data (refs) and only checks that
  * mutable data are identical.
  *
  * Data variants and raw (unbranded) objects are NEVER equal.
@@ -232,7 +232,7 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
 
     if (isEqual(identical3(v1, v2))) {
       // Identical so must always be equal
-      continue; 
+      continue;
     }
 
     if (isNumber(v1) && isNumber(v2)) {
@@ -280,7 +280,7 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
     } else if (isNothing(v1) && isNothing(v2)) {
       // Equality is defined for 'nothing'
       // 'nothing' is always equal to 'nothing'
-      continue; 
+      continue;
 
     } else if (isPRef(v1) && isPRef(v2)) {
       // In equal-always, non-identical refs are not equal
@@ -305,12 +305,12 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
         var fields1 = v1.$brand.names;
         var fields2 = v2.$brand.names;
 
-        if(fields1.length !== fields2.length) { 
+        if(fields1.length !== fields2.length) {
           // Not the same brand
           return NotEqual("Object Brands", v1, v2);
         }
         for(var i = 0; i < fields1.length; i += 1) {
-          if(fields1[i] != fields2[i]) { 
+          if(fields1[i] != fields2[i]) {
             // Not the same brand
             return NotEqual("Field Brands", fields1[i], fields2[i]);
           }
@@ -439,7 +439,7 @@ function checkResults(): CheckResult[] {
 }
 
 function eagerCheckTest(lhs: () => any,  rhs: () => any,
-  test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult, 
+  test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult,
   loc: string): void {
 
   let lhs_expr_eval: CheckExprEvalResult = {
@@ -487,7 +487,7 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
         rhs: rhs_expr_eval,
         exception: e,
     });
-  } 
+  }
 }
 
 function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
@@ -516,7 +516,7 @@ export function traceValue(loc, value) {
 
 function getTraces() { return _globalTraceValues; }
 
-// Allow '+' for string concat. 
+// Allow '+' for string concat.
 // Otherwise, defer to the number library.
 function customAdd(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
   if (typeof(lhs) === "string" && typeof(rhs) === "string") {
