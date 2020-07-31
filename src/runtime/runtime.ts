@@ -14,6 +14,7 @@ import { NumericErrorCallbacks } from "./equality";
 const _NUMBER = require("./js-numbers.js");
 const _OPTION = require('./option.arr.js');
 const _EQUALITY = require('./equality.js');
+const _PRIMITIVES = require("./primitives.js");
 
 
 
@@ -285,3 +286,5 @@ module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 
 module.exports["string-to-number"] = stringToNumber;
+
+module.exports["PTuple"] = _PRIMITIVES["PTuple"];
