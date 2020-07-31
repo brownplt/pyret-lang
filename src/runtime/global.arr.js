@@ -55,17 +55,11 @@ module.exports = {
   '_greaterequal': _greaterequal,
   'not': _not,
 
-  'Equal': runtime['Equal'],
-  'NotEqual': runtime['NotEqual'],
-  'Unknown': runtime['Unknown'],
-  'is-Equal': runtime['is-Equal'],
-  'is-NotEqual': runtime['is-NotEqual'],
-  'is-Unknown': runtime['is-Unknown'],
-
   'equal-always': runtime['equalAlways'],
   'equal-always3': runtime['equalAlways3'],
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
+
   'trace-value': runtime['traceValue'],
 
   // TODO(alex): Think of better way to expose runtime

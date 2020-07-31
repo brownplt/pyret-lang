@@ -14,7 +14,11 @@
       "tvb": ["tid", "b"],
       "oOfN": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://option" },
-                "name": "Option" }, ["Number"]]
+                "name": "Option" }, ["Number"]],
+      "EqualityResult": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://equality" },
+                "name": "EqualityResult"
+      }
     },
     "values": {
       "loop-a-while": ["arrow", ["Number"], "Number"],
@@ -110,17 +114,10 @@
 
       "raise": ["arrow", ["Any"], "tbot"],
 
-      "is-Equal": ["arrow", ["Any"], "Boolean"],
-      "is-NotEqual": ["arrow", ["Any"], "Boolean"],
-      "is-Unknown": ["arrow", ["Any"], "Boolean"],
-
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
-      "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+      "equal-always3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
-      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
-      "Equal": ["local", "EqualityResult"],
-      "NotEqual": ["arrow", ["String", "Any", "Any"], ["local", "EqualityResult"]],
-      "Unknown": ["arrow", ["String", "Any", "Any"], ["local", "EqualityResult"]]
+      "identical3": ["arrow", ["Any", "Any"], "EqualityResult"]
     },
     "aliases": {
       "Any": "tany",
@@ -150,30 +147,9 @@
                     "name": "Table" },
       "List": { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://list" },
-                "name": "List" },
-      "EqualityResult": ["local", "EqualityResult"]
+                "name": "List" }
     },
     "datatypes": {
-      "EqualityResult": [
-        "data", "EqualityResult", [], [
-          ["Equal", {}],
-          ["NotEqual",
-            [
-              ["reason", "String"],
-              ["value1", "tany"],
-              ["value2", "tany"]
-            ], {}
-          ],
-          ["Unknown",
-            [
-              ["reason", "String"],
-              ["value1", "tany"],
-              ["value2", "tany"]
-            ], {}
-          ]
-        ], {}
-      ],
-
       "Number": ["data", "Number", [], [], {
         "_plus": ["arrow", ["Number"], "Number"],
         "_times": ["arrow", ["Number"], "Number"],
