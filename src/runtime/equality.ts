@@ -1,4 +1,3 @@
-const _GLOBAL = require("./global.arr.js");
 const _NUMBER = require("./js-numbers.js");
 
 const $EqualBrand = {"names":false};
@@ -394,7 +393,10 @@ export function equal_or(er1: EqualityResult, er2: EqualityResult): EqualityResu
 //end
 export function to_boolean(er: EqualityResult): boolean {
     if (isUnknown(er)) {
-        _GLOBAL.raise("Unable to convert Unknown (EqualityResult) to boolean");
+        // TODO(alex): Fill this in with the generic `raise` function
+        //   CANNOT IMPORT "global.arr.js" OR "runtime.ts" directly b/c the circular depenency
+        //   will mess with loading...
+        throw "Unable to convert Unknown (EqualityResult) to boolean";
     } else {
         return isEqual(er);
     }
