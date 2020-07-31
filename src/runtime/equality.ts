@@ -1,4 +1,5 @@
 const _NUMBER = require("./js-numbers.js");
+const PRIMTIVES = require("./primitives.js");
 
 const $EqualBrand = {"names":false};
 const $NotEqualBrand = {"names":["reason","value1","value2"]};
@@ -6,31 +7,6 @@ const $UnknownBrand = {"names":["reason","value1","value2"]};
 const $EqualTag = 0;
 const $NotEqualTag = 1;
 const $UnknownTag = 2;
-
-const $PTupleBrand = "tuple";
-const $PRefBrand = "ref";
-
-// ********* Runtime Type Representations (Non-Primitives) *********
-export interface PTuple {
-  $brand: string,
-  [key: string]: any,
-}
-
-export function PTuple(values: any[]): PTuple {
-  values["$brand"] = $PTupleBrand;
-
-  return <PTuple><any>values;
-}
-
-export interface DataValue {
-  $brand: any,
-  [key: string]: any
-}
-
-export interface PRef {
-  $brand: string,
-  ref: Object,
-}
 
 // ********* EqualityResult Representations *********
 export interface Equal {
@@ -83,6 +59,8 @@ export function Unknown(reason: string, value1: any, value2: any): Unknown {
   };
 }
 
+const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boolean = _NUMBER["equals"];
+
 export function isEqual(val: any): boolean{
   return val.$brand === $EqualBrand;
 }
@@ -112,49 +90,6 @@ function equalityResultToBool(ans: EqualityResult): boolean {
   }
 }
 
-function isFunction(obj: any): boolean {
-  return (typeof obj === "function") && !(isMethod(obj));
-}
-
-function isMethod(obj: any): boolean {
-  return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
-}
-
-// TODO(alex): Will nothing always be value 'undefined'?
-function isNothing(obj: any): boolean { return obj === undefined };
-
-const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
-const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
-const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boolean = _NUMBER["equals"];
-
-function isBoolean(val: any): boolean {
-  return typeof val === "boolean";
-}
-
-function isString(val: any): boolean {
-  return typeof val === "string";
-}
-
-function isDataVariant(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && !(isPTuple(val));
-}
-
-function isRawObject(val: any): boolean {
-  return (typeof val === "object") && !("$brand" in val);
-}
-
-function isPTuple(val: any): boolean {
-  return (Array.isArray(val)) && ("$brand" in val) && (val["$brand"] === $PTupleBrand);
-}
-
-function isArray(val: any): boolean {
-  return (Array.isArray(val)) && !("$brand" in val);
-}
-
-function isPRef(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRefBrand);
-}
-
 export interface NumericErrorCallbacks {
   throwDivByZero: (msg: any) => void,
   throwToleranceError: (msg: any) => void,
@@ -181,11 +116,11 @@ export var NumberErrbacks: NumericErrorCallbacks = {
 
 // ********* Equality Functions *********
 export function identical3(v1: any, v2: any): EqualityResult {
-  if (isFunction(v1) && isFunction(v2)) {
+  if (PRIMTIVES.isFunction(v1) && PRIMTIVES.isFunction(v2)) {
     return Unknown("Function", v1, v2);
-  } else if (isMethod(v1) && isMethod(v2)) {
+  } else if (PRIMTIVES.isMethod(v1) && PRIMTIVES.isMethod(v2)) {
     return Unknown("Method", v1, v2);
-  } else if (isRoughNumber(v1) && isRoughNumber(v2)) {
+  } else if (PRIMTIVES.isRoughNumber(v1) && PRIMTIVES.isRoughNumber(v2)) {
     return Unknown('Roughnums', v1,  v2);
   } else if (v1 === v2) {
     return Equal();
@@ -223,8 +158,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       continue;
     }
 
-    if (isNumber(v1) && isNumber(v2)) {
-      if (isRoughNumber(v1) || isRoughNumber(v2)) {
+    if (PRIMTIVES.isNumber(v1) && PRIMTIVES.isNumber(v2)) {
+      if (PRIMTIVES.isRoughNumber(v1) || PRIMTIVES.isRoughNumber(v2)) {
         return Unknown("Rough Number equal-always", v1, v2);
       } else if (numericEquals(v1, v2, NumberErrbacks)) {
         continue;
@@ -232,20 +167,20 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
         return NotEqual("Numers", v1, v2);
       }
 
-    } else if (isBoolean(v1) && isBoolean(v2)) {
+    } else if (PRIMTIVES.isBoolean(v1) && PRIMTIVES.isBoolean(v2)) {
       if (v1 !== v2) { return NotEqual("Booleans", v1, v2); }
       continue;
 
-    } else if (isString(v1) && isString(v2)) {
+    } else if (PRIMTIVES.isString(v1) && PRIMTIVES.isString(v2)) {
       if (v1 !== v2) { return NotEqual("Strings", v1, v2); }
       continue
 
-    } else if (isFunction(v1) && isFunction(v2)) {
+    } else if (PRIMTIVES.isFunction(v1) && PRIMTIVES.isFunction(v2)) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
-    } else if (isMethod(v1) && isMethod(v2)) {
+    } else if (PRIMTIVES.isMethod(v1) && PRIMTIVES.isMethod(v2)) {
       return Unknown("Methods", v1, v2);
-    } else if (isPTuple(v1) && isPTuple(v2)) {
+    } else if (PRIMTIVES.isPTuple(v1) && PRIMTIVES.isPTuple(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("PTuple Length", v1, v2);
       }
@@ -255,7 +190,7 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       }
       continue;
 
-    } else if (isArray(v1) && isArray(v2)) {
+    } else if (PRIMTIVES.isArray(v1) && PRIMTIVES.isArray(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("Array Length", v1, v2);
       }
@@ -265,19 +200,19 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       }
       continue;
 
-    } else if (isNothing(v1) && isNothing(v2)) {
+    } else if (PRIMTIVES.isNothing(v1) && PRIMTIVES.isNothing(v2)) {
       // Equality is defined for 'nothing'
       // 'nothing' is always equal to 'nothing'
       continue;
 
-    } else if (isPRef(v1) && isPRef(v2)) {
+    } else if (PRIMTIVES.isPRef(v1) && PRIMTIVES.isPRef(v2)) {
       // In equal-always, non-identical refs are not equal
       if (v1.ref !== v2.ref) {
         return NotEqual("PRef'd Objects", v1, v2);
       }
       continue;
 
-    } else if (isDataVariant(v1) && isDataVariant(v2)) {
+    } else if (PRIMTIVES.isDataVariant(v1) && PRIMTIVES.isDataVariant(v2)) {
       if(v1.$brand && v1.$brand === v2.$brand) {
         if ("_equals" in v1) {
           // TODO(alex): Recursive callback
@@ -308,7 +243,7 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       } else {
         return NotEqual("Variant Brands", v1, v2);
       }
-    } else if (isRawObject(v1) && isRawObject(v2)) {
+    } else if (PRIMTIVES.isRawObject(v1) && PRIMTIVES.isRawObject(v2)) {
       let keys1 = Object.keys(v1);
       let keys2 = Object.keys(v2);
 
