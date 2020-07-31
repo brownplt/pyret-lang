@@ -32,7 +32,7 @@ export interface Unknown {
 
 export type EqualityResult = Equal | NotEqual | Unknown;
 
-function Equal(): Equal {
+export function Equal(): Equal {
   return {
     "$brand": $EqualBrand,
     "$tag": $EqualTag,
