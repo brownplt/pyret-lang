@@ -1,3 +1,4 @@
+const _GLOBAL = require("./global.arr.js");
 const _NUMBER = require("./js-numbers.js");
 
 const $EqualBrand = {"names":false};
@@ -9,8 +10,6 @@ const $UnknownTag = 2;
 
 const $PTupleBrand = "tuple";
 const $PRefBrand = "ref";
-
-type UndefBool = undefined | boolean
 
 // ********* Runtime Type Representations (Non-Primitives) *********
 export interface PTuple {
@@ -342,4 +341,62 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
 export function equalAlways(v1: any, v2: any): boolean {
   let ans = equalAlways3(v1, v2);
   return equalityResultToBool(ans);
+}
+
+//fun equal-and(er1 :: EqualityResult, er2 :: EqualityResult):
+//  ask:
+//    | is-NotEqual(er1) then: er1
+//    | is-NotEqual(er2) then: er2
+//    | is-Unknown(er1) then: er1 #: i.e., the first Unknown
+//    | otherwise: er2 # Equal or Equal/Equal or Unknown
+//  end
+//end
+export function equal_and(er1: EqualityResult, er2: EqualityResult): EqualityResult {
+    if (isNotEqual(er1)) {
+        return er1;
+    } else if (isNotEqual(er2)) {
+        return er2;
+    } else if (isUnknown(er1)) {
+        return er1;
+    } else {
+        return er2;
+    }
+}
+
+
+//fun equal-or(er1 :: EqualityResult, er2 :: EqualityResult):
+//  ask:
+//    | is-Equal(er1) then: er1
+//    | is-Equal(er2) then: er2
+//    | is-Unknown(er1) then: er1 # i.e., the first Unknown
+//    | otherwise: er2 # NotEqual or NotEqual/NotEqual or Unknown
+//  end
+//end
+export function equal_or(er1: EqualityResult, er2: EqualityResult): EqualityResult {
+    if (isEqual(er1)) {
+        return er1;
+    } else if (isEqual(er2)) {
+        return er2;
+    } else if (isUnknown(er1)) {
+        return er1;
+    } else {
+        return er2;
+    }
+}
+
+
+//fun to-boolean(er :: EqualityResult):
+//  cases(EqualityResult) er:
+//    | Unknown(r, v1, v2) => raise(error.equality-failure(r, v1, v2))
+//    | Equal => true
+//    | NotEqual(_,_,_) => false
+//  end
+//end
+export function to_boolean(er: EqualityResult): boolean {
+    if (isUnknown(er)) {
+        _GLOBAL.raise("Unable to convert Unknown (EqualityResult) to boolean");
+    } else {
+        return isEqual(er);
+    }
+
 }
