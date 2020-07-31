@@ -242,7 +242,7 @@ module.exports["getModuleValue"] = getModuleValue;
 // Hack needed b/c of interactions with the 'export' keyword
 // Pyret instantiates singleton data varaints by taking a reference to the value
 // TODO(alex): Should Pyret perform a function call to create a singleton data variant
-module.exports["Equal"] = _EQUALITY.Equal();
+module.exports["Equal"] = _EQUALITY.Equal;
 
 module.exports["NotEqual"] = _EQUALITY.NotEqual;
 module.exports["Uknown"] = _EQUALITY.Unknown;
