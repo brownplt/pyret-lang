@@ -90,7 +90,7 @@ function compileSuccess() {
   }
 }
 
-const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, () => {}, compileFailure, echoLog, () => {}, () => {}, compileSuccess);
+const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, () => {}, compileFailure, echoLog, () => {}, () => {}, compileSuccess, () => {}, () => {}, () => {});
 
 control.worker.onmessage = function(e) {
 

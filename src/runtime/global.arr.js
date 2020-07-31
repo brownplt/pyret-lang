@@ -147,5 +147,13 @@ module.exports = {
 
   'raise': function(v) {
     throw v;
+  },
+
+  'loop-a-while': function(n) {
+    let s = 0;
+    for (let i = 0; i < n; i += 1) {
+      s += i;
+    }
+    return s;
   }
 };

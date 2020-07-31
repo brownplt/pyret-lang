@@ -1,16 +1,13 @@
 import React from 'react';
 
 type FooterProps = {
-    message: string;
+  message: string;
 };
-type FooterState = {};
 
-export class Footer extends React.Component<FooterProps, FooterState> {
-    render() {
-        return (
-            <div className="footer-container">
-                {this.props.message}
-            </div>
-        );
-    }
+export default function Footer({ message }: FooterProps) {
+  return (
+    <div className="footer-container">
+      {message}
+    </div>
+  );
 }

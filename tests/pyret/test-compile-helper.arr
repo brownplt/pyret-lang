@@ -4,9 +4,11 @@ import load-lib as L
 import string-dict as SD
 import runtime-lib as R
 import pathlib as P
+import render-error-display as RED
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-structs.arr") as CS
+
 
 fun string-to-named-locator(program :: String, name :: String):
   {
@@ -162,4 +164,10 @@ fun compile-error(check-err):
         end
       end
   }
+end
+
+fun compile-error-messages(str):
+  for lists.map(err from get-compile-errs(str)):
+    RED.display-to-string(err.render-reason(), torepr, empty)
+  end
 end

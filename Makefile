@@ -47,7 +47,7 @@ STOPIFIED_BUILTINS := \
 	$(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped)
 
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
-	tsc $< --outDir $(RUNTIME_BUILD_DIR)
+	`npm bin`/tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 $(RUNTIME_SRC_DIR):
 	mkdir -p $(RUNTIME_SRC_DIR)
@@ -71,7 +71,7 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 	cd $(RUNTIME_ARR_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
 		--build-runnable $*.arr \
 		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
-		--runtime-builtin-relative-path "./" \
+		--runtime-builtin-relative-path "./"
 		--type-check true
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
@@ -102,7 +102,7 @@ build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNT
 	node $(WEBWORKER_BUILD_DIR)/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	`npm bin`/browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
 build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js 
 	mkdir -p build/phaseA 

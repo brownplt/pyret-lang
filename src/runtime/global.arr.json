@@ -17,6 +17,7 @@
                 "name": "Option" }, ["Number"]]
     },
     "values": {
+      "loop-a-while": ["arrow", ["Number"], "Number"],
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
       "num-to-str": ["arrow", ["Number"], "String"],

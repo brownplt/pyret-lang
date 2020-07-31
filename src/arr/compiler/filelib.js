@@ -4,6 +4,7 @@
     values: {
       "open-input-file": "tany",
       "open-output-file": "tany",
+      "read-file-path": "tany",
       "read-file": "tany",
       "display": "tany",
       "flush-output-file": "tany",
@@ -13,7 +14,8 @@
       "close-output-file": "tany",
       "close-input-file": "tany",
       "create-dir": "tany",
-      "list-files": "tany"
+      "list-files": "tany",
+      "mtimes": "tany"
     }
   },
   nativeRequires: ["fs"],

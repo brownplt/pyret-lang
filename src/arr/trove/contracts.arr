@@ -160,19 +160,23 @@ data FailureReason:
     end
   | ref-init(loc, reason :: FailureReason) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast) block:
-      print("ref-init")
-      self.render-reason(loc, from-fail-arg)
+      [ED.error:
+        [ED.para:
+          ED.text("Failed while updating a reference:"),
+          ED.cmcode(loc),
+          ED.text("because:"),
+          self.reason.render-reason(loc, false)]]
     end,
     method render-reason(self, loc, from-fail-arg):
       ED.maybe-stack-loc(0, true,
         lam(user-loc):
           [ED.error:
-            [ED.para: ED.text("Failed while initializing a graph at"), draw-and-highlight(user-loc),
+            [ED.para: ED.text("Failed while updating a reference at"), draw-and-highlight(user-loc),
               ED.text("because:")],
             self.reason.render-reason(loc, false)]
         end,
         [ED.error:
-          [ED.para: ED.text("Failed while initializing a graph, because:")],
+          [ED.para: ED.text("Failed while updating a reference because:")],
           self.reason.render-reason(loc, false)])
     end
   | type-mismatch(val, name :: String) with:

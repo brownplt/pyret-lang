@@ -838,7 +838,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               type-original-name = type-bind.origin.original-name.toname()
               provides-result = context.env.provides-by-uri-value(type-uri)
               dt = provides-result.data-definitions.get-value(type-original-name)
-              dt
+              dt.typ
           end
         | else => raise("Can only do cases on a known datatype annotation, not on " + to-repr(typ))
       end

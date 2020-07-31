@@ -137,6 +137,11 @@ check:
   string-to-code-points("abcd") is [list: 97, 98, 99, 100]
   string-to-code-points("") is [list:]
 
+  # octal escape sequences
+  string-to-code-point("\0") is 0
+  string-to-code-point("\77") is 63
+  string-to-code-point("\101") is 65
+
   string-from-code-points([list: 955, 97, 10]) is "λa\n"
   string-from-code-points([list: 955, -1]) raises "Natural Number"
   string-from-code-points([list:]) is ""

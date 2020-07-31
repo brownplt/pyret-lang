@@ -1,234 +1,228 @@
 import React from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
-import { UnControlled as CodeMirror } from 'react-codemirror2';
-import * as control from './control';
+import { connect, ConnectedProps } from 'react-redux';
+import {
+  DragDropContext, Droppable, Draggable, DropResult,
+} from 'react-beautiful-dnd';
+import { Action } from './action';
+import {
+  State,
+} from './state';
+import { Chunk, getStartLineForIndex } from './chunk';
+import { RHSObjects } from './rhsObject';
+import DefChunk from './DefChunk';
 
-type DefChunkProps = {
-  name: string,
-  failures: string[],
-  highlights: number[][],
-  index: number,
-  startLine: number,
-  chunk: string,
-  onEdit: (key: number, chunk: string) => void,
-  isLast: boolean
-};
-type DefChunkState = {
-  editor: CodeMirror.Editor | null,
-  focused: boolean,
-  updateTimer: NodeJS.Timeout
-};
-
-export class DefChunk extends React.Component<DefChunkProps, DefChunkState> {
-  constructor(props : DefChunkProps) {
-    super(props);
-    const onFirstUpdate = () => {
-      this.lint(this.props.chunk);
-    }
-    this.state = { editor: null, updateTimer: setTimeout(onFirstUpdate, 0), focused: false,  };
-  }
-
-  componentWillReceiveProps() {
-    if(this.state.editor !== null) {
-      const marks = this.state.editor.getDoc().getAllMarks();
-      marks.forEach(m => m.clear());
-    }
-  }
-
-  componentDidUpdate() {
-    if(this.state.editor !== null) {
-      const marks = this.state.editor.getDoc().getAllMarks();
-      marks.forEach(m => m.clear());
-      if (this.props.highlights.length > 0) {
-          for (let i = 0; i < this.props.highlights.length; i++) {
-              this.state.editor.getDoc().markText(
-                  { line: this.props.highlights[i][0] - 1 - this.props.startLine,
-                      ch: this.props.highlights[i][1] },
-                  { line: this.props.highlights[i][2] - 1 - this.props.startLine,
-                      ch: this.props.highlights[i][3] },
-                  { className: "styled-background-error" });
-          }
-      }
-    }
-  }
-  scheduleUpdate(value : string) {
-    clearTimeout(this.state.updateTimer);
-    this.setState({
-        updateTimer: setTimeout(() => {
-          this.props.onEdit(this.props.index, value);
-          this.lint(value);
-        }, 250)
-      });
-  }
-  lint(value : string) {
-    control.lint(value, this.props.name);
-  }
-  render() {
-    let borderWidth = "1px";
-    let borderColor = "#eee";
-    let shadow = "";
-    if(this.state.focused) { shadow = "3px 3px 2px #aaa"; borderWidth = "2px"; borderColor = "black"; }
-    if(this.props.highlights.length > 0) { borderColor = "red"; }
-    const border = borderWidth + " solid " + borderColor;
-    return (<div style={{ boxShadow: shadow, border: border, "paddingTop": "0.5em", "paddingBottom": "0.5em" }}>
-      <CodeMirror
-        onFocus={(_, __) => {
-          if(this.props.isLast) {
-            this.props.onEdit(this.props.index, "");
-          }
-          this.setState({ focused: true })}
-        }
-        onBlur={(_, __) => this.setState({ focused: false })}
-        editorDidMount={(editor, value) => {
-          this.setState({editor: editor});
-          const marks = editor.getDoc().getAllMarks();
-          marks.forEach(m => m.clear());
-          editor.setSize(null, "auto");
-        }}
-        value={this.props.chunk}
-        options={{
-          mode: 'pyret',
-          theme: 'default',
-          lineNumbers: true,
-          lineWrapping: true,
-          lineNumberFormatter: (l) => String(l + this.props.startLine)
-        }}
-        onChange={(editor, __, value) => {
-          this.scheduleUpdate(value);
-        }
-        }
-        autoCursor={false}>
-      </CodeMirror>
-      <ul>
-        {this.props.failures.map((f, ix) => <li key={String(ix)}>{f}</li>)}
-      </ul>
-      </div>);
-  }
-}
-
-type Chunk = {
-  startLine: number,
-  id: string,
-  text: string
-}
-
-type LintFailure = {
-    name: string,
-    errors: string[]
-}
-
-type DefChunksProps = {
-  lintFailures: {[name : string]: LintFailure},
-  highlights: number[][],
-  program: string,
-  name: string,
-  onEdit: (s: string) => void
-};
-type DefChunksState = {
+type StateProps = {
   chunks: Chunk[],
-  chunkIndexCounter: number
+  focusedChunk: number | undefined,
+  rhs: RHSObjects,
 };
 
-const CHUNKSEP = "#.CHUNK#\n";
+type DispatchProps = {
+  handleReorder: any,
+  setRHS: (value: RHSObjects) => void,
+};
 
-export class DefChunks extends React.Component<DefChunksProps, DefChunksState> {
-  constructor(props: DefChunksProps) {
-    super(props);
-    const chunkstrs = this.props.program.split(CHUNKSEP);
-    const chunks : Chunk[] = [];
-    var totalLines = 0;
-    for(let i = 0; i < chunkstrs.length; i += 1) {
-      chunks.push({text: chunkstrs[i], id: String(i), startLine: totalLines})
-      totalLines += chunkstrs[i].split("\n").length;
-    }
-    this.state = {
-      chunkIndexCounter: chunkstrs.length,
-      chunks
-    }
-  }
-  getStartLineForIndex(chunks : Chunk[], index : number) {
-    if(index === 0) { return 0; }
-    else {
-      return chunks[index - 1].startLine + chunks[index - 1].text.split("\n").length;
-    }
-  }
-  chunksToString(chunks : Chunk[]) {
-    return chunks.map((c) => c.text).join(CHUNKSEP);
-  }
-  render() {
-    const onEdit = (index: number, text: string) => {
-      let newChunks : Chunk[];
-      if (index === this.state.chunks.length) {
-        const id = String(this.state.chunkIndexCounter);
-        this.setState({chunkIndexCounter: this.state.chunkIndexCounter + 1});
-        newChunks = this.state.chunks.concat([{text, id, startLine: this.getStartLineForIndex(this.state.chunks, this.state.chunks.length)}])
-      }
-      else {
-        newChunks = this.state.chunks.map((p, ix) => {
-          if (ix === index) { return {text, id:p.id, startLine: p.startLine}; }
-          else { return p; }
-        });
-        newChunks = newChunks.map((p, ix) => {
-          if (ix <= index) { return p; }
-          else { return {text: p.text, id: p.id, startLine: this.getStartLineForIndex(newChunks, ix)}; }
-        });
-      }
-      this.setState({chunks: newChunks});
-      this.props.onEdit(this.chunksToString(newChunks));
-    }
-    const onDragEnd = (result: DropResult) => {
-      if(result.destination === null || result.source!.index === result.destination!.index) {
-        return;
-      }
-      else {
-        // Great examples! https://codesandbox.io/s/k260nyxq9v
-        const reorder = (chunks : Chunk[], start : number, end : number) => {
-          const result = Array.from(chunks);
-          const [removed] = result.splice(start, 1);
-          result.splice(end, 0, removed);
-          return result;
-        };
-        if(result.destination === undefined) { return; }
-        let newChunks = reorder(this.state.chunks, result.source.index, result.destination.index);
-        for(let i = 0; i < newChunks.length; i += 1) {
-          const p = newChunks[i];
-          newChunks[i] = {text: p.text, id: p.id, startLine: this.getStartLineForIndex(newChunks, i)};
-        }
-        this.setState({ chunks: newChunks });
-        this.props.onEdit(this.chunksToString(newChunks));
-      }
-    };
-    const endBlankChunk = {text: "", id: String(this.state.chunkIndexCounter), startLine: this.getStartLineForIndex(this.state.chunks, this.state.chunks.length)};
-    return (<DragDropContext onDragEnd={onDragEnd}>
-      <Droppable droppableId="droppable">
-        {(provided, snapshot) => {
-          return <div
-            {...provided.droppableProps}
-            ref={provided.innerRef} 
-          >{this.state.chunks.concat([endBlankChunk]).map((chunk, index) => {
-            const linesInChunk = chunk.text.split("\n").length;
-            let highlights : number[][];
-            const name = this.props.name + "_chunk_" + chunk.id;
-            let failures : string[] = [];
-            if(name in this.props.lintFailures) {
-              failures = this.props.lintFailures[name].errors;
-            }
-            if(this.props.highlights.length > 0) {
-              highlights = this.props.highlights.filter((h) => h[0] > chunk.startLine && h[0] <= chunk.startLine + linesInChunk);
-            }
-            else {
-              highlights = [];
-            }
-            const isLast = index === this.state.chunks.length;
-            return <Draggable key={chunk.id} draggableId={chunk.id} index={index}>
-              {(provided, snapshot) => {
-                return (<div ref={provided.innerRef}
-                  {...provided.draggableProps}
-                  {...provided.dragHandleProps}><DefChunk name={name} isLast={isLast} failures={failures} highlights={highlights} startLine={chunk.startLine} key={chunk.id} index={index} chunk={chunk.text} onEdit={onEdit}></DefChunk></div>)
-              }
-              }</Draggable>;
-          })}</div>;
-        }}
-      </Droppable></DragDropContext>);
-  }
+function mapStateToProps(state: State): StateProps {
+  const {
+    chunks,
+    focusedChunk,
+    rhs,
+  } = state;
+
+  return {
+    chunks,
+    focusedChunk,
+    rhs,
+  };
 }
+
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
+  return {
+    handleReorder(
+      result: DropResult,
+      chunks: Chunk[],
+      oldFocusedId: string | false,
+    ) {
+      // Great examples! https://codesandbox.io/s/k260nyxq9v
+      const reorder = (innerChunks: Chunk[], start: number, end: number) => {
+        const newResult = Array.from(innerChunks);
+        const [removed] = newResult.splice(start, 1);
+        newResult.splice(end, 0, removed);
+        return newResult;
+      };
+      if (result.destination === undefined) { return; }
+
+      const newChunks = reorder(chunks, result.source.index, result.destination.index);
+
+      for (let i = 0; i < newChunks.length; i += 1) {
+        newChunks[i].startLine = getStartLineForIndex(newChunks, i);
+        if (result.source.index < result.destination.index) {
+          if (i >= result.source.index && i <= result.destination.index) {
+            newChunks[i].errorState.status = 'notLinted';
+          }
+        } else if (result.source.index > result.destination.index) {
+          if (i >= result.destination.index && i <= result.source.index) {
+            newChunks[i].errorState.status = 'notLinted';
+          }
+        }
+      }
+
+      // const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
+
+      function getNewFocusedChunk() {
+        for (let i = 0; i < newChunks.length; i += 1) {
+          if (newChunks[i].id === oldFocusedId) {
+            return i;
+          }
+        }
+
+        return false;
+      }
+
+      dispatch({ type: 'update', key: 'chunks', value: newChunks });
+
+      if (oldFocusedId !== false) {
+        const newFocusedChunk = getNewFocusedChunk();
+        if (newFocusedChunk === false) {
+          throw new Error('handleReorder: new focused chunk is false');
+        }
+
+        if (chunks[newFocusedChunk].id !== oldFocusedId) {
+          dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
+        } else {
+          dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+        }
+      } else {
+        dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+      }
+    },
+    setRHS(value: RHSObjects) {
+      dispatch({ type: 'update', key: 'rhs', value });
+    },
+  };
+}
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type PropsFromRedux = ConnectedProps<typeof connector>;
+type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
+
+function DefChunks({
+  handleReorder,
+  chunks,
+  focusedChunk,
+  rhs,
+  setRHS,
+}: DefChunksProps) {
+  const onDragEnd = (result: DropResult) => {
+    if (result.destination !== null
+        && result.source!.index !== result.destination!.index) {
+      if (focusedChunk === undefined) {
+        handleReorder(result, chunks, false);
+        setRHS({ ...rhs, outdated: true });
+      } else {
+        const fc = chunks[focusedChunk];
+        if (fc === undefined) {
+          throw new Error('onDragEnd: chunks[focusedChunk] is undefined');
+        }
+        handleReorder(result, chunks, fc.id);
+        setRHS({ ...rhs, outdated: true });
+      }
+    }
+  };
+
+  function setupChunk(chunk: Chunk, index: number) {
+    const focused = focusedChunk === index;
+
+    function getBorderColor() {
+      if (focused && chunk.errorState.status === 'failed') {
+        return 'red';
+      }
+
+      if (!focused && chunk.errorState.status === 'failed') {
+        return '#ff9999';
+      }
+
+      if (focused && chunk.errorState.status === 'notLinted') {
+        return 'orange';
+      }
+
+      if (!focused && chunk.errorState.status === 'notLinted') {
+        return 'yellow';
+      }
+
+      if (focused) {
+        return 'lightgray';
+      }
+
+      return '#eee';
+    }
+
+    const border = getBorderColor();
+
+    return (
+      <Draggable key={chunk.id} draggableId={chunk.id} index={index}>
+        {(draggableProvided) => (
+          <div
+            ref={draggableProvided.innerRef}
+            // eslint-disable-next-line react/jsx-props-no-spreading
+            {...draggableProvided.draggableProps}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                width: '100%',
+              }}
+            >
+              <div
+              // eslint-disable-next-line react/jsx-props-no-spreading
+                {...draggableProvided.dragHandleProps}
+                style={{
+                  minWidth: '1.5em',
+                  height: 'auto',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderLeft: '1px solid lightgray',
+                  background: `${border}`,
+                  borderRadius: '75% 0% 0% 75%',
+                  marginLeft: '0.5em',
+                  userSelect: 'none',
+                }}
+              >
+                ::
+              </div>
+              <DefChunk
+                key={chunk.id}
+                index={index}
+                focused={focused}
+              />
+            </div>
+          </div>
+        )}
+      </Draggable>
+    );
+  }
+
+  const allChunks = chunks.map(setupChunk);
+
+  return (
+    <DragDropContext onDragEnd={onDragEnd}>
+      <Droppable droppableId="droppable">
+        {(provided) => (
+          <div
+            // eslint-disable-next-line react/jsx-props-no-spreading
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+          >
+            {allChunks}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
+    </DragDropContext>
+  );
+}
+
+export default connector(DefChunks);
