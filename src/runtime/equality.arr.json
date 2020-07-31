@@ -1,0 +1,44 @@
+{
+  "requires": [],
+  "provides": {
+    "shorthands": {
+    },
+    "values": {
+        "is-Equal": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+        "is-NotEqual": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+        "is-Unknown": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+
+        "Equal": ["local", "EqualityResult"],
+        "NotEqual": ["arrow", ["String", "tany", "tany"], ["local", "EqualityResult"]],
+        "Unknown": ["arrow", ["String", "tany", "tany"], ["local", "EqualityResult"]],
+
+        "to-boolean": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+        "equal-and": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
+        "equal-or": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]]
+    },
+    "aliases": {
+      "EqualityResult": ["local", "EqualityResult"]
+    },
+    "datatypes": {
+      "EqualityResult": [
+        "data", "EqualityResult", [], [
+          ["Equal", {}],
+          ["NotEqual",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ],
+          ["Unknown",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ]
+        ], {}
+      ]
+    }
+  }
+}
