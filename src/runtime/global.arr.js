@@ -25,13 +25,6 @@ module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
-  'raw-array': array['raw-array'],
-  'raw-array-at': array['at'],
-  'raw-array-get': array['get'],
-  'raw-array-fold': array['fold'],
-  'raw-array-sum': array['sum'],
-  'raw-array-min': array['min'],
-  'raw-array-max': array['max'],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
   'assert': function( lv, rv, msg ) {
