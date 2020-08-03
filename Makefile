@@ -71,7 +71,7 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 	cd $(RUNTIME_ARR_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
 		--build-runnable $*.arr \
 		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
-		--runtime-builtin-relative-path "./"
+		--runtime-builtin-relative-path "./" \
 		--type-check true
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
