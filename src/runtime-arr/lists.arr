@@ -255,7 +255,7 @@ sharing:
   end,
 end
 
-fun raw-array-to-list<a>(array :: RawArray<A>) -> List<A>:
+fun raw-array-to-list<a>(array :: RawArray<a>) -> List<a>:
   RA.raw-array-foldr(lam(acc, current): link(current, acc) end, empty, array)
 end
 
