@@ -253,6 +253,16 @@ sharing:
   end,
 end
 
+list = {
+  make: raw-array-to-list,
+  make0: lam(): empty end,
+  make1: lam(a): link(a, empty) end,
+  make2: lam(a, b): link(a, link(b, empty)) end,
+  make3: lam(a, b, c): link(a, link(b, link(c, empty))) end,
+  make4: lam(a, b, c, d): link(a, link(b, link(c, link(d, empty)))) end,
+  make5: lam(a, b, c, d, e): link(a, link(b, link(c, link(d, link(e, empty))))) end,
+}
+
 fun length<a>(lst :: List<a>) -> Number:
   doc: "Takes a list and returns the number of links in the list"
   fun help(l, cur) -> Number:
@@ -899,13 +909,3 @@ end
 member-always3 = member3
 member-always = member
 foldl = fold
-
-list = {
-  make: raw-array-to-list,
-  make0: lam(): empty end,
-  make1: lam(a): link(a, empty) end,
-  make2: lam(a, b): link(a, link(b, empty)) end,
-  make3: lam(a, b, c): link(a, link(b, link(c, empty))) end,
-  make4: lam(a, b, c, d): link(a, link(b, link(c, link(d, empty)))) end,
-  make5: lam(a, b, c, d, e): link(a, link(b, link(c, link(d, link(e, empty))))) end,
-}
