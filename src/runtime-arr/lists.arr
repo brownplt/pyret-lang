@@ -30,133 +30,135 @@ include from E:
     right
 end
 
+# NOTE(alex): Until typechecker is updated, do NOT add type annotations to "with" methods
+#   Relying on type inference in order to infer the correct refinement type
 data List<a>:
   | empty with:
-    method length(self :: List<a>) -> Number:
+    method length(self) -> Number:
       doc: "Takes no other arguments and returns the number of links in the list"
       0
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
+    method find(self, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       none
     end,
 
-    method partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
+    method partition(self, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
       { is-true: empty, is-false: empty }
     end,
 
-    method foldr<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
+    method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the right,
             starting with the base value```
       base
     end,
 
-    method foldl<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
+    method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the base value```
       base
     end,
 
-    method all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+    method all(self, f :: (a -> Boolean)) -> Boolean:
       doc: ```Returns true if the given predicate is true for every element in this list```
       true
     end,
 
-    method any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+    method any(self, f :: (a -> Boolean)) -> Boolean:
       doc: ```Returns true if the given predicate is true for any element in this list```
       false
     end,
 
-    method member(self :: List<a>, elt :: a) -> Boolean:
+    method member(self, elt :: a) -> Boolean:
       doc: "Returns true when the given element is equal to a member of this list"
       false
     end,
 
-    method append(self :: List<a>, other :: List<a>) -> List<a>:
+    method append(self, other :: List<a>) -> List<a>:
       doc: "Takes a list and returns the result of appending the given list to this list"
       other
     end,
 
-    method last(self :: List<a>) -> a:
+    method last(self) -> a:
       doc: "Returns the last element of this list, or raises an error if the list is empty"
       raise('last: took last of empty list')
     end,
 
-    method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+    method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
       self
     end,
 
-    method sort(self :: List<a>) -> List<a>:
+    method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality```
       self
     end,
   | link(first :: a, rest :: List<a>) with:
 
-    method length(self :: List<a>) -> Number:
+    method length(self) -> Number:
       doc: "Takes no other arguments and returns the number of links in the list"
       1 + self.rest.length()
     end,
 
-    method partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
+    method partition(self, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
             the 'is-true' field contains the list of items in this list for which the predicate holds,
             and the 'is-false' field contains the list of items in this list for which the predicate fails```
       partition(f, self)
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
+    method find(self, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       find(f, self)
     end,
 
-    method member(self :: List<a>, elt :: a) -> Boolean:
+    method member(self, elt :: a) -> Boolean:
       doc: "Returns true when the given element is equal to a member of this list"
       (elt == self.first) or self.rest.member(elt)
     end,
 
-    method foldr<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
+    method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the right,
             starting with the initial value```
       f(self.first, self.rest.foldr(f, base))
     end,
 
-    method foldl<b>(self :: List<a>, f :: (a, b -> b), base :: b) -> b:
+    method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
       doc: ```Takes a function and an initial value, and folds the function over this list from the left,
             starting with the initial value```
       self.rest.foldl(f, f(self.first, base))
     end,
 
-    method all(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+    method all(self, f :: (a -> Boolean)) -> Boolean:
       doc: ```Returns true if the given predicate is true for every element in this list```
       f(self.first) and self.rest.all(f)
     end,
 
-    method any(self :: List<a>, f :: (a -> Boolean)) -> Boolean:
+    method any(self, f :: (a -> Boolean)) -> Boolean:
       doc: ```Returns true if the given predicate is true for any element in this list```
       f(self.first) or self.rest.any(f)
     end,
 
-    method append(self :: List<a>, other :: List<a>) -> List<a>:
+    method append(self, other :: List<a>) -> List<a>:
       doc: "Takes a list and returns the result of appending the given list to this list"
       self.first ^ link(_, self.rest.append(other))
     end,
 
-    method last(self :: List<a>) -> a:
+    method last(self) -> a:
       doc: "Returns the last element of this list, or raises an error if the list is empty"
       if is-empty(self.rest): self.first
       else: self.rest.last()
       end
     end,
 
-    method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
+    method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
             equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
@@ -180,7 +182,7 @@ data List<a>:
       less.append(equal.append(greater))
     end,
 
-    method sort(self :: List<a>) -> List<a>:
+    method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
       self.sort-by(lam(e1,e2): e1 < e2 end, within(~0))
