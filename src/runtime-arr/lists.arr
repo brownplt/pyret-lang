@@ -882,11 +882,15 @@ fun take-while<A>(pred :: (A -> Boolean), lst :: List<A>) -> {List<A>; List<A>}:
   end
   { help(lst); tail }
 where:
-  take-while(_ > 0, [list: 5, 3, 1, 0, 1, 2, 3]) is { [list: 5, 3, 1]; [list: 0, 1, 2, 3] }
-  take-while(_ > 0, empty) is { empty; empty }
-  take-while(_ > 0, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
-  take-while(_ > 0, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
-  take-while(_ == true, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
+  # TODO(alex): binop currying results in an error (underscore-as-expr)
+  #   from resolve-scope.arr:check-unbound-ids-bad-assignments()
+  #   Ex: _ > 0
+  #
+  take-while(lam(x): x > 0 end, [list: 5, 3, 1, 0, 1, 2, 3]) is { [list: 5, 3, 1]; [list: 0, 1, 2, 3] }
+  take-while(lam(x): x > 0 end, empty) is { empty; empty }
+  take-while(lam(x): x > 0 end, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
+  take-while(lam(x): x > 0 end, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
+  take-while(lam(x): x == true end, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
 end
 
 fun join-str<a>(l :: List<a>, sep :: String) -> String:
