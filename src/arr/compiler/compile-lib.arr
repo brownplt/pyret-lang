@@ -246,7 +246,7 @@ fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>),
         deps = locator.get-dependencies()
         found-mods = for lists.filter-map(d from deps) block:
           cases(CS.Dependency) d block:
-            | dependency(_, _) => 
+            | dependency(_, _) =>
               found = dfind(context, d)
               pmap.set-now(d.key(), found.locator.uri())
               some(found)
@@ -438,7 +438,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             var provides = dummy-provides(locator.uri())
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             # var desugared = named-result.ast
-            
+
             # NOTE(joe, anchor): removed this to see what un-desugared output looks like
             # and changed desugared.ast to desugared below
 
@@ -569,7 +569,7 @@ fun make-standalone(wl, compiled, options):
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
-  
+
   var all-compile-problems = empty
   static-modules = j-obj(for C.map_list(w from wl):
       loadable = compiled.modules.get-value-now(w.locator.uri())

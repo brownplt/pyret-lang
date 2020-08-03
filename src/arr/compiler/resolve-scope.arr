@@ -128,7 +128,7 @@ fun weave-contracts(contracts, rev-binds) block:
     else: false
     end
   end
-    
+
   ans = for fold(acc from empty, bind from rev-binds):
     cases(A.Bind) bind.b:
       | s-bind(l, shadows, id, ann) =>
@@ -473,7 +473,7 @@ where:
       A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3)),
       p-s(id("x"))
     ])
-  
+
   prog4 = bs("var x = 10 fun f(): 4 end f()")
   prog4
     is A.s-let-expr(d, [list:
@@ -514,7 +514,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
       | empty => {new-binds; new-body}
       | link(_, _) => {new-binds; A.s-let-expr(a.l, lbs.rest, new-body, false)}
     end
-  end  
+  end
   rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, _check-loc, v-check, blocky)
 end
 
@@ -613,7 +613,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
           end
         | else => raise("Impossible")
       end
-      
+
       errors := empty
 
       recombined = A.s-block(with-provides.l, #| remaining + |# with-provides.stmts)
@@ -949,12 +949,12 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
 
   fun add-spec(imp-loc, {imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
 
-    # data will spread across many 
+    # data will spread across many
     shared-data-hidings = [SD.mutable-string-dict:]
 
     fun add-name-spec(name-spec, dict, which-env, adder):
       cases(A.NameSpec) name-spec block:
-        | s-star(l, hidings) =>          
+        | s-star(l, hidings) =>
           all-names = dict.keys-list()
           imported-names = star-names(l, all-names, hidings)
           for fold(shadow which-env from which-env, n from imported-names):
@@ -979,7 +979,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         shared-data-hidings.remove-now(name)
         which-env
       else:
-        add-name-spec(name-spec, dict, which-env, adder) 
+        add-name-spec(name-spec, dict, which-env, adder)
       end
     end
 
@@ -1132,7 +1132,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
           vb = self.env.get-value(k)
           vb.origin.new-definition
         end
-      defined-vals = for map(key from non-globals): 
+      defined-vals = for map(key from non-globals):
         vb = self.env.get-value(key)
         loc = vb.origin.local-bind-site
         atom = vb.atom
@@ -1153,7 +1153,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         A.s-defined-type(key, A.a-name(l, atom))
       end
 
-      non-global-modules = 
+      non-global-modules =
         for filter(k from self.module-env.keys-list()):
           mb = self.module-env.get-value(k)
           mb.origin.new-definition
@@ -1202,7 +1202,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             A.s-provide-data(l, A.s-star(l, [list:]), [list:]),
             A.s-provide-type(l, A.s-star(l, [list:]))])
       end
-      
+
       all-provides = [list: provide-vals-specs, provide-types-specs] + provides
 
       # Each of these dictionaries maps from plain names to atoms, for example
@@ -1315,7 +1315,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
             remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
             cases(Option) remote-reference-uri:
-              | none => 
+              | none =>
                 for each(k from datatypes.keys-list-now()):
                   data-expr = datatypes.get-value-now(k)
                   expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden, hidden-todo)
@@ -1349,13 +1349,13 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
                   maybe-add(provided-values, v.name, {l; none; variant-vb.atom})
                   maybe-add(provided-values, checker-name, {l; none; variant-checker-vb.atom})
                 end
-                
+
               | some(uri) =>
                 datatype-name = path.last().toname()
                 providing-module = initial-env.provides-by-uri-value(uri)
                 maybe-datatype = initial-env.resolve-datatype-by-uri(uri, datatype-name)
                 { datatype-uri; datatype } = cases(Option) maybe-datatype:
-                  | none => 
+                  | none =>
                     cases(Option) providing-module.aliases.get(datatype-name):
                       | none => raise("Name " + datatype-name + " not defined as a type or datatype on " + uri)
                       | some(t) =>
@@ -1531,7 +1531,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       {env; fbs} = for fold(acc from { self.env; empty }, fb from binds):
         {env; fbs} = acc
         cases(A.ForBind) fb block:
-          | s-for-bind(l2, bind, val) => 
+          | s-for-bind(l2, bind, val) =>
             atom-env = make-atom-for(bind.id, bind.shadows, env, bindings,
               C.value-bind(C.bo-local(l2, bind.id), C.vb-let, _, bind.ann.visit(self)))
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
@@ -1669,7 +1669,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       cases(A.Expr) obj:
         | s-id(l2, id) =>
           cases(A.Name) id block:
-            | s-name(_, s) => 
+            | s-name(_, s) =>
               # NOTE(joe): This gives an ordering to names. If somehow we end up with
               # import foo as C
               #
@@ -1736,7 +1736,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     method s-bind(self, l, shadows, id, ann):
       cases(A.Name) id:
         | s-underscore(_) => A.s-bind(l, shadows, id, ann)
-        | else => 
+        | else =>
           raise("Should not reach non-underscore bindings in resolve-names: " + id.key() + " at " + torepr(l))
       end
     end,

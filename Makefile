@@ -7,7 +7,7 @@ PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr)
 PYRET_JARR := build/phaseA/pyret.jarr
 
 $(PYRET_JARR) : $(PYRET_JARR_DEPS)
-	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR) 
+	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \
@@ -104,17 +104,17 @@ build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNT
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	`npm bin`/browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
-build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js 
-	mkdir -p build/phaseA 
-	mkdir -p build/worker 
-	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser" 
- 
-src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js 
-	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js 
- 
-build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js 
-	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js 
- 
+build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js
+	mkdir -p build/phaseA
+	mkdir -p build/worker
+	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser"
+
+src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js
+	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js
+
+build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
+	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js
+
 parser: src/arr/compiler/pyret-parser.js
 
 build/worker/main.js: src/webworker/*.ts build/worker/runtime-files.json
