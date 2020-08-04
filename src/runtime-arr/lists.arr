@@ -65,10 +65,10 @@ fun join-str<a>(l :: List<a>, sep :: String) -> String:
 
   foldl-complicated(true, l, f, x, x, "")
 where:
-  join-str([list: 1, "2", 3], "+") is "1+2+3"
-  join-str([list: ], "+") is ""
-  join-str([list: 1], "+") is "1"
-  join-str([list: 1, 2], "+") is "1+2"
+  join-str(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+") is "1+2+3"
+  join-str(raw-array-to-list([RA.raw-array: ]), "+") is ""
+  join-str(raw-array-to-list([RA.raw-array: 1]), "+") is "1"
+  join-str(raw-array-to-list([RA.raw-array: 1, 2]), "+") is "1+2"
 end
 
 fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> String:
@@ -86,11 +86,11 @@ fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> Str
 
   foldl-complicated(true, jlist, f, x, l, "")
 where:
-  join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
-  join-str-last([list: ], "+", "-") is ""
-  join-str-last([list: 1], "+", "-") is "1"
-  join-str-last([list: 1, 2], "+", "-") is "1-2"
-  join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
+  join-str-last(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+", "-") is "1+2-3"
+  join-str-last(raw-array-to-list([RA.raw-array: ]), "+", "-") is ""
+  join-str-last(raw-array-to-list([RA.raw-array: 1]), "+", "-") is "1"
+  join-str-last(raw-array-to-list([RA.raw-array: 1, 2]), "+", "-") is "1-2"
+  join-str-last(raw-array-to-list([RA.raw-array: 1, 2, 3, 4]), "+", "-") is "1+2+3-4"
 end
 
 fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
@@ -161,8 +161,8 @@ fun reverse<a>(lst :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
   fold(lam(acc, elt): link(elt, acc) end, empty, lst)
 where:
-  reverse([list: ]) is [list: ]
-  reverse([list: 1, 3]) is [list: 3, 1]
+  reverse(raw-array-to-list([RA.raw-array: ])) is raw-array-to-list([RA.raw-array: ])
+  reverse(raw-array-to-list([RA.raw-array: 1, 3])) is raw-array-to-list([RA.raw-array: 3, 1])
 end
 
 fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
