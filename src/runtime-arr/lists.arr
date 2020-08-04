@@ -22,15 +22,25 @@ end
 
 include from O:
     type Option,
-    none,
-    some
+    # TODO(alex): "include from" syntax broken for values still
+    #   Uncommenting results in a missing key in a string dictionary somewhere
+    #   Error message: Key "file:// .... /option.arr" not found
+    #some,
+    #none
 end
 
 include from E:
     type Either,
-    left,
-    right
+    #left,
+    #right
 end
+
+# TODO(alex): remove once "include from" syntax is fixed
+within = equality.within
+some = O.some
+none = O.none
+left = E.left
+right = E.right
 
 # TODO(alex):
 #   1) The 'list' constructor expression breaks function ordering
