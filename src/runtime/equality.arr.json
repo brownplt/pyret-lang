@@ -16,18 +16,18 @@
         "equal-and": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
         "equal-or": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
 
-        "equal-now": ["arrow", ["Any", "Any"], "Boolean"],
-        "equal-now3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
-        "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
-        "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
-        "identical": ["arrow", ["Any", "Any"], "Boolean"],
-        "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+        "equal-now": ["arrow", ["tany", "tany"], "Boolean"],
+        "equal-now3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+        "equal-always": ["arrow", ["tany", "tany"], "Boolean"],
+        "equal-always3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+        "identical": ["arrow", ["tany", "tany"], "Boolean"],
+        "identical3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
 
-        "within": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
-        "within-rel": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
-        "within-abs": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
-        "within-rel-now": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
-        "within-abs-now": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]]
+        "within": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-abs": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-rel-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]]
     },
     "aliases": {
       "EqualityResult": ["local", "EqualityResult"]
