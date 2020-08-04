@@ -32,6 +32,67 @@ include from E:
     right
 end
 
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
+fun foldl-complicated<a, b>(
+  is-first :: Boolean,
+  flist :: List<a>,
+  f :: (a, b -> b),
+  x :: (a, b -> b),
+  l :: (a, b -> b),
+  base :: b) -> b:
+  cases(List) flist:
+    | link(head, tail) =>
+      if is-first:
+        foldl-complicated(false, tail, f, x, l, f(head, base))
+      else if tail == empty:
+        foldl-complicated(false, tail, f, x, l, l(head, base))
+      else:
+        foldl-complicated(false, tail, f, x, l, x(head, base))
+      end
+    | empty => base
+  end
+end
+
+fun join-str<a>(l :: List<a>, sep :: String) -> String:
+  f = lam(elem, acc):
+    acc + G.js-to-string(elem)
+  end
+
+  x = lam(elem, acc):
+    acc + sep + G.js-to-string(elem)
+  end
+
+  foldl-complicated(true, l, f, x, x, "")
+where:
+  join-str([list: 1, "2", 3], "+") is "1+2+3"
+  join-str([list: ], "+") is ""
+  join-str([list: 1], "+") is "1"
+  join-str([list: 1, 2], "+") is "1+2"
+end
+
+fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> String:
+  f = lam(elem, acc):
+    acc + G.js-to-string(elem)
+  end
+
+  x = lam(elem, acc):
+    acc + sep + G.js-to-string(elem)
+  end
+
+  l = lam(elem, acc):
+    acc + last-sep + G.js-to-string(elem)
+  end
+
+  foldl-complicated(true, jlist, f, x, l, "")
+where:
+  join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
+  join-str-last([list: ], "+", "-") is ""
+  join-str-last([list: 1], "+", "-") is "1"
+  join-str-last([list: 1, 2], "+", "-") is "1-2"
+  join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
+end
+
 fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   doc: ```Returns the list without the element if found, or the whole list if it is not```
   if is-empty(lst):
@@ -921,67 +982,6 @@ where:
   take-while(lam(x): x > 0 end, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
   take-while(lam(x): x > 0 end, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
   take-while(lam(x): x == true end, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
-end
-
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
-fun foldl-complicated<a, b>(
-  is-first :: Boolean,
-  flist :: List<a>,
-  f :: (a, b -> b),
-  x :: (a, b -> b),
-  l :: (a, b -> b),
-  base :: b) -> b:
-  cases(List) flist:
-    | link(head, tail) =>
-      if is-first:
-        foldl-complicated(false, tail, f, x, l, f(head, base))
-      else if tail == empty:
-        foldl-complicated(false, tail, f, x, l, l(head, base))
-      else:
-        foldl-complicated(false, tail, f, x, l, x(head, base))
-      end
-    | empty => base
-  end
-end
-
-fun join-str<a>(l :: List<a>, sep :: String) -> String:
-  f = lam(elem, acc):
-    acc + G.js-to-string(elem)
-  end
-
-  x = lam(elem, acc):
-    acc + sep + G.js-to-string(elem)
-  end
-
-  foldl-complicated(true, l, f, x, x, "")
-where:
-  join-str([list: 1, "2", 3], "+") is "1+2+3"
-  join-str([list: ], "+") is ""
-  join-str([list: 1], "+") is "1"
-  join-str([list: 1, 2], "+") is "1+2"
-end
-
-fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> String:
-  f = lam(elem, acc):
-    acc + G.js-to-string(elem)
-  end
-
-  x = lam(elem, acc):
-    acc + sep + G.js-to-string(elem)
-  end
-
-  l = lam(elem, acc):
-    acc + last-sep + G.js-to-string(elem)
-  end
-
-  foldl-complicated(true, jlist, f, x, l, "")
-where:
-  join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
-  join-str-last([list: ], "+", "-") is ""
-  join-str-last([list: 1], "+", "-") is "1"
-  join-str-last([list: 1, 2], "+", "-") is "1-2"
-  join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
 end
 
 member-always3 = member3
