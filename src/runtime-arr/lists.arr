@@ -202,7 +202,7 @@ data List<a>:
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
-      self.sort-by(lam(e1,e2): e1 < e2 end, within(~0))
+      self.sort-by(lam(e1,e2): e1 < e2 end, equality.within(~0))
     end,
 sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
@@ -909,7 +909,7 @@ fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
 end
 
 fun member-now3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
-  member-with(lst, elt, equal-now3)
+  member-with(lst, elt, equality.equal-now3)
 end
 
 fun member-now<a>(lst :: List<a>, elt :: a) -> Boolean:
