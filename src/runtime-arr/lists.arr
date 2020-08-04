@@ -45,9 +45,20 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   doc: "Returns the subset of lst for which f(elem) is true"
-  builtins.raw-list-filter(f, lst)
+  lst.foldr(
+    lam(e, acc):
+      if f(e):
+        link(e, acc)
+      else:
+        acc
+      end
+    end,
+    empty
+  )
 end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
@@ -72,11 +83,17 @@ fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: L
   { prefix: prefix, suffix: suffix }
 end
 
-# TODO(alex): implement fold NOT in terms of raw-list-fold
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
-  builtins.raw-list-fold(f, base, lst)
+  cases(List) lst:
+    | link(fst, rst) =>
+      fold(f, f(base, fst), rst)
+    | empty =>
+      base
+  end
 end
 
 fun reverse<a>(lst :: List<a>) -> List<a>:
@@ -93,9 +110,14 @@ fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
   nothing
 end
 
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   doc: "Returns a list made up of f(elem) for each elem in lst"
-  builtins.raw-list-map(f, lst)
+  cases(List) lst:
+    | link(fst, rst) => link(f(fst), map(f, lst))
+    | empty => empty
+  end
 end
 
 fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
